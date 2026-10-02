@@ -13,11 +13,11 @@ module Datadog
           DEFAULT_MAX_PER_SECOND = -1
 
           # Sampling decision method used to come to the sampling decision for this span
-          TAG_MECHANISM = '_dd.span_sampling.mechanism'
+          TAG_MECHANISM = "_dd.span_sampling.mechanism"
           # Sampling rate applied to this span, if a rule applies
-          TAG_RULE_RATE = '_dd.span_sampling.rule_rate'
+          TAG_RULE_RATE = "_dd.span_sampling.rule_rate"
           # Rate limit configured for this span, if a rule applies
-          TAG_MAX_PER_SECOND = '_dd.span_sampling.max_per_second'
+          TAG_MAX_PER_SECOND = "_dd.span_sampling.max_per_second"
         end
       end
     end

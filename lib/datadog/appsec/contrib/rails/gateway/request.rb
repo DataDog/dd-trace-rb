@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../rack/input_peeker'
-require_relative '../../../instrumentation/gateway/argument'
+require_relative "../../rack/input_peeker"
+require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
   module AppSec
@@ -44,17 +44,17 @@ module Datadog
               # usually Hash<String,String> but can be a more complex
               # Hash<String,String||Array||Hash> when e.g coming from JSON or
               # with Rails advanced param square bracket parsing
-              body = request.env['action_dispatch.request.request_parameters']
+              body = request.env["action_dispatch.request.request_parameters"]
 
               return if body.nil?
-              return body unless request.env['action_dispatch.request.path_parameters']
+              return body unless request.env["action_dispatch.request.path_parameters"]
 
               body.reject do |k, _v|
-                request.env['action_dispatch.request.path_parameters'].key?(k)
+                request.env["action_dispatch.request.path_parameters"].key?(k)
               end
             rescue => e
               Datadog.logger.debug { "AppSec: Failed to parse request body: #{e.class}: #{e.message}" }
-              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request body')
+              AppSec.telemetry.report(e, description: "AppSec: Failed to parse request body")
 
               nil
             end
@@ -62,7 +62,7 @@ module Datadog
             def route_params
               excluded = [:controller, :action]
 
-              request.env.fetch('action_dispatch.request.path_parameters', {}).reject do |k, _v|
+              request.env.fetch("action_dispatch.request.path_parameters", {}).reject do |k, _v|
                 excluded.include?(k)
               end
             end
@@ -74,10 +74,10 @@ module Datadog
             #       raw posted data, raw form vars, size if known, raw
             #       Content-Length, then buffering to the limit if unknown-length
             def body_bytesize(limit)
-              raw_body = env['RAW_POST_DATA']
+              raw_body = env["RAW_POST_DATA"]
               return raw_body.bytesize if raw_body
 
-              form_vars = env['rack.request.form_vars']
+              form_vars = env["rack.request.form_vars"]
               return form_vars.bytesize if form_vars
 
               io = request.body
@@ -86,7 +86,7 @@ module Datadog
 
               # NOTE: Read raw `CONTENT_LENGTH` as {ActionDispatch::Request#content_length}
               #       drains `rack.input` into `RAW_POST_DATA` on chunked Transfer-Encoding
-              content_length = env['CONTENT_LENGTH']
+              content_length = env["CONTENT_LENGTH"]
               return content_length.to_i if content_length
 
               # NOTE: An already-read body (e.g. late-parsed multipart on Rack 3+) peeks

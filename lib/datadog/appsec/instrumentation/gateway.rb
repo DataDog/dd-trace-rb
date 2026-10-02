@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'gateway/middleware'
+require_relative "gateway/middleware"
 
 module Datadog
   module AppSec

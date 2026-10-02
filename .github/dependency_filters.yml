@@ -3,6 +3,9 @@ dependencies:
   - '*.gemfile'
   - datadog.gemspec
   - tasks/dependency.rake
+  - tasks/prelock.rb
+  - tasks/security_capabilities.rb
+  - tasks/appraisal_conversion.rb
   - .github/workflows/lock-dependency.yml
   - lib/datadog/version.rb
   - appraisal/**

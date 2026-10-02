@@ -1,10 +1,10 @@
-require 'fileutils'
+require "fileutils"
 
 namespace :rbs do
-  desc 'Report sig/*.rbs files whose matching lib/*.rb no longer exists'
+  desc "Report sig/*.rbs files whose matching lib/*.rb no longer exists"
   task :stale do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
-    glob = ['sig/**/*.rbs'] if glob.empty?
+    glob = ["sig/**/*.rbs"] if glob.empty?
 
     stale = Dir[*glob].reject do |sig|
       next true if /^sig\/helpers\//.match?(sig)
@@ -12,7 +12,7 @@ namespace :rbs do
       next if !/^sig\//.match?(sig)
       next if !/\.rbs$/.match?(sig)
 
-      lib = sig.sub(/^sig/, 'lib').sub(/\.rbs$/, '.rb')
+      lib = sig.sub(/^sig/, "lib").sub(/\.rbs$/, ".rb")
 
       File.exist?(lib)
     end
@@ -44,22 +44,22 @@ namespace :rbs do
     end
   end
 
-  desc 'Report lib/*.rb files with no matching sig/*.rbs (inline-checked files in Steepfile are exempt)'
+  desc "Report lib/*.rb files with no matching sig/*.rbs (inline-checked files in Steepfile are exempt)"
   task :missing do |_task, args|
     glob = args.to_a.map { |g| /\.rb$/.match?(g) ? g : "#{g}/**/*.rb" }
-    glob = ['lib/**/*.rb'] if glob.empty?
+    glob = ["lib/**/*.rb"] if glob.empty?
 
     # Files checked with inline RBS annotations (Steep 2.0+ `check ..., inline: true`
     # entries in the Steepfile) declare their types in the `.rb` file itself, so they
     # don't need a matching `sig/*.rbs`.
-    inline_checked = File.read('Steepfile').scan(/check ['"](?<path>.+?)['"], inline: true/).flatten
+    inline_checked = File.read("Steepfile").scan(/check ['"](?<path>.+?)['"], inline: true/).flatten
 
     missing = Dir[*glob].reject do |lib|
       next if !/^lib\//.match?(lib)
       next if !/\.rb$/.match?(lib)
       next true if inline_checked.include?(lib)
 
-      sig = lib.sub(/^lib/, 'sig').sub(/\.rb$/, '.rbs')
+      sig = lib.sub(/^lib/, "sig").sub(/\.rb$/, ".rbs")
 
       File.exist?(sig)
     end
@@ -90,16 +90,16 @@ namespace :rbs do
     end
   end
 
-  desc 'Delete stale sig/*.rbs files whose matching lib/*.rb no longer exists'
+  desc "Delete stale sig/*.rbs files whose matching lib/*.rb no longer exists"
   task :clean do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
-    glob = ['sig/**/*.rbs'] if glob.empty?
+    glob = ["sig/**/*.rbs"] if glob.empty?
 
     stale = Dir[*glob].reject do |sig|
       next if !/^sig\//.match?(sig)
       next if !/\.rbs$/.match?(sig)
 
-      lib = sig.sub(/^sig/, 'lib').sub(/\.rbs$/, '.rb')
+      lib = sig.sub(/^sig/, "lib").sub(/\.rbs$/, ".rb")
 
       File.exist?(lib)
     end
@@ -110,7 +110,7 @@ namespace :rbs do
     end
 
     # TODO: handle nested empty directories
-    empty = Dir['sig/**/*'].select { |p| File.directory?(p) && (Dir.entries(p) - ['.', '..']).empty? }
+    empty = Dir["sig/**/*"].select { |p| File.directory?(p) && (Dir.entries(p) - [".", ".."]).empty? }
     empty.each do |d|
       puts d
       Dir.rmdir(d)
@@ -121,16 +121,16 @@ namespace :rbs do
   task :prototype do |_task, args|
     a = args.to_a
 
-    force = a.shift if a.first == 'force'
+    force = a.shift if a.first == "force"
 
     glob = a.map { |g| /\.rb$/.match?(g) ? g : "#{g}/**/*.rb" }
-    glob = ['lib/**/*.rb'] if glob.empty?
+    glob = ["lib/**/*.rb"] if glob.empty?
 
     Dir[*glob].each do |lib|
       next if !/^lib\//.match?(lib)
       next if !/\.rb$/.match?(lib)
 
-      sig = lib.sub(/^lib/, 'sig').sub(/\.rb$/, '.rbs')
+      sig = lib.sub(/^lib/, "sig").sub(/\.rb$/, ".rbs")
 
       next if !force && File.exist?(sig)
 
@@ -143,10 +143,10 @@ namespace :rbs do
         exit 1
       end
 
-      rbs.gsub!(/^\s*#.*?\n/m, '')
+      rbs.gsub!(/^\s*#.*?\n/m, "")
 
       FileUtils.mkdir_p(File.dirname(sig))
-      File.open(sig, 'wb') { |f| f << rbs }
+      File.open(sig, "wb") { |f| f << rbs }
     end
   end
 end

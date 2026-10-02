@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -15,7 +15,7 @@ module Datadog
               response: %w[
                 Content-Type
                 X-Request-ID
-              ]
+              ],
             }.freeze
 
             option :enabled do |o|

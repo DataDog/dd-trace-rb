@@ -7,6 +7,8 @@ module Datadog
       class Configuration
         def initialize: (::String json_str) -> void
 
+        def observe_full_evaluation_data: () -> bool
+
         def get_assignment: (
           ::String flag_key,
           ::Symbol expected_type,
@@ -30,6 +32,8 @@ module Datadog
         def variant: () -> ::String?
 
         def allocation_key: () -> ::String?
+
+        def serial_id: () -> ::Integer?
 
         def reason: () -> ::String
 

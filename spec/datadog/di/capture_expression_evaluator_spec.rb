@@ -34,8 +34,8 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   def compile_expression(dsl_string, json)
-    compiled = Datadog::DI::EL::Compiler.new.compile(json)
-    Datadog::DI::EL::Expression.new(dsl_string, compiled)
+    compiled, regexps = Datadog::DI::EL::Compiler.new.compile(json)
+    Datadog::DI::EL::Expression.new(dsl_string, compiled, regexps: regexps)
   end
 
   let(:context) do

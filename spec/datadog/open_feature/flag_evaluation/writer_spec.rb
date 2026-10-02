@@ -1,38 +1,49 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'datadog/open_feature/flag_evaluation/writer'
+require "spec_helper"
+require "datadog/open_feature/flag_evaluation/writer"
 
 RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   # A first/last_evaluation value above the schema's minimum (Oct 2025).
   let(:realistic_eval_ms) { 1_760_000_000_000 }
 
   def expect_telemetry_count(telemetry, metric_name, value, tags = {})
-    expect(telemetry).to have_received(:inc).with('tracers', metric_name, value, tags: tags)
+    expect(telemetry).to have_received(:inc).with("tracers", metric_name, value, tags: tags)
+  end
+
+  def captured_payload
+    payload = nil
+    transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+    allow(transport).to receive(:send_flag_evaluations) { |value| payload = value }
+    allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+    writer = described_class.new(transport: transport, logger: logger)
+    yield writer
+    writer.send(:drain_and_flush)
+    payload
   end
 
   # Regression guard: rescue inside until...end (without begin) is a Ruby SyntaxError.
   # If writer.rb fails to parse, the EVP component silently falls back to nil and no
   # events are ever delivered to mock-intake.
-  it 'loads without SyntaxError' do
+  it "loads without SyntaxError" do
     expect { described_class }.not_to raise_error
   end
 
-  describe '#enqueue / background flush integration' do
+  describe "#enqueue / background flush integration" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
-    it 'enqueues an event and flushes it via transport' do
+    it "enqueues an event and flushes it via transport" do
       allow(transport).to receive(:send_flag_evaluations)
       # Stub the background thread so we control flush timing
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger)
 
       writer.enqueue(
-        flag_key: 'my-flag',
-        variant: 'on',
-        allocation_key: '',
-        targeting_key: 'user-1',
+        flag_key: "my-flag",
+        variant: "on",
+        allocation_key: "",
+        targeting_key: "user-1",
         eval_time_ms: 1_234_567_890_000,
         attrs: {},
       )
@@ -41,28 +52,28 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.send(:drain_and_flush)
 
       expect(transport).to have_received(:send_flag_evaluations) do |payload|
-        expect(payload['flagEvaluations']).not_to be_empty
-        expect(payload['flagEvaluations'].first['flag']['key']).to eq('my-flag')
+        expect(payload["flagEvaluations"]).not_to be_empty
+        expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("my-flag")
       end
     end
   end
 
-  describe '#stop drains and flushes a sleeping worker' do
+  describe "#stop drains and flushes a sleeping worker" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
-    it 'enqueues, then stop() flushes the queued event to the transport before joining' do
+    it "enqueues, then stop() flushes the queued event to the transport before joining" do
       received = Queue.new
       allow(transport).to receive(:send_flag_evaluations) do |payload|
-        received << payload if payload['flagEvaluations']&.any?
+        received << payload if payload["flagEvaluations"]&.any?
       end
 
       writer = described_class.new(transport: transport, logger: logger)
 
       # Worker is now alive and waiting on the condition variable (effectively sleeping).
       writer.enqueue(
-        flag_key: 'shutdown-flag', variant: 'on', allocation_key: '',
-        targeting_key: 'u1', eval_time_ms: 1_000, attrs: {},
+        flag_key: "shutdown-flag", variant: "on", allocation_key: "",
+        targeting_key: "u1", eval_time_ms: 1_000, attrs: {},
       )
 
       # stop() must wake the sleeping worker immediately, drain, and final-flush (no 10s wait).
@@ -71,17 +82,17 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       elapsed = Datadog::Core::Utils::Time.get_time - start
 
       payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
-      expect(payload['flagEvaluations'].first['flag']['key']).to eq('shutdown-flag')
+      expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("shutdown-flag")
       # Shutdown returned well under the 10s flush interval (proves the wait was interrupted).
       expect(elapsed).to be < 9
     end
 
-    it 'flushes an event enqueued after stop starts but before the final drain' do
+    it "flushes an event enqueued after stop starts but before the final drain" do
       drain_started = Queue.new
       release_drain = Queue.new
       received = Queue.new
       allow(transport).to receive(:send_flag_evaluations) do |payload|
-        received << payload if payload['flagEvaluations']&.any?
+        received << payload if payload["flagEvaluations"]&.any?
       end
 
       writer = described_class.new(transport: transport, logger: logger)
@@ -99,21 +110,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       drain_started.pop
 
       writer.enqueue(
-        flag_key: 'late-shutdown-flag', variant: 'on', allocation_key: '',
-        targeting_key: 'u2', eval_time_ms: 2_000, attrs: {},
+        flag_key: "late-shutdown-flag", variant: "on", allocation_key: "",
+        targeting_key: "u2", eval_time_ms: 2_000, attrs: {},
       )
       release_drain << true
       stop_thread.join
 
       payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
-      expect(payload['flagEvaluations'].first['flag']['key']).to eq('late-shutdown-flag')
+      expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("late-shutdown-flag")
     ensure
       release_drain << true if release_drain&.empty?
       stop_thread&.join
       writer&.stop
     end
 
-    it 'terminates the worker when graceful shutdown times out' do
+    it "terminates the worker when graceful shutdown times out" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger)
 
@@ -124,11 +135,81 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  describe '#background drain' do
+  describe "#background drain" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
-    it 'flushes a bounded drain cycle before the queue is empty' do
+    it "wakes an idle worker when an event is enqueued" do
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 10)
+      allow(transport).to receive(:send_flag_evaluations)
+      worker_waiting = Queue.new
+      allow_any_instance_of(ConditionVariable).to receive(:wait).and_wrap_original do |method, *args|
+        worker_waiting << true
+        method.call(*args)
+      end
+      drained = Queue.new
+      allow_any_instance_of(described_class).to receive(:drain_queue).and_wrap_original do |method, *args, **kwargs|
+        count = kwargs.empty? ? method.call(*args) : method.call(*args, **kwargs)
+        drained << count
+        count
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      try_wait_until(seconds: 1) { worker_waiting.pop(true) unless worker_waiting.empty? }
+      writer.enqueue(
+        flag_key: "wake-drain", variant: "on", allocation_key: "",
+        targeting_key: "user-1", eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+
+      count = try_wait_until(seconds: 1) { drained.pop(true) unless drained.empty? }
+      expect(count).to eq(1)
+    ensure
+      writer&.stop
+    end
+
+    it "drains consecutive bounded batches without waiting while the queue remains nonempty" do
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 10)
+      stub_const("#{described_class}::MAX_DRAIN_EVENTS_PER_CYCLE", 2)
+      allow(transport).to receive(:send_flag_evaluations)
+      drain_started = Queue.new
+      release_drain = Queue.new
+      drained = Queue.new
+      block_first_drain = true
+      allow_any_instance_of(described_class).to receive(:drain_queue).and_wrap_original do |method, *args, **kwargs|
+        if block_first_drain
+          block_first_drain = false
+          drain_started << true
+          release_drain.pop
+        end
+        count = kwargs.empty? ? method.call(*args) : method.call(*args, **kwargs)
+        drained << count
+        count
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      writer.enqueue(
+        flag_key: "backlog-drain", variant: "on", allocation_key: "",
+        targeting_key: "user-0", eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+      try_wait_until(seconds: 1) { drain_started.pop(true) unless drain_started.empty? }
+
+      4.times do |i|
+        writer.enqueue(
+          flag_key: "backlog-drain", variant: "on", allocation_key: "",
+          targeting_key: "user-#{i + 1}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {},
+        )
+      end
+      release_drain << true
+
+      drained_count = try_wait_until(seconds: 1) { drained.size if drained.size >= 3 }
+      expect(drained_count).to be >= 3
+      expect(3.times.map { drained.pop(true) }).to eq([2, 2, 1])
+    ensure
+      release_drain << true if release_drain&.empty?
+      writer&.stop
+    end
+
+    it "flushes a bounded drain cycle before the queue is empty" do
       stub_const("#{described_class}::MAX_DRAIN_EVENTS_PER_CYCLE", 2)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       allow(transport).to receive(:send_flag_evaluations)
@@ -136,8 +217,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       5.times do |i|
         writer.enqueue(
-          flag_key: 'bounded-drain', variant: 'on', allocation_key: '',
-          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {'bucket' => i},
+          flag_key: "bounded-drain", variant: "on", allocation_key: "",
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i},
         )
       end
 
@@ -146,21 +227,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       writer.send(:flush_once)
       expect(transport).to have_received(:send_flag_evaluations) do |payload|
-        rows = payload['flagEvaluations']
-        expect(rows.sum { |row| row['evaluation_count'] }).to eq(2)
+        rows = payload["flagEvaluations"]
+        expect(rows.sum { |row| row["evaluation_count"] }).to eq(2)
       end
     ensure
       writer&.stop
     end
 
-    it 'accumulates more events than the bounded queue can hold before flushing' do
+    it "accumulates more events than the bounded queue can hold before flushing" do
       stub_const("#{described_class}::QUEUE_SIZE", 8)
       stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 0.01)
       stub_const("#{described_class}::FLUSH_INTERVAL_SECONDS", 3600)
 
       received = Queue.new
       allow(transport).to receive(:send_flag_evaluations) do |payload|
-        received << payload if payload['flagEvaluations']&.any?
+        received << payload if payload["flagEvaluations"]&.any?
       end
 
       writer = described_class.new(transport: transport, logger: logger)
@@ -173,25 +254,25 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       14.times do |i|
         try_wait_until(attempts: 100, backoff: 0.001) { queue.length < described_class::QUEUE_SIZE }
         writer.enqueue(
-          flag_key: 'natural-degrade', variant: 'on', allocation_key: 'alloc',
-          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {'bucket' => i},
+          flag_key: "natural-degrade", variant: "on", allocation_key: "alloc",
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {"bucket" => i},
         )
       end
 
       writer.stop
 
       payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
-      rows = payload['flagEvaluations']
-      degraded = rows.find { |row| row['flag']['key'] == 'natural-degrade' && !row.key?('targeting_key') }
+      rows = payload["flagEvaluations"]
+      degraded = rows.find { |row| row["flag"]["key"] == "natural-degrade" && !row.key?("targeting_key") }
 
       expect(writer.dropped_queue_overflow).to eq(0)
-      expect(rows.sum { |row| row['evaluation_count'] }).to eq(14)
+      expect(rows.sum { |row| row["evaluation_count"] }).to eq(14)
       expect(degraded).not_to be_nil
-      expect(degraded['evaluation_count']).to eq(2)
+      expect(degraded["evaluation_count"]).to eq(2)
     end
   end
 
-  describe 'prefork worker restart' do
+  describe "prefork worker restart" do
     let(:logger) { Logger.new(File::NULL) }
     let(:transport_class) do
       Class.new do
@@ -207,8 +288,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       end
     end
 
-    it 'restarts the background worker in the child and flushes child evaluations' do
-      skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
+    it "restarts the background worker in the child and flushes child evaluations" do
+      skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
 
       stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 0.01)
 
@@ -221,17 +302,18 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         expect(writer).not_to be_running
 
         writer.enqueue(
-          flag_key: 'prefork-flag', variant: 'on', allocation_key: 'alloc',
-          targeting_key: 'prefork-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'child'},
+          flag_key: "prefork-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "prefork-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"},
+          observe_full_evaluation_data: true,
         )
         writer.stop
 
-        rows = transport.payloads.flat_map { |payload| payload['flagEvaluations'] }
+        rows = transport.payloads.flat_map { |payload| payload["flagEvaluations"] }
         expect(rows).to contain_exactly(
           include(
-            'flag' => {'key' => 'prefork-flag'},
-            'targeting_key' => 'prefork-user',
-            'evaluation_count' => 1
+            "flag" => {"key" => "prefork-flag"},
+            "targeting_key" => "prefork-user",
+            "evaluation_count" => 1
           )
         )
       end
@@ -239,121 +321,206 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer&.stop
     end
 
-    it 'drops inherited parent buffers before the child worker restarts' do
+    it "drops inherited parent buffers before the child worker restarts" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       transport = transport_class.new
       writer = described_class.new(transport: transport, logger: logger)
 
       writer.enqueue(
-        flag_key: 'parent-flag', variant: 'on', allocation_key: 'alloc',
-        targeting_key: 'parent-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'parent'},
+        flag_key: "parent-flag", variant: "on", allocation_key: "alloc",
+        targeting_key: "parent-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "parent"},
       )
       writer.instance_variable_set(:@dropped_queue_overflow, 3)
 
       writer.send(:after_fork)
       writer.enqueue(
-        flag_key: 'child-flag', variant: 'on', allocation_key: 'alloc',
-        targeting_key: 'child-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'child'},
+        flag_key: "child-flag", variant: "on", allocation_key: "alloc",
+        targeting_key: "child-user", eval_time_ms: realistic_eval_ms, attrs: {"worker" => "child"},
       )
       writer.send(:drain_and_flush)
 
-      rows = transport.payloads.flat_map { |payload| payload['flagEvaluations'] }
-      expect(rows).to contain_exactly(include('flag' => {'key' => 'child-flag'}))
+      rows = transport.payloads.flat_map { |payload| payload["flagEvaluations"] }
+      expect(rows).to contain_exactly(include("flag" => {"key" => "child-flag"}))
       expect(writer.dropped_queue_overflow).to eq(0)
     end
   end
 
-  # Backpressure must be OBSERVABLE. When the hand-off queue overflows, enqueue increments an
-  # observable counter that is emitted (logged) on the next flush — not silently dropped.
-  describe '#enqueue queue-overflow backpressure' do
+  describe "#enqueue context capture" do
+    subject(:writer) { described_class.new(transport: transport, logger: logger) }
+
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger, debug: nil) }
+    let(:aggregator) { instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator, record: nil) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      allow(Datadog::OpenFeature::FlagEvaluation::Aggregator).to receive(:new).and_return(aggregator)
+    end
+
+    it "passes nil context attributes to the aggregator when full evaluation data is disabled" do
+      expect(aggregator).to receive(:record).with(hash_including(attrs: nil))
+
+      writer.enqueue(
+        flag_key: "f", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: 1, attrs: {"ignored" => "value"},
+      )
+      writer.send(:drain_queue)
+    end
+  end
+
+  describe "#enqueue queue-overflow backpressure" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger, debug: nil) }
-    let(:telemetry) { spy('telemetry') }
+    let(:telemetry) { instance_spy(Datadog::Core::Telemetry::Component) }
 
-    it 'increments dropped_queue_overflow and emits the count on flush' do
+    it "drops immediately and emits the pre-queue overflow count" do
+      stub_const("#{described_class}::QUEUE_SIZE", 1)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
-
-      # Fill the queue to capacity, then overflow it.
-      capacity = described_class::QUEUE_SIZE
       event = {
-        flag_key: 'f', variant: 'on', allocation_key: '',
-        targeting_key: 't', eval_time_ms: 1, attrs: {},
+        flag_key: "f", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: 1, attrs: {},
       }
-      capacity.times { writer.enqueue(**event) }
+      writer.enqueue(**event)
+
+      expect(Thread).not_to receive(:pass)
+      3.times { writer.enqueue(**event) }
       expect(writer.dropped_queue_overflow).to eq(0)
 
-      # Three more pushes overflow the bounded queue and must be counted.
-      3.times { writer.enqueue(**event) }
-      expect(writer.dropped_queue_overflow).to eq(3)
-
-      # On flush the count is emitted (logged) and reset to 0 (observable, not silently lost).
       logged = []
       allow(logger).to receive(:debug) { |&blk| logged << blk.call }
       writer.send(:flush_once)
 
-      expect(logged.join).to match(/queue_overflow=3/)
+      expect(logged.join).to match(/pre_queue_overflow=3/)
       expect_telemetry_count(
         telemetry,
-        'flagevaluation.rows.dropped',
+        "flagevaluation.rows.dropped",
         3,
-        {reason: 'queue_overflow'}
+        {reason: "pre_queue_overflow"}
       )
-      expect(writer.dropped_queue_overflow).to eq(0)
+      expect(writer.send(:read_and_reset_dropped_pre_queue_overflow)).to eq(0)
     end
 
-    it 'does not flatten or prune context before buffering' do
+    it "bounds and flattens context before buffering" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger)
-      raw = {'profile' => {'plan' => 'pro'}, 'oversized' => 'x' * 257}
-      300.times { |i| raw["z#{format("%03d", i)}"] = 'v' }
+      raw = {"profile" => {"plan" => "pro"}, "oversized" => "x" * 257}
+      300.times { |i| raw["z#{format("%03d", i)}"] = "v" }
 
-      expect(Datadog::OpenFeature::FlagEvaluation::Aggregator).not_to receive(:prune_context)
       writer.enqueue(
-        flag_key: 'f', variant: 'on', allocation_key: '',
-        targeting_key: 't', eval_time_ms: 1, attrs: raw,
+        flag_key: "f", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: 1, attrs: raw, observe_full_evaluation_data: true,
       )
 
       queued = writer.instance_variable_get(:@queue).pop(true)
-      expect(queued[:attrs].size).to eq(302)
-      expect(queued[:attrs]).to have_key('profile')
-      expect(queued[:attrs]).to have_key('oversized')
-      expect(queued[:attrs]).not_to have_key('profile.plan')
+      expect(queued[:attrs].size).to be <= 256
+      expect(queued[:attrs]).to have_key("profile.plan")
+      expect(queued[:attrs]).not_to have_key("profile")
+      expect(queued[:attrs]).not_to have_key("oversized")
     end
   end
 
-  describe 'emitted payload shape' do
+  describe "emitted payload shape" do
     let(:logger) { instance_double(Logger, debug: nil) }
 
-    def captured_payload
-      payload = nil
-      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
-      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
-      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
-      writer = described_class.new(transport: transport, logger: logger)
-      yield writer
-      writer.send(:drain_and_flush)
-      payload
-    end
-
-    it 'emits a full-tier row with variant, allocation, targeting_key, and context' do
+    it "emits a full-tier row with variant, allocation, targeting_key, and context" do
       payload = captured_payload do |writer|
         writer.enqueue(
-          flag_key: 'schema-flag', variant: 'on', allocation_key: 'alloc-1',
-          targeting_key: 'user-42',
-          eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod', 'tier' => 'gold'},
+          flag_key: "schema-flag", variant: "on", allocation_key: "alloc-1",
+          targeting_key: "user-42",
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod", "tier" => "gold"},
+          observe_full_evaluation_data: true,
         )
       end
 
-      row = payload['flagEvaluations'].first
-      # Structural assertions: objects, not bare strings.
-      expect(row['variant']).to eq('key' => 'on')
-      expect(row['allocation']).to eq('key' => 'alloc-1')
-      expect(row['targeting_key']).to eq('user-42')
-      expect(row['context']).to eq('evaluation' => {'env' => 'prod', 'tier' => 'gold'})
+      row = payload["flagEvaluations"].first
+      expect(row["variant"]).to eq("key" => "on")
+      expect(row["allocation"]).to eq("key" => "alloc-1")
+      expect(row["targeting_key"]).to eq("user-42")
+      expect(row["context"]).to eq("evaluation" => {"env" => "prod", "tier" => "gold"})
     end
 
-    it 'uses flush time for timestamp and evaluation time for first/last bounds' do
+    it "omits a nil targeting key" do
+      [false, true].each do |observe_full_evaluation_data|
+        payload = captured_payload do |writer|
+          writer.enqueue(
+            flag_key: "schema-flag", targeting_key: nil, eval_time_ms: realistic_eval_ms,
+            attrs: {}, observe_full_evaluation_data: observe_full_evaluation_data,
+          )
+        end
+
+        expect(payload["flagEvaluations"].first).not_to have_key("targeting_key")
+      end
+    end
+
+    it "transcodes valid targeting keys to UTF-8 before serialization" do
+      targeting_key = "caf\u00E9".encode(Encoding::ISO_8859_1)
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "encoding-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: targeting_key, eval_time_ms: realistic_eval_ms, attrs: {},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      emitted_targeting_key = payload["flagEvaluations"].first["targeting_key"]
+      expect(emitted_targeting_key).to eq("caf\u00E9")
+      expect(emitted_targeting_key.encoding).to eq(Encoding::UTF_8)
+    end
+
+    it "omits malformed targeting keys and normalizes other malformed strings" do
+      malformed = +"\xFF"
+      malformed.force_encoding(Encoding::UTF_8)
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "encoding-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: malformed, error_message: malformed,
+          eval_time_ms: realistic_eval_ms, attrs: {"value" => malformed},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("targeting_key")
+      expect(row["error"]).to eq("message" => "GENERAL")
+      expect(row["context"]).to eq("evaluation" => {"value" => "\uFFFD"})
+    end
+
+    it "omits non-String targeting keys" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "encoding-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: 42, eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      expect(payload["flagEvaluations"].first).not_to have_key("targeting_key")
+    end
+
+    it "copies String subclasses before transport serialization" do
+      custom_value = Class.new(String) do
+        def encode(*)
+          raise "unexpected custom encoding"
+        end
+
+        def to_json(*)
+          raise JSON::GeneratorError, "unexpected custom serialization"
+        end
+      end.new("custom-value")
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "custom-value-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "user", eval_time_ms: realistic_eval_ms,
+          attrs: {"custom" => custom_value}, observe_full_evaluation_data: true,
+        )
+      end
+
+      expect(payload["flagEvaluations"].first.dig("context", "evaluation", "custom"))
+        .to eq("custom-value")
+      expect { Datadog::Core::Encoding::JSONEncoder.encode(payload) }.not_to raise_error
+    end
+
+    it "uses flush time for timestamp and evaluation time for first/last bounds" do
       payload = nil
       transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
       allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
@@ -361,59 +528,58 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer = described_class.new(transport: transport, logger: logger)
 
       writer.enqueue(
-        flag_key: 'time-flag', variant: 'on', allocation_key: 'alloc-1',
-        targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {},
+        flag_key: "time-flag", variant: "on", allocation_key: "alloc-1",
+        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {},
       )
 
       before_flush = (Datadog::Core::Utils::Time.now.to_f * 1000).to_i
       writer.send(:drain_and_flush)
       after_flush = (Datadog::Core::Utils::Time.now.to_f * 1000).to_i
 
-      row = payload['flagEvaluations'].first
-      expect(row['timestamp']).to be_between(before_flush, after_flush)
-      expect(row['first_evaluation']).to eq(realistic_eval_ms)
-      expect(row['last_evaluation']).to eq(realistic_eval_ms)
+      row = payload["flagEvaluations"].first
+      expect(row["timestamp"]).to be_between(before_flush, after_flush)
+      expect(row["first_evaluation"]).to eq(realistic_eval_ms)
+      expect(row["last_evaluation"]).to eq(realistic_eval_ms)
     end
 
-    it 'does not emit flagevaluation telemetry counters for the normal path' do
-      telemetry = spy('telemetry')
+    it "does not emit flagevaluation telemetry counters for the normal path" do
+      telemetry = instance_spy(Datadog::Core::Telemetry::Component)
       transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
       allow(transport).to receive(:send_flag_evaluations)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
 
       writer.enqueue(
-        flag_key: 'normal-flag', variant: 'on', allocation_key: 'alloc-1',
-        targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod'},
+        flag_key: "normal-flag", variant: "on", allocation_key: "alloc-1",
+        targeting_key: "user-42", eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"},
       )
       writer.send(:drain_and_flush)
 
       expect(telemetry).not_to have_received(:inc)
     end
 
-    it 'emits a degraded-tier row without targeting_key or context' do
+    it "emits a degraded-tier row without targeting_key or context" do
       payload = captured_payload do |writer|
-        # Force overflow into the degraded tier with a tiny-capped aggregator.
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)
         writer.enqueue(
-          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
-          targeting_key: 'u1', eval_time_ms: realistic_eval_ms, attrs: {'x' => 1},
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
         )
         writer.enqueue(
-          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
-          targeting_key: 'u2', eval_time_ms: realistic_eval_ms, attrs: {'x' => 2},
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u2", eval_time_ms: realistic_eval_ms, attrs: {"x" => 2},
         )
       end
 
-      degraded_row = payload['flagEvaluations'].find { |r| !r.key?('targeting_key') && !r.key?('context') }
+      degraded_row = payload["flagEvaluations"].find { |r| !r.key?("targeting_key") && !r.key?("context") }
       expect(degraded_row).not_to be_nil
-      expect(degraded_row['variant']).to eq('key' => 'a')
-      expect(degraded_row['allocation']).to eq('key' => 'alloc-x')
+      expect(degraded_row["variant"]).to eq("key" => "a")
+      expect(degraded_row["allocation"]).to eq("key" => "alloc-x")
     end
 
-    it 'emits a degraded counter for rows routed to the degraded tier' do
-      telemetry = spy('telemetry')
+    it "emits a degraded counter for rows routed to the degraded tier" do
+      telemetry = instance_spy(Datadog::Core::Telemetry::Component)
       transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
       allow(transport).to receive(:send_flag_evaluations)
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
@@ -422,147 +588,168 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.instance_variable_set(:@aggregator, small)
 
       writer.enqueue(
-        flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
-        targeting_key: 'u1', eval_time_ms: realistic_eval_ms, attrs: {'x' => 1},
+        flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+        targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
       )
       3.times do |i|
         writer.enqueue(
-          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
-          targeting_key: "u#{i + 2}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {'x' => i + 2},
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u#{i + 2}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {"x" => i + 2},
         )
       end
       writer.send(:drain_and_flush)
 
       expect_telemetry_count(
         telemetry,
-        'flagevaluation.rows.degraded',
+        "flagevaluation.rows.degraded",
         3,
-        {reason: 'cardinality_cap'}
+        {reason: "cardinality_cap"}
       )
     end
 
-    # The emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
-    # not the raw attrs. Proven by inspecting the emitted payload, not the aggregator internals.
-    it 'emits PRUNED context attrs in the payload (oversized strings removed, capped at 256 fields)' do
-      raw = {'keep' => 'ok', 'toobig' => 'x' * 257}
-      300.times { |i| raw["k#{format("%03d", i)}"] = 'v' }
-
-      payload = captured_payload do |writer|
-        writer.enqueue(
-          flag_key: 'prune-flag', variant: 'on', allocation_key: '',
-          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
-        )
-      end
-
-      emitted = payload['flagEvaluations'].first['context']['evaluation']
-      expect(emitted.size).to eq(256)              # capped
-      expect(emitted).not_to have_key('toobig')    # oversized string removed
-      # Deterministic subset = sorted-first 256 keys (so 'k000'..'k253' kept, 'keep'/'k254'+ cut).
-      expect(emitted).to have_key('k000')
-      expect(emitted).not_to have_key('k299')
-    end
-
-    it 'emits an enqueue-time snapshot of nested context attrs' do
+    it "emits an enqueue-time snapshot of nested context attrs" do
       raw = {
-        'profile' => {'plan' => 'pro'},
-        'groups' => ['beta'],
-        'name' => +'alice',
+        "profile" => {"plan" => "pro"},
+        "groups" => ["beta"],
+        "name" => +"alice",
       }
 
       payload = captured_payload do |writer|
         writer.enqueue(
-          flag_key: 'snapshot-flag', variant: 'on', allocation_key: '',
-          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
+          flag_key: "snapshot-flag", variant: "on", allocation_key: "",
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          observe_full_evaluation_data: true,
         )
 
-        raw['profile']['plan'] = 'enterprise'
-        raw['groups'][0] = 'ga'
-        raw['name'].replace('bob')
+        raw["profile"]["plan"] = "enterprise"
+        raw["groups"][0] = "ga"
+        raw["name"].replace("bob")
       end
 
-      emitted = payload['flagEvaluations'].first['context']['evaluation']
+      emitted = payload["flagEvaluations"].first["context"]["evaluation"]
       expect(emitted).to include(
-        'profile.plan' => 'pro',
-        'groups.0' => 'beta',
-        'name' => 'alice',
+        "profile.plan" => "pro",
+        "groups.0" => "beta",
+        "name" => "alice",
       )
     end
 
-    it 'emits non-cyclic context attrs when attrs contain cycles' do
-      raw = {'keep' => 'ok'}
-      raw['self'] = raw
-      raw['array'] = []
-      raw['array'] << raw['array']
+    it "emits an enqueue-time snapshot of mutable scalar strings" do
+      targeting_key = +"user-a"
+      flag_key = +"snapshot-flag"
 
       payload = captured_payload do |writer|
         writer.enqueue(
-          flag_key: 'cyclic-context-flag', variant: 'on', allocation_key: '',
-          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
+          flag_key: flag_key, variant: "on", allocation_key: "alloc",
+          targeting_key: targeting_key, eval_time_ms: realistic_eval_ms, attrs: {},
+          observe_full_evaluation_data: true,
+        )
+
+        flag_key.replace("other-flag")
+        targeting_key.replace("user-b")
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["flag"]["key"]).to eq("snapshot-flag")
+      expect(row["targeting_key"]).to eq("user-a")
+    end
+
+    it "normalizes a non-Integer evaluation time before enqueue" do
+      invalid_time = Class.new do
+        def to_i
+          nil
+        end
+      end.new
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "invalid-time", variant: "on", allocation_key: "alloc",
+          targeting_key: "user", eval_time_ms: invalid_time, attrs: {},
         )
       end
 
-      emitted = payload['flagEvaluations'].first['context']['evaluation']
-      expect(emitted).to include('keep' => 'ok')
+      row = payload["flagEvaluations"].first
+      expect(row["first_evaluation"]).to eq(0)
+      expect(row["last_evaluation"]).to eq(0)
+    end
+
+    it "emits non-cyclic context attrs when attrs contain cycles" do
+      raw = {"keep" => "ok"}
+      raw["self"] = raw
+      raw["array"] = []
+      raw["array"] << raw["array"]
+
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "cyclic-context-flag", variant: "on", allocation_key: "",
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: raw,
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      emitted = payload["flagEvaluations"].first["context"]["evaluation"]
+      expect(emitted).to include("keep" => "ok")
       expect(emitted.keys.grep(/self|array/)).to be_empty
     end
 
-    it 'emits schema-visible error.message when present' do
+    it "emits a normalized error code in schema-visible error.message" do
       payload = captured_payload do |writer|
         writer.enqueue(
-          flag_key: 'error-flag', variant: nil, allocation_key: '',
-          error_message: 'flag not found', targeting_key: 'user-42',
+          flag_key: "error-flag", variant: nil, allocation_key: "",
+          error_message: "FLAG_NOT_FOUND", targeting_key: "user-42",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["runtime_default_used"]).to be(true)
+      expect(row["error"]).to eq("message" => "FLAG_NOT_FOUND")
+      expect(row).not_to have_key("reason")
+    end
+
+    it "omits variant and allocation for a runtime default" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "typed-default-flag", variant: "variant-a", allocation_key: "alloc-1",
+          runtime_default: true, targeting_key: "user-42",
           eval_time_ms: realistic_eval_ms, attrs: {},
         )
       end
 
-      row = payload['flagEvaluations'].first
-      expect(row['runtime_default_used']).to be(true)
-      expect(row['error']).to eq('message' => 'flag not found')
-      expect(row).not_to have_key('reason')
+      row = payload["flagEvaluations"].first
+      expect(row["runtime_default_used"]).to be(true)
+      expect(row).not_to have_key("variant")
+      expect(row).not_to have_key("allocation")
     end
 
-    it 'emits runtime_default_used when the hook marks a typed default with a variant' do
+    it "does not split aggregates when only stale reason inputs differ" do
       payload = captured_payload do |writer|
         writer.enqueue(
-          flag_key: 'typed-default-flag', variant: 'variant-a', allocation_key: '',
-          runtime_default: true, targeting_key: 'user-42',
-          eval_time_ms: realistic_eval_ms, attrs: {},
+          flag_key: "reasonless-flag", variant: "on", allocation_key: "alloc-1",
+          reason: "TARGETING_MATCH", targeting_key: "user-42",
+          eval_time_ms: realistic_eval_ms, attrs: {"env" => "prod"},
+        )
+        writer.enqueue(
+          flag_key: "reasonless-flag", variant: "on", allocation_key: "alloc-1",
+          reason: "DEFAULT", targeting_key: "user-42",
+          eval_time_ms: realistic_eval_ms + 1, attrs: {"env" => "prod"},
         )
       end
 
-      row = payload['flagEvaluations'].first
-      expect(row['variant']).to eq('key' => 'variant-a')
-      expect(row['runtime_default_used']).to be(true)
-    end
-
-    it 'does not split aggregates when only stale reason inputs differ' do
-      payload = captured_payload do |writer|
-        writer.enqueue(
-          flag_key: 'reasonless-flag', variant: 'on', allocation_key: 'alloc-1',
-          reason: 'TARGETING_MATCH', targeting_key: 'user-42',
-          eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod'},
-        )
-        writer.enqueue(
-          flag_key: 'reasonless-flag', variant: 'on', allocation_key: 'alloc-1',
-          reason: 'DEFAULT', targeting_key: 'user-42',
-          eval_time_ms: realistic_eval_ms + 1, attrs: {'env' => 'prod'},
-        )
-      end
-
-      expect(payload['flagEvaluations'].size).to eq(1)
-      expect(payload['flagEvaluations'].first['evaluation_count']).to eq(2)
-      expect(payload['flagEvaluations'].first).not_to have_key('reason')
+      expect(payload["flagEvaluations"].size).to eq(1)
+      expect(payload["flagEvaluations"].first["evaluation_count"]).to eq(2)
+      expect(payload["flagEvaluations"].first).not_to have_key("reason")
     end
   end
 
-  describe 'payload size limit' do
+  describe "payload size limit" do
     subject(:writer) { described_class.new(transport: transport, logger: logger, telemetry: telemetry) }
 
     let(:payloads) { [] }
     let(:logged) { [] }
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger) }
-    let(:telemetry) { spy('telemetry') }
+    let(:telemetry) { instance_spy(Datadog::Core::Telemetry::Component) }
 
     before do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
@@ -574,74 +761,105 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       Datadog::Core::Encoding::JSONEncoder.encode(payload).bytesize
     end
 
-    it 'splits aggregate payloads so each request stays under the configured payload limit' do
+    it "splits aggregate payloads so each request stays under the configured payload limit" do
       stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 520)
 
       writer.enqueue(
-        flag_key: 'flag-a', variant: 'on', allocation_key: 'alloc',
-        targeting_key: 'user-a', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'a' * 180},
+        flag_key: "flag-a", variant: "on", allocation_key: "alloc",
+        targeting_key: "user-a", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "a" * 180},
       )
       writer.enqueue(
-        flag_key: 'flag-b', variant: 'on', allocation_key: 'alloc',
-        targeting_key: 'user-b', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'b' * 180},
+        flag_key: "flag-b", variant: "on", allocation_key: "alloc",
+        targeting_key: "user-b", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "b" * 180},
       )
       writer.send(:drain_and_flush)
 
       expect(payloads.size).to be > 1
       expect(payloads).to all(satisfy { |payload| encoded_payload_size(payload) <= described_class::PAYLOAD_SIZE_LIMIT_BYTES })
-      expect_telemetry_count(telemetry, 'flagevaluation.payload.splits', payloads.size - 1)
+      expect_telemetry_count(telemetry, "flagevaluation.payload.splits", payloads.size - 1)
     end
 
-    it 'degrades a full row before dropping it for the configured payload limit' do
+    it "degrades a full row before dropping it for the configured payload limit" do
       stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 350)
 
       writer.enqueue(
-        flag_key: 'large', variant: 'on', allocation_key: 'alloc',
-        targeting_key: 'user-large', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'x' * 256},
+        flag_key: "large", variant: "on", allocation_key: "alloc",
+        targeting_key: "user-large", eval_time_ms: realistic_eval_ms, attrs: {"blob" => "x" * 256},
+        observe_full_evaluation_data: true,
       )
       writer.send(:drain_and_flush)
 
       expect(payloads).to contain_exactly(satisfy { |payload| encoded_payload_size(payload) <= described_class::PAYLOAD_SIZE_LIMIT_BYTES })
-      row = payloads.first['flagEvaluations'].first
-      expect(row['flag']).to eq('key' => 'large')
-      expect(row).not_to have_key('targeting_key')
-      expect(row).not_to have_key('context')
+      row = payloads.first["flagEvaluations"].first
+      expect(row["flag"]).to eq("key" => "large")
+      expect(row).not_to have_key("targeting_key")
+      expect(row).not_to have_key("context")
       expect_telemetry_count(
         telemetry,
-        'flagevaluation.rows.degraded',
+        "flagevaluation.rows.degraded",
         1,
-        {reason: 'payload_limit'}
+        {reason: "payload_limit"}
       )
       expect(logged).to be_empty
     end
 
-    it 'drops an already-degraded row that still exceeds the configured payload limit' do
+    it "drops an already-degraded row that still exceeds the configured payload limit" do
       stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 128)
 
       writer.enqueue(
-        flag_key: 'f' * 256, variant: 'on', allocation_key: 'alloc',
-        targeting_key: '', eval_time_ms: realistic_eval_ms, attrs: {},
+        flag_key: "f" * 256, variant: "on", allocation_key: "alloc",
+        targeting_key: "", eval_time_ms: realistic_eval_ms, attrs: {},
       )
       writer.send(:drain_and_flush)
 
       expect(payloads).to be_empty
-      expect(logged.join).to include('payload_oversize=1')
+      expect(logged.join).to include("payload_oversize=1")
       expect_telemetry_count(
         telemetry,
-        'flagevaluation.rows.dropped',
+        "flagevaluation.rows.dropped",
         1,
-        {reason: 'payload_limit'}
+        {reason: "payload_limit"}
+      )
+    end
+
+    it "drops an unserializable row without losing valid rows" do
+      allow(Datadog::Core::Encoding::JSONEncoder).to receive(:encode).and_wrap_original do |method, value|
+        if value.is_a?(Hash) && value.dig("flag", "key") == "invalid"
+          raise JSON::GeneratorError, "cannot serialize"
+        end
+
+        method.call(value)
+      end
+      writer.enqueue(
+        flag_key: "invalid", variant: "on", allocation_key: "alloc",
+        targeting_key: "user-invalid", eval_time_ms: realistic_eval_ms,
+        attrs: {"env" => "invalid"}, observe_full_evaluation_data: true,
+      )
+      writer.enqueue(
+        flag_key: "valid", variant: "on", allocation_key: "alloc",
+        targeting_key: "user-valid", eval_time_ms: realistic_eval_ms,
+        attrs: {"env" => "prod"}, observe_full_evaluation_data: true,
+      )
+      writer.send(:drain_and_flush)
+
+      rows = payloads.flat_map { |payload| payload["flagEvaluations"] }
+      expect(rows).to contain_exactly(include("flag" => {"key" => "valid"}))
+      expect_telemetry_count(
+        telemetry,
+        "flagevaluation.rows.dropped",
+        1,
+        {reason: "serialization_error"}
       )
     end
   end
 
-  describe '#send_payload_batch' do
+  describe "#send_payload_batch" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
-    it 'checks non-OK transport responses and returns the response' do
+    it "checks non-OK transport responses and returns the response" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
-      response = double('TransportResponse')
+      response = double("TransportResponse")
       allow(response).to receive(:ok?).and_return(false)
       allow(transport).to receive(:send_flag_evaluations).and_return(response)
       writer = described_class.new(transport: transport, logger: logger)
@@ -651,17 +869,15 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # The aggregator's degraded-overflow count must be EMITTED before reset (not reset-without-emit).
-  describe '#flush_once emits degraded-overflow drops' do
+  describe "#flush_once emits degraded-overflow drops" do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger) }
-    let(:telemetry) { spy('telemetry') }
+    let(:telemetry) { instance_spy(Datadog::Core::Telemetry::Component) }
 
-    it 'logs the degraded_overflow count returned in the aggregator snapshot' do
+    it "logs the degraded_overflow count returned in the aggregator snapshot" do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
 
-      # Inject an aggregator whose flush reports a degraded-overflow drop.
       fake_aggregator = instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator)
       allow(fake_aggregator).to receive(:flush_and_reset).and_return(
         {full: {}, degraded: {}, dropped_degraded_overflow: 7}
@@ -676,10 +892,275 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(logged.join).to match(/degraded_overflow=7/)
       expect_telemetry_count(
         telemetry,
-        'flagevaluation.rows.dropped',
+        "flagevaluation.rows.dropped",
         7,
-        {reason: 'degraded_cap'}
+        {reason: "degraded_cap"}
       )
+    end
+  end
+
+  describe "PII protection (observeFullEvaluationData = false)" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    # Canonical vector from the flag-evaluation privacy contract.
+    it "hashes the canonical vector and omits raw context from the wire" do
+      raw_subject = "jane.doe@datadoghq.com"
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: raw_subject,
+          eval_time_ms: realistic_eval_ms, attrs: {"user_email" => raw_subject},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["targeting_key"]).to eq(
+        "sha256_b4698f9b6d186781fa8dc59e533578fa2d8379a46b1cf6db85cda6aa9c99e51b"
+      )
+      expect(row).not_to have_key("context")
+      expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include(raw_subject)
+    end
+
+    it "emits an empty targeting key when full evaluation data is disabled" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: "",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["targeting_key"]).to eq("")
+    end
+
+    it "omits the error key when observe_full_evaluation_data is false and no error code is present" do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "err-flag", variant: nil, allocation_key: "",
+          error_message: nil,
+          targeting_key: "jane.doe@datadoghq.com",
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("error")
+    end
+
+    it "hashes a non-UTF-8 targeting key over its UTF-8 bytes" do
+      iso = "josé@datadoghq.com".encode(Encoding::ISO_8859_1)
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: "pii-flag", variant: "on", allocation_key: "alloc",
+          targeting_key: iso,
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload["flagEvaluations"].first
+      expect(row["targeting_key"]).to eq(
+        "sha256_4cc077537cc6902477f44195b98aaf13687f9d90ce37e9d6f70cb1ede363201c"
+      )
+    end
+  end
+
+  describe "context-truncation telemetry" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+    let(:telemetry) { instance_spy(Datadog::Core::Telemetry::Component) }
+
+    it "emits a context-truncated counter per reason when caps are hit" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+
+      # >256 fields hits the field-count cap.
+      wide_attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = "v" }
+      writer.enqueue(
+        flag_key: "wide-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: wide_attrs,
+        observe_full_evaluation_data: true,
+      )
+      # An oversized string value hits the value-length cap.
+      writer.enqueue(
+        flag_key: "long-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: {"toobig" => "x" * 257},
+        observe_full_evaluation_data: true,
+      )
+      # An oversized key hits the key-length cap.
+      writer.enqueue(
+        flag_key: "long-key-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: {"k" * 257 => "value"},
+        observe_full_evaluation_data: true,
+      )
+      writer.send(:drain_and_flush)
+
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
+      )
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_value_length"}
+      )
+      expect(telemetry).to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_key_length"}
+      )
+    ensure
+      writer&.stop
+    end
+
+    it "drops invalid contexts, counts each failure, and logs only the first failure" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      logged = []
+      allow(logger).to receive(:debug) { |&block| logged << block.call }
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+      invalid_attrs = Class.new(Hash) do
+        def each
+          raise "caller-controlled failure"
+        end
+      end.new
+      invalid_attrs["key"] = "value"
+
+      2.times do
+        writer.enqueue(
+          flag_key: "invalid-context", variant: "on", allocation_key: "",
+          targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: invalid_attrs,
+          observe_full_evaluation_data: true,
+        )
+      end
+      writer.send(:drain_and_flush)
+
+      expect(logged).to eq(["OpenFeature EVP: context snapshot error: RuntimeError"])
+      expect_telemetry_count(
+        telemetry,
+        "flagevaluation.context.truncated",
+        2,
+        {reason: "snapshot_error"}
+      )
+      expect(transport).to have_received(:send_flag_evaluations) do |payload|
+        row = payload["flagEvaluations"].first
+        expect(row["evaluation_count"]).to eq(2)
+        expect(row).not_to have_key("context")
+      end
+    ensure
+      writer&.stop
+    end
+
+    it "does not emit truncation telemetry for exactly 256 fields" do
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+      attrs = 256.times.each_with_object({}) { |i, fields| fields["k#{i}"] = "v" }
+
+      writer.enqueue(
+        flag_key: "exact-flag", variant: "on", allocation_key: "",
+        targeting_key: "t", eval_time_ms: realistic_eval_ms, attrs: attrs,
+        observe_full_evaluation_data: true,
+      )
+      writer.send(:drain_and_flush)
+
+      expect(telemetry).not_to have_received(:inc).with(
+        "tracers", "flagevaluation.context.truncated", 1, tags: {reason: "max_context_fields"}
+      )
+    ensure
+      writer&.stop
+    end
+  end
+
+  describe "degraded-tier observe_full_evaluation_data handling" do
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    it "emits the redacted error code without raw targeting data when full evaluation data is disabled" do
+      raw_subject = "jane.doe@datadoghq.com"
+      payload = captured_payload do |writer|
+        small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+        writer.instance_variable_set(:@aggregator, small)
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+        )
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          error_message: "TYPE_MISMATCH", targeting_key: raw_subject,
+          eval_time_ms: realistic_eval_ms, attrs: {"user_email" => raw_subject},
+        )
+      end
+
+      degraded_row = payload["flagEvaluations"].find { |row| !row.key?("targeting_key") }
+      expect(degraded_row["error"]).to eq("message" => "TYPE_MISMATCH")
+      expect(degraded_row).not_to have_key("context")
+      expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include(raw_subject)
+    end
+
+    it "normalizes unknown errors in the degraded tier and omits targeting_key and context" do
+      payload = captured_payload do |writer|
+        small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+        writer.instance_variable_set(:@aggregator, small)
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "a", allocation_key: "alloc-x",
+          targeting_key: "u1", eval_time_ms: realistic_eval_ms, attrs: {"x" => 1},
+          observe_full_evaluation_data: true,
+        )
+        writer.enqueue(
+          flag_key: "deg-flag", variant: "b", allocation_key: "alloc-x",
+          error_message: "boom", targeting_key: "jane.doe@datadoghq.com",
+          eval_time_ms: realistic_eval_ms, attrs: {"user_email" => "jane.doe@datadoghq.com"},
+          observe_full_evaluation_data: true,
+        )
+      end
+
+      degraded_row = payload["flagEvaluations"].find { |row| !row.key?("targeting_key") }
+      expect(degraded_row["error"]).to eq("message" => "GENERAL")
+      expect(degraded_row).not_to have_key("targeting_key")
+      expect(degraded_row).not_to have_key("context")
+      expect(Datadog::Core::Encoding::JSONEncoder.encode(payload))
+        .not_to include("jane.doe@datadoghq.com")
+    end
+  end
+
+  describe "emit-time context redaction" do
+    let(:realistic_eval_ms) { 1_700_000_000_000 }
+
+    # Stub the otherwise unreachable state to verify the final wire guard.
+    it "uses privacy-preserving entry consent despite a consent-enabled key" do
+      payload = nil
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
+      logger = instance_double(Datadog::Core::Logger, debug: nil, warn: nil, error: nil)
+
+      raw_subject = "jane.doe@datadoghq.com"
+      # The synthetic key says consent is enabled, while the aggregate's AND-folded
+      # consent says at least one evaluation disabled it.
+      key = ["pii-flag", "on", "alloc", false, "", raw_subject, nil, true]
+      entry = {
+        count: 1, first_evaluation: realistic_eval_ms, last_evaluation: realistic_eval_ms,
+        runtime_default: false, error_message: "", targeting_key: raw_subject,
+        context_attrs: {"env" => "prod", "user_email" => raw_subject},
+        observe_full_evaluation_data: false,
+      }
+      snapshot = {full: {key => entry}, degraded: {}, dropped_degraded_overflow: 0}
+
+      writer = described_class.new(transport: transport, logger: logger)
+      aggregator = writer.instance_variable_get(:@aggregator)
+      allow(aggregator).to receive(:flush_and_reset).and_return(snapshot, {full: {}, degraded: {}, dropped_degraded_overflow: 0})
+
+      writer.send(:drain_and_flush)
+      writer.stop
+
+      row = payload["flagEvaluations"].first
+      expect(row).not_to have_key("context")
+      expect(row["targeting_key"]).to start_with("sha256_")
+      wire = Datadog::Core::Encoding::JSONEncoder.encode(payload)
+      expect(wire).not_to include(raw_subject)
+    end
+  end
+
+  describe "TARGETING_KEY_FIELD" do
+    # Guards the duplicated literal documented on TARGETING_KEY_FIELD: on drift, the
+    # targeting key stops being excluded and lands in context.evaluation as raw PII.
+    it "equals the OpenFeature SDK targeting-key field name" do
+      expect(described_class::TARGETING_KEY_FIELD)
+        .to eq(::OpenFeature::SDK::EvaluationContext::TARGETING_KEY.to_s)
     end
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../ruby_version'
+require_relative "ext"
+require_relative "../ruby_version"
 
 module Datadog
   module ErrorTracking

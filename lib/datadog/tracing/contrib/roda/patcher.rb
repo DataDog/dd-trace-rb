@@ -2,9 +2,9 @@
 
 # typed: ignore
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'instrumentation'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "instrumentation"
 
 module Datadog
   module Tracing

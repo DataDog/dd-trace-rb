@@ -10,6 +10,10 @@ appraise 'rails81' do
   gem 'rails', '~> 8.1.0'
 end
 
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -84,22 +88,31 @@ end
 
 appraise 'http' do
   gem 'ethon'
+  gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
+  gem 'typhoeus'
+end
+
+appraise 'httprb' do
   gem 'http'
-  gem 'httpclient'
-  gem 'typhoeus'
 end
 
-appraise 'http6' do
-  gem 'ethon'
-  gem 'http', '~> 6'
-  gem 'httpclient'
-  gem 'typhoeus'
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+['1', '2', '3', 'latest'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape' if v == 'latest'
+    gem 'grape', "~> #{v}.0" unless v == 'latest'
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.20.0')
@@ -111,7 +124,7 @@ build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta:
   'opentelemetry-sdk' => '~> 1.1',
   'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm', min: '2.0.0')
 build_coverage_matrix('kicks', min: '3.0.0')
 
 appraise 'sneakers' do
@@ -130,7 +143,11 @@ appraise 'relational_db' do
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-  gem 'mysql2', '>= 0.5.3', platform: :ruby
+  # mysql2 0.5.7 is excluded permanently: it raises an empty Mysql2::Error from #affected_rows
+  # after SELECT on MariaDB Connector/C 11.8 clients (e.g. Debian 13), which breaks Sequel's
+  # Database#run for SELECT statements. 0.5.6 and the 0.5.8+ line are fixed
+  # (https://github.com/brianmario/mysql2/pull/1417); the auto-updater picks up newer releases.
+  gem 'mysql2', '>= 0.5.3', '!= 0.5.7', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '~> 1.4', platform: :ruby
   gem 'sequel'
@@ -142,7 +159,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -165,7 +181,12 @@ appraise 'contrib' do
   gem 'rackup'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -174,7 +195,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mutex_m', '>= 0.1.0'
@@ -215,11 +237,11 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 

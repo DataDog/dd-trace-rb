@@ -1,14 +1,14 @@
-require 'datadog'
-require 'mongo'
+require "datadog"
+require "mongo"
 
-RSpec.describe 'Mongo crash regression #1235' do
+RSpec.describe "Mongo crash regression #1235" do
   before { skip unless PlatformHelpers.mri? }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
   let(:client_options) { {database: database} }
-  let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
-  let(:database) { 'test' }
+  let(:host) { ENV.fetch("TEST_MONGODB_HOST", "127.0.0.1") }
+  let(:port) { ENV.fetch("TEST_MONGODB_PORT", 27017).to_i }
+  let(:database) { "test" }
 
   before do
     # Disable Mongo logging
@@ -31,7 +31,7 @@ RSpec.describe 'Mongo crash regression #1235' do
       # outputted to STDERR.
       $stderr = StringIO.new
 
-      client[:foo].insert_one(bar: 'baz')
+      client[:foo].insert_one(bar: "baz")
 
       exit # Forcing an immediate Ruby VM exit causes the crash
     end
@@ -40,7 +40,7 @@ RSpec.describe 'Mongo crash regression #1235' do
     status
   end
 
-  it 'does not crash on exit' do
+  it "does not crash on exit" do
     expect { subject }.to_not output(/^\[BUG\] /).to_stderr_from_any_process
 
     expect(subject).to be_success

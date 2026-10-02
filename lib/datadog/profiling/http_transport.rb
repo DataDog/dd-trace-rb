@@ -68,7 +68,7 @@ module Datadog
 
       #: (::String?, ::String?) -> bool?
       def agentless?(site, api_key)
-        site && api_key && %w[1 true].include?(ENV[Profiling::Ext::ENV_AGENTLESS] || '') # rubocop:disable CustomCops/EnvUsageCop
+        site && api_key && %w[1 true].include?(ENV[Profiling::Ext::ENV_AGENTLESS] || "") # rubocop:disable CustomCops/EnvUsageCop
       end
 
       #: () -> ::String

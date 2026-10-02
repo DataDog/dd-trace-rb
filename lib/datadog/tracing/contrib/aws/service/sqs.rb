@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'base'
-require_relative '../ext'
+require_relative "base"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -14,7 +14,7 @@ module Datadog
               queue_url = params[:queue_url]
               queue_name = params[:queue_name]
               if queue_url
-                _, _, _, aws_account, queue_name = queue_url.split('/')
+                _, _, _, aws_account, queue_name = queue_url.split("/")
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
               end
               span.set_tag(Aws::Ext::TAG_QUEUE_NAME, queue_name)

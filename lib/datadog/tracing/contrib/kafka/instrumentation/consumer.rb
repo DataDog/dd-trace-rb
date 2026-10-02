@@ -22,7 +22,7 @@ module Datadog
                   begin
                     headers = message.headers || {}
                     Datadog::DataStreams.set_consume_checkpoint(
-                      type: 'kafka',
+                      type: "kafka",
                       source: message.topic,
                       auto_instrumentation: true
                     ) { |key| headers[key] }
@@ -44,7 +44,7 @@ module Datadog
 
                   begin
                     Datadog::DataStreams.set_consume_checkpoint(
-                      type: 'kafka',
+                      type: "kafka",
                       source: batch.topic,
                       auto_instrumentation: true
                     )

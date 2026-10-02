@@ -37,6 +37,13 @@
         "default": "16"
       }
     ],
+    "DD_AI_GUARD_REDACTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_AI_GUARD_TIMEOUT": [
       {
         "version": "A",
@@ -114,6 +121,13 @@
         "type": "string",
         "default": null,
         "sensitive": true
+      }
+    ],
+    "DD_APPSEC_AGENTIC_ONBOARDING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": ""
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -350,6 +364,42 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "agentless"
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null,
+        "sensitive": true
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30"
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "5"
+      }
+    ],
+    "DD_FEATURE_FLAGS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -365,6 +415,27 @@
       }
     ],
     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30000"
+      }
+    ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
@@ -574,6 +645,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
@@ -1787,6 +1865,13 @@
         "version": "A",
         "type": "string",
         "default": "opensearch"
+      }
+    ],
+    "DD_TRACE_OTEL_CTX_ENABLED": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../core/buffer/cruby'
+require_relative "../../core/buffer/cruby"
 
 module Datadog
   module OpenFeature

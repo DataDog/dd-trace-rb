@@ -1,4 +1,4 @@
-require 'datadog/tracing/span'
+require "datadog/tracing/span"
 
 module PipelineHelpers
   def generate_span(name, parent = nil)

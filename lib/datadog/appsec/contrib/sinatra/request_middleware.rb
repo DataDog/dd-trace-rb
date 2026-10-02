@@ -6,7 +6,8 @@ module Datadog
       module Sinatra
         # Rack middleware for AppSec on Sinatra
         class RequestMiddleware
-          def initialize(app, opt = {})
+          # TODO: opt is never used, it can probably be safely removed
+          def initialize(app, opt = {}) # steep:ignore DifferentMethodParameterKind
             @app = app
           end
 

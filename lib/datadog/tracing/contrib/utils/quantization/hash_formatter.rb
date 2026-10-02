@@ -7,7 +7,7 @@ module Datadog
         module Quantization
           # Quantization for Hash
           module HashFormatter
-            PLACEHOLDER = '?'
+            PLACEHOLDER = "?"
             EXCLUDE_KEYS = [].freeze
             SHOW_KEYS = [].freeze
 
@@ -15,7 +15,7 @@ module Datadog
             DEFAULT_OPTIONS = { # steep:ignore IncompatibleAssignment
               exclude: EXCLUDE_KEYS,
               show: SHOW_KEYS,
-              placeholder: PLACEHOLDER
+              placeholder: PLACEHOLDER,
             }.freeze
 
             module_function

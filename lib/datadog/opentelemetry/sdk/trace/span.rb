@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/utils'
+require "datadog/tracing/utils"
 
 module Datadog
   module OpenTelemetry
@@ -30,9 +30,9 @@ module Datadog
           if (span = datadog_span)
             # Sets the exception attributes as span error tags. The values in the attribute hash MUST
             # take precedence over the type, message and stacktrace inferred from the exception object
-            type = attributes&.[]('exception.type') || exception.class.to_s
-            message = attributes&.[]('exception.message') || exception.message
-            stacktrace = attributes&.[]('exception.stacktrace') || exception.full_message(highlight: false, order: :top)
+            type = attributes&.[]("exception.type") || exception.class.to_s
+            message = attributes&.[]("exception.message") || exception.message
+            stacktrace = attributes&.[]("exception.stacktrace") || exception.full_message(highlight: false, order: :top)
             span.set_error_tags([type, message, stacktrace])
           end
           res
@@ -67,22 +67,22 @@ module Datadog
 
         # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def self.enrich_name(kind, attrs)
-          if attrs.key?('http.request.method')
-            return 'http.server.request' if kind == :server
-            return 'http.client.request' if kind == :client
+          if attrs.key?("http.request.method")
+            return "http.server.request" if kind == :server
+            return "http.client.request" if kind == :client
           end
 
-          return "#{attrs["db.system"]}.query" if attrs.key?('db.system') && kind == :client
+          return "#{attrs["db.system"]}.query" if attrs.key?("db.system") && kind == :client
 
-          if (attrs.key?('messaging.system') || attrs.key?('messaging.operation')) &&
+          if (attrs.key?("messaging.system") || attrs.key?("messaging.operation")) &&
               [:consumer, :producer, :server, :client].include?(kind)
 
             return "#{attrs["messaging.system"]}.#{attrs["messaging.operation"]}"
           end
 
-          if attrs.key?('rpc.system')
-            if attrs['rpc.system'] == 'aws-api' && kind == :client
-              service = attrs['rpc.service']
+          if attrs.key?("rpc.system")
+            if attrs["rpc.system"] == "aws-api" && kind == :client
+              service = attrs["rpc.service"]
               return "aws.#{service || "client"}.request"
             end
 
@@ -93,24 +93,24 @@ module Datadog
             end
           end
 
-          if attrs.key?('faas.invoked_provider') && attrs.key?('faas.invoked_name') && kind == :client
-            provider = attrs['faas.invoked_provider']
-            name = attrs['faas.invoked_name']
+          if attrs.key?("faas.invoked_provider") && attrs.key?("faas.invoked_name") && kind == :client
+            provider = attrs["faas.invoked_provider"]
+            name = attrs["faas.invoked_name"]
             return "#{provider}.#{name}.invoke"
           end
 
-          return "#{attrs["faas.trigger"]}.invoke" if attrs.key?('faas.trigger') && kind == :server
+          return "#{attrs["faas.trigger"]}.invoke" if attrs.key?("faas.trigger") && kind == :server
 
-          return 'graphql.server.request' if attrs.key?('graphql.operation.type')
+          return "graphql.server.request" if attrs.key?("graphql.operation.type")
 
           if kind == :server
-            protocol = attrs['network.protocol.name']
-            return protocol ? "#{protocol}.server.request" : 'server.request'
+            protocol = attrs["network.protocol.name"]
+            return protocol ? "#{protocol}.server.request" : "server.request"
           end
 
           if kind == :client
-            protocol = attrs['network.protocol.name']
-            return protocol ? "#{protocol}.client.request" : 'client.request'
+            protocol = attrs["network.protocol.name"]
+            return protocol ? "#{protocol}.client.request" : "client.request"
           end
 
           kind.to_s
@@ -129,7 +129,7 @@ module Datadog
           # DEV: clones the hash, causing unnecessary overhead.
           if @attributes.key?(key)
             # Try to find a richer operation name, unless an explicit override was provided.
-            if !@attributes.key?('operation.name') && (rich_name = Span.enrich_name(kind, @attributes))
+            if !@attributes.key?("operation.name") && (rich_name = Span.enrich_name(kind, @attributes))
               span.name = rich_name.downcase
             end
 
@@ -143,7 +143,7 @@ module Datadog
           else
             span.clear_tag(key)
 
-            if key == 'service.name'
+            if key == "service.name"
               # By removing the service name, we set it to the fallback default,
               # effectively removing the `service` attribute from OpenTelemetry's perspective.
               span.service = Datadog.send(:components).tracer.default_service
@@ -156,24 +156,24 @@ module Datadog
         # @return [Boolean] true if the key is a Datadog Span override attribute, false otherwise
         # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def override_datadog_values(span, key, value)
-          span.name = value if key == 'operation.name'
-          span.resource = value if key == 'resource.name'
-          span.service = value if key == 'service.name'
-          span.type = value if key == 'span.type'
+          span.name = value if key == "operation.name"
+          span.resource = value if key == "resource.name"
+          span.service = value if key == "service.name"
+          span.type = value if key == "span.type"
 
-          if key == 'analytics.event' && value.respond_to?(:casecmp)
+          if key == "analytics.event" && value.respond_to?(:casecmp)
             Datadog::Tracing::Analytics.set_sample_rate(
               span,
-              (value.casecmp('true') == 0) ? 1 : 0
+              (value.casecmp("true") == 0) ? 1 : 0
             )
           end
 
-          span.set_tag('http.status_code', value) if key == 'http.response.status_code'
+          span.set_tag("http.status_code", value) if key == "http.response.status_code"
         end
         # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
-        DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',
-          'span.type', 'http.response.status_code'].freeze
+        DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ["analytics.event", "operation.name", "resource.name", "service.name",
+          "span.type", "http.response.status_code"].freeze
 
         ::OpenTelemetry::SDK::Trace::Span.prepend(self)
       end

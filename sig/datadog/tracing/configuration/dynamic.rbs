@@ -8,18 +8,18 @@ module Datadog
         class TracingHeaderTags < SimpleOption
           def initialize: () -> void
 
-          def call: (untyped tracing_header_tags) -> untyped
+          def call: (Array[Hash[String, String]]? tracing_header_tags) -> Datadog::Core::Telemetry::Event::telemetry_value
         end
         class TracingSamplingRate < SimpleOption
           def initialize: () -> void
-          def call: (untyped tracing_sampling_rate) -> untyped
+          def call: ((Integer | Float)? tracing_sampling_rate) -> Datadog::Core::Telemetry::Event::telemetry_value
 
           def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
 
         class TracingSamplingRules < SimpleOption
           def initialize: () -> void
-          def call: (Array[Hash[String, untyped]] tracing_sampling_rules) -> void
+          def call: (Array[Hash[String, untyped]]? tracing_sampling_rules) -> Datadog::Core::Telemetry::Event::telemetry_value
           def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
 

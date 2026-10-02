@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/symbol_database/component'
-require 'datadog/symbol_database/extractor'
-require 'datadog/symbol_database/scope_batcher'
-require 'datadog/symbol_database/uploader'
+require "datadog/symbol_database/component"
+require "datadog/symbol_database/extractor"
+require "datadog/symbol_database/scope_batcher"
+require "datadog/symbol_database/uploader"
 
 RSpec.describe Datadog::SymbolDatabase::Component do
   let(:remote_enabled) { true }
@@ -13,16 +13,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       s.symbol_database.enabled = true
       s.symbol_database.internal.force_upload = false
       s.remote.enabled = remote_enabled
-      s.service = 'test-service'
-      s.env = 'test'
-      s.version = '1.0'
+      s.service = "test-service"
+      s.env = "test"
+      s.version = "1.0"
     end
   end
 
   let(:agent_settings) do
     instance_double(
       Datadog::Core::Configuration::AgentSettings,
-      hostname: 'localhost',
+      hostname: "localhost",
       port: 8126,
       timeout_seconds: 30,
       ssl: false,
@@ -44,94 +44,94 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   # Make the debounce window short so tests don't wait 5s.
   # 0.05s gives the scheduler thread time to enter its wait loop and fire.
-  before { stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05) }
+  before { stub_const("Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL", 0.05) }
 
-  describe '.environment_supported?', :symdb_supported_platforms do
-    it 'returns true on MRI Ruby 2.7+' do
-      stub_const('RUBY_ENGINE', 'ruby')
-      stub_const('RUBY_VERSION', '3.2.0')
-      stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+  describe ".environment_supported?", :symdb_supported_platforms do
+    it "returns true on MRI Ruby 2.7+" do
+      stub_const("RUBY_ENGINE", "ruby")
+      stub_const("RUBY_VERSION", "3.2.0")
+      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       expect(described_class.send(:environment_supported?, logger)).to be true
     end
 
-    it 'returns false and logs on JRuby' do
-      stub_const('RUBY_ENGINE', 'jruby')
+    it "returns false and logs on JRuby" do
+      stub_const("RUBY_ENGINE", "jruby")
       expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/not supported on jruby/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
 
-    it 'returns false and logs on Ruby < 2.7' do
-      stub_const('RUBY_ENGINE', 'ruby')
-      stub_const('RUBY_VERSION', '2.6.0')
-      stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+    it "returns false and logs on Ruby < 2.7" do
+      stub_const("RUBY_ENGINE", "ruby")
+      stub_const("RUBY_VERSION", "2.6.0")
+      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.7\+/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
   end
 
-  describe '.build' do
-    context 'when remote is disabled and force_upload is false' do
+  describe ".build" do
+    context "when remote is disabled and force_upload is false" do
       before do
         settings.remote.enabled = false
         settings.symbol_database.internal.force_upload = false
       end
 
-      it 'returns nil' do
+      it "returns nil" do
         result = described_class.build(settings, agent_settings, logger)
         expect(result).to be_nil
       end
     end
 
-    context 'when remote is enabled' do
+    context "when remote is enabled" do
       let(:remote_enabled) { true }
 
-      it 'returns a Component' do
+      it "returns a Component" do
         result = described_class.build(settings, agent_settings, logger)
         expect(result).to be_a(described_class)
       end
     end
 
-    context 'when force_upload is enabled' do
+    context "when force_upload is enabled" do
       before { settings.symbol_database.internal.force_upload = true }
 
-      it 'returns a Component' do
+      it "returns a Component" do
         result = described_class.build(settings, agent_settings, logger)
         expect(result).to be_a(described_class)
         result.shutdown!
       end
 
-      it 'calls schedule_deferred_upload' do
+      it "calls schedule_deferred_upload" do
         expect_any_instance_of(described_class).to receive(:schedule_deferred_upload)
         described_class.build(settings, agent_settings, logger)
       end
     end
 
-    context 'without force_upload' do
-      it 'does not call schedule_deferred_upload' do
+    context "without force_upload" do
+      it "does not call schedule_deferred_upload" do
         expect_any_instance_of(described_class).not_to receive(:schedule_deferred_upload)
         described_class.build(settings, agent_settings, logger)
       end
     end
   end
 
-  describe '#schedule_deferred_upload' do
+  describe "#schedule_deferred_upload" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     after { component.shutdown! }
 
-    context 'without Rails' do
+    context "without Rails" do
       before do
-        hide_const('ActiveSupport')
-        hide_const('Rails::Railtie')
+        hide_const("ActiveSupport")
+        hide_const("Rails::Railtie")
       end
 
-      it 'calls start_upload immediately' do
+      it "calls start_upload immediately" do
         expect(component).to receive(:start_upload)
         component.schedule_deferred_upload
       end
     end
 
-    context 'with Rails detected' do
+    context "with Rails detected" do
       let(:after_init_callbacks) { [] }
 
       before do
@@ -139,8 +139,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
           def self.on_load(_name, &block)
           end
         end
-        stub_const('ActiveSupport', active_support_mod)
-        stub_const('Rails::Railtie', Class.new)
+        stub_const("ActiveSupport", active_support_mod)
+        stub_const("Rails::Railtie", Class.new)
 
         # Provide Rails.application.config.eager_load so the auto-deferred
         # upload runs in this test (production-like config). stub_const
@@ -149,27 +149,27 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         rails_app = Struct.new(:config).new(rails_config)
         rails_module = Module.new
         rails_module.define_singleton_method(:application) { rails_app }
-        stub_const('Rails', rails_module)
-        stub_const('Rails::Railtie', Class.new)
+        stub_const("Rails", rails_module)
+        stub_const("Rails::Railtie", Class.new)
 
         allow(::ActiveSupport).to receive(:on_load).with(:after_initialize) do |&block|
           after_init_callbacks << block
         end
       end
 
-      it 'defers start_upload to ActiveSupport.on_load(:after_initialize)' do
+      it "defers start_upload to ActiveSupport.on_load(:after_initialize)" do
         expect(component).not_to receive(:start_upload)
         component.schedule_deferred_upload
         expect(after_init_callbacks.size).to eq(1)
       end
 
-      it 'callback triggers start_upload on the registering Component' do
+      it "callback triggers start_upload on the registering Component" do
         component.schedule_deferred_upload
         expect(component).to receive(:start_upload)
         after_init_callbacks.each(&:call)
       end
 
-      it 'each Component registers its own callback (no class-level dedup of registration)' do
+      it "each Component registers its own callback (no class-level dedup of registration)" do
         # Per-instance design: each Component schedules its own deferred upload.
         # Old shut-down Components short-circuit their start_upload via @shutdown,
         # so the surviving Component is the one that actually triggers extraction.
@@ -185,12 +185,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe '#start_upload (debounced extraction)' do
+  describe "#start_upload (debounced extraction)" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     after { component.shutdown! }
 
-    it 'eventually triggers extract_and_upload after the debounce window' do
+    it "eventually triggers extract_and_upload after the debounce window" do
       expect(component).to receive(:extract_and_upload).and_call_original
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
@@ -198,7 +198,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.wait_for_idle(timeout: 5)).to be true
     end
 
-    it 'coalesces multiple start_upload calls into a single extraction (debounce)' do
+    it "coalesces multiple start_upload calls into a single extraction (debounce)" do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -211,15 +211,15 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extraction_count).to eq(1)
     end
 
-    it 'does not extract when shut down' do
+    it "does not extract when shut down" do
       component.shutdown!
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
     end
 
-    it 'sets last_upload_time and last_upload_scope_count after a successful upload' do
-      file_scope1 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'a.rb', scopes: [])
-      file_scope2 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'b.rb', scopes: [])
+    it "sets last_upload_time and last_upload_scope_count after a successful upload" do
+      file_scope1 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: "FILE", name: "a.rb", scopes: [])
+      file_scope2 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: "FILE", name: "b.rb", scopes: [])
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_yield(file_scope1).and_yield(file_scope2)
       allow(component.instance_variable_get(:@scope_batcher)).to receive(:add_scope)
       allow(component.instance_variable_get(:@scope_batcher)).to receive(:flush)
@@ -235,7 +235,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe '#start_upload Dynamic Instrumentation gate' do
+  describe "#start_upload Dynamic Instrumentation gate" do
     let(:di_active_state) { {active: false} }
     let(:component) do
       described_class.new(settings, agent_settings, logger, di_active: -> { di_active_state[:active] })
@@ -243,11 +243,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     after { component.shutdown! }
 
-    context 'when symbol_database.enabled is nil (default)' do
+    context "when symbol_database.enabled is nil (default)" do
       before { settings.symbol_database.enabled = nil }
 
-      context 'and Dynamic Instrumentation is not active' do
-        it 'defers the upload instead of scheduling extraction' do
+      context "and Dynamic Instrumentation is not active" do
+        it "defers the upload instead of scheduling extraction" do
           expect(component).not_to receive(:extract_and_upload)
 
           component.start_upload
@@ -256,7 +256,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
           expect(component.instance_variable_get(:@upload_requested)).to be true
         end
 
-        it 'runs the deferred upload once Dynamic Instrumentation becomes active' do
+        it "runs the deferred upload once Dynamic Instrumentation becomes active" do
           component.start_upload
           expect(component.instance_variable_get(:@upload_requested)).to be true
 
@@ -270,10 +270,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         end
       end
 
-      context 'and Dynamic Instrumentation is active' do
+      context "and Dynamic Instrumentation is active" do
         before { di_active_state[:active] = true }
 
-        it 'schedules extraction' do
+        it "schedules extraction" do
           expect(component).to receive(:extract_and_upload).and_call_original
           allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
@@ -283,10 +283,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         end
       end
 
-      context 'after an upload has run and Dynamic Instrumentation is later disabled then re-enabled' do
+      context "after an upload has run and Dynamic Instrumentation is later disabled then re-enabled" do
         before { di_active_state[:active] = true }
 
-        it 'restarts the upload on resume even though remote config does not re-send the config' do
+        it "restarts the upload on resume even though remote config does not re-send the config" do
           allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
           # Initial upload while DI is active.
@@ -307,10 +307,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    context 'when symbol_database.enabled is explicitly true' do
+    context "when symbol_database.enabled is explicitly true" do
       before { settings.symbol_database.enabled = true }
 
-      it 'uploads even when Dynamic Instrumentation is not active' do
+      it "uploads even when Dynamic Instrumentation is not active" do
         expect(component).to receive(:extract_and_upload).and_call_original
         allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
@@ -320,13 +320,13 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    context 'when force_upload is set' do
+    context "when force_upload is set" do
       before do
         settings.symbol_database.enabled = nil
         settings.symbol_database.internal.force_upload = true
       end
 
-      it 'uploads even when Dynamic Instrumentation is not active' do
+      it "uploads even when Dynamic Instrumentation is not active" do
         expect(component).to receive(:extract_and_upload).and_call_original
         allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
@@ -336,10 +336,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    context 'when symbol_database.enabled is explicitly false' do
+    context "when symbol_database.enabled is explicitly false" do
       before { settings.symbol_database.enabled = false }
 
-      it 'skips the upload without recording it for retry' do
+      it "skips the upload without recording it for retry" do
         expect(component).not_to receive(:extract_and_upload)
 
         component.start_upload
@@ -350,40 +350,40 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe '#stop_for_di_disable' do
+  describe "#stop_for_di_disable" do
     let(:component) do
       described_class.new(settings, agent_settings, logger, di_active: -> { true })
     end
 
     after { component.shutdown! }
 
-    context 'when symbol_database.enabled is nil (follows DI)' do
+    context "when symbol_database.enabled is nil (follows DI)" do
       before { settings.symbol_database.enabled = nil }
 
-      it 'suspends uploading (preserving the request for a later resume)' do
+      it "suspends uploading (preserving the request for a later resume)" do
         expect(component).to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
       end
     end
 
-    context 'when symbol_database.enabled is explicitly true' do
+    context "when symbol_database.enabled is explicitly true" do
       before { settings.symbol_database.enabled = true }
 
-      it 'keeps uploading (explicit opt-in is independent of DI)' do
+      it "keeps uploading (explicit opt-in is independent of DI)" do
         expect(component).not_to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
       end
     end
 
-    context 'when force_upload is set' do
+    context "when force_upload is set" do
       before do
         settings.symbol_database.enabled = nil
         settings.symbol_database.internal.force_upload = true
       end
 
-      it 'keeps uploading (force_upload is independent of DI)' do
+      it "keeps uploading (force_upload is independent of DI)" do
         expect(component).not_to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
@@ -391,31 +391,31 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe '#wait_for_idle' do
+  describe "#wait_for_idle" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     after { component.shutdown! }
 
-    it 'returns true when an upload completes within the timeout' do
+    it "returns true when an upload completes within the timeout" do
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
       component.start_upload
       expect(component.wait_for_idle(timeout: 5)).to be true
     end
 
-    it 'returns false when no upload happens within the timeout' do
+    it "returns false when no upload happens within the timeout" do
       expect(component.wait_for_idle(timeout: 0.1)).to be false
     end
   end
 
-  describe '#shutdown!' do
+  describe "#shutdown!" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
-    it 'sets the shutdown flag' do
+    it "sets the shutdown flag" do
       component.shutdown!
       expect(component.shutdown?).to be true
     end
 
-    it 'prevents subsequent start_upload from extracting' do
+    it "prevents subsequent start_upload from extracting" do
       component.shutdown!
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
@@ -424,7 +424,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
-    it 'cancels a pending debounced extraction' do
+    it "cancels a pending debounced extraction" do
       extractor = component.instance_variable_get(:@extractor)
       expect(extractor).not_to receive(:extract_all)
 
@@ -436,7 +436,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
-    it 'prevents a post-shutdown class definition from enqueuing into the hot-load buffer' do
+    it "prevents a post-shutdown class definition from enqueuing into the hot-load buffer" do
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
       component.start_upload
       component.wait_for_idle(timeout: 5)
@@ -457,14 +457,14 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         # an enabled TracePoint leaked past shutdown! and is rooted by the VM,
         # growing the buffer unboundedly for the rest of the process.
         before_size = buffer.size
-        eval('class SymdbShutdownSpecPostShutdownClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        eval("class SymdbShutdownSpecPostShutdownClass; def hello; end; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
         expect(buffer.size).to eq(before_size)
       ensure
         Object.send(:remove_const, :SymdbShutdownSpecPostShutdownClass) if Object.const_defined?(:SymdbShutdownSpecPostShutdownClass)
       end
     end
 
-    it 'waits for an in-flight extraction to complete' do
+    it "waits for an in-flight extraction to complete" do
       events = Queue.new
       extract_started = Queue.new
       release_extract = Queue.new
@@ -493,7 +493,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.upload_in_progress).to be false
     end
 
-    context 'when called from a forked child that inherited @upload_in_progress=true' do
+    context "when called from a forked child that inherited @upload_in_progress=true" do
       # When a process that has a configured Component forks, the child
       # inherits the @upload_in_progress flag as a stale snapshot — the
       # scheduler thread that would clear it lives only in the parent. If
@@ -504,7 +504,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # The PID-mismatch guard in shutdown! detects this case and clears the
       # stale flag without waiting. Verified by simulating the PID mismatch
       # via stub_const on Process.pid — direct, hermetic, no fork required.
-      it 'detects PID mismatch and returns without waiting on the cv' do
+      it "detects PID mismatch and returns without waiting on the cv" do
         component.instance_variable_set(:@upload_in_progress, true)
         # Simulate the child observing a different PID than the one captured
         # at Component construction in the parent.
@@ -526,7 +526,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         expect(component.shutdown?).to be true
       end
 
-      it 'still waits on the cv when called from the owning process' do
+      it "still waits on the cv when called from the owning process" do
         # Counterpart to the PID-mismatch test above: confirms the guard does
         # not short-circuit in the normal (non-forked) case. Without this,
         # the guard could silently degrade the in-flight-extraction wait.
@@ -546,7 +546,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         component.shutdown!
       end
 
-      it 'waits on the cv for child-owned uploads (start_upload called in this process)' do
+      it "waits on the cv for child-owned uploads (start_upload called in this process)" do
         # Codex review scenario: in preload/fork servers the child can call
         # start_upload on the inherited Component (e.g. remote config arrives
         # in a Puma worker). The resulting upload is child-owned and must not
@@ -580,7 +580,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         expect(component.shutdown?).to be true
       end
 
-      it 'clears inherited @upload_in_progress when child calls start_upload' do
+      it "clears inherited @upload_in_progress when child calls start_upload" do
         # If the parent had @upload_in_progress=true at fork time and the
         # child later calls start_upload, the inherited true is a stale
         # snapshot — the parent's scheduler does not exist in the child.
@@ -609,7 +609,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe '#after_fork!' do
+  describe "#after_fork!" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     # Simulate fork: call after_fork! on the same Component to model the
@@ -617,7 +617,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     # rspec — the unit-level guarantees are about mutex/CV/thread reinit
     # and force-upload re-trigger, which are observable without forking.
 
-    it 'reinitializes scheduler mutex and condition variable' do
+    it "reinitializes scheduler mutex and condition variable" do
       old_mutex = component.instance_variable_get(:@scheduler_mutex)
       old_cv = component.instance_variable_get(:@scheduler_cv)
 
@@ -627,7 +627,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduler_cv)).not_to equal(old_cv)
     end
 
-    it 'reinitializes the upload mutex, condition variables, and hot-load buffer mutex' do
+    it "reinitializes the upload mutex, condition variables, and hot-load buffer mutex" do
       old_mutex = component.instance_variable_get(:@mutex)
       old_progress_cv = component.instance_variable_get(:@upload_in_progress_cv)
       old_last_upload_cv = component.instance_variable_get(:@last_upload_time_cv)
@@ -641,7 +641,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@hot_load_buffer_mutex)).not_to equal(old_buffer_mutex)
     end
 
-    it 'clears scheduler thread reference and pending schedule' do
+    it "clears scheduler thread reference and pending schedule" do
       # start_upload assigns @scheduler_thread synchronously inside
       # @scheduler_mutex via ensure_scheduler_thread, so the ivar is non-nil
       # by the time start_upload returns — no wait needed. Capture the
@@ -671,7 +671,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       scheduler_thread&.join(5)
     end
 
-    it 'clears the hot-load buffer and the initial-extraction flag' do
+    it "clears the hot-load buffer and the initial-extraction flag" do
       component.instance_variable_get(:@hot_load_buffer) << Object
       component.instance_variable_set(:@initial_extraction_done, true)
 
@@ -681,7 +681,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@initial_extraction_done)).to be false
     end
 
-    it 'clears the hot-load tracepoint reference so start_upload installs a fresh one' do
+    it "clears the hot-load tracepoint reference so start_upload installs a fresh one" do
       tracepoint = TracePoint.new(:class) {}
       component.instance_variable_set(:@hot_load_tracepoint, tracepoint)
 
@@ -690,7 +690,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
     end
 
-    it 'disables the inherited hot-load tracepoint before clearing the reference' do
+    it "disables the inherited hot-load tracepoint before clearing the reference" do
       # In a forked child, the parent's enabled TracePoint is copied in and
       # remains rooted by the VM. Niling the ivar without disabling first would
       # leave it firing — and a subsequent start_upload would install a second
@@ -706,7 +706,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
     end
 
-    it 'resets @upload_in_progress to false' do
+    it "resets @upload_in_progress to false" do
       component.instance_variable_set(:@upload_in_progress, true)
 
       component.after_fork!
@@ -714,7 +714,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.upload_in_progress).to be false
     end
 
-    it 'replaces the scope batcher so the child does not inherit the parent uploaded-scopes dedup set' do
+    it "replaces the scope batcher so the child does not inherit the parent uploaded-scopes dedup set" do
       # ScopeBatcher#add_scope skips scopes whose name is already in @uploaded_modules.
       # Without a fresh batcher, the child's re-extraction silently drops every scope
       # name the parent already uploaded.
@@ -730,27 +730,27 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scope_batcher)).not_to equal(old_batcher)
     end
 
-    context 'when force_upload is enabled' do
+    context "when force_upload is enabled" do
       before do
         allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
-        hide_const('ActiveSupport')
-        hide_const('Rails::Railtie')
+        hide_const("ActiveSupport")
+        hide_const("Rails::Railtie")
       end
 
-      it 're-registers the deferred upload in the child' do
+      it "re-registers the deferred upload in the child" do
         expect(component).to receive(:schedule_deferred_upload)
         component.after_fork!
       end
     end
 
-    context 'when force_upload is not enabled' do
-      it 'does not re-trigger an upload — relies on remote config re-subscription' do
+    context "when force_upload is not enabled" do
+      it "does not re-trigger an upload — relies on remote config re-subscription" do
         expect(component).not_to receive(:schedule_deferred_upload)
         component.after_fork!
       end
     end
 
-    it 'leaves a child Component able to start_upload normally after fork-state reset' do
+    it "leaves a child Component able to start_upload normally after fork-state reset" do
       # Simulate parent upload completing, then fork.
       component.instance_variable_set(:@last_upload_time, Datadog::Core::Utils::Time.now)
       component.after_fork!
@@ -765,18 +765,18 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'debounce regression (collapses bursts of start_upload calls)' do
+  describe "debounce regression (collapses bursts of start_upload calls)" do
     # The two-uploads bug was that a burst of start_upload triggers — auto-deferred
     # callback then explicit script call — produced two extractions. The fix is
     # the per-instance debounce scheduler: multiple start_upload calls within
     # EXTRACT_DEBOUNCE_INTERVAL coalesce into a single extraction.
     before do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
-      hide_const('ActiveSupport')
-      hide_const('Rails::Railtie')
+      hide_const("ActiveSupport")
+      hide_const("Rails::Railtie")
     end
 
-    it 'each Component built across reconfigurations extracts independently' do
+    it "each Component built across reconfigurations extracts independently" do
       # With hot-load coverage, dedup across Components is intentionally removed.
       # Each Component is responsible for its own initial extraction (which the
       # new Component needs in order to have a hot-load baseline) plus any
@@ -799,18 +799,18 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'hot-load coverage (TracePoint :class)' do
+  describe "hot-load coverage (TracePoint :class)" do
     # Verifies the cross-tracer parity goal (Java ClassFileTransformer,
     # Python BaseModuleWatchdog#after_import, .NET AppDomain.AssemblyLoad):
     # classes defined after initial extraction reach the symbol DB via
     # incremental uploads driven by the TracePoint :class hook.
     before do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
-      hide_const('ActiveSupport')
-      hide_const('Rails::Railtie')
+      hide_const("ActiveSupport")
+      hide_const("Rails::Railtie")
     end
 
-    it 'extracts a class defined after the initial upload completes' do
+    it "extracts a class defined after the initial upload completes" do
       extracted_modules = []
       allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract) do |_inst, mod|
         extracted_modules << mod
@@ -824,18 +824,18 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         # Define a class — `class Foo` opens a class body, which fires
         # TracePoint :class. The hook buffers the class; the scheduler
         # drains and calls Extractor#extract.
-        eval('class SymdbHotLoadSpecNewClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        eval("class SymdbHotLoadSpecNewClass; def hello; end; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
 
         component.wait_for_idle(timeout: 5)
 
-        expect(extracted_modules.map(&:name)).to include('SymdbHotLoadSpecNewClass')
+        expect(extracted_modules.map(&:name)).to include("SymdbHotLoadSpecNewClass")
       ensure
         Object.send(:remove_const, :SymdbHotLoadSpecNewClass) if Object.const_defined?(:SymdbHotLoadSpecNewClass)
         component.shutdown!
       end
     end
 
-    it 'does not raise inside the :class hook when user code overrides singleton_class? with an incompatible signature' do
+    it "does not raise inside the :class hook when user code overrides singleton_class? with an incompatible signature" do
       # Define a top-level class whose `self.singleton_class?(arg)` override would
       # raise ArgumentError if the hook dispatched through it. The hook must use
       # the cached unbound Module#singleton_class? predicate instead.
@@ -855,7 +855,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         # Reopen the class with the override already in place. The :class TracePoint
         # fires; the hook must filter via the unbound predicate without raising.
         expect do
-          eval('class SymdbHotLoadSpecSingletonOverride; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+          eval("class SymdbHotLoadSpecSingletonOverride; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
         end.not_to raise_error
 
         buffered = component.instance_variable_get(:@hot_load_buffer).dup
@@ -866,10 +866,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       # The reopened class is a regular Class (not a singleton class), so the
       # bound Module#singleton_class? returns false and the module is enqueued.
-      expect(buffered.map(&:name)).to include('SymdbHotLoadSpecSingletonOverride')
+      expect(buffered.map(&:name)).to include("SymdbHotLoadSpecSingletonOverride")
     end
 
-    it 'rescues exceptions raised inside the :class hook so customer class loads do not break' do
+    it "rescues exceptions raised inside the :class hook so customer class loads do not break" do
       # The :class TracePoint fires inside the customer's `class Foo; ... end`
       # body. If an exception escapes the callback, it propagates into the
       # class definition and breaks the customer's class load (verified
@@ -879,18 +879,18 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component = described_class.build(settings, agent_settings, logger)
       component.wait_for_idle(timeout: 5)
 
-      injected_error = RuntimeError.new('simulated hot-load enqueue failure')
+      injected_error = RuntimeError.new("simulated hot-load enqueue failure")
       allow(component).to receive(:enqueue_hot_load).and_raise(injected_error)
 
       expect(raw_logger).to receive(:debug) do |&block|
-        expect(block.call).to include('hot-load hook error', 'RuntimeError', 'simulated hot-load enqueue failure')
+        expect(block.call).to include("hot-load hook error", "RuntimeError", "simulated hot-load enqueue failure")
       end
 
       begin
         # With the rescue in place, defining a class while enqueue_hot_load is
         # rigged to raise must not propagate the exception into the class body.
         expect do
-          eval('class SymdbHotLoadRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+          eval("class SymdbHotLoadRescueTestClass; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
         end.not_to raise_error
       ensure
         component.shutdown!
@@ -898,7 +898,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    it 'does not propagate exceptions when logger.debug itself raises' do
+    it "does not propagate exceptions when logger.debug itself raises" do
       # If the rescue handler's own logger call raises (custom logger
       # implementation, IO error), it would escape the outer rescue and
       # surface in the customer's class body. The inner rescue contains
@@ -907,12 +907,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.wait_for_idle(timeout: 5)
 
       allow(component).to receive(:enqueue_hot_load)
-        .and_raise(RuntimeError.new('simulated hot-load enqueue failure'))
-      allow(raw_logger).to receive(:debug).and_raise(RuntimeError.new('logger boom'))
+        .and_raise(RuntimeError.new("simulated hot-load enqueue failure"))
+      allow(raw_logger).to receive(:debug).and_raise(RuntimeError.new("logger boom"))
 
       begin
         expect do
-          eval('class SymdbHotLoadLoggerRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+          eval("class SymdbHotLoadLoggerRescueTestClass; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
         end.not_to raise_error
       ensure
         component.shutdown!
@@ -921,12 +921,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
+  describe "enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     after { component.shutdown! }
 
-    it 'extracts once when start_upload is called' do
+    it "extracts once when start_upload is called" do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -939,7 +939,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extraction_count).to eq(1)
     end
 
-    it 'stop_upload cancels a pending debounce so no extraction occurs' do
+    it "stop_upload cancels a pending debounce so no extraction occurs" do
       extractor = component.instance_variable_get(:@extractor)
       expect(extractor).not_to receive(:extract_all)
 
@@ -953,7 +953,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
 
-    it 're-runs extract_all after stop_upload + start_upload (RC re-enable does a fresh scan)' do
+    it "re-runs extract_all after stop_upload + start_upload (RC re-enable does a fresh scan)" do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -972,7 +972,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extraction_count).to eq(2)
     end
 
-    it 'stop_upload disables the hot-load TracePoint and clears the buffer' do
+    it "stop_upload disables the hot-load TracePoint and clears the buffer" do
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
       component.start_upload
       component.wait_for_idle(timeout: 5)
@@ -990,7 +990,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@initial_extraction_done)).to be false
     end
 
-    it 'stop_upload prevents a post-stop class definition from triggering extraction' do
+    it "stop_upload prevents a post-stop class definition from triggering extraction" do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -1010,7 +1010,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         # sets it after stop_upload, and enqueue_hot_load only runs if the
         # TracePoint fired. extract_all cannot have been called because the
         # scheduler thread cannot fire without @scheduled_at set.
-        eval('class SymdbStopUploadSpecPostStopClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        eval("class SymdbStopUploadSpecPostStopClass; def hello; end; end", binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
         expect(component.instance_variable_get(:@scheduled_at)).to be_nil
         expect(extraction_count).to eq(1)
       ensure
@@ -1018,7 +1018,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
     end
 
-    it 'enqueue_hot_load called after stop_upload does not re-arm the scheduler' do
+    it "enqueue_hot_load called after stop_upload does not re-arm the scheduler" do
       # Models the race where a :class TracePoint event fires concurrently
       # with stop_upload: TracePoint#disable does not wait for in-flight
       # callbacks, so the callback can reach enqueue_hot_load after the hook
@@ -1035,10 +1035,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'config removal (ported from Java SymDBEnablementTest.removeSymDBConfig)' do
+  describe "config removal (ported from Java SymDBEnablementTest.removeSymDBConfig)" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
-    it 'shutdown prevents any future uploads' do
+    it "shutdown prevents any future uploads" do
       allow(component).to receive(:extract_and_upload)
 
       component.start_upload
@@ -1052,12 +1052,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'filtering behavior (ported from Java SymDBEnablementTest.noIncludesFilterOutDatadogClass)' do
+  describe "filtering behavior (ported from Java SymDBEnablementTest.noIncludesFilterOutDatadogClass)" do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 
     after { component.shutdown! }
 
-    it 'extract_and_upload filters out Datadog internal classes' do
+    it "extract_and_upload filters out Datadog internal classes" do
       uploaded_scopes = []
       mock_scope_batcher = instance_double(Datadog::SymbolDatabase::ScopeBatcher)
       allow(mock_scope_batcher).to receive(:add_scope) { |scope| uploaded_scopes << scope }
@@ -1067,7 +1067,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       component.send(:extract_and_upload)
 
-      datadog_scopes = uploaded_scopes.select { |s| s.name&.start_with?('Datadog::') }
+      datadog_scopes = uploaded_scopes.select { |s| s.name&.start_with?("Datadog::") }
       expect(datadog_scopes).to be_empty
     end
   end

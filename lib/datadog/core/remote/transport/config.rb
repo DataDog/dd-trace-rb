@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/request'
-require_relative '../../../core/transport/parcel'
-require_relative '../../../core/transport/transport'
-require_relative 'http/config'
+require_relative "../../../core/transport/request"
+require_relative "../../../core/transport/parcel"
+require_relative "../../../core/transport/transport"
+require_relative "http/config"
 
 module Datadog
   module Core

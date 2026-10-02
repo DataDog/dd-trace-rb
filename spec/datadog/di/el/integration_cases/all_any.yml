@@ -101,3 +101,15 @@
     - locals:
         collection: []
       result: false
+
+- name: all with non-array target
+  ast:
+    all:
+      ref: collection
+  error: "Improper all syntax"
+
+- name: any with wrong-length target
+  ast:
+    any:
+      - ref: collection
+  error: "Improper any syntax"

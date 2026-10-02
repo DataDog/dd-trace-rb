@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'event'
+require_relative "event"
 
-require_relative '../utils/only_once_successful'
-require_relative '../workers/polling'
-require_relative '../workers/queue'
+require_relative "../utils/only_once_successful"
+require_relative "../workers/polling"
+require_relative "../workers/queue"
 
 module Datadog
   module Core
@@ -239,7 +239,7 @@ module Datadog
         end
 
         def buffer_klass
-          if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+          if Core::Environment::Ext::RUBY_ENGINE == "ruby"
             Core::Buffer::CRuby
           else
             Core::Buffer::ThreadSafe
@@ -254,7 +254,7 @@ module Datadog
         def disable_on_not_found!(response)
           return unless response.not_found?
 
-          logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          logger.debug("Agent does not support telemetry; disabling future telemetry events.")
           disable!
         end
 

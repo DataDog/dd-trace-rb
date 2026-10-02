@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'gateway/watcher'
+require_relative "gateway/watcher"
 
-if Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
-  require_relative 'appsec_trace'
+if Gem.loaded_specs["graphql"] && Gem.loaded_specs["graphql"].version >= Gem::Version.new("2.0.19")
+  require_relative "appsec_trace"
 end
 
 module Datadog

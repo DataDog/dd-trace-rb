@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing

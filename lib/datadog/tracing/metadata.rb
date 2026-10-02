@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'metadata/analytics'
-require_relative 'metadata/tagging'
-require_relative 'metadata/metastruct_tagging'
-require_relative 'metadata/errors'
+require_relative "metadata/analytics"
+require_relative "metadata/tagging"
+require_relative "metadata/metastruct_tagging"
+require_relative "metadata/errors"
 
 module Datadog
   module Tracing

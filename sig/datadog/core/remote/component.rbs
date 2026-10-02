@@ -30,11 +30,16 @@ module Datadog
 
         def after_fork: () -> void
 
+        def add_products: (*::String products) -> void
+
+        def remove_products: (*::String products) -> void
+
         def self.build: (
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
           logger: Core::Logger,
-          telemetry: Datadog::Core::Telemetry::Component
+          telemetry: Datadog::Core::Telemetry::Component,
+          ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
         ) -> Datadog::Core::Remote::Component?
 
         class Barrier

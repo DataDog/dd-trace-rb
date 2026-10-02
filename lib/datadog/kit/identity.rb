@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../appsec/instrumentation/gateway/argument'
+require_relative "../appsec/instrumentation/gateway/argument"
 
 module Datadog
   module Kit
@@ -39,39 +39,39 @@ module Datadog
         def set_user(
           trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others
         )
-          raise ArgumentError, 'missing required key: :id' if id.nil?
+          raise ArgumentError, "missing required key: :id" if id.nil?
 
           # enforce types
 
-          raise TypeError, ':id must be a String' unless id.is_a?(String)
-          raise TypeError, ':email must be a String' unless email.nil? || email.is_a?(String)
-          raise TypeError, ':name must be a String' unless name.nil? || name.is_a?(String)
-          raise TypeError, ':session_id must be a String' unless session_id.nil? || session_id.is_a?(String)
-          raise TypeError, ':role must be a String' unless role.nil? || role.is_a?(String)
-          raise TypeError, ':scope must be a String' unless scope.nil? || scope.is_a?(String)
+          raise TypeError, ":id must be a String" unless id.is_a?(String)
+          raise TypeError, ":email must be a String" unless email.nil? || email.is_a?(String)
+          raise TypeError, ":name must be a String" unless name.nil? || name.is_a?(String)
+          raise TypeError, ":session_id must be a String" unless session_id.nil? || session_id.is_a?(String)
+          raise TypeError, ":role must be a String" unless role.nil? || role.is_a?(String)
+          raise TypeError, ":scope must be a String" unless scope.nil? || scope.is_a?(String)
 
           others.each do |k, v|
             raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)
           end
 
-          set_trace_and_span_context('set_user', trace, span) do |_active_trace, active_span|
+          set_trace_and_span_context("set_user", trace, span) do |_active_trace, active_span|
             # set tags once data is known consistent
-            active_span.set_tag('usr.id', id)
-            active_span.set_tag('usr.email', email) unless email.nil?
-            active_span.set_tag('usr.name', name) unless name.nil?
-            active_span.set_tag('usr.session_id', session_id) unless session_id.nil?
-            active_span.set_tag('usr.role', role) unless role.nil?
-            active_span.set_tag('usr.scope', scope) unless scope.nil?
+            active_span.set_tag("usr.id", id)
+            active_span.set_tag("usr.email", email) unless email.nil?
+            active_span.set_tag("usr.name", name) unless name.nil?
+            active_span.set_tag("usr.session_id", session_id) unless session_id.nil?
+            active_span.set_tag("usr.role", role) unless role.nil?
+            active_span.set_tag("usr.scope", scope) unless scope.nil?
 
             others.each do |k, v|
               active_span.set_tag("usr.#{k}", v) unless v.nil?
             end
 
             if Datadog::AppSec.active_context
-              active_span.set_tag('_dd.appsec.user.collection_mode', 'sdk')
+              active_span.set_tag("_dd.appsec.user.collection_mode", "sdk")
 
               user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id, others[:login], session_id)
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+              ::Datadog::AppSec::Instrumentation.gateway.push("identity.set_user", user)
             end
           end
         end
@@ -96,7 +96,7 @@ module Datadog
           unless trace && span
             Datadog.logger.debug(
               "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
-              ' to track this events'
+              " to track this events"
             )
             return
           end

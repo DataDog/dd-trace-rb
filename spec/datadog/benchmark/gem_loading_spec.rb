@@ -1,11 +1,11 @@
-require 'spec_helper'
+require "spec_helper"
 
 unless PlatformHelpers.jruby?
-  require 'benchmark/memory'
-  require 'memory_profiler'
+  require "benchmark/memory"
+  require "memory_profiler"
 end
 
-RSpec.describe 'Gem loading' do
+RSpec.describe "Gem loading" do
   def run_ruby
     `ruby -e #{Shellwords.escape(load_path + program + flush_output)}`
   end
@@ -34,7 +34,7 @@ RSpec.describe 'Gem loading' do
   let(:benchmark) { iterations.times.reduce(0) { |acc, _| acc + run_ruby.to_f } }
   let(:report_average) { benchmark / iterations }
 
-  context 'timing' do
+  context "timing" do
     let(:program) do
       <<-RUBY
       require 'benchmark'
@@ -48,9 +48,9 @@ RSpec.describe 'Gem loading' do
     it { puts "datadog gem load time: #{report_average}s" }
   end
 
-  context 'memory' do
+  context "memory" do
     let(:program) do
-      support_path = File.expand_path('../../../benchmarks/support', __dir__)
+      support_path = File.expand_path("../../../benchmarks/support", __dir__)
       <<-RUBY
       $LOAD_PATH.unshift(#{support_path.inspect})
       require 'memory_probe'
@@ -70,8 +70,8 @@ RSpec.describe 'Gem loading' do
     it { puts "datadog gem memory footprint: #{report_average} KiB" }
   end
 
-  context 'detailed report' do
-    before { skip('Detailed report are too verbose for CI') if ENV.key?('CI') }
+  context "detailed report" do
+    before { skip("Detailed report are too verbose for CI") if ENV.key?("CI") }
 
     let(:program) do
       <<-'RUBY'
@@ -92,7 +92,7 @@ RSpec.describe 'Gem loading' do
     end
 
     # Memory report with reference to each allocation site
-    it 'memory report' do
+    it "memory report" do
       skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
       puts run_ruby

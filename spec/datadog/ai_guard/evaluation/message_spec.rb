@@ -13,12 +13,19 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
     end
 
     it "raises an ArgumentError when an empty role is passed" do
-      expect { described_class.new(role: '') }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
+      expect { described_class.new(role: "") }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
     end
 
-    it "raises an ArgumentError when :tool_call is not a ToolCall" do
-      expect { described_class.new(role: :assistant, tool_call: "ls -la") }.to raise_error(
-        ArgumentError, "Expected an instance of Datadog::AIGuard::Evaluation::ToolCall for :tool_call argument"
+    it "raises an ArgumentError when :tool_calls is not an array" do
+      expect { described_class.new(role: :assistant, tool_calls: "ls -la") }.to raise_error(
+        ArgumentError, "Tool calls must be an Array"
+      )
+    end
+
+    it "raises an ArgumentError when :tool_calls contains something other than ToolCall instances" do
+      expect { described_class.new(role: :assistant, tool_calls: ["ls -la"]) }.to raise_error(
+        ArgumentError,
+        "Tool calls must contain only Datadog::AIGuard::Evaluation::ToolCall instances"
       )
     end
 
@@ -31,24 +38,49 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
 
       expect(message.content).to eq(parts)
     end
+  end
 
-    it "accepts a block and yields a multi-modal content parts builder" do
-      message = Datadog::AIGuard.message(role: :user) do |m|
-        m.text("What's in this image?")
-        m.image_url("https://example.com/img.png")
+  describe "#to_h" do
+    context "when a message has content and tool calls" do
+      let(:message) do
+        described_class.new(
+          role: :assistant,
+          content: "Running tools",
+          tool_calls: [
+            Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: '{"path":"~"}'),
+          ]
+        )
       end
 
-      expect(message.role).to eq(:user)
-      expect(message.content).to contain_exactly(
-        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::Text),
-        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::ImageURL),
-      )
+      it "serializes the content and tool calls" do
+        expect(message.to_h).to eq(
+          role: :assistant,
+          content: "Running tools",
+          tool_calls: [{id: "call-1", function: {name: "first", arguments: '{"path":"~"}'}}]
+        )
+      end
     end
 
-    it "raises ArgumentError when both content and a block are provided" do
-      expect {
-        Datadog::AIGuard.message(role: :user, content: "Hello") { |m| m.text("World") }
-      }.to raise_error(ArgumentError, "Cannot pass both content and a block")
+    context "when a message has multiple tool calls" do
+      let(:message) do
+        described_class.new(
+          role: :assistant,
+          tool_calls: [
+            Datadog::AIGuard::Evaluation::ToolCall.new("first", id: "call-1", arguments: "{}"),
+            Datadog::AIGuard::Evaluation::ToolCall.new("second", id: "call-2", arguments: '{"value":2}'),
+          ]
+        )
+      end
+
+      it "serializes every tool call in order" do
+        expect(message.to_h).to eq(
+          role: :assistant,
+          tool_calls: [
+            {id: "call-1", function: {name: "first", arguments: "{}"}},
+            {id: "call-2", function: {name: "second", arguments: '{"value":2}'}},
+          ]
+        )
+      end
     end
   end
 end

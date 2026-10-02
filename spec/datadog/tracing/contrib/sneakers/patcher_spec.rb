@@ -1,9 +1,9 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog'
-require 'sneakers'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog"
+require "sneakers"
 
 RSpec.describe Datadog::Tracing::Contrib::Sneakers::Patcher do
-  describe '.patch' do
+  describe ".patch" do
     subject!(:patch) { described_class.patch }
 
     let(:middlewares) { Sneakers.middleware.to_a }

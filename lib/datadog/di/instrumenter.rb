@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
-require_relative '../ruby_version'
-require_relative 'fatal_exceptions'
-require_relative 'capture_expression_evaluator'
+require_relative "../core/rate_limiter"
+require_relative "../core/utils/time"
+require_relative "../ruby_version"
+require_relative "fatal_exceptions"
+require_relative "capture_expression_evaluator"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -69,12 +70,22 @@ module Datadog
     #
     # @api private
     class Instrumenter
+      # Maximum number of capturing-probe snapshots admitted per second across the
+      # whole process.
+      GLOBAL_SNAPSHOT_RATE_LIMIT = 20
+
+      # Maximum number of non-capturing probe emissions admitted per second across
+      # the whole process.
+      GLOBAL_LOG_RATE_LIMIT = 5000
+
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @code_tracker = code_tracker
+        @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
+        @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
 
         @lock = Mutex.new
       end
@@ -85,10 +96,35 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
 
+      # The code tracker is a global singleton created lazily by
+      # DI.activate_tracking. When DI is enabled after boot via remote
+      # configuration this instrumenter was already built with a nil tracker;
+      # Component#start! assigns the now-current tracker here.
+      attr_writer :code_tracker
+
+      # Process-wide snapshot rate limiter.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :global_snapshot_rate_limiter
+      # Process-wide log rate limiter.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :global_log_rate_limiter
+
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
         )
+      end
+
+      # Returns the process-wide rate limiter for the probe.
+      #
+      # @param probe [Probe] the probe whose invocation is being rate limited
+      # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
+      def probe_global_rate_limiter(probe)
+        if probe.capturing?
+          global_snapshot_rate_limiter
+        else
+          global_log_rate_limiter
+        end
       end
 
       # This is a substitute for Thread::Backtrace::Location
@@ -154,6 +190,7 @@ module Datadog
         end
 
         loc = target_method&.source_location
+        # @type var instrumenter: Instrumenter
         instrumenter = self
 
         mod = Module.new do
@@ -186,8 +223,8 @@ module Datadog
           # invokes it with yield, which does not dispatch Proc#call, so a
           # user probe on Proc#call cannot intercept the trampoline, and no
           # Proc is allocated for the block.
-          if RubyVersion.is?('>= 3')
-            define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+          if RubyVersion.is?(">= 3")
+            define_method(method_name) do |*args, **kwargs, &target_block|
               # steep:ignore FallbackAny below: Steep cannot narrow the
               # **kwargs parameter inside this define_method block, so it
               # falls back to untyped at the super and run_method_probe sites.
@@ -205,7 +242,7 @@ module Datadog
               end
             end
           else
-            define_method(method_name) do |*args, &target_block| # steep:ignore NoMethod
+            define_method(method_name) do |*args, &target_block|
               if DI.in_probe?
                 return super(*args, &target_block)
               end
@@ -224,7 +261,7 @@ module Datadog
                 super(*args, &target_block)
               end
             end
-            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -455,7 +492,7 @@ module Datadog
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
-      # @param target_self [Object] the receiver of the probed method invocation
+      # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
@@ -522,7 +559,12 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          if continue and rate_limiter.nil? || rate_limiter.allow?
+          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
+          if admitted && !probe_global_rate_limiter(probe).allow?
+            admitted = false
+            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          end
+          if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
@@ -694,7 +736,7 @@ module Datadog
       #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
-      if RubyVersion.is?('< 3')
+      if RubyVersion.is?("< 3")
         def kwargs_from_splat(args)
           last = args.last
           if DI.hash?(last)
@@ -787,6 +829,11 @@ module Datadog
         # and check that it is in fact set.
         return if probe.rate_limiter && !probe.rate_limiter.allow?
 
+        unless probe_global_rate_limiter(probe).allow?
+          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          return
+        end
+
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the
         # rate limit.
@@ -860,8 +907,8 @@ module Datadog
                 Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
               end
               break if found
-              break unless working_suffix.include?('/')
-              working_suffix.sub!(%r{.*/+}, '')
+              break unless working_suffix.include?("/")
+              working_suffix.sub!(%r{.*/+}, "")
             end
             break if found
           end
@@ -875,7 +922,11 @@ module Datadog
         has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
           code_tracker.send(:per_method_registry).key?(loaded_path)
 
-        if has_per_method
+        if code_tracker.nil?
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but code tracking is not active; " \
+            "line probes cannot be targeted."
+        elsif has_per_method
           raise Error::DITargetNotInRegistry,
             "File #{loaded_path} is loaded and has per-method iseqs, " \
             "but none cover line #{line_no}. " \

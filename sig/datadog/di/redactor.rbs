@@ -13,7 +13,7 @@ module Datadog
 
       def redact_identifier?: (Symbol | String name) -> bool
 
-      def redact_type?: (untyped value) -> bool
+      def redact_type?: (any value) -> bool
 
       private
 

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'securerandom'
-require 'zlib'
-require 'stringio'
-require_relative '../core/environment/identity'
-require_relative '../core/vendor/multipart-post/multipart/post/composite_read_io'
-require_relative '../tracing/ext'
-require_relative 'service_version'
-require_relative 'transport/http'
-require_relative '../di/fatal_exceptions'
+require "json"
+require "securerandom"
+require "zlib"
+require "stringio"
+require_relative "../core/environment/identity"
+require_relative "../core/vendor/multipart-post/multipart/post/composite_read_io"
+require_relative "../tracing/ext"
+require_relative "service_version"
+require_relative "transport/http"
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase
@@ -72,7 +72,7 @@ module Datadog
         # Emitted unconditionally so the rare oversized case is observable.
         @telemetry&.distribution(
           Tracing::Ext::TELEMETRY_METRICS_NAMESPACE,
-          'symbol_database.payload_size',
+          "symbol_database.payload_size",
           compressed_data.bytesize
         )
 
@@ -90,7 +90,7 @@ module Datadog
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: upload failed')
+        @telemetry&.report(e, description: "symdb: upload failed")
       end
 
       private
@@ -139,19 +139,19 @@ module Datadog
 
         event_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           event_io,
-          'application/json',
-          'event.json',
+          "application/json",
+          "event.json",
         )
 
         file_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           file_io,
-          'application/gzip',
+          "application/gzip",
           "symbols_#{Process.pid}.json.gz",
         )
 
         {
-          'event' => event_upload,
-          'file' => file_upload,
+          "event" => event_upload,
+          "file" => file_upload,
         }
       end
 
@@ -162,13 +162,13 @@ module Datadog
       # @return [String] JSON string for event metadata
       def build_event_metadata(attachment_size, upload_id:, batch_num:)
         JSON.generate(
-          ddsource: 'ruby',
+          ddsource: "ruby",
           service: @settings.service,
           version: @settings.version,
-          language: 'ruby',
+          language: "ruby",
           runtimeId: Datadog::Core::Environment::Identity.id,
           parentId: nil,  # Fork tracking deferred for MVP
-          type: 'symdb',
+          type: "symdb",
           uploadId: upload_id,
           batchNum: batch_num,
           # Always false: the Ruby tracer continuously uploads new code
@@ -194,8 +194,8 @@ module Datadog
           end
           @batch_num += 1 # steep:ignore NoMethod
           # @upload_id and @batch_num are non-nil after the branch above; refine for Steep.
-          upload_id = @upload_id or raise('unreachable: @upload_id should be set')
-          batch_num = @batch_num or raise('unreachable: @batch_num should be set')
+          upload_id = @upload_id or raise("unreachable: @upload_id should be set")
+          batch_num = @batch_num or raise("unreachable: @batch_num should be set")
           [upload_id, batch_num]
         end
       end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'pipeline/span_filter'
-require_relative 'pipeline/span_processor'
+require_relative "pipeline/span_filter"
+require_relative "pipeline/span_processor"
 
 module Datadog
   module Tracing

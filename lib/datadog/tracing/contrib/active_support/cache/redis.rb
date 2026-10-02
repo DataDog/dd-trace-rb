@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../support'
-require_relative 'patcher'
+require_relative "../../support"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -24,7 +24,7 @@ module Datadog
               # ActiveSupport includes a Redis cache store internally, and does not require these overrides.
               # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/cache/redis_cache_store.rb
               def patch_redis_store?(meth)
-                !Gem.loaded_specs['redis-activesupport'].nil? \
+                !Gem.loaded_specs["redis-activesupport"].nil? \
                   && defined?(::ActiveSupport::Cache::RedisStore) \
                   && ::ActiveSupport::Cache::RedisStore.instance_methods(false).include?(meth)
               end
@@ -34,7 +34,7 @@ module Datadog
               # fails if the application is using an old version of Redis, or not using Redis at all.
               # @see https://github.com/rails/rails/blob/d0dcb8fa6073a0c4d42600c15e82e3bb386b27d3/activesupport/lib/active_support/cache/redis_cache_store.rb#L4
               def patch_redis_cache_store?(meth)
-                Gem.loaded_specs['redis'] &&
+                Gem.loaded_specs["redis"] &&
                   Support.fully_loaded?(::ActiveSupport::Cache, :RedisCacheStore) &&
                   ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
               end

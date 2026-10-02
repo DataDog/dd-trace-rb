@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'events/discard'
-require_relative 'events/enqueue'
-require_relative 'events/enqueue_at'
-require_relative 'events/enqueue_retry'
-require_relative 'events/perform'
-require_relative 'events/retry_stopped'
+require_relative "events/discard"
+require_relative "events/enqueue"
+require_relative "events/enqueue_at"
+require_relative "events/enqueue_retry"
+require_relative "events/perform"
+require_relative "events/retry_stopped"
 
 module Datadog
   module Tracing

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/render'
-require_relative 'events/serialize'
+require_relative "events/render"
+require_relative "events/serialize"
 
 module Datadog
   module Tracing
@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::Render,
-            Events::Serialize
+            Events::Serialize,
           ].freeze
 
           module_function

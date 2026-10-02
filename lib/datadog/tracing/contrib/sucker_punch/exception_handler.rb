@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'sucker_punch'
+require "sucker_punch"
 
 module Datadog
   module Tracing

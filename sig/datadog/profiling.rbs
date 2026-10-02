@@ -1,5 +1,7 @@
 module Datadog
   module Profiling
+    STATIC_RUBY_PATH: String?
+
     # Exception raised by native code when SIGPROF already has a handler (ext/datadog_profiling_native_extension/setup_signal_handler.c).
     class ExistingSignalHandler < ::RuntimeError
     end

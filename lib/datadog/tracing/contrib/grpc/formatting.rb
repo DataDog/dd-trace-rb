@@ -5,7 +5,7 @@ module Datadog
     module Contrib
       module GRPC
         module Formatting
-          VALUE_UNKNOWN = 'unknown'
+          VALUE_UNKNOWN = "unknown"
 
           # A class to extract GRPC span attributes from the GRPC implementing class method object.
           class MethodObjectFormatter
@@ -77,9 +77,9 @@ module Datadog
                 .owner
                 .to_s
                 .downcase
-                .split('::')
+                .split("::")
                 .<<(grpc_method_object.name)
-                .join('.')
+                .join(".")
             end
           end
 
@@ -106,15 +106,15 @@ module Datadog
             def format_resource_name(grpc_full_method)
               grpc_full_method
                 .downcase
-                .split('/')
+                .split("/")
                 .reject(&:empty?)
-                .join('.')
+                .join(".")
             end
 
             def extract_grpc_service(grpc_full_method)
-              parts = grpc_full_method.split('/')
+              parts = grpc_full_method.split("/")
               if parts.length < 3
-                ''
+                ""
               else
                 parts[1]
               end

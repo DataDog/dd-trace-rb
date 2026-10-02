@@ -1,30 +1,30 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'benchmark'
-require 'concurrent'
+require "benchmark"
+require "concurrent"
 
-require 'datadog/core'
-require 'datadog/tracing/buffer'
-require 'spec/datadog/core/buffer/shared_examples'
+require "datadog/core"
+require "datadog/tracing/buffer"
+require "spec/datadog/core/buffer/shared_examples"
 
 RSpec.describe Datadog::Tracing::TraceBuffer do
   subject(:buffer_class) { described_class }
 
-  context 'with CRuby' do
+  context "with CRuby" do
     before { skip unless PlatformHelpers.mri? }
 
     it { is_expected.to eq Datadog::Tracing::CRubyTraceBuffer }
   end
 
-  context 'with JRuby' do
+  context "with JRuby" do
     before { skip unless PlatformHelpers.jruby? }
 
     it { is_expected.to eq Datadog::Tracing::ThreadSafeTraceBuffer }
   end
 end
 
-RSpec.shared_examples 'trace buffer' do
-  include_context 'health metrics'
+RSpec.shared_examples "trace buffer" do
+  include_context "health metrics"
 
   subject(:buffer) { described_class.new(max_size) }
 
@@ -42,20 +42,20 @@ RSpec.shared_examples 'trace buffer' do
     end
   end
 
-  describe '#initialize' do
+  describe "#initialize" do
     it { is_expected.to be_a_kind_of(described_class) }
   end
 
-  describe '#push' do
+  describe "#push" do
     subject(:push) { items.each { |t| buffer.push(t) } }
 
     let(:items_count) { max_size + 1 }
     let(:pop) { buffer.pop }
 
-    context 'given a max size' do
+    context "given a max size" do
       let(:max_size) { 3 }
 
-      it 'records health metrics' do
+      it "records health metrics" do
         push
 
         accepted_spans = items.inject(0) { |sum, t| sum + t.length }
@@ -88,24 +88,24 @@ RSpec.shared_examples 'trace buffer' do
     end
   end
 
-  describe '#concat' do
+  describe "#concat" do
     let(:output) { buffer.pop }
 
-    context 'given no limit' do
+    context "given no limit" do
       let(:items) { get_test_traces(4) }
       let(:max_size) { 0 }
 
-      it 'retains all items' do
+      it "retains all items" do
         buffer.concat(items)
         expect(output.length).to eq(4)
       end
     end
 
-    context 'given a max size' do
+    context "given a max size" do
       let(:items) { get_test_traces(max_size + 1) }
       let(:max_size) { 3 }
 
-      it 'does not exceed it' do
+      it "does not exceed it" do
         buffer.concat(items)
 
         expect(output.length).to eq(max_size)
@@ -114,14 +114,14 @@ RSpec.shared_examples 'trace buffer' do
     end
   end
 
-  describe '#pop' do
+  describe "#pop" do
     subject(:pop) { buffer.pop }
 
     let(:traces) { get_test_traces(2) }
 
     before { traces.each { |t| buffer.push(t) } }
 
-    it 'records health metrics' do
+    it "records health metrics" do
       pop
 
       expected_spans = traces.inject(0) { |sum, t| sum + t.length }
@@ -161,9 +161,9 @@ RSpec.describe Datadog::Tracing::ThreadSafeTraceBuffer do
     allow(Datadog).to receive(:logger).and_return(logger)
   end
 
-  it_behaves_like 'trace buffer'
-  it_behaves_like 'thread-safe buffer'
-  it_behaves_like 'performance'
+  it_behaves_like "trace buffer"
+  it_behaves_like "thread-safe buffer"
+  it_behaves_like "performance"
 end
 
 RSpec.describe Datadog::Tracing::CRubyTraceBuffer do
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Tracing::CRubyTraceBuffer do
 
   let(:items) { get_test_traces(items_count) }
 
-  it_behaves_like 'trace buffer'
-  it_behaves_like 'thread-safe buffer'
-  it_behaves_like 'performance'
+  it_behaves_like "trace buffer"
+  it_behaves_like "thread-safe buffer"
+  it_behaves_like "performance"
 end

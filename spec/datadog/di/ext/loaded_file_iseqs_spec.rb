@@ -1,6 +1,6 @@
 require "datadog/di/spec_helper"
 
-RSpec.describe 'all_iseqs' do
+RSpec.describe "all_iseqs" do
   let(:iseqs) do
     Datadog::DI.all_iseqs
   end
@@ -9,7 +9,7 @@ RSpec.describe 'all_iseqs' do
     Datadog::DI.file_iseqs
   end
 
-  it 'returns iseqs' do
+  it "returns iseqs" do
     expect(iseqs).not_to be_empty
 
     iseqs.each do |iseq|
@@ -26,7 +26,7 @@ RSpec.describe 'all_iseqs' do
   # be expecting here.
   # Since we do have some knowledge about our own library, for now assert
   # that we have a reasonable set of files from dd-trace-rb in the iseqs.
-  it 'returns iseqs for loaded files' do
+  it "returns iseqs for loaded files" do
     datadog_iseqs = file_iseqs.select do |iseq|
       iseq.absolute_path =~ %r{lib/datadog/}
     end

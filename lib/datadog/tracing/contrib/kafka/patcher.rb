@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'events'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "events"
 
 module Datadog
   module Tracing
@@ -28,12 +28,12 @@ module Datadog
           end
 
           def patch_producer
-            require_relative 'instrumentation/producer'
+            require_relative "instrumentation/producer"
             ::Kafka::Producer.prepend(Instrumentation::Producer)
           end
 
           def patch_consumer
-            require_relative 'instrumentation/consumer'
+            require_relative "instrumentation/consumer"
             ::Kafka::Consumer.prepend(Instrumentation::Consumer)
           end
         end

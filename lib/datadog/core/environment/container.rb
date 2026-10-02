@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative 'cgroup'
-require_relative 'ext'
+require_relative "cgroup"
+require_relative "ext"
 
 module Datadog
   module Core
     module Environment
       # For container environments
       module Container
-        UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'
-        CONTAINER_PATTERN = '[0-9a-f]{64}'
+        UUID_PATTERN = "[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}"
+        CONTAINER_PATTERN = "[0-9a-f]{64}"
 
         PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
         POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze
@@ -101,8 +101,8 @@ module Datadog
           return @running_on_host if defined?(@running_on_host)
 
           @running_on_host = begin
-            if File.exist?('/proc/self/ns/cgroup')
-              File.stat('/proc/self/ns/cgroup').ino == HOST_CGROUP_NAMESPACE_INODE
+            if File.exist?("/proc/self/ns/cgroup")
+              File.stat("/proc/self/ns/cgroup").ino == HOST_CGROUP_NAMESPACE_INODE
             else
               false
             end
@@ -128,15 +128,15 @@ module Datadog
           #
           # All v2 entries have the `hierarchy` set to zero.
           # v1 entries have a non-zero `hierarchy`.
-          entries = Cgroup.entries.partition { |d| d.hierarchy == '0' }.flatten(1)
+          entries = Cgroup.entries.partition { |d| d.hierarchy == "0" }.flatten(1)
           entries.each do |entry_obj|
             path = entry_obj.path
             next unless path
 
             # To ease handling, remove the emtpy leading "",
             # as `path` starts with a "/".
-            path.delete_prefix!('/')
-            parts = path.split('/')
+            path.delete_prefix!("/")
+            parts = path.split("/")
 
             # With not path information, we can still use the inode
             if parts.empty? && entry_obj.inode && !running_on_host?

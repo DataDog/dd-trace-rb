@@ -1,18 +1,18 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'benchmark'
-require 'concurrent'
+require "benchmark"
+require "concurrent"
 
-RSpec.shared_examples 'thread-safe buffer' do
+RSpec.shared_examples "thread-safe buffer" do
   subject(:buffer) { described_class.new(max_size) }
 
   let(:max_size) { 0 }
   let(:items) { defined?(super) ? super() : Array.new(items_count) { Object.new } }
   let(:items_count) { 10 }
 
-  describe '#push' do
+  describe "#push" do
     let(:output) { buffer.pop }
-    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+    let(:wait_for_threads) { threads.each { |t| raise "Thread wait timeout" unless t.join(5000) } }
     let(:max_size) { 500 }
     let(:thread_count) { 100 }
     let(:threads) do
@@ -29,13 +29,13 @@ RSpec.shared_examples 'thread-safe buffer' do
 
     subject(:push) { threads.each(&:join) }
 
-    it 'does not have collisions' do
+    it "does not have collisions" do
       push
       expect(output).to_not be nil
       expect(output).to match_array(Array.new(thread_count) { items })
     end
 
-    context 'with items exceeding maximum size' do
+    context "with items exceeding maximum size" do
       let(:max_size) { 100 }
       let(:thread_count) { 100 }
       let(:barrier) { Concurrent::CyclicBarrier.new(thread_count) }
@@ -52,12 +52,12 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
-      it 'does not exceed expected maximum size' do
+      it "does not exceed expected maximum size" do
         push
         expect(output).to have_at_most(max_size).items
       end
 
-      context 'with #pop operations' do
+      context "with #pop operations" do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
 
         before do
@@ -71,7 +71,7 @@ RSpec.shared_examples 'thread-safe buffer' do
           allow(Datadog).to receive(:logger).and_return(logger)
         end
 
-        it 'executes without error' do
+        it "executes without error" do
           threads
 
           barrier.wait
@@ -90,9 +90,9 @@ RSpec.shared_examples 'thread-safe buffer' do
     end
   end
 
-  describe '#concat' do
+  describe "#concat" do
     let(:output) { buffer.pop }
-    let(:wait_for_threads) { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+    let(:wait_for_threads) { threads.each { |t| raise "Thread wait timeout" unless t.join(5000) } }
     let(:bulk_items) { Array.new(10, items) }
     let(:max_size) { 5000 }
     let(:thread_count) { 100 }
@@ -110,13 +110,13 @@ RSpec.shared_examples 'thread-safe buffer' do
 
     subject(:concat) { wait_for_threads }
 
-    it 'does not have collisions' do
+    it "does not have collisions" do
       concat
       expect(output).to_not be nil
       expect(output).to match_array(thread_count.times.flat_map { bulk_items })
     end
 
-    context 'with items exceeding maximum size' do
+    context "with items exceeding maximum size" do
       let(:max_size) { 100 }
       let(:thread_count) { 100 }
       let(:items_count) { 10 }
@@ -134,12 +134,12 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
-      it 'does not exceed expected maximum size' do
+      it "does not exceed expected maximum size" do
         concat
         expect(output).to have_at_most(max_size).items
       end
 
-      context 'with #pop operations' do
+      context "with #pop operations" do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
 
         before do
@@ -153,7 +153,7 @@ RSpec.shared_examples 'thread-safe buffer' do
           allow(Datadog).to receive(:logger).and_return(logger)
         end
 
-        it 'executes without error' do
+        it "executes without error" do
           threads
 
           barrier.wait
@@ -172,7 +172,7 @@ RSpec.shared_examples 'thread-safe buffer' do
     end
   end
 
-  describe '#pop' do
+  describe "#pop" do
     subject(:pop) { buffer.pop }
 
     let(:items) { Array.new(2) { Object.new } }
@@ -181,19 +181,19 @@ RSpec.shared_examples 'thread-safe buffer' do
       items.each { |i| buffer.push(i) }
     end
 
-    it 'returns all pushed items' do
+    it "returns all pushed items" do
       is_expected.to eq(items)
     end
   end
 end
 
 # :nocov:
-RSpec.shared_examples 'performance' do
+RSpec.shared_examples "performance" do
   subject(:buffer) { described_class.new(max_size) }
 
   let(:max_size) { 0 }
 
-  require 'benchmark'
+  require "benchmark"
   let(:n) { 10_000 }
   let(:test_item_count) { 20 }
 
@@ -201,12 +201,12 @@ RSpec.shared_examples 'performance' do
     Array.new(n) { Object.new }
   end
 
-  before { skip('Performance test does not run in CI.') }
+  before { skip("Performance test does not run in CI.") }
 
-  context 'no max_size' do
+  context "no max_size" do
     it do
       Benchmark.bmbm do |x|
-        x.report('No max #push') do
+        x.report("No max #push") do
           n.times do
             buffer = described_class.new(max_size)
             items = get_test_items(test_item_count)
@@ -215,7 +215,7 @@ RSpec.shared_examples 'performance' do
           end
         end
 
-        x.report('No max #concat') do
+        x.report("No max #concat") do
           n.times do
             buffer = described_class.new(max_size)
             items = get_test_items(test_item_count)
@@ -227,15 +227,15 @@ RSpec.shared_examples 'performance' do
     end
   end
 
-  context 'max size' do
+  context "max size" do
     let(:max_size) { 20 }
 
-    context 'no overflow' do
+    context "no overflow" do
       let(:test_item_count) { max_size }
 
       it do
         Benchmark.bmbm do |x|
-          x.report('Max no overflow #push') do
+          x.report("Max no overflow #push") do
             n.times do
               buffer = described_class.new(max_size)
               items = get_test_items(test_item_count)
@@ -244,7 +244,7 @@ RSpec.shared_examples 'performance' do
             end
           end
 
-          x.report('Max no overflow #concat') do
+          x.report("Max no overflow #concat") do
             n.times do
               buffer = described_class.new(max_size)
               items = get_test_items(test_item_count)
@@ -256,12 +256,12 @@ RSpec.shared_examples 'performance' do
       end
     end
 
-    context 'partial overflow' do
+    context "partial overflow" do
       let(:test_item_count) { max_size + super() }
 
       it do
         Benchmark.bmbm do |x|
-          x.report('Max partial overflow #push') do
+          x.report("Max partial overflow #push") do
             n.times do
               buffer = described_class.new(max_size)
               items = get_test_items(test_item_count)
@@ -270,7 +270,7 @@ RSpec.shared_examples 'performance' do
             end
           end
 
-          x.report('Max partial overflow #concat') do
+          x.report("Max partial overflow #concat") do
             n.times do
               buffer = described_class.new(max_size)
               items = get_test_items(test_item_count)
@@ -282,10 +282,10 @@ RSpec.shared_examples 'performance' do
       end
     end
 
-    context 'total overflow' do
+    context "total overflow" do
       it do
         Benchmark.bmbm do |x|
-          x.report('Max total overflow #push') do
+          x.report("Max total overflow #push") do
             n.times do
               buffer = described_class.new(max_size)
               buffer.instance_variable_set(:@items, get_test_items(max_size))
@@ -295,7 +295,7 @@ RSpec.shared_examples 'performance' do
             end
           end
 
-          x.report('Max total overflow #concat') do
+          x.report("Max total overflow #concat") do
             n.times do
               buffer = described_class.new(max_size)
               buffer.instance_variable_set(:@items, get_test_items(max_size))

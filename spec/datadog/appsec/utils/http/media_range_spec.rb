@@ -1,44 +1,44 @@
-require 'datadog/appsec/utils/http/media_range'
+require "datadog/appsec/utils/http/media_range"
 
 RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
-  describe '.new' do
-    context 'with valid input' do
+  describe ".new" do
+    context "with valid input" do
       # rubocop:disable Layout/LineLength
       expectations = {
-        '*/*' => {type: '*', subtype: '*', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/*' => {type: 'text', subtype: '*', parameters: {}, accept_ext: {}},
-        'text/html' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'Text/HTML' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'application/json' => {type: 'application', subtype: 'json', parameters: {}, accept_ext: {}},
-        'text/html;Q=1' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/html;q=1' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/html;q=1.0' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/html;q=1.00' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/html;q=1.000' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {}, accept_ext: {}},
-        'text/html;q=0.5' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {}, accept_ext: {}},
-        'text/html;q=0.333' => {type: 'text', subtype: 'html', quality: 0.333, parameters: {}, accept_ext: {}},
-        'text/html;q=0' => {type: 'text', subtype: 'html', quality: 0.0, parameters: {}, accept_ext: {}},
-        'text/html;q=0.0' => {type: 'text', subtype: 'html', quality: 0.0, parameters: {}, accept_ext: {}},
-        'text/html;q=0.00' => {type: 'text', subtype: 'html', quality: 0.0, parameters: {}, accept_ext: {}},
-        'text/html;q=0.000' => {type: 'text', subtype: 'html', quality: 0.0, parameters: {}, accept_ext: {}},
-        'Text/HTML;FOO=BAR' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html;foo=bar' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html ; foo=bar' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html; foo=bar' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html ;foo=bar' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html;foo="bar"' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html;foo=bar;baz=qux' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar', 'baz' => 'qux'}, accept_ext: {}},
-        'text/html;foo="bar";baz="qux"' => {type: 'text', subtype: 'html', quality: 1.0, parameters: {'foo' => 'bar', 'baz' => 'qux'}, accept_ext: {}},
-        'text/html;q=0.5;foo=bar' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {}, accept_ext: {'foo' => 'bar'}},
-        'text/html;q=0.5;foo="bar"' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {}, accept_ext: {'foo' => 'bar'}},
-        'text/html;q=0.5;foo=bar;baz=qux' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {}, accept_ext: {'foo' => 'bar', 'baz' => 'qux'}},
-        'text/html;q=0.5;foo="bar";baz="qux"' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {}, accept_ext: {'foo' => 'bar', 'baz' => 'qux'}},
-        'text/html;foo=bar;q=0.5' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html;foo="bar";q=0.5' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar'}, accept_ext: {}},
-        'text/html;foo=bar;baz=qux;q=0.5' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar', 'baz' => 'qux'}, accept_ext: {}},
-        'text/html;foo="bar";baz="qux";q=0.5' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar', 'baz' => 'qux'}, accept_ext: {}},
-        'text/html;foo=bar;q=0.5;baz=qux' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar'}, accept_ext: {'baz' => 'qux'}},
-        'text/html;foo="bar";q=0.5;baz="qux"' => {type: 'text', subtype: 'html', quality: 0.5, parameters: {'foo' => 'bar'}, accept_ext: {'baz' => 'qux'}},
+        "*/*" => {type: "*", subtype: "*", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/*" => {type: "text", subtype: "*", parameters: {}, accept_ext: {}},
+        "text/html" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "Text/HTML" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "application/json" => {type: "application", subtype: "json", parameters: {}, accept_ext: {}},
+        "text/html;Q=1" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/html;q=1" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/html;q=1.0" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/html;q=1.00" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/html;q=1.000" => {type: "text", subtype: "html", quality: 1.0, parameters: {}, accept_ext: {}},
+        "text/html;q=0.5" => {type: "text", subtype: "html", quality: 0.5, parameters: {}, accept_ext: {}},
+        "text/html;q=0.333" => {type: "text", subtype: "html", quality: 0.333, parameters: {}, accept_ext: {}},
+        "text/html;q=0" => {type: "text", subtype: "html", quality: 0.0, parameters: {}, accept_ext: {}},
+        "text/html;q=0.0" => {type: "text", subtype: "html", quality: 0.0, parameters: {}, accept_ext: {}},
+        "text/html;q=0.00" => {type: "text", subtype: "html", quality: 0.0, parameters: {}, accept_ext: {}},
+        "text/html;q=0.000" => {type: "text", subtype: "html", quality: 0.0, parameters: {}, accept_ext: {}},
+        "Text/HTML;FOO=BAR" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html;foo=bar" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html ; foo=bar" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html; foo=bar" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html ;foo=bar" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        'text/html;foo="bar"' => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html;foo=bar;baz=qux" => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
+        'text/html;foo="bar";baz="qux"' => {type: "text", subtype: "html", quality: 1.0, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
+        "text/html;q=0.5;foo=bar" => {type: "text", subtype: "html", quality: 0.5, parameters: {}, accept_ext: {"foo" => "bar"}},
+        'text/html;q=0.5;foo="bar"' => {type: "text", subtype: "html", quality: 0.5, parameters: {}, accept_ext: {"foo" => "bar"}},
+        "text/html;q=0.5;foo=bar;baz=qux" => {type: "text", subtype: "html", quality: 0.5, parameters: {}, accept_ext: {"foo" => "bar", "baz" => "qux"}},
+        'text/html;q=0.5;foo="bar";baz="qux"' => {type: "text", subtype: "html", quality: 0.5, parameters: {}, accept_ext: {"foo" => "bar", "baz" => "qux"}},
+        "text/html;foo=bar;q=0.5" => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {}},
+        'text/html;foo="bar";q=0.5' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {}},
+        "text/html;foo=bar;baz=qux;q=0.5" => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
+        'text/html;foo="bar";baz="qux";q=0.5' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
+        "text/html;foo=bar;q=0.5;baz=qux" => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {"baz" => "qux"}},
+        'text/html;foo="bar";q=0.5;baz="qux"' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {"baz" => "qux"}},
       }
       # rubocop:enable Layout/LineLength
 
@@ -49,22 +49,22 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       end
     end
 
-    context 'with invalid input' do
+    context "with invalid input" do
       parse_error = described_class::ParseError
       expectations = {
-        'text/html ' => parse_error,
-        ' text/html' => parse_error,
-        'text /html' => parse_error,
-        'text/ html' => parse_error,
-        'text/html;q=' => parse_error,
-        'text/html;q=1;' => parse_error,
-        'text/html;q=1.0000' => parse_error,
-        'text/html;q=1.001' => parse_error,
-        'text/html;q=0.0000' => parse_error,
-        'text/html;q=0.0001' => parse_error,
-        'text/html;foo =bar' => parse_error,
-        'text/html;foo= bar' => parse_error,
-        'text/html;foo=bar;' => parse_error,
+        "text/html " => parse_error,
+        " text/html" => parse_error,
+        "text /html" => parse_error,
+        "text/ html" => parse_error,
+        "text/html;q=" => parse_error,
+        "text/html;q=1;" => parse_error,
+        "text/html;q=1.0000" => parse_error,
+        "text/html;q=1.001" => parse_error,
+        "text/html;q=0.0000" => parse_error,
+        "text/html;q=0.0001" => parse_error,
+        "text/html;foo =bar" => parse_error,
+        "text/html;foo= bar" => parse_error,
+        "text/html;foo=bar;" => parse_error,
         'text/html;foo=bar"' => parse_error,
         'text/html;foo="bar' => parse_error,
         'text/html;foo="bar""' => parse_error,
@@ -78,36 +78,36 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     end
   end
 
-  describe '#to_s' do
+  describe "#to_s" do
     expectations = {
-      '*/*' => '*/*',
-      'text/*' => 'text/*',
-      'text/html' => 'text/html',
-      'application/json' => 'application/json',
-      'text/html;q=1' => 'text/html',
-      'text/html;q=1.0' => 'text/html',
-      'text/html;q=1.00' => 'text/html',
-      'text/html;q=1.000' => 'text/html',
-      'text/html;q=0.5' => 'text/html;q=0.5',
-      'text/html;q=0.333' => 'text/html;q=0.333',
-      'text/html;q=0' => 'text/html;q=0.0',
-      'text/html;q=0.0' => 'text/html;q=0.0',
-      'text/html;q=0.00' => 'text/html;q=0.0',
-      'text/html;q=0.000' => 'text/html;q=0.0',
-      'text/html;foo=bar' => 'text/html;foo=bar',
-      'text/html;foo="bar"' => 'text/html;foo=bar',
-      'text/html;foo=bar;baz=qux' => 'text/html;foo=bar;baz=qux',
-      'text/html;foo="bar";baz="qux"' => 'text/html;foo=bar;baz=qux',
-      'text/html;q=0.5;foo=bar' => 'text/html;q=0.5;foo=bar',
-      'text/html;q=0.5;foo="bar"' => 'text/html;q=0.5;foo=bar',
-      'text/html;q=0.5;foo=bar;baz=qux' => 'text/html;q=0.5;foo=bar;baz=qux',
-      'text/html;q=0.5;foo="bar";baz="qux"' => 'text/html;q=0.5;foo=bar;baz=qux',
-      'text/html;foo=bar;q=0.5' => 'text/html;foo=bar;q=0.5',
-      'text/html;foo="bar";q=0.5' => 'text/html;foo=bar;q=0.5',
-      'text/html;foo=bar;baz=qux;q=0.5' => 'text/html;foo=bar;baz=qux;q=0.5',
-      'text/html;foo="bar";baz="qux";q=0.5' => 'text/html;foo=bar;baz=qux;q=0.5',
-      'text/html;foo=bar;q=0.5;baz=qux' => 'text/html;foo=bar;q=0.5;baz=qux',
-      'text/html;foo="bar";q=0.5;baz="qux"' => 'text/html;foo=bar;q=0.5;baz=qux',
+      "*/*" => "*/*",
+      "text/*" => "text/*",
+      "text/html" => "text/html",
+      "application/json" => "application/json",
+      "text/html;q=1" => "text/html",
+      "text/html;q=1.0" => "text/html",
+      "text/html;q=1.00" => "text/html",
+      "text/html;q=1.000" => "text/html",
+      "text/html;q=0.5" => "text/html;q=0.5",
+      "text/html;q=0.333" => "text/html;q=0.333",
+      "text/html;q=0" => "text/html;q=0.0",
+      "text/html;q=0.0" => "text/html;q=0.0",
+      "text/html;q=0.00" => "text/html;q=0.0",
+      "text/html;q=0.000" => "text/html;q=0.0",
+      "text/html;foo=bar" => "text/html;foo=bar",
+      'text/html;foo="bar"' => "text/html;foo=bar",
+      "text/html;foo=bar;baz=qux" => "text/html;foo=bar;baz=qux",
+      'text/html;foo="bar";baz="qux"' => "text/html;foo=bar;baz=qux",
+      "text/html;q=0.5;foo=bar" => "text/html;q=0.5;foo=bar",
+      'text/html;q=0.5;foo="bar"' => "text/html;q=0.5;foo=bar",
+      "text/html;q=0.5;foo=bar;baz=qux" => "text/html;q=0.5;foo=bar;baz=qux",
+      'text/html;q=0.5;foo="bar";baz="qux"' => "text/html;q=0.5;foo=bar;baz=qux",
+      "text/html;foo=bar;q=0.5" => "text/html;foo=bar;q=0.5",
+      'text/html;foo="bar";q=0.5' => "text/html;foo=bar;q=0.5",
+      "text/html;foo=bar;baz=qux;q=0.5" => "text/html;foo=bar;baz=qux;q=0.5",
+      'text/html;foo="bar";baz="qux";q=0.5' => "text/html;foo=bar;baz=qux;q=0.5",
+      "text/html;foo=bar;q=0.5;baz=qux" => "text/html;foo=bar;q=0.5;baz=qux",
+      'text/html;foo="bar";q=0.5;baz="qux"' => "text/html;foo=bar;q=0.5;baz=qux",
     }
 
     expectations.each do |str, expected|
@@ -117,11 +117,11 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     end
   end
 
-  describe '#wildcard?' do
+  describe "#wildcard?" do
     expectations = {
-      '*/*' => true,
-      'text/*' => true,
-      'text/html' => false,
+      "*/*" => true,
+      "text/*" => true,
+      "text/html" => false,
     }
 
     expectations.each do |str, expected|
@@ -130,11 +130,11 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       end
     end
 
-    context 'for type' do
+    context "for type" do
       expectations = {
-        '*/*' => true,
-        'text/*' => false,
-        'text/html' => false,
+        "*/*" => true,
+        "text/*" => false,
+        "text/html" => false,
       }
 
       expectations.each do |str, expected|
@@ -144,11 +144,11 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       end
     end
 
-    context 'for subtype' do
+    context "for subtype" do
       expectations = {
-        '*/*' => true,
-        'text/*' => true,
-        'text/html' => false,
+        "*/*" => true,
+        "text/*" => true,
+        "text/html" => false,
       }
 
       expectations.each do |str, expected|
@@ -159,18 +159,18 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     end
   end
 
-  describe '#specificity' do
+  describe "#specificity" do
     expectations = {
-      '*/*' => 0,
-      'text/*' => 0,
-      'text/html' => 0,
-      'text/html;foo=bar' => 1,
-      'text/html;foo=bar;baz=qux' => 2,
-      'text/html;q=0.5;foo=bar' => 0,
-      'text/html;foo=bar;q=0.5' => 1,
-      'text/html;q=0.5;foo=bar;baz=qux' => 0,
-      'text/html;foo=bar;q=0.5;baz=qux' => 1,
-      'text/html;foo=bar;baz=qux;q=0.5' => 2,
+      "*/*" => 0,
+      "text/*" => 0,
+      "text/html" => 0,
+      "text/html;foo=bar" => 1,
+      "text/html;foo=bar;baz=qux" => 2,
+      "text/html;q=0.5;foo=bar" => 0,
+      "text/html;foo=bar;q=0.5" => 1,
+      "text/html;q=0.5;foo=bar;baz=qux" => 0,
+      "text/html;foo=bar;q=0.5;baz=qux" => 1,
+      "text/html;foo=bar;baz=qux;q=0.5" => 2,
     }
 
     expectations.each do |str, expected|
@@ -180,78 +180,78 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     end
   end
 
-  describe '#<=>' do
+  describe "#<=>" do
     expectations = {
       # quality
       [
-        'text/html',
-        'text/html',
+        "text/html",
+        "text/html",
       ] => 0,
       [
-        'text/html',
-        'application/json',
+        "text/html",
+        "application/json",
       ] => 0,
       [
-        'text/html',
-        'application/json;q=0.5',
+        "text/html",
+        "application/json;q=0.5",
       ] => 1,
       [
-        'text/html;q=0.5',
-        'application/json',
+        "text/html;q=0.5",
+        "application/json",
       ] => -1,
 
       # specificity
       [
-        'text/plain;format=flowed',
-        'text/plain',
+        "text/plain;format=flowed",
+        "text/plain",
       ] => 1,
       [
-        'text/plain',
-        'text/plain;format=flowed',
+        "text/plain",
+        "text/plain;format=flowed",
       ] => -1,
 
       # quality/specificity mix
       [
-        'text/plain;format=flowed;q=0.5',
-        'text/plain',
+        "text/plain;format=flowed;q=0.5",
+        "text/plain",
       ] => -1,
       [
-        'text/plain',
-        'text/plain;format=flowed;q=0.5',
+        "text/plain",
+        "text/plain;format=flowed;q=0.5",
       ] => 1,
 
       # quality/extension mix
       [
-        'text/plain;q=0.5;foo=bar',
-        'text/plain',
+        "text/plain;q=0.5;foo=bar",
+        "text/plain",
       ] => -1,
       [
-        'text/plain',
-        'text/plain;q=0.5;foo=bar',
+        "text/plain",
+        "text/plain;q=0.5;foo=bar",
       ] => 1,
 
       # quality/specificity/extension mix
       [
-        'text/plain;format=flowed;q=0.5;foo=bar',
-        'text/plain',
+        "text/plain;format=flowed;q=0.5;foo=bar",
+        "text/plain",
       ] => -1,
       [
-        'text/plain',
-        'text/plain;format=flowed;q=0.5;foo=bar',
+        "text/plain",
+        "text/plain;format=flowed;q=0.5;foo=bar",
       ] => 1,
 
       # wildcard
       [
-        '*/*',
-        '*/*',
+        "*/*",
+        "*/*",
       ] => 0,
       [
-        '*/*',
-        'text/html',
+        "*/*",
+        "text/html",
       ] => -1,
       [
-        'text/html',
-        '*/*',
+        "text/html",
+        "*/*",
       ] => 1,
     }
 
@@ -261,49 +261,49 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       end
     end
 
-    context 'using sort' do
+    context "using sort" do
       expectations = {
         [
-          'audio/*;q=0.2',
-          'audio/basic',
+          "audio/*;q=0.2",
+          "audio/basic",
         ] => [
-          'audio/*;q=0.2',
-          'audio/basic',
+          "audio/*;q=0.2",
+          "audio/basic",
         ],
         [
-          'text/plain;q=0.5',
-          'text/html',
-          'text/x-dvi;q=0.8',
-          'text/x-c',
+          "text/plain;q=0.5",
+          "text/html",
+          "text/x-dvi;q=0.8",
+          "text/x-c",
         ] => [
-          'text/plain;q=0.5',
-          'text/x-dvi;q=0.8',
-          'text/html',
-          'text/x-c',
+          "text/plain;q=0.5",
+          "text/x-dvi;q=0.8",
+          "text/html",
+          "text/x-c",
         ],
         [
-          'text/*',
-          'text/plain',
-          'text/plain;format=flowed',
-          '*/*',
+          "text/*",
+          "text/plain",
+          "text/plain;format=flowed",
+          "*/*",
         ] => [
-          '*/*',
-          'text/*',
-          'text/plain',
-          'text/plain;format=flowed',
+          "*/*",
+          "text/*",
+          "text/plain",
+          "text/plain;format=flowed",
         ],
         [
-          'text/*;q=0.3',
-          'text/html;q=0.7',
-          'text/html;level=1',
-          'text/html;level=2;q=0.4',
-          '*/*;q=0.5',
+          "text/*;q=0.3",
+          "text/html;q=0.7",
+          "text/html;level=1",
+          "text/html;level=2;q=0.4",
+          "*/*;q=0.5",
         ] => [
-          'text/*;q=0.3',
-          'text/html;level=2;q=0.4',
-          '*/*;q=0.5',
-          'text/html;q=0.7',
-          'text/html;level=1',
+          "text/*;q=0.3",
+          "text/html;level=2;q=0.4",
+          "*/*;q=0.5",
+          "text/html;q=0.7",
+          "text/html;level=1",
         ],
       }
 
@@ -315,75 +315,75 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     end
   end
 
-  describe '#===' do
+  describe "#===" do
     expectations = {
       [
-        'text/html',
-        'text/html',
+        "text/html",
+        "text/html",
       ] => true,
       [
-        'text/html',
-        'text/plain',
+        "text/html",
+        "text/plain",
       ] => false,
       [
-        'text/*',
-        'text/plain',
+        "text/*",
+        "text/plain",
       ] => true,
       [
-        '*/*',
-        'text/plain',
+        "*/*",
+        "text/plain",
       ] => true,
       [
-        'text/html;level=1',
-        'text/html',
+        "text/html;level=1",
+        "text/html",
       ] => true,
       [
-        'text/html;level=1',
-        'text/plain',
+        "text/html;level=1",
+        "text/plain",
       ] => false,
       [
-        'text/html;q=0.5',
-        'text/html',
+        "text/html;q=0.5",
+        "text/html",
       ] => true,
       [
-        'text/html;q=0.5',
-        'text/plain',
+        "text/html;q=0.5",
+        "text/plain",
       ] => false,
       [
-        'text/*;q=0.5',
-        'text/plain',
+        "text/*;q=0.5",
+        "text/plain",
       ] => true,
       [
-        '*/*;q=0.5',
-        'text/plain',
+        "*/*;q=0.5",
+        "text/plain",
       ] => true,
       [
-        'text/html;level=1',
-        'text/html;level=1',
+        "text/html;level=1",
+        "text/html;level=1",
       ] => true,
       [
-        'text/html',
-        'text/html;level=1',
+        "text/html",
+        "text/html;level=1",
       ] => false,
       [
-        'text/html;level=1;foo=bar',
-        'text/html;level=1',
+        "text/html;level=1;foo=bar",
+        "text/html;level=1",
       ] => true,
       [
-        'text/html;foo=bar;level=1',
-        'text/html;level=1',
+        "text/html;foo=bar;level=1",
+        "text/html;level=1",
       ] => true,
       [
-        'text/html',
-        'text/html;level=1;foo=bar',
+        "text/html",
+        "text/html;level=1;foo=bar",
       ] => false,
       [
-        'text/html',
+        "text/html",
         nil,
       ] => false,
       [
-        'text/html',
-        'invalid',
+        "text/html",
+        "invalid",
       ] => false,
     }
 

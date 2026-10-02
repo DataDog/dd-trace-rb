@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'fatal_exceptions'
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -15,14 +15,14 @@ module Datadog
     # @api private
     module Remote
       class << self
-        PRODUCT = 'LIVE_DEBUGGING'
+        PRODUCT = "LIVE_DEBUGGING"
 
         # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
         # registered only with the gated DI block in Capabilities#register:
         # when DI is explicitly disabled, or the runtime cannot run DI
         # (JRuby, Ruby 2.5), that block — including this bit — is skipped.
         # The enable signal itself is delivered in APM_TRACING payloads and
-        # routed here by Tracing::Remote.process_config.
+        # routed here by Tracing::Remote.merge_and_apply_configs.
         CAPABILITIES = [
           1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
         ].freeze
@@ -37,7 +37,7 @@ module Datadog
 
         # Entry point for the RC-driven DI enable/disable path.
         #
-        # Invoked from {Datadog::Tracing::Remote.process_config} when an
+        # Invoked from {Datadog::Tracing::Remote.merge_and_apply_configs} when an
         # APM_TRACING payload carries `dynamic_instrumentation_enabled`. Runs
         # on the remote-config thread; never raises.
         #
@@ -45,7 +45,7 @@ module Datadog
         #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
         #   env var blocks an enable here (see {.explicitly_disabled?}).
         # @param repository [Datadog::Core::Remote::Configuration::Repository, nil]
-        #   the RC repository, passed by {Datadog::Tracing::Remote.process_config}
+        #   the RC repository, passed by {Datadog::Tracing::Remote.apply_lib_config}
         #   so that a stopped->started transition can reconcile against probes that
         #   were delivered in an earlier poll. nil when called outside the RC
         #   dispatch path (e.g. unit tests), in which case no reconcile happens.
@@ -291,7 +291,7 @@ module Datadog
         def remove_probe(previous_content, component)
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
-          probe_id = probe_spec.fetch('id')
+          probe_id = probe_spec.fetch("id")
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)

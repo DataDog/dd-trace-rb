@@ -9,7 +9,7 @@ module Datadog
           attr_reader :events
 
           def type
-            'message-batch'
+            "message-batch"
           end
 
           def initialize(events)

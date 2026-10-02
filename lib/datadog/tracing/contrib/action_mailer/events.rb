@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/process'
-require_relative 'events/deliver'
+require_relative "events/process"
+require_relative "events/deliver"
 
 module Datadog
   module Tracing
@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::Process,
-            Events::Deliver
+            Events::Deliver,
           ].freeze
 
           module_function

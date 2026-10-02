@@ -1,8 +1,8 @@
 module ActiveModelSerializersHelpers
   class << self
     def ams_0_10_or_newer?
-      Gem.loaded_specs['active_model_serializers'] \
-        && Gem.loaded_specs['active_model_serializers'].version >= Gem::Version.new('0.10')
+      Gem.loaded_specs["active_model_serializers"] \
+        && Gem.loaded_specs["active_model_serializers"].version >= Gem::Version.new("0.10")
     end
 
     def disable_logging
@@ -11,28 +11,28 @@ module ActiveModelSerializersHelpers
   end
 end
 
-RSpec.shared_context 'AMS serializer' do
+RSpec.shared_context "AMS serializer" do
   let(:serializer_class) do
   end
 
   if ActiveModelSerializersHelpers.ams_0_10_or_newer?
     before do
       stub_const(
-        'Model',
+        "Model",
         Class.new(ActiveModelSerializers::Model) do
           attr_writer :id
         end
       )
 
       stub_const(
-        'TestModel',
+        "TestModel",
         Class.new(Model) do
           attributes :name
         end
       )
 
       stub_const(
-        'TestModelSerializer',
+        "TestModelSerializer",
         Class.new(ActiveModel::Serializer) do
           attributes :name
         end
@@ -41,7 +41,7 @@ RSpec.shared_context 'AMS serializer' do
   else
     before do
       stub_const(
-        'Model',
+        "Model",
         Class.new do
           attr_writer :id
 
@@ -50,7 +50,7 @@ RSpec.shared_context 'AMS serializer' do
           end
 
           def read_attribute_for_serialization(name)
-            if [:id, 'id'].include?(name)
+            if [:id, "id"].include?(name)
               object_id
             elsif respond_to?(name)
               send name
@@ -61,10 +61,10 @@ RSpec.shared_context 'AMS serializer' do
         end
       )
 
-      stub_const('TestModel', Class.new(Model))
+      stub_const("TestModel", Class.new(Model))
 
       stub_const(
-        'TestModelSerializer',
+        "TestModelSerializer",
         Class.new(ActiveModel::Serializer) do
           attributes :name
         end

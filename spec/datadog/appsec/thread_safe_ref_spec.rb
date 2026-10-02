@@ -1,5 +1,5 @@
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/thread_safe_ref'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/thread_safe_ref"
 
 RSpec.describe Datadog::AppSec::ThreadSafeRef do
   subject(:thread_safe_ref) { described_class.new(initial_obj, finalizer: :finalize_me!) }
@@ -22,21 +22,21 @@ RSpec.describe Datadog::AppSec::ThreadSafeRef do
 
   let(:initial_obj) { test_object_class.new }
 
-  describe '#acquire' do
-    it 'returns the current object' do
+  describe "#acquire" do
+    it "returns the current object" do
       expect(thread_safe_ref.acquire).to eq(initial_obj)
     end
   end
 
-  describe '#release' do
-    it 'does not finalize current object when releasing' do
+  describe "#release" do
+    it "does not finalize current object when releasing" do
       obj = thread_safe_ref.acquire
       thread_safe_ref.release(obj)
 
       expect(initial_obj.finalized?).to be false
     end
 
-    it 'finalizes outdated objects when their count reaches zero' do
+    it "finalizes outdated objects when their count reaches zero" do
       obj1 = thread_safe_ref.acquire
 
       thread_safe_ref.current = test_object_class.new
@@ -45,7 +45,7 @@ RSpec.describe Datadog::AppSec::ThreadSafeRef do
       expect(initial_obj.finalized?).to be true
     end
 
-    it 'does not finalize outdated objects while they still have references' do
+    it "does not finalize outdated objects while they still have references" do
       obj1 = thread_safe_ref.acquire
       obj2 = thread_safe_ref.acquire
 
@@ -58,10 +58,10 @@ RSpec.describe Datadog::AppSec::ThreadSafeRef do
       expect(initial_obj.finalized?).to be true
     end
 
-    it 'handles finalization errors gracefully' do
+    it "handles finalization errors gracefully" do
       class_with_failing_finalize = Class.new do
         def finalize!
-          raise StandardError, 'Some error message'
+          raise StandardError, "Some error message"
         end
       end
 
@@ -75,8 +75,8 @@ RSpec.describe Datadog::AppSec::ThreadSafeRef do
     end
   end
 
-  describe '#current=' do
-    it 'changes the current object' do
+  describe "#current=" do
+    it "changes the current object" do
       new_obj = test_object_class.new
       thread_safe_ref.current = new_obj
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/utils'
+require_relative "../../tracing/utils"
 
 module Datadog
   module OpenTelemetry
@@ -23,7 +23,7 @@ module Datadog
             [
               Tracing::Utils::TraceId.to_high_order(trace_id),
               Tracing::Utils::TraceId.to_low_order(trace_id),
-            ].pack('Q>Q>')
+            ].pack("Q>Q>")
           end
         end
       end

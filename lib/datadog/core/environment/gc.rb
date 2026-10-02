@@ -12,7 +12,7 @@ module Datadog
         end
 
         def available?
-          defined?(::GC) && ::GC.respond_to?(:stat)
+          !!(defined?(::GC) && ::GC.respond_to?(:stat))
         end
       end
     end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../core'
-require_relative '../../../core/telemetry/logger'
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../rack/ext'
+require_relative "../../../core"
+require_relative "../../../core/telemetry/logger"
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../rack/ext"
 
 module Datadog
   module Tracing
@@ -13,25 +13,26 @@ module Datadog
         # Endpoint module includes a list of subscribers to create
         # traces when a Grape endpoint is hit
         module Endpoint
-          KEY_RUN = 'datadog_grape_endpoint_run'
-          KEY_RENDER = 'datadog_grape_endpoint_render'
+          KEY_RUN = "datadog_grape_endpoint_run"
+          KEY_RENDER = "datadog_grape_endpoint_render"
+          FORMAT_SEGMENT = /\(\.:?\w+\)\z/
 
           class << self
             def subscribe
               # subscribe when a Grape endpoint is hit
-              ::ActiveSupport::Notifications.subscribe('endpoint_run.grape.start_process') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run.grape.start_process") do |*args|
                 endpoint_start_process(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_run.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run.grape") do |*args|
                 endpoint_run(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_render.grape.start_render') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_render.grape.start_render") do |*args|
                 endpoint_start_render(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_render.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_render.grape") do |*args|
                 endpoint_render(*args)
               end
-              ::ActiveSupport::Notifications.subscribe('endpoint_run_filters.grape') do |*args|
+              ::ActiveSupport::Notifications.subscribe("endpoint_run_filters.grape") do |*args|
                 endpoint_run_filters(*args)
               end
             end
@@ -43,8 +44,8 @@ module Datadog
               # collect endpoint details
               endpoint = payload.fetch(:endpoint)
               env = payload.fetch(:env)
-              api_view = api_view(endpoint.options[:for])
-              request_method = endpoint.options.fetch(:method).first
+              api_view = api_view(endpoint_api(endpoint))
+              request_method = endpoint_request_method(endpoint)
               path = endpoint_expand_path(endpoint)
               resource = "#{api_view} #{request_method} #{path}"
 
@@ -64,16 +65,20 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
 
-              if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
+              if (grape_route = env["grape.routing_args"]) && grape_route[:route_info]
+                route_info = grape_route[:route_info]
+                # Grape 2.3 through 3.0 return nil from GreedyRoute#path; the
+                # path lives at pattern.path in those versions.
+                route_path = route_info.path || route_info.pattern&.path
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
                   # here we are removing the format from the path:
                   # e.g. /path/to/resource(.json) => /path/to/resource
                   # e.g. /path/to/resource(.:format) => /path/to/resource
-                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
+                  route_path&.gsub(FORMAT_SEGMENT, "")
                 )
 
-                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])
               end
 
               Thread.current[KEY_RUN] = true
@@ -96,8 +101,8 @@ module Datadog
               begin
                 # collect endpoint details
                 endpoint = payload.fetch(:endpoint)
-                api_view = api_view(endpoint.options[:for])
-                request_method = endpoint.options.fetch(:method).first
+                api_view = api_view(endpoint_api(endpoint))
+                request_method = endpoint_request_method(endpoint)
                 path = endpoint_expand_path(endpoint)
 
                 trace.resource = span.resource
@@ -266,15 +271,37 @@ module Datadog
               end
             end
 
+            # Grape 4 moved three values off the endpoint's public options Hash: the
+            # API class became the #api reader (ruby-grape/grape#2778), and the verb
+            # and path are read off the route (#2775, #2776). Each reader prefers the
+            # options Hash, so Grape 1.x through 3.x resolve as they did before.
+            def endpoint_api(endpoint)
+              endpoint.options.fetch(:for) { endpoint.api }
+            end
+
+            def endpoint_request_method(endpoint)
+              request_methods = endpoint.options[:method]
+              return request_methods.first if request_methods
+
+              endpoint.routes.first&.request_method
+            end
+
             def endpoint_expand_path(endpoint)
               route_path = endpoint.options[:path]
-              namespace = endpoint.routes.first&.namespace || ''
+              return endpoint_route_path(endpoint) if route_path.nil? || route_path.empty?
 
-              path = (namespace.split('/') + route_path)
-                .reject { |p| p.blank? || p.eql?('/') }
-                .join('/')
-              path.prepend('/') if path[0] != '/'
+              namespace = endpoint.routes.first&.namespace || ""
+
+              path = (namespace.split("/") + route_path)
+                .reject { |p| p.blank? || p.eql?("/") }
+                .join("/")
+              path.prepend("/") if path[0] != "/"
               path
+            end
+
+            # A compiled path already carries the namespace, so it is used whole.
+            def endpoint_route_path(endpoint)
+              endpoint.routes.first&.path&.sub(FORMAT_SEGMENT, "") || "/"
             end
 
             def service_name

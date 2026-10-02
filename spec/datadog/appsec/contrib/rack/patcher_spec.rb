@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/contrib/rack/patcher'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/contrib/rack/patcher"
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Patcher do
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
@@ -22,9 +22,9 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Patcher do
     Datadog.configuration.reset!
   end
 
-  describe '.patch' do
-    context 'when called twice via instrument' do
-      it 'does not register gateway watchers twice' do
+  describe ".patch" do
+    context "when called twice via instrument" do
+      it "does not register gateway watchers twice" do
         Datadog.configuration.appsec.instrument :rack
 
         expect { Datadog.configuration.appsec.instrument :rack }.not_to change {

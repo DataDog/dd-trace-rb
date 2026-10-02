@@ -1,29 +1,29 @@
-require 'http'
-require 'json'
-require 'stringio'
-require 'webrick'
+require "http"
+require "json"
+require "stringio"
+require "webrick"
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/contrib/httprb/instrumentation'
+require "datadog/tracing"
+require "datadog/tracing/metadata/ext"
+require "datadog/tracing/trace_digest"
+require "datadog/tracing/contrib/httprb/instrumentation"
 
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/integration_examples'
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/environment_service_name_examples'
-require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'datadog/tracing/contrib/peer_service_configuration_examples'
-require 'datadog/tracing/contrib/svc_src_examples'
-require 'datadog/tracing/contrib/http_examples'
-require 'datadog/tracing/contrib/support/http'
-require 'spec/support/thread_helpers'
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/integration_examples"
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/environment_service_name_examples"
+require "datadog/tracing/contrib/span_attribute_schema_examples"
+require "datadog/tracing/contrib/peer_service_configuration_examples"
+require "datadog/tracing/contrib/svc_src_examples"
+require "datadog/tracing/contrib/http_examples"
+require "datadog/tracing/contrib/support/http"
+require "spec/support/thread_helpers"
 
 RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
   http_server do |http_server|
-    http_server.mount_proc '/' do |req, res|
+    http_server.mount_proc "/" do |req, res|
       body = JSON.parse(req.body)
-      res.status = body['code'].to_i
+      res.status = body["code"].to_i
 
       req.each do |header_name|
         # webrick formats header values as 1 length arrays
@@ -50,173 +50,173 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
     Datadog.registry[:httprb].reset_configuration!
   end
 
-  describe 'instrumented request' do
+  describe "instrumented request" do
     let(:code) { 200 }
-    let(:host) { 'localhost' }
-    let(:message) { 'OK' }
-    let(:path) { '/sample/path' }
+    let(:host) { "localhost" }
+    let(:message) { "OK" }
+    let(:path) { "/sample/path" }
     let(:port) { http_server_port }
     let(:url) { "http://#{host}:#{http_server_port}#{path}" }
-    let(:body) { {'message' => message, 'code' => code} }
-    let(:headers) { {accept: 'application/json'} }
+    let(:body) { {"message" => message, "code" => code} }
+    let(:headers) { {accept: "application/json"} }
     let(:response) { HTTP.post(url, body: body.to_json, headers: headers) }
 
-    shared_examples_for 'instrumented request' do
-      it 'creates a span' do
+    shared_examples_for "instrumented request" do
+      it "creates a span" do
         expect { response }.to change { fetch_spans.first }.to be_instance_of(Datadog::Tracing::Span)
       end
 
-      it 'returns response' do
+      it "returns response" do
         expect(response.body.to_s).to eq(body.to_json)
       end
 
-      describe 'created span' do
+      describe "created span" do
         subject(:span) { fetch_spans.first }
 
-        context 'response is successfull' do
+        context "response is successfull" do
           before { response }
 
-          it 'has tag with target host' do
+          it "has tag with target host" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           end
 
-          it 'has tag with target port' do
+          it "has tag with target port" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port)
           end
 
-          it 'has tag with target method' do
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('POST')
+          it "has tag with target method" do
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq("POST")
           end
 
-          it 'has tag with target url path' do
+          it "has tag with target url path" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
           end
 
-          it 'has tag with status code' do
+          it "has tag with status code" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'is http type' do
-            expect(span.type).to eq('http')
+          it "is http type" do
+            expect(span.type).to eq("http")
           end
 
-          it 'is named correctly' do
-            expect(span.name).to eq('httprb.request')
+          it "is named correctly" do
+            expect(span.name).to eq("httprb.request")
           end
 
-          it 'has correct service name' do
-            expect(span.service).to eq('httprb')
+          it "has correct service name" do
+            expect(span.service).to eq("httprb")
           end
 
-          it 'has correct component and operation tags' do
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('httprb')
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+          it "has correct component and operation tags" do
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("httprb")
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("request")
           end
 
-          it 'has `client` as `span.kind`' do
-            expect(span.get_tag('span.kind')).to eq('client')
+          it "has `client` as `span.kind`" do
+            expect(span.get_tag("span.kind")).to eq("client")
           end
 
-          it_behaves_like 'a peer service span' do
-            let(:peer_service_val) { 'localhost' }
-            let(:peer_service_source) { 'peer.hostname' }
+          it_behaves_like "a peer service span" do
+            let(:peer_service_val) { "localhost" }
+            let(:peer_service_source) { "peer.hostname" }
           end
 
-          it_behaves_like 'analytics for integration' do
+          it_behaves_like "analytics for integration" do
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
-          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'tags _dd.svc_src', 'httprb' do
+          it_behaves_like "environment service name", "DD_TRACE_HTTPRB_SERVICE_NAME"
+          it_behaves_like "tags _dd.svc_src", "httprb" do
             before { response }
           end
-          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPRB_PEER_SERVICE'
-          it_behaves_like 'schema version span'
+          it_behaves_like "configured peer service span", "DD_TRACE_HTTPRB_PEER_SERVICE"
+          it_behaves_like "schema version span"
 
-          context 'when configured with global tag headers' do
-            let(:headers) { {'Request-Id' => 'test-request'} }
+          context "when configured with global tag headers" do
+            let(:headers) { {"Request-Id" => "test-request"} }
 
-            include_examples 'with request tracer header tags' do
-              let(:request_header_tag) { 'request-id' }
-              let(:request_header_tag_value) { 'test-request' }
+            include_examples "with request tracer header tags" do
+              let(:request_header_tag) { "request-id" }
+              let(:request_header_tag_value) { "test-request" }
             end
 
-            include_examples 'with response tracer header tags' do
-              let(:response_header_tag) { 'connection' }
-              let(:response_header_tag_value) { 'close' }
+            include_examples "with response tracer header tags" do
+              let(:response_header_tag) { "connection" }
+              let(:response_header_tag_value) { "close" }
             end
           end
         end
 
-        context 'response has internal server error status' do
+        context "response has internal server error status" do
           let(:code) { 500 }
-          let(:message) { 'Internal Server Error' }
+          let(:message) { "Internal Server Error" }
 
           before { response }
 
-          it 'has tag with status code' do
+          it "has tag with status code" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'has error set' do
+          it "has error set" do
             expect(span).to have_error
           end
 
-          it 'has error type set' do
-            expect(span).to have_error_type('Error 500')
+          it "has error type set" do
+            expect(span).to have_error_type("Error 500")
           end
 
           # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
-          it 'has error message' do
-            expect(span).to have_error_message('Error')
+          it "has error message" do
+            expect(span).to have_error_message("Error")
           end
 
-          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPRB_PEER_SERVICE'
-          it_behaves_like 'schema version span'
+          it_behaves_like "environment service name", "DD_TRACE_HTTPRB_SERVICE_NAME"
+          it_behaves_like "configured peer service span", "DD_TRACE_HTTPRB_PEER_SERVICE"
+          it_behaves_like "schema version span"
         end
 
-        context 'response has not found status' do
+        context "response has not found status" do
           let(:code) { 404 }
-          let(:message) { 'Not Found' }
+          let(:message) { "Not Found" }
 
           before { response }
 
-          it 'has tag with status code' do
+          it "has tag with status code" do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'has error set' do
+          it "has error set" do
             expect(span).to have_error
           end
 
-          it 'has error type set' do
-            expect(span).to have_error_type('Error 404')
+          it "has error type set" do
+            expect(span).to have_error_type("Error 404")
           end
 
           # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
-          it 'has error message' do
-            expect(span).to have_error_message('Error')
+          it "has error message" do
+            expect(span).to have_error_message("Error")
           end
 
-          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPRB_PEER_SERVICE'
-          it_behaves_like 'schema version span'
+          it_behaves_like "environment service name", "DD_TRACE_HTTPRB_SERVICE_NAME"
+          it_behaves_like "configured peer service span", "DD_TRACE_HTTPRB_PEER_SERVICE"
+          it_behaves_like "schema version span"
         end
 
-        context 'distributed tracing default' do
+        context "distributed tracing default" do
           let(:http_response) { response }
 
-          it 'propagates the parent id header' do
-            expect(http_response.headers['x-datadog-parent-id']).to eq(span.id.to_s)
+          it "propagates the parent id header" do
+            expect(http_response.headers["x-datadog-parent-id"]).to eq(span.id.to_s)
           end
 
-          it 'propagates the trace id header' do
-            expect(http_response.headers['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
+          it "propagates the trace id header" do
+            expect(http_response.headers["x-datadog-trace-id"]).to eq(low_order_trace_id(span.trace_id).to_s)
           end
 
-          it 'injects into request headers, not the request object' do
+          it "injects into request headers, not the request object" do
             expect(Datadog::Tracing::Contrib::HTTP).to receive(:inject) do |_trace, data|
               expect(data).to be_a(HTTP::Headers)
             end.and_call_original
@@ -224,26 +224,26 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             response
           end
 
-          it 'does not log an error during distributed tracing injection' do
+          it "does not log an error during distributed tracing injection" do
             expect(Datadog.logger).to_not receive(:error)
 
             response
           end
         end
 
-        context 'distributed tracing disabled' do
+        context "distributed tracing disabled" do
           let(:configuration_options) { super().merge(distributed_tracing: false) }
           let(:http_response) { response }
 
-          it 'does not propagate the parent id header' do
-            expect(http_response.headers['x-datadog-parent-id']).to_not eq(span.id.to_s)
+          it "does not propagate the parent id header" do
+            expect(http_response.headers["x-datadog-parent-id"]).to_not eq(span.id.to_s)
           end
 
-          it 'does not propograte the trace id header' do
-            expect(http_response.headers['x-datadog-trace-id']).to_not eq(span.trace_id.to_s)
+          it "does not propograte the trace id header" do
+            expect(http_response.headers["x-datadog-trace-id"]).to_not eq(span.trace_id.to_s)
           end
 
-          context 'with sampling priority' do
+          context "with sampling priority" do
             let(:sampling_priority) { 2 }
 
             before do
@@ -254,13 +254,13 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
               )
             end
 
-            it 'does not propagate sampling priority' do
-              expect(response.headers['x-datadog-sampling-priority']).to_not eq(sampling_priority.to_s)
+            it "does not propagate sampling priority" do
+              expect(response.headers["x-datadog-sampling-priority"]).to_not eq(sampling_priority.to_s)
             end
           end
         end
 
-        context 'with sampling priority' do
+        context "with sampling priority" do
           let(:sampling_priority) { 2 }
 
           before do
@@ -271,12 +271,12 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             )
           end
 
-          it 'propagates sampling priority' do
-            expect(response.headers['x-datadog-sampling-priority']).to eq(sampling_priority.to_s)
+          it "propagates sampling priority" do
+            expect(response.headers["x-datadog-sampling-priority"]).to eq(sampling_priority.to_s)
           end
         end
 
-        context 'when split by domain' do
+        context "when split by domain" do
           let(:configuration_options) { super().merge(split_by_domain: true) }
           let(:http_response) { response }
 
@@ -284,60 +284,60 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             http_response
             expect(span.name).to eq(Datadog::Tracing::Contrib::Httprb::Ext::SPAN_REQUEST)
             expect(span.service).to eq(host)
-            expect(span.resource).to eq('POST')
+            expect(span.resource).to eq("POST")
           end
 
-          context 'and the host matches a specific configuration' do
+          context "and the host matches a specific configuration" do
             before do
               Datadog.configure do |c|
                 c.tracing.instrument :httprb, describes: /localhost/ do |httprb|
-                  httprb.service_name = 'bar'
+                  httprb.service_name = "bar"
                   httprb.split_by_domain = false
                 end
 
                 c.tracing.instrument :httprb, describes: /random/ do |httprb|
-                  httprb.service_name = 'barz'
+                  httprb.service_name = "barz"
                   httprb.split_by_domain = false
                 end
               end
             end
 
-            it 'uses the configured service name over the domain name and the correct describes block' do
+            it "uses the configured service name over the domain name and the correct describes block" do
               http_response
-              expect(span.service).to eq('bar')
+              expect(span.service).to eq("bar")
             end
           end
         end
       end
     end
 
-    context 'with custom error codes' do
+    context "with custom error codes" do
       let(:code) { status_code }
       before { response }
 
-      include_examples 'with error status code configuration', env: 'DD_TRACE_HTTPRB_ERROR_STATUS_CODES'
+      include_examples "with error status code configuration", env: "DD_TRACE_HTTPRB_ERROR_STATUS_CODES"
     end
 
-    it_behaves_like 'instrumented request'
+    it_behaves_like "instrumented request"
 
-    context 'when basic auth in url' do
-      let(:host) { 'username:password@localhost' }
+    context "when basic auth in url" do
+      let(:host) { "username:password@localhost" }
 
-      it 'does not collect auth info' do
+      it "does not collect auth info" do
         response
 
-        expect(span.get_tag('http.url')).to eq('/sample/path')
-        expect(span.get_tag('out.host')).to eq('localhost')
+        expect(span.get_tag("http.url")).to eq("/sample/path")
+        expect(span.get_tag("out.host")).to eq("localhost")
       end
     end
 
-    context 'when query string in url' do
-      let(:path) { '/sample/path?foo=bar' }
+    context "when query string in url" do
+      let(:path) { "/sample/path?foo=bar" }
 
-      it 'does not collect auth info' do
+      it "does not collect auth info" do
         response
 
-        expect(span.get_tag('http.url')).to eq('/sample/path')
+        expect(span.get_tag("http.url")).to eq("/sample/path")
       end
     end
   end

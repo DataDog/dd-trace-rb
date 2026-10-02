@@ -28,6 +28,11 @@ module Datadog
               return true
             end
 
+            if ::Datadog.configuration.respond_to?(:ai_guard) && ::Datadog.configuration.ai_guard.enabled &&
+                (trace_source & ::Datadog::AIGuard::Ext::PRODUCT_BIT) != 0
+              return true
+            end
+
             return false
           end
 

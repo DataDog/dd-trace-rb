@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
-require_relative '../event'
-require_relative '../ext'
-require_relative '../../analytics'
-require_relative '../../utils/database'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
+require_relative "../event"
+require_relative "../ext"
+require_relative "../../analytics"
+require_relative "../../utils/database"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -17,8 +17,8 @@ module Datadog
           module SQL
             include ActiveRecord::Event
 
-            EVENT_NAME = 'sql.active_record'
-            PAYLOAD_CACHE = 'CACHE'
+            EVENT_NAME = "sql.active_record"
+            PAYLOAD_CACHE = "CACHE"
 
             module_function
 
@@ -46,6 +46,7 @@ module Datadog
               span.resource = payload.fetch(:sql)
               span.type = Tracing::Metadata::Ext::SQL::TYPE
 
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SQL)
 

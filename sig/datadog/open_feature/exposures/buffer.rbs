@@ -12,7 +12,7 @@ module Datadog
 
         def drain!: () -> ::Array[Object]
 
-        def replace!: (Object) -> Object?
+        def replace!: [T < Object] (T) -> T
       end
     end
   end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'net/http'
-require_relative '../../../transport/ext'
-require_relative 'net'
+require "net/http"
+require_relative "../../../transport/ext"
+require_relative "net"
 
 module Datadog
   module Core
@@ -58,7 +58,7 @@ module Datadog
               alias_method :uds_path, :filepath
 
               def initialize(uds_path, options = {})
-                super('localhost', 80)
+                super("localhost", 80)
                 @filepath = uds_path
                 @read_timeout = options.fetch(:read_timeout, DEFAULT_TIMEOUT)
                 @continue_timeout = options.fetch(:continue_timeout, DEFAULT_TIMEOUT)

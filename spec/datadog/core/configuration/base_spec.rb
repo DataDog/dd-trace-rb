@@ -1,43 +1,43 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog'
+require "datadog"
 
 RSpec.describe Datadog::Core::Configuration::Base do
-  describe 'implemented' do
+  describe "implemented" do
     subject(:base_class) do
       Class.new.tap do |klass|
         klass.include(described_class)
       end
     end
 
-    describe 'class behavior' do
-      describe '#settings' do
+    describe "class behavior" do
+      describe "#settings" do
         subject(:settings) { base_class.send(:settings, name, &block) }
 
-        context 'given a name and block' do
+        context "given a name and block" do
           let(:name) { :debug }
           let(:block) { proc { option :enabled } }
 
-          context 'settings name' do
-            it { expect(settings.settings_path).to eq 'debug' }
+          context "settings name" do
+            it { expect(settings.settings_path).to eq "debug" }
           end
 
-          describe 'settings registry' do
-            it 'registers the nested settings class as a child setting' do
+          describe "settings registry" do
+            it "registers the nested settings class as a child setting" do
               expect { settings }.to change { base_class.settings_children.size }.from(0).to(1)
 
               expect(base_class.settings_children[:debug]).to be(settings)
             end
           end
 
-          describe 'defines a settings option' do
+          describe "defines a settings option" do
             subject(:definition) { base_class.options[name] }
 
             before { settings }
 
             it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
-            it 'sets default properties' do
+            it "sets default properties" do
               is_expected.to have_attributes(
                 is_settings: true,
                 default: kind_of(Proc),
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
               )
             end
 
-            describe 'when instantiated' do
+            describe "when instantiated" do
               subject(:option) { Datadog::Core::Configuration::Option.new(definition, self) }
               let(:settings_object) { option.default_value }
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
           end
         end
 
-        context 'given nested settings' do
+        context "given nested settings" do
           let(:name) { :debug }
           let(:block) do
             proc do
@@ -65,21 +65,21 @@ RSpec.describe Datadog::Core::Configuration::Base do
             end
           end
 
-          it 'injects the full settings path into nested settings classes' do
+          it "injects the full settings path into nested settings classes" do
             settings
 
             http_settings = base_class.new.debug.http.class
 
-            expect(http_settings.settings_path).to eq('debug.http')
+            expect(http_settings.settings_path).to eq("debug.http")
           end
         end
       end
     end
 
-    describe 'instance behavior' do
+    describe "instance behavior" do
       subject(:base_object) { base_class.new }
 
-      describe '#initialize' do
+      describe "#initialize" do
         subject(:base_object) { base_class.new(options) }
 
         let(:options) { {foo: :bar} }
@@ -92,33 +92,33 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
-      describe '#configure' do
+      describe "#configure" do
         subject(:configure) { base_object.configure(options) }
 
-        context 'when given an option' do
+        context "when given an option" do
           let(:options) { {foo: :bar} }
 
-          context 'that is not defined' do
+          context "that is not defined" do
             it { expect { configure }.to_not raise_error }
           end
 
-          context 'which matches a method on the class' do
+          context "which matches a method on the class" do
             before do
               base_class.send(:define_method, :foo=) { |_value| }
               allow(base_object).to receive(:foo=)
             end
 
-            it 'invokes the method with the value' do
+            it "invokes the method with the value" do
               configure
               expect(base_object).to have_received(:foo=)
                 .with(:bar)
             end
           end
 
-          context 'which has been defined on the class' do
+          context "which has been defined on the class" do
             before { base_class.send(:option, :foo) }
 
-            it 'invokes the method with the value' do
+            it "invokes the method with the value" do
               configure
               expect(base_object.foo).to eq(:bar)
             end
@@ -126,10 +126,10 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
-      describe '#to_h' do
+      describe "#to_h" do
         subject(:hash) { base_object.to_h }
 
-        let(:options_hash) { double('options hash') }
+        let(:options_hash) { double("options hash") }
 
         before do
           allow(base_object).to receive(:options_hash)
@@ -142,9 +142,9 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
-      describe '#dig' do
+      describe "#dig" do
         subject(:dig) { base_object.dig(*options) }
-        let(:options) { 'debug' }
+        let(:options) { "debug" }
 
         let(:settings) { base_class.send(:settings, name, &block) }
         let(:name) { :debug }
@@ -156,19 +156,19 @@ RSpec.describe Datadog::Core::Configuration::Base do
           definition
         end
 
-        context 'when given one arg' do
-          let(:options) { 'debug' }
+        context "when given one arg" do
+          let(:options) { "debug" }
           it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::Options) }
         end
 
-        context 'when given more than one arg' do
+        context "when given more than one arg" do
           let(:options) { %w[debug enabled] }
 
           it { is_expected.to be(true) }
         end
       end
 
-      describe '#reset!' do
+      describe "#reset!" do
         subject(:reset!) { base_object.reset! }
 
         before do
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
           reset!
         end
 
-        it 'resets the options' do
+        it "resets the options" do
           expect(base_object).to have_received(:reset_options!)
         end
       end

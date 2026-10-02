@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'events/render_partial'
-require_relative 'events/render_template'
+require_relative "events/render_partial"
+require_relative "events/render_template"
 
 module Datadog
   module Tracing
@@ -11,7 +11,7 @@ module Datadog
         module Events
           ALL = [
             Events::RenderPartial,
-            Events::RenderTemplate
+            Events::RenderTemplate,
           ].freeze
 
           module_function

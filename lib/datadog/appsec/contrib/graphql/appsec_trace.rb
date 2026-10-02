@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-require_relative 'gateway/multiplex'
-require_relative '../../instrumentation/gateway'
+require "json"
+require_relative "gateway/multiplex"
+require_relative "../../instrumentation/gateway"
 
 module Datadog
   module AppSec
@@ -16,7 +16,7 @@ module Datadog
 
             gateway_multiplex = Gateway::Multiplex.new(multiplex)
 
-            multiplex_return, _gateway_multiplex = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
+            multiplex_return, _gateway_multiplex = Instrumentation.gateway.push("graphql.multiplex", gateway_multiplex) do
               super
             end
 

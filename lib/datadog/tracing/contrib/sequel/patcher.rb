@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'database'
-require_relative 'dataset'
+require_relative "../patcher"
+require_relative "database"
+require_relative "dataset"
 
 module Datadog
   module Tracing

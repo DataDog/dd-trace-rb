@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'metastruct'
+require_relative "metastruct"
 
 module Datadog
   module Tracing

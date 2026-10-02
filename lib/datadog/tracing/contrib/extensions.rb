@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
-require_relative '../../core/configuration/settings'
+require_relative "../../core/configuration/settings"
 
 # Datadog
 module Datadog

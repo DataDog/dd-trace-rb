@@ -1,21 +1,24 @@
 # frozen_string_literal: true
 
-require_relative '../core/feature_flags'
-require_relative 'ext'
-require_relative 'resolution_details'
+require_relative "../core/feature_flags"
+require_relative "ext"
+require_relative "resolution_details"
 
 module Datadog
   module OpenFeature
     # This class is an interface of evaluation logic using native extension
     class NativeEvaluator
-      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE = 'flag configuration is invalid or unsupported'
+      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE = "flag configuration is invalid or unsupported"
 
       # NOTE: In a currect implementation configuration is expected to be a raw
       #       JSON string containing feature flags (straight from the remote config)
       #       in the format expected by `libdatadog` without any modifications
       def initialize(configuration)
         @configuration = Core::FeatureFlags::Configuration.new(configuration)
+        @observe_full_evaluation_data = @configuration.observe_full_evaluation_data
       end
+
+      attr_reader :observe_full_evaluation_data
 
       # Returns the assignment for a given flag key based on the feature flags
       # configuration
@@ -27,20 +30,31 @@ module Datadog
       # @param context [Hash] The context of the evaluation, containing targeting key
       #                       and other attributes
       #
-      # @return [Core::FeatureFlags::ResolutionDetails] The assignment for the flag
+      # @return [ResolutionDetails] The assignment for the flag
       def get_assignment(flag_key, default_value:, expected_type:, context:)
         result = @configuration.get_assignment(flag_key, expected_type, context)
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 
-        # NOTE: This is a special case when we need to fallback to the default
-        #       value, even tho the evaluation itself doesn't produce an error
-        #       resolution details
-        result.value = default_value if result.variant.nil?
-        result
+        build_resolution_details(result, default_value)
       end
 
       private
+
+      def build_resolution_details(result, default_value)
+        ResolutionDetails.new(
+          value: result.variant.nil? ? default_value : result.value,
+          reason: result.reason,
+          variant: result.variant,
+          error_code: result.error_code,
+          error_message: result.error_message,
+          flag_metadata: result.flag_metadata,
+          allocation_key: result.allocation_key,
+          serial_id: result.serial_id,
+          log?: result.log?,
+          error?: result.error?,
+        )
+      end
 
       def invalid_flag_configuration?(result)
         result.reason == Ext::DEFAULT &&

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -40,8 +40,8 @@ module Datadog
             span.set_tag(Contrib::Karafka::Ext::TAG_MESSAGE_COUNT, messages.size)
             span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Contrib::Karafka::Ext::TAG_SYSTEM)
 
-            span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, topics.uniq.sort.join(','))
-            span.set_tag(Contrib::Karafka::Ext::TAG_PARTITION, partitions.uniq.sort.join(',')) if partitions.any?
+            span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, topics.uniq.sort.join(","))
+            span.set_tag(Contrib::Karafka::Ext::TAG_PARTITION, partitions.uniq.sort.join(",")) if partitions.any?
           end
         end
       end

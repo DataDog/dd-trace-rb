@@ -1,0 +1,5 @@
+extends: existence
+message: "Changelog message should end with terminal punctuation ('.', '!', or '?')."
+level: error
+raw:
+  - '[^.!?]$'

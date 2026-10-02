@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'event'
+require_relative "event"
 
-require 'pathname'
+require "pathname"
 
 module Datadog
   module Core
@@ -37,9 +37,9 @@ module Datadog
             backtrace.map do |line|
               if !vendored_deps && line.start_with?(GEM_ROOT) ||
                   vendored_deps && line.start_with?(GEM_ROOT) && Gem.path.none? { |p| line.start_with?(p) }
-                line[GEM_ROOT.length..-1] || ''
+                line[GEM_ROOT.length..-1] || ""
               else
-                'REDACTED'
+                "REDACTED"
               end
             end.join("\n")
           end
@@ -55,7 +55,7 @@ module Datadog
           telemetry_message = message_for_telemetry(exception)
 
           if description || telemetry_message
-            message << ':'
+            message << ":"
             message << " #{description}" if description
             message << " (#{telemetry_message})" if telemetry_message
           end

@@ -52,7 +52,7 @@
       - ref: var
       - hello[a-z]
 
-  compiled: matches(ref('var'), ("hello[a-z]"))
+  compiled: matches_compiled(ref('var'), 0)
 
   # TODO check esscaping
 

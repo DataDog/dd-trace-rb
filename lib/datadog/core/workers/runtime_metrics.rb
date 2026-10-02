@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../runtime/metrics'
+require_relative "../runtime/metrics"
 
-require_relative '../worker'
-require_relative 'async'
-require_relative 'polling'
+require_relative "../worker"
+require_relative "async"
+require_relative "polling"
 
 module Datadog
   module Core

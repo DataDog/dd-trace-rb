@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../notifications/event'
+require_relative "../notifications/event"
 
 module Datadog
   module Tracing

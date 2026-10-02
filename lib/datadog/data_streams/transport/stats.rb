@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'msgpack'
-require 'zlib'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
+require "msgpack"
+require "zlib"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
 
 module Datadog
   module DataStreams
@@ -24,8 +24,8 @@ module Datadog
             # Create parcel and request
             parcel = Core::Transport::Parcel.new(
               compressed_data,
-              content_type: 'application/msgpack',
-              content_encoding: 'gzip',
+              content_type: "application/msgpack",
+              content_encoding: "gzip",
             )
             request = Request.new(parcel)
 

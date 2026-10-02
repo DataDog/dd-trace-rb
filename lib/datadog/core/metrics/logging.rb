@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'logger'
-require 'json'
+require "logger"
+require "json"
 
 module Datadog
   module Core

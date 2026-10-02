@@ -215,15 +215,27 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
+end
+
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0')
+
+['1'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape', "~> #{v}.0"
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.11.0')
@@ -255,7 +267,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge', '~> 0.11'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -263,7 +274,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', platform: :ruby
 
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
@@ -274,6 +284,10 @@ appraise 'contrib' do
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+appraise 'grpc' do
+  gem 'grpc'
 end
 
 [
@@ -299,11 +313,11 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 

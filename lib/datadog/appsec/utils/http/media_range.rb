@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'media_type'
+require_relative "media_type"
 
 module Datadog
   module AppSec
@@ -11,7 +11,7 @@ module Datadog
           class ParseError < ::StandardError
           end
 
-          WILDCARD = '*'
+          WILDCARD = "*"
           WILDCARD_RE = ::Regexp.escape(WILDCARD)
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
@@ -96,40 +96,40 @@ module Datadog
 
             raise ParseError, media_range.inspect if media_range_match.nil?
 
-            @type = (media_range_match['type'] || WILDCARD).downcase
-            @subtype = (media_range_match['subtype'] || WILDCARD).downcase
-            @quality = (media_range_match['quality'] || 1.0).to_f
+            @type = (media_range_match["type"] || WILDCARD).downcase
+            @subtype = (media_range_match["subtype"] || WILDCARD).downcase
+            @quality = (media_range_match["quality"] || 1.0).to_f
             @parameters = {}
             @accept_ext = {}
 
-            parameters = media_range_match['parameters']
+            parameters = media_range_match["parameters"]
 
             return if parameters.nil?
 
-            parameters.split(';').map(&:strip).each do |parameter|
+            parameters.split(";").map(&:strip).each do |parameter|
               parameter_match = PARAMETER_RE.match(parameter)
 
               next if parameter_match.nil?
 
-              parameter_name = parameter_match['parameter_name']
-              parameter_value = parameter_match['parameter_value']
+              parameter_name = parameter_match["parameter_name"]
+              parameter_value = parameter_match["parameter_value"]
 
               next if parameter_name.nil? || parameter_value.nil?
 
               @parameters[parameter_name.downcase] = parameter_value.downcase
             end
 
-            accept_exts = media_range_match['accept_exts']
+            accept_exts = media_range_match["accept_exts"]
 
             return if accept_exts.nil?
 
-            accept_exts.split(';').map(&:strip).each do |ext|
+            accept_exts.split(";").map(&:strip).each do |ext|
               ext_match = ACCEPT_EXT_RE.match(ext)
 
               next if ext_match.nil?
 
-              ext_name = ext_match['ext_name']
-              ext_value = ext_match['ext_value']
+              ext_name = ext_match["ext_name"]
+              ext_value = ext_match["ext_value"]
 
               next if ext_name.nil? || ext_value.nil?
 
@@ -189,9 +189,9 @@ module Datadog
           def to_s
             s = +"#{@type}/#{@subtype}"
 
-            s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
+            s << ";" << @parameters.map { |k, v| "#{k}=#{v}" }.join(";") if @parameters.count > 0
             s << ";q=#{@quality}" if @quality < 1.0
-            s << ';' << @accept_ext.map { |k, v| "#{k}=#{v}" }.join(';') if @accept_ext.count > 0
+            s << ";" << @accept_ext.map { |k, v| "#{k}=#{v}" }.join(";") if @accept_ext.count > 0
 
             s
           end

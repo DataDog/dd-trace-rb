@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../../core/utils'
-require_relative '../../../metadata/ext'
-require_relative '../ext'
-require_relative 'event'
+require_relative "../../../../core/utils"
+require_relative "../../../metadata/ext"
+require_relative "../ext"
+require_relative "event"
 
 module Datadog
   module Tracing

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require "set"
-require "time"
 require "libdatadog"
+require_relative "../../core/utils/time"
 
 module Datadog
   module Profiling
@@ -71,10 +70,7 @@ module Datadog
         # Instead of trying to figure out real process start time by checking
         # /proc or some other complex/non-portable way, approximate start time
         # by time of requirement of this file.
-        #
-        # Note: this does not use Core::Utils::Time.now because this constant
-        # gets initialized before a user has a chance to configure the library.
-        START_TIME = Time.now.utc.freeze
+        START_TIME = Datadog::Core::Utils::Time.now.utc.freeze
 
         #: () -> ::Hash[::Symbol, untyped]
         def collect_platform_info
@@ -83,7 +79,7 @@ module Datadog
             hostname: Datadog::Core::Environment::Platform.hostname,
             kernel_name: Datadog::Core::Environment::Platform.kernel_name,
             kernel_release: Datadog::Core::Environment::Platform.kernel_release,
-            kernel_version: Datadog::Core::Environment::Platform.kernel_version
+            kernel_version: Datadog::Core::Environment::Platform.kernel_version,
           }.freeze
         end
 

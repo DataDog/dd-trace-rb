@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'patcher'
-require_relative '../integration'
+require_relative "patcher"
+require_relative "../integration"
 
 module Datadog
   module AppSec

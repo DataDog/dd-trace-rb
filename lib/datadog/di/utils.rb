@@ -86,7 +86,7 @@ module Datadog
       # forward slashes (DEBUG-5111). Used to normalize probe source paths
       # that originate from IDE tooling running on Windows.
       module_function def normalize_windows_separators(path)
-        path.tr('\\', '/')
+        path.tr("\\", "/")
       end
 
       # Returns whether the provided +path+ matches the user-designated
@@ -120,7 +120,7 @@ module Datadog
           suffix = suffix.downcase
         end
 
-        if suffix.start_with?('/')
+        if suffix.start_with?("/")
           path == suffix
         else
           # Exact match is not possible here, meaning any matching path
@@ -156,8 +156,8 @@ module Datadog
           return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
 
           loop do
-            break unless working_spec.include?('/')
-            working_spec.sub!(%r{.*/+}, '')
+            break unless working_spec.include?("/")
+            working_spec.sub!(%r{.*/+}, "")
             return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
           end
         end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'fatal_exceptions'
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -123,6 +123,14 @@ module Datadog
         @lifecycle_mutex.synchronize do
           return if @started
 
+          # DI.activate_tracking creates the global code tracker lazily. When DI
+          # is enabled after boot via remote configuration (in-product
+          # enablement), this component and its instrumenter were built with a
+          # nil tracker; adopt the now-current global tracker so line probes
+          # can be targeted.
+          @code_tracker = DI.code_tracker
+          instrumenter.code_tracker = @code_tracker
+
           probe_notifier_worker.start
           probe_manager.reopen
           @started = true
@@ -190,14 +198,14 @@ module Datadog
         Datadog::DI.reraise_if_fatal(exc)
         begin
           probe = Struct.new(:id).new(
-            probe_spec['id'],
+            probe_spec["id"],
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
         rescue Exception => nested_exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(nested_exc)
           logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc.message}" }
-          telemetry&.report(nested_exc, description: 'Error building probe error notification')
+          telemetry&.report(nested_exc, description: "Error building probe error notification")
           raise
         end
 

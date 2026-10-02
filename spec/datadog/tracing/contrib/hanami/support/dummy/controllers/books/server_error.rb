@@ -5,7 +5,7 @@ module Dummy
         include Dummy::Action
 
         def call(params)
-          raise 'Oops...'
+          raise "Oops..."
         end
       end
     end

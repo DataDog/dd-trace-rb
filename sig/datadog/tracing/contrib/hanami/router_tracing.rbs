@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Hanami
         module RouterTracing
-          def call: (untyped env) -> untyped
+          def call: (::Rack::env env) -> ::Rack::response
 
           def configuration: () -> untyped
         end

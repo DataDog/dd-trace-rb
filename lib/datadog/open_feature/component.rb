@@ -1,32 +1,41 @@
 # frozen_string_literal: true
 
-require_relative 'transport'
-require_relative 'evaluation_engine'
-require_relative 'exposures/buffer'
-require_relative 'exposures/worker'
-require_relative 'exposures/deduplicator'
-require_relative 'exposures/reporter'
-require_relative 'metrics/flag_eval_metrics'
+require_relative "transport"
+require_relative "evaluation_engine"
+require_relative "../core/utils/time"
+require_relative "exposures/buffer"
+require_relative "exposures/worker"
+require_relative "exposures/deduplicator"
+require_relative "exposures/reporter"
+require_relative "metrics/flag_eval_metrics"
+require_relative "flag_evaluation/writer"
+require_relative "hooks/flag_eval_metrics_hook"
+require_relative "hooks/flag_eval_evp_hook"
+require_relative "hooks/span_enrichment_hook"
 
 module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook
+      CONFIGURATION_READY = :ready
+      CONFIGURATION_TIMEOUT = :timeout
+      CONFIGURATION_SHUTDOWN = :shutdown
+
+      attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
 
         unless settings.respond_to?(:remote) && settings.remote.enabled
-          message = 'OpenFeature could not be enabled as Remote Configuration is currently disabled. ' \
-            'To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/.'
+          message = "OpenFeature could not be enabled as Remote Configuration is currently disabled. " \
+            "To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/."
 
           logger.warn(message)
           return
         end
 
-        if RUBY_ENGINE != 'ruby'
-          message = 'OpenFeature could not be enabled as MRI is required, ' \
+        unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
+          message = "OpenFeature could not be enabled as MRI is required, " \
             "but running on #{RUBY_ENGINE.inspect}"
 
           logger.warn(message)
@@ -34,9 +43,9 @@ module Datadog
         end
 
         if (libdatadog_api_failure = Core::LIBDATADOG_API_FAILURE)
-          message = 'OpenFeature could not be enabled as `libdatadog` is not loaded: ' \
+          message = "OpenFeature could not be enabled as `libdatadog` is not loaded: " \
             "#{libdatadog_api_failure.inspect}. For help solving this issue, " \
-            'please contact Datadog support at https://docs.datadoghq.com/help/.'
+            "please contact Datadog support at https://docs.datadoghq.com/help/."
 
           logger.warn(message)
           return
@@ -58,42 +67,98 @@ module Datadog
         @agent_settings = agent_settings
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
+        @span_enrichment_hook = create_span_enrichment_hook
+
+        @configuration_mutex = Mutex.new
+        @reconfiguration_mutex = Mutex.new
+        @configuration_condition = ConditionVariable.new
+        @configuration_received = false
+        @configuration_shutdown = false
+      end
+
+      def reconfigure!(configuration)
+        @reconfiguration_mutex.synchronize do
+          return if configuration_shutdown?
+
+          @engine.reconfigure!(configuration)
+
+          @configuration_mutex.synchronize do
+            return if @configuration_shutdown
+
+            @configuration_received = !configuration.nil?
+            @configuration_condition.broadcast
+          end
+        end
+      end
+
+      def wait_for_configuration
+        timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
+        deadline = Core::Utils::Time.get_time + timeout_seconds
+
+        @configuration_mutex.synchronize do
+          loop do
+            return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+            return CONFIGURATION_READY if @configuration_received
+
+            remaining = deadline - Core::Utils::Time.get_time
+            return CONFIGURATION_TIMEOUT unless remaining.positive?
+
+            @configuration_condition.wait(@configuration_mutex, remaining)
+          end
+        end
+      end
+
+      def configuration_received?
+        @configuration_mutex.synchronize { @configuration_received }
       end
 
       def shutdown!
+        @configuration_mutex.synchronize do
+          @configuration_shutdown = true
+          @configuration_condition.broadcast
+        end
+
         @worker.graceful_shutdown
         @flag_eval_evp_writer&.stop
+        # Symmetric teardown: drop any accumulated span-enrichment state and
+        # subscriptions (Ruby CLAUDE.md mandates closing resources).
+        @span_enrichment_hook&.shutdown
       end
 
       private
 
+      def configuration_shutdown?
+        @configuration_mutex.synchronize { @configuration_shutdown }
+      end
+
       def create_flag_eval_metrics_hook
-        require_relative 'hooks/flag_eval_metrics_hook'
         return unless Hooks::FlagEvalMetricsHook.available?
 
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalMetricsHook.new(metrics)
-      rescue LoadError
-        nil
       end
 
       # Killswitch: DD_FLAGGING_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
       # Read through the datadog config registry, not raw ENV.
       def create_flag_eval_evp_hook
         return unless @settings.open_feature.evaluation_counts_enabled
-
-        require_relative 'hooks/flag_eval_evp_hook'
         return unless Hooks::FlagEvalEVPHook.available?
 
         evp_transport = Transport::HTTP.build_flagevaluations(
           agent_settings: @agent_settings,
           logger: @logger,
         )
-        require_relative 'flag_evaluation/writer'
         @flag_eval_evp_writer = FlagEvaluation::Writer.new(transport: evp_transport, logger: @logger, telemetry: @telemetry)
         Hooks::FlagEvalEVPHook.new(@flag_eval_evp_writer)
-      rescue LoadError
-        nil
+      end
+
+      # Construct the span-enrichment hook only when the opt-in gate is on, so
+      # there is no idle per-span overhead when disabled.
+      def create_span_enrichment_hook
+        return unless @settings.open_feature.span_enrichment_enabled
+
+        store = Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new
+        Hooks::SpanEnrichmentHook.new(store, logger: @logger)
       end
     end
   end

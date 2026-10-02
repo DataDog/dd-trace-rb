@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module Core
@@ -44,7 +44,7 @@ module Datadog
         #
         # @return [Boolean] True if there was an error
         def error?
-          reason == 'ERROR'
+          reason == "ERROR"
         end
 
         private

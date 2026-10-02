@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'supported_configurations'
-require_relative '../logger'
+require_relative "supported_configurations"
+require_relative "../logger"
 
 module Datadog
   module Core
@@ -62,7 +62,7 @@ module Datadog
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
-              (name.start_with?('DD_', 'OTEL_') || @alias_to_canonical[name]) &&
+              (name.start_with?("DD_", "OTEL_") || @alias_to_canonical[name]) &&
               !@supported_configurations.include?(name)
             if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var # Only enabled for tests!
               if @alias_to_canonical[name]

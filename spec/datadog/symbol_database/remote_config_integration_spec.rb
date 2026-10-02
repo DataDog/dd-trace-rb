@@ -1,24 +1,24 @@
 # frozen_string_literal: true
 
-require 'datadog/symbol_database/component'
-require 'datadog/symbol_database/remote'
-require 'datadog/symbol_database/logger'
-require 'fileutils'
+require "datadog/symbol_database/component"
+require "datadog/symbol_database/remote"
+require "datadog/symbol_database/logger"
+require "fileutils"
 
 # Integration test for the RC → Component → Extractor → ScopeBatcher → Uploader flow.
 # Mocks at the transport boundary (Transport::HTTP.symbols) to capture what would be sent
 # to the agent, without multipart parsing or real HTTP.
-RSpec.describe 'Symbol Database Remote Config Integration' do
+RSpec.describe "Symbol Database Remote Config Integration" do
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
       s.symbol_database.internal.force_upload = false
       s.remote.enabled = true
-      s.service = 'rc-integration-test'
-      s.env = 'test'
-      s.version = '1.0.0'
-      s.agent.host = 'localhost'
+      s.service = "rc-integration-test"
+      s.env = "test"
+      s.version = "1.0.0"
+      s.agent.host = "localhost"
       s.agent.port = 8126
     end
   end
@@ -39,12 +39,12 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
 
     # Shorten the debounce window so tests don't wait the production 5 seconds.
-    stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
+    stub_const("Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL", 0.05)
   end
 
   # Load test code in a temp dir (not /spec/) so it passes user_code_path? filter
   around do |example|
-    Dir.mktmpdir('rc_integration') do |dir|
+    Dir.mktmpdir("rc_integration") do |dir|
       test_file = File.join(dir, "rc_test_#{Time.now.to_i}_#{rand(10000)}.rb")
       File.write(test_file, <<~RUBY)
         module RCIntegrationTestModule
@@ -70,8 +70,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
-  describe 'Component.start_upload triggers full extraction and upload' do
-    it 'extracts user code and sends payload via transport' do
+  describe "Component.start_upload triggers full extraction and upload" do
+    it "extracts user code and sends payload via transport" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -87,57 +87,57 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       expect(captured_forms).not_to be_empty
 
       form = captured_forms.last
-      expect(form).to have_key('event')
-      expect(form).to have_key('file')
+      expect(form).to have_key("event")
+      expect(form).to have_key("file")
 
       # Verify event metadata
-      event_io = form['event'].instance_variable_get(:@io)
+      event_io = form["event"].instance_variable_get(:@io)
       event_json = JSON.parse(event_io.string)
-      expect(event_json['service']).to eq('rc-integration-test')
-      expect(event_json['type']).to eq('symdb')
-      expect(event_json).to have_key('runtimeId')
+      expect(event_json["service"]).to eq("rc-integration-test")
+      expect(event_json["type"]).to eq("symdb")
+      expect(event_json).to have_key("runtimeId")
 
       # Verify file content (decompress gzip, parse JSON)
-      file_io = form['file'].instance_variable_get(:@io)
+      file_io = form["file"].instance_variable_get(:@io)
       json_data = Zlib.gunzip(file_io.string)
       payload = JSON.parse(json_data)
 
-      expect(payload['service']).to eq('rc-integration-test')
-      expect(payload['env']).to eq('test')
-      expect(payload['version']).to eq('1.0.0')
-      expect(payload['scopes']).to be_an(Array)
-      expect(payload['scopes']).not_to be_empty
+      expect(payload["service"]).to eq("rc-integration-test")
+      expect(payload["env"]).to eq("test")
+      expect(payload["version"]).to eq("1.0.0")
+      expect(payload["scopes"]).to be_an(Array)
+      expect(payload["scopes"]).not_to be_empty
 
       # Find our test class in the scopes (nested under FILE → MODULE → CLASS)
-      file_scope = payload['scopes'].find do |s|
-        s['scope_type'] == 'FILE' && (s['scopes'] || []).any? { |c| c['name'] == 'RCIntegrationTestModule' }
+      file_scope = payload["scopes"].find do |s|
+        s["scope_type"] == "FILE" && (s["scopes"] || []).any? { |c| c["name"] == "RCIntegrationTestModule" }
       end
       expect(file_scope).not_to be_nil
 
-      module_scope = file_scope['scopes'].find { |s| s['name'] == 'RCIntegrationTestModule' }
+      module_scope = file_scope["scopes"].find { |s| s["name"] == "RCIntegrationTestModule" }
       expect(module_scope).not_to be_nil
-      expect(module_scope['scope_type']).to eq('MODULE')
+      expect(module_scope["scope_type"]).to eq("MODULE")
 
-      class_scope = module_scope['scopes'].find { |s| s['name'] == 'RCIntegrationTestModule::RCIntegrationTestClass' }
+      class_scope = module_scope["scopes"].find { |s| s["name"] == "RCIntegrationTestModule::RCIntegrationTestClass" }
       expect(class_scope).not_to be_nil
-      expect(class_scope['scope_type']).to eq('CLASS')
+      expect(class_scope["scope_type"]).to eq("CLASS")
 
-      method_names = class_scope['scopes']
-        .select { |s| s['scope_type'] == 'METHOD' }
-        .map { |s| s['name'] }
-      expect(method_names).to include('instance_method_one')
+      method_names = class_scope["scopes"]
+        .select { |s| s["scope_type"] == "METHOD" }
+        .map { |s| s["name"] }
+      expect(method_names).to include("instance_method_one")
 
       # No Datadog:: internal classes should be in the payload
-      all_names = payload['scopes'].flat_map { |s| collect_scope_names(s) }
-      datadog_names = all_names.select { |n| n&.start_with?('Datadog::') }
+      all_names = payload["scopes"].flat_map { |s| collect_scope_names(s) }
+      datadog_names = all_names.select { |n| n&.start_with?("Datadog::") }
       expect(datadog_names).to be_empty
 
       component.shutdown!
     end
   end
 
-  describe 'Remote.process_change drives Component' do
-    it 'starts upload when RC sends upload_symbols: true' do
+  describe "Remote.process_change drives Component" do
+    it "starts upload when RC sends upload_symbols: true" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -145,9 +145,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       )
 
       # Simulate RC change: insert with upload_symbols: true
-      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => true))
+      content = instance_double("Datadog::Core::Remote::Configuration::Content", data: JSON.generate("upload_symbols" => true))
       allow(content).to receive(:applied)
-      change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
+      change = instance_double("Datadog::Core::Remote::Configuration::Repository::Change::Inserted", type: :insert, content: content)
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change, nil)
@@ -159,16 +159,16 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component.shutdown!
     end
 
-    it 'does not upload when RC sends upload_symbols: false' do
+    it "does not upload when RC sends upload_symbols: false" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
         symdb_logger
       )
 
-      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => false))
+      content = instance_double("Datadog::Core::Remote::Configuration::Content", data: JSON.generate("upload_symbols" => false))
       allow(content).to receive(:applied)
-      change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
+      change = instance_double("Datadog::Core::Remote::Configuration::Repository::Change::Inserted", type: :insert, content: content)
 
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change, nil)
 
@@ -178,7 +178,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component.shutdown!
     end
 
-    it 'stops upload on RC delete' do
+    it "stops upload on RC delete" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -186,9 +186,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       )
 
       # First enable
-      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => true))
+      content = instance_double("Datadog::Core::Remote::Configuration::Content", data: JSON.generate("upload_symbols" => true))
       allow(content).to receive(:applied)
-      insert_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
+      insert_change = instance_double("Datadog::Core::Remote::Configuration::Repository::Change::Inserted", type: :insert, content: content)
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change, nil)
@@ -196,9 +196,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       expect(captured_forms).not_to be_empty
 
       # Then delete
-      previous = instance_double('Datadog::Core::Remote::Configuration::Content')
+      previous = instance_double("Datadog::Core::Remote::Configuration::Content")
       allow(previous).to receive(:applied)
-      delete_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Deleted', type: :delete, previous: previous)
+      delete_change = instance_double("Datadog::Core::Remote::Configuration::Repository::Change::Deleted", type: :delete, previous: previous)
 
       Datadog::SymbolDatabase::Remote.send(:process_change, component, delete_change, nil)
       expect(previous).to have_received(:applied)
@@ -207,7 +207,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
-  describe 'hot-load end-to-end (TracePoint :class → buffer → debounce → upload)' do
+  describe "hot-load end-to-end (TracePoint :class → buffer → debounce → upload)" do
     # End-to-end verification of the hot-load hook added in this PR:
     #   1. Initial extract_all runs and uploads a payload.
     #   2. Hot-load class is not in that payload.
@@ -219,7 +219,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     #   5. The second upload's payload contains the runtime-defined class.
     #
     # Entire test was measured to run in ~0.25 seconds locally.
-    it 'uploads a class defined after the initial upload completes' do
+    it "uploads a class defined after the initial upload completes" do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -241,12 +241,12 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
         expect(initial_form_count).to be >= 1
 
         # Step 2: hot-load class is not in any initial upload.
-        expect(uploaded_class_names_across(captured_forms)).not_to include('HotLoadE2ETestClass')
+        expect(uploaded_class_names_across(captured_forms)).not_to include("HotLoadE2ETestClass")
 
         # Step 3: define the class via a real file so its source_location
         # passes user_code_path? (eval-defined classes get `'(eval)'` and are
         # filtered out by the extractor).
-        Dir.mktmpdir('hot_load_e2e') do |hot_dir|
+        Dir.mktmpdir("hot_load_e2e") do |hot_dir|
           hot_file = File.join(hot_dir, "hot_load_e2e_#{Time.now.to_i}_#{rand(10000)}.rb")
           File.write(hot_file, "class HotLoadE2ETestClass; def hello; 42; end; end\n")
           hot_file = File.realpath(hot_file)
@@ -261,7 +261,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
             # Step 5: a new upload landed, and it contains the new class.
             expect(captured_forms.size).to be > initial_form_count
-            expect(uploaded_class_names_across(captured_forms)).to include('HotLoadE2ETestClass')
+            expect(uploaded_class_names_across(captured_forms)).to include("HotLoadE2ETestClass")
           ensure
             Object.send(:remove_const, :HotLoadE2ETestClass) if defined?(HotLoadE2ETestClass)
           end
@@ -276,8 +276,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
-  describe 'incremental extraction after initial upload' do
-    it 'a second start_upload with no new class loads produces no extra upload' do
+  describe "incremental extraction after initial upload" do
+    it "a second start_upload with no new class loads produces no extra upload" do
       # With hot-load coverage, a second start_upload runs the hot-load path
       # which drains the TracePoint buffer. If no new classes loaded since the
       # initial extraction, the drain is empty and ScopeBatcher.flush has
@@ -309,8 +309,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
   # Recursively collect all scope names from a nested scope hash
   def collect_scope_names(scope)
-    names = [scope['name']]
-    (scope['scopes'] || []).each do |child|
+    names = [scope["name"]]
+    (scope["scopes"] || []).each do |child|
       names.concat(collect_scope_names(child))
     end
     names
@@ -321,9 +321,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
   # assert presence/absence of a class across the full upload history.
   def uploaded_class_names_across(forms)
     forms.flat_map do |form|
-      file_io = form['file'].instance_variable_get(:@io)
+      file_io = form["file"].instance_variable_get(:@io)
       payload = JSON.parse(Zlib.gunzip(file_io.string))
-      payload['scopes'].flat_map { |s| collect_scope_names(s) }
+      payload["scopes"].flat_map { |s| collect_scope_names(s) }
     end
   end
 end

@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require_relative '../identity'
-require_relative '../../appsec/trace_keeper'
+require_relative "../identity"
+require_relative "../../appsec/trace_keeper"
 
 module Datadog
   module Kit
     module AppSec
       # Tracking events
       module Events
-        LOGIN_SUCCESS_EVENT = 'users.login.success'
-        LOGIN_FAILURE_EVENT = 'users.login.failure'
-        SIGNUP_EVENT = 'users.signup'
-        USER_LOGIN_KEYS = ['usr.login', :"usr.login"].freeze
+        LOGIN_SUCCESS_EVENT = "users.login.success"
+        LOGIN_FAILURE_EVENT = "users.login.failure"
+        SIGNUP_EVENT = "users.signup"
+        USER_LOGIN_KEYS = ["usr.login", :"usr.login"].freeze
 
         class << self
           # Attach login success event information to the trace
@@ -29,12 +29,12 @@ module Datadog
           # @param others [Hash<String || Symbol, String>] Additional free-form
           #   event information to attach to the trace.
           def track_login_success(trace = nil, span = nil, user:, **others)
-            set_trace_and_span_context('track_login_success', trace, span) do |active_trace, active_span|
+            set_trace_and_span_context("track_login_success", trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
+              user_login = user_options[:login] || others[:"usr.login"] || others["usr.login"] || user_id
 
-              raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
+              raise ArgumentError, "missing required key: :user => { :id }" if user_id.nil?
 
               others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
               others[:"usr.login"] = user_login
@@ -60,12 +60,12 @@ module Datadog
           # @param others [Hash<String || Symbol, String>] Additional free-form
           #   event information to attach to the trace.
           def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
-            set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
-              others[:"usr.login"] = user_id if user_id && !others.key?(:"usr.login") && !others.key?('usr.login')
+            set_trace_and_span_context("track_login_failure", trace, span) do |active_trace, active_span|
+              others[:"usr.login"] = user_id if user_id && !others.key?(:"usr.login") && !others.key?("usr.login")
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
-              active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
-              active_span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
+              active_span.set_tag("appsec.events.users.login.failure.usr.id", user_id) if user_id
+              active_span.set_tag("appsec.events.users.login.failure.usr.exists", user_exists)
             end
           end
 
@@ -84,12 +84,12 @@ module Datadog
           # @param others [Hash<String || Symbol, String>] Additional free-form
           #   event information to attach to the trace.
           def track_signup(trace = nil, span = nil, user:, **others)
-            set_trace_and_span_context('track_signup', trace, span) do |active_trace, active_span|
+            set_trace_and_span_context("track_signup", trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
+              user_login = user_options[:login] || others[:"usr.login"] || others["usr.login"] || user_id
 
-              raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
+              raise ArgumentError, "missing required key: :user => { :id }" if user_id.nil?
 
               others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
               others[:"usr.login"] = user_login
@@ -118,23 +118,23 @@ module Datadog
             if trace && span
               check_trace_span_integrity(trace, span)
 
-              span.set_tag("appsec.events.#{event}.track", 'true')
-              span.set_tag("_dd.appsec.events.#{event}.sdk", 'true')
+              span.set_tag("appsec.events.#{event}.track", "true")
+              span.set_tag("_dd.appsec.events.#{event}.sdk", "true")
 
               others.each do |k, v|
-                raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
+                raise ArgumentError, "key cannot be :track" if k.to_sym == :track
 
                 span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
               end
 
               ::Datadog::AppSec::TraceKeeper.keep!(trace)
             else
-              set_trace_and_span_context('track', trace, span) do |active_trace, active_span|
-                active_span.set_tag("appsec.events.#{event}.track", 'true')
-                active_span.set_tag("_dd.appsec.events.#{event}.sdk", 'true')
+              set_trace_and_span_context("track", trace, span) do |active_trace, active_span|
+                active_span.set_tag("appsec.events.#{event}.track", "true")
+                active_span.set_tag("_dd.appsec.events.#{event}.sdk", "true")
 
                 others.each do |k, v|
-                  raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
+                  raise ArgumentError, "key cannot be :track" if k.to_sym == :track
 
                   active_span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
                 end
@@ -143,7 +143,7 @@ module Datadog
               end
             end
 
-            ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', event)
+            ::Datadog::AppSec::Instrumentation.gateway.push("appsec.events.user_lifecycle", event)
           end
 
           private
@@ -160,7 +160,7 @@ module Datadog
             unless trace && span
               Datadog.logger.debug(
                 "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
-                ' to track this events'
+                " to track this events"
               )
               return
             end

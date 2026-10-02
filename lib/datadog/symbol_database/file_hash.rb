@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'digest/sha1'
-require_relative '../di/fatal_exceptions'
+require "digest/sha1"
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase
@@ -30,7 +30,7 @@ module Datadog
         return nil unless file_path
         return nil unless File.exist?(file_path)
 
-        content = File.read(file_path, mode: 'rb')
+        content = File.read(file_path, mode: "rb")
         size = content.bytesize
         git_blob = "blob #{size}\0#{content}"
 

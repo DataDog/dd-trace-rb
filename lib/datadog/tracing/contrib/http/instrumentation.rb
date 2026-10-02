@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative '../http_annotation_helper'
-require_relative '../utils/quantization/http'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing

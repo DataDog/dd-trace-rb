@@ -15,7 +15,7 @@ module Datadog
       attr_reader logger: DI::Logger
       attr_reader telemetry: Core::Telemetry::Component?
 
-      def evaluate: (Probe probe, Context context) -> [Hash[String, any], Array[Hash[Symbol, String]]]
+      def evaluate: (Probe probe, Context context) -> [Hash[String, untyped], Array[Hash[Symbol, String]]]
     end
   end
 end

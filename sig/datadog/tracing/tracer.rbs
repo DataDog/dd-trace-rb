@@ -1,7 +1,7 @@
 module Datadog
   module Tracing
     class Tracer
-      
+
       @logger: Core::Logger
 
       attr_reader logger: Core::Logger
@@ -16,7 +16,11 @@ module Datadog
 
       def appsec_enabled: -> bool
 
+      def ai_guard_enabled: -> bool
+
       def apm_tracing_enabled: -> bool
+
+      def after_fork: () -> void
     end
   end
 end

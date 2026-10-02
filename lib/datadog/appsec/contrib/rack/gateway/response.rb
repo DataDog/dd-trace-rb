@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../instrumentation/gateway/argument'
+require_relative "../../../instrumentation/gateway/argument"
 
 module Datadog
   module AppSec

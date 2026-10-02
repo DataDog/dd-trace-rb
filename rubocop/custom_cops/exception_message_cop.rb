@@ -33,8 +33,8 @@ module CustomCops
     MSG_BARE_EXCEPTION = 'Use `e.message` instead of bare `#{e}` interpolation. ' \
                          '`#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.'
 
-    MSG_CLASS_NAME = 'Use `.class` instead of `.class.name`. ' \
-                     '`Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.'
+    MSG_CLASS_NAME = "Use `.class` instead of `.class.name`. " \
+                     "`Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation."
 
     MSG_MISSING_CLASS = 'Include `#{e.class}` when interpolating an exception. ' \
                         'The convention is `"#{e.class}: #{e.message}"`.'

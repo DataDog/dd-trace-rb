@@ -49,7 +49,7 @@ The `test:main` task uses the default Gemfile and its specs can also be run indi
 
 ### Docker requirement
 
-- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
+- Contrib/integration tests need Docker: `docker compose run --rm tracer-4.0 /bin/bash`, then run the rake task inside
 - `test:main` can run locally on any Ruby for quick feedback
 
 ### Other notes

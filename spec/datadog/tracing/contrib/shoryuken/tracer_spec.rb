@@ -1,10 +1,10 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
-require 'datadog/tracing/contrib/svc_src_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/analytics_examples"
+require "datadog/tracing/contrib/svc_src_examples"
 
-require 'datadog'
-require 'shoryuken'
-require 'ostruct'
+require "datadog"
+require "shoryuken"
+require "ostruct"
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }
@@ -25,11 +25,11 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     Datadog.registry[:shoryuken].reset_configuration!
   end
 
-  shared_context 'Shoryuken::Worker' do
+  shared_context "Shoryuken::Worker" do
     let(:worker_class) do
       qn = queue_name
       stub_const(
-        'TestWorker',
+        "TestWorker",
         Class.new do
           include Shoryuken::Worker
           shoryuken_options queue: qn
@@ -39,22 +39,22 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
       )
     end
     let(:worker) { worker_class.new }
-    let(:queue_name) { 'default' }
+    let(:queue_name) { "default" }
   end
 
-  describe '#call' do
+  describe "#call" do
     subject(:call) do
       shoryuken_tracer.call(worker, queue_name, sqs_msg, body) do
         worker.perform(sqs_msg, body)
       end
     end
 
-    let(:sqs_msg) { instance_double('Shoryuken::Message', message_id: message_id, attributes: attributes) }
+    let(:sqs_msg) { instance_double("Shoryuken::Message", message_id: message_id, attributes: attributes) }
     let(:message_id) { SecureRandom.uuid }
     let(:attributes) { {} }
-    let(:body) { 'message body' }
+    let(:body) { "message body" }
 
-    include_context 'Shoryuken::Worker'
+    include_context "Shoryuken::Worker"
 
     before do
       expect { call }.to_not raise_error
@@ -64,73 +64,73 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
       expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
       expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
       expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('shoryuken')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
-      expect(span.get_tag('span.kind')).to eq('consumer')
-      expect(span.get_tag('messaging.system')).to eq('amazonsqs')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("shoryuken")
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("job")
+      expect(span.get_tag("span.kind")).to eq("consumer")
+      expect(span.get_tag("messaging.system")).to eq("amazonsqs")
     end
 
-    it_behaves_like 'analytics for integration' do
-      include_context 'Shoryuken::Worker'
+    it_behaves_like "analytics for integration" do
+      include_context "Shoryuken::Worker"
       let(:body) { {} }
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Shoryuken::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Shoryuken::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       before { call }
     end
 
-    it_behaves_like 'measured span for integration', true do
-      include_context 'Shoryuken::Worker'
+    it_behaves_like "measured span for integration", true do
+      include_context "Shoryuken::Worker"
       let(:body) { {} }
       before { call }
     end
 
-    context 'with a body' do
-      context 'that is a Hash' do
-        context 'that contains \'job_class\'' do
-          let(:body) { {'job_class' => job_class} }
-          let(:job_class) { 'MyJob' }
+    context "with a body" do
+      context "that is a Hash" do
+        context "that contains 'job_class'" do
+          let(:body) { {"job_class" => job_class} }
+          let(:job_class) { "MyJob" }
 
           it { expect(span.resource).to eq(job_class) }
         end
 
-        context 'that does not contain \'job_class\'' do
+        context "that does not contain 'job_class'" do
           let(:body) { {} }
 
-          it { expect(span.resource).to eq('TestWorker') }
+          it { expect(span.resource).to eq("TestWorker") }
         end
       end
 
-      context 'that is a String' do
-        it { expect(span.resource).to eq('TestWorker') }
+      context "that is a String" do
+        it { expect(span.resource).to eq("TestWorker") }
       end
     end
 
-    context 'when tag_body is true' do
+    context "when tag_body is true" do
       let(:configuration_options) { {tag_body: true} }
 
-      it 'includes the body in the span' do
+      it "includes the body in the span" do
         expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
       end
     end
 
-    context 'when tag_body is false' do
+    context "when tag_body is false" do
       let(:configuration_options) { {tag_body: false} }
 
-      it 'does not include the message body in the span' do
+      it "does not include the message body in the span" do
         expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
   end
 
-  describe 'when worker raises exception' do
+  describe "when worker raises exception" do
     let(:exception_worker_class) do
       stub_const(
-        'TestExceptionWorker',
+        "TestExceptionWorker",
         Class.new do
           include Shoryuken::Worker
-          shoryuken_options queue: 'default'
+          shoryuken_options queue: "default"
           def perform(sqs_msg, body)
-            raise 'Bala Boom!'
+            raise "Bala Boom!"
           end
         end
       )
@@ -138,39 +138,39 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     let(:worker) { exception_worker_class.new }
 
     subject(:raise_exception) do
-      body = 'message body'
+      body = "message body"
       sqs_msg = instance_double(
-        'Shoryuken::Message', message_id: SecureRandom.uuid, attributes: {}
+        "Shoryuken::Message", message_id: SecureRandom.uuid, attributes: {}
       )
-      shoryuken_tracer.call(worker, 'default', sqs_msg, body) do
+      shoryuken_tracer.call(worker, "default", sqs_msg, body) do
         worker.perform(sqs_msg, body)
       end
     end
 
-    context 'given without an error handler' do
+    context "given without an error handler" do
       it do
-        expect { raise_exception }.to raise_error 'Bala Boom!'
+        expect { raise_exception }.to raise_error "Bala Boom!"
         expect(span).to have_error
       end
     end
 
-    context 'given an error handler' do
+    context "given an error handler" do
       let(:configuration_options) { {on_error: proc { @error_handler_called = true }} }
       it do
-        expect { raise_exception }.to raise_error 'Bala Boom!'
+        expect { raise_exception }.to raise_error "Bala Boom!"
         expect(span).not_to have_error
         expect(@error_handler_called).to be_truthy
       end
     end
   end
 
-  context 'when a Shoryuken::Worker class' do
-    include_context 'Shoryuken::Worker'
+  context "when a Shoryuken::Worker class" do
+    include_context "Shoryuken::Worker"
 
-    describe '#perform_async' do
+    describe "#perform_async" do
       subject(:perform_async) { worker_class.perform_async(body) }
 
-      let(:body) { 'test' }
+      let(:body) { "test" }
 
       before do
         expect_any_instance_of(worker_class).to receive(:perform)
@@ -199,14 +199,14 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     end
   end
 
-  describe '_dd.svc_src tagging' do
-    include_context 'Shoryuken::Worker'
+  describe "_dd.svc_src tagging" do
+    include_context "Shoryuken::Worker"
 
-    let(:sqs_msg) { instance_double('Shoryuken::Message', message_id: SecureRandom.uuid, attributes: {}) }
-    let(:configuration_options) { {service_name: 'custom-shoryuken'} }
+    let(:sqs_msg) { instance_double("Shoryuken::Message", message_id: SecureRandom.uuid, attributes: {}) }
+    let(:configuration_options) { {service_name: "custom-shoryuken"} }
 
-    it_behaves_like 'tags _dd.svc_src', 'shoryuken' do
-      before { shoryuken_tracer.call(worker, queue_name, sqs_msg, 'message body') { worker.perform(sqs_msg, 'message body') } }
+    it_behaves_like "tags _dd.svc_src", "shoryuken" do
+      before { shoryuken_tracer.call(worker, queue_name, sqs_msg, "message body") { worker.perform(sqs_msg, "message body") } }
     end
   end
 end

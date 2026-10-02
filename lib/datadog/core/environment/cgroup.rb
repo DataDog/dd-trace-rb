@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Core
@@ -23,7 +23,7 @@ module Datadog
         # Parses the /proc/self/cgroup file,
         # @return [Array<Entry>] one entry for each valid cgroup line
         def entries
-          filepath = '/proc/self/cgroup'
+          filepath = "/proc/self/cgroup"
           return [] unless File.exist?(filepath)
 
           ret = []
@@ -46,7 +46,7 @@ module Datadog
         # @see https://man7.org/linux/man-pages/man7/cgroups.7.html#:~:text=%2Fproc%2Fpid%2Fcgroup
         # @return [Entry]
         def parse(entry_line)
-          hierarchy, controllers, path = entry_line.split(':', 3)
+          hierarchy, controllers, path = entry_line.split(":", 3)
 
           Entry.new(
             hierarchy,
@@ -68,7 +68,7 @@ module Datadog
           # Example entry:
           #   For the line "10:cpu,cpuacct:/docker/abc123", the path is
           #   "/sys/fs/cgroup/cpu,cpuacct/docker/abc123"
-          inode_path = File.join('/sys/fs/cgroup', controllers, path)
+          inode_path = File.join("/sys/fs/cgroup", controllers, path)
 
           File.stat(inode_path).ino if File.exist?(inode_path)
         end

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../core/environment/identity'
-require_relative '../../core/environment/process'
-require_relative '../../core/environment/socket'
-require_relative '../../core/environment/git'
-require_relative '../../core/git/ext'
-require_relative '../../core/runtime/ext'
-require_relative '../metadata/ext'
-require_relative '../trace_segment'
+require_relative "../../core/environment/identity"
+require_relative "../../core/environment/process"
+require_relative "../../core/environment/socket"
+require_relative "../../core/environment/git"
+require_relative "../../core/git/ext"
+require_relative "../../core/runtime/ext"
+require_relative "../metadata/ext"
+require_relative "../trace_segment"
 
 module Datadog
   module Tracing
@@ -19,8 +19,8 @@ module Datadog
           :first_span,
           :trace
 
-        def self.format!(trace)
-          new(trace).format!
+        def self.format!(trace, transport: nil)
+          new(trace).format!(transport: transport)
         end
 
         def initialize(trace)
@@ -32,7 +32,7 @@ module Datadog
         end
 
         # Modifies a trace so suitable for transport
-        def format!
+        def format!(transport: nil)
           return unless trace
           return trace unless root_span
 
@@ -65,9 +65,12 @@ module Datadog
 
           if first_span
             tag_process_tags!
+            tag_sdk_otlp_export!
             tag_git_repository_url!
             tag_git_commit_sha!
           end
+
+          root_span.set_tag("_dd.tracing.transport", transport) if transport && !partial?
 
           trace
         end
@@ -117,7 +120,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
-            format('%.6f', (rate * 1e6).round / 1e6).sub(/\.?0+\z/, '')
+            format("%.6f", (rate * 1e6).round / 1e6).sub(/\.?0+\z/, "")
           )
         end
 
@@ -213,7 +216,7 @@ module Datadog
         def tag_apm_tracing_disabled!
           return if trace.apm_tracing_enabled
 
-          root_span.set_tag(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
+          trace.spans.each { |span| span.set_metric(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0) }
         end
 
         def tag_git_repository_url!
@@ -235,6 +238,13 @@ module Datadog
             Core::Environment::Ext::TAG_PROCESS_TAGS,
             Core::Environment::Process.serialized
           )
+        end
+
+        # TODO: Revisit when OTLP trace export support lands. The OTLP path sets
+        # `_dd.sdk.otlp_export: "true"` on the OTLP resource, so this tag must not
+        # also be set to "false" on the first span of a chunk exported over OTLP.
+        def tag_sdk_otlp_export!
+          first_span.set_tag(Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT, "false")
         end
 
         private

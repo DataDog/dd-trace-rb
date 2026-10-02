@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../core/configuration/ext'
+require_relative "../../core/configuration/ext"
 
 module Datadog
   module OpenTelemetry
@@ -13,9 +13,9 @@ module Datadog
 
         def self.normalize_temporality_preference(env_var_name)
           proc do |value|
-            if value && value.to_s.downcase != 'delta' && value.to_s.downcase != 'cumulative'
+            if value && value.to_s.downcase != "delta" && value.to_s.downcase != "cumulative"
               Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using delta instead.")
-              'delta'
+              "delta"
             else
               value
             end
@@ -24,10 +24,10 @@ module Datadog
 
         def self.normalize_protocol(env_var_name)
           proc do |value|
-            if value && value.to_s.downcase != 'http/protobuf'
+            if value && value.to_s.downcase != "http/protobuf"
               Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using http/protobuf instead.")
             end
-            'http/protobuf'
+            "http/protobuf"
           end
         end
 
@@ -36,9 +36,9 @@ module Datadog
             return {} if value.nil? || value.empty?
 
             headers = {}
-            header_items = value.split(',')
+            header_items = value.split(",")
             header_items.each do |key_value|
-              key, header_value = key_value.split('=', 2)
+              key, header_value = key_value.split("=", 2)
               # If header is malformed, return an empty hash
               if key.nil? || header_value.nil?
                 Datadog.logger.warn("#{env_var_name} has malformed header: #{key_value.inspect}")
@@ -64,28 +64,28 @@ module Datadog
               settings :exporter do
                 option :protocol do |o|
                   o.type :string
-                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_PROTOCOL'))
-                  o.env 'OTEL_EXPORTER_OTLP_PROTOCOL'
-                  o.default 'http/protobuf'
+                  o.setter(&Settings.normalize_protocol("OTEL_EXPORTER_OTLP_PROTOCOL"))
+                  o.env "OTEL_EXPORTER_OTLP_PROTOCOL"
+                  o.default "http/protobuf"
                 end
 
                 option :timeout_millis do |o|
                   o.type :int
-                  o.env 'OTEL_EXPORTER_OTLP_TIMEOUT'
+                  o.env "OTEL_EXPORTER_OTLP_TIMEOUT"
                   o.default 10_000
                 end
 
                 option :headers do |o|
                   o.skip_telemetry true
                   o.type :hash
-                  o.env 'OTEL_EXPORTER_OTLP_HEADERS'
+                  o.env "OTEL_EXPORTER_OTLP_HEADERS"
                   o.default { {} }
-                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_HEADERS'))
+                  o.env_parser(&Settings.headers_parser("OTEL_EXPORTER_OTLP_HEADERS"))
                 end
 
                 option :endpoint do |o|
                   o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
+                  o.env "OTEL_EXPORTER_OTLP_ENDPOINT"
                   o.default nil
                 end
               end
@@ -96,124 +96,124 @@ module Datadog
                 # we fall back to the general OTLP env var (e.g., OTEL_EXPORTER_OTLP_TIMEOUT) per OpenTelemetry spec.
                 option :enabled do |o|
                   o.type :bool
-                  o.env 'DD_METRICS_OTEL_ENABLED'
+                  o.env "DD_METRICS_OTEL_ENABLED"
                   o.default false
                 end
 
                 option :exporter do |o|
                   o.type :string
-                  o.env 'OTEL_METRICS_EXPORTER'
-                  o.default 'otlp'
+                  o.env "OTEL_METRICS_EXPORTER"
+                  o.default "otlp"
                 end
 
                 option :export_interval_millis do |o|
                   o.type :int
-                  o.env 'OTEL_METRIC_EXPORT_INTERVAL'
+                  o.env "OTEL_METRIC_EXPORT_INTERVAL"
                   o.default 10_000
                 end
 
                 option :export_timeout_millis do |o|
                   o.type :int
-                  o.env 'OTEL_METRIC_EXPORT_TIMEOUT'
+                  o.env "OTEL_METRIC_EXPORT_TIMEOUT"
                   o.default 7_500
                 end
 
                 option :temporality_preference do |o|
                   o.type :string
-                  o.env 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'
-                  o.default 'delta'
-                  o.setter(&Settings.normalize_temporality_preference('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'))
+                  o.env "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"
+                  o.default "delta"
+                  o.setter(&Settings.normalize_temporality_preference("OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"))
                 end
 
                 option :endpoint do |o|
                   o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT'
+                  o.env "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"
                   o.default nil
                 end
 
                 option :headers do |o|
                   o.skip_telemetry true
                   o.type :hash, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
+                  o.env "OTEL_EXPORTER_OTLP_METRICS_HEADERS"
                   o.default nil
-                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_METRICS_HEADERS'))
+                  o.env_parser(&Settings.headers_parser("OTEL_EXPORTER_OTLP_METRICS_HEADERS"))
                 end
 
                 option :timeout_millis do |o|
                   o.type :int, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
+                  o.env "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT"
                   o.default 10000
                 end
 
                 option :protocol do |o|
                   o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
+                  o.env "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL"
                   o.default "http/protobuf"
-                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'))
+                  o.setter(&Settings.normalize_protocol("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL"))
                 end
               end
 
               settings :logs do
                 option :enabled do |o|
                   o.type :bool
-                  o.env 'DD_LOGS_OTEL_ENABLED'
+                  o.env "DD_LOGS_OTEL_ENABLED"
                   o.default false
                 end
 
                 option :exporter do |o|
                   o.type :string
-                  o.env 'OTEL_LOGS_EXPORTER'
-                  o.default 'otlp'
+                  o.env "OTEL_LOGS_EXPORTER"
+                  o.default "otlp"
                 end
 
                 option :endpoint do |o|
                   o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'
+                  o.env "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
                   o.default nil
                 end
 
                 option :headers do |o|
                   o.skip_telemetry true
                   o.type :hash, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_LOGS_HEADERS'
+                  o.env "OTEL_EXPORTER_OTLP_LOGS_HEADERS"
                   o.default nil
-                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_LOGS_HEADERS'))
+                  o.env_parser(&Settings.headers_parser("OTEL_EXPORTER_OTLP_LOGS_HEADERS"))
                 end
 
                 option :timeout_millis do |o|
                   o.type :int, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_LOGS_TIMEOUT'
+                  o.env "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT"
                   o.default 10_000
                 end
 
                 option :protocol do |o|
                   o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'
+                  o.env "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL"
                   o.default "http/protobuf"
-                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'))
+                  o.setter(&Settings.normalize_protocol("OTEL_EXPORTER_OTLP_LOGS_PROTOCOL"))
                 end
 
                 option :max_queue_size do |o|
                   o.type :int
-                  o.env 'OTEL_BLRP_MAX_QUEUE_SIZE'
+                  o.env "OTEL_BLRP_MAX_QUEUE_SIZE"
                   o.default 2048
                 end
 
                 option :schedule_delay_millis do |o|
                   o.type :int
-                  o.env 'OTEL_BLRP_SCHEDULE_DELAY'
+                  o.env "OTEL_BLRP_SCHEDULE_DELAY"
                   o.default 1000
                 end
 
                 option :export_timeout_millis do |o|
                   o.type :int
-                  o.env 'OTEL_BLRP_EXPORT_TIMEOUT'
+                  o.env "OTEL_BLRP_EXPORT_TIMEOUT"
                   o.default 30_000
                 end
 
                 option :max_export_batch_size do |o|
                   o.type :int
-                  o.env 'OTEL_BLRP_MAX_EXPORT_BATCH_SIZE'
+                  o.env "OTEL_BLRP_MAX_EXPORT_BATCH_SIZE"
                   o.default 512
                 end
               end

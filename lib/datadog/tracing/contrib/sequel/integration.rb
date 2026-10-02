@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,13 +12,13 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('3.41')
+          MINIMUM_VERSION = Gem::Version.new("3.41")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :sequel, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['sequel']&.version
+            Gem.loaded_specs["sequel"]&.version
           end
 
           def self.loaded?

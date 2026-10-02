@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module RubyLLM
         module Patcher
-          def self?.patched?: () -> bool?
+          def self?.patched?: () -> bool
 
           def self?.target_version: () -> Gem::Version?
 

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../../core/transport/http/response'
-require_relative '../../../core/transport/http/api/endpoint'
-require_relative '../../../core/transport/http/api/instance'
-require_relative '../traces'
+require_relative "../../../core/transport/http/response"
+require_relative "../../../core/transport/http/api/endpoint"
+require_relative "../../../core/transport/http/api/instance"
+require_relative "../traces"
 
 module Datadog
   module Tracing
@@ -28,9 +28,9 @@ module Datadog
           module API
             # Endpoint for submitting trace data
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              HEADER_CONTENT_TYPE = 'Content-Type'
-              HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'
-              SERVICE_RATE_KEY = 'rate_by_service'
+              HEADER_CONTENT_TYPE = "Content-Type"
+              HEADER_TRACE_COUNT = "X-Datadog-Trace-Count"
+              SERVICE_RATE_KEY = "rate_by_service"
 
               def initialize(path, encoder, options = {})
                 super(:post, path, encoder: encoder)

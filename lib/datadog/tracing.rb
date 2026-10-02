@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'core'
-require_relative 'tracing/pipeline'
+require_relative "core"
+require_relative "tracing/pipeline"
 
 module Datadog
   # Datadog APM tracing public API.
@@ -121,7 +121,7 @@ module Datadog
       # @return [String] correlation information; or an empty String if Tracing is disabled (`!enabled?`)
       # @public_api
       def log_correlation
-        return '' unless enabled?
+        return "" unless enabled?
 
         correlation.to_log_format
       end

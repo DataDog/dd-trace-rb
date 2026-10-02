@@ -1,20 +1,20 @@
-require 'datadog/tracing/contrib/rails/rails_helper'
-require 'datadog/tracing/contrib/rails/framework'
-require 'datadog/tracing/contrib/rails/middlewares'
-require 'datadog/tracing/contrib/rack/middlewares'
+require "datadog/tracing/contrib/rails/rails_helper"
+require "datadog/tracing/contrib/rails/framework"
+require "datadog/tracing/contrib/rails/middlewares"
+require "datadog/tracing/contrib/rack/middlewares"
 
-RSpec.describe 'Rails Railtie', execute_in_fork: true do
-  before { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
+RSpec.describe "Rails Railtie", execute_in_fork: true do
+  before { skip "Test not compatible with Rails < 4.0" if Rails.version < "4.0" }
 
-  include_context 'Rails test application'
+  include_context "Rails test application"
 
-  let(:routes) { {'/' => 'test#index'} }
+  let(:routes) { {"/" => "test#index"} }
   let(:rails_options) { {} }
   let(:controllers) { [controller] }
 
   let(:controller) do
     stub_const(
-      'TestController',
+      "TestController",
       Class.new(ActionController::Base) do
         def index
           head :ok
@@ -46,15 +46,15 @@ RSpec.describe 'Rails Railtie', execute_in_fork: true do
     end
   end
 
-  describe 'with Rails integration #middleware option' do
-    context 'set to true' do
+  describe "with Rails integration #middleware option" do
+    context "set to true" do
       let(:rails_options) { super().merge(middleware: true) }
 
       it { expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rack::TraceMiddleware).once }
       it { expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rails::ExceptionMiddleware).once }
     end
 
-    context 'set to false' do
+    context "set to false" do
       let(:rails_options) { super().merge(middleware: false) }
 
       after { Datadog.configuration.tracing[:rails][:middleware] = true }
@@ -64,7 +64,7 @@ RSpec.describe 'Rails Railtie', execute_in_fork: true do
     end
   end
 
-  describe 'when load hooks run twice' do
+  describe "when load hooks run twice" do
     subject! do
       # Set expectations
       expect(Datadog::Tracing::Contrib::Rails::Patcher).to receive(:add_middleware)
@@ -82,7 +82,7 @@ RSpec.describe 'Rails Railtie', execute_in_fork: true do
       end
     end
 
-    it 'only includes the middleware once' do
+    it "only includes the middleware once" do
       expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rack::TraceMiddleware).once
       expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rails::ExceptionMiddleware).once
     end

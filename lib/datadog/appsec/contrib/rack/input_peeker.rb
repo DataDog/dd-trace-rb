@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'stringio'
-require_relative 'buffered_input'
-require_relative '../../utils/http/body_reader'
+require "stringio"
+require_relative "buffered_input"
+require_relative "../../utils/http/body_reader"
 
 module Datadog
   module AppSec
@@ -30,7 +30,7 @@ module Datadog
           #   `limit`, including `0`; `nil` when input is missing, over the
           #   limit, or cannot be preserved for downstream reads
           def peek_bytesize(env, limit:)
-            rack_input = env['rack.input']
+            rack_input = env["rack.input"]
             return unless rack_input
 
             rewindable = rewind? && rack_input.respond_to?(:rewind)
@@ -49,7 +49,7 @@ module Datadog
               #       a partially consumed body. Treat it as not safely collectable
               return unless rewind(rack_input)
             else
-              env['rack.input'] = if over_limit
+              env["rack.input"] = if over_limit
                 BufferedInput.new(rack_input, buffer: StringIO.new(buffer))
               else
                 StringIO.new(buffer)
@@ -62,7 +62,7 @@ module Datadog
           private_class_method def rewind?
             return @rewind if defined?(@rewind)
 
-            @rewind = ::Gem::Version.new(::Rack.release) < ::Gem::Version.new('3')
+            @rewind = ::Gem::Version.new(::Rack.release) < ::Gem::Version.new("3")
           end
 
           private_class_method def rewind(io)

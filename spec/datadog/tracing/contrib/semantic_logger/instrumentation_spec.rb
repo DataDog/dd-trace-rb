@@ -1,11 +1,11 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'semantic_logger'
-require 'datadog/tracing/contrib/semantic_logger/instrumentation'
-require 'spec/support/thread_helpers'
-require 'datadog/tracing/utils'
+require "datadog/tracing/contrib/support/spec_helper"
+require "semantic_logger"
+require "datadog/tracing/contrib/semantic_logger/instrumentation"
+require "spec/support/thread_helpers"
+require "datadog/tracing/utils"
 
 RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
-  let(:logger) { SemanticLogger::Logger.new('TestClass') }
+  let(:logger) { SemanticLogger::Logger.new("TestClass") }
   let(:log_output) do
     StringIO.new
   end
@@ -30,9 +30,9 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
     SemanticLogger.close
   end
 
-  describe '#log' do
+  describe "#log" do
     subject(:log) do
-      ThreadHelpers.with_leaky_thread_creation('semantic_logger log') do
+      ThreadHelpers.with_leaky_thread_creation("semantic_logger log") do
         logger.log(event).tap do
           SemanticLogger.flush
         end
@@ -40,8 +40,8 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
     end
 
     let(:event) do
-      SemanticLogger::Log.new('Mamamia!', :info).tap do |e|
-        e.named_tags = {original: 'tag'}
+      SemanticLogger::Log.new("Mamamia!", :info).tap do |e|
+        e.named_tags = {original: "tag"}
       end
     end
 
@@ -52,9 +52,9 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
       Datadog::Tracing::Correlation::Identifier.new(
         trace_id: trace_id,
         span_id: span_id,
-        env: 'production',
-        service: 'MyService',
-        version: '1.2.3',
+        env: "production",
+        service: "MyService",
+        version: "1.2.3",
       )
     end
 
@@ -62,87 +62,87 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
       allow(Datadog::Tracing).to receive(:correlation).and_return(correlation)
     end
 
-    context 'when log_injection and semantic_logger enabled' do
-      it 'merges correlation data with original options' do
+    context "when log_injection and semantic_logger enabled" do
+      it "merges correlation data with original options" do
         log
 
         log_entry = log_output.string
 
-        expect(log_entry).to include 'Mamamia!'
-        expect(log_entry).to include 'original: tag'
+        expect(log_entry).to include "Mamamia!"
+        expect(log_entry).to include "original: tag"
 
         expect(log_entry).to include format_for_correlation(trace_id)
         expect(log_entry).to include span_id.to_s
-        expect(log_entry).to include 'production'
-        expect(log_entry).to include 'MyService'
-        expect(log_entry).to include '1.2.3'
-        expect(log_entry).to include 'ddsource: ruby'
+        expect(log_entry).to include "production"
+        expect(log_entry).to include "MyService"
+        expect(log_entry).to include "1.2.3"
+        expect(log_entry).to include "ddsource: ruby"
       end
     end
 
-    context 'when log_injection disabled' do
+    context "when log_injection disabled" do
       let(:log_injection) { false }
 
-      it 'does not merges correlation data with original options' do
+      it "does not merges correlation data with original options" do
         log
 
         log_entry = log_output.string
 
-        expect(log_entry).to include 'Mamamia!'
-        expect(log_entry).to include 'original: tag'
+        expect(log_entry).to include "Mamamia!"
+        expect(log_entry).to include "original: tag"
 
         expect(log_entry).not_to include format_for_correlation(trace_id)
         expect(log_entry).not_to include span_id.to_s
-        expect(log_entry).not_to include 'production'
-        expect(log_entry).not_to include 'MyService'
-        expect(log_entry).not_to include '1.2.3'
-        expect(log_entry).not_to include 'ddsource: ruby'
+        expect(log_entry).not_to include "production"
+        expect(log_entry).not_to include "MyService"
+        expect(log_entry).not_to include "1.2.3"
+        expect(log_entry).not_to include "ddsource: ruby"
       end
     end
 
-    context 'when ssemantic_logger disabled' do
+    context "when ssemantic_logger disabled" do
       let(:semantic_logger_enabled) { false }
 
-      it 'does not merges correlation data with original options' do
+      it "does not merges correlation data with original options" do
         log
 
         log_entry = log_output.string
 
-        expect(log_entry).to include 'Mamamia!'
-        expect(log_entry).to include 'original: tag'
+        expect(log_entry).to include "Mamamia!"
+        expect(log_entry).to include "original: tag"
 
         expect(log_entry).not_to include format_for_correlation(trace_id)
         expect(log_entry).not_to include span_id.to_s
-        expect(log_entry).not_to include 'production'
-        expect(log_entry).not_to include 'MyService'
-        expect(log_entry).not_to include '1.2.3'
-        expect(log_entry).not_to include 'ddsource: ruby'
+        expect(log_entry).not_to include "production"
+        expect(log_entry).not_to include "MyService"
+        expect(log_entry).not_to include "1.2.3"
+        expect(log_entry).not_to include "ddsource: ruby"
       end
     end
 
-    context 'when log in Logger compatible mode' do
+    context "when log in Logger compatible mode" do
       subject(:log) do
-        ThreadHelpers.with_leaky_thread_creation('semantic_logger log_compatible') do
-          logger.log(::Logger::INFO, 'Mamamia!').tap do
+        ThreadHelpers.with_leaky_thread_creation("semantic_logger log_compatible") do
+          logger.log(::Logger::INFO, "Mamamia!").tap do
             SemanticLogger.flush
           end
         end
       end
 
-      it 'merges correlation data' do
+      it "merges correlation data" do
         log
 
         log_entry = log_output.string
 
-        expect(log_entry).to include 'Mamamia!'
-        expect(log_entry).not_to include 'original: tag'
+        expect(log_entry).to include "Mamamia!"
+        expect(log_entry).not_to include "original: tag"
 
         expect(log_entry).to include format_for_correlation(trace_id)
         expect(log_entry).to include span_id.to_s
-        expect(log_entry).to include 'production'
-        expect(log_entry).to include 'MyService'
-        expect(log_entry).to include '1.2.3'
-        expect(log_entry).to include 'ddsource: ruby'
+        expect(log_entry).to include "production"
+        expect(log_entry).to include "MyService"
+        expect(log_entry).to include "1.2.3"
+        expect(log_entry).to include "ddsource: ruby"
       end
     end
   end

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/contrib'
+require_relative "../../../tracing/contrib"
 
-require_relative '../../response'
-require_relative '../rack/request_middleware'
-require_relative 'framework'
-require_relative 'gateway/watcher'
-require_relative 'gateway/route_params'
-require_relative 'gateway/request'
-require_relative 'patches/json_patch'
-require_relative '../../../tracing/contrib/sinatra/framework'
+require_relative "../../response"
+require_relative "../rack/request_middleware"
+require_relative "framework"
+require_relative "gateway/watcher"
+require_relative "gateway/route_params"
+require_relative "gateway/request"
+require_relative "patches/json_patch"
+require_relative "../../../tracing/contrib/sinatra/framework"
 
 module Datadog
   module AppSec
@@ -59,7 +59,7 @@ module Datadog
             # TODO: handle exceptions, except for super
 
             gateway_request = Gateway::Request.new(env)
-            request_return, _gateway_request = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
+            request_return, _gateway_request = Instrumentation.gateway.push("sinatra.request.dispatch", gateway_request) do
               super
             end
 
@@ -91,7 +91,7 @@ module Datadog
               gateway_request = Gateway::Request.new(env)
               gateway_route_params = Gateway::RouteParams.new(route_params)
 
-              Instrumentation.gateway.push('sinatra.request.routed', [gateway_request, gateway_route_params])
+              Instrumentation.gateway.push("sinatra.request.routed", [gateway_request, gateway_route_params])
 
               yield(*super_args)
             end

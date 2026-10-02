@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
 module Datadog
   module Core
@@ -51,7 +51,7 @@ module Datadog
             $PROGRAM_NAME.end_with?(RSPEC_PROGRAM_NAME)
           end
 
-          RSPEC_PROGRAM_NAME = '/rspec'
+          RSPEC_PROGRAM_NAME = "/rspec"
           private_constant :RSPEC_PROGRAM_NAME
 
           # Check if Minitest is present and installed to run.
@@ -83,7 +83,7 @@ module Datadog
             !!defined?(::Spring) || rails_env_development?
           end
 
-          RAILS_ENV_DEVELOPMENT = Set['development', 'test'].freeze
+          RAILS_ENV_DEVELOPMENT = Set["development", "test"].freeze
           private_constant :RAILS_ENV_DEVELOPMENT
 
           # By default, every Rails application has three environments: `development`, `test`, and `production`.

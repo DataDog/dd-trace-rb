@@ -2,6 +2,9 @@
 
 #include "datadog_ruby_common.h"
 
+// rb_iseq is CRuby-specific
+#ifndef TRUFFLERUBY
+
 // Prototypes for Ruby functions declared in internal Ruby headers.
 // rb_iseqw_new wraps an internal iseq pointer into a Ruby-visible
 // RubyVM::InstructionSequence object.
@@ -14,6 +17,10 @@ void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
     void *data);
 
+// The mask is unchanged between Ruby 2.5 and 4.1-dev, but the `enum imemo_type` values do get
+// renumbered from time to time (e.g. Ruby 4.0 moved imemo_callinfo from 11 to 10), and 4.1-dev already uses all
+// 16 values the mask allows. Thus IMEMO_TYPE_ISEQ must be re-checked when adding support for a new Ruby.
+#define IMEMO_MASK 0x0f
 #define IMEMO_TYPE_ISEQ 7
 
 // The ID value of the string "mesg" which is used in Ruby source as
@@ -26,6 +33,12 @@ static ID id_mesg;
 // directly via rb_thread_local_aref / rb_thread_local_aset so that user-installed
 // method probes on Thread#[] / Thread#[]= cannot intercept guard reads/writes.
 static ID id_datadog_di_in_probe;
+
+// Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
+// The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
+static inline int ddtrace_imemo_type(VALUE imemo) {
+  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+}
 
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
@@ -197,7 +210,9 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
-#ifdef HAVE_RB_ISEQ_TYPE
-  rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
-#endif
+  #ifdef HAVE_RB_ISEQ_TYPE
+    rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
+  #endif
 }
+
+#endif // TRUFFLERUBY

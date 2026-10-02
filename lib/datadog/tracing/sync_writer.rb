@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'pipeline'
-require_relative 'runtime/metrics'
-require_relative 'writer'
+require_relative "pipeline"
+require_relative "runtime/metrics"
+require_relative "writer"
 
-require_relative 'transport/http'
+require_relative "transport/http"
 
 module Datadog
   module Tracing
@@ -46,10 +46,15 @@ module Datadog
         logger.debug(e)
       end
 
-      # Does nothing.
-      # The {SyncWriter} does not need to be stopped as it holds no state.
+      # Stops the {SyncWriter}.
+      # The {SyncWriter} holds no worker thread, but it owns its transport, so
+      # on teardown we deterministically release transports that hold native
+      # resources (e.g. the native trace exporter's Rust runtime and
+      # process-global fork hooks) rather than relying on the GC finalizer.
+      # The default HTTP transport has no `#close` and is left untouched, and
+      # `#close` is idempotent so repeated `#stop` calls are safe.
       def stop
-        # No cleanup to do for the SyncWriter
+        @transport.close if @transport.respond_to?(:close)
         true
       end
 

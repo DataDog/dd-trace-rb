@@ -35,7 +35,7 @@ module Datadog
 
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
 
-          def app_started?: -> bool?
+          def app_started?: -> bool
 
           private
           def products: (Datadog::Core::Configuration::Components components) -> telemetry_products
@@ -64,7 +64,6 @@ module Datadog
 
           def resolve_option: (untyped settings, ::String config_path) -> Configuration::Option
 
-          def implements_to_s?: (any value) -> bool
         end
       end
     end

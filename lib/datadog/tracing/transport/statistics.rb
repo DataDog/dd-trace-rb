@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/metrics/metric'
-require_relative '../../core/diagnostics/health'
+require_relative "../../core/metrics/metric"
+require_relative "../../core/diagnostics/health"
 
 module Datadog
   module Tracing

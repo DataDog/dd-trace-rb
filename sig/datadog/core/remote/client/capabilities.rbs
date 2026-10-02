@@ -3,24 +3,36 @@ module Datadog
     module Remote
       class Client
         class Capabilities
-          attr_reader products: Array[String]
-
           attr_reader capabilities: Array[Integer]
 
           attr_reader receivers: Array[Core::Remote::Dispatcher::Receiver]
 
           attr_reader base64_capabilities: String
 
+          @products: ::Array[::String]
+
+          @products_mutex: ::Thread::Mutex
+
           @telemetry: Datadog::Core::Telemetry::Component
 
           def initialize: (
             Datadog::Core::Configuration::Settings settings,
-            Datadog::Core::Telemetry::Component telemetry
+            Datadog::Core::Telemetry::Component telemetry,
+            ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
           ) -> void
+
+          def products: () -> ::Array[::String]
+
+          def add_products: (*::String products) -> void
+
+          def remove_products: (*::String products) -> void
 
           private
 
-          def register: (Datadog::Core::Configuration::Settings settings) -> void
+          def register: (
+            Datadog::Core::Configuration::Settings settings,
+            ^() -> Datadog::OpenFeature::Component? open_feature_component_provider
+          ) -> void
 
           def register_capabilities: (Array[Integer] capabilities) -> void
 

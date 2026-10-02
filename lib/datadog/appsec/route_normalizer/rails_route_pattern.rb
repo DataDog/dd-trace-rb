@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'route_text'
-require_relative 'route_pattern'
+require_relative "route_text"
+require_relative "route_pattern"
 
 module Datadog
   module AppSec
@@ -13,11 +13,11 @@ module Datadog
       #
       # @api private
       class RailsRoutePattern
-        DOT_CHAR = '.'
-        GROUP_OPEN_CHAR = '('
+        DOT_CHAR = "."
+        GROUP_OPEN_CHAR = "("
         OPTIONAL_GROUP_PATTERN = /\(([^()]*)\)/
-        NAMED_PARAM_PREFIX_CHAR = ':'
-        GLOB_PARAM_PREFIX_CHAR = '*'
+        NAMED_PARAM_PREFIX_CHAR = ":"
+        GLOB_PARAM_PREFIX_CHAR = "*"
 
         def initialize(pattern)
           @pattern = pattern
@@ -60,7 +60,7 @@ module Datadog
             substituted = result.gsub(OPTIONAL_GROUP_PATTERN) do
               # NOTE: OPTIONAL_GROUP_PATTERN always captures a string for each gsub match
               group = ::Regexp.last_match(1) # : String
-              optional_group_has_route_params?(group) ? "(#{group})" : ''
+              optional_group_has_route_params?(group) ? "(#{group})" : ""
             end
 
             return result if substituted == result
@@ -125,7 +125,7 @@ module Datadog
         class Buffer
           def initialize
             @segments = []
-            @text = +''
+            @text = +""
             @params = []
             @nameless_param_count = 0
           end
@@ -147,14 +147,14 @@ module Datadog
               render_params(@params)
             end
 
-            @text = +''
+            @text = +""
             @params.clear
           end
 
           def to_path
             flush
 
-            "/#{@segments.join('/')}"
+            "/#{@segments.join("/")}"
           end
 
           private
@@ -167,7 +167,7 @@ module Datadog
               "param#{@nameless_param_count}"
             end
 
-            "{#{names.join('+')}}"
+            "{#{names.join("+")}}"
           end
         end
       end

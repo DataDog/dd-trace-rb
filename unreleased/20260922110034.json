@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6358",
+  "message": "Fix an empty `http.route` tag on spans for 405 responses when running `grape` versions 2.3 through 3.0."
+}
