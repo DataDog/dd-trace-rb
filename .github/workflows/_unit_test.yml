@@ -141,7 +141,7 @@ jobs:
       - name: Generate batch summary
         env:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
-        run: bundle exec rake github:generate_batch_summary
+        run: rake -f tasks/github.rake github:generate_batch_summary
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #

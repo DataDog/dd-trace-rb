@@ -85,6 +85,7 @@ RSpec.describe "installed bundle cache workflow" do
   it "maps fallback tasks to the committed runtime Gemfile" do
     batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
     batches = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
+    summary = batch_steps.find { |step| step["name"] == "Generate batch summary" }
 
     expect(batches.fetch("env").fetch("FALLBACK_GEMFILE")).to include(
       "gemfiles/{0}-{1}.gemfile",
@@ -92,6 +93,7 @@ RSpec.describe "installed bundle cache workflow" do
     )
     expect(batches.fetch("run")).to include("rake -f tasks/github.rake")
     expect(batches.fetch("run")).not_to include("bundle exec")
+    expect(summary.fetch("run")).to eq("rake -f tasks/github.rake github:generate_batch_summary")
   end
 
   it "restores one exact union in each ready child" do
