@@ -16,6 +16,7 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 #ifdef __APPLE__
   #include "macos_sampler_thread.h"
@@ -158,6 +159,8 @@ typedef struct {
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
   bool during_sample;
+  // Used from the signal handler to ask for a sample at the end of GC
+  bool prepare_sample_on_gc_finish;
 
   #ifndef NO_GVL_INSTRUMENTATION
   // Only set when sampling is active (gets created at start and cleaned on stop)
@@ -249,6 +252,9 @@ static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE se
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event);
+static VALUE _native_on_gc_event(VALUE self, VALUE instance, VALUE event, VALUE during_sample);
+static VALUE _native_request_prepare_on_gc_finish(VALUE self, VALUE instance);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE safely_call(
   VALUE (*function_to_call_safely)(VALUE),
@@ -399,6 +405,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_install_sigprof_handler_on_altstack", _native_install_sigprof_handler_on_altstack, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
   rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
+  rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
+  rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
@@ -772,12 +780,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (sample_from_signal_handler) {
     if (rb_during_gc()) {
       // During GC Ruby might be marking our buffer or compacting (moving) where iseqs live so we skip preparing the
-      // sample immediately, and instead ask on_gc_finish to do the job when GC is at its end.
+      // sample immediately, and instead defer preparation until GC_EXIT.
       //
       // When GC profiling is disabled, we just fall back to sampling the stack after GC finishes, e.g. it's the
       // equivalent of disabling `sample_from_signal_handler` for samples that happen during GC.
-      // TODO: Looking up the per-thread context also dereferences the Ruby Thread object during GC.
-      thread_context_collector_request_prepare_on_gc_finish();
+      state->prepare_sample_on_gc_finish = true;
     } else {
       // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
       // until the postponed job below gets run.
@@ -1123,13 +1130,22 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // and disabled before it is cleared, but just in case...
   if (state == NULL) return;
 
+  handle_gc_event(state, event);
+}
+
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    // A signal can arrive after GC_EXIT while `rb_during_gc` is still true; discard requests from the previous GC step.
+    state->prepare_sample_on_gc_finish = false;
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    bool allow_prepare_sample = !state->during_sample;
-    if (allow_prepare_sample) during_sample_enter(state);
-    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance, allow_prepare_sample);
-    if (allow_prepare_sample) during_sample_exit(state);
+    if (state->prepare_sample_on_gc_finish && !state->during_sample) {
+      during_sample_enter(state);
+      // If we can't prepare the stack here, we can still collect it when taking the next sample.
+      DDTRACE_UNUSED bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
+      during_sample_exit(state);
+    }
+    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.
@@ -1141,6 +1157,31 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
       #endif
     }
   }
+}
+
+static VALUE _native_request_prepare_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  state->prepare_sample_on_gc_finish = true;
+  return Qnil;
+}
+
+static VALUE _native_on_gc_event(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE event, VALUE during_sample) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  ENFORCE_BOOLEAN(during_sample);
+  rb_event_flag_t event_flag;
+  if (event == ID2SYM(rb_intern("enter"))) event_flag = RUBY_INTERNAL_EVENT_GC_ENTER;
+  else if (event == ID2SYM(rb_intern("exit"))) event_flag = RUBY_INTERNAL_EVENT_GC_EXIT;
+  else rb_raise(rb_eArgError, "Expected :enter or :exit");
+
+  bool was_during_sample = state->during_sample;
+  if (during_sample == Qtrue) during_sample_enter(state);
+  debug_enter_unsafe_context();
+  handle_gc_event(state, event_flag);
+  debug_leave_unsafe_context();
+  if (!was_during_sample) during_sample_exit(state);
+  return Qnil;
 }
 
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
