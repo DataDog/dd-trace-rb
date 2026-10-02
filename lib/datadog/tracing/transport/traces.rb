@@ -100,7 +100,7 @@ module Datadog
 
           def encode_trace(encoder, trace, logger:, native_events_supported:)
             # Format the trace for transport
-            TraceFormatter.format!(trace)
+            TraceFormatter.format!(trace, transport: "ruby")
 
             # Make the trace serializable
             serializable_trace = SerializableTrace.new(trace, native_events_supported: native_events_supported)
