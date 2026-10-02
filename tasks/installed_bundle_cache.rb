@@ -108,16 +108,19 @@ class InstalledBundleCache
     base_identities = base_specifications.each_with_object(Set.new) do |spec, identities|
       identities << specification_package_identity(spec)
     end
-    selected_specifications.reject do |spec|
+    specifications = selected_specifications.reject do |spec|
       base_identities.include?(specification_package_identity(spec)) || default_specification?(spec)
-    end.sort_by { |spec| specification_identity(spec) }.flat_map do |spec|
+    end.sort_by { |spec| specification_identity(spec) }
+    return [] if specifications.empty?
+
+    specifications.flat_map do |spec|
       full_name = spec.full_name
       [
         installed_path.join("gems", full_name),
         installed_path.join("specifications", "#{full_name}.gemspec"),
         installed_path.join("extensions", Gem::Platform.local.to_s, Gem.extension_api_version, full_name),
       ].map(&:to_s)
-    end
+    end + [installed_path.join("bin").to_s]
   end
 
   def prepare_partitioned_groups(groups:, base_bundle_path:, validation_path:, jobs: 8)
@@ -168,7 +171,13 @@ class InstalledBundleCache
   end
 
   def audit_cache_paths(paths)
-    paths.each_slice(3) do |gem_path, gemspec_path, extension_path|
+    executable_path = installed_path.join("bin").to_s
+    gem_paths = paths.reject { |path| Pathname(path).expand_path.to_s == executable_path }
+    if paths.include?(executable_path) && !File.directory?(executable_path)
+      raise "Installed executable directory not found: #{executable_path}"
+    end
+
+    gem_paths.each_slice(3) do |gem_path, gemspec_path, extension_path|
       raise "Installed gemspec not found: #{gemspec_path}" unless File.file?(gemspec_path)
 
       spec = Gem::Specification.load(gemspec_path)

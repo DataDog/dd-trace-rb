@@ -116,7 +116,7 @@ jobs:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           standard-groups: ${{ steps.set-batches.outputs.batches }}
           misc-groups: ${{ steps.set-batches.outputs.misc }}
-          cache-schema: bundle-installed-matrix-partition-v3
+          cache-schema: bundle-installed-matrix-partition-v4
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
           write-enabled: ${{ inputs.installed-cache-write }}
 

@@ -133,6 +133,7 @@ RSpec.describe InstalledBundleCache do
       temporary_directory.join(
         "installed/extensions/#{Gem::Platform.local}/#{Gem.extension_api_version}/second-3.0.0"
       ).to_s,
+      temporary_directory.join("installed/bin").to_s,
     )
   end
 
@@ -206,6 +207,14 @@ RSpec.describe InstalledBundleCache do
 
     expect { cache.audit_cache_paths(paths) }.to raise_error(
       "Installed gemspec not found: #{temporary_directory}/installed/specifications/first-2.0.0.gemspec",
+    )
+  end
+
+  it "rejects a partition whose executable directory is missing" do
+    executable_path = temporary_directory.join("installed/bin").to_s
+
+    expect { cache.audit_cache_paths([executable_path]) }.to raise_error(
+      "Installed executable directory not found: #{executable_path}",
     )
   end
 
