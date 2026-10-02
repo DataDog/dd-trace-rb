@@ -377,6 +377,64 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe "#implicitly_enabled?" do
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+
+    before { allow(logger).to receive(:debug) }
+
+    context "when the component is started and the enabled setting is at its default" do
+      # The implicit-enablement scenario: the customer never set
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED, so RC may have started the
+      # component. A withdrawn RC enable signal must treat this as a disable.
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      it "is true" do
+        component = described_class.build(settings, agent_settings, logger)
+        component.start!
+        expect(component.implicitly_enabled?).to be true
+        component.shutdown!
+      end
+    end
+
+    context "when the component is started but the customer explicitly enabled it" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      it "is false (explicit opt-in is independent of RC enablement)" do
+        component = described_class.build(settings, agent_settings, logger)
+        component.start!
+        expect(component.implicitly_enabled?).to be false
+        component.shutdown!
+      end
+    end
+
+    context "when the component is stopped" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      it "is false regardless of the enabled setting default" do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component.implicitly_enabled?).to be false
+        component.shutdown!
+      end
+    end
+  end
+
   describe "@lifecycle_mutex serialization" do
     # The mutex serializes start!, stop!, and shutdown! so concurrent RC
     # callbacks (which run on the remote-config worker thread) cannot race

@@ -245,7 +245,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # disabled, runtime supported); nil stands for "DI's component was not
     # built". The resolver never calls a method on it, only checks presence.
     # Whether a built component actually uploads is gated separately, at upload
-    # time, on DI being active (see Component#upload_allowed?).
+    # time, on DI being active, by Component#upload_allowed?.
     let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
 
     context "when the symbol_database settings group is not registered (partial load)" do
@@ -824,7 +824,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       # component.start!. #state must capture this as explicit (not implicit),
       # so a subsequent reconfigure with the env var unset does not
       # accidentally restart DI.
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: false, shutdown!: nil) }
 
       before do
         settings.dynamic_instrumentation.enabled = true
@@ -841,7 +841,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       # env var, but Remote.handle_rc_enablement received an enable signal
       # and started the component. #state must capture this as implicit,
       # so the next Components rebuild carries the started state forward.
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: true, shutdown!: nil) }
 
       before do
         # settings.dynamic_instrumentation.enabled left at default (using_default? => true)
@@ -854,7 +854,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context "when DI component is stopped" do
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: false, shutdown!: nil) }
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: false, implicitly_enabled?: false, shutdown!: nil) }
 
       before do
         allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
@@ -877,15 +877,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    # Regression: prior to using `using_default?`, #state branched on
-    # `!@settings.dynamic_instrumentation.enabled`. Datadog.configure mutates
+    # Regression: prior to using `using_default?`, the implicit check branched
+    # on `!@settings.dynamic_instrumentation.enabled`. Datadog.configure mutates
     # the singleton settings BEFORE the old tree's #state is read; an explicit
     # `enabled = false` would arrive at #state on the OLD components and the
     # `!enabled` check would compute di_implicit=true, causing the new tree's
     # #startup! to OR-restart DI that the customer just explicitly disabled.
-    # The fix uses using_default? to detect "customer never touched the setting".
+    # Component#implicitly_enabled? uses using_default? to detect "customer
+    # never touched the setting"; #state delegates to it.
     context "when settings.enabled is explicitly false (customer disabled after RC enable)" do
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: false, shutdown!: nil) }
 
       before do
         settings.dynamic_instrumentation.enabled = false
