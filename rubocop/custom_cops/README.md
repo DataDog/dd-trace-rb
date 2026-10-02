@@ -190,3 +190,51 @@ Run the cop tests with:
 ```bash
 bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
 ```
+
+## PrivateYardTypeCop
+
+The `CustomCops::PrivateYardTypeCop` prevents private methods from duplicating RBS types in YARD comments when the library file has a mirrored signature file under `sig/`.
+
+### Purpose
+
+RBS is the source of truth for non-public type signatures. Repeating those types in private YARD tags creates documentation that can drift from the signature, while prose-only tags and customer-facing `@public_api` documentation remain allowed.
+
+### Examples
+
+#### Bad: Duplicating private types in YARD
+
+```ruby
+private
+
+# @param value [String]
+# @return [Boolean]
+def valid?(value)
+  !value.empty?
+end
+```
+
+#### Good: Keeping private types in RBS
+
+```ruby
+private
+
+def valid?(value)
+  !value.empty?
+end
+```
+
+```rbs
+private
+
+def valid?: (String value) -> bool
+```
+
+The cop only reports offenses when the Ruby file has a matching RBS file. Public and protected methods, `@public_api` documentation, and tags without bracketed types are ignored.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/private_yard_type_cop_spec.rb
+```
