@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6411",
+  "message": "Stop and unsubscribe from `LIVE_DEBUGGING` when the `dynamic_instrumentation_enabled` remote-config setting is deleted, matching the existing behavior for `dynamic_instrumentation_enabled: false`."
+}
