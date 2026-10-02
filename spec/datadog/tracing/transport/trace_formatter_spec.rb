@@ -162,6 +162,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => nil,
             Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => nil,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => nil,
+            "_dd.tracing.transport" => nil,
           )
         end
       end
@@ -181,6 +182,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
             Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => 1.0,
+            "_dd.tracing.transport" => nil,
           )
         end
 
