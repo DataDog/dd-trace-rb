@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe_notification_builder"
+require "datadog/di/thread_generation"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/capture_expression"

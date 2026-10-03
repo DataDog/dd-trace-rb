@@ -4,6 +4,7 @@
 
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
+require_relative "thread_generation"
 
 module Datadog
   module DI
