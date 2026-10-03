@@ -26,7 +26,9 @@ module Datadog
 
       @exception: Exception?
 
-      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, untyped]?, ?target_self: Object?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, untyped]?, ?entry_capture_expressions: Hash[String, untyped]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: Object?, ?duration: Float?, ?exception: Exception?) -> void
+      @deadline: Float?
+
+      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, untyped]?, ?target_self: Object?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, untyped]?, ?entry_capture_expressions: Hash[String, untyped]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: Object?, ?duration: Float?, ?exception: Exception?, ?deadline: Float?) -> void
 
       attr_reader probe: Probe
 
@@ -46,6 +48,8 @@ module Datadog
       attr_reader return_value: Object?
       attr_reader duration: Float?
       attr_reader exception: Exception?
+
+      attr_accessor deadline: Float?
 
       def serialized_locals: () -> Hash[Symbol, untyped]?
 

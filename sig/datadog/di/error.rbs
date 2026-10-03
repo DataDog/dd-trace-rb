@@ -27,6 +27,9 @@ module Datadog
       end
       class ExpressionEvaluationError < Error
       end
+
+      class EvaluationTimeout < ExpressionEvaluationError
+      end
     end
   end
 end
