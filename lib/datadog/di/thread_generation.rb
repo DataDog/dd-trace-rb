@@ -2,11 +2,10 @@
 
 module Datadog
   module DI
-    # Per-thread execution-context generation token. A thread's ident can be
-    # reused after the thread exits, so two snapshots sharing a thread_id are
-    # not guaranteed to come from the same execution context. Pairing the id
-    # with a generation token makes the ambiguity detectable: same id +
-    # different generation means different threads.
+    # Per-thread execution-context generation token. Snapshots captured by
+    # the same thread share a token, and snapshots captured by different
+    # threads carry different tokens, so a consumer can tell which
+    # execution context produced each snapshot.
     #
     # The token is a lazily assigned counter stored as a thread-local on the
     # Thread object: distinct Thread objects get distinct tokens even when
@@ -32,13 +31,12 @@ module Datadog
           @lock = Mutex.new
         end
 
-        # Returns the generation token for the given thread.
+        # Returns the generation token for the current thread.
         #
-        # @param thread [Thread]
         # @return [Integer]
-        def current(thread = Thread.current)
-          thread.thread_variable_get(THREAD_KEY) || @lock.synchronize do
-            thread.thread_variable_get(THREAD_KEY) || thread.thread_variable_set(THREAD_KEY, @counter += 1)
+        def current
+          Thread.current.thread_variable_get(THREAD_KEY) || @lock.synchronize do
+            Thread.current.thread_variable_set(THREAD_KEY, @counter += 1)
           end
         end
       end
