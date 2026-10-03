@@ -20,6 +20,95 @@ module Datadog
 
             module_function
 
+            def client_resource(method, path, enabled:)
+              return method unless enabled && path && !path.empty?
+
+              resource = method.dup
+              resource << (+" ").force_encoding(resource.encoding)
+              quantized_path = quantize_path(decode_path(path))
+              resource << quantized_path.force_encoding(resource.encoding)
+            end
+
+            def decode_path(path)
+              decoded = String.new(encoding: Encoding::BINARY)
+              index = 0
+
+              while index < path.bytesize
+                byte = path.getbyte(index)
+                break unless byte
+
+                if byte == 37 && index + 2 < path.bytesize
+                  high_byte = path.getbyte(index + 1)
+                  low_byte = path.getbyte(index + 2)
+                  if high_byte && low_byte
+                    high = decode_hex_byte(high_byte)
+                    low = decode_hex_byte(low_byte)
+                    if high && low
+                      decoded << high * 16 + low
+                      index += 3
+                      next
+                    end
+                  end
+                end
+
+                decoded << byte
+                index += 1
+              end
+
+              decoded.force_encoding(path.encoding)
+            end
+
+            def quantize_path(path)
+              return path.dup if path.empty?
+
+              slash = (+"/").force_encoding(path.encoding)
+              normalized = if path.getbyte(0) == 47
+                path
+              else
+                String.new(encoding: path.encoding) << slash << path
+              end
+
+              output = String.new(encoding: path.encoding)
+              index = 1
+              replacements = 0
+
+              while index < normalized.bytesize
+                segment_end = index
+                allowed = 0
+                digits = 0
+                specials = 0
+
+                while segment_end < normalized.bytesize && normalized.getbyte(segment_end) != 47
+                  byte = normalized.getbyte(segment_end)
+                  break unless byte
+
+                  if byte.between?(48, 57)
+                    digits += 1
+                  elsif byte.between?(65, 90) || byte.between?(97, 122) || byte == 45 || byte == 95
+                    allowed += 1
+                  else
+                    specials += 1
+                  end
+                  segment_end += 1
+                end
+
+                output << slash
+                segment = normalized.byteslice(index, segment_end - index) || String.new(encoding: path.encoding)
+                if normalized.getbyte(index) == 118 && allowed == 1 && digits > 0
+                  output << segment
+                elsif specials > 0 || digits > 0
+                  output << (+"*").force_encoding(path.encoding)
+                  replacements += 1
+                else
+                  output << segment
+                end
+
+                index = segment_end + 1
+              end
+
+              replacements.zero? ? normalized.dup : output
+            end
+
             def url(url, options = {})
               url!(url, options)
             rescue
@@ -115,6 +204,18 @@ module Datadog
             end
 
             private_class_method :collect_query
+
+            def decode_hex_byte(byte)
+              if byte.between?(48, 57)
+                byte - 48
+              elsif byte.between?(65, 70)
+                byte - 55
+              elsif byte.between?(97, 102)
+                byte - 87
+              end
+            end
+
+            private_class_method :decode_hex_byte
 
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value

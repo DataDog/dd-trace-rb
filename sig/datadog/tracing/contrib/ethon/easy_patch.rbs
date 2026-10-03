@@ -24,7 +24,7 @@ module Datadog
 
             attr_reader datadog_configuration: untyped
 
-            def datadog_tag_request: () -> (nil | untyped)
+            def datadog_tag_request: (untyped uri) -> (nil | untyped)
 
             def set_span_error_message: (untyped message) -> untyped
             def try_parse_uri: () -> untyped
