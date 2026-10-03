@@ -140,6 +140,25 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   end
 
   describe "with a single trace containing one span" do
+    it "exposes a complete send report after reacquiring the GVL" do
+      observations = nil
+      responses = exporter._native_send_traces([[make_span]], false) { |report| observations = report }
+      request = mock_agent.requests.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+      expect(responses.first.ok?).to be true
+      expect(observations).to eq(
+        requests_count: 1, responses_count: 1, status_code: 200,
+        chunks_sent: 1, spans_enqueued_for_serialization: 1,
+        bytes_sent: request.fetch(:body).bytesize,
+      )
+      expect(mock_agent.requests.none? { |entry| entry[:request_line].include?("telemetry") }).to be true
+    end
+
+    it "keeps trace success when observation processing raises", :native_transport_memcheck do
+      responses = exporter._native_send_traces([[make_span]], false) { raise "telemetry failed" }
+      expect(responses.first.ok?).to be true
+      expect(exporter._native_take_stats_observations).to eq(Array.new(16, 0))
+    end
+
     it "returns a success response" do
       spans = [make_span]
       responses = exporter._native_send_traces([spans], false)
@@ -264,14 +283,23 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   describe "when the agent returns an error" do
     let(:mock_agent) { MockAgent.new(status: 500, body: '{"error":"server overloaded"}') }
 
-    it "returns an error response" do
-      responses = exporter._native_send_traces([[make_span]], false)
+    it "returns an error response with terminal observations", :native_transport_memcheck do
+      observations = nil
+      responses = exporter._native_send_traces([[make_span]], false) { |report| observations = report }
 
       expect(responses.length).to eq(1)
       resp = responses.first
       expect(resp.ok?).to be false
       # The error should be classified as server or internal
       expect(resp.server_error? || resp.internal_error?).to be true
+      attempts = mock_agent.requests.count { |entry| entry[:request_line].include?("/v0.4/traces") }
+      expect(attempts).to be > 1
+      expect(observations).to eq(
+        requests_count: attempts, errors_status_code: 1,
+        responses_count: 1, status_code: 500,
+        chunks_dropped_send_failure: 1,
+        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1,
+      )
     end
   end
 

@@ -142,6 +142,62 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     end
   end
 
+  describe "telemetry forwarding" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:telemetry_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: logger) }
+    let(:client) do
+      Datadog::Core::Telemetry::Component.new(settings: settings, agent_settings: telemetry_settings, logger: logger, enabled: true)
+    end
+
+    after { client.shutdown! }
+
+    it "serialises equivalent counts and raw byte samples through the Ruby client" do
+      transport.telemetry = client
+      2.times { expect(transport.send_traces([make_trace_segment("one", "two")]).first.ok?).to be true }
+      events = client.metrics_manager.flush!
+      metrics = events.find { |event| event.type == "generate-metrics" }.payload
+      expect(metrics[:namespace]).to eq("tracers")
+      values = metrics[:series].map do |series|
+        [series[:metric], series[:points].sum { |point| point[1] }, series[:tags].sort, series[:type], series[:common]]
+      end
+      expect(values).to contain_exactly(
+        ["trace_api.requests", 2, ["src_library:libdatadog"], "count", true],
+        ["trace_api.responses", 2, ["src_library:libdatadog", "status_code:200"], "count", true],
+        ["trace_chunks_sent", 2, ["src_library:libdatadog"], "count", true],
+        ["spans_enqueued_for_serialization", 4, [], "count", true],
+      )
+      bytes = mock_agent.requests.select { |r| r[:request_line].include?("/v0.4/traces") }.map { |r| r[:body].bytesize }
+      expect(events.find { |event| event.type == "distributions" }.payload).to eq(
+        namespace: "tracers",
+        series: [{metric: "trace_api.bytes", points: bytes, tags: ["src_library:libdatadog"], common: true}],
+      )
+      expect(client.metrics_manager.flush!).to eq([])
+    end
+
+    it "honours metrics disablement" do
+      settings.telemetry.metrics_enabled = false
+      transport.telemetry = client
+      expect(transport.send_traces([make_trace_segment("one")]).first.ok?).to be true
+      expect(client.metrics_manager.flush!).to eq([])
+    end
+
+    it "rebinds a retained tracer to the replacement telemetry component" do
+      tracer = Datadog::Tracing::Tracer.new(writer: Datadog::Tracing::Writer.new(transport: transport), logger: logger)
+      replacement = Datadog::Core::Telemetry::Component.new(settings: settings, agent_settings: telemetry_settings, logger: logger, enabled: true)
+      begin
+        Datadog::Tracing::Component.bind_transport_telemetry(tracer, client)
+        Datadog::Tracing::Component.bind_transport_telemetry(tracer, replacement)
+        client.shutdown!
+        expect(transport.send_traces([make_trace_segment("one")]).first.ok?).to be true
+        expect(client.metrics_manager.flush!).to eq([])
+        expect(replacement.metrics_manager.flush!).not_to be_empty
+      ensure
+        tracer.shutdown!
+        replacement.shutdown!
+      end
+    end
+  end
+
   describe "#initialize" do
     it "creates a transport" do
       expect(transport).to be_a(transport_class)

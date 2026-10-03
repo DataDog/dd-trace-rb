@@ -1,0 +1,27 @@
+module Datadog::Tracing::Transport::HTTP
+  class Telemetry < Datadog::Tracing::Transport::Telemetry
+    def initialize: (Datadog::Core::Telemetry::Component client) -> void
+
+    def batch: (Array[Datadog::Tracing::TraceSegment] traces) -> Batch?
+
+    class Batch
+      @reporter: Telemetry
+
+      @chunks: Integer
+
+      @spans: Integer
+
+      def initialize: (Telemetry reporter, Array[Datadog::Tracing::TraceSegment] traces) -> void
+
+      def drop_large: (Integer spans) -> void
+
+      def serialization_failed: () -> void
+
+      def sent: (Datadog::Tracing::Transport::Traces::Request request, Datadog::Core::Transport::HTTP::Response | Datadog::Core::Transport::InternalErrorResponse response, Integer chunks, Integer spans, Integer bytes, fallback: bool) -> void
+
+      private
+
+      def network_error?: (Exception? error) -> bool?
+    end
+  end
+end

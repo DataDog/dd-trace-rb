@@ -1,0 +1,19 @@
+module Datadog::Tracing::Transport::Native
+  class Telemetry < Datadog::Tracing::Transport::Telemetry
+    COLLAPSED_FIELDS: Array[String]
+
+    @client: Datadog::Core::Telemetry::Component
+
+    @exporter: TraceExporter?
+
+    def initialize: (Datadog::Core::Telemetry::Component client, ?TraceExporter? exporter) -> void
+
+    def client=: (Datadog::Core::Telemetry::Component client) -> void
+
+    def close: () -> void
+
+    def collect: () -> void
+
+    def record_stats: (Array[Integer] counts) -> void
+  end
+end
