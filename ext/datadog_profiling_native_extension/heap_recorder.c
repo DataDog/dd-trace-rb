@@ -766,8 +766,8 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full),
     ID2SYM(rb_intern("lifetime_deferred_recordings_committed")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_committed),
   };
-  VALUE hash = rb_hash_new();
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  VALUE hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, hash);
 
   return hash;
 }
