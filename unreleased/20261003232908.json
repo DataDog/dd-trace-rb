@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6250",
+  "message": "Fix missing condition evaluation error snapshots for method probes with a `when` condition; errors raised while evaluating the condition are now reported to the backend."
+}
