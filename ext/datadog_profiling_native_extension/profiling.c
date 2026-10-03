@@ -39,7 +39,7 @@ static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args);
 static VALUE _native_ddtrace_rb_ractor_main_p(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_release_gvl_and_call_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self);
-static void *testing_is_current_thread_holding_the_gvl(DDTRACE_UNUSED void *_unused);
+static void *testing_is_current_thread_holding_the_gvl(void *context);
 static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self);
 static void holding_the_gvl_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VALUE _self, VALUE background_thread);
@@ -220,36 +220,34 @@ static VALUE _native_ddtrace_rb_ractor_main_p(DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE _native_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self) {
-  return ((bool) testing_is_current_thread_holding_the_gvl(NULL)) ? Qtrue : Qfalse;
+  return ((bool) testing_is_current_thread_holding_the_gvl(init_gvl_owner_context())) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_release_gvl_and_call_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self) {
-  return ((bool) rb_thread_call_without_gvl(testing_is_current_thread_holding_the_gvl, NULL, NULL, NULL)) ? Qtrue : Qfalse;
+  return ((bool) rb_thread_call_without_gvl(testing_is_current_thread_holding_the_gvl, init_gvl_owner_context(), NULL, NULL)) ? Qtrue : Qfalse;
 }
 
-static void *testing_is_current_thread_holding_the_gvl(DDTRACE_UNUSED void *_unused) {
-  return (void *) is_current_thread_holding_the_gvl();
-}
-
-static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self) {
-  install_sigprof_signal_handler(holding_the_gvl_signal_handler, "holding_the_gvl_signal_handler");
-  return Qtrue;
+static void *testing_is_current_thread_holding_the_gvl(void *context) {
+  return (void *) is_current_thread_holding_the_gvl(context);
 }
 
 static pthread_mutex_t holding_the_gvl_signal_handler_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t holding_the_gvl_signal_handler_executed = PTHREAD_COND_INITIALIZER;
 static VALUE holding_the_gvl_signal_handler_result[3];
+static gvl_owner_context_t *holding_the_gvl_signal_handler_context;
 
-// Ruby VM API that is exported but not present in the header files. Only used by holding_the_gvl_signal_handler below and SHOULD NOT
-// be used in any other situation. See the comments on is_current_thread_holding_the_gvl for details.
-int ruby_thread_has_gvl_p(void);
+static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self) {
+  holding_the_gvl_signal_handler_context = init_gvl_owner_context();
+  install_sigprof_signal_handler(holding_the_gvl_signal_handler, "holding_the_gvl_signal_handler");
+  return Qtrue;
+}
 
 static void holding_the_gvl_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex);
 
   VALUE test_executed = Qtrue;
   VALUE ruby_thread_has_gvl_p_result = ruby_thread_has_gvl_p() ? Qtrue : Qfalse;
-  VALUE is_current_thread_holding_the_gvl_result = is_current_thread_holding_the_gvl() ? Qtrue : Qfalse;
+  VALUE is_current_thread_holding_the_gvl_result = is_current_thread_holding_the_gvl(holding_the_gvl_signal_handler_context) ? Qtrue : Qfalse;
 
   holding_the_gvl_signal_handler_result[0] = test_executed;
   holding_the_gvl_signal_handler_result[1] = ruby_thread_has_gvl_p_result;

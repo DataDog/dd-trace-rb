@@ -16,6 +16,7 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 #ifdef __APPLE__
   #include "macos_sampler_thread.h"
@@ -122,6 +123,7 @@ typedef struct {
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
+  idle_sampling_loop_state *idle_sampling_helper_state;
   VALUE owner_thread;
   dynamic_sampling_rate_state cpu_dynamic_sampling_rate;
   discrete_dynamic_sampler allocation_sampler;
@@ -157,6 +159,8 @@ typedef struct {
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
   bool during_sample;
+  // Used from the signal handler to ask for a sample at the end of GC
+  bool prepare_sample_on_gc_finish;
 
   #ifndef NO_GVL_INSTRUMENTATION
   // Only set when sampling is active (gets created at start and cleaned on stop)
@@ -248,6 +252,9 @@ static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE se
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event);
+static VALUE _native_on_gc_event(VALUE self, VALUE instance, VALUE event, VALUE during_sample);
+static VALUE _native_request_prepare_on_gc_finish(VALUE self, VALUE instance);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE safely_call(
   VALUE (*function_to_call_safely)(VALUE),
@@ -319,6 +326,10 @@ static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 static VALUE clock_failure_exception_class = Qnil;
 
+// Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
+// The native context stays at the same address across GC compaction and forks from the main ractor.
+static gvl_owner_context_t *gvl_owner_context = NULL;
+
 // Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
 // touched, even when we're not sure it's safe to touch the state (e.g. signal handler, no GVL, etc).
 typedef struct {
@@ -341,6 +352,7 @@ static global_stats_t global_stats;
 __thread uint64_t allocation_count = 0;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
+  gvl_owner_context = init_gvl_owner_context();
   rb_global_variable(&active_sampler_instance);
 
   #ifndef NO_POSTPONED_TRIGGER
@@ -398,6 +410,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_install_sigprof_handler_on_altstack", _native_install_sigprof_handler_on_altstack, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
   rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
+  rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
+  rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
@@ -439,6 +453,7 @@ static VALUE _native_new(VALUE klass) {
   state->waiting_for_gvl_threshold_ns = 10 * 1000 * 1000;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
+  state->idle_sampling_helper_state = NULL;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
@@ -523,6 +538,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
+  state->idle_sampling_helper_state = idle_sampling_helper_get_state(idle_sampling_helper_instance);
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
   return Qtrue;
@@ -726,6 +742,9 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
+//
+// Neither this handler nor its callees may dereference Ruby objects before confirming GVL ownership or during GC.
+// Holding the GVL is not enough: we may have interrupted GC itself, with Ruby heap pages protected by compaction.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, void *ucontext) {
   // If we're running on the alternate signal stack, we've interrupted another signal handler that's running
   // there -- in practice, Ruby's GC compaction read-barrier handler.
@@ -739,10 +758,10 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // We must first check that we landed on the correct thread and can proceed.
   // We must never touch the state before we confirm that we have landed on the thread that is holding the GVL on the main
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
+  // (`is_current_thread_holding_the_gvl` uses the main-ractor context, so won't be true on other ractors)
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
-    !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+    !is_current_thread_holding_the_gvl(gvl_owner_context) // Not safe to enqueue a sample from this thread
   ) return;
 
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
@@ -767,11 +786,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (sample_from_signal_handler) {
     if (rb_during_gc()) {
       // During GC Ruby might be marking our buffer or compacting (moving) where iseqs live so we skip preparing the
-      // sample immediately, and instead ask on_gc_finish to do the job when GC is at its end.
+      // sample immediately, and instead defer preparation until GC_EXIT.
       //
       // When GC profiling is disabled, we just fall back to sampling the stack after GC finishes, e.g. it's the
       // equivalent of disabling `sample_from_signal_handler` for samples that happen during GC.
-      thread_context_collector_request_prepare_on_gc_finish();
+      state->prepare_sample_on_gc_finish = true;
     } else {
       // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
       // until the postponed job below gets run.
@@ -812,7 +831,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   #endif
 }
 
-// The actual sampling trigger loop always runs **without** the global vm lock.
+// Runs without the GVL: neither this loop nor its callees may dereference Ruby objects until they reacquire it.
+// GC compaction can protect Ruby heap pages while this loop runs, so even reading an object's header is unsafe.
 static void *run_sampling_trigger_loop(void *state_ptr) {
   cpu_and_wall_time_worker_state *state = (cpu_and_wall_time_worker_state *) state_ptr;
 
@@ -832,7 +852,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       state->stats.trigger_simulated_signal_delivery_attempts++;
       grab_gvl_and_sample(); // Note: Can raise exceptions
     } else {
-      current_gvl_owner owner = gvl_owner();
+      current_gvl_owner owner = gvl_owner(gvl_owner_context);
       if (owner.valid) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
@@ -856,7 +876,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
           // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
           // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
           state->stats.trigger_simulated_signal_delivery_attempts++;
-          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+          idle_sampling_helper_request_action(state->idle_sampling_helper_state, grab_gvl_and_sample);
         }
       }
     }
@@ -1116,13 +1136,22 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // and disabled before it is cleared, but just in case...
   if (state == NULL) return;
 
+  handle_gc_event(state, event);
+}
+
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    // A signal can arrive after GC_EXIT while `rb_during_gc` is still true; discard requests from the previous GC step.
+    state->prepare_sample_on_gc_finish = false;
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    bool allow_prepare_sample = !state->during_sample;
-    if (allow_prepare_sample) during_sample_enter(state);
-    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance, allow_prepare_sample);
-    if (allow_prepare_sample) during_sample_exit(state);
+    if (state->prepare_sample_on_gc_finish && !state->during_sample) {
+      during_sample_enter(state);
+      // If we can't prepare the stack here, we can still collect it when taking the next sample.
+      DDTRACE_UNUSED bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
+      during_sample_exit(state);
+    }
+    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.
@@ -1134,6 +1163,31 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
       #endif
     }
   }
+}
+
+static VALUE _native_request_prepare_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  state->prepare_sample_on_gc_finish = true;
+  return Qnil;
+}
+
+static VALUE _native_on_gc_event(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE event, VALUE during_sample) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  ENFORCE_BOOLEAN(during_sample);
+  rb_event_flag_t event_flag;
+  if (event == ID2SYM(rb_intern("enter"))) event_flag = RUBY_INTERNAL_EVENT_GC_ENTER;
+  else if (event == ID2SYM(rb_intern("exit"))) event_flag = RUBY_INTERNAL_EVENT_GC_EXIT;
+  else rb_raise(rb_eArgError, "Expected :enter or :exit");
+
+  bool was_during_sample = state->during_sample;
+  if (during_sample == Qtrue) during_sample_enter(state);
+  debug_enter_unsafe_context();
+  handle_gc_event(state, event_flag);
+  debug_leave_unsafe_context();
+  if (!was_during_sample) during_sample_exit(state);
+  return Qnil;
 }
 
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
@@ -1219,6 +1273,10 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 
   // Disable all hooks, so that there are no more attempts to mutate the profile
   disable_hooks(state);
+
+  if (gvl_owner_context != init_gvl_owner_context()) {
+    raise_error(rb_eRuntimeError, "BUG: Unexpected gvl_owner_context changed after fork");
+  }
 
   reset_stats_not_thread_safe(state);
 
@@ -1619,6 +1677,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       VALUE target_thread = rb_thread_current();
     #endif
 
+    // TODO: `rb_internal_thread_specific_get` is documented as "async and native thread safe.",
+    // unclear if that holds during GC compaction.
     per_thread_context* thread_context = get_per_thread_context(target_thread);
     if (!thread_context) return;
     // If non-NULL the thread is profiled and from the main Ractor

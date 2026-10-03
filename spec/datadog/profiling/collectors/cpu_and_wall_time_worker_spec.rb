@@ -1484,6 +1484,57 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "preparing a sample at GC exit" do
+    before do
+      cpu_and_wall_time_worker
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_global_reset_per_thread_context(thread_context_collector)
+      record_sample
+      gc_event(:enter)
+    end
+
+    def request_sample_at_gc_exit
+      described_class::Testing._native_request_prepare_on_gc_finish(cpu_and_wall_time_worker)
+    end
+
+    def gc_event(event, during_sample: false)
+      described_class::Testing._native_on_gc_event(cpu_and_wall_time_worker, event, during_sample)
+    end
+
+    def record_sample
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+      samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).first
+    end
+
+    it "prepares a requested stack at GC exit" do
+      request_sample_at_gc_exit
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_on_gc_event")
+    end
+
+    it "does not prepare a stack without a request" do
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "does not prepare a stack when already processing a sample" do
+      request_sample_at_gc_exit
+      gc_event(:exit, during_sample: true)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "discards a late request from the previous GC step" do
+      gc_event(:exit)
+      request_sample_at_gc_exit
+      gc_event(:enter)
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+  end
+
   describe "#reset_after_fork" do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
