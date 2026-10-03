@@ -134,10 +134,20 @@ module Datadog
                 o.default 20
               end
 
+              # Ruby alias for DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS,
+              # clamped to Serializer::CAPTURE_TIMEOUT_CEILING_SECONDS.
               option :max_time_to_serialize_ms do |o|
                 o.type :int
-                o.default 200
+                o.default 150
                 o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"
+                o.setter do |value, _old|
+                  if value < 0
+                    raise ArgumentError,
+                      "The setting `dynamic_instrumentation.max_time_to_serialize_ms` must not be negative, " \
+                      "but `#{value.inspect}` was provided."
+                  end
+                  value
+                end
               end
 
               # Settings in the 'internal' group are for internal Datadog

@@ -42,17 +42,18 @@ module SerializerHelper
 
     let(:di_settings) do
       double("di settings").tap do |settings|
-        allow(settings).to receive(:enabled).and_return(true)
-        allow(settings).to receive(:redacted_identifiers).and_return([])
-        allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
-        allow(settings).to receive(:redacted_type_names).and_return(%w[
-          DISerializerSpecSensitiveType DISerializerSpecWildCard*
-        ])
-        allow(settings).to receive(:max_capture_collection_size).and_return(10)
-        allow(settings).to receive(:max_capture_attribute_count).and_return(10)
-        # Reduce max capture depth to 2 from default of 3
-        allow(settings).to receive(:max_capture_depth).and_return(2)
-        allow(settings).to receive(:max_capture_string_length).and_return(100)
+        # Reduce max capture depth to 2 from default of 3.
+        allow(settings).to receive_messages(
+          enabled: true,
+          redacted_identifiers: [],
+          redaction_excluded_identifiers: [],
+          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*],
+          max_capture_collection_size: 10,
+          max_capture_attribute_count: 10,
+          max_capture_depth: 2,
+          max_capture_string_length: 100,
+          max_time_to_serialize_ms: 200,
+        )
       end
     end
   end
@@ -73,6 +74,21 @@ module SerializerHelper
       original_registry = Datadog::DI::Serializer.class_variable_get(:@@flat_registry).dup
       example.run
       Datadog::DI::Serializer.class_variable_set(:@@flat_registry, original_registry)
+    end
+  end
+
+  # Stubs `Process.clock_gettime(CLOCK_MONOTONIC, :float_second)` to return `values` in
+  # order; other clock reads fall through to the original.
+  def stub_monotonic_clock(values)
+    before do
+      calls = 0
+      allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+        if args == [::Process::CLOCK_MONOTONIC, :float_second]
+          values[calls].tap { calls += 1 }
+        else
+          original.call(*args)
+        end
+      end
     end
   end
 end
