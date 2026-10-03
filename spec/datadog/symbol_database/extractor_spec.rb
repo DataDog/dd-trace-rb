@@ -1274,7 +1274,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
   end
 
   context "with active method probes" do
-    let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, nil, logger) }
+    let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, nil, logger, correlation_sampler: nil) }
     let(:probes) do
       %w[home home secret].each_with_index.map do |method_name, index|
         Datadog::DI::Probe.new(id: index.to_s, type: :log, type_name: "TestProbedClass", method_name: method_name)
