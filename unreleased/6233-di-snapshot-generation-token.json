@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6233",
+  "message": "Add a `generation` field to snapshots that identifies the thread that captured them, so snapshots from different threads remain distinguishable even when thread ids are reused."
+}
