@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
+require "datadog/di/spec_helper"
 require "datadog/di/thread_generation"
 
 RSpec.describe Datadog::DI::ThreadGeneration do
+  di_test
+
   it "returns the same token for the same thread" do
     expect(described_class.current).to eq(described_class.current)
   end
