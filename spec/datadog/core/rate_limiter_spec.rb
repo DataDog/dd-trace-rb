@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::TokenBucket do
       let(:rate) { :bad }
 
       it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /bad/)
+        expect { bucket }.to raise_error(ArgumentError, /rate must be a number/)
       end
     end
 
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Core::TokenBucket do
       let(:max_tokens) { :bad }
 
       it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /bad/)
+        expect { bucket }.to raise_error(ArgumentError, /max_tokens must be a number/)
       end
     end
   end
@@ -233,7 +233,7 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       let(:rate) { :bad }
 
       it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /bad/)
+        expect { bucket }.to raise_error(ArgumentError, /rate must be a number/)
       end
     end
 
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       let(:max_tokens) { :bad }
 
       it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /bad/)
+        expect { bucket }.to raise_error(ArgumentError, /max_tokens must be a number/)
       end
     end
 
@@ -286,7 +286,6 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
 
   describe "refill" do
     it "recovers a negative balance by rate * elapsed" do
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
       30.times { bucket.consume }
       expect(bucket.available_tokens).to eq(-10)
 
@@ -296,7 +295,6 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
     end
 
     it "caps the balance at max_tokens on the upper side" do
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
       bucket.consume
       allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(100)
       expect(bucket.available?).to be(true)
