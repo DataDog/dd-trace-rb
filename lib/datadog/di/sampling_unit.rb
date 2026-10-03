@@ -4,8 +4,8 @@ module Datadog
   module DI
     # Correlation unit that groups related Live Debugger probe hits by their
     # active APM trace. Resolved from existing tracer context only (an
-    # in-process read of the active trace); when no trace is active the hit
-    # belongs to no unit and is not correlated.
+    # in-process read of the active trace); a hit with no active trace resolves
+    # to the NONE sentinel and stays uncorrelated.
     #
     # @api private
     class SamplingUnit
@@ -13,11 +13,11 @@ module Datadog
       #
       # @return [SamplingUnit]
       def self.current
-        # Checked per call, not hoisted to load time: DI may be required before
-        # Datadog::Tracing, so this constant can transition from undefined
-        # to defined after boot. Called on every capturing probe firing; the single
-        # SamplingUnit allocation per fire is accepted to keep the correlation
-        # unit an explicit object.
+        # The constant is checked per call: DI may be required before
+        # Datadog::Tracing, so the constant can transition from undefined to
+        # defined after boot. Called on every capturing probe firing; the
+        # single SamplingUnit allocation per fire is accepted to keep the
+        # correlation unit an explicit object.
         if defined?(Datadog::Tracing)
           trace = Datadog::Tracing.active_trace
           if trace && (trace_id = trace.id)
