@@ -223,10 +223,8 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         expect(otel_thread_context.clear).to eq(false)
       end
 
-      # A fresh thread exposes the leak only by recycling the killed thread's
-      # native thread, which CRuby schedules nondeterministically; many
-      # kill/spawn cycles make the stale context reliably surface if the
-      # detach regresses.
+      # CRuby recycles a killed thread's native thread nondeterministically;
+      # many kill/spawn cycles make the leak reliably observable.
       it "returns false on fresh threads recycling killed context-holding threads' native threads" do
         fresh_thread_clear_results = Array.new(100) do
           kill_thread_holding_context
