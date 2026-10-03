@@ -228,6 +228,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
+static VALUE _native_profiler_internal_thread_done(VALUE self_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *optional_exception_during_operation);
 static void stop_state(cpu_and_wall_time_worker_state *state, VALUE optional_exception, const char *optional_operation_name);
@@ -289,6 +290,7 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
 static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
+static VALUE during_sample_exit_rescue(VALUE state_ptr);
 static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -380,6 +382,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
@@ -650,6 +653,17 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   return Qnil;
 }
 
+static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  during_sample_enter(state);
+  return rb_ensure(
+    thread_context_collector_profiler_internal_thread_done, state->thread_context_collector_instance,
+    during_sample_exit_rescue, (VALUE) state
+  );
+}
+
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -740,6 +754,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
+  // c) `simulate_sampling_signal_delivery` calls us directly instead of via a real SIGPROF, and blocks SIGPROF delivery on its
+  //    thread for the duration of that call, so it can't be nested into by a real SIGPROF either
 
   state->stats.signal_handler_enqueued_sample++;
 
@@ -1279,10 +1295,18 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the IdleSamplingHelper was trying to execute this action
   if (state == NULL) return NULL;
 
+  // Since this is not a real signal firing, we need to block SIGPROF delivery on this thread to avoid an actual SIGPROF
+  // signal coming in nested and interrupting us on this thread. Thus we respect the invariant of "no nesting" for `handle_sampling_signal`.
+  //
+  // Not needed when `no_signals_workaround_enabled` is set: no SIGPROFs are ever sent in that mode, so there's nothing to mask.
+  if (!state->no_signals_workaround_enabled) block_sigprof_signal_handler_from_running_in_current_thread();
+
   state->stats.simulated_signal_delivery++;
 
   // `handle_sampling_signal` does a few things extra on top of `sample_from_postponed_job` so that's why we don't shortcut here
   handle_sampling_signal(0, NULL, NULL);
+
+  if (!state->no_signals_workaround_enabled) unblock_sigprof_signal_handler_from_running_in_current_thread();
 
   return NULL; // Unused
 }
@@ -1764,4 +1788,9 @@ static inline void during_sample_exit(cpu_and_wall_time_worker_state* state) {
   // happens before the fence is not reordered with the flag update.
   atomic_signal_fence(memory_order_seq_cst);
   state->during_sample = false;
+}
+
+static VALUE during_sample_exit_rescue(VALUE state_ptr) {
+  during_sample_exit((cpu_and_wall_time_worker_state *) state_ptr);
+  return Qnil;
 }

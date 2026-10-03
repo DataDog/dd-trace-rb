@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6398",
+  "message": "Stop profiling if `thread_name_for`/`rb_thread_t` changes."
+}

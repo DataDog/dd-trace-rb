@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6364",
+  "message": "Fix the profiler stopping with `BUG: Unexpected CPU time going backwards between samples`."
+}

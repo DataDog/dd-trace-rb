@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Use an alternate gemfile for matrix-specific jobs: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: `bundle exec rake standard typecheck`.
+- Lint and type check: `bundle exec rake rubocop typecheck`. Prefer RuboCop because it checks a strict superset of the Standard rules; CI requires both, which can be run with `bundle exec rake standard rubocop typecheck`.
 - Type check specific sources: `bundle exec steep check [sources]`.
 - Discover tasks: `bundle exec rake -T`.
 - Run targeted specs: `bundle exec rspec spec/path/to/file_spec.rb[:line]`. Only use this for specs covered by `test:main` or under `spec/datadog/profiling`; use the relevant rake task for other specs.
@@ -78,6 +78,11 @@ tracing libraries.
   dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
   inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
 
+## system-tests commit SHA updates
+
+- `SYSTEM_TESTS_REF` in `.gitlab-ci.yml` and the system-tests `ref:` and `uses:` lines in `.github/workflows/system-tests.yml` may be manually updated to a commit that has not been merged into `DataDog/system-tests`'s `main` branch so that dd-trace-rb CI can use it on a PR.
+- Such pins must **NEVER** be merged into dd-trace-rb's `master` branch. Before merging the dd-trace-rb PR, ensure every system-tests pin points to a commit merged into system-tests `main`; replace any unmerged commit SHA if necessary.
+
 ## images-rb pin updates
 
 `.github/workflows/update-images.yml` receives a `repository_dispatch` from
@@ -110,10 +115,9 @@ no external grant needed. No local trigger otherwise.
 
 ## Code changes
 
+- Follow the `write-comment` skill (`.agents/skills/write-comment/SKILL.md`) for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
-  - Constants initialized at load time, before user configuration, may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example).
-  - Dynamic Instrumentation probe instrumentation that runs inside customer application methods must use `::Time.now` directly. DI must never invoke customer-provided code during instrumentation.
 
 ## Documentation
 
@@ -167,9 +171,8 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
-- Write changelog entries for customers. Use `None.` for internal CI, tooling, and tracer telemetry consumed only by Datadog engineering.
-- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog entry even though its data flows through the Datadog backend.
-- Start changelog entries with `Yes.` or `None.`: `Yes. Brief customer-facing summary.` or `None.`. Never provide a summary without the `Yes.` prefix.
+- Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
+- Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
 - Add `--label "AI Generated"` when creating PRs; the label is sufficient, so do not mention AI in the description.
 
 # GitHub Actions
@@ -231,6 +234,16 @@ Ruby idioms:
 - `docker compose run` failures: run `docker compose pull` before retrying.
 - `ProbeNotifierWorker#flush` blocks until queues are empty; never add `sleep` after it.
 
+# Skills
+
+Skills live under `.agents/skills/` and are harness-agnostic. Read them before the matching task:
+
+- Before editing `sig/**/*.rbs`, `vendor/rbs/**`, or any inline `#:` annotation: `.agents/skills/write-rbs/SKILL.md`
+- Before writing any code comment: `.agents/skills/write-comment/SKILL.md`
+- Before writing a changelog fragment: `.agents/skills/write-changelog/SKILL.md`
+
+`.claude/` holds only Claude Code registration: `settings.json` (hook wiring) and `hooks/`, a Claude-only hard guard enforcing the first two skills above. Other harnesses rely on the pointers in this section.
+
 # References
 
 - `docs/DevelopmentGuide.md` - detailed development workflows
@@ -247,5 +260,5 @@ Ruby idioms:
 - If a requested change contradicts code evidence, alert the user before proceeding.
 - If a requested web page is inaccessible, state this and explain the basis for any suggestions.
 - Read the specialized personas under `.cursor/rules/` when writing code (`code-style.mdc`) or tests (`testing.mdc`).
-- Claude Code skills and hooks live under `.claude/`; see `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
+- Agent skills live under `.agents/skills/` and are harness-agnostic; `.claude/` holds Claude Code registration only. See `.claude/hooks/README.md` for the hook build, test, and native re-verification workflow.
 - This `AGENTS.md` is a living document; update it when CI or scripts evolve, and update specialized personas as appropriate.

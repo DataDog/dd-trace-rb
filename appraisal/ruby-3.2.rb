@@ -62,6 +62,10 @@ appraise 'rails81' do
   gem 'rails', '~> 8.1.0'
 end
 
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -134,22 +138,31 @@ end
 
 appraise 'http' do
   gem 'ethon'
+  gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
+  gem 'typhoeus'
+end
+
+appraise 'httprb' do
   gem 'http'
-  gem 'httpclient'
-  gem 'typhoeus'
 end
 
-appraise 'http6' do
-  gem 'ethon'
-  gem 'http', '~> 6'
-  gem 'httpclient'
-  gem 'typhoeus'
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+
+['1', '2', '3'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape', "~> #{v}.0"
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.11.0')
@@ -161,7 +174,7 @@ build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta:
   'opentelemetry-sdk' => '~> 1.1',
   'opentelemetry-metrics-sdk' => '>= 0.8',
 })
-build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm', min: '2.0.0')
 build_coverage_matrix('kicks', min: '3.0.0')
 
 appraise 'sneakers' do
@@ -186,7 +199,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -194,7 +206,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -205,7 +216,12 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -214,7 +230,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end

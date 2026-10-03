@@ -29,6 +29,7 @@ require "datadog/tracing/span"
 require "datadog/ruby_version"
 RubyVersion = Datadog::RubyVersion
 
+require "support/capture_stderr"
 require "support/core_helpers"
 require "support/environment_helpers"
 require "support/forkable_example"

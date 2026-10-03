@@ -1,0 +1,7 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6354",
+  "message": "Fix the `grape` integration creating no `grape.endpoint_run` span on Grape 4, which moved the API class, HTTP verb and route path off `Grape::Endpoint#options`.",
+  "author": "@dduugg"
+}

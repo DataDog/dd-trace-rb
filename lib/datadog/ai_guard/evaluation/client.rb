@@ -1,0 +1,50 @@
+# frozen_string_literal: true
+
+module Datadog
+  module AIGuard
+    module Evaluation
+      # Client for evaluation API requests
+      #
+      # @api private
+      module Client
+        def self.evaluate(messages)
+          request = Request.new(messages)
+          http_client = AIGuard.http_client
+
+          # This should never happen, as we are only calling this method when AI Guard is enabled,
+          # and this means the HTTP client was not initialized properly.
+          #
+          # Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug
+          raise "AI Guard HTTP client not initialized" unless http_client
+
+          response = Response.new(
+            http_client.post(Request::REQUEST_PATH, body: request.body)
+          )
+
+          redaction =
+            if Datadog.configuration.ai_guard.redaction_enabled
+              Redaction.perform(messages, replacements: response.redaction_replacements)
+            else
+              Redaction.skip(messages)
+            end
+
+          result = Result.new(
+            redaction.messages,
+            action: response.action,
+            reason: response.reason,
+            tags: response.tags,
+            sds_findings: response.sds_findings,
+            tag_probabilities: response.tag_probabilities,
+            redaction_replacements: response.redaction_replacements
+          )
+
+          Outcome.new(
+            result: result,
+            redaction: redaction,
+            blocking_enabled: response.blocking_enabled?
+          )
+        end
+      end
+    end
+  end
+end
