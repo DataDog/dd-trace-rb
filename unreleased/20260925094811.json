@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6384",
+  "message": "Fix the OpenTelemetry Thread Context leaking a killed thread's trace/span IDs onto a new thread reusing a recycled native thread after a traced thread was `Thread#kill`-ed on Ruby < 3.3."
+}
