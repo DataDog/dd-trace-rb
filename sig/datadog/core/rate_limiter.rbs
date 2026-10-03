@@ -6,12 +6,32 @@ module Datadog
       def effective_rate: () -> ::Float
     end
 
-    class TokenBucket < RateLimiter
+    module RefillableBucket
       @rate: ::Float | ::Integer
 
       @max_tokens: ::Numeric
 
       @tokens: ::Numeric
+
+      @last_refill: ::Numeric
+
+      attr_reader rate: ::Float | ::Integer
+
+      attr_reader max_tokens: ::Numeric
+
+      def initialize: (::Float | ::Integer rate, ::Numeric max_tokens) -> void
+
+      def available_tokens: () -> ::Numeric
+
+      private
+
+      def refill: () -> void
+
+      def refill_tokens: (::Numeric size) -> void
+    end
+
+    class TokenBucket < RateLimiter
+      include RefillableBucket
 
       @total_messages: ::Integer
 
@@ -23,12 +43,6 @@ module Datadog
 
       @current_window: ::Float?
 
-      @last_refill: ::Numeric
-
-      attr_reader rate: ::Float | ::Integer
-
-      attr_reader max_tokens: ::Numeric
-
       def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
 
       def allow?: (?::Integer size) -> bool
@@ -37,13 +51,7 @@ module Datadog
 
       def current_window_rate: () -> ::Float
 
-      def available_tokens: () -> ::Numeric
-
       private
-
-      def refill_since_last_message: () -> void
-
-      def refill_tokens: (::Numeric size) -> void
 
       def increment_total_count: () -> void
 
@@ -58,6 +66,16 @@ module Datadog
       def allow?: (?::Integer _) -> true
 
       def effective_rate: () -> ::Float
+    end
+
+    class BorrowingTokenBucket
+      include RefillableBucket
+
+      def initialize: (::Float | ::Integer rate, ?max_tokens: ::Numeric) -> void
+
+      def available?: () -> bool
+
+      def consume: (?size: ::Numeric) -> void
     end
   end
 end

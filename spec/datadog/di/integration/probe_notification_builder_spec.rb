@@ -16,7 +16,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:builder) { described_class.new(settings, serializer, logger, telemetry: telemetry) }
 
     let(:instrumenter) do
-      Datadog::DI::Instrumenter.new(settings)
+      Datadog::DI::Instrumenter.new(settings, serializer, logger, correlation_sampler: nil)
     end
 
     let(:settings) do

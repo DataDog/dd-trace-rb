@@ -3,6 +3,7 @@
 require_relative "../core/rate_limiter"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
+require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -78,7 +79,16 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings.
+      # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots.
+      # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output.
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler, nil] coordinated
+      #   sampling gate for capturing probes; nil disables coordination.
+      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
+      #   tracking is not active.
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
+      #   when telemetry is disabled.
+      def initialize(settings, serializer, logger, correlation_sampler:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -86,6 +96,7 @@ module Datadog
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
+        @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
       end
@@ -95,6 +106,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -469,6 +481,61 @@ module Datadog
 
       attr_reader :lock
 
+      # Coordinated sampling gate. Returns true when the probe hit should emit a
+      # snapshot. A capturing probe with an active trace delegates the whole
+      # decision to the correlation sampler so probes in one sampling unit
+      # share it; the sampler's GLOBAL borrowing budget is the process-wide
+      # bound for those hits, so they bypass the hard limiter. Every other hit
+      # (uncorrelated, non-capturing, the coordination-disabled mode, or a hit
+      # failing open after a gate error) consults the probe's own rate limiter
+      # and then the process-wide hard limiter for the probe's category.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the probe hit should emit a snapshot
+      def emit?(probe)
+        correlation_sampler = self.correlation_sampler
+        if correlation_sampler && probe.capturing?
+          sampling_unit = SamplingUnit.current
+          begin
+            emit = correlation_sampler.emit?(probe, sampling_unit)
+            return emit if sampling_unit.key
+
+            # Uncorrelated hit: the sampler already consulted the probe's own
+            # rate limiter, so only the hard limiter remains.
+            return false unless emit
+
+            return global_rate_limit_allows?(probe)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+          end
+        end
+
+        return false unless probe.own_rate_limit_allows?
+
+        global_rate_limit_allows?(probe)
+      end
+
+      # Consults the process-wide hard rate limiter for the probe's category.
+      # Correlated capturing hits bypass this limiter; their process-wide
+      # bound is the correlation sampler's GLOBAL borrowing budget, and a
+      # hard cap at the same rate would drop the borrowed snapshots that
+      # keep a related chain intact.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the hard limiter admits the hit
+      def global_rate_limit_allows?(probe)
+        unless probe_global_rate_limiter(probe).allow?
+          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          return false
+        end
+
+        true
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -558,12 +625,7 @@ module Datadog
             end
           end
 
-          rate_limiter = probe.rate_limiter
-          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
-          if admitted && !probe_global_rate_limiter(probe).allow?
-            admitted = false
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
-          end
+          admitted = continue && emit?(probe)
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -825,14 +887,7 @@ module Datadog
           end
         end
 
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
-
-        unless probe_global_rate_limiter(probe).allow?
-          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
-          return
-        end
+        return unless emit?(probe)
 
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the
