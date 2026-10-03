@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "OpenTelemetry",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6261",
+  "message": "Emit `deployment.environment.name` instead of `deployment.environment` for Logs and Metrics resources, and accept it as the Datadog environment while retaining `deployment.environment` as a fallback."
+}

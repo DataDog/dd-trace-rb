@@ -187,10 +187,15 @@ module Datadog
           #
           # Those checks are instead performed inside the worker loop.
           # This allows users to upgrade their agent while keeping their application running.
-          def build(settings, agent_settings, logger:, telemetry:)
+          def build(settings, agent_settings, logger:, telemetry:, open_feature_component_provider: nil)
             return unless settings.remote.enabled
 
-            new(settings, Client::Capabilities.new(settings, telemetry), agent_settings, logger: logger)
+            capabilities = Client::Capabilities.new(
+              settings,
+              telemetry,
+              open_feature_component_provider: open_feature_component_provider,
+            )
+            new(settings, capabilities, agent_settings, logger: logger)
           end
         end
       end

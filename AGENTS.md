@@ -78,6 +78,11 @@ tracing libraries.
   dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
   inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
 
+## system-tests commit SHA updates
+
+- `SYSTEM_TESTS_REF` in `.gitlab-ci.yml` and the system-tests `ref:` and `uses:` lines in `.github/workflows/system-tests.yml` may be manually updated to a commit that has not been merged into `DataDog/system-tests`'s `main` branch so that dd-trace-rb CI can use it on a PR.
+- Such pins must **NEVER** be merged into dd-trace-rb's `master` branch. Before merging the dd-trace-rb PR, ensure every system-tests pin points to a commit merged into system-tests `main`; replace any unmerged commit SHA if necessary.
+
 ## images-rb pin updates
 
 `.github/workflows/update-images.yml` receives a `repository_dispatch` from
