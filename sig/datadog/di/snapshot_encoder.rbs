@@ -1,0 +1,18 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      MAX_ITEM_BYTES: Integer
+      SLOT_OVERHEAD: Integer
+      MAX_ESCAPE_EXPANSION: Integer
+      PRUNED: Hash[String, bool]
+      PRUNED_ENCODED: String
+
+      class Result
+        attr_reader encoded: (::String | nil)
+        attr_reader pruned: bool
+      end
+
+      def self.encode: (untyped snapshot, Integer max_size) -> Result
+    end
+  end
+end

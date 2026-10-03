@@ -270,7 +270,10 @@ generated.
 ### Snapshot Size
 
 - Maximum snapshot size is **1 MB**
-- Snapshots exceeding this size will be dropped entirely
+- A snapshot exceeding this size is pruned: the captured variables that do
+  not fit are replaced with a `{"pruned": true}` marker (in document order)
+  so the remaining captured data is still delivered. A snapshot is dropped
+  entirely only when pruning cannot bring it under the limit.
 - Consider reducing capture depth or collection sizes if you encounter
   this limit
 
