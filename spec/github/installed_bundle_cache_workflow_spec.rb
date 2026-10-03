@@ -43,10 +43,20 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "validates a generated union before saving it" do
+  it "restores the base before installing appraisals and validates the union before saving" do
     names = steps.map { |step| step["name"] }
 
+    expect(names.index("Prepare lean base bundle")).to be < names.index("Install appraisal bundles")
     expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
+  end
+
+  it "includes the exact base cache key in the union manifest" do
+    base_key = steps.find { |step| step["id"] == "base-key" }
+    manifest = steps.find { |step| step["id"] == "manifest" }
+
+    expect(base_key.fetch("env").fetch("LOCKFILE_HASH")).to include("hashFiles")
+    expect(manifest.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
+    expect(manifest.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
 
   it "classifies exact, writable miss, and read-only miss states" do
@@ -73,13 +83,23 @@ RSpec.describe "installed bundle cache workflow" do
     expect(source).not_to include("package-cache", "minimal-tests", "experiment-variant")
   end
 
-  it "does not prepare the base cache before an installed-cache lookup" do
-    batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-    base = batch_steps.find { |step| step["name"] == "Prepare bundle cache" }
-    fallback = batch_steps.find { |step| step["name"] == "Prepare fallback bundle cache" }
+  it "does not restore the base before an exact union lookup" do
+    lookup_index = steps.index { |step| step["id"] == "lookup" }
+    base_index = steps.index { |step| step["id"] == "base-bundle" }
+    base = steps.fetch(base_index)
 
-    expect(base.fetch("if")).to eq("inputs.installed-cache-enabled != true")
-    expect(fallback.fetch("if")).to include("outputs.ready != 'true'")
+    expect(lookup_index).to be < base_index
+    expect(base.fetch("if")).to eq("steps.lookup.outputs.cache-hit != 'true'")
+  end
+
+  it "routes a union miss directly to the prepared base outputs" do
+    batch = workflow.fetch("jobs").fetch("batch")
+    outputs = batch.fetch("outputs")
+    batch_steps = batch.fetch("steps")
+
+    expect(outputs.fetch("cache-key")).to include("installed-bundle-cache.outputs.base-cache-key")
+    expect(outputs.fetch("lockfile")).to include("installed-bundle-cache.outputs.base-lockfile")
+    expect(batch_steps).not_to include(include("name" => "Prepare fallback bundle cache"))
   end
 
   it "maps fallback tasks to the committed runtime Gemfile" do
@@ -109,6 +129,8 @@ RSpec.describe "installed bundle cache workflow" do
       expect(installed.fetch("if")).to include("installed-cache-ready == 'true'")
       expect(installed.fetch("with").fetch("cache-key")).to include("installed-cache-key")
       expect(build.fetch("with").fetch("install-dependencies")).to include("installed-cache-ready != 'true'")
+      expect(child_steps.count { |step| step["uses"] == "./.github/actions/bundle-restore" }).to eq(1)
+      expect(child_steps.count { |step| step["uses"] == "./.github/actions/installed-bundle-restore" }).to eq(1)
     end
   end
 

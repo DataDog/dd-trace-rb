@@ -41,23 +41,33 @@ RSpec.describe InstalledBundleCache do
   end
 
   it "uses schema, environment digest, and content digest in the cache key" do
-    manifest = cache.to_h(cache_schema: "installed-full-v1", image_identity: "image-a")
+    manifest = cache.to_h(
+      cache_schema: "installed-full-v2",
+      image_identity: "image-a",
+      base_cache_key: "base-a",
+    )
 
     expect(manifest.fetch(:cache_key)).to eq(
-      "installed-full-v1-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
+      "installed-full-v2-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
     )
   end
 
   it "invalidates the environment digest when image identity changes" do
-    expect(cache.environment_digest(image_identity: "image-a")).not_to eq(
-      cache.environment_digest(image_identity: "image-b")
+    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.environment_digest(image_identity: "image-b", base_cache_key: "base-a")
+    )
+  end
+
+  it "invalidates the environment digest when the base cache identity changes" do
+    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-b")
     )
   end
 
   it "invalidates the environment digest when native build flags change" do
-    original = cache.environment_digest(image_identity: "image-a")
+    original = cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
     changed = ClimateControl.modify("CFLAGS" => "-march=changed") do
-      cache.environment_digest(image_identity: "image-a")
+      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
     end
 
     expect(changed).not_to eq(original)
@@ -73,7 +83,9 @@ RSpec.describe InstalledBundleCache do
     allow(settings).to receive(:[]).with("without").and_return("development")
     allow(Bundler).to receive(:settings).and_return(settings)
 
-    expect(cache.environment(image_identity: "image-a").fetch("bundler_settings")).to eq(
+    expect(
+      cache.environment(image_identity: "image-a", base_cache_key: "base-a").fetch("bundler_settings")
+    ).to eq(
       "build.pg" => "--with-pg-config=/tmp/pg_config",
       "force_ruby_platform" => "true",
       "without" => "development",
@@ -102,17 +114,21 @@ RSpec.describe InstalledBundleCache do
     expect(paths).to eq(paths.sort)
   end
 
-  it "installs and checks every Gemfile" do
+  it "installs each appraisal and checks every Gemfile" do
     commands = []
     allow(cache).to receive(:system) do |environment, command, *arguments|
       commands << [environment.fetch("BUNDLE_GEMFILE"), command, arguments]
       true
     end
 
-    cache.install(jobs: 4)
+    cache.install_appraisals(jobs: 4)
     cache.check
 
-    expect(commands.count { |_gemfile, _command, arguments| arguments == ["install", "--jobs", "4"] }).to eq(3)
+    installed = commands.select { |_gemfile, _command, arguments| arguments == ["install", "--jobs", "4"] }
+    expect(installed.map { |gemfile, _command, _arguments| File.basename(gemfile) }).to contain_exactly(
+      "first.gemfile",
+      "second.gemfile",
+    )
     expect(commands.count { |_gemfile, _command, arguments| arguments == ["check"] }).to eq(3)
   end
 

@@ -38,8 +38,9 @@ class InstalledBundleCache
     ([base_gemfile] + applicable_gemfiles).uniq
   end
 
-  def environment(image_identity:)
+  def environment(image_identity:, base_cache_key:)
     {
+      "base_cache_key" => base_cache_key,
       "bundler_settings" => bundler_settings,
       "image_identity" => image_identity,
       "installed_path" => installed_path.to_s,
@@ -56,32 +57,40 @@ class InstalledBundleCache
     end
   end
 
-  def environment_digest(image_identity:)
-    digest_json(environment(image_identity: image_identity))
+  def environment_digest(image_identity:, base_cache_key:)
+    digest_json(environment(image_identity: image_identity, base_cache_key: base_cache_key))
   end
 
   def content_digest
     digest_json(content)
   end
 
-  def cache_key(cache_schema:, image_identity:)
-    [cache_schema, environment_digest(image_identity: image_identity), content_digest].join("-")
+  def cache_key(cache_schema:, image_identity:, base_cache_key:)
+    [
+      cache_schema,
+      environment_digest(image_identity: image_identity, base_cache_key: base_cache_key),
+      content_digest,
+    ].join("-")
   end
 
-  def to_h(cache_schema:, image_identity:)
+  def to_h(cache_schema:, image_identity:, base_cache_key:)
     {
-      cache_key: cache_key(cache_schema: cache_schema, image_identity: image_identity),
-      environment: environment(image_identity: image_identity),
+      cache_key: cache_key(
+        cache_schema: cache_schema,
+        image_identity: image_identity,
+        base_cache_key: base_cache_key,
+      ),
+      environment: environment(image_identity: image_identity, base_cache_key: base_cache_key),
       content: content,
-      environment_digest: environment_digest(image_identity: image_identity),
+      environment_digest: environment_digest(image_identity: image_identity, base_cache_key: base_cache_key),
       content_digest: content_digest,
       base_gemfile: relative_path(base_gemfile),
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
     }
   end
 
-  def install(jobs: 8)
-    gemfiles.each { |gemfile| run_bundle(gemfile, "install", "--jobs", jobs.to_s) }
+  def install_appraisals(jobs: 8)
+    applicable_gemfiles.each { |gemfile| run_bundle(gemfile, "install", "--jobs", jobs.to_s) }
   end
 
   def check

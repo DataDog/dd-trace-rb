@@ -25,6 +25,12 @@ outputs:
   cache-key:
     description: Exact installed bundle cache key
     value: ${{ steps.manifest.outputs.cache-key }}
+  base-cache-key:
+    description: Exact lean base bundle cache key
+    value: ${{ steps.base-key.outputs.cache-key }}
+  base-lockfile:
+    description: Base lockfile artifact name when fallback is prepared
+    value: ${{ steps.base-bundle.outputs.lockfile }}
   status:
     description: "Cache status: exact, miss, or generated"
     value: ${{ steps.result.outputs.status }}
@@ -47,10 +53,35 @@ outputs:
 runs:
   using: composite
   steps:
+    - id: ruby-environment
+      name: Compute base Ruby environment
+      shell: bash
+      run: |
+        value=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")')
+        echo "value=$value" >> "$GITHUB_OUTPUT"
+    - id: base-key
+      name: Compute base bundle key
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        LOCKFILE_HASH: ${{ hashFiles(format('{0}.lock', inputs.base-gemfile)) }}
+        RUBY_ENVIRONMENT: ${{ steps.ruby-environment.outputs.value }}
+      run: |
+        lockfile="$BASE_GEMFILE.lock"
+        if [ ! -f "$lockfile" ]; then
+          echo "::error::Expected lockfile $lockfile not found." >&2
+          exit 1
+        fi
+        if [ -z "$LOCKFILE_HASH" ]; then
+          echo "::error::Could not hash lockfile $lockfile." >&2
+          exit 1
+        fi
+        echo "cache-key=bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH" >> "$GITHUB_OUTPUT"
     - id: manifest
       name: Compute installed bundle key
       shell: bash
       env:
+        BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         CACHE_SCHEMA: ${{ inputs.cache-schema }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
@@ -58,6 +89,7 @@ runs:
       run: |
         ruby tasks/installed_bundle_cache_cli.rb manifest \
           --base-gemfile "$BASE_GEMFILE" \
+          --base-cache-key "$BASE_CACHE_KEY" \
           --matrix "$MATRIX" \
           --cache-schema "$CACHE_SCHEMA" \
           --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
@@ -74,24 +106,35 @@ runs:
         key: ${{ steps.manifest.outputs.cache-key }}
         path: /usr/local/bundle
         lookup-only: true
+    - id: base-bundle
+      name: Prepare lean base bundle
+      if: steps.lookup.outputs.cache-hit != 'true'
+      uses: ./.github/actions/bundle-cache
+      env:
+        BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
+    - name: Verify base bundle identity
+      if: steps.lookup.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        ACTUAL_KEY: ${{ steps.base-bundle.outputs.cache-key }}
+        EXPECTED_KEY: ${{ steps.base-key.outputs.cache-key }}
+      run: |
+        if [ "$ACTUAL_KEY" != "$EXPECTED_KEY" ]; then
+          echo "::error::Base bundle key changed: expected $EXPECTED_KEY, got $ACTUAL_KEY." >&2
+          exit 1
+        fi
     - id: population-start
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    - name: Reset installed bundle
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      shell: bash
-      run: |
-        mkdir -p /usr/local/bundle
-        find /usr/local/bundle -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-    - name: Install complete matrix bundle
+    - name: Install appraisal bundles
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         MATRIX: ${{ inputs.matrix }}
       run: |
-        ruby tasks/installed_bundle_cache_cli.rb install \
+        ruby tasks/installed_bundle_cache_cli.rb install-appraisals \
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX" \
           --jobs 8

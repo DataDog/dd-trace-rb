@@ -66,8 +66,8 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.bundle-cache.outputs.cache-key || steps.fallback-bundle-cache.outputs.cache-key }}"
-      lockfile: "${{ steps.bundle-cache.outputs.lockfile || steps.fallback-bundle-cache.outputs.lockfile }}"
+      cache-key: "${{ steps.bundle-cache.outputs.cache-key || steps.installed-bundle-cache.outputs.base-cache-key }}"
+      lockfile: "${{ steps.bundle-cache.outputs.lockfile || steps.installed-bundle-cache.outputs.base-lockfile }}"
       installed-cache-key: "${{ steps.installed-bundle-cache.outputs.cache-key }}"
       installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready }}"
     container:
@@ -108,19 +108,15 @@ jobs:
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          cache-schema: bundle-installed-matrix-full-v1
+          cache-schema: bundle-installed-matrix-full-v2
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g228e3bfda7544acbb06dacb6021bcceb60cfcb75
           write-enabled: ${{ inputs.installed-cache-write }}
-
-      - name: Prepare fallback bundle cache
-        if: inputs.installed-cache-enabled && steps.installed-bundle-cache.outputs.ready != 'true'
-        id: fallback-bundle-cache
-        uses: ./.github/actions/bundle-cache
 
       - name: Report installed matrix bundle cache
         if: inputs.installed-cache-enabled
         shell: bash
         env:
+          BASE_CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.base-cache-key }}
           BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
           CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key }}
           FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count }}
@@ -130,7 +126,8 @@ jobs:
         run: |
           {
             echo "### Installed matrix bundle cache"
-            echo "- Key: \`$CACHE_KEY\`"
+            echo "- Base key: \`$BASE_CACHE_KEY\`"
+            echo "- Union key: \`$CACHE_KEY\`"
             echo "- Status: \`$STATUS\`"
             echo "- Files: \`${FILE_COUNT:-not-measured}\`"
             echo "- Bytes: \`${BYTE_COUNT:-not-measured}\`"
