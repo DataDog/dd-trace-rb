@@ -38,6 +38,10 @@ class InstalledBundleCache
     ([base_gemfile] + applicable_gemfiles).uniq
   end
 
+  def appraisal_gemfiles
+    applicable_gemfiles.reject { |gemfile| gemfile == base_gemfile }
+  end
+
   def environment(image_identity:, base_cache_key:)
     {
       "base_cache_key" => base_cache_key,
@@ -90,7 +94,7 @@ class InstalledBundleCache
   end
 
   def install_appraisals(jobs: 8)
-    applicable_gemfiles.each { |gemfile| run_bundle(gemfile, "install", "--jobs", jobs.to_s) }
+    appraisal_gemfiles.each { |gemfile| run_bundle(gemfile, "install", "--jobs", jobs.to_s) }
   end
 
   def check

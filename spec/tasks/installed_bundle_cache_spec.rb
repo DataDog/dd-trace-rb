@@ -26,7 +26,9 @@ RSpec.describe InstalledBundleCache do
   end
 
   let(:temporary_directory) { @temporary_directory }
-  let(:matrix) { instance_double(GithubMatrix, gemfiles: ["second.gemfile", "first.gemfile"]) }
+  let(:matrix) do
+    instance_double(GithubMatrix, gemfiles: ["second.gemfile", "base.gemfile", "first.gemfile"])
+  end
 
   def write(path, content)
     target = temporary_directory.join(path)
@@ -34,9 +36,15 @@ RSpec.describe InstalledBundleCache do
     target.write(content)
   end
 
-  it "returns the base and sorted appraisal Gemfiles" do
+  it "returns the base and sorted applicable Gemfiles once" do
     expect(cache.gemfiles.map { |path| path.basename.to_s }).to eq(
       %w[base.gemfile first.gemfile second.gemfile]
+    )
+  end
+
+  it "excludes the fallback base Gemfile from appraisal Gemfiles" do
+    expect(cache.appraisal_gemfiles.map { |path| path.basename.to_s }).to eq(
+      %w[first.gemfile second.gemfile]
     )
   end
 
