@@ -38,6 +38,8 @@ module Datadog
 
         module Testing
           def self._native_global_reset_per_thread_context: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> void
+
+          def self._native_prepare_serialize: (ThreadContext collector_instance) -> Datadog::Profiling::StackRecorder
         end
 
         def inspect: () -> ::String

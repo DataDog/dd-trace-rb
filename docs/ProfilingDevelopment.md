@@ -24,7 +24,8 @@ with ongoing tracing information, if any. Relies on the `Collectors::Stack` for 
 * `HttpTransport`: Implements transmission of profiling payloads to the Datadog agent or backend.
 * `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
-* `Exporter`: Gathers data from `StackRecorder` and `Collectors::CodeProvenance` to be reported as a profile.
+* `Exporter`: Calls `Collectors::CpuAndWallTimeWorker#prepare_serialize` to collect pending samples and obtain the `StackRecorder`,
+then combines its serialized samples with `Collectors::CodeProvenance` data to be reported as a profile.
 * `Scheduler`: Periodically (every 1 minute) takes data from the `Exporter` and pushes them to the configured transport.
   Runs on its own background thread.
 * `StackRecorder`: Stores stack samples in a native libdatadog data structure and exposes Ruby-level serialization APIs.
@@ -42,29 +43,29 @@ flow:
 4. The `Setup` task activates our extensions (`Datadog::Profiling::Ext::Forking`)
 5. The `build_profiler_component` method then creates and wires up the Profiler as such:
     ```asciiflow
-            +----------------------------------+
-            |             Profiler             |
-            +-+------------------------------+-+
-              |                              |
-              v                              v
-    +---------+------------------------+   +-+---------+
-    | Collectors::CpuAndWallTimeWorker |   | Scheduler |
-    +---------+------------------------+   +-+-------+-+
-              |                              |       |
-              |                              |       v
-              |                              |  +----+----------+
-    (... see "How sampling happens" ...)     |  | HttpTransport |
-              |                              |  +---------------+
-              |                              |
-              v                              v
-      +-------+-------+                   +--+-------+
-      | StackRecorder |<------------------| Exporter |
-      +---------------+                   +--+-------+
-                                             |
-                                             v
-                              +--------------+-------------+
-                              | Collectors::CodeProvenance |
-                              +----------------------------+
+            +----------------------------------------------+
+            |                   Profiler                   |
+            +-+------------------------------------------+-+
+              |                                          |
+              v                                          v
+    +---------+------------------------+               +-+---------+
+    | Collectors::CpuAndWallTimeWorker |               | Scheduler |
+    +---------+------------------------+               +-+-------+-+
+              |                                          |       |
+              |                                          |       v
+              |                                          |  +----+----------+
+    (... see "How sampling happens" ...)                 |  | HttpTransport |
+              |                                          |  +---------------+
+              |                                          |
+              v                                          v
+      +-------+-------+                               +--+-------+
+      | StackRecorder |<---(via prepare_serialize)----| Exporter |
+      +---------------+                               +--+-------+
+                                                         |
+                                                         v
+                                          +--------------+-------------+
+                                          | Collectors::CodeProvenance |
+                                          +----------------------------+
     ```
 6. The profiler gets started when `startup!` is called by `Datadog::Configuration` after component creation.
 
