@@ -5,6 +5,7 @@
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
+require_relative "thread_generation"
 
 module Datadog
   module DI
