@@ -182,6 +182,9 @@ module Datadog
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 
+        serial_id = result.serial_id
+        metadata[Ext::METADATA_SERIAL_ID] = serial_id if span_enrichment_hook && !serial_id.nil?
+
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
         metadata["dd.eval.timestamp_ms"] = eval_time_ms

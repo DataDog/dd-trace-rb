@@ -32,6 +32,8 @@ module Datadog
       # value so the writer (provider) and readers (EVP/metrics hooks) can't drift.
       METADATA_ALLOCATION_KEY = "__dd_allocation_key"
 
+      METADATA_SERIAL_ID = "__dd_split_serial_id"
+
       # Stamped from the UFC the evaluation ran against; the hook reads only this
       # key, never live config.
       METADATA_OBSERVE_FULL_EVALUATION_DATA = "__dd_observe_full_evaluation_data"

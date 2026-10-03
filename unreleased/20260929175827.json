@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6400",
+  "message": "Fix missing `__dd_split_serial_id` in flag evaluation metadata when span enrichment is enabled. Preserve zero and omit the key when the evaluated split has no serial ID."
+}
