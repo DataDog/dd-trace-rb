@@ -1,5 +1,10 @@
 # Hooks Guide
 
+These hooks are a Claude Code **hard guard** only: they deny edits that the
+skill pointers in `AGENTS.md` ("# Skills") already cover for every harness.
+They are optional enforcement, not the primary mechanism — the portable
+contract is the AGENTS.md pointer plus the skill itself in `.agents/skills/`.
+
 This is a short guide explaining code organization and conventions. For the
 complete Claude hooks documentation please follow the [official documentation]
 

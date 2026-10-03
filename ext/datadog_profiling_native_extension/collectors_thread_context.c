@@ -311,7 +311,6 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
 );
@@ -741,6 +740,7 @@ static void record_sampling_overhead(thread_context_collector_state *state, per_
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
+// Assumption 6: When called while the profiler is active, `during_sample` MUST be set.
 //
 bool thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   thread_context_collector_state *state;
@@ -748,25 +748,30 @@ bool thread_context_collector_sample(VALUE self_instance, long current_monotonic
 
   VALUE current_thread = rb_thread_current();
   per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
-  long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
+
+  // Sample the current thread (which will use the current CPU-time) first.
+  // This ensures any CPU-time the profiler spends sampling (e.g. the rest of the function) is not wrongly blamed on this thread,
+  // and instead is separately accounted by `record_sampling_overhead()` below.
+  update_metrics_and_sample(
+    state,
+    current_thread,
+    current_thread_context,
+    current_monotonic_wall_time_ns,
+    false);
 
   VALUE threads = thread_list(state);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_or_create_context_for(thread);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
 
-    // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
-    // to avoid blaming the time the profiler took on whatever is currently running on the thread,
-    // and instead we report that time the profiler took as sampling overhead below.
-    long current_cpu_time_ns = (thread == current_thread) ? cpu_time_at_sample_start_for_current_thread : cpu_time_now_ns(thread_context);
+    if (thread == current_thread) continue; // Already sampled above
 
     update_metrics_and_sample(
       state,
       thread,
-      thread_context,
-      current_cpu_time_ns,
+      get_or_create_context_for(thread),
       current_monotonic_wall_time_ns,
       false);
   }
@@ -790,10 +795,10 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
 ) {
+  long current_cpu_time_ns = cpu_time_now_ns(thread_context);
   bool is_gvl_waiting_state =
     handle_gvl_waiting(state, thread_being_sampled, thread_context, current_cpu_time_ns);
 
@@ -986,6 +991,7 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
 // Assumption 3: Unlike `on_gc_start` and `on_gc_finish`, this method is allowed to allocate memory as needed.
 // Assumption 4: This function is called from the main Ractor (if Ruby has support for Ractors).
+// Assumption 5: When called while the profiler is active, `during_sample` MUST be set.
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -1325,6 +1331,8 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       bool is_profiler_internal_thread = thread_context->is_profiler_internal_thread;
@@ -1439,7 +1447,9 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
       rb_hash_aset(result, thread, per_thread_context_to_ruby_hash(thread_context));
@@ -1679,7 +1689,7 @@ static VALUE thread_list(thread_context_collector_state *state) {
 // the current thread.
 //
 // Assumptions for this function are same as for `thread_context_collector_sample` except that this function is
-// expected to be called from a signal handler and to be async-signal-safe.
+// expected to be called from a signal handler and to be async-signal-safe, and `during_sample` MUST be unset.
 //
 // Also, no allocation (Ruby or malloc) can happen.
 bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
@@ -1696,7 +1706,8 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
 // Returns true if `thread_context_collector_commit_heap_recordings_may_lose_gvl` needs to be called (to do work
 // that can't be done from inside the tracepoint, such as allocate new objects), and false if it doesn't
 //
-// The callers must ensure thread_context is non-NULL.
+// Assumption 1: The callers must ensure thread_context is non-NULL.
+// Assumption 2: When called while the profiler is active, `during_sample` MUST be set.
 bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -1942,6 +1953,7 @@ static void ddtrace_otel_trace_identifiers_for(
   *numeric_span_id = resolved_numeric_span_id;
 }
 
+// Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -2156,7 +2168,9 @@ static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self,
 // flush is not lost. on_serialize (below) also flushes profiler-internal threads during periodic
 // serialization, but it can't help at shutdown: by the time the final serialize runs, these
 // threads are already dead and absent from thread_list.
-void thread_context_collector_profiler_internal_thread_done(VALUE self_instance) {
+//
+// Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
+VALUE thread_context_collector_profiler_internal_thread_done(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -2166,21 +2180,23 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
     rb_raise(rb_eRuntimeError, "current thread %"PRIsVALUE" is not profiler-internal thread", current_thread);
   }
 
-  long current_cpu_time_ns = cpu_time_now_ns(thread_context);
   long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
   update_metrics_and_sample(
     state,
     current_thread,
     thread_context,
-    current_cpu_time_ns,
     current_monotonic_wall_time_ns,
     true);
+
+  return Qnil;
 }
 
 // Flushes threads whose last per-tick sample was skipped (either by the SUSPENDED-skip
 // optimization, or by is_profiler_internal_thread) so their accumulated time is recorded.
 // Called by the stack recorder at the start of _native_serialize (regular periodic flush).
+//
+// Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
 void thread_context_collector_on_serialize(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -2190,19 +2206,19 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
   const long thread_count = RARRAY_LEN(threads);
 
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
+    ENFORCE_THREAD(thread);
+
     per_thread_context *thread_context = get_per_thread_context(thread);
 
     if (thread_context != NULL && (thread_context->was_skipped_at_last_sample || thread_context->is_profiler_internal_thread)) {
-      long current_cpu_time_ns = cpu_time_now_ns(thread_context);
-      // We need to force_sample=true otherwise this sample would be skipped too
       update_metrics_and_sample(
         state,
         thread,
         thread_context,
-        current_cpu_time_ns,
         current_monotonic_wall_time_ns,
-        true);
+        true // We need to force_sample=true otherwise this sample would be skipped too
+      );
     }
   }
 }
@@ -2246,6 +2262,8 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 
 #ifndef NO_GVL_INSTRUMENTATION
   // We must only use async-signal-safe functions here, see notes in the caller
+  //
+  // Assumption 1: When called while the profiler is active, `during_sample` MUST be set.
   __attribute__((warn_unused_result))
   on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread, per_thread_context *thread_context, uint32_t waiting_for_gvl_threshold_ns) {
     // Bump the event counter and clears the state bit to "running"
@@ -2322,7 +2340,8 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
   //
   // ---
   //
-  // Always called with the GVL, either from a postponed_job or from tests.
+  // Assumption 1: Always called with the GVL, either from a postponed_job or from tests.
+  // Assumption 2: When called while the profiler is active, `during_sample` MUST be set.
   //
   // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); the `current_thread` parameter only
   // exists to enable testing.
@@ -2342,18 +2361,12 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
       return Qfalse;
     }
 
-    // We don't actually account for cpu-time during Waiting for GVL. BUT, we may choose to push an
-    // extra sample to represent the period prior to Waiting for GVL. To support that, we retrieve the current
-    // cpu-time of the thread and let `update_metrics_and_sample` decide what to do with it.
-    long cpu_time_for_thread = cpu_time_now_ns(thread_context);
-
     // TODO: Should we update the dynamic sampling rate overhead tracking with this sample as well?
 
     update_metrics_and_sample(
       state,
       current_thread,
       thread_context,
-      cpu_time_for_thread,
       current_monotonic_wall_time_ns,
       false);
 

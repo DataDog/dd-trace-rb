@@ -13,6 +13,7 @@
 // Forward declarations
 static VALUE configuration_new(VALUE klass, VALUE json_str);
 static void configuration_free(void *ptr);
+static VALUE configuration_get_observe_full_evaluation_data(VALUE self);
 static VALUE configuration_get_assignment(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
 
@@ -94,6 +95,7 @@ void feature_flags_init(VALUE core_module) {
   rb_undef_alloc_func(configuration_class);
   rb_define_singleton_method(configuration_class, "new", configuration_new, 1);
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
+  rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
   rb_gc_register_address(&resolution_details_class);
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
@@ -135,6 +137,12 @@ static VALUE configuration_new(VALUE klass, VALUE json_str) {
     raise_error(feature_flags_error_class, "Failed to create configuration from JSON: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
   return TypedData_Wrap_Struct(klass, &configuration_data_type, result.ok);
+}
+
+static VALUE configuration_get_observe_full_evaluation_data(VALUE self) {
+  ddog_ffe_Handle_Configuration configuration =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  return ddog_ffe_configuration_get_observe_full_evaluation_data(configuration) ? Qtrue : Qfalse;
 }
 
 static void configuration_free(void *ptr) {

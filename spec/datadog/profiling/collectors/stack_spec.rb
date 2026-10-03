@@ -763,16 +763,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when sampling the idle sampling helper thread" do
         let(:expected_method_name) { "_native_idle_sampling_loop" }
-        let(:thread_context_collector) {
-          Datadog::Profiling::Collectors::ThreadContext.for_testing(
-            recorder: Datadog::Profiling::StackRecorder.for_testing,
-          )
+        let(:cpu_and_wall_time_worker) {
+          instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, _native_profiler_internal_thread_done: nil)
         }
-        let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new(thread_context_collector: thread_context_collector) }
+        let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
-            Datadog::Profiling::Collectors::IdleSamplingHelper._native_idle_sampling_loop(idle_sampling_helper, thread_context_collector)
+            Datadog::Profiling::Collectors::IdleSamplingHelper._native_idle_sampling_loop(idle_sampling_helper, cpu_and_wall_time_worker)
           end
         end
         let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
@@ -921,6 +919,52 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         "ClassWithOriginalMethod#original",
         "SubclassSharingMethodIseq#original",
       )
+    end
+  end
+
+  context "when sampling inside a Ruby::Box", if: RubyVersion.is?(">= 4.0") do
+    it "reports the class name of a core class the box monkey patched" do
+      skip "https://bugs.ruby-lang.org/issues/22339" if asan_build?
+
+      require "open3"
+
+      spec_dir = File.expand_path("../../..", __dir__)
+      script = <<~RUBY
+        require "datadog"
+        require "datadog/profiling/collectors/stack"
+        require "datadog/profiling/pprof/pprof_pb"
+        require "zstd-ruby"
+
+        box = Ruby::Box.new
+        box.require("#{__dir__}/helper/ruby_box_sampler.rb")
+
+        recorder = Datadog::Profiling::StackRecorder.for_testing
+        box::BoxedSampler.sample(
+          Datadog::Profiling::Collectors::Stack::Testing,
+          recorder,
+          #{metric_values.inspect},
+          #{labels.inspect},
+        )
+
+        profile = Perftools::Profiles::Profile.decode(Zstd.decompress(recorder.serialize!._native_bytes))
+        profile.sample.first.location_id.each do |location_id|
+          location = profile.location.find { |it| it.id == location_id }
+          function = profile.function.find { |it| it.id == location.line.first.function_id }
+          puts profile.string_table[function.name]
+        end
+      RUBY
+
+      stdout, stderr, status = Open3.capture3(
+        {"RUBY_BOX" => "1"},
+        RbConfig.ruby,
+        "-I",
+        spec_dir,
+        "-e",
+        script,
+      )
+
+      expect(status.success?).to be(true), "Sampling inside a Ruby::Box failed. stderr: #{stderr}"
+      expect(stdout.lines).to include("String#method_patched_in_box\n")
     end
   end
 

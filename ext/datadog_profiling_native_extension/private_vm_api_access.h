@@ -45,6 +45,7 @@ uint64_t native_thread_id_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
+void self_test_thread_name_for(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 

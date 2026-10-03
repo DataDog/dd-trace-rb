@@ -40,6 +40,40 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
       end
     end
 
+    describe "#redaction_enabled" do
+      context "when DD_AI_GUARD_REDACTION_ENABLED is not defined" do
+        with_env "DD_AI_GUARD_REDACTION_ENABLED" => nil
+
+        it { expect(settings.ai_guard.redaction_enabled).to be(true) }
+      end
+
+      context "when DD_AI_GUARD_REDACTION_ENABLED is defined as true" do
+        with_env "DD_AI_GUARD_REDACTION_ENABLED" => "true"
+
+        it { expect(settings.ai_guard.redaction_enabled).to be(true) }
+      end
+
+      context "when DD_AI_GUARD_REDACTION_ENABLED is defined as false" do
+        with_env "DD_AI_GUARD_REDACTION_ENABLED" => "false"
+
+        it { expect(settings.ai_guard.redaction_enabled).to be(false) }
+      end
+    end
+
+    describe "#redaction_enabled=" do
+      context "when set to true" do
+        before { settings.ai_guard.redaction_enabled = true }
+
+        it { expect(settings.ai_guard.redaction_enabled).to be(true) }
+      end
+
+      context "when set to false" do
+        before { settings.ai_guard.redaction_enabled = false }
+
+        it { expect(settings.ai_guard.redaction_enabled).to be(false) }
+      end
+    end
+
     describe "#endpoint" do
       context "when DD_AI_GUARD_ENDPOINT is not defined" do
         with_env "DD_AI_GUARD_ENDPOINT" => nil

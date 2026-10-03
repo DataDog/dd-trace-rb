@@ -19,8 +19,8 @@ module Datadog
           :first_span,
           :trace
 
-        def self.format!(trace)
-          new(trace).format!
+        def self.format!(trace, transport: nil)
+          new(trace).format!(transport: transport)
         end
 
         def initialize(trace)
@@ -32,7 +32,7 @@ module Datadog
         end
 
         # Modifies a trace so suitable for transport
-        def format!
+        def format!(transport: nil)
           return unless trace
           return trace unless root_span
 
@@ -65,9 +65,12 @@ module Datadog
 
           if first_span
             tag_process_tags!
+            tag_sdk_otlp_export!
             tag_git_repository_url!
             tag_git_commit_sha!
           end
+
+          root_span.set_tag("_dd.tracing.transport", transport) if transport && !partial?
 
           trace
         end
@@ -235,6 +238,13 @@ module Datadog
             Core::Environment::Ext::TAG_PROCESS_TAGS,
             Core::Environment::Process.serialized
           )
+        end
+
+        # TODO: Revisit when OTLP trace export support lands. The OTLP path sets
+        # `_dd.sdk.otlp_export: "true"` on the OTLP resource, so this tag must not
+        # also be set to "false" on the first span of a chunk exported over OTLP.
+        def tag_sdk_otlp_export!
+          first_span.set_tag(Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT, "false")
         end
 
         private

@@ -62,6 +62,8 @@ RSpec.describe "gem release process" do
             |spec
             |docs
             |\.claude
+            |\.llm-validation
+            |\.agents
             |\.cursor
             |\.github
             |\.gitlab
