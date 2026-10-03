@@ -507,8 +507,7 @@ module Datadog
           end
         end
 
-        rate_limiter = probe.rate_limiter
-        rate_limiter.nil? || rate_limiter.allow?
+        probe.own_rate_limit_allows?
       end
 
       # Body of the method probe wrapper. Extracted from the define_method

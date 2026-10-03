@@ -22,23 +22,9 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
   end
 
-  # A rate limiter that admits +allow+ times, then denies.
-  def limiter(allow:)
-    remaining = allow
-    instance_double(Datadog::Core::RateLimiter).tap do |rl|
-      allow(rl).to receive(:allow?) do
-        if remaining > 0
-          remaining -= 1
-          true
-        else
-          false
-        end
-      end
-    end
-  end
-
-  def probe(id, rate_limiter: nil)
-    instance_double(Datadog::DI::Probe, id: id, rate_limiter: rate_limiter)
+  def probe(id, own_rate_limit_allows: true)
+    instance_double(Datadog::DI::Probe, id: id,
+      own_rate_limit_allows?: own_rate_limit_allows)
   end
 
   def unit(key)
@@ -51,22 +37,24 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
   describe "#emit?" do
     context "no active trace" do
-      it "admits a probe with no rate limiter" do
+      it "admits when the probe's own rate limit allows" do
         expect(correlation.emit?(probe("a"), none)).to be(true)
       end
 
-      it "drops when the probe's own rate limiter denies" do
-        expect(correlation.emit?(probe("a", rate_limiter: limiter(allow: 0)), none)).to be(false)
+      it "drops when the probe's own rate limit denies" do
+        expect(correlation.emit?(probe("a", own_rate_limit_allows: false), none)).to be(false)
       end
 
-      it "defers to the probe's rate limiter across hits" do
-        p = probe("a", rate_limiter: limiter(allow: 1))
+      it "defers to the probe's own rate limit across hits" do
+        p = probe("a")
+        allow(p).to receive(:own_rate_limit_allows?).and_return(true, false)
         expect(correlation.emit?(p, none)).to be(true)
         expect(correlation.emit?(p, none)).to be(false)
       end
 
       it "does not coordinate independent hits" do
-        p = probe("a", rate_limiter: limiter(allow: 2))
+        p = probe("a")
+        allow(p).to receive(:own_rate_limit_allows?).and_return(true, true)
         expect(correlation.emit?(p, none)).to be(true)
         expect(correlation.emit?(p, none)).to be(true)
       end

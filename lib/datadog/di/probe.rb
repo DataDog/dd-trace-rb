@@ -158,6 +158,15 @@ module Datadog
       # probe rate limit for the errors).
       attr_reader :condition_evaluation_failed_rate_limiter
 
+      # Consumes one token from the probe's own rate limiter and reports
+      # whether this probe hit is admitted; a probe with no rate limiter is
+      # admitted.
+      #
+      # @return [Boolean]
+      def own_rate_limit_allows?
+        rate_limiter.nil? || rate_limiter.allow?
+      end
+
       def capture_snapshot?
         @capture_snapshot
       end
