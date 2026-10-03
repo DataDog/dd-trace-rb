@@ -218,13 +218,34 @@ module Datadog
             [env_var, telemetry_value]
           end
 
-          if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
+          di_enabled = lib_config["dynamic_instrumentation_enabled"]
+          # allow_initialization: false because this runs on the remote-config
+          # worker thread. If components have not been built yet (e.g. during a
+          # teardown/reset window), the default would synchronously build the
+          # entire component tree from this thread. components is then nil, so
+          # every access below guards with &., matching the pattern used by
+          # DI::Remote.handle_rc_enablement in the same dispatch path.
+          components = Datadog.send(:components, allow_initialization: false)
+          # When the RC enable signal is withdrawn (the config carrying
+          # dynamic_instrumentation_enabled is deleted, or the field is set
+          # to null), the field is absent from the merged config and di_enabled
+          # is nil. A tracer whose DI was started solely by the RC signal must
+          # stop and unsubscribe on withdrawal, matching the explicit-false
+          # path; this branch maps that nil to false for such tracers. A tracer
+          # the customer enabled via DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
+          # stays running, since that opt-in is independent of RC.
+          if di_enabled.nil? && components&.dynamic_instrumentation&.implicitly_enabled?
+            Datadog.logger.debug("APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false")
+            di_enabled = false
+          end
+
+          unless di_enabled.nil?
             # repository is forwarded so that an enable signal can reconcile DI
-            # against probes delivered in an earlier poll while DI was stopped
-            # (see Datadog::DI::Remote.handle_rc_enablement).
+            # against probes delivered in an earlier poll while DI was stopped:
+            # Datadog::DI::Remote.handle_rc_enablement replays the current
+            # LIVE_DEBUGGING contents on the stopped->started transition.
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
 
-            components = Datadog.send(:components, allow_initialization: false)
             di_products = Datadog::DI::Remote.products +
               Datadog::SymbolDatabase::Remote.deferred_products(Datadog.configuration)
 
@@ -249,13 +270,7 @@ module Datadog
             Datadog.logger.debug { "APM_TRACING RC: merged dynamic_instrumentation_enabled=#{di_enabled}" }
           end
 
-          # allow_initialization: false because this runs on the remote-config
-          # worker thread. If components haven't been built yet (e.g. during a
-          # teardown/reset window), the default value would synchronously build
-          # the entire component tree from this thread. The &. chain matches the
-          # pattern used by DI::Remote.handle_rc_enablement in the same dispatch
-          # path.
-          Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
+          components&.telemetry&.client_configuration_change!(env_vars)
           nil
         end
 
