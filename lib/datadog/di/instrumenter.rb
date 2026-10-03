@@ -120,8 +120,6 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
-      # Coordinated-sampling delegate shared across capturing probes, or nil
-      # when coordination is disabled.
       attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
