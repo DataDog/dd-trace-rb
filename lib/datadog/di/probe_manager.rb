@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "fatal_exceptions"
+require_relative "guardrails"
 
 module Datadog
   module DI
@@ -318,9 +319,20 @@ module Datadog
       # @param exc [Exception] The exception raised during condition evaluation
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        if probe.condition_evaluation_failed_rate_limiter&.allow?
+        rate_limiter = probe.condition_evaluation_failed_rate_limiter
+        if rate_limiter&.allow?
           payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
           probe_notifier_worker.add_snapshot(payload)
+        elsif rate_limiter
+          logger.trace do
+            "di: #{probe.type} probe #{probe.id}: skipping condition evaluation failure" \
+              " notification due to per-probe rate limit" \
+              " (#{Guardrails::Reason::EVALUATION_ERROR_THROTTLED})"
+          end
+          Guardrails.skipped(
+            telemetry, reason: Guardrails::Reason::EVALUATION_ERROR_THROTTLED,
+            probe_type: Guardrails.probe_type_tag(probe),
+          )
         end
       end
 

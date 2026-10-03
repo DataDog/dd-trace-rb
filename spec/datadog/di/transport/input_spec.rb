@@ -152,6 +152,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     end
 
     context "when individual snapshot exceeds intake max" do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
       before do
         # Reduce limits even more to force a reasonably-sized snapshot to be dropped
         stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
@@ -172,7 +174,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be < 1_000
           expect(chunked_payload.length).to be > 100
         end
-        expect_lazy_log(logger, :debug, "di: dropping too big snapshot")
+        expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+        expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
+          expect(namespace).to eq("dynamic_instrumentation")
+          expect(name).to eq("guardrails.queue.dropped_bytes")
+          expect(value).to be > 2_000
+          expect(tags).to eq(reason: "payloadTooLarge", event_type: "snapshot")
+        end
+        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
