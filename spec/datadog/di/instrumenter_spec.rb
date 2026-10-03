@@ -1240,6 +1240,33 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         include_examples "does not report the call and reports evaluation failure"
       end
+
+      context "when the responder is a ProcResponder with a failed proc" do
+        let(:propagate_all_exceptions) { false }
+
+        let(:condition) do
+          Datadog::DI::EL::Expression.new(
+            "(expression)",
+            "unknown_function('kwarg') == 42"
+          )
+        end
+
+        it "invokes the failed proc with the context and exception" do
+          observed = []
+          responder = Datadog::DI::ProcResponder.new(
+            proc { |context| observed << [:executed, context] },
+            proc { |context, exc| observed << [:failed, context, exc] }
+          )
+          instrumenter.hook_method(probe, responder)
+
+          target_call
+
+          expect(observed.length).to eq 1
+          expect(observed.first[0]).to eq :failed
+          expect(observed.first[1]).to be_a(Datadog::DI::Context)
+          expect(observed.first[2]).to be_an(Exception)
+        end
+      end
     end
 
     # The wrapper passes caller_locations to run_method_probe so the
