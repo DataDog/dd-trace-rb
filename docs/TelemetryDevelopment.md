@@ -64,3 +64,41 @@ concerned, having a new runtime ID, and therefore the initial event in the
 forked child must always be `app-started`. Since we track the initial event
 in the telemetry component, this event must be changed to `app-started` in
 forked children regardless of what it was in the parent.
+
+## Native trace exporter metrics
+
+The experimental native transport can run libdatadog's `MetricsLogs` worker on
+its existing shared runtime. Ruby retains application lifecycle, configuration,
+dependencies, and unrelated metrics. Native exporter series keep
+`src_library:libdatadog`.
+
+Enablement requires telemetry and metrics to be enabled, Agent-based telemetry,
+and native headers and symbols supporting mutable identity and bounded shutdown.
+The pinned libdatadog 44.0.1 package lacks these APIs; development requires a
+matching `LIBDATADOG_VENDOR_OVERRIDE` build. Agentless telemetry, including its
+URL override, does not enable the native worker.
+
+Native delivery uses Ruby's heartbeat interval, converted to milliseconds. Its
+aggregation interval is the smaller of that interval and ten seconds; Ruby's
+independently configurable metrics aggregation interval does not change it.
+Native endpoint-error handling is independent of Ruby's unsupported-endpoint
+disablement.
+
+Fork preparation pauses native workers and drains active sends. The child
+publishes Ruby's runtime and session ancestry before resetting and restarting
+workers; pending parent observations are discarded. Parent and failed-fork
+paths retain identity, pending observations, and sequence state. Native sequence
+counters remain independent of Ruby's emitter; backend acceptance of this
+arrangement must be confirmed before package uptake.
+
+Explicit close bounds worker flushing by Ruby's telemetry shutdown timeout,
+outside the GVL. Disabling telemetry before close discards pending native data. Garbage
+collection discards the exporter and its exclusively owned runtime without a
+network flush. Pausing an already active telemetry request waits for its response
+or native endpoint timeout (three seconds by default); trace-send cancellation
+does not cancel the telemetry worker.
+
+These deadlines do not bound system DNS resolution: the current Hyper connector
+uses blocking resolver tasks, and runtime destruction joins those tasks. The
+local timeout regressions use IP addresses and Unix sockets; they do not establish
+a process-wide deadline for hostname resolution.
