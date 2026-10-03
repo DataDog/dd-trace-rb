@@ -315,7 +315,7 @@ module Datadog
       # backend when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
-      # @param expr [String] The condition expression that failed
+      # @param expr [EL::Expression] The condition expression that failed
       # @param exc [Exception] The exception raised during condition evaluation
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
