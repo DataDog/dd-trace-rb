@@ -113,6 +113,21 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
     end
 
+    it "emits a nested capturing chain past an exhausted hard snapshot limit" do
+      probe_manager.add_probe(method_probe("p-alpha", "alpha"))
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
+
+      # Drain the process-wide hard snapshot limiter (20/s) so a correlated
+      # chain would fragment if it consulted that limiter.
+      20.times { component.instrumenter.global_snapshot_rate_limiter.allow? }
+
+      CorrelationIntegrationTestClass.new.alpha
+      flush
+
+      expect(snapshots.size).to eq(2)
+      expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
+    end
+
     it "bounds one probe to the per-probe counter within a trace" do
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 

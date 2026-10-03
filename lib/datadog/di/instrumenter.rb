@@ -484,20 +484,29 @@ module Datadog
       attr_reader :lock
 
       # Coordinated sampling gate. Returns true when the probe hit should emit a
-      # snapshot. Delegates the decision to the correlation sampler so probes
-      # in one sampling unit share it. Coordination applies to capturing probes
-      # (the scope of the cross-tracer RFC's snapshot correlation);
-      # non-capturing probes keep their own per-probe rate limit. Fails open:
-      # if the correlation sampler is absent (the nil, coordination-disabled
-      # mode) or the gate raises, fall back to the probe's own rate limiter.
+      # snapshot. A capturing probe with an active trace delegates the whole
+      # decision to the correlation sampler so probes in one sampling unit
+      # share it; the sampler's GLOBAL borrowing budget is the process-wide
+      # bound for those hits, so they bypass the hard limiter. Every other hit
+      # (uncorrelated, non-capturing, the coordination-disabled mode, or a hit
+      # failing open after a gate error) consults the probe's own rate limiter
+      # and then the process-wide hard limiter for the probe's category.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
       # @return [Boolean] true when the probe hit should emit a snapshot
       def emit?(probe)
         correlation_sampler = self.correlation_sampler
         if correlation_sampler && probe.capturing?
+          sampling_unit = SamplingUnit.current
           begin
-            return correlation_sampler.emit?(probe, SamplingUnit.current)
+            emit = correlation_sampler.emit?(probe, sampling_unit)
+            return emit if sampling_unit.key
+
+            # Uncorrelated hit: the sampler already consulted the probe's own
+            # rate limiter, so only the hard limiter remains.
+            return false unless emit
+
+            return global_rate_limit_allows?(probe)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -507,7 +516,26 @@ module Datadog
           end
         end
 
-        probe.own_rate_limit_allows?
+        return false unless probe.own_rate_limit_allows?
+
+        global_rate_limit_allows?(probe)
+      end
+
+      # Consults the process-wide hard rate limiter for the probe's category.
+      # Correlated capturing hits bypass this limiter; their process-wide
+      # bound is the correlation sampler's GLOBAL borrowing budget, and a
+      # hard cap at the same rate would drop the borrowed snapshots that
+      # keep a related chain intact.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the hard limiter admits the hit
+      def global_rate_limit_allows?(probe)
+        unless probe_global_rate_limiter(probe).allow?
+          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          return false
+        end
+
+        true
       end
 
       # Body of the method probe wrapper. Extracted from the define_method
@@ -600,10 +628,6 @@ module Datadog
           end
 
           admitted = continue && emit?(probe)
-          if admitted && !probe_global_rate_limiter(probe).allow?
-            admitted = false
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
-          end
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -866,11 +890,6 @@ module Datadog
         end
 
         return unless emit?(probe)
-
-        unless probe_global_rate_limiter(probe).allow?
-          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
-          return
-        end
 
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the

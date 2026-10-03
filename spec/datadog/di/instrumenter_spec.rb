@@ -4,6 +4,7 @@ require "datadog/di/code_tracker"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/capture_expression"
+require "datadog/di/correlation_sampler"
 require "datadog/di/proc_responder"
 require "datadog/di/logger"
 require_relative "hook_line"
@@ -2136,6 +2137,86 @@ RSpec.describe Datadog::DI::Instrumenter do
       it "falls back to the probe's own rate limiter" do
         expect(probe.rate_limiter).to receive(:allow?).and_return(true)
         expect(instrumenter.send(:emit?, probe)).to be(true)
+      end
+    end
+
+    describe "#emit? with a correlation sampler" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log, capture_snapshot: true, rate_limit: 5000)
+      end
+
+      let(:instrumenter) do
+        described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+          correlation_sampler: Datadog::DI::CorrelationSampler.new)
+      end
+
+      context "with an active trace" do
+        before do
+          trace = instance_double(Datadog::Tracing::TraceOperation, id: 123)
+          allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
+        end
+
+        it "admits a correlated hit past an exhausted hard snapshot limit" do
+          20.times { instrumenter.global_snapshot_rate_limiter.allow? }
+
+          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "applies the sampler's drop to a correlated hit" do
+          allow(instrumenter.correlation_sampler).to receive(:emit?).and_return(false)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+      end
+
+      context "without an active trace" do
+        before do
+          allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
+        end
+
+        it "applies the hard snapshot limit to an uncorrelated capturing hit" do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      describe "gate errors" do
+        let(:propagate_all_exceptions) { false }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        let(:instrumenter) do
+          described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+            correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry)
+        end
+
+        before do
+          trace = instance_double(Datadog::Tracing::TraceOperation, id: 123)
+          allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
+        end
+
+        it "fails open through the probe's own rate limit and reports telemetry" do
+          allow(logger).to receive(:debug)
+          allow(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("gate boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "re-raises fatal exceptions" do
+          allow(instrumenter.correlation_sampler).to receive(:emit?).and_raise(SystemExit)
+
+          expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
+        end
       end
     end
 

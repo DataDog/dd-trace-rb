@@ -35,7 +35,7 @@ module Datadog
 
       @capture_expression_evaluator: CaptureExpressionEvaluator?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, correlation_sampler: CorrelationSampler?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, correlation_sampler: CorrelationSampler?, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -89,6 +89,8 @@ module Datadog
       attr_reader lock: ::Thread::Mutex
 
       def emit?: (Probe probe) -> bool
+
+      def global_rate_limit_allows?: (Probe probe) -> bool
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
