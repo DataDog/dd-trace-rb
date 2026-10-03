@@ -30,11 +30,12 @@ module Datadog
       # The coordinated-sampling model (process-wide TOP/GLOBAL token buckets,
       # per-trace per-probe and all counters, and the borrowing global bucket)
       # follows the cross-tracer RFC "Improvements to Casual Correlation for
-      # Live Debugger Snapshots". Tracers predating the RFC, such as
-      # dd-trace-java, budget only per-probe-per-trace with no process-wide
-      # gates; the Ruby implementation follows the RFC, so the divergence is
-      # intentional. PER_PROBE_BUDGET is 1, below the RFC's higher target, to
-      # satisfy the system-tests correlation gate (DataDog/system-tests#7425).
+      # Live Debugger Snapshots". dd-trace-java coordinates through a debug
+      # session riding the trace, with per-probe-per-trace budgets and a
+      # process-wide global sampler; the Ruby implementation follows the
+      # RFC's in-process model, so the divergence is intentional.
+      # PER_PROBE_BUDGET is 1, below the RFC's higher target, to satisfy the
+      # system-tests correlation gate (DataDog/system-tests#7425).
 
       # @param max_entries [Integer] bound for the per-trace budget ledger
       # @param top_rate [Numeric] TOP rate limit, snapshots/second
@@ -119,8 +120,8 @@ module Datadog
 
       # First capturing probe in the trace. Passes the process-wide GLOBAL and
       # TOP gates to emit and seed the trace counters; on either gate's refusal,
-      # marks the trace starved so every correlated probe in it also drops.
-      # Must hold the lock.
+      # or when the seeded budget denies the top probe itself, marks the trace
+      # starved so every correlated probe in it also drops. Must hold the lock.
       #
       # @param key [Integer]
       # @param probe [Datadog::DI::Probe]
@@ -137,9 +138,8 @@ module Datadog
 
         global_limiter.consume
         budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
-        budget.admit(probe.id)
         store(key, budget)
-        true
+        budget.admit(probe.id)
       end
 
       # A capturing probe firing inside an established unit. Bounded by the
