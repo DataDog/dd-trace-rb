@@ -73,6 +73,7 @@ module Datadog
 
       attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
 
+      def own_rate_limit_allows?: () -> bool
       def capture_snapshot?: () -> bool
       def capture_expressions?: () -> bool
       def capturing?: () -> bool

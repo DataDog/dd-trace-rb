@@ -97,14 +97,13 @@ module Datadog
       # All-probe per-trace emission counter this sampler was constructed with.
       attr_reader :all_budget
 
-      # Consults the probe's own rate limiter for a hit with no active trace,
-      # consuming a token; a probe with no limiter is permitted.
+      # Decides a hit with no active trace through the probe's own rate limit,
+      # so uncorrelated hits are decided independently of one another.
       #
       # @param probe [Datadog::DI::Probe]
       # @return [Boolean]
       def emit_uncorrelated?(probe)
-        limiter = probe.rate_limiter
-        limiter.nil? || limiter.allow?
+        probe.own_rate_limit_allows?
       end
 
       # Returns the trace's budget, refreshing its LRU recency; nil when the
