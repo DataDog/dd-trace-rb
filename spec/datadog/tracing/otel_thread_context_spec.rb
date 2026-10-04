@@ -228,7 +228,9 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
       it "returns false on fresh threads recycling killed context-holding threads' native threads" do
         fresh_thread_clear_results = Array.new(100) do
           kill_thread_holding_context
-          Thread.new { otel_thread_context.clear }.value
+          fresh_thread = Thread.new { otel_thread_context.clear }
+          expect(fresh_thread.join(5)).to be(fresh_thread)
+          fresh_thread.value
         end
 
         expect(fresh_thread_clear_results).to all(eq(false))

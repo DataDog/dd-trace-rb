@@ -101,6 +101,13 @@ void otel_thread_context_init(VALUE tracing_module) {
       ddog_otel_thread_ctx_detach();
     }
 
+    // RUBY_EVENT_THREAD_END does not fire for threads terminated via Thread#kill
+    // on Ruby < 3.2, so a killed thread's otel_thread_ctx_v1 TLS stays attached
+    // on a native thread CRuby may recycle for a later Ruby thread. Detach on
+    // thread begin to drop that stale record before the new thread runs.
+    // CRuby fires RUBY_EVENT_THREAD_END only after the thread body returns,
+    // and Thread#kill unwinds the body via EC_JUMP_TAG(TAG_FATAL):
+    // https://github.com/ruby/ruby/blob/v3_1_4/thread.c#L744-L775
     static void on_thread_begin(
       DDTRACE_UNUSED rb_event_flag_t evflag,
       DDTRACE_UNUSED VALUE data,
