@@ -36,11 +36,9 @@ RSpec.describe Datadog::DI::Guardrails do
   end
 
   describe ".skipped" do
-    it "tolerates nil telemetry" do
-      expect do
-        described_class.skipped(nil, reason: described_class::Reason::RATE_LIMIT_PROBE,
-          probe_type: "snapshot")
-      end.not_to raise_error
+    it "is a no-op when telemetry is nil" do
+      expect(described_class.skipped(nil, reason: described_class::Reason::RATE_LIMIT_PROBE,
+        probe_type: "snapshot")).to be_nil
     end
 
     it "emits the canonical skipped metric with reason and probe_type tags" do
@@ -54,11 +52,9 @@ RSpec.describe Datadog::DI::Guardrails do
   end
 
   describe ".dropped" do
-    it "tolerates nil telemetry" do
-      expect do
-        described_class.dropped(nil, reason: described_class::Reason::QUEUE_FULL,
-          event_type: "snapshot", bytes: 100)
-      end.not_to raise_error
+    it "is a no-op when telemetry is nil" do
+      expect(described_class.dropped(nil, reason: described_class::Reason::QUEUE_FULL,
+        event_type: "snapshot", bytes: 100)).to be_nil
     end
 
     it "emits only the dropped metric when bytes is omitted" do
