@@ -1172,6 +1172,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "does not report the call and reports evaluation failure" do
           expect(responder).not_to receive(:probe_executed_callback)
           expect(responder).to receive(:probe_condition_evaluation_failed_callback)
+            .with(instance_of(Datadog::DI::Context), condition, instance_of(NoMethodError))
           instrumenter.hook_method(probe, responder)
 
           target_call
