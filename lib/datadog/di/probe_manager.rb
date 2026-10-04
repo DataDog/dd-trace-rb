@@ -3,7 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "fatal_exceptions"
-require_relative "guardrails"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -332,11 +332,11 @@ module Datadog
           logger.trace do
             "di: #{probe.type} probe #{probe.id}: skipping condition evaluation failure" \
               " notification due to per-probe rate limit" \
-              " (#{Guardrails::Reason::EVALUATION_ERROR_THROTTLED})"
+              " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
           end
-          Guardrails.skipped(
-            telemetry, reason: Guardrails::Reason::EVALUATION_ERROR_THROTTLED,
-            probe_type: Guardrails.probe_type_tag(probe),
+          GuardrailsTelemetry.skipped(
+            telemetry, reason: GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED,
+            probe_type: GuardrailsTelemetry.probe_type_tag(probe),
           )
         end
       end

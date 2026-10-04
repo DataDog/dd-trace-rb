@@ -2,7 +2,7 @@
 
 require_relative "../core/semaphore"
 require_relative "fatal_exceptions"
-require_relative "guardrails"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -282,17 +282,17 @@ module Datadog
                   logger.debug do
                     "di: dropping status for #{probe.type} probe at #{probe.location}" \
                       " (#{probe.id}): #{status} because queue is full" \
-                      " (#{Guardrails::Reason::QUEUE_FULL})"
+                      " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 else
                   logger.debug do
                     "di: #{self.class.name}: dropping #{event_type} event because queue is full" \
-                      " (#{Guardrails::Reason::QUEUE_FULL})"
+                      " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 end
-                Guardrails.dropped(
-                  telemetry, reason: Guardrails::Reason::QUEUE_FULL,
-                  event_type: Guardrails.event_type_tag(event_type),
+                GuardrailsTelemetry.dropped(
+                  telemetry, reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
+                  event_type: GuardrailsTelemetry.event_type_tag(event_type),
                 )
               else
                 if event_type == :status && probe

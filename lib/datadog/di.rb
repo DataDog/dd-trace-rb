@@ -11,7 +11,7 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
-    # Telemetry namespace shared by DI metric emitters (Guardrails,
+    # Telemetry namespace shared by DI metric emitters (GuardrailsTelemetry,
     # CaptureExpressionEvaluator). Defined once here so the literal cannot
     # drift between emitters.
     TELEMETRY_NAMESPACE = "dynamic_instrumentation"

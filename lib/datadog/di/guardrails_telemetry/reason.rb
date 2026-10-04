@@ -2,7 +2,7 @@
 
 module Datadog
   module DI
-    module Guardrails
+    module GuardrailsTelemetry
       # Canonical skip and drop reason codes. Most codes are shared with the
       # other Datadog tracers; the remaining codes are Ruby-only forward
       # declarations for guardrails not yet implemented in Ruby.

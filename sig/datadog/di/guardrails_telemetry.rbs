@@ -1,6 +1,6 @@
 module Datadog
   module DI
-    module Guardrails
+    module GuardrailsTelemetry
       PROBE_TYPE_SNAPSHOT: ::String
       PROBE_TYPE_LOG: ::String
 

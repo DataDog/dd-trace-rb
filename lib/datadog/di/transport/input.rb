@@ -8,7 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
-require_relative "../guardrails"
+require_relative "../guardrails_telemetry"
 require_relative "http/input"
 
 module Datadog
@@ -76,11 +76,11 @@ module Datadog
               encoded = encoder.encode(snapshot)
               if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
                 logger.debug do
-                  "di: dropping too big snapshot (#{Guardrails::Reason::PAYLOAD_TOO_LARGE})"
+                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                Guardrails.dropped(
-                  telemetry, reason: Guardrails::Reason::PAYLOAD_TOO_LARGE,
-                  event_type: Guardrails::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
+                GuardrailsTelemetry.dropped(
+                  telemetry, reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                  event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
                 )
                 next
               end

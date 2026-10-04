@@ -5,7 +5,7 @@ require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
-require_relative "guardrails"
+require_relative "guardrails_telemetry"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -134,17 +134,17 @@ module Datadog
       # callback's method-level rescue.
       #
       # @param probe [Probe] the probe being skipped
-      # @param reason [String] a Guardrails::Reason constant
+      # @param reason [String] a GuardrailsTelemetry::Reason constant
       # @return [void]
       def record_rate_limit_skip(probe, reason)
         logger.trace do
           "di: #{probe.type} probe #{probe.id}: skipping due to " \
-            "#{(reason == Guardrails::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
+            "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
             " (#{reason})"
         end
-        Guardrails.skipped(
+        GuardrailsTelemetry.skipped(
           telemetry, reason: reason,
-          probe_type: Guardrails.probe_type_tag(probe),
+          probe_type: GuardrailsTelemetry.probe_type_tag(probe),
         )
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
@@ -592,11 +592,11 @@ module Datadog
           admitted = continue
           if continue && rate_limiter && !rate_limiter.allow?
             admitted = false
-            record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_PROBE)
+            record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE)
           end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
-            record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_GLOBAL)
+            record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL)
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -862,12 +862,12 @@ module Datadog
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
         if probe.rate_limiter && !probe.rate_limiter.allow?
-          record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_PROBE)
+          record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE)
           return
         end
 
         unless probe_global_rate_limiter(probe).allow?
-          record_rate_limit_skip(probe, Guardrails::Reason::RATE_LIMIT_GLOBAL)
+          record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL)
           return
         end
 

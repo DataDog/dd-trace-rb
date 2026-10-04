@@ -1,8 +1,8 @@
 require "datadog/di/spec_helper"
-require "datadog/di/guardrails"
+require "datadog/di/guardrails_telemetry"
 require "datadog/di/probe"
 
-RSpec.describe Datadog::DI::Guardrails do
+RSpec.describe Datadog::DI::GuardrailsTelemetry do
   describe ".probe_type_tag" do
     it "returns snapshot for a snapshot probe" do
       probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",

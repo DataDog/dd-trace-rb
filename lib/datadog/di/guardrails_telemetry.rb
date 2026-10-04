@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
-require_relative "guardrails/reason"
+require_relative "guardrails_telemetry/reason"
 
 module Datadog
   module DI
-    # DI guardrails reason codes and the telemetry helpers that emit the
-    # +dynamic_instrumentation.guardrails.*+ metrics. A skip is a decision
-    # taken before expensive work; a drop discards an event after it has
-    # been produced. Each helper tags its metric with the canonical reason
-    # so operators can attribute reduced DI work to a specific cause.
-    module Guardrails
+    # Telemetry reporter for the DI guardrails: the canonical reason codes
+    # and the helpers that emit the +dynamic_instrumentation.guardrails.*+
+    # metrics. A skip is a decision taken before expensive work; a drop
+    # discards an event after it has been produced. Each helper tags its
+    # metric with the canonical reason so operators can attribute reduced
+    # DI work to a specific cause.
+    module GuardrailsTelemetry
       PROBE_TYPE_SNAPSHOT = "snapshot"
       PROBE_TYPE_LOG = "log"
 
