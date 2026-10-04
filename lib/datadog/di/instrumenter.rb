@@ -149,6 +149,11 @@ module Datadog
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        # Reporting goes to the logger only: the guarded body is the
+        # telemetry emission itself, so routing the report through the
+        # failing telemetry component would raise again inside this
+        # handler. The probed method completes normally; the skip metric
+        # is the only thing lost.
         logger.debug { "di: error emitting rate-limit skip telemetry: #{exc.class}: #{exc.message}" }
       end
 
