@@ -1211,7 +1211,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             target_call
 
-            expect(observed_calls.length).to eq 0
+            expect(observed_calls.count).to be_zero
           end
         end
       end
