@@ -518,7 +518,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
-        expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
           tags: {reason: "evaluationErrorThrottled", probe_type: "log"})
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 

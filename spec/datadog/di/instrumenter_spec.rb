@@ -2186,7 +2186,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback but still runs the target method" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitGlobal", probe_type: "log"})
 
           hook_method(probe) do |payload|
@@ -2213,7 +2213,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitGlobal", probe_type: "snapshot"})
 
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
@@ -2238,7 +2238,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not consult the global limiter" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitProbe", probe_type: "log"})
 
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
@@ -2288,7 +2288,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not consult the global limiter" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitProbe", probe_type: "log"})
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
@@ -2310,7 +2310,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitGlobal", probe_type: "log"})
 
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
@@ -2339,7 +2339,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
             tags: {reason: "rateLimitGlobal", probe_type: "snapshot"})
 
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original

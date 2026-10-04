@@ -102,7 +102,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
 
         it "drops the snapshot and emits the canonical queueFull drop metric" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
             tags: {reason: "queueFull", event_type: "snapshot"})
 
           worker.add_snapshot(snapshot)
@@ -281,7 +281,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
 
         it "drops the status event and emits the queueFull drop metric with the diagnostic event type" do
-          expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
             tags: {reason: "queueFull", event_type: "diagnostic"})
 
           worker.add_status(status, probe: probe)

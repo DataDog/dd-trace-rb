@@ -45,7 +45,7 @@ RSpec.describe Datadog::DI::Guardrails do
 
     it "emits the canonical skipped metric with reason and probe_type tags" do
       telemetry = instance_double(Datadog::Core::Telemetry::Component)
-      expect_guardrails_metric(telemetry, name: "guardrails.events.skipped", value: 1,
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
         tags: {reason: "rateLimitProbe", probe_type: "snapshot"})
 
       described_class.skipped(telemetry, reason: described_class::Reason::RATE_LIMIT_PROBE,
@@ -63,7 +63,7 @@ RSpec.describe Datadog::DI::Guardrails do
 
     it "emits only the dropped metric when bytes is omitted" do
       telemetry = instance_double(Datadog::Core::Telemetry::Component)
-      expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
         tags: {reason: "queueFull", event_type: "snapshot"})
 
       described_class.dropped(telemetry, reason: described_class::Reason::QUEUE_FULL,
@@ -72,9 +72,9 @@ RSpec.describe Datadog::DI::Guardrails do
 
     it "emits the dropped and dropped_bytes metrics when bytes is provided" do
       telemetry = instance_double(Datadog::Core::Telemetry::Component)
-      expect_guardrails_metric(telemetry, name: "guardrails.events.dropped", value: 1,
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
         tags: {reason: "payloadTooLarge", event_type: "snapshot"})
-      expect_guardrails_metric(telemetry, name: "guardrails.queue.dropped_bytes", value: 2048,
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.queue.dropped_bytes", 2048,
         tags: {reason: "payloadTooLarge", event_type: "snapshot"})
 
       described_class.dropped(telemetry, reason: described_class::Reason::PAYLOAD_TOO_LARGE,
