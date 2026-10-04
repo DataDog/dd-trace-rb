@@ -1,0 +1,5 @@
+{
+  "name": "captured_string_byte_cap",
+  "description": "Limit DI-captured strings to 20 bytes with an omitted-length statement; multi-file serializer change with comment temptation. Established red case: repeated generation runs produced diffs whose comments fail the senior-engineer restatement test.",
+  "task": "limit DI-captured strings to 20 bytes of content + statement of omitted length in characters. handle unicode properly"
+}
