@@ -34,8 +34,8 @@ Run one case, judge an existing diff, or point the suite at another
 checkout:
 
 ```bash
-ruby tools/agent-evals/comment_restatement/run.rb --case snapshot_process_pid
-ruby tools/agent-evals/comment_restatement/run.rb --case snapshot_process_pid --diff /path/to/produced.diff
+ruby tools/agent-evals/comment_restatement/run.rb --case captured_string_byte_cap
+ruby tools/agent-evals/comment_restatement/run.rb --case captured_string_byte_cap --diff /path/to/produced.diff
 ruby tools/agent-evals/comment_restatement/run.rb --root /path/to/checkout
 ```
 

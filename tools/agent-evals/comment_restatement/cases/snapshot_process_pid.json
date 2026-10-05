@@ -1,5 +1,0 @@
-{
-  "name": "snapshot_process_pid",
-  "description": "Add the current process id to the DI snapshot envelope; single-line root field, low comment temptation — the baseline case. Novel task: absent on master so the agent has real work at both the red commit (no comment rules in AGENTS.md) and the green commit (comment rules committed).",
-  "task": "Add the current process id (Process.pid) to the Live Debugger snapshot envelope in lib/datadog/di/probe_notification_builder.rb, emitted at the envelope root as process_pid (snake_case). Add a unit test in spec/datadog/di/probe_notification_builder_spec.rb and update sig/datadog/di/probe_notification_builder.rbs if needed. Follow AGENTS.md."
-}
