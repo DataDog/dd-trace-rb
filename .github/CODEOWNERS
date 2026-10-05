@@ -36,6 +36,7 @@ LICENSE.Apache @DataDog/ruby-guild
 LICENSE.BSD3 @DataDog/ruby-guild
 NOTICE @DataDog/ruby-guild
 CHANGELOG.md @DataDog/ruby-guild
+unreleased/ @DataDog/ruby-guild
 
 # Build, release, and developer tooling
 Gemfile @DataDog/ruby-guild
