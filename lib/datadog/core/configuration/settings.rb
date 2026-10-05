@@ -757,12 +757,15 @@ module Datadog
                 val ||= ""
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 key = case key.downcase
-                when "deployment.environment" then "env"
+                when "deployment.environment.name"
+                  result["env"] = val
+                  nil
+                when "deployment.environment" then "env" unless result.key?("env")
                 when "service.version" then "version"
                 when "service.name" then "service"
                 else key
                 end
-                result[key] = val unless key.empty?
+                result[key] = val unless key.nil? || key.empty?
               end
             end
             result

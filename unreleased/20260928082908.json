@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "AI Guard",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6394",
+  "message": "Add sensitive-data redaction to evaluated messages, enabled by default; configure it with `ai_guard.redaction_enabled` or `DD_AI_GUARD_REDACTION_ENABLED`."
+}

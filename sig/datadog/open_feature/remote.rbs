@@ -11,7 +11,10 @@ module Datadog
 
       def self.products: () -> ::Array[::String]
 
-      def self.receivers: (Core::Telemetry::Component telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
+      def self.receivers: (
+        Core::Telemetry::Component telemetry,
+        component_provider: ^() -> Component?
+      ) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       private
 

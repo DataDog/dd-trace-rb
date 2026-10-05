@@ -260,7 +260,9 @@ dir_config("ruby") # allow user to pass in non-standard core include directory
 #
 # To workaround this issue, we override `with_cppflags` for datadog-ruby_core_source to still include `$CPPFLAGS`.
 Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
-  super("#{newflags} #{$CPPFLAGS}", &block)
+  # Note: The `Shellwords.escape` is an additional workaround for ruby_core_source supplying
+  # one unescaped -I argument containing the complete header path, not the CPPFLAGS thing above.
+  super("#{Shellwords.escape(newflags)} #{$CPPFLAGS}", &block)
 end
 
 Datadog::RubyCoreSource
@@ -270,7 +272,7 @@ Datadog::RubyCoreSource
         have_header("vm_core.h") &&
         have_header("iseq.h", "vm_core.h") &&
         # These are only used on Ruby 3+
-        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h"))
+        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h", "vm_core.h"))
 
       if headers_available
         # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.

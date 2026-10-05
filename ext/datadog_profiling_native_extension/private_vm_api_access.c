@@ -278,6 +278,23 @@ VALUE thread_name_for(VALUE thread) {
   return thread_struct_from_object(thread)->name;
 }
 
+// This test doubles as a validation for the layout of the rb_thread_t structure. Because the `name` is almost at
+// the end of the structure, if somehow we can't read the name, this probably means we're getting the structure wrong
+// and we should stop immediately (this includes covering the use of `stat_insn_usage` on Ruby <= 3.2).
+//
+// One example where this happens is in patches such as
+// https://github.com/gitlabhq/omnibus-gitlab/blob/master/config/patches/ruby/thread-memory-allocations-3.2.patch
+// that add items to the structure and thus shift its position from where we expect.
+void self_test_thread_name_for(void) {
+  VALUE thread = rb_eval_string("Thread.new { Thread.current.name = 'dd-prof-test' }.join");
+  VALUE expected_name = rb_funcall(thread, rb_intern("name"), 0);
+  if (thread_name_for(thread) != expected_name) {
+    rb_raise(rb_eRuntimeError,
+      "thread_name_for() self-test failed; this usually means the `rb_thread_t` on this Ruby doesn't match what the profiler expects"
+    );
+  }
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.

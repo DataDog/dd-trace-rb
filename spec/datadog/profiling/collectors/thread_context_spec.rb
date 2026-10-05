@@ -1216,7 +1216,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 expect(latest_sample.values.fetch(:"cpu-time")).to be 0
 
                 latest_sample = sample_and_check(expected_state: "had cpu")
-                expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
+                # This is >= and not == because while we "wait" for the thread to be marked as sleeping, we can't control
+                # if it was already completely done and stays put with no extra CPU. This caused flakiness (with valgrind) in
+                # https://github.com/DataDog/ruby-guild/issues/329 .
+                expect(latest_sample.values.fetch(:"cpu-time")).to be >= 12345
               end
             end
           end

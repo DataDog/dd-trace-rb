@@ -11,4 +11,4 @@
 # The gemspec is declared inside each per-Ruby base gemfile under gemfiles/
 # (as `gemspec path: '..'`). That allows those files to be loaded directly via
 # `BUNDLE_GEMFILE=gemfiles/ruby-X.Y.gemfile` and still resolve datadog.gemspec.
-eval_gemfile("gemfiles/#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split(".").take(2).join(".")}.gemfile")
+eval_gemfile("gemfiles/ruby-#{RUBY_VERSION.split(".").take(2).join(".")}.gemfile")
