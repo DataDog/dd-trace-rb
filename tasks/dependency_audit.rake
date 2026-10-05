@@ -6,6 +6,12 @@ if Gem.loaded_specs.key?("bundler-audit")
   namespace :dependency do
     desc "Audit eligible lockfiles for high/critical CVE advisories"
     task :audit do
+      orphaned_lockfiles = Lockfile.orphaned_lockfile_paths("gemfiles")
+      unless orphaned_lockfiles.empty?
+        abort("Dependency audit failed: lockfiles with no corresponding Gemfile: #{orphaned_lockfiles.join(", ")}. " \
+          "Delete each orphaned lockfile; rake dependency:orphans reports the same orphans.")
+      end
+
       require "bundler/audit/database"
 
       puts "Updating advisory database..."
