@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../open_feature"
 require_relative "../core/utils/time"
 require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
-    # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
+    # OpenFeature feature flagging provider backed by Datadog configuration delivery.
     #
     # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
     #
@@ -24,13 +25,14 @@ module Datadog
     #
     # Example:
     #
-    #   Make sure to enable Remote Configuration and OpenFeature in the Datadog configuration.
+    #   Feature Flags use agentless configuration delivery by default. To use
+    #   Remote Configuration delivery instead, configure the source explicitly.
     #
     #   ```ruby
     #   # FILE: initializers/datadog.rb
     #   Datadog.configure do |config|
     #     config.remote.enabled = true
-    #     config.open_feature.enabled = true
+    #     config.feature_flags.configuration_source = "remote_config"
     #   end
     #   ```
     #
@@ -58,20 +60,56 @@ module Datadog
     #   # => 'Welcome back!'
     #   ```
     class Provider
+      include ::OpenFeature::SDK::Provider::EventEmitter
+
       NAME = "Datadog Feature Flagging Provider"
 
       attr_reader :metadata
 
       def initialize
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
+        @initialization_mutex = Mutex.new
+        @initializing = false
+        @initialization_failed = false
+        @provider_error_observed = false
+        @ready_pending = false
+        @ready_emitted = false
+        @error_handler = nil
       end
 
       def init
-        # no-op
+        @initialization_mutex.synchronize do
+          @initializing = true
+          @initialization_failed = false
+          @provider_error_observed = false
+          @ready_pending = false
+          @ready_emitted = false
+        end
+
+        component, failure = OpenFeature.activate_provider(self)
+        fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
+
+        case component.wait_for_configuration
+        when Component::CONFIGURATION_READY
+          @initialization_mutex.synchronize { @initializing = false }
+        when Component::CONFIGURATION_TIMEOUT
+          message = "Feature Flags provider initialization timed out while waiting for configuration"
+          Datadog.logger.error(message)
+          fail_initialization(component, message)
+        else
+          fail_initialization(component, "Feature Flags provider initialization stopped before configuration arrived")
+        end
       end
 
       def shutdown
-        # no-op
+        configuration = @configuration
+        error_handler = @initialization_mutex.synchronize do
+          handler = @error_handler
+          @error_handler = nil
+          handler
+        end
+        configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
+        OpenFeature.deactivate_provider(self)
       end
 
       def hooks
@@ -107,6 +145,62 @@ module Datadog
       end
 
       private
+
+      def fail_initialization(component, message)
+        @initialization_mutex.synchronize do
+          @initializing = false
+          @initialization_failed = true
+          @ready_pending = component&.configuration_received? || false
+        end
+        install_error_handler
+        raise message.to_s
+      end
+
+      def install_error_handler
+        configuration = @configuration
+        return unless configuration
+
+        handler = @initialization_mutex.synchronize do
+          @error_handler ||= ->(details) { provider_error(details) }
+        end
+        configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, handler)
+      end
+
+      def provider_error(_details)
+        configuration = @configuration
+        return unless configuration
+        return unless configuration.send(:provider_state, self) == ::OpenFeature::SDK::ProviderState::ERROR
+
+        emit_ready = @initialization_mutex.synchronize do
+          @provider_error_observed = true
+          if @ready_pending && !@ready_emitted
+            @ready_emitted = true
+          else
+            false
+          end
+        end
+        emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
+      end
+
+      def configuration_changed(event)
+        event_type = @initialization_mutex.synchronize do
+          if event == Component::CONFIGURATION_READY
+            if @initialization_failed
+              if @provider_error_observed && !@ready_emitted
+                @ready_emitted = true
+                ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+              else
+                @ready_pending = true
+                nil
+              end
+            end
+          elsif event == Component::CONFIGURATION_CHANGED && !@initializing
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED
+          end
+        end
+
+        emit_event(event_type) if event_type
+      end
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for

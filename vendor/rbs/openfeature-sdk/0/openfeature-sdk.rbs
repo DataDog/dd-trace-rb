@@ -13,6 +13,14 @@ module OpenFeature
     end
 
     module Provider
+      module EventEmitter
+        @configuration: Configuration?
+
+        def emit_event: (String event_type, ?Hash[Symbol, untyped] details) -> void
+
+        def configuration_attached?: () -> bool
+      end
+
       class ProviderMetadata
         def initialize: (name: ::String) -> void
       end
@@ -41,6 +49,27 @@ module OpenFeature
 
         ERROR: t
       end
+    end
+
+    module ProviderEvent
+      PROVIDER_READY: String
+      PROVIDER_ERROR: String
+      PROVIDER_STALE: String
+      PROVIDER_CONFIGURATION_CHANGED: String
+    end
+
+    module ProviderState
+      ERROR: String
+    end
+
+    class Configuration
+      def add_handler: (String event_type, ^(Hash[Symbol, untyped]) -> void handler) -> void
+
+      def remove_handler: (String event_type, ^(Hash[Symbol, untyped]) -> void handler) -> void
+
+      private
+
+      def provider_state: (untyped provider) -> String
     end
 
     class EvaluationDetails < ::Struct[untyped]
