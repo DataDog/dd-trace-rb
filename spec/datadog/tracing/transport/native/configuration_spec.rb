@@ -123,7 +123,7 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
-    context "on CRuby 4.0.5 without an explicit setting" do
+    context "on CRuby 4.0.6 without an explicit setting" do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 
       around do |example|
@@ -132,7 +132,7 @@ RSpec.describe "Native transport configuration" do
 
       before do
         stub_const("RUBY_ENGINE", "ruby")
-        stub_const("RUBY_VERSION", "4.0.5")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.6"))
       end
 
       it "selects the native transport by default" do
@@ -168,7 +168,7 @@ RSpec.describe "Native transport configuration" do
 
   describe "settings" do
     it "defaults native_transport to false outside the rollout version" do
-      stub_const("RUBY_VERSION", "4.0.4")
+      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.5"))
       settings = Datadog::Core::Configuration::Settings.new
       expect(settings.tracing.native_transport).to be false
     end

@@ -655,17 +655,19 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       subject(:native_transport) { settings.tracing.native_transport }
 
       [
-        ["ruby", "4.0.4", false],
-        ["ruby", "4.0.5", true],
-        ["ruby", "4.0.6", false],
-        ["ruby", "4.1.0", false],
-        ["jruby", "4.0.5", false],
-        ["truffleruby", "4.0.5", false],
+        ["ruby", "3.4.6", false],
+        ["ruby", "4.0.5", false],
+        ["ruby", "4.0.6", true],
+        ["ruby", "4.0.10", true],
+        ["ruby", "4.1.0", true],
+        ["ruby", "5.0.0", true],
+        ["jruby", "4.0.6", false],
+        ["truffleruby", "4.1.0", false],
       ].each do |engine, version, default|
         context "on #{engine} #{version}" do
           before do
             stub_const("RUBY_ENGINE", engine)
-            stub_const("RUBY_VERSION", version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(version))
           end
 
           it_behaves_like "a binary setting with",
