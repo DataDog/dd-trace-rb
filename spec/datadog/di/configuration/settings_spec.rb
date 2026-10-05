@@ -77,6 +77,8 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "true", "enabled", true],
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "false", "enabled", false],
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", nil, "enabled", false],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS", "300", "max_time_to_serialize_ms", 300],
+        ["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE", "300", "max_time_to_serialize_ms", 300],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo", "redacted_identifiers", %w[foo]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo,bar", "redacted_identifiers", %w[foo bar]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo, bar", "redacted_identifiers", %w[foo bar]],

@@ -305,7 +305,8 @@
       {
         "version": "C",
         "type": "int",
-        "default": "150"
+        "default": "150",
+        "aliases": ["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"]
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
@@ -319,8 +320,7 @@
       {
         "version": "A",
         "type": "int",
-        "default": "150",
-        "aliases": ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS"]
+        "default": "200"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
