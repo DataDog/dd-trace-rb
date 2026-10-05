@@ -60,6 +60,7 @@ module OpenFeature
 
     module ProviderState
       ERROR: String
+      READY: String
     end
 
     class Configuration

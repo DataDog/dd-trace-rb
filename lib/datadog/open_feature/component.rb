@@ -22,6 +22,7 @@ module Datadog
       CONFIGURATION_TIMEOUT = :timeout
       CONFIGURATION_SHUTDOWN = :shutdown
       CONFIGURATION_CHANGED = :changed
+      CONFIGURATION_LOST = :lost
 
       attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
@@ -92,6 +93,8 @@ module Datadog
 
             if @configuration_received
               previously_received ? CONFIGURATION_CHANGED : CONFIGURATION_READY
+            elsif previously_received
+              CONFIGURATION_LOST
             end
           end
         end

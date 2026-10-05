@@ -15,6 +15,7 @@ module Datadog
         @capabilities: Datadog::Core::Remote::Client::Capabilities
         @agent_settings: Datadog::Core::Configuration::AgentSettings
         @transport: untyped
+        @client_mutex: ::Thread::Mutex
 
         def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettings agent_settings, logger: Core::Logger) -> void
 
@@ -44,8 +45,7 @@ module Datadog
           untyped settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
           logger: Core::Logger,
-          telemetry: Datadog::Core::Telemetry::Component,
-          ?open_feature_component_provider: (^() -> Datadog::OpenFeature::Component?)?
+          telemetry: Datadog::Core::Telemetry::Component
         ) -> Datadog::Core::Remote::Component?
 
         class Barrier
