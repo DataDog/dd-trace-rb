@@ -118,6 +118,17 @@ RSpec.describe InstalledBundleCache do
     expect(cache.content).not_to eq(original)
   end
 
+  it "distinguishes Gemfile content from lockfile content" do
+    gemfile_content = temporary_directory.join("first.gemfile").read
+    lockfile_content = temporary_directory.join("first.gemfile.lock").read
+    original = cache.content
+
+    write("first.gemfile", lockfile_content)
+    write("first.gemfile.lock", gemfile_content)
+
+    expect(cache.content).not_to eq(original)
+  end
+
   it "does not include paths in content identity" do
     write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
     write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
