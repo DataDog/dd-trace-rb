@@ -143,6 +143,28 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
         end
       end
+
+      context "when telemetry is nil" do
+        let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
+
+        before do
+          allow(input_transport).to receive(:send_input)
+          # Prevent the background worker from draining the queue so the
+          # capacity guard is reached deterministically.
+          allow(worker).to receive(:start)
+          (capacity + 1).times { worker.add_snapshot(snapshot) }
+          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+        end
+
+        it "drops the snapshot without raising" do
+          expect_lazy_log(logger, :debug,
+            "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
+
+          expect { worker.add_snapshot(snapshot) }.not_to raise_error
+
+          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+        end
+      end
     end
   end
 
