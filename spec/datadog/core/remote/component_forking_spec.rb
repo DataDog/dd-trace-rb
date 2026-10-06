@@ -208,6 +208,7 @@ RSpec.describe Datadog::Core::Remote::Component do
     end
 
     it "sends requests with different client IDs from parent and child processes" do
+      # Fork with polling active and the first-sync barrier consumed, as after application warmup.
       expect(component.barrier(:once)).to eq(:lift)
       expect(component.barrier(:once)).to eq(:pass)
       expect(component.healthy).to be true
@@ -222,6 +223,8 @@ RSpec.describe Datadog::Core::Remote::Component do
       expect(parent_client_id).to be_valid_uuid
       expect(parent_runtime_id).to be_valid_uuid
 
+      # The server records in the parent; the child's copied array cannot see later writes.
+      # Return the child's identity through a pipe so the parent can check its own observations.
       reader, writer = IO.pipe
       begin
         expect_in_fork do
@@ -231,6 +234,7 @@ RSpec.describe Datadog::Core::Remote::Component do
           expect(child_component.healthy).to be false
           expect(Thread.list.map(&:name)).not_to include(Datadog::Core::Remote::Worker.name)
 
+          # :lift and healthy require a child sync; an inherited barrier would return :pass.
           expect(child_component.barrier(:once)).to eq(:lift)
           expect(child_component.healthy).to be true
           expect(child_component.barrier(:once)).to eq(:pass)
@@ -244,6 +248,7 @@ RSpec.describe Datadog::Core::Remote::Component do
           writer.close
         end
 
+        # The parent also holds a write end; leaving it open would prevent reader.read reaching EOF.
         writer.close
         child = JSON.parse(reader.read, symbolize_names: true)
         expect(child[:client_id]).to be_valid_uuid
@@ -251,6 +256,7 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child[:runtime_id]).to be_valid_uuid
         expect(child[:runtime_id]).not_to eq(parent_runtime_id)
 
+        # The server records before responding, so the completed child sync guarantees an observation.
         child_requests = request_mutex.synchronize do
           received_requests.select { |r| r[:endpoint] == "/v0.7/config" && r[:client_id] == child[:client_id] }
         end
