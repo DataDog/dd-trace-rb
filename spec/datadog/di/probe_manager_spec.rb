@@ -467,7 +467,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         Datadog::DI::Probe,
         id: "test-probe",
         type: "log",
-        condition_evaluation_failed_rate_limiter: per_probe_limiter,
+        expression_evaluation_failed_rate_limiter: per_probe_limiter,
       )
     end
 

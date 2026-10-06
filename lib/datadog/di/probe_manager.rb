@@ -319,7 +319,7 @@ module Datadog
       # @param exc [Exception] The exception raised during condition evaluation
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        if probe.condition_evaluation_failed_rate_limiter&.allow?
+        if probe.expression_evaluation_failed_rate_limiter&.allow?
           if instrumenter.global_snapshot_rate_limiter.allow?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload)
