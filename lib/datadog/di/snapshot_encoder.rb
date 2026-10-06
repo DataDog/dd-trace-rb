@@ -11,11 +11,16 @@ module Datadog
     # structural envelope (+service+, +debugger.snapshot.probe/stack+, and
     # the +captures+ container) is emitted as-is. When the snapshot cannot
     # fit within the cap even after pruning, +encode+ returns nil and the
-    # caller drops the snapshot. The direct children of every +locals+, +arguments+, and
-    # +throwable+ Hash are captured-value slots: a slot that does not fit
-    # the remaining byte budget is replaced in place with the
-    # +{"pruned":true}+ marker, preserving its variable name as the JSON
-    # key.
+    # caller drops the snapshot. The direct children of every +locals+,
+    # +arguments+, and +captureExpressions+ Hash, and the +throwable+ value,
+    # are captured-value slots: a slot that does not fit the remaining byte
+    # budget is replaced in place with the +{"pruned":true}+ marker,
+    # preserving its variable name as the JSON key.
+    #
+    # A non-empty collection nested inside a captured collection has a
+    # bound of at least SLOT_OVERHEAD + 2 + (MAX_ITEM_BYTES + 1) bytes,
+    # which always exceeds the member cap MAX_ITEM_BYTES, so it is always
+    # pruned; the enclosing collection and its primitive members are kept.
     #
     # Two invariants hold during the walk. Each captured collection is
     # gated before being walked: a constant-time bound on its encoded
@@ -63,8 +68,22 @@ module Datadog
       # failure reasons.
       SLOT_STRING_FIELDS = %w[type value message notCapturedReason notSerializedReason].freeze
 
-      PRUNED = {"pruned" => true}.freeze
+      # @type var marker: Hash[String, true]
+      marker = {"pruned" => true}
+      PRUNED = marker.freeze
       PRUNED_ENCODED = JSON.dump(PRUNED)
+
+      # Encoded forms of the fixed snapshot keys, so the walk does not
+      # re-encode a key it has already encoded for a previous slot. Keys
+      # outside the table (collection member names, custom serializer
+      # output) fall back to encoding on demand, keeping the table
+      # bounded.
+      KEY_JSON = %w[
+        type value isNull truncated size message stacktrace
+        elements entries fields notCapturedReason notSerializedReason
+        locals arguments throwable captureExpressions
+        captures lines entry return
+      ].each_with_object({}) { |key, json| json[key] = JSON.dump(key) }.freeze
 
       # Encodes +snapshot+ to JSON, pruning captured values that do not
       # fit +max_size+ bytes.
@@ -115,6 +134,7 @@ module Datadog
         # @return [void]
         def consume(bytes)
           @remaining = remaining - bytes
+          nil
         end
       end
       private_constant :Budget
@@ -197,9 +217,10 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_json_fragment(out, budget, JSON.dump(k.to_s))
+            key = k.to_s
+            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || JSON.dump(key))
             return false unless emit_json_fragment(out, budget, ":")
-            case k.to_s
+            case key
             when "value"
               return false unless encode_scalar(val, out, budget)
             when "elements"
@@ -312,10 +333,10 @@ module Datadog
           emit_json_fragment(out, budget, "}")
         end
 
-        # Encodes a +locals+ or +arguments+ value: a Hash mapping variable
-        # names to captured-value slots, each gated against the whole
-        # remaining budget. A value of another type is encoded as a
-        # generic JSON value.
+        # Encodes a +locals+, +arguments+, or +captureExpressions+ value: a
+        # Hash mapping variable names to captured-value slots, each gated
+        # against the whole remaining budget. A value of another type is
+        # encoded as a generic JSON value.
         #
         # @param hash [Object] value of the +locals+ or +arguments+ field
         # @param out [String] output buffer
@@ -338,9 +359,9 @@ module Datadog
           emit_json_fragment(out, budget, "}")
         end
 
-        # Encodes a structural envelope Hash. The +locals+ and
-        # +arguments+ values are Hashes of {variable name: slot}; the
-        # +throwable+ value is a single slot. Other values are envelope
+        # Encodes a structural envelope Hash. The +locals+, +arguments+, and
+        # +captureExpressions+ values are Hashes of {variable name: slot};
+        # the +throwable+ value is a single slot. Other values are envelope
         # data and are never pruned.
         #
         # @param hash [Hash] envelope Hash to encode
@@ -357,10 +378,11 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_json_fragment(out, budget, JSON.dump(k.to_s))
+            key = k.to_s
+            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || JSON.dump(key))
             return false unless emit_json_fragment(out, budget, ":")
-            case k.to_s
-            when "locals", "arguments"
+            case key
+            when "locals", "arguments", "captureExpressions"
               return false unless encode_slot_hash(val, out, budget, &on_prune)
             when "throwable"
               if val.nil?
