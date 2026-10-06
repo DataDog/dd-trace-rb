@@ -27,8 +27,9 @@ module Datadog
           cls = Class.new(Evaluator)
           cls.class_exec do
             eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
-              def evaluate(context)
+              def evaluate(context, deadline)
                 @context = context
+                @deadline = deadline
                 #{compiled_expr}
               end
             RUBY
@@ -40,12 +41,28 @@ module Datadog
         attr_reader :evaluator
         attr_reader :redaction_identifier
 
-        def evaluate(context)
-          @evaluator.evaluate(context)
+        # Evaluates the expression against +context+.
+        #
+        # @param context [Context] evaluation context (locals, instance
+        #   variables, and per-invocation special variables).
+        # @param deadline [Float, nil] cooperative evaluation deadline, as
+        #   CLOCK_MONOTONIC float seconds. Collection operators abort with
+        #   {Datadog::DI::Error::EvaluationTimeout} when the deadline is
+        #   crossed; nil leaves evaluation unbounded.
+        # @return [Object] the value the expression evaluates to.
+        def evaluate(context, deadline: nil)
+          @evaluator.evaluate(context, deadline)
         end
 
-        def satisfied?(context)
-          !!evaluate(context)
+        # Returns whether the expression evaluates to a truthy value
+        # against +context+.
+        #
+        # @param context [Context] evaluation context.
+        # @param deadline [Float, nil] cooperative evaluation deadline, as
+        #   CLOCK_MONOTONIC float seconds; nil leaves evaluation unbounded.
+        # @return [Boolean] whether the expression is satisfied.
+        def satisfied?(context, deadline: nil)
+          !!evaluate(context, deadline: deadline)
         end
       end
     end
