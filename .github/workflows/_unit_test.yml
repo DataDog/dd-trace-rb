@@ -119,7 +119,6 @@ jobs:
           BASE_CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.base-cache-key }}
           BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
           CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key }}
-          FILE_COUNT: ${{ steps.installed-bundle-cache.outputs.file-count }}
           POPULATION_SECONDS: ${{ steps.installed-bundle-cache.outputs.population-seconds }}
           SAVE_SECONDS: ${{ steps.installed-bundle-cache.outputs.save-seconds }}
         run: |
@@ -127,7 +126,6 @@ jobs:
             echo "### Installed matrix bundle cache"
             echo "- Base key: \`$BASE_CACHE_KEY\`"
             echo "- Union key: \`$CACHE_KEY\`"
-            echo "- Files: \`${FILE_COUNT:-not-measured}\`"
             echo "- Bytes: \`${BYTE_COUNT:-not-measured}\`"
             echo "- Population seconds: \`${POPULATION_SECONDS:-0}\`"
             echo "- Save seconds: \`${SAVE_SECONDS:-0}\`"

@@ -43,9 +43,6 @@ outputs:
   byte-count:
     description: Uncompressed installed bundle bytes
     value: ${{ steps.statistics.outputs.byte-count }}
-  file-count:
-    description: Installed bundle file count
-    value: ${{ steps.statistics.outputs.file-count }}
 
 runs:
   using: composite
@@ -155,9 +152,8 @@ runs:
       name: Measure installed bundle
       shell: bash
       run: |
-        file_count=$(find /usr/local/bundle -type f | wc -l | tr -d ' ')
         byte_count=$(du -sb /usr/local/bundle | cut -f1)
-        { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
+        echo "byte-count=$byte_count" >> "$GITHUB_OUTPUT"
     - id: save-start
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
