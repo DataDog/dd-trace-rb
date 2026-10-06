@@ -1,9 +1,7 @@
 require_relative "security_capabilities"
 
 # A gemfile lockfile that knows its own embedded Ruby version, its companion
-# gemfile, and whether it's eligible for a given supply-chain security feature,
-# instead of callers checking eligibility against a bare path/basename
-# externally.
+# gemfile, and whether it's eligible for a given supply-chain security feature.
 #
 # Basenames look like "ruby_3.1_contrib.gemfile.lock" (appraisal variant) or
 # "ruby-3.1.gemfile.lock" (dash base lockfile).
