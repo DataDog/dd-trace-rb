@@ -94,6 +94,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
           end
         end
       end
+
       context "when DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS=-5" do
         around do |example|
           ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS" => "-5") do
