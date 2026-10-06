@@ -139,7 +139,7 @@ if Gem.loaded_specs.key?("bundler-audit")
     def run_dependency_audit_task
       Open3.capture2e(
         {"BUNDLE_GEMFILE" => File.expand_path(Bundler.default_gemfile)},
-        "bundle", "exec", "rake", "dependency:audit",
+        File.join(File.dirname(Gem.ruby), "bundle"), "exec", "rake", "dependency:audit",
         chdir: tree_dir,
       )
     end
