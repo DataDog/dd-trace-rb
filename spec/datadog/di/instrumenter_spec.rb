@@ -2562,7 +2562,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context "when the per-probe limiter rejects a condition error" do
         before do
-          allow(probe).to receive(:condition_evaluation_failed_rate_limiter)
+          allow(probe).to receive(:expression_evaluation_failed_rate_limiter)
             .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
         end
 
