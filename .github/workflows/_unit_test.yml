@@ -112,21 +112,6 @@ jobs:
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
           write-enabled: ${{ inputs.installed-cache-write && github.ref == 'refs/heads/master' }}
 
-      - name: Report installed matrix bundle cache
-        if: inputs.installed-cache-enabled
-        shell: bash
-        env:
-          BASE_CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.base-cache-key }}
-          BYTE_COUNT: ${{ steps.installed-bundle-cache.outputs.byte-count }}
-          CACHE_KEY: ${{ steps.installed-bundle-cache.outputs.cache-key }}
-        run: |
-          {
-            echo "### Installed matrix bundle cache"
-            echo "- Base key: \`$BASE_CACHE_KEY\`"
-            echo "- Union key: \`$CACHE_KEY\`"
-            echo "- Bytes: \`${BYTE_COUNT:-not-measured}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Generate batch summary
         env:
           INSTALLED_CACHE_ENABLED: ${{ inputs.installed-cache-enabled }}

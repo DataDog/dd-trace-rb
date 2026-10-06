@@ -34,9 +34,6 @@ outputs:
   ready:
     description: Whether complete bundle is available to child jobs
     value: ${{ steps.result.outputs.ready }}
-  byte-count:
-    description: Uncompressed installed bundle bytes
-    value: ${{ steps.statistics.outputs.byte-count }}
 
 runs:
   using: composite
@@ -131,13 +128,6 @@ runs:
         ruby tasks/installed_bundle_cache_cli.rb check \
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX"
-    - id: statistics
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      name: Measure installed bundle
-      shell: bash
-      run: |
-        byte_count=$(du -sb /usr/local/bundle | cut -f1)
-        echo "byte-count=$byte_count" >> "$GITHUB_OUTPUT"
     - name: Save installed bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
