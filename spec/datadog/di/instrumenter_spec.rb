@@ -2198,7 +2198,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 0
           expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
         end
       end
@@ -2227,7 +2227,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 0
           expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
         end
       end
@@ -2251,6 +2251,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
+          end
         end
       end
 
@@ -2302,6 +2305,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           HookLineTestClass.new.test_method
 
           expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
+          end
         end
       end
 
@@ -2324,7 +2330,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls).to be_empty
           expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
         end
       end
@@ -2354,7 +2360,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls).to be_empty
           expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
         end
       end
@@ -2446,7 +2452,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(DITestClass.new.test_method(42)).to eq 43
 
           expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
+            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
         end
       end

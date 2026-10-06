@@ -525,6 +525,9 @@ RSpec.describe Datadog::DI::ProbeManager do
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
         expect(rate_limiter).to have_received(:allow?)
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+        end
       end
     end
 

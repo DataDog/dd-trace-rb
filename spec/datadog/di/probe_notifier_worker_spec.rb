@@ -93,7 +93,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         before do
           allow(input_transport).to receive(:send_input)
-          allow(logger).to receive(:debug)
           # Prevent the background worker from draining the queue so the
           # capacity guard is reached deterministically.
           allow(worker).to receive(:start)
@@ -102,6 +101,8 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
 
         it "drops the snapshot and emits the canonical queueFull drop metric" do
+          expect_lazy_log(logger, :debug,
+            "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
           expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
             tags: {reason: "queueFull", event_type: "snapshot"})
 
@@ -281,13 +282,14 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           # stub start so the auto-restart inside add_status stays off.
           worker.stop
           allow(input_transport).to receive(:send_input)
-          allow(logger).to receive(:debug)
           allow(worker).to receive(:start)
           (capacity + 1).times { worker.add_status(status, probe: probe) }
           expect(worker.send(:status_queue).length).to eq(capacity + 1)
         end
 
         it "drops the status event and emits the queueFull drop metric with the diagnostic event type" do
+          expect_lazy_log(logger, :debug,
+            "di: dropping status for log probe at test.rb:42 (test-probe): received because queue is full (queueFull)")
           expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
             tags: {reason: "queueFull", event_type: "diagnostic"})
 
