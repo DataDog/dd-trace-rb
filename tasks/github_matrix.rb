@@ -1,3 +1,4 @@
+# Cache preparation loads this with bare Ruby.
 require_relative "appraisal_conversion"
 
 class GithubMatrix
