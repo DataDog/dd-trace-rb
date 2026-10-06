@@ -48,11 +48,6 @@ module Datadog
 
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
-          #
-          # TODO There is an RFC for snapshot pruning that should be
-          # implemented to reduce the size of snapshots to be below this
-          # limit, so that we can send a portion of the captured data
-          # rather than dropping the snapshot entirely.
           MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
 
           # The maximum chunk (batch) size that intake permits is 5 MB.
@@ -132,7 +127,8 @@ module Datadog
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
-              # We drop snapshots that are too big earlier.
+              # Snapshots that are too big are pruned to fit earlier, and
+              # each encoded snapshot is at most MAX_SERIALIZED_SNAPSHOT_SIZE.
               # The limit on chunked payload length here is greater
               # than the limit on snapshot size, therefore no chunks
               # can exceed limits here.
