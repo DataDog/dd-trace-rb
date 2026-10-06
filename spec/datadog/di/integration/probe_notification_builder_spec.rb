@@ -32,18 +32,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     let(:di_settings) do
       double("di settings").tap do |settings|
-        allow(settings).to receive_messages(
-          enabled: true,
-          untargeted_trace_points: false,
-          max_capture_depth: 2,
-          max_capture_attribute_count: 2,
+        stub_di_settings(settings,
           max_capture_string_length: 20,
-          max_capture_collection_size: 20,
-          max_time_to_serialize_ms: 200,
-          redacted_type_names: [],
-          redacted_identifiers: [],
-          redaction_excluded_identifiers: [],
-        )
+          max_capture_collection_size: 20,)
+        allow(settings).to receive(:untargeted_trace_points).and_return(false)
       end
     end
 

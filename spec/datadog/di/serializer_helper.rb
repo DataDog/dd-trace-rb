@@ -42,18 +42,12 @@ module SerializerHelper
 
     let(:di_settings) do
       double("di settings").tap do |settings|
-        # Reduce max capture depth to 2 from default of 3.
-        allow(settings).to receive_messages(
-          enabled: true,
-          redacted_identifiers: [],
-          redaction_excluded_identifiers: [],
-          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*],
-          max_capture_collection_size: 10,
-          max_capture_attribute_count: 10,
+        # Reduce max capture depth to 2 from the default of 3.
+        stub_di_settings(settings,
           max_capture_depth: 2,
-          max_capture_string_length: 100,
-          max_time_to_serialize_ms: 200,
-        )
+          max_capture_attribute_count: 10,
+          max_capture_collection_size: 10,
+          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*],)
       end
     end
   end
