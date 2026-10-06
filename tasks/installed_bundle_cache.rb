@@ -43,51 +43,35 @@ class InstalledBundleCache
     applicable_gemfiles.reject { |gemfile| gemfile == base_gemfile }
   end
 
-  def environment(image_identity:, base_cache_key:)
+  def identity(image_identity:, base_cache_key:)
     {
       "base_cache_key" => base_cache_key,
       "bundler_settings" => bundler_settings,
+      "content" => content,
       "image_identity" => image_identity,
-      "installed_path" => installed_path.to_s,
       "native_build_overrides" => native_build_overrides,
     }
   end
 
   def content
-    gemfiles.flat_map { |gemfile| [gemfile, lockfile_for(gemfile)] }.sort.map do |path|
-      {
-        "path" => relative_path(path),
-        "sha256" => Digest::SHA256.file(path).hexdigest,
-      }
-    end
+    gemfiles.flat_map { |gemfile| [gemfile, lockfile_for(gemfile)] }
+      .map { |path| Digest::SHA256.file(path).hexdigest }
+      .sort
   end
 
-  def environment_digest(image_identity:, base_cache_key:)
-    digest_json(environment(image_identity: image_identity, base_cache_key: base_cache_key))
-  end
-
-  def content_digest
-    digest_json(content)
+  def identity_digest(image_identity:, base_cache_key:)
+    digest_json(identity(image_identity: image_identity, base_cache_key: base_cache_key))
   end
 
   def cache_key(image_identity:, base_cache_key:)
-    [
-      CACHE_KEY_PREFIX,
-      environment_digest(image_identity: image_identity, base_cache_key: base_cache_key),
-      content_digest,
-    ].join("-")
+    "#{CACHE_KEY_PREFIX}-#{identity_digest(image_identity: image_identity, base_cache_key: base_cache_key)}"
   end
 
   def to_h(image_identity:, base_cache_key:)
     {
-      cache_key: cache_key(
-        image_identity: image_identity,
-        base_cache_key: base_cache_key,
-      ),
-      environment: environment(image_identity: image_identity, base_cache_key: base_cache_key),
-      content: content,
-      environment_digest: environment_digest(image_identity: image_identity, base_cache_key: base_cache_key),
-      content_digest: content_digest,
+      cache_key: cache_key(image_identity: image_identity, base_cache_key: base_cache_key),
+      identity: identity(image_identity: image_identity, base_cache_key: base_cache_key),
+      identity_digest: identity_digest(image_identity: image_identity, base_cache_key: base_cache_key),
       base_gemfile: relative_path(base_gemfile),
       applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
     }

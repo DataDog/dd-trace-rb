@@ -48,18 +48,18 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "uses the cache format, environment digest, and content digest in the cache key" do
+  it "uses the cache format and identity digest in the cache key" do
     manifest = cache.to_h(
       image_identity: "image-a",
       base_cache_key: "base-a",
     )
 
     expect(manifest.fetch(:cache_key)).to eq(
-      "bundle-installed-matrix-v3-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
+      "bundle-installed-matrix-v3-#{manifest.fetch(:identity_digest)}"
     )
   end
 
-  it "produces deterministic digests regardless of applicable Gemfile order" do
+  it "produces a deterministic identity regardless of applicable Gemfile order" do
     reordered = described_class.new(
       root: temporary_directory,
       base_gemfile: "base.gemfile",
@@ -67,31 +67,30 @@ RSpec.describe InstalledBundleCache do
       installed_path: temporary_directory.join("installed"),
     )
 
-    expect(reordered.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).to eq(
-      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
-    )
-    expect(reordered.content_digest).to eq(cache.content_digest)
-  end
-
-  it "invalidates the environment digest when image identity changes" do
-    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
-      cache.environment_digest(image_identity: "image-b", base_cache_key: "base-a")
+    expect(reordered.identity_digest(image_identity: "image-a", base_cache_key: "base-a")).to eq(
+      cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")
     )
   end
 
-  it "invalidates the environment digest and key when the base cache identity changes" do
-    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
-      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-b")
+  it "invalidates the identity when image identity changes" do
+    expect(cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.identity_digest(image_identity: "image-b", base_cache_key: "base-a")
+    )
+  end
+
+  it "invalidates the identity and key when the base cache identity changes" do
+    expect(cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.identity_digest(image_identity: "image-a", base_cache_key: "base-b")
     )
     expect(cache.cache_key(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
       cache.cache_key(image_identity: "image-a", base_cache_key: "base-b")
     )
   end
 
-  it "invalidates the environment digest when native build flags change" do
-    original = cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
+  it "invalidates the identity when native build flags change" do
+    original = cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")
     changed = ClimateControl.modify("CFLAGS" => "-march=changed") do
-      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
+      cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")
     end
 
     expect(changed).not_to eq(original)
@@ -108,7 +107,7 @@ RSpec.describe InstalledBundleCache do
     allow(Bundler).to receive(:settings).and_return(settings)
 
     expect(
-      cache.environment(image_identity: "image-a", base_cache_key: "base-a").fetch("bundler_settings")
+      cache.identity(image_identity: "image-a", base_cache_key: "base-a").fetch("bundler_settings")
     ).to eq(
       "build.pg" => "--with-pg-config=/tmp/pg_config",
       "force_ruby_platform" => "true",
@@ -116,23 +115,23 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "invalidates the content digest when a Gemfile changes" do
-    original = cache.content_digest
+  it "invalidates the content identity when a Gemfile changes" do
+    original = cache.content
 
     write("first.gemfile", "eval_gemfile \"base.gemfile\"\ngem \"rake\"\n")
 
-    expect(cache.content_digest).not_to eq(original)
+    expect(cache.content).not_to eq(original)
   end
 
-  it "invalidates the content digest when a lockfile changes" do
-    original = cache.content_digest
+  it "invalidates the content identity when a lockfile changes" do
+    original = cache.content
 
     write("second.gemfile.lock", "changed lock\n")
 
-    expect(cache.content_digest).not_to eq(original)
+    expect(cache.content).not_to eq(original)
   end
 
-  it "includes Gemfile and lockfile paths in the content digest" do
+  it "does not include paths in content identity" do
     write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
     write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
     renamed = described_class.new(
@@ -142,7 +141,7 @@ RSpec.describe InstalledBundleCache do
       installed_path: temporary_directory.join("installed"),
     )
 
-    expect(renamed.content_digest).not_to eq(cache.content_digest)
+    expect(renamed.content).to eq(cache.content)
   end
 
   it "ignores task metadata when applicable Gemfiles are unchanged" do
@@ -168,13 +167,11 @@ RSpec.describe InstalledBundleCache do
     first = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: first_matrix)
     second = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: second_matrix)
 
-    expect(first.content_digest).to eq(second.content_digest)
+    expect(first.content).to eq(second.content)
   end
 
-  it "sorts content members by repository-relative path" do
-    paths = cache.content.map { |member| member.fetch("path") }
-
-    expect(paths).to eq(paths.sort)
+  it "sorts content hashes" do
+    expect(cache.content).to eq(cache.content.sort)
   end
 
   it "installs each appraisal and checks every Gemfile" do
