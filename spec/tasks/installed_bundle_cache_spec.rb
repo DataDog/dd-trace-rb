@@ -185,10 +185,10 @@ RSpec.describe InstalledBundleCache do
       true
     end
 
-    cache.install_appraisals(jobs: 4)
+    cache.install_appraisals
     cache.check
 
-    installed = commands.select { |_gemfile, _command, arguments| arguments == ["install", "--jobs", "4"] }
+    installed = commands.select { |_gemfile, _command, arguments| arguments == ["install"] }
     expect(installed.map { |gemfile, _command, _arguments| File.basename(gemfile) }).to contain_exactly(
       "first.gemfile",
       "second.gemfile",

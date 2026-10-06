@@ -18,7 +18,6 @@ parser = OptionParser.new do |opts|
   opts.on("--cache-schema VALUE") { |value| options[:cache_schema] = value }
   opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
   opts.on("--installed-path PATH") { |value| options[:installed_path] = value }
-  opts.on("--jobs COUNT", Integer) { |value| options[:jobs] = value }
 end
 
 command = ARGV.shift
@@ -46,7 +45,7 @@ when "manifest"
     )
   )
 when "install-appraisals"
-  cache.install_appraisals(jobs: options.fetch(:jobs, 8))
+  cache.install_appraisals
 when "check"
   cache.check
 else

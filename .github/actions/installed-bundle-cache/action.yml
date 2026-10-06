@@ -136,8 +136,7 @@ runs:
       run: |
         ruby tasks/installed_bundle_cache_cli.rb install-appraisals \
           --base-gemfile "$BASE_GEMFILE" \
-          --matrix "$MATRIX" \
-          --jobs 8
+          --matrix "$MATRIX"
     - name: Verify complete matrix bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash

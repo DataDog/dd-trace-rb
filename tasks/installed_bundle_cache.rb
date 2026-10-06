@@ -93,8 +93,8 @@ class InstalledBundleCache
     }
   end
 
-  def install_appraisals(jobs: 8)
-    appraisal_gemfiles.each { |gemfile| run_bundle(gemfile, "install", "--jobs", jobs.to_s) }
+  def install_appraisals
+    appraisal_gemfiles.each { |gemfile| run_bundle(gemfile, "install") }
   end
 
   def check
