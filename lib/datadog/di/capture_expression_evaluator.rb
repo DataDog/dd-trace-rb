@@ -22,6 +22,15 @@ module Datadog
 
       attr_reader :telemetry
 
+      # Evaluates every capture expression of +probe+ against +context+,
+      # resolving one capture deadline through the serializer and sharing
+      # it across all expressions.
+      #
+      # @param probe [Probe] probe whose capture expressions to evaluate
+      # @param context [Context] execution context the expressions evaluate against
+      # @return [Array(Hash{String => Hash}, Array<Hash{Symbol => String}>)] the
+      #   serialized capture results keyed by expression name, and the
+      #   evaluation errors
       def evaluate(probe, context)
         deadline = serializer.serialization_deadline
 

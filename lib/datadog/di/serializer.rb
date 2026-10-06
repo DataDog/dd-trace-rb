@@ -141,6 +141,12 @@ module Datadog
       # Instance variables are technically a hash just like kwargs,
       # we take them as a separate parameter to avoid a hash merge
       # in upstream code.
+      #
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_self [any] receiver of the probed method invocation
+      # @param deadline [Float, nil] absolute capture deadline in CLOCK_MONOTONIC seconds; nil resolves a fresh per-capture-point budget
+      # @return [Hash{Symbol => Hash}] serialized arguments keyed by argument name
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -156,6 +162,10 @@ module Datadog
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
+      #
+      # @param vars [Hash{Symbol => Object}] variables to serialize, keyed by variable name
+      # @param deadline [Float, nil] absolute capture deadline in CLOCK_MONOTONIC seconds; nil resolves a fresh per-capture-point budget
+      # @return [Hash{Symbol => Hash}] serialized variables keyed by variable name
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -181,6 +191,11 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
+      #
+      # @param value [any] value to serialize
+      # @param name [Symbol, String, nil] name the value is bound to, used for redaction
+      # @param deadline [Float, nil] absolute capture deadline in CLOCK_MONOTONIC seconds; nil resolves a fresh per-capture-point budget
+      # @return [Hash{Symbol => Object}] serialized value; the {type:, notCapturedReason: "timeout"} stub when the deadline is exceeded
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
@@ -403,9 +418,8 @@ module Datadog
       # +name+, when given, is the identifier the template expression
       # references at its top level; a redacted identifier yields the
       # redaction placeholder, mirroring #serialize_value on the snapshot path.
-      # Note: this message-rendering path is intentionally not bounded by the
-      # capture time budget; it is capped by depth (1) and
-      # MAX_MESSAGE_COLLECTION_SIZE / MAX_MESSAGE_ATTRIBUTE_COUNT instead.
+      # Message rendering is capped by depth (1) and
+      # MAX_MESSAGE_COLLECTION_SIZE / MAX_MESSAGE_ATTRIBUTE_COUNT.
       def serialize_value_for_message(value, depth: 1, name: nil)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
@@ -503,7 +517,13 @@ module Datadog
       # Computes the absolute monotonic deadline (in seconds) for a capture
       # point from max_time_to_serialize_ms, clamped to
       # CAPTURE_TIMEOUT_CEILING_SECONDS. Resolve once per capture point and
-      # share across all serialized values so the budget is not exceeded.
+      # share across all values serialized on the built-in paths so the
+      # budget is not exceeded; custom serializer procs re-enter
+      # serialize_value without the deadline and each custom-serialized
+      # subtree draws a fresh, independently clamped budget.
+      #
+      # @return [Float] absolute CLOCK_MONOTONIC reading, in seconds, at
+      #   which the capture budget is exhausted
       def serialization_deadline
         budget_seconds = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
         budget = if budget_seconds > CAPTURE_TIMEOUT_CEILING_SECONDS
@@ -515,6 +535,8 @@ module Datadog
       end
 
       # Returns the current monotonic clock reading, in seconds.
+      #
+      # @return [Float]
       def monotonic_now
         ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second)
       end
@@ -524,11 +546,17 @@ module Datadog
       # Falls back to a fresh per-capture-point budget when the caller passes
       # no explicit deadline; callers sharing one budget across a capture
       # point pass it explicitly.
+      #
+      # @param deadline [Float, nil] explicit deadline, in seconds
+      # @return [Float] resolved deadline, in seconds
       def resolve_deadline(deadline)
         deadline || serialization_deadline
       end
 
       # Returns true once the monotonic clock has reached the capture deadline.
+      #
+      # @param deadline [Float] absolute capture deadline, in seconds
+      # @return [Boolean]
       def deadline_exceeded?(deadline)
         monotonic_now >= deadline
       end
