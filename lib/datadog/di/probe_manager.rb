@@ -336,7 +336,7 @@ module Datadog
       # @return [void]
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        rate_limiter = probe.condition_evaluation_failed_rate_limiter
+        rate_limiter = probe.expression_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
           if instrumenter.global_snapshot_rate_limiter.allow?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)

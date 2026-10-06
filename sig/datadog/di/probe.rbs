@@ -2,6 +2,7 @@ module Datadog
   module DI
     class Probe
       KNOWN_TYPES: Array[Symbol]
+      METRIC_KINDS: Array[Symbol]
       EVALUATE_AT_VALUES: Array[Symbol]
 
       @id: String
@@ -20,6 +21,10 @@ module Datadog
       @template_segments: Array[String | DI::EL::Expression]?
 
       @capture_snapshot: bool
+      @metric_kind: (:count | :gauge | :histogram | :distribution)?
+      @metric_name: String?
+      @metric_value: DI::EL::Expression?
+      @tags: Array[String]
 
       @rate_limiter: Datadog::Core::RateLimiter
 
@@ -39,7 +44,11 @@ module Datadog
 	?max_capture_collection_size: Integer?, ?max_capture_string_length: Integer?,
 	?capture_expressions: Array[CaptureExpression],
 	?evaluate_at: Symbol?,
-	?rate_limit: Integer?) -> void
+	?rate_limit: Integer?,
+	?metric_kind: (:count | :gauge | :histogram | :distribution)?,
+	?metric_name: String?,
+	?metric_value: DI::EL::Expression?,
+	?tags: Array[String]) -> void
 
       attr_reader condition: DI::EL::Expression?
 
@@ -71,7 +80,15 @@ module Datadog
       attr_reader template_segments: Array[String | DI::EL::Expression]?
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
-      attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
+      attr_reader expression_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
+
+      attr_reader metric_kind: (:count | :gauge | :histogram | :distribution)?
+
+      attr_reader metric_name: String?
+
+      attr_reader metric_value: DI::EL::Expression?
+
+      attr_reader tags: Array[String]
 
       def capture_snapshot?: () -> bool
       def capture_expressions?: () -> bool
