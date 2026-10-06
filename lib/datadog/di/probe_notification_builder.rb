@@ -399,26 +399,33 @@ module Datadog
         end
       end
 
-      def evaluate_template(template_segments, context)
-        # Templates evaluate after capture, at a different wall-clock
-        # instant than the condition, so resolve a fresh evaluation
-        # deadline shared across all segments. Collection operators
-        # inside a segment read this from the context and abort the
-        # segment when the budget is exhausted; the between-segment
-        # check below aborts when the budget is exhausted before a
-        # segment starts, and the per-segment rescue surfaces either
-        # case as an evaluationErrors entry.
-        context.deadline = Datadog::DI::EL::Evaluator.evaluation_deadline(settings)
+      # Renders the probe's message template against +context+.
+      #
+      # Templates evaluate after capture, at a different wall-clock instant
+      # than the condition, so a fresh evaluation deadline is resolved per
+      # template evaluation (the +deadline+ default) and shared across all
+      # segments. A timeout raised by the between-segment check below or by
+      # the in-segment collection operators surfaces as an evaluationErrors
+      # entry, rendered as "[evaluation error]".
+      #
+      # @param template_segments [Array<String, EL::Expression>] compiled
+      #   template segments to render.
+      # @param context [Context] evaluation context for expression segments.
+      # @param deadline [Float, nil] cooperative evaluation deadline, as
+      #   CLOCK_MONOTONIC float seconds; nil leaves evaluation unbounded.
+      # @return [Array(String, Array<Hash>)] the rendered message and the
+      #   evaluation errors.
+      def evaluate_template(template_segments, context, deadline: EL::Evaluator.evaluation_deadline(settings))
         evaluation_errors = []
         message = template_segments.map do |segment|
-          if segment.is_a?(EL::Expression) && Datadog::DI::EL::Evaluator.evaluation_deadline_exceeded?(context)
+          if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(deadline)
             raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
           end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context), name: segment.redaction_identifier)
+            serializer.serialize_value_for_message(segment.evaluate(context, deadline: deadline), name: segment.redaction_identifier)
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end

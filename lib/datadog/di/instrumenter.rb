@@ -522,9 +522,9 @@ module Datadog
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
-                deadline: Datadog::DI::EL::Evaluator.evaluation_deadline(settings),
               )
-              continue = condition.satisfied?(context)
+              continue = condition.satisfied?(context,
+                deadline: EL::Evaluator.evaluation_deadline(settings),)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
@@ -757,6 +757,20 @@ module Datadog
         public :kwargs_from_splat
       end
 
+      # Trace point callback for a line probe hit. Gates the hit through
+      # the probe's condition, the per-probe rate limiter, and the global
+      # rate limiter, then invokes the responder with the built context. A
+      # condition evaluation timeout is routed to the responder's
+      # condition-evaluation-failed callback like any other condition
+      # evaluation error, after being counted and logged.
+      #
+      # @param probe [Probe] the probe the trace point was installed for.
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
+      #   the probe's target file, when the trace point is targeted.
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback, #probe_disabled_callback]
+      #   callback target for the probe hit.
+      # @param tp [TracePoint] the trace point event that fired.
+      # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -793,8 +807,9 @@ module Datadog
 
         if condition = probe.condition
           begin
-            context = build_trace_point_context(probe, tp, deadline: Datadog::DI::EL::Evaluator.evaluation_deadline(settings))
-            return unless condition.satisfied?(context)
+            context = build_trace_point_context(probe, tp)
+            return unless condition.satisfied?(context,
+              deadline: EL::Evaluator.evaluation_deadline(settings),)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
@@ -862,7 +877,7 @@ module Datadog
         # TODO test this path
       end
 
-      def build_trace_point_context(probe, tp, deadline: nil)
+      def build_trace_point_context(probe, tp)
         stack = caller_locations
         # We have two helper methods being invoked from the trace point
         # handler block, remove them from the stack.
@@ -877,7 +892,6 @@ module Datadog
           serializer: serializer,
           path: tp.path,
           caller_locations: stack,
-          deadline: deadline,
         )
       end
 

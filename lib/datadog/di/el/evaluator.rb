@@ -33,33 +33,39 @@ module Datadog
 
         attr_reader :regexps
 
-        # Cooperative evaluation-deadline check. Reads the per-invocation
-        # deadline from the current evaluation Context (set on `@context`
-        # by the compiled `evaluate` method) and raises
-        # DI::Error::EvaluationTimeout when the monotonic clock has
-        # passed it. Returns false when no deadline is set, leaving
-        # evaluation unbounded (preserves existing behavior for callers
-        # that do not supply a deadline).
+        # Cooperative evaluation-deadline check for the evaluation in
+        # progress. The deadline is supplied per invocation to the compiled
+        # #evaluate method, which stores it in @deadline.
+        #
+        # @return [Boolean] whether the monotonic clock has passed the
+        #   deadline. False when no deadline is set, leaving evaluation
+        #   unbounded.
         def evaluation_deadline_exceeded?
-          self.class.evaluation_deadline_exceeded?(@context)
+          self.class.evaluation_deadline_exceeded?(@deadline)
         end
         private :evaluation_deadline_exceeded?
 
         # Resolves a per-invocation wall-time deadline (float seconds) for
-        # evaluating a probe condition or template segment, from the
-        # configured evaluation timeout setting. Returns nil when no
-        # evaluation timeout is configured, leaving evaluation unbounded.
+        # evaluating a probe condition, capture expression, or template
+        # segment, from the configured evaluation timeout setting. Returns
+        # nil when no evaluation timeout is configured, leaving evaluation
+        # unbounded.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings] settings to
+        #   read the evaluation timeout budget from.
+        # @return [Float, nil] the deadline, or nil when no timeout is configured.
         def self.evaluation_deadline(settings)
           budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
           return nil unless budget_ms
           ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) + budget_ms / 1000.0
         end
 
-        # Returns true when the monotonic clock has passed the deadline
-        # carried by +context+. Returns false when no deadline is set,
-        # leaving evaluation unbounded.
-        def self.evaluation_deadline_exceeded?(context)
-          deadline = context&.deadline
+        # Returns whether the monotonic clock has passed +deadline+.
+        #
+        # @param deadline [Float, nil] the deadline to check; nil means no
+        #   deadline is set, leaving evaluation unbounded.
+        # @return [Boolean] whether the deadline has been crossed.
+        def self.evaluation_deadline_exceeded?(deadline)
           !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
         end
 

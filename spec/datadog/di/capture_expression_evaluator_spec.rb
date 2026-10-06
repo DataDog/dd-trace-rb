@@ -16,6 +16,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
   before do
     allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(200)
+    # Default to no evaluation deadline so existing capture-expression specs
+    # preserve their pre-timeout behavior; the deadline context below
+    # overrides this with a real value.
+    allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
   end
 
   let(:redactor) do
@@ -100,6 +104,43 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           description: "DI capture-expression evaluation failed",
         )
         evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "expression evaluation exceeds the evaluation deadline" do
+      before do
+        expect(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("x.filter(@it >= 0)",
+                {"filter" => [{"ref" => "x"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {x: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "omits the key from output and reports the timeout as an evaluation error" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output).to eq({})
+        expect(errors.size).to eq(1)
+        expect(errors.first[:expr]).to eq("filtered")
+        expect(errors.first[:message]).to include("EvaluationTimeout")
       end
     end
 

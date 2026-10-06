@@ -44,7 +44,7 @@ module Datadog
 
       def format_caller_locations: (Array[Thread::Backtrace::Location] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (Array[String | EL::Expression] template, Context context) -> [String, Array[Hash[Symbol, String]]]
+      def evaluate_template: (Array[String | EL::Expression] template, Context context, ?deadline: Float?) -> [String, Array[Hash[Symbol, String]]]
 
       def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
 

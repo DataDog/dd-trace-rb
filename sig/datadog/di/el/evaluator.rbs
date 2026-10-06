@@ -8,11 +8,13 @@ module Datadog
 
         @context: Context
 
+        @deadline: Float?
+
         @regexps: ::Array[::Regexp]
 
         def initialize: (?::Array[::Regexp] regexps) -> void
 
-        def evaluate: (Context compiled) -> any
+        def evaluate: (Context context, Float? deadline) -> any
 
         def regexps: () -> ::Array[::Regexp]
 
@@ -20,7 +22,7 @@ module Datadog
 
         def self.evaluation_deadline: (Datadog::Core::Configuration::Settings settings) -> ::Float?
 
-        def self.evaluation_deadline_exceeded?: (Context? context) -> bool
+        def self.evaluation_deadline_exceeded?: (Float? deadline) -> bool
 
         def ref: ((Symbol | String) var) -> any
 
