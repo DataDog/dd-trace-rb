@@ -60,7 +60,8 @@ class InstalledBundleCache
   end
 
   def identity_digest(image_identity:, base_cache_key:)
-    digest_json(identity(image_identity: image_identity, base_cache_key: base_cache_key))
+    identity_json = JSON.generate(identity(image_identity: image_identity, base_cache_key: base_cache_key))
+    Digest::SHA256.hexdigest(identity_json)
   end
 
   def cache_key(image_identity:, base_cache_key:)
@@ -76,24 +77,6 @@ class InstalledBundleCache
   end
 
   private
-
-  def canonical_json(value)
-    case value
-    when Hash
-      "{" + value.keys.map(&:to_s).sort.map do |key|
-        original_key = value.key?(key) ? key : value.keys.find { |candidate| candidate.to_s == key }
-        "#{JSON.generate(key)}:#{canonical_json(value.fetch(original_key))}"
-      end.join(",") + "}"
-    when Array
-      "[" + value.map { |item| canonical_json(item) }.join(",") + "]"
-    else
-      JSON.generate(value)
-    end
-  end
-
-  def digest_json(value)
-    Digest::SHA256.hexdigest(canonical_json(value))
-  end
 
   def bundler_settings
     Bundler.settings.all.sort.each_with_object({}) do |key, selected|
