@@ -2960,7 +2960,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
-| `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` | `Integer` | Per-capture time budget (in milliseconds) for serializing a snapshot (arguments, locals, self) and evaluating capture expressions; values whose serialization exceeds the budget are reported with `notCapturedReason: timeout`. `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is accepted as the legacy Ruby alias. Clamped to the 150 ms hard ceiling. | `150` |
+| `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` | `Integer` | Per-capture time budget (in milliseconds) for serializing a snapshot (arguments, locals, self) and evaluating capture expressions; values whose serialization exceeds the budget are reported with `notCapturedReason: timeout`. `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is no longer read and logs a warning when set. Clamped to the 150 ms hard ceiling. | `150` |
 
 Alternatively, set DI parameters inside a `Datadog.configure` block:
 

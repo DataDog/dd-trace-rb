@@ -43,6 +43,15 @@ module Datadog
             return
           end
 
+          # The capture-timeout knob reads DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS.
+          # The Configuration Registry holds no alias linking the former
+          # DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE name to it, so the former
+          # name is no longer resolved; a set value warns here.
+          if (legacy_timeout = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"])
+            logger.warn("di: DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE is no longer read; " \
+              "set DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead (found value: #{legacy_timeout})")
+          end
+
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
           end
