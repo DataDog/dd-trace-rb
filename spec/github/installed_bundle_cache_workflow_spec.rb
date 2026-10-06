@@ -171,21 +171,12 @@ RSpec.describe "installed bundle cache workflow" do
   end
 
   it "permits writes only from the default branch" do
-    runtime_jobs = production_workflow.fetch("jobs").select do |_name, job|
-      job["uses"] == "./.github/workflows/_unit_test.yml"
-    end
     prepare = workflow.fetch("jobs").fetch("batch").fetch("steps").find do |step|
       step["name"] == "Prepare installed matrix bundle cache"
     end
 
-    expect(runtime_jobs.values).to all(
-      satisfy do |job|
-        job.fetch("with").fetch("installed-cache-write") == true
-      end
-    )
-    expect(prepare.fetch("with").fetch("write-enabled")).to include(
-      "inputs.installed-cache-write",
-      "github.ref == 'refs/heads/master'",
+    expect(prepare.fetch("with").fetch("write-enabled")).to eq(
+      "${{ github.ref == 'refs/heads/master' }}",
     )
   end
 

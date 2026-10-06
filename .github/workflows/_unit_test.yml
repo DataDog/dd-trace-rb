@@ -17,10 +17,6 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: boolean
         default: false
-      installed-cache-write:
-        required: false
-        type: boolean
-        default: false
     outputs:
       lockfile:
         description: "The lockfile artifact"
@@ -48,11 +44,6 @@ on: # yamllint disable-line rule:truthy
         type: string
       installed-cache-enabled:
         description: "Use full-union installed bundle cache"
-        required: true
-        type: boolean
-        default: false
-      installed-cache-write:
-        description: "Build and save installed bundle after a miss"
         required: true
         type: boolean
         default: false
@@ -109,7 +100,7 @@ jobs:
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
-          write-enabled: ${{ inputs.installed-cache-write && github.ref == 'refs/heads/master' }}
+          write-enabled: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Generate batch summary
         env:
