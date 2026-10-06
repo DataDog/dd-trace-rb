@@ -270,9 +270,16 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         let(:probe) do
           instance_double(Datadog::DI::Probe, id: "test-probe", type: "log", location: "test.rb:42")
         end
+        let(:status) do
+          {debugger: {diagnostics: {status: "received"}}}.freeze
+        end
         let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
 
         before do
+          # The outer "started" context runs the real worker thread; quiesce
+          # it before filling so the drain cannot race the fill loop, and
+          # stub start so the auto-restart inside add_status stays off.
+          worker.stop
           allow(input_transport).to receive(:send_input)
           allow(logger).to receive(:debug)
           allow(worker).to receive(:start)
