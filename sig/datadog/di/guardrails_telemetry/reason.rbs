@@ -1,7 +1,7 @@
 module Datadog
   module DI
-    module GuardrailsTelemetry
-      class Reason
+    class GuardrailsTelemetry
+      module Reason
         RATE_LIMIT_PROBE: String
 
         RATE_LIMIT_GLOBAL: String
