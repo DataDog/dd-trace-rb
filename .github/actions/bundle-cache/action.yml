@@ -11,7 +11,7 @@ inputs:
 outputs:
   cache-key:
     description: 'Cache key for the bundle'
-    value: ${{ steps.cache-key.outputs.value }}
+    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
   lockfile:
     description: 'Lockfile name'
     value: ${{ steps.lockfile.outputs.lockfile }}
@@ -42,28 +42,11 @@ runs:
       with:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: ${{ steps.lockfile.outputs.path }}
-    - name: Resolve cache key
-      id: cache-key
-      shell: bash
-      env:
-        LOCKFILE_HASH: ${{ hashFiles(steps.lockfile.outputs.path) }}
-        PROVIDED_KEY: ${{ inputs.cache-key }}
-        RUBY_ENVIRONMENT: ${{ steps.ruby-env-id.outputs.id }}
-      run: |
-        key="$PROVIDED_KEY"
-        if [ -z "$key" ]; then
-          if [ -z "$LOCKFILE_HASH" ]; then
-            echo "::error::Could not hash ${{ steps.lockfile.outputs.path }}." >&2
-            exit 1
-          fi
-          key="bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH"
-        fi
-        echo "value=$key" >> "$GITHUB_OUTPUT"
     - name: Restore cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: restore-cache
       with:
-        key: ${{ steps.cache-key.outputs.value }}
+        key: ${{ inputs.cache-key || format('bundle-{0}-{1}', steps.ruby-env-id.outputs.id, hashFiles(steps.lockfile.outputs.path)) }}
         path: "/usr/local/bundle"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
@@ -72,7 +55,7 @@ runs:
       name: Save cache
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.cache-key.outputs.value }}
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
     - run: bundle check
       shell: bash
