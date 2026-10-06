@@ -156,7 +156,7 @@ class DIInstrumentBenchmark
     @telemetry ||= begin
       settings = Datadog.configuration
       agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(
-        settings, logger: logger
+        settings, logger: logger,
       )
       Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
     end

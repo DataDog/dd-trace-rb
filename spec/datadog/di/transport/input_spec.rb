@@ -180,7 +180,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be > 100
         end
         expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
-          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
         expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
           expect(namespace).to eq("dynamic_instrumentation")
           expect(name).to eq("guardrails.queue.dropped_bytes")
@@ -208,7 +208,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         it "drops the snapshot measured in bytes" do
           expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
           expect(transport).not_to receive(:send_input_chunk)
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)

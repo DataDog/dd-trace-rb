@@ -2151,7 +2151,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     describe "#probe_global_rate_limiter" do
       let(:snapshot_probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
-          method_name: "hook_test_method", capture_snapshot: true)
+          method_name: "hook_test_method", capture_snapshot: true,)
       end
 
       let(:log_probe) do
@@ -2215,7 +2215,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the global snapshot limit rejects a capturing probe" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-            id: 1, type: :log, capture_snapshot: true)
+            id: 1, type: :log, capture_snapshot: true,)
         end
 
         before do
@@ -2243,7 +2243,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the per-probe limit rejects" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-            id: 1, type: :log, rate_limit: 0)
+            id: 1, type: :log, rate_limit: 0,)
         end
 
         it "does not consult the global limiter" do
@@ -2386,7 +2386,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the per-probe limit rejects" do
         let(:probe) do
           Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
-            rate_limit: 0)
+            rate_limit: 0,)
         end
 
         it "does not consult the global limiter" do
@@ -2434,7 +2434,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the global snapshot limit rejects a capturing probe" do
         let(:probe) do
           Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
-            capture_snapshot: true)
+            capture_snapshot: true,)
         end
 
         before do

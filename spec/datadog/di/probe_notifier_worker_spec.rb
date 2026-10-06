@@ -345,7 +345,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect_lazy_log(logger, :debug,
             "di: dropping status for log probe at test.rb:42 (test-probe): received because queue is full (queueFull)")
           expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
-            tags: {reason: "queueFull", event_type: "diagnostic"})
+            tags: {reason: "queueFull", event_type: "diagnostic"},)
 
           worker.add_status(status, probe: probe)
 
