@@ -3,6 +3,7 @@
 require_relative "di/configuration"
 require_relative "di/extensions"
 require_relative "di/remote"
+require_relative "di/telemetry_namespace"
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
@@ -10,11 +11,6 @@ module Datadog
   # @api private
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
-
-    # Telemetry namespace shared by DI metric emitters (GuardrailsTelemetry,
-    # CaptureExpressionEvaluator). Defined once here so the literal cannot
-    # drift between emitters.
-    TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
     # Captured at load time from Exception itself (not a subclass).
     # Used to bypass subclass overrides of backtrace_locations.

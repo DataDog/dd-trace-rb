@@ -3,6 +3,7 @@
 require_relative "capture_expression"
 require_relative "capture_limits"
 require_relative "fatal_exceptions"
+require_relative "telemetry_namespace"
 
 module Datadog
   module DI

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "guardrails_telemetry/reason"
+require_relative "telemetry_namespace"
 
 module Datadog
   module DI
