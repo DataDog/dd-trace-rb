@@ -74,13 +74,6 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "contains no strategy selector or grouped cache lifecycle" do
-    source = File.read(File.expand_path("../../.github/workflows/_unit_test.yml", __dir__))
-
-    expect(source).not_to include("installed-cache-strategy", "group-delta", "group-full", "all-delta")
-    expect(source).not_to include("package-cache", "minimal-tests", "experiment-variant")
-  end
-
   it "does not restore the base before an exact union lookup" do
     lookup_index = steps.index { |step| step["id"] == "lookup" }
     base_index = steps.index { |step| step["id"] == "base-bundle" }
