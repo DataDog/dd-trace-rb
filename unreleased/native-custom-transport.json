@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6419",
+  "message": "Fix custom trace transports being replaced when native transport is enabled, restoring compatibility with `datadog-ci`."
+}

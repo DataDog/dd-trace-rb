@@ -541,6 +541,41 @@ RSpec.describe Datadog::Tracing::Component do
     end
   end
 
+  describe "custom writer transports" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:transport) { double("custom transport") }
+    let(:options) { {transport: transport} }
+
+    before do
+      settings.tracing.native_transport = true
+      expect(described_class).not_to receive(:build_native_transport)
+    end
+
+    after { @writer&.stop }
+
+    it "preserves the transport configured through writer_options" do
+      settings.tracing.writer_options = options
+      @writer = described_class.build_writer(settings, test_agent_settings)
+
+      expect(@writer.transport).to be(transport)
+      expect(options).to eq(transport: transport)
+    end
+
+    it "preserves a transport passed directly to build_writer" do
+      @writer = described_class.build_writer(settings, test_agent_settings, options)
+
+      expect(@writer.transport).to be(transport)
+    end
+
+    it "preserves the asynchronous test-mode transport" do
+      settings.tracing.test_mode.async = true
+      settings.tracing.test_mode.writer_options = options
+      @writer = described_class.build_test_mode_writer(settings, test_agent_settings)
+
+      expect(@writer.transport).to be(transport)
+    end
+  end
+
   describe "writer event callbacks" do
     describe Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
       subject(:call) { described_class.call(writer, responses) }
