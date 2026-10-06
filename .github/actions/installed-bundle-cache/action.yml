@@ -31,9 +31,6 @@ outputs:
   base-lockfile:
     description: Base lockfile artifact name when fallback is prepared
     value: ${{ steps.base-bundle.outputs.lockfile }}
-  status:
-    description: "Cache status: exact, miss, or generated"
-    value: ${{ steps.result.outputs.status }}
   ready:
     description: Whether complete bundle is available to child jobs
     value: ${{ steps.result.outputs.ready }}
@@ -192,14 +189,9 @@ runs:
         SAVED_HIT: ${{ steps.verify-save.outputs.cache-hit }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: |
-        if [ "$EXACT_HIT" = "true" ]; then
-          status=exact
-          ready=true
-        elif [ "$WRITE_ENABLED" = "true" ] && [ "$SAVED_HIT" = "true" ]; then
-          status=generated
+        if [ "$EXACT_HIT" = "true" ] || { [ "$WRITE_ENABLED" = "true" ] && [ "$SAVED_HIT" = "true" ]; }; then
           ready=true
         else
-          status=miss
           ready=false
         fi
-        { echo "status=$status"; echo "ready=$ready"; } >> "$GITHUB_OUTPUT"
+        echo "ready=$ready" >> "$GITHUB_OUTPUT"

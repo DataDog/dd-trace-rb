@@ -67,23 +67,19 @@ RSpec.describe "installed bundle cache workflow" do
     expect(manifest.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
 
-  it "classifies exact, generated, read-only miss, and failed-save states" do
+  it "reports whether the exact cache is ready" do
     result = steps.find { |step| step["id"] == "result" }.fetch("run")
 
     expect(run_output(result, "EXACT_HIT" => "true", "SAVED_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
-      "status" => "exact",
       "ready" => "true",
     )
     expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "true", "WRITE_ENABLED" => "true")).to include(
-      "status" => "generated",
       "ready" => "true",
     )
     expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
-      "status" => "miss",
       "ready" => "false",
     )
     expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "false", "WRITE_ENABLED" => "true")).to include(
-      "status" => "miss",
       "ready" => "false",
     )
   end
