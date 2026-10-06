@@ -60,16 +60,6 @@ class InstalledBundleCache
     "#{CACHE_KEY_PREFIX}-#{identity_digest(image_identity: image_identity, base_cache_key: base_cache_key)}"
   end
 
-  def to_h(image_identity:, base_cache_key:)
-    {
-      cache_key: cache_key(image_identity: image_identity, base_cache_key: base_cache_key),
-      identity: identity(image_identity: image_identity, base_cache_key: base_cache_key),
-      identity_digest: identity_digest(image_identity: image_identity, base_cache_key: base_cache_key),
-      base_gemfile: relative_path(base_gemfile),
-      applicable_gemfiles: applicable_gemfiles.map { |path| relative_path(path) },
-    }
-  end
-
   def install_appraisals
     appraisal_gemfiles.each { |gemfile| run_bundle(gemfile, "install") }
   end
@@ -156,15 +146,13 @@ if $PROGRAM_NAME == __FILE__
   cache = InstalledBundleCache.new(base_gemfile: options[:base_gemfile])
 
   case command
-  when "manifest"
+  when "key"
     raise OptionParser::MissingArgument, "--base-cache-key" unless options[:base_cache_key]
     raise OptionParser::MissingArgument, "--image-identity" unless options[:image_identity]
 
-    puts JSON.pretty_generate(
-      cache.to_h(
-        image_identity: options[:image_identity],
-        base_cache_key: options[:base_cache_key],
-      )
+    puts cache.cache_key(
+      image_identity: options[:image_identity],
+      base_cache_key: options[:base_cache_key],
     )
   when "install-appraisals"
     cache.install_appraisals

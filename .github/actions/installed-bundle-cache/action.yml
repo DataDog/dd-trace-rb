@@ -17,7 +17,7 @@ inputs:
 outputs:
   cache-key:
     description: Exact installed bundle cache key
-    value: ${{ steps.manifest.outputs.cache-key }}
+    value: ${{ steps.installed-key.outputs.cache-key }}
   base-cache-key:
     description: Exact lean base bundle cache key
     value: ${{ steps.base-key.outputs.cache-key }}
@@ -55,7 +55,7 @@ runs:
           exit 1
         fi
         echo "cache-key=bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH" >> "$GITHUB_OUTPUT"
-    - id: manifest
+    - id: installed-key
       name: Compute installed bundle key
       shell: bash
       env:
@@ -63,21 +63,16 @@ runs:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
       run: |
-        ruby tasks/installed_bundle_cache.rb manifest \
+        cache_key=$(ruby tasks/installed_bundle_cache.rb key \
           --base-gemfile "$BASE_GEMFILE" \
           --base-cache-key "$BASE_CACHE_KEY" \
-          --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
-        ruby -rjson -e '
-          manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))
-          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
-            output.puts("cache-key=#{manifest.fetch("cache_key")}")
-          end
-        '
+          --image-identity "$IMAGE_IDENTITY")
+        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: lookup
       name: Find installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.manifest.outputs.cache-key }}
+        key: ${{ steps.installed-key.outputs.cache-key }}
         path: /usr/local/bundle
         lookup-only: true
     - id: base-bundle
@@ -113,7 +108,7 @@ runs:
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.manifest.outputs.cache-key }}
+        key: ${{ steps.installed-key.outputs.cache-key }}
         path: /usr/local/bundle
     - id: result
       shell: bash

@@ -51,13 +51,13 @@ RSpec.describe "installed bundle cache workflow" do
     expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
   end
 
-  it "includes the exact base cache key in the union manifest" do
+  it "includes the exact base cache key in the union identity" do
     base_key = steps.find { |step| step["id"] == "base-key" }
-    manifest = steps.find { |step| step["id"] == "manifest" }
+    installed_key = steps.find { |step| step["id"] == "installed-key" }
 
     expect(base_key.fetch("env").fetch("LOCKFILE_HASH")).to include("hashFiles")
-    expect(manifest.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
-    expect(manifest.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
+    expect(installed_key.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
+    expect(installed_key.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
 
   it "reports whether the exact cache is ready" do

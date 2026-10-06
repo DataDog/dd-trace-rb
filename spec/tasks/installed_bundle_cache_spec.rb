@@ -46,13 +46,8 @@ RSpec.describe InstalledBundleCache do
   end
 
   it "uses the cache format and identity digest in the cache key" do
-    manifest = cache.to_h(
-      image_identity: "image-a",
-      base_cache_key: "base-a",
-    )
-
-    expect(manifest.fetch(:cache_key)).to eq(
-      "bundle-installed-matrix-v3-#{manifest.fetch(:identity_digest)}"
+    expect(cache.cache_key(image_identity: "image-a", base_cache_key: "base-a")).to eq(
+      "bundle-installed-matrix-v3-#{cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")}"
     )
   end
 
