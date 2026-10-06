@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Metrics
+      module Dogstatsd
+        def self?.installed_version: () -> Gem::Version?
+
+        def self?.supported?: (Gem::Version? version) -> bool
+
+        def self?.single_thread_supported?: (Gem::Version version) -> bool
+
+        def self?.default_hostname: () -> String
+
+        def self?.default_port: () -> Integer
+      end
+    end
+  end
+end
