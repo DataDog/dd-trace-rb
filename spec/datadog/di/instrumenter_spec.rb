@@ -2270,6 +2270,55 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.length).to eq 1
         end
       end
+
+      context "when emitting the skip metric raises" do
+        let(:propagate_all_exceptions) { false }
+
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+          end
+        end
+
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "completes the probed method normally and logs the telemetry failure" do
+          expect_lazy_log(logger, :debug,
+            /error emitting rate-limit skip telemetry.*StandardError.*telemetry down/)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+        end
+      end
+
+      context "when emitting the skip metric raises and all exceptions propagate" do
+        let(:propagate_all_exceptions) { true }
+
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+          end
+        end
+
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "raises the telemetry failure out of the probed method" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
+        end
+      end
     end
 
     describe "line probe enforcement" do
