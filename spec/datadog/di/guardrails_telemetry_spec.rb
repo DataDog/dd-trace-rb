@@ -3,17 +3,26 @@ require "datadog/di/guardrails_telemetry"
 require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::GuardrailsTelemetry do
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
   describe ".probe_type_tag" do
+    let(:capture_snapshot) { true }
+
+    let(:probe) do
+      Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
+        method_name: "m", capture_snapshot: capture_snapshot)
+    end
+
     it "returns snapshot for a snapshot probe" do
-      probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
-        method_name: "m", capture_snapshot: true)
       expect(described_class.probe_type_tag(probe)).to eq("snapshot")
     end
 
-    it "returns log for a log probe" do
-      probe = Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
-        method_name: "m", capture_snapshot: false)
-      expect(described_class.probe_type_tag(probe)).to eq("log")
+    context "for a log probe" do
+      let(:capture_snapshot) { false }
+
+      it "returns log" do
+        expect(described_class.probe_type_tag(probe)).to eq("log")
+      end
     end
   end
 
@@ -42,7 +51,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     end
 
     it "emits the canonical skipped metric with reason and probe_type tags" do
-      telemetry = instance_double(Datadog::Core::Telemetry::Component)
       expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
         tags: {reason: "rateLimitProbe", probe_type: "snapshot"})
 
@@ -58,7 +66,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     end
 
     it "emits only the dropped metric when bytes is omitted" do
-      telemetry = instance_double(Datadog::Core::Telemetry::Component)
       expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
         tags: {reason: "queueFull", event_type: "snapshot"})
 
@@ -67,7 +74,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     end
 
     it "emits the dropped and dropped_bytes metrics when bytes is provided" do
-      telemetry = instance_double(Datadog::Core::Telemetry::Component)
       expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
         tags: {reason: "payloadTooLarge", event_type: "snapshot"})
       expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.queue.dropped_bytes", 2048,
