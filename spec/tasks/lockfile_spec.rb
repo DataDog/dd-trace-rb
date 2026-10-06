@@ -74,6 +74,15 @@ RSpec.describe Lockfile do
         ])
       end
     end
+
+    it "returns [] when every lockfile has a companion gemfile" do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, "ruby-3.1_contrib.gemfile"), "")
+        File.write(File.join(dir, "ruby-3.1_contrib.gemfile.lock"), "")
+
+        expect(described_class.orphaned_lockfile_paths(dir)).to eq([])
+      end
+    end
   end
 
   describe "#has_checksums_section?" do
