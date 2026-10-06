@@ -48,7 +48,15 @@ RSpec.describe "appraisal/orphans.rb" do
   end
 
   def run_orphans_script
-    Open3.capture2e("ruby", orphans_script_path, chdir: tree_dir)
+    # The tree is named for the running process's runtime identifier, so the
+    # subprocess must be this ruby; clearing the inherited bundler environment
+    # keeps it from activating a bundle whose Gemfile does not resolve from
+    # the throwaway tree.
+    Open3.capture2e(
+      {"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil, "BUNDLE_BIN_PATH" => nil},
+      Gem.ruby, orphans_script_path,
+      chdir: tree_dir,
+    )
   end
 
   context "when every gemfile has a definition and every lockfile has a gemfile" do
