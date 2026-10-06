@@ -155,6 +155,7 @@ module Datadog
         # handler. The probed method completes normally; the skip metric
         # is the only thing lost.
         logger.debug { "di: error emitting rate-limit skip telemetry: #{exc.class}: #{exc.message}" }
+        nil
       end
 
       # This is a substitute for Thread::Backtrace::Location
