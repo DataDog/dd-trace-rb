@@ -231,9 +231,11 @@ jobs:
       - id: installed-bundle-restore
         if: needs.batch.outputs.installed-cache-ready == 'true'
         name: Restore installed matrix bundle
-        uses: ./.github/actions/installed-bundle-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
+          key: ${{ needs.batch.outputs.installed-cache-key }}
+          path: /usr/local/bundle
+          fail-on-cache-miss: true
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
@@ -327,9 +329,11 @@ jobs:
       - id: installed-bundle-restore
         if: needs.batch.outputs.installed-cache-ready == 'true'
         name: Restore installed matrix bundle
-        uses: ./.github/actions/installed-bundle-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          cache-key: ${{ needs.batch.outputs.installed-cache-key }}
+          key: ${{ needs.batch.outputs.installed-cache-key }}
+          path: /usr/local/bundle
+          fail-on-cache-miss: true
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:

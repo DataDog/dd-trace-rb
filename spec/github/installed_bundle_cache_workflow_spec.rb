@@ -10,12 +10,6 @@ RSpec.describe "installed bundle cache workflow" do
       aliases: true,
     )
   end
-  let(:restore_action) do
-    YAML.safe_load_file(
-      File.expand_path("../../.github/actions/installed-bundle-restore/action.yml", __dir__),
-      aliases: true,
-    )
-  end
   let(:workflow) do
     YAML.safe_load_file(
       File.expand_path("../../.github/workflows/_unit_test.yml", __dir__),
@@ -156,10 +150,10 @@ RSpec.describe "installed bundle cache workflow" do
 
       expect(base.fetch("if")).to include("installed-cache-ready != 'true'")
       expect(installed.fetch("if")).to include("installed-cache-ready == 'true'")
-      expect(installed.fetch("with").fetch("cache-key")).to include("installed-cache-key")
+      expect(installed.fetch("with").fetch("key")).to include("installed-cache-key")
       expect(build.fetch("with").fetch("install-dependencies")).to include("installed-cache-ready != 'true'")
       expect(child_steps.count { |step| step["uses"] == "./.github/actions/bundle-restore" }).to eq(1)
-      expect(child_steps.count { |step| step["uses"] == "./.github/actions/installed-bundle-restore" }).to eq(1)
+      expect(child_steps.count { |step| step["uses"].to_s.start_with?("actions/cache/restore@") }).to eq(1)
     end
   end
 
@@ -205,8 +199,8 @@ RSpec.describe "installed bundle cache workflow" do
   it "uses the same complete installed path for lookup, save, and restore" do
     lookup = steps.find { |step| step["id"] == "lookup" }
     save = steps.find { |step| step["name"] == "Save installed bundle" }
-    restore = restore_action.fetch("runs").fetch("steps").find do |step|
-      step["name"] == "Restore installed bundle"
+    restore = workflow.fetch("jobs").fetch("build-test-standard").fetch("steps").find do |step|
+      step["name"] == "Restore installed matrix bundle"
     end
 
     expect(lookup.fetch("with").fetch("path")).to eq("/usr/local/bundle")
