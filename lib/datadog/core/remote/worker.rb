@@ -70,6 +70,14 @@ module Datadog
           @started
         end
 
+        # Child-only: discard inherited synchronization without starting a thread.
+        def after_fork
+          @mutex = Mutex.new
+          @thr = nil
+          @starting = false
+          @started = false
+        end
+
         private
 
         def poll(interval)
