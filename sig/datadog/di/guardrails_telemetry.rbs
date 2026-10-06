@@ -1,17 +1,23 @@
 module Datadog
   module DI
     module GuardrailsTelemetry
-      PROBE_TYPE_SNAPSHOT: ::String
-      PROBE_TYPE_LOG: ::String
+      PROBE_TYPE_SNAPSHOT: String
 
-      EVENT_TYPE_SNAPSHOT: ::String
-      EVENT_TYPE_LOG: ::String
-      EVENT_TYPE_DIAGNOSTIC: ::String
+      PROBE_TYPE_LOG: String
 
-      def self?.probe_type_tag: (Probe probe) -> ::String
-      def self?.event_type_tag: (::Symbol event_type) -> ::String
-      def self?.skipped: (Core::Telemetry::Component? telemetry, reason: ::String, probe_type: ::String) -> void
-      def self?.dropped: (Core::Telemetry::Component? telemetry, reason: ::String, event_type: ::String, ?bytes: ::Integer?) -> void
+      EVENT_TYPE_SNAPSHOT: String
+
+      EVENT_TYPE_LOG: String
+
+      EVENT_TYPE_DIAGNOSTIC: String
+
+      def self?.probe_type_tag: (Probe probe) -> String
+
+      def self?.event_type_tag: (Symbol event_type) -> String
+
+      def self?.skipped: (Core::Telemetry::Component? telemetry, reason: String, probe_type: String) -> void
+
+      def self?.dropped: (Core::Telemetry::Component? telemetry, reason: String, event_type: String, ?bytes: Integer?) -> void
     end
   end
 end
