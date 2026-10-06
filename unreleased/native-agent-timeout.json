@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6426",
+  "message": "Fix ignored `c.agent.timeout_seconds` and `DD_TRACE_AGENT_TIMEOUT_SECONDS` settings when using the native trace exporter."
+}

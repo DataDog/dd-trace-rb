@@ -16,7 +16,7 @@ RSpec.describe "Native transport configuration" do
       end
     end
     let(:agent_settings) do
-      double("agent_settings", url: "http://127.0.0.1:8126")
+      double("agent_settings", url: "http://127.0.0.1:8126", timeout_seconds: 30)
     end
     let(:logger) { Logger.new(File::NULL) }
 
@@ -69,6 +69,39 @@ RSpec.describe "Native transport configuration" do
     context "when native_transport is true" do
       let(:native_transport_enabled) { true }
 
+      context "with resolved Agent settings" do
+        let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+        [false, true].each do |uds|
+          context "over #{uds ? "a Unix socket" : "HTTP"}" do
+            before do
+              settings.agent.uds_path = "/tmp/native-timeout.socket" if uds
+              settings.agent.timeout_seconds = 7
+            end
+
+            it "forwards the configured timeout in milliseconds" do
+              expect(Datadog::Tracing::Transport::Native::TraceExporter).to receive(:_native_new)
+                .with(hash_including(timeout_milliseconds: 7000)).and_call_original
+
+              build_writer
+            end
+          end
+        end
+
+        context "with an environment timeout" do
+          around do |example|
+            ClimateControl.modify("DD_TRACE_AGENT_TIMEOUT_SECONDS" => "11") { example.run }
+          end
+
+          it "forwards the resolved timeout in milliseconds" do
+            expect(Datadog::Tracing::Transport::Native::TraceExporter).to receive(:_native_new)
+              .with(hash_including(timeout_milliseconds: 11000)).and_call_original
+
+            build_writer
+          end
+        end
+      end
+
       it "builds a writer with the native transport" do
         writer = build_writer
         expect(writer).to be_a(Datadog::Tracing::Writer)
@@ -78,7 +111,7 @@ RSpec.describe "Native transport configuration" do
 
       ["http://127.0.0.1:9/", "http://[::1]:9/", "unix:///tmp/native-diagnostics.socket"].each do |url|
         context "with Agent URL #{url}" do
-          let(:agent_settings) { double("agent_settings", url: url) }
+          let(:agent_settings) { double("agent_settings", url: url, timeout_seconds: 30) }
 
           it "reports the native destination in startup diagnostics" do
             tracer = instance_double(Datadog::Tracing::Tracer, writer: build_writer)

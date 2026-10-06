@@ -248,7 +248,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
     Datadog::Core::Utils::AtForkMonkeyPatch.apply! if fork_hooks
 
     @mock_agent = yield
-    agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    agent_settings = Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", timeout_seconds)
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
       logger: Logger.new(File::NULL),
@@ -279,6 +279,8 @@ RSpec.describe "Native transport fork safety and cancellation" do
       end
     end
   end
+
+  let(:timeout_seconds) { 30 }
 
   # Waits until the thread parks on its blocking operation, then asserts it
   # stayed alive. A thread parked on a blocking operation reports its status
@@ -316,7 +318,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
     it "can collect a closed exporter after forking without a parent GC" do
       gc_disabled = GC.disable
       retired = Datadog::Tracing::Transport::Native::Transport.new(
-        agent_settings: Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}"),
+        agent_settings: Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", timeout_seconds),
         logger: Logger.new(File::NULL),
       )
       retired.close
@@ -453,6 +455,26 @@ RSpec.describe "Native transport fork safety and cancellation" do
   # ===========================================================================
   # 2. Cooperative cancellation / interrupt propagation
   # ===========================================================================
+  describe "configured request timeout" do
+    let(:timeout_seconds) { 1 }
+
+    around do |example|
+      run_with_transport(example, stop_agent_first: true) { SilentMockAgent.new }
+    end
+
+    it "times out against an Agent that accepts connections without responding" do
+      sender = Thread.new { @transport.send_traces([build_trace(name: "timeout.op")]) }
+      @mock_agent.wait_for_connection
+
+      # Allow all retry attempts and backoff, but not the native default of 3s per attempt.
+      expect(sender.join(15)).to be(sender)
+      expect(sender.value.first.internal_error?).to be(true)
+    ensure
+      sender&.kill
+      sender&.join
+    end
+  end
+
   describe "cooperative cancellation" do
     around do |example|
       run_with_transport(example, stop_agent_first: true) { SilentMockAgent.new }
@@ -624,11 +646,10 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       # Start the fork only after close is waiting for the send. The fork keeps
       # its callback snapshot even if close deregisters the global hooks first.
-      fork_prepared = Queue.new
-      exporter = transport.instance_variable_get(:@exporter)
-      allow(exporter).to receive(:_native_before_fork).and_wrap_original do |method|
+      fork_snapshotted = Queue.new
+      allow(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:snapshot_at_fork_blocks).and_wrap_original do |method|
         result = method.call
-        fork_prepared << true
+        fork_snapshotted << true
         result
       end
       read_io, write_io = IO.pipe
@@ -650,7 +671,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         fork_result << pid
       end
 
-      Timeout.timeout(5) { fork_prepared.pop }
+      Timeout.timeout(5) { fork_snapshotted.pop }
 
       mock_agent.release
       expect(sender.join(10)).to be(sender)

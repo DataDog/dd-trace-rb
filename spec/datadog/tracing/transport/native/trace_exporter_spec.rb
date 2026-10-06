@@ -100,6 +100,19 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
     end
 
     context "GC safety" do
+      {"1000" => TypeError, -1 => RangeError, 2**63 => RangeError}.each do |timeout, error|
+        it "rejects timeout #{timeout.inspect} before allocating an exporter", :native_transport_memcheck do
+          expect {
+            trace_exporter_class._native_new(
+              url: "http://127.0.0.1:9",
+              tracer_version: nil, language: nil, language_version: nil,
+              language_interpreter: nil, hostname: nil, env: nil,
+              service: nil, version: nil, timeout_milliseconds: timeout,
+            )
+          }.to raise_error(error)
+        end
+      end
+
       it "closes native resources once and tolerates captured fork hooks", :native_transport_memcheck do
         exporter = trace_exporter_class._native_new(
           url: "http://127.0.0.1:9",

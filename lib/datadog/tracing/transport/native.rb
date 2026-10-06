@@ -50,7 +50,7 @@ module Datadog
           attr_reader :logger, :url
 
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
-          #   Agent connection settings (provides +#url+).
+          #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
           def initialize(agent_settings:, logger:)
             unless Native.supported?
@@ -83,6 +83,7 @@ module Datadog
 
             exporter = Native::TraceExporter._native_new(
               url: url,
+              timeout_milliseconds: agent_settings.timeout_seconds * 1000,
               tracer_version: tracer_version,
               language: language,
               language_version: language_version,

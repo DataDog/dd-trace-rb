@@ -125,7 +125,7 @@ RSpec.describe "Native transport wire-level conformance" do
   around do |example|
     Datadog.configuration.apm.tracing.enabled = apm_tracing_enabled
     @mock_agent = CapturingMockAgent.new
-    agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    agent_settings = Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", 30)
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
       logger: Logger.new(File::NULL)

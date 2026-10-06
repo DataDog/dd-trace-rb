@@ -1411,7 +1411,8 @@ static VALUE create_ok_response(long trace_count, VALUE payload) {
  *   TraceExporter._native_new(
  *     url:, tracer_version: nil, language: nil, language_version: nil,
  *     language_interpreter: nil, hostname: nil, env: nil,
- *     service: nil, version: nil, client_computed_stats: false) -> TraceExporter
+ *     service: nil, version: nil, client_computed_stats: false,
+ *     timeout_milliseconds: nil) -> TraceExporter
  *
  * +url+ is required (String). Metadata arguments may be nil.
  * ======================================================================== */
@@ -1433,6 +1434,7 @@ static VALUE _native_exporter_new(
   VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
   VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
   VALUE rb_client_computed_stats = rb_hash_lookup2(options, ID2SYM(rb_intern("client_computed_stats")), Qfalse);
+  VALUE rb_timeout_milliseconds = rb_hash_lookup2(options, ID2SYM(rb_intern("timeout_milliseconds")), Qnil);
 
   /* Phase 1: validate types (may raise, no Rust resources yet) */
   ENFORCE_TYPE(rb_url, T_STRING);
@@ -1448,6 +1450,17 @@ static VALUE _native_exporter_new(
     rb_raise(rb_eTypeError, "client_computed_stats must be true or false");
   }
 
+  long long timeout_milliseconds = 0;
+  if (rb_timeout_milliseconds != Qnil) {
+    if (!RB_TYPE_P(rb_timeout_milliseconds, T_FIXNUM) && !RB_TYPE_P(rb_timeout_milliseconds, T_BIGNUM)) {
+      rb_raise(rb_eTypeError, "timeout_milliseconds must be an Integer or nil");
+    }
+    timeout_milliseconds = NUM2LL(rb_timeout_milliseconds);
+    if (timeout_milliseconds < 0) {
+      rb_raise(rb_eRangeError, "timeout_milliseconds must be non-negative");
+    }
+  }
+
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
@@ -1461,6 +1474,15 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
   set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
+
+  if (rb_timeout_milliseconds != Qnil) {
+    ddog_TraceExporterError *timeout_err = ddog_trace_exporter_config_set_connection_timeout(
+        config, (uint64_t)timeout_milliseconds);
+    if (timeout_err != NULL) {
+      ddog_trace_exporter_config_free(config);
+      check_exporter_error("Failed to configure native transport timeout", timeout_err);
+    }
+  }
 
   ddog_TraceExporterError *stats_err = ddog_trace_exporter_config_set_client_computed_stats(
       config, rb_client_computed_stats == Qtrue);
