@@ -217,7 +217,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         transport.send_input([oversized_snapshot], tags,
           on_serialization_error: noop_serialization_error_handler)
 
-        # The pruned snapshot is sent (not dropped) and fits under the cap.
+        # The pruned snapshot is sent and fits under the cap.
         expect(chunks.length).to eq(1)
         expect(chunks.first.bytesize).to be <= 2_000
         expect(chunks.first).to include("\"pruned\":true")
