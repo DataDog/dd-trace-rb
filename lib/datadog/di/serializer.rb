@@ -180,7 +180,7 @@ module Datadog
         length: nil,
         collection_size: nil,
         deadline: nil)
-        deadline ||= serialization_deadline
+        deadline = resolve_deadline(deadline)
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
             length: length, collection_size: collection_size, deadline: deadline,)
@@ -207,7 +207,7 @@ module Datadog
         type: nil,
         deadline: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
-        deadline ||= serialization_deadline
+        deadline = resolve_deadline(deadline)
         cls = type || value.class
         begin
           if deadline_exceeded?(deadline)
@@ -520,21 +520,32 @@ module Datadog
       # CAPTURE_TIMEOUT_CEILING_SECONDS. Resolve once per capture point and
       # share across all serialized values so the budget is not exceeded.
       def serialization_deadline
-        budget_ms = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
-        budget = [budget_ms, CAPTURE_TIMEOUT_CEILING_SECONDS].min
+        budget_seconds = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+        budget = if budget_seconds > CAPTURE_TIMEOUT_CEILING_SECONDS
+          CAPTURE_TIMEOUT_CEILING_SECONDS
+        else
+          budget_seconds
+        end
         monotonic_now + budget
-      end
-
-      private
-
-      # Returns true once the monotonic clock has reached the capture deadline.
-      def deadline_exceeded?(deadline)
-        monotonic_now >= deadline
       end
 
       # Returns the current monotonic clock reading, in seconds.
       def monotonic_now
         ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second)
+      end
+
+      private
+
+      # Falls back to a fresh per-capture-point budget when the caller passes
+      # no explicit deadline; callers sharing one budget across a capture
+      # point pass it explicitly.
+      def resolve_deadline(deadline)
+        deadline || serialization_deadline
+      end
+
+      # Returns true once the monotonic clock has reached the capture deadline.
+      def deadline_exceeded?(deadline)
+        monotonic_now >= deadline
       end
 
       MAX_MESSAGE_COLLECTION_SIZE = 3
