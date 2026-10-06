@@ -37,6 +37,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       allow(settings).to receive(:max_capture_depth).and_return(2)
       allow(settings).to receive(:max_capture_string_length).and_return(100)
       allow(settings).to receive(:max_time_to_serialize_ms).and_return(200)
+      # Default to no evaluation deadline so existing builder specs
+      # preserve their pre-timeout behavior; the template-timeout
+      # context overrides this with a real value.
+      allow(settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
     end
   end
 
@@ -305,6 +309,27 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       it "returns a hash with expected contents" do
         expect(payload).to be_a(Hash)
         expect(payload).to match(expected)
+      end
+    end
+
+    context "when the evaluation time budget is exhausted before a template segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:probe) do
+        compiled, regexps = compiler.compile("ref" => "hello")
+        Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
+          template_segments: [Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps)])
+      end
+
+      before do
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      it "surfaces the timeout as an evaluation error in the rendered message" do
+        expect(payload[:message]).to eq("[evaluation error]")
+        evaluation_errors = payload[:debugger][:snapshot][:evaluationErrors]
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
       end
     end
 

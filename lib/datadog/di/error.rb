@@ -92,6 +92,13 @@ module Datadog
       # expressions.
       class ExpressionEvaluationError < Error
       end
+
+      # Raised when condition or template evaluation exceeds the
+      # configured evaluation wall-time budget. A subclass of
+      # ExpressionEvaluationError so the existing condition-eval-failed
+      # handling produces an evaluation-error snapshot with no captures.
+      class EvaluationTimeout < ExpressionEvaluationError
+      end
     end
   end
 end
