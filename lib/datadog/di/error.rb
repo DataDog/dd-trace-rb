@@ -57,6 +57,11 @@ module Datadog
       class ProbeTargetForbidden < Error
       end
 
+      # Raised when installing a metric probe and the application does not
+      # carry a usable dogstatsd-ruby gem, which metric probes emit through.
+      class MetricEmissionUnavailable < Error
+      end
+
       # Raised when installing a line probe and multiple files match the
       # specified path suffix.
       # A probe must be installed into one file only, since UI only
