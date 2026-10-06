@@ -1,7 +1,9 @@
 module Datadog
   module DI
     module ProbeBuilder
-      PROBE_TYPES: { "LOG_PROBE" => :log }
+      PROBE_TYPES: { "LOG_PROBE" => :log, "METRIC_PROBE" => :metric }
+
+      METRIC_KIND_STRINGS: Hash[String, (:count | :gauge | :histogram | :distribution)]
 
       CAPTURE_EXPRESSION_NAME_PATTERN: Regexp
 
@@ -12,6 +14,8 @@ module Datadog
       def self?.build_template_segments: (Array[Hash[String, untyped]]? segments) -> Array[String | DI::EL::Expression]?
 
       def self?.build_capture_expressions: (Array[Hash[String, untyped]]? raw) -> Array[CaptureExpression]
+
+      def self?.build_metric_fields: (Hash[String, untyped] config) -> [(:count | :gauge | :histogram | :distribution), String?, DI::EL::Expression?, Array[String]]
 
       def self?.dedup_capture_expressions: (Array[CaptureExpression] capture_expressions, String? probe_id, DI::Logger logger) -> Array[CaptureExpression]
 
