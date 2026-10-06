@@ -71,13 +71,19 @@ module Datadog
             payload.each do |snapshot|
               result = SnapshotEncoder.encode(snapshot, MAX_SERIALIZED_SNAPSHOT_SIZE)
               if result.encoded.nil?
-                logger.debug { "di: dropping too big snapshot (payloadTooLarge)" }
-                telemetry&.inc("dynamic_instrumentation", "guardrails.events.dropped", 1,
+                logger.warn("di: dropping too big snapshot (payloadTooLarge)")
+                telemetry&.inc(TELEMETRY_NAMESPACE, "guardrails.events.dropped", 1,
                   tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
                 next
               end
               if result.pruned
-                telemetry&.inc("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+                # The other tracers report a payload trimmed to fit with the
+                # shared capture.incomplete metric (reason payloadTooLarge).
+                # This counter uses a tracer-specific name so this code does
+                # not depend on the guardrails telemetry helper that emits
+                # the shared metric names (PR #6351); the dropped-event metric
+                # above is canonical and shared across tracers.
+                telemetry&.inc(TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
               end
               encoded_snapshots << result.encoded
             rescue Exception => exc # standard:disable Lint/RescueException

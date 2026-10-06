@@ -56,7 +56,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "timestamp" => Time.now.to_i,
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary,
+              "binary_data" => {"type" => "String", "value" => escaped_binary},
             },
           },
         }
@@ -69,6 +69,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       it "successfully serializes escaped binary through transport layer" do
         # Escaped binary format is JSON-safe
+        expect(transport).to receive(:send_input_chunk).once
         expect {
           transport.send_input([snapshot], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error
@@ -81,7 +82,10 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         # Can round-trip through JSON
         parsed = JSON.parse(json_output)
-        expect(parsed["captures"]["locals"]["binary_data"]).to eq(escaped_binary)
+        expect(parsed["captures"]["locals"]["binary_data"]).to eq(
+          "type" => "String",
+          "value" => escaped_binary,
+        )
       end
     end
 
@@ -97,7 +101,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "id" => "test-snapshot",
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary,
+              "binary_data" => {"type" => "String", "value" => escaped_binary},
             },
           },
         }
@@ -110,6 +114,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       end
 
       it "successfully serializes escaped binary string" do
+        expect(transport).to receive(:send_input_chunk).once
         expect {
           transport.send_input([snapshot], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error
@@ -175,53 +180,94 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be > 100
         end
         expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
-          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
-        expect_lazy_log(logger, :debug, "di: dropping too big snapshot (payloadTooLarge)")
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+        expect(logger).to receive(:warn).with("di: dropping too big snapshot (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
+  end
 
-    context "when an individual snapshot exceeds the cap but can be pruned" do
-      before do
-        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
-      end
+  context "when an individual snapshot exceeds the cap but can be pruned" do
+    before do
+      stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+    end
 
-      let(:oversized_snapshot) do
-        {
-          debugger: {
-            snapshot: {
-              probe: {id: "big-probe"},
-              captures: {
-                lines: {42 => {
-                  locals: {big: {type: "String", value: "x" * 10_000},
-                           small: {type: "Integer", value: "1"}},
-                  arguments: {self: {type: "String", value: "self"}},
-                }},
-              },
+    let(:oversized_snapshot) do
+      {
+        debugger: {
+          snapshot: {
+            probe: {id: "big-probe"},
+            captures: {
+              lines: {42 => {
+                locals: {big: {type: "String", value: "x" * 10_000},
+                         small: {type: "Integer", value: "1"}},
+                arguments: {self: {type: "String", value: "self"}},
+              }},
             },
           },
-        }
+        },
+      }
+    end
+
+    let(:capture_expression_snapshot) do
+      {
+        debugger: {
+          snapshot: {
+            probe: {id: "expression-probe"},
+            captures: {
+              entry: {captureExpressions: {
+                big: {type: "String", value: "x" * 10_000},
+                small: {type: "Integer", value: "1"},
+              }},
+            },
+          },
+        },
+      }
+    end
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+    it "prunes the snapshot instead of dropping it and counts the prune" do
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+
+      chunks = []
+      expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
+        chunks << chunked_payload
       end
 
-      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+      transport.send_input([oversized_snapshot], tags,
+        on_serialization_error: noop_serialization_error_handler)
 
-      it "prunes the snapshot instead of dropping it and counts the prune" do
-        allow(logger).to receive(:debug)
-        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+      # The pruned snapshot is sent, fits under the cap, and is valid JSON.
+      expect(chunks.length).to eq(1)
+      expect(chunks.first.bytesize).to be <= 2_000
+      snapshot = JSON.parse(chunks.first).first
+      expect(snapshot.dig("debugger", "snapshot", "captures", "lines", "42", "locals", "big")).to eq("pruned" => true)
+      expect(snapshot.dig("debugger", "snapshot", "captures", "lines", "42", "locals", "small")).to eq(
+        "type" => "Integer",
+        "value" => "1",
+      )
+    end
 
-        chunks = []
-        expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
-          chunks << chunked_payload
-        end
+    it "prunes an oversized capture expression instead of dropping the snapshot" do
+      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
 
-        transport.send_input([oversized_snapshot], tags,
-          on_serialization_error: noop_serialization_error_handler)
-
-        # The pruned snapshot is sent and fits under the cap.
-        expect(chunks.length).to eq(1)
-        expect(chunks.first.bytesize).to be <= 2_000
-        expect(chunks.first).to include("\"pruned\":true")
+      chunks = []
+      expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
+        chunks << chunked_payload
       end
+
+      transport.send_input([capture_expression_snapshot], tags,
+        on_serialization_error: noop_serialization_error_handler)
+
+      expect(chunks.length).to eq(1)
+      expect(chunks.first.bytesize).to be <= 2_000
+      snapshot = JSON.parse(chunks.first).first
+      expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "captureExpressions", "big")).to eq("pruned" => true)
+      expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "captureExpressions", "small")).to eq(
+        "type" => "Integer",
+        "value" => "1",
+      )
     end
   end
 
