@@ -25,6 +25,14 @@ module Datadog
       # Steep: https://github.com/soutaro/steep/issues/363
       PROBE_TYPES = { # steep:ignore IncompatibleAssignment
         "LOG_PROBE" => :log,
+        "METRIC_PROBE" => :metric,
+      }.freeze
+
+      METRIC_KIND_STRINGS = { # steep:ignore IncompatibleAssignment
+        "COUNT" => :count,
+        "GAUGE" => :gauge,
+        "HISTOGRAM" => :histogram,
+        "DISTRIBUTION" => :distribution,
       }.freeze
 
       module_function
@@ -55,6 +63,19 @@ module Datadog
             "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
         end
+        # Steep cannot infer the types of these locals across the conditional
+        # multiple assignment below, so they carry explicit annotations.
+        # @type var metric_kind: (:count | :gauge | :histogram | :distribution)?
+        # @type var metric_name: String?
+        # @type var metric_value: DI::EL::Expression?
+        # @type var tags: Array[String]
+        metric_kind = nil
+        metric_name = nil
+        metric_value = nil
+        tags = []
+        if type_symbol == :metric
+          metric_kind, metric_name, metric_value, tags = build_metric_fields(config)
+        end
         Probe.new(
           id: config.fetch("id"),
           type: type_symbol,
@@ -77,6 +98,10 @@ module Datadog
           evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"], logger),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
+          metric_kind: metric_kind,
+          metric_name: metric_name,
+          metric_value: metric_value,
+          tags: tags,
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
@@ -105,6 +130,37 @@ module Datadog
           limits = build_capture_limits(entry["capture"])
           CaptureExpression.new(name: name, expr: expr, limits: limits)
         end
+      end
+
+      # Parses the metric fields of a METRIC_PROBE payload. The metric name
+      # and tag array are validated by the Probe constructor; the kind is
+      # mapped here because the payload carries it as a string, and the
+      # value expression is compiled here like the condition is.
+      #
+      # @param config [Hash] remote configuration probe specification
+      # @return [Array] metric kind, metric name, compiled value expression
+      #   or nil, and tag array
+      def build_metric_fields(config)
+        kind = METRIC_KIND_STRINGS[config["kind"]] or raise ArgumentError, "Unknown or missing metric kind: #{config["kind"].inspect} for metric probe: #{config["id"]}"
+
+        value = if value_spec = config["value"]
+          unless value_spec["dsl"] && value_spec["json"]
+            raise ArgumentError, "Malformed value specification for probe: #{config}"
+          end
+          compiled, regexps = EL::Compiler.new.compile(value_spec["json"])
+          EL::Expression.new(value_spec["dsl"], compiled, regexps: regexps)
+        end
+
+        tags = if raw_tags = config["tags"]
+          unless Array === raw_tags
+            raise ArgumentError, "Metric probe #{config["id"]} tags must be an array, got: #{raw_tags.class}"
+          end
+          raw_tags
+        else
+          []
+        end
+
+        [kind, config["metricName"], value, tags]
       end
 
       def dedup_capture_expressions(capture_expressions, probe_id, logger)
