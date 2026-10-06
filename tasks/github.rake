@@ -3,12 +3,8 @@ require_relative "github_matrix"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
-  task :generate_batches, [:fallback_gemfile] do |_task, args|
-    matrix = if args[:fallback_gemfile]
-      GithubMatrix.new(fallback_gemfile: args[:fallback_gemfile])
-    else
-      GithubMatrix.new
-    end
+  task :generate_batches do
+    matrix = GithubMatrix.new
     matching_tasks = matrix.standard_tasks
     misc_tasks = matrix.misc_tasks
     batch_count = 7

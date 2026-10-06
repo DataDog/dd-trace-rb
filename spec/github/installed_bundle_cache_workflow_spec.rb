@@ -135,12 +135,8 @@ RSpec.describe "installed bundle cache workflow" do
     batches = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
     summary = batch_steps.find { |step| step["name"] == "Generate batch summary" }
 
-    expect(batches.fetch("env").fetch("FALLBACK_GEMFILE")).to include(
-      "gemfiles/{0}-{1}.gemfile",
-      "inputs.installed-cache-enabled",
-    )
     expect(batches.fetch("run")).to include(
-      'rake -f tasks/github.rake "github:generate_batches[$FALLBACK_GEMFILE]"',
+      "rake -f tasks/github.rake github:generate_batches",
       "bundle exec rake github:generate_batches",
     )
     expect(summary.fetch("run")).to include(

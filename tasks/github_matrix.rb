@@ -15,13 +15,11 @@ class GithubMatrix
   def initialize(
     matrix_path: "Matrixfile",
     ruby_version: RUBY_VERSION[0..2],
-    gemfile_resolver: nil,
-    fallback_gemfile: AppraisalConversion.parent_gemfile
+    gemfile_resolver: nil
   )
     @matrix_path = matrix_path.to_s
     @ruby_version = ruby_version
     @gemfile_resolver = gemfile_resolver || AppraisalConversion.method(:to_bundle_gemfile)
-    @fallback_gemfile = fallback_gemfile
   end
 
   def tasks
@@ -63,6 +61,6 @@ class GithubMatrix
   def resolve_gemfile(group)
     @gemfile_resolver.call(group)
   rescue
-    @fallback_gemfile
+    AppraisalConversion.parent_gemfile
   end
 end

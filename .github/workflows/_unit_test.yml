@@ -88,10 +88,10 @@ jobs:
       - id: set-batches
         name: Distribute tasks into batches
         env:
-          FALLBACK_GEMFILE: ${{ inputs.installed-cache-enabled && format('gemfiles/{0}-{1}.gemfile', inputs.engine, inputs.version) || '' }}
+          INSTALLED_CACHE_ENABLED: ${{ inputs.installed-cache-enabled }}
         run: |
-          if [ -n "$FALLBACK_GEMFILE" ]; then
-            data=$(rake -f tasks/github.rake "github:generate_batches[$FALLBACK_GEMFILE]")
+          if [ "$INSTALLED_CACHE_ENABLED" = "true" ]; then
+            data=$(rake -f tasks/github.rake github:generate_batches)
           else
             data=$(bundle exec rake github:generate_batches)
           fi

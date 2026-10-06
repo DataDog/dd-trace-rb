@@ -8,11 +8,8 @@ RSpec.describe GithubMatrix do
       matrix_path: matrix_path,
       ruby_version: "4.0",
       gemfile_resolver: gemfile_resolver,
-      fallback_gemfile: fallback_gemfile,
     )
   end
-
-  let(:fallback_gemfile) { "Gemfile" }
 
   let(:gemfile_resolver) do
     lambda do |group|
@@ -46,6 +43,10 @@ RSpec.describe GithubMatrix do
     end
   end
 
+  before do
+    allow(AppraisalConversion).to receive(:parent_gemfile).and_return("Gemfile")
+  end
+
   let(:temporary_directory) { @temporary_directory }
 
   it "selects tasks compatible with the requested Ruby version" do
@@ -73,15 +74,6 @@ RSpec.describe GithubMatrix do
     )
   end
 
-  context "with a custom fallback Gemfile" do
-    let(:fallback_gemfile) { "gemfiles/ruby-4.0.gemfile" }
-
-    it "uses the fallback for groups without an appraisal Gemfile" do
-      expect(matrix.gemfiles).to include("gemfiles/ruby-4.0.gemfile")
-      expect(matrix.gemfiles).not_to include("Gemfile")
-    end
-  end
-
   context "when a non-empty group has no appraisal Gemfile" do
     let(:gemfile_resolver) do
       lambda do |group|
@@ -98,16 +90,4 @@ RSpec.describe GithubMatrix do
     end
   end
 
-  it "defaults fallback tasks to the committed runtime Gemfile" do
-    allow(AppraisalConversion).to receive(:parent_gemfile).and_return("gemfiles/ruby-4.0.gemfile")
-
-    default_matrix = described_class.new(
-      matrix_path: matrix_path,
-      ruby_version: "4.0",
-      gemfile_resolver: gemfile_resolver,
-    )
-
-    expect(default_matrix.gemfiles).to include("gemfiles/ruby-4.0.gemfile")
-    expect(default_matrix.gemfiles).not_to include("Gemfile")
-  end
 end

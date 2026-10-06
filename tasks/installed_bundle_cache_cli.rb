@@ -26,7 +26,7 @@ raise OptionParser::MissingArgument, "--base-gemfile" unless options[:base_gemfi
 cache = InstalledBundleCache.new(
   root: options[:root],
   base_gemfile: options[:base_gemfile],
-  matrix: GithubMatrix.new(matrix_path: options[:matrix], fallback_gemfile: options[:base_gemfile]),
+  matrix: GithubMatrix.new(matrix_path: options[:matrix]),
   installed_path: options[:installed_path],
 )
 
