@@ -49,29 +49,34 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   describe "#evaluate" do
-    context "with a single successful expression" do
-      let(:probe) do
-        Datadog::DI::Probe.new(
-          id: "p1", type: :log, type_name: "F", method_name: "m",
-          capture_expressions: [
-            Datadog::DI::CaptureExpression.new(
-              name: "x", expr: compile_expression("x", {"ref" => "x"}),
-            ),
-          ],
-        )
-      end
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "p1", type: :log, type_name: "F", method_name: "m",
+        capture_expressions: [
+          Datadog::DI::CaptureExpression.new(
+            name: "x", expr: compile_expression("x", {"ref" => "x"}),
+          ),
+        ],
+      )
+    end
 
+    context "with a single successful expression" do
       it "emits the serialized value under the name" do
         output, errors = evaluator.evaluate(probe, context)
         expect(output.keys).to eq(["x"])
         expect(output["x"]).to include(type: "Integer", value: "42")
         expect(errors).to eq([])
       end
+    end
 
-      it "uses the serializer's clamped deadline so an exhausted budget times out every expression" do
-        allow(serializer).to receive(:serialization_deadline).and_return(-Float::INFINITY)
+    context "when the serializer resolves a deadline in the past" do
+      before do
+        expect(serializer).to receive(:serialization_deadline).and_return(-Float::INFINITY)
+      end
+
+      it "reports a timeout stub for every expression" do
         output, errors = evaluator.evaluate(probe, context)
-        expect(output.values).to all(eq(notCapturedReason: "timeout"))
+        expect(output).to eq("x" => {notCapturedReason: "timeout"})
         expect(errors).to eq([])
       end
     end
