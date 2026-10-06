@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6433",
+  "message": "Fix unwanted APM statistics when using the native trace exporter with APM tracing disabled."
+}
