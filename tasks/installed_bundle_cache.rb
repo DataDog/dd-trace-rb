@@ -49,8 +49,14 @@ class InstalledBundleCache
 
   def content
     gemfiles.map do |gemfile|
-      [gemfile, lockfile_for(gemfile)].map { |path| Digest::SHA256.file(path).hexdigest }
-    end.sort
+      lockfile = lockfile_for(gemfile)
+      [
+        relative_path(gemfile),
+        Digest::SHA256.file(gemfile).hexdigest,
+        relative_path(lockfile),
+        Digest::SHA256.file(lockfile).hexdigest,
+      ]
+    end
   end
 
   def identity_digest(image_identity:, base_cache_key:)

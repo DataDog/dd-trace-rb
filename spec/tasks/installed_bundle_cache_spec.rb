@@ -129,16 +129,12 @@ RSpec.describe InstalledBundleCache do
     expect(cache.content).not_to eq(original)
   end
 
-  it "does not include paths in content identity" do
+  it "includes paths in content identity" do
     write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
     write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
     renamed = build_cache(["base.gemfile", "renamed.gemfile", "second.gemfile"])
 
-    expect(renamed.content).to eq(cache.content)
-  end
-
-  it "sorts content hashes" do
-    expect(cache.content).to eq(cache.content.sort)
+    expect(renamed.content).not_to eq(cache.content)
   end
 
   it "installs each appraisal and checks every Gemfile" do
