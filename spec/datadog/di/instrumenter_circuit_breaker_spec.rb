@@ -12,17 +12,10 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   let(:disabled_calls) { [] }
 
   mock_settings_for_di do |settings|
-    allow(settings.dynamic_instrumentation).to receive_messages(
-      enabled: true,
+    stub_di_settings(settings.dynamic_instrumentation,
       max_capture_depth: 10,
       max_capture_attribute_count: 20,
-      max_capture_collection_size: 20,
-      max_capture_string_length: 100,
-      max_time_to_serialize_ms: 200,
-      redacted_type_names: [],
-      redacted_identifiers: [],
-      redaction_excluded_identifiers: [],
-    )
+      max_capture_collection_size: 20,)
     allow(settings.dynamic_instrumentation.internal).to receive_messages(
       untargeted_trace_points: false,
       propagate_all_exceptions: true,
