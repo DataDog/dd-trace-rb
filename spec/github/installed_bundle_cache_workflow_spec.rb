@@ -187,7 +187,7 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "permits writes only from the default branch at both workflow layers" do
+  it "permits writes only from the default branch" do
     runtime_jobs = production_workflow.fetch("jobs").select do |_name, job|
       job["uses"] == "./.github/workflows/_unit_test.yml"
     end
@@ -197,7 +197,7 @@ RSpec.describe "installed bundle cache workflow" do
 
     expect(runtime_jobs.values).to all(
       satisfy do |job|
-        job.fetch("with").fetch("installed-cache-write").include?("github.ref == 'refs/heads/master'")
+        job.fetch("with").fetch("installed-cache-write") == true
       end
     )
     expect(prepare.fetch("with").fetch("write-enabled")).to include(
