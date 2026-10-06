@@ -884,7 +884,7 @@ module Datadog
       # @return [void]
       def report_condition_evaluation_timeout(probe, exc)
         telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-        logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc}" }
+        logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc.message}" }
       end
 
       def build_trace_point_context(probe, tp)

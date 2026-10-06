@@ -434,7 +434,7 @@ module Datadog
           Datadog::DI.reraise_if_fatal(exc)
           if exc.is_a?(DI::Error::EvaluationTimeout)
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-            logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc}" }
+            logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc.message}" }
           end
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
