@@ -1457,6 +1457,12 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
+  ddog_TraceExporterError *top_level_err = ddog_trace_exporter_config_set_client_computed_top_level(config, true);
+  if (top_level_err != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("Failed to configure client-computed top-level spans", top_level_err);
+  }
+
   /*
    * Create a SharedRuntime and attach it to the config before building the
    * exporter.  The exporter holds a clone of the runtime's Arc; we keep our
