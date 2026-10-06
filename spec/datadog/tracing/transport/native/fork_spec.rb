@@ -299,6 +299,45 @@ RSpec.describe "Native transport fork safety and cancellation" do
     let(:transport) { @transport }
     let(:exporter) { transport.instance_variable_get(:@exporter) }
 
+    it "can collect a closed exporter after forking without a parent GC" do
+      gc_disabled = GC.disable
+      retired = Datadog::Tracing::Transport::Native::Transport.new(
+        agent_settings: Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}"),
+        logger: Logger.new(File::NULL),
+      )
+      retired.close
+      reader, writer = IO.pipe
+      pid = fork do
+        reader.close
+        GC.enable
+        GC.start
+        writer.write("collected")
+        writer.close
+        exit! 0
+      end
+      writer.close
+
+      expect(IO.select([reader], nil, nil, 5)).not_to be_nil
+      expect(reader.read).to eq("collected")
+    ensure
+      GC.enable unless gc_disabled
+      reader&.close unless reader&.closed?
+      writer&.close unless writer&.closed?
+      NativeTransportForkIsolation.reap_process(pid) if pid
+      retired&.close
+    end
+
+    it "allows snapshotted fork hooks to finish after close" do
+      hooks = Datadog::Core::Utils::AtForkMonkeyPatch.snapshot_at_fork_blocks
+      transport.close
+
+      [:before, :parent].each do |stage|
+        expect {
+          Datadog::Core::Utils::AtForkMonkeyPatch.run_at_fork_blocks(stage, snapshot: hooks)
+        }.not_to raise_error
+      end
+    end
+
     it "sends successfully from both the parent and a forked child, and fires the parent-side hooks" do
       # Spy on the lifecycle hooks but keep their real behaviour, so we can
       # assert the registered :before/:parent stages fired in the parent

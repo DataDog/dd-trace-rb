@@ -216,24 +216,23 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_hooks = @send_mutex.synchronize do
-              hooks = @fork_hooks
-              return if hooks.nil?
+            @fork_mutex.synchronize do
+              @send_mutex.synchronize do
+                hooks = @fork_hooks
+                return if hooks.nil?
 
-              @fork_hooks = nil
-              @exporter = nil
-              hooks
+                begin
+                  @exporter&._native_close
+                ensure
+                  @fork_hooks = nil
+                  @exporter = nil
+                  hooks.each do |stage, block|
+                    Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                  end
+                  ObjectSpace.undefine_finalizer(self)
+                end
+              end
             end
-
-            fork_hooks.each do |stage, block|
-              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-            end
-
-            # The finalizer only exists to deregister the hooks for a transport
-            # dropped without #close. We have just done that, so remove it;
-            # otherwise its closed-over hook blocks keep the exporter alive until
-            # this transport is itself collected.
-            ObjectSpace.undefine_finalizer(self)
 
             nil
           end

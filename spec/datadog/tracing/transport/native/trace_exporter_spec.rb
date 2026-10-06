@@ -100,6 +100,21 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
     end
 
     context "GC safety" do
+      it "closes native resources once and tolerates captured fork hooks", :native_transport_memcheck do
+        exporter = trace_exporter_class._native_new(
+          url: "http://127.0.0.1:9",
+          tracer_version: nil, language: nil, language_version: nil,
+          language_interpreter: nil, hostname: nil, env: nil,
+          service: nil, version: nil,
+        )
+
+        exporter._native_close
+        expect { exporter._native_close }.not_to raise_error
+        expect { exporter._native_before_fork }.not_to raise_error
+        expect { exporter._native_after_fork_in_parent }.not_to raise_error
+        expect { exporter._native_after_fork_in_child }.not_to raise_error
+      end
+
       it "does not crash when instances are garbage collected" do
         5.times do
           trace_exporter_class._native_new(
