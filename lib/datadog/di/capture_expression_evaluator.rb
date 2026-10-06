@@ -39,9 +39,10 @@ module Datadog
       attr_reader :telemetry
 
       # Evaluates each of the probe's capture expressions against the given
-      # context and serializes the captured values, enforcing the capture
-      # time budget between expressions. An expression that fails to evaluate
-      # or serialize contributes an entry to the returned errors.
+      # context, serializing the captured values under one capture deadline
+      # resolved through the serializer and shared across all expressions.
+      # An expression that fails to evaluate or serialize contributes an entry
+      # to the returned errors.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
