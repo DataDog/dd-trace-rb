@@ -299,6 +299,20 @@ RSpec.describe "Native transport fork safety and cancellation" do
     let(:transport) { @transport }
     let(:exporter) { transport.instance_variable_get(:@exporter) }
 
+    context "after resetting component fork hooks" do
+      reset_at_fork_monkey_patch_for_components!
+
+      it "can fork again and send from the grandchild" do
+        expect_in_fork do
+          expect_in_fork do
+            expect(transport.send_traces([build_trace(name: "grandchild.op")]).first.ok?).to be(true)
+          end
+        end
+
+        expect(transport.send_traces([build_trace(name: "parent.op")]).first.ok?).to be(true)
+      end
+    end
+
     it "can collect a closed exporter after forking without a parent GC" do
       gc_disabled = GC.disable
       retired = Datadog::Tracing::Transport::Native::Transport.new(
