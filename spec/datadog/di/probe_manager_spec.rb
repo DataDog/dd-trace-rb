@@ -538,14 +538,16 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
-      it "does not build or enqueue a snapshot and logs at trace" do
+      it "does not build or enqueue a snapshot and emits the rateLimitGlobal skip metric" do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
+          tags: {reason: "rateLimitGlobal", probe_type: "log"})
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
         expect(logger).to have_received(:trace) do |&block|
-          expect(block.call).to match(/global rate limit/)
+          expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
         end
       end
     end

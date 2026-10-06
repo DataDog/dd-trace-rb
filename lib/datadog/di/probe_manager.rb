@@ -326,7 +326,14 @@ module Datadog
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload)
           else
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" }
+            logger.trace do
+              "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \
+                " (#{GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL})"
+            end
+            GuardrailsTelemetry.skipped(
+              telemetry, reason: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+              probe_type: GuardrailsTelemetry.probe_type_tag(probe),
+            )
           end
         elsif rate_limiter
           logger.trace do
