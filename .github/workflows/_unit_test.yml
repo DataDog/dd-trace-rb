@@ -108,7 +108,6 @@ jobs:
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          cache-schema: bundle-installed-matrix-full-v2
           image-identity: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
           write-enabled: ${{ inputs.installed-cache-write && github.ref == 'refs/heads/master' }}
 

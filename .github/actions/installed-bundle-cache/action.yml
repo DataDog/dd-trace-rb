@@ -10,9 +10,6 @@ inputs:
     description: Matrixfile used to select applicable appraisal Gemfiles
     required: false
     default: Matrixfile
-  cache-schema:
-    description: Installed bundle cache schema
-    required: true
   image-identity:
     description: Immutable engine image identity
     required: true
@@ -68,7 +65,6 @@ runs:
       env:
         BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        CACHE_SCHEMA: ${{ inputs.cache-schema }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
         MATRIX: ${{ inputs.matrix }}
       run: |
@@ -76,7 +72,6 @@ runs:
           --base-gemfile "$BASE_GEMFILE" \
           --base-cache-key "$BASE_CACHE_KEY" \
           --matrix "$MATRIX" \
-          --cache-schema "$CACHE_SCHEMA" \
           --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
         ruby -rjson -e '
           manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))

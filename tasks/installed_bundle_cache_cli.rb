@@ -15,7 +15,6 @@ parser = OptionParser.new do |opts|
   opts.on("--base-gemfile PATH") { |value| options[:base_gemfile] = value }
   opts.on("--base-cache-key VALUE") { |value| options[:base_cache_key] = value }
   opts.on("--matrix PATH") { |value| options[:matrix] = value }
-  opts.on("--cache-schema VALUE") { |value| options[:cache_schema] = value }
   opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
   opts.on("--installed-path PATH") { |value| options[:installed_path] = value }
 end
@@ -34,12 +33,10 @@ cache = InstalledBundleCache.new(
 case command
 when "manifest"
   raise OptionParser::MissingArgument, "--base-cache-key" unless options[:base_cache_key]
-  raise OptionParser::MissingArgument, "--cache-schema" unless options[:cache_schema]
   raise OptionParser::MissingArgument, "--image-identity" unless options[:image_identity]
 
   puts JSON.pretty_generate(
     cache.to_h(
-      cache_schema: options[:cache_schema],
       image_identity: options[:image_identity],
       base_cache_key: options[:base_cache_key],
     )

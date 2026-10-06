@@ -48,15 +48,14 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "uses schema, environment digest, and content digest in the cache key" do
+  it "uses the cache format, environment digest, and content digest in the cache key" do
     manifest = cache.to_h(
-      cache_schema: "installed-full-v2",
       image_identity: "image-a",
       base_cache_key: "base-a",
     )
 
     expect(manifest.fetch(:cache_key)).to eq(
-      "installed-full-v2-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
+      "bundle-installed-matrix-v3-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
     )
   end
 
@@ -84,8 +83,8 @@ RSpec.describe InstalledBundleCache do
     expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
       cache.environment_digest(image_identity: "image-a", base_cache_key: "base-b")
     )
-    expect(cache.cache_key(cache_schema: "schema", image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
-      cache.cache_key(cache_schema: "schema", image_identity: "image-a", base_cache_key: "base-b")
+    expect(cache.cache_key(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.cache_key(image_identity: "image-a", base_cache_key: "base-b")
     )
   end
 

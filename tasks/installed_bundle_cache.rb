@@ -5,6 +5,7 @@ require "pathname"
 require_relative "github_matrix"
 
 class InstalledBundleCache
+  CACHE_KEY_PREFIX = "bundle-installed-matrix-v3"
   BUILD_ENVIRONMENT_KEYS = %w[
     ARCHFLAGS
     CFLAGS
@@ -69,18 +70,17 @@ class InstalledBundleCache
     digest_json(content)
   end
 
-  def cache_key(cache_schema:, image_identity:, base_cache_key:)
+  def cache_key(image_identity:, base_cache_key:)
     [
-      cache_schema,
+      CACHE_KEY_PREFIX,
       environment_digest(image_identity: image_identity, base_cache_key: base_cache_key),
       content_digest,
     ].join("-")
   end
 
-  def to_h(cache_schema:, image_identity:, base_cache_key:)
+  def to_h(image_identity:, base_cache_key:)
     {
       cache_key: cache_key(
-        cache_schema: cache_schema,
         image_identity: image_identity,
         base_cache_key: base_cache_key,
       ),
