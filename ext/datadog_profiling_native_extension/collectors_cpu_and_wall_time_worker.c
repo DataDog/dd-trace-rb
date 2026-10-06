@@ -765,11 +765,20 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     !state->during_sample;
 
   if (sample_from_signal_handler) {
-    // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
-    // until the postponed job below gets run.
-    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
+    if (rb_during_gc()) {
+      // During GC Ruby might be marking our buffer or compacting (moving) where iseqs live so we skip preparing the
+      // sample immediately, and instead ask on_gc_finish to do the job when GC is at its end.
+      //
+      // When GC profiling is disabled, we just fall back to sampling the stack after GC finishes, e.g. it's the
+      // equivalent of disabling `sample_from_signal_handler` for samples that happen during GC.
+      thread_context_collector_request_prepare_on_gc_finish();
+    } else {
+      // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
+      // until the postponed job below gets run.
+      bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
 
-    if (prepared) state->stats.signal_handler_prepared_sample++;
+      if (prepared) state->stats.signal_handler_prepared_sample++;
+    }
   }
 
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
@@ -1110,7 +1119,10 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
+    bool allow_prepare_sample = !state->during_sample;
+    if (allow_prepare_sample) during_sample_enter(state);
+    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance, allow_prepare_sample);
+    if (allow_prepare_sample) during_sample_exit(state);
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.

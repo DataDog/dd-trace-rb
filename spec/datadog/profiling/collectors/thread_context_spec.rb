@@ -1317,6 +1317,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     context "when thread has been sampled before" do
       before { sample }
 
+      shared_examples_for "preparing a requested sample" do
+        it "prepares the stack, attributing the next sample to the stack active inside on_gc_finish" do
+          recorder.serialize!
+          described_class::Testing._native_request_prepare_on_gc_finish
+
+          on_gc_finish
+          sample
+
+          expect(sample_for_thread(samples, Thread.current).locations.first).to have_attributes(
+            label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish",
+          )
+        end
+      end
+
       context "when on_gc_start was not called before" do
         # See comment in the actual implementation on when/why this can happen
 
@@ -1325,10 +1339,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(gc_tracking.fetch(:wall_time_at_previous_gc_ns)).to be invalid_time
         end
+
+        it_behaves_like "preparing a requested sample"
       end
 
       context "when on_gc_start was previously called" do
         before { on_gc_start }
+
+        it_behaves_like "preparing a requested sample"
 
         it "records the wall-time when garbage collection finished in the gc_tracking" do
           wall_time_before_on_gc_finish_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
@@ -2126,6 +2144,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
+  describe "#request_prepare_on_gc_finish" do
+    it "sets the flag to prepare a sample at GC finish" do
+      expect { described_class::Testing._native_request_prepare_on_gc_finish }
+        .to change { per_thread_context.fetch(Thread.current).fetch(:prepare_sample_on_gc_finish) }.from(false).to(true)
+    end
+  end
+
   describe "show_classes" do
     let(:top_frame) { sample_for_thread(samples, Thread.current).locations.first }
 
@@ -2418,6 +2443,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         gvl_state_change_count: 0,
         gvl_state_change_count_at_previous_sample: 0,
         was_skipped_at_last_sample: false,
+        prepare_sample_on_gc_finish: false,
         thread_id: include(t1.object_id.to_s),
         thread_invoke_location: before_reset.fetch(t1).fetch(:thread_invoke_location),
         thread_cpu_time_id_valid?: true,
