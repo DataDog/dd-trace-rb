@@ -104,6 +104,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
+  private_vm_api_access_self_test();
   self_test_thread_name_for();
   self_test_clock_id();
   self_test_current_fiber_for();
