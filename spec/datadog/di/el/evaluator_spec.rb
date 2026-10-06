@@ -176,10 +176,10 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       Datadog::DI::EL::Expression.new("collection.any(@it >= 0)", src, regexps: regexps)
     end
 
-    def context_with(collection, deadline:)
+    def context_with(collection)
       Datadog::DI::Context.new(
         probe: nil, settings: settings, serializer: serializer,
-        locals: {collection: collection}, deadline: deadline
+        locals: {collection: collection}
       )
     end
 
@@ -188,17 +188,17 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - 0.001 }
 
       it "#filter raises EvaluationTimeout without consuming the whole collection" do
-        expect { filter_expr.satisfied?(context_with(collection, deadline: deadline)) }
+        expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
 
       it "#all raises EvaluationTimeout" do
-        expect { all_expr.satisfied?(context_with(collection, deadline: deadline)) }
+        expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
 
       it "#any raises EvaluationTimeout" do
-        expect { any_expr.satisfied?(context_with(collection, deadline: deadline)) }
+        expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
           .to raise_error(Datadog::DI::Error::EvaluationTimeout)
       end
     end
@@ -209,7 +209,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       it "#filter returns the selected items (behavior unchanged)" do
         # @it >= 0 is true for every element, so the filtered result is
         # the whole collection and no timeout is raised.
-        expect(filter_expr.satisfied?(context_with(collection, deadline: nil))).to be(true)
+        expect(filter_expr.satisfied?(context_with(collection), deadline: nil)).to be(true)
       end
     end
 
@@ -218,7 +218,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) + 60.0 }
 
       it "#filter completes without timing out" do
-        expect(filter_expr.satisfied?(context_with(collection, deadline: deadline))).to be(true)
+        expect(filter_expr.satisfied?(context_with(collection), deadline: deadline)).to be(true)
       end
     end
 
@@ -236,12 +236,12 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           checks += 1
           (checks <= 1) ? deadline - 0.001 : deadline + 0.001
         end
-        # Going through #satisfied? sets @context on the evaluator (the
-        # compiled evaluate method does this), so #filter can read the
-        # per-invocation deadline. The two-phase stub makes the first
-        # check pass and the second fail, so the raise is not immediate.
+        # Going through #satisfied? stores the per-invocation deadline on
+        # the evaluator (the compiled evaluate method does this), so #filter
+        # can read it. The two-phase stub makes the first check pass and the
+        # second fail, so the raise is not immediate.
         expect do
-          filter_expr.satisfied?(context_with(collection, deadline: deadline))
+          filter_expr.satisfied?(context_with(collection), deadline: deadline)
         end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
         expect(checks).to be >= 2
       end
