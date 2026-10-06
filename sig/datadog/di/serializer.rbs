@@ -28,14 +28,15 @@ module Datadog
       def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?deadline: ::Float?) -> Hash[Symbol, untyped]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?, ?deadline: ::Float?) -> Hash[Symbol, untyped]
       def serialization_deadline: () -> ::Float
+      def monotonic_now: () -> ::Float
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
       def self.register: (?condition: Proc?) {
         (Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped } -> void
 
       private
+      def resolve_deadline: (::Float? deadline) -> ::Float
       def deadline_exceeded?: (::Float deadline) -> bool
-      def monotonic_now: () -> ::Float
       def max_capture_collection_size_for_message: () -> Integer
 
       def max_capture_attribute_count_for_message: () -> Integer

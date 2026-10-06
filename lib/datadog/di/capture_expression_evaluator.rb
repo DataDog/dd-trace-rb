@@ -31,7 +31,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
+          if serializer.monotonic_now >= deadline
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             next
