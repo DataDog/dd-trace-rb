@@ -149,31 +149,39 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   describe "#filter, #all, #any evaluation deadline" do
     let(:compiler) { Datadog::DI::EL::Compiler.new }
 
-    let(:settings) { instance_double("settings", dynamic_instrumentation: nil).as_null_object }
-    let(:serializer) { instance_double("serializer").as_null_object }
+    let(:settings) { instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: nil).as_null_object }
+    let(:serializer) { instance_double(Datadog::DI::Serializer).as_null_object }
 
-    # `largeCollection.filter(@it >= 0)` — the collection-filter shape used by
-    # the system test, exercising the cooperative deadline inside #filter.
-    let(:filter_expr) do
-      src, regexps = compiler.compile({
-        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
-      })
-      Datadog::DI::EL::Expression.new("collection.filter(@it >= 0)", src, regexps: regexps)
+    def compile_expr(dsl_expr, ast)
+      src, regexps = compiler.compile(ast)
+      Datadog::DI::EL::Expression.new(dsl_expr, src, regexps: regexps)
     end
 
-    # `largeCollection.all(@it >= 0)` and `...any(@it >= 0)` exercise #all/#any.
+    # `collection.filter(@it >= 500)`, the collection-filter shape used
+    # by the system test, with a predicate that selects only part of the
+    # collection so the selected content is observable in assertions.
+    let(:filter_expr) do
+      compile_expr("collection.filter(@it >= 500)",
+        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
+    end
+
+    # `collection.all(@it >= 0)` and `collection.any(@it >= 0)` exercise #all/#any.
     let(:all_expr) do
-      src, regexps = compiler.compile({
-        "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
-      })
-      Datadog::DI::EL::Expression.new("collection.all(@it >= 0)", src, regexps: regexps)
+      compile_expr("collection.all(@it >= 0)",
+        "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
     end
 
     let(:any_expr) do
-      src, regexps = compiler.compile({
-        "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
-      })
-      Datadog::DI::EL::Expression.new("collection.any(@it >= 0)", src, regexps: regexps)
+      compile_expr("collection.any(@it >= 0)",
+        "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
+    end
+
+    # `collection.filter(@value >= 0)`, the Hash filter shape, where the
+    # predicate must use @value because @it is a key-value pair array on
+    # the Hash branch.
+    let(:filter_hash_expr) do
+      compile_expr("collection.filter(@value >= 0)",
+        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
     end
 
     def context_with(collection)
@@ -184,22 +192,46 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
 
     context "with the deadline already in the past" do
-      let(:collection) { Array.new(1000) { |i| i } }
       let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - 0.001 }
 
-      it "#filter raises EvaluationTimeout without consuming the whole collection" do
-        expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
-          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+      # The abort fires at i == 0, before the predicate block runs, so the
+      # @it predicate is never invoked on the Hash branch.
+      context "over an Array collection" do
+        let(:collection) { Array.new(1000) { |i| i } }
+
+        it "#filter raises EvaluationTimeout" do
+          expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
+
+        it "#all raises EvaluationTimeout" do
+          expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
+
+        it "#any raises EvaluationTimeout" do
+          expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
       end
 
-      it "#all raises EvaluationTimeout" do
-        expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
-          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
-      end
+      context "over a Hash collection" do
+        let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
-      it "#any raises EvaluationTimeout" do
-        expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
-          .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        it "#filter raises EvaluationTimeout" do
+          expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
+
+        it "#all raises EvaluationTimeout" do
+          expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
+
+        it "#any raises EvaluationTimeout" do
+          expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
       end
     end
 
@@ -207,9 +239,14 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:collection) { Array.new(1000) { |i| i } }
 
       it "#filter returns the selected items (behavior unchanged)" do
-        # @it >= 0 is true for every element, so the filtered result is
-        # the whole collection and no timeout is raised.
-        expect(filter_expr.satisfied?(context_with(collection), deadline: nil)).to be(true)
+        expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq((500..999).to_a)
+      end
+
+      it "#filter returns the selected entries of a Hash (behavior unchanged)" do
+        expect(filter_hash_expr.evaluate(
+          context_with({"a" => 1, "b" => 2, "c" => -1}),
+          deadline: nil,
+        )).to eq({"a" => 1, "b" => 2})
       end
     end
 
@@ -218,7 +255,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) + 60.0 }
 
       it "#filter completes without timing out" do
-        expect(filter_expr.satisfied?(context_with(collection), deadline: deadline)).to be(true)
+        expect(filter_expr.evaluate(context_with(collection), deadline: deadline)).to eq((500..999).to_a)
       end
     end
 
