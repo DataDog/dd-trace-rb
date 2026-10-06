@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    module Agentless
+      module Parser
+        RESOURCE_TYPE: String
+
+        def self?.parse: (String body) -> String?
+
+        private
+
+        def self?.valid_attributes?: (Object attributes) -> bool
+      end
+    end
+  end
+end

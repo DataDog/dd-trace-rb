@@ -1,11 +1,13 @@
 module Datadog
   module OpenTelemetry
     module SignalConfiguration
+      @settings: Core::Configuration::Settings
+
       private
 
       def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
 
-      def config_or_exporter_fallback: (signal: ::Symbol, option_name: ::Symbol, ?computed_default: any) -> any
+      def config_or_exporter_fallback: (signal: (:logs | :metrics), option_name: ::Symbol, ?computed_default: any) -> any
     end
   end
 end

@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6395",
+  "message": "Fix a potential crash during garbage collection compaction when profiling is enabled."
+}

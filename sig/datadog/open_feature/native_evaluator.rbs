@@ -20,8 +20,6 @@ module Datadog
 
       private
 
-      def parse_observe_full_evaluation_data: (::String? configuration) -> bool
-
       def build_resolution_details: (
         Core::FeatureFlags::ResolutionDetails result,
         untyped default_value

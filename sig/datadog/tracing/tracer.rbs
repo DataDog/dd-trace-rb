@@ -19,6 +19,8 @@ module Datadog
       def ai_guard_enabled: -> bool
 
       def apm_tracing_enabled: -> bool
+
+      def after_fork: () -> void
     end
   end
 end

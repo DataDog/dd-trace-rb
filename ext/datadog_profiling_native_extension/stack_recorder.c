@@ -539,10 +539,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
-  // Need to do this while still holding the Global VM Lock; see comments on method for why
-  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
-
   if (state->thread_context_collector_instance != Qnil) {
     thread_context_collector_on_serialize(state->thread_context_collector_instance);
   }
@@ -554,6 +550,10 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
+
+  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
+  // Need to do this while still holding the Global VM Lock; see comments on method for why
+  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending

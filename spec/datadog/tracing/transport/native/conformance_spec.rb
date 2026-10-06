@@ -10,6 +10,7 @@ require "datadog/appsec"
 require "datadog/appsec/actions_handler/serializable_backtrace"
 require "socket"
 require "msgpack"
+require_relative "../provenance_shared_examples"
 
 # Verifies that span data put into traces arrives on the wire (at the
 # mock agent) with the correct field values after going through the
@@ -179,6 +180,10 @@ RSpec.describe "Native transport wire-level conformance" do
   # ---------------------------------------------------------------------------
   # Tests
   # ---------------------------------------------------------------------------
+
+  describe "transport provenance" do
+    it_behaves_like "transport provenance on the wire", "native"
+  end
 
   describe "single span" do
     it "preserves scalar fields on the wire" do

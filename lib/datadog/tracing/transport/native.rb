@@ -264,7 +264,7 @@ module Datadog
             return [] if traces.empty?
 
             # Apply trace-level tags to root spans (same as the HTTP transport)
-            traces.each { |trace| TraceFormatter.format!(trace) }
+            traces.each { |trace| TraceFormatter.format!(trace, transport: "native") }
 
             # Build the Array<Array<Span>> structure expected by the C extension.
             # Each trace segment becomes one inner array (one trace chunk).

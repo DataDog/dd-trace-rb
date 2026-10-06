@@ -293,6 +293,44 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(logger).to receive(:debug)
       end
 
+      it "emits a privacy-preserving event for a wrong-typed native configuration opt-in" do
+        engine.reconfigure!(JSON.generate(
+          "createdAt" => "2024-04-17T19:40:53.716Z",
+          "environment" => {"name" => "test"},
+          "observeFullEvaluationData" => 42,
+          "flags" => {
+            "real-flag" => {
+              "key" => "real-flag",
+              "enabled" => true,
+              "variationType" => "STRING",
+              "variations" => {"on" => {"key" => "on", "value" => "enabled"}},
+              "allocations" => [{
+                "key" => "allocation",
+                "splits" => [{"variationKey" => "on", "shards" => []}],
+                "doLog" => false,
+              }],
+            },
+          },
+        ))
+
+        result = client.fetch_string_value(
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+        )
+
+        expect(result).to eq("enabled")
+        writer.send(:drain_and_flush)
+        expect(evp_transport).to have_received(:send_flag_evaluations).once do |payload|
+          expect(payload["flagEvaluations"].size).to eq(1)
+          event = payload["flagEvaluations"].first
+          expect(event["flag"]).to eq("key" => "real-flag")
+          expect(event["variant"]).to eq("key" => "on")
+          expect(event["targeting_key"]).to eq("sha256_#{Digest::SHA256.hexdigest("user-1")}")
+          expect(event).not_to have_key("context")
+        end
+      ensure
+        writer.stop
+      end
+
       it "enqueues an event into the Writer when the SDK client evaluates successfully" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
