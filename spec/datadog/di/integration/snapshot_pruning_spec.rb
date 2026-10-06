@@ -11,6 +11,10 @@ class SnapshotPruningTestClass
   def capture_method(huge, small)
     small
   end
+
+  def raising_method(huge)
+    raise "boom"
+  end
 end
 
 RSpec.describe "Snapshot size pruning integration" do
@@ -76,6 +80,13 @@ RSpec.describe "Snapshot size pruning integration" do
       max_capture_string_length: 2_000_000,)
   end
 
+  let(:raising_probe) do
+    Datadog::DI::Probe.new(id: "snapshot-pruning-raising-probe", type: :log,
+      type_name: "SnapshotPruningTestClass", method_name: "raising_method",
+      capture_snapshot: true,
+      max_capture_string_length: 2_000_000,)
+  end
+
   before do
     allow(Datadog::DI).to receive(:current_component).and_return(component)
   end
@@ -96,5 +107,27 @@ RSpec.describe "Snapshot size pruning integration" do
     arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
     expect(arguments["arg1"]).to eq("pruned" => true)
     expect(arguments["arg2"]).to eq("type" => "String", "value" => "small")
+  end
+
+  it "delivers a pruned snapshot with the throwable when the probe target raises" do
+    probe_manager.add_probe(raising_probe)
+
+    expect { SnapshotPruningTestClass.new.raising_method("x" * 2_000_000) }
+      .to raise_error(RuntimeError, "boom")
+
+    component.probe_notifier_worker.flush
+
+    expect(delivered_chunks.length).to eq(1)
+    chunked_payload = delivered_chunks.first
+    expect(chunked_payload.bytesize)
+      .to be <= Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE + 2
+
+    snapshot = JSON.parse(chunked_payload).first
+    entry_arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
+    expect(entry_arguments["arg1"]).to eq("pruned" => true)
+    throwable = snapshot.dig("debugger", "snapshot", "captures", "return", "throwable")
+    expect(throwable["type"]).to eq("RuntimeError")
+    expect(throwable["message"]).to eq("boom")
+    expect(throwable["stacktrace"]).not_to be_empty
   end
 end
