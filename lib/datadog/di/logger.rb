@@ -47,6 +47,15 @@ module Datadog
         end
         nil
       end
+
+      # Writes the given message to the target logger at warn level.
+      #
+      # @param message [String] message written to the target logger
+      # @return [void]
+      def warn(message)
+        target.warn(message)
+        nil
+      end
     end
   end
 end

@@ -86,13 +86,16 @@ module Datadog
             payload.each do |event|
               result = SnapshotEncoder.encode(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE)
               if result.encoded.nil?
-                logger.debug do
-                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
-                end
+                logger.warn("di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})")
                 dropped_events << event
                 next
               end
               if result.pruned
+                # The prune counter keeps a tracer-specific name, diverging
+                # from the other tracers, which report a payload trimmed to
+                # fit with the shared capture.incomplete metric (reason
+                # payloadTooLarge); the dropped-event metric stays canonical
+                # and shared across tracers.
                 telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
               end
               encoded_snapshots << result.encoded
