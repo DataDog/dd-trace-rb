@@ -81,17 +81,8 @@ runs:
       uses: ./.github/actions/bundle-cache
       env:
         BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
-    - name: Verify base bundle identity
-      if: steps.lookup.outputs.cache-hit != 'true'
-      shell: bash
-      env:
-        ACTUAL_KEY: ${{ steps.base-bundle.outputs.cache-key }}
-        EXPECTED_KEY: ${{ steps.base-key.outputs.cache-key }}
-      run: |
-        if [ "$ACTUAL_KEY" != "$EXPECTED_KEY" ]; then
-          echo "::error::Base bundle key changed: expected $EXPECTED_KEY, got $ACTUAL_KEY." >&2
-          exit 1
-        fi
+      with:
+        cache-key: ${{ steps.base-key.outputs.cache-key }}
     - name: Install appraisal bundles
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash

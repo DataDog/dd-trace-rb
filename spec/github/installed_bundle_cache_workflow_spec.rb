@@ -43,11 +43,12 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "restores and verifies the base before installing appraisals and validates the union before saving" do
+  it "restores the computed base before installing appraisals and validates the union before saving" do
     names = steps.map { |step| step["name"] }
+    base = steps.find { |step| step["name"] == "Prepare lean base bundle" }
 
-    expect(names.index("Prepare lean base bundle")).to be < names.index("Verify base bundle identity")
-    expect(names.index("Verify base bundle identity")).to be < names.index("Install appraisal bundles")
+    expect(base.fetch("with").fetch("cache-key")).to include("steps.base-key.outputs.cache-key")
+    expect(names.index("Prepare lean base bundle")).to be < names.index("Install appraisal bundles")
     expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
   end
 
@@ -86,13 +87,12 @@ RSpec.describe "installed bundle cache workflow" do
   it "skips base preparation, population, validation, and save on an exact hit" do
     miss_only_steps = steps.select do |step|
       step["id"] == "base-bundle" ||
-        step["name"] == "Verify base bundle identity" ||
         step["name"] == "Install appraisal bundles" ||
         step["name"] == "Verify complete matrix bundle" ||
         step["name"] == "Save installed bundle"
     end
 
-    expect(miss_only_steps.length).to eq(5)
+    expect(miss_only_steps.length).to eq(4)
     expect(miss_only_steps).to all(include("if" => include("steps.lookup.outputs.cache-hit != 'true'")))
   end
 
