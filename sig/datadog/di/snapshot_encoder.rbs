@@ -1,12 +1,23 @@
 module Datadog
   module DI
     module SnapshotEncoder
+      # JSON-compatible value as produced by ProbeNotificationBuilder and
+      # Serializer: Symbol keys, Integer line-number keys under
+      # captures.lines, and String keys in custom serializer output.
+      type snapshot_value = String | Integer | Float | bool | nil
+        | Array[snapshot_value]
+        | Hash[Symbol | Integer | String, snapshot_value]
+
+      # Snapshot payload Hash, in the shape send_input receives it.
+      type snapshot = Hash[Symbol | Integer | String, snapshot_value]
+
       MAX_ITEM_BYTES: Integer
       SLOT_OVERHEAD: Integer
       MAX_ESCAPE_EXPANSION: Integer
       SLOT_STRING_FIELDS: Array[String]
-      PRUNED: Hash[String, bool]
+      PRUNED: Hash[String, true]
       PRUNED_ENCODED: String
+      KEY_JSON: Hash[String, String]
 
       class Result < Struct[String? | bool]
         attr_reader encoded: String?
@@ -23,45 +34,45 @@ module Datadog
         def consume: (Integer bytes) -> void
       end
 
-      def self.encode: (Hash[Symbol, untyped] snapshot, Integer max_size) -> Result
+      def self.encode: (snapshot snapshot, Integer max_size) -> Result
 
-      def self.encode_value: (untyped node, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_value: (snapshot_value node, String out, Budget budget) ?{ () -> void } -> bool
 
       def self.encode_slot:
-        (untyped slot, String out, Budget budget, item_cap: Integer?) ?{ () -> void } -> bool
+        (snapshot_value slot, String out, Budget budget, item_cap: Integer?) ?{ () -> void } -> bool
 
-      def self.encode_slot_body: (untyped slot, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_slot_body: (snapshot slot, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_elements: (untyped elements, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_elements: (snapshot_value elements, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_entries: (untyped entries, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_entries: (snapshot_value entries, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_slot_pair: (untyped pair, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_slot_pair: (Array[snapshot_value] pair, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_fields: (untyped fields, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_fields: (snapshot_value fields, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_slot_hash: (untyped hash, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_slot_hash: (snapshot_value hash, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_envelope_hash: (untyped hash, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_envelope_hash: (snapshot hash, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_envelope_array: (untyped array, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_envelope_array: (Array[snapshot_value] array, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_scalar: (untyped scalar, String out, Budget budget) -> bool
+      def self.encode_scalar: (snapshot_value scalar, String out, Budget budget) -> bool
 
       def self.emit_json_fragment: (String out, Budget budget, String fragment) -> bool
 
       def self.emit_pruned: (String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.slot_collection?: (untyped slot) -> bool
+      def self.slot_collection?: (snapshot slot) -> bool
 
-      def self.slot_upper_bound: (untyped slot) -> Integer
+      def self.slot_upper_bound: (snapshot slot) -> Integer
 
-      def self.slot_lower_bound: (untyped slot) -> Integer
+      def self.slot_lower_bound: (snapshot slot) -> Integer
 
       def self.slot_string_fields_bound:
-        (untyped slot, bytes_per_byte: Integer, bytes_per_field: Integer) -> Integer
+        (snapshot slot, bytes_per_byte: Integer, bytes_per_field: Integer) -> Integer
 
-      def self.field_value: (untyped slot, String field) -> untyped
+      def self.field_value: (snapshot slot, String field) -> (snapshot_value | nil)
     end
   end
 end
