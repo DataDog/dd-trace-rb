@@ -52,10 +52,9 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when a captured integer fits the cap" do
-      let(:big) { snapshot(line_captures(big: {type: "Integer", value: "1"}, small: {type: "Integer", value: "1"})) }
-
-      before do
-        big.dig(:debugger, :snapshot, :captures, :lines, 42, :locals, :big)[:value] = "9" * 500_000
+      let(:big) do
+        snapshot(line_captures(big: {type: "Integer", value: "9" * 500_000},
+          small: {type: "Integer", value: "1"}))
       end
 
       it "encodes the integer and keeps the snapshot under the cap" do
@@ -69,10 +68,9 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when a single captured integer exceeds the cap" do
-      let(:big) { snapshot(line_captures(big: {type: "Integer", value: "1"}, small: {type: "Integer", value: "1"})) }
-
-      before do
-        big.dig(:debugger, :snapshot, :captures, :lines, 42, :locals, :big)[:value] = "9" * 2_000_000
+      let(:big) do
+        snapshot(line_captures(big: {type: "Integer", value: "9" * 2_000_000},
+          small: {type: "Integer", value: "1"}))
       end
 
       it "prunes the oversized slot to the marker without encoding the value" do
@@ -98,10 +96,8 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when a single captured string exceeds the cap" do
-      let(:bigstr) { snapshot(line_captures(s: {type: "String", value: "x"})) }
-
-      before do
-        bigstr.dig(:debugger, :snapshot, :captures, :lines, 42, :locals, :s)[:value] = "x" * 2_000_000
+      let(:bigstr) do
+        snapshot(line_captures(s: {type: "String", value: "x" * 2_000_000}))
       end
 
       it "prunes the oversized string slot to the marker" do
@@ -131,11 +127,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when the structural envelope alone exceeds the cap" do
-      let(:huge_envelope) { snapshot({}) }
-
-      before do
-        huge_envelope[:service] = "s" * 2_000_000
-      end
+      let(:huge_envelope) { snapshot({}).merge(service: "s" * 2_000_000) }
 
       it "returns nil so the caller drops the snapshot" do
         result = described_class.encode(huge_envelope, 1024)
@@ -241,6 +233,76 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
     end
 
+    context "when a captured collection holds a nested collection" do
+      let(:nested) { {type: "Array", elements: [{type: "Integer", value: "1"}]} }
+
+      it "prunes the nested collection member and keeps the enclosing collection" do
+        slot = {type: "Array", elements: [nested, {type: "Integer", value: "2"}]}
+        result = described_class.encode(snapshot(line_captures(a: slot)), cap)
+        expect(result.pruned).to be(true)
+        expect(result.encoded.bytesize).to be <= cap
+        elements = locals_of(result)["a"]["elements"]
+        expect(elements.first).to eq("pruned" => true)
+        expect(elements.last).to eq("type" => "Integer", "value" => "2")
+      end
+    end
+
+    context "with capture expressions" do
+      let(:expressions) do
+        snapshot({entry: {captureExpressions: {
+          big: {type: "Integer", value: "9" * 2_000_000},
+          small: {type: "Integer", value: "1"},
+        }}})
+      end
+
+      it "prunes the oversized expression value and keeps the small one" do
+        result = described_class.encode(expressions, cap)
+        expect(result.pruned).to be(true)
+        expect(result.encoded.bytesize).to be <= cap
+        captured = parse(result).dig("debugger", "snapshot", "captures", "entry", "captureExpressions")
+        expect(captured["big"]).to eq("pruned" => true)
+        expect(captured["small"]).to eq("type" => "Integer", "value" => "1")
+      end
+
+      it "encodes fitting capture expressions unchanged" do
+        fitting = snapshot({entry: {captureExpressions: {x: {type: "Integer", value: "1"}}}})
+        result = described_class.encode(fitting, cap)
+        expect(result.pruned).to be(false)
+        captured = parse(result).dig("debugger", "snapshot", "captures", "entry", "captureExpressions")
+        expect(captured).to eq("x" => {"type" => "Integer", "value" => "1"})
+      end
+    end
+
+    context "when the combined framing of many retained slots exceeds the cap" do
+      let(:many) do
+        snapshot(line_captures(30.times.map { |i| ["v#{i}", {type: "Integer", value: "1"}] }.to_h))
+      end
+
+      it "keeps every slot under a cap that fits them all" do
+        result = described_class.encode(many, cap)
+        expect(result.pruned).to be(false)
+        expect(result.encoded.bytesize).to be <= cap
+        expect(locals_of(result).keys).to eq(30.times.map { |i| "v#{i}" })
+      end
+
+      it "returns nil or JSON within the cap for every cap" do
+        0.step(JSON.dump(many).bytesize + 50, 1) do |capped|
+          result = described_class.encode(many, capped)
+          next if result.encoded.nil?
+          expect(result.encoded.bytesize).to be <= capped
+          expect { JSON.parse(result.encoded) }.not_to raise_error
+        end
+      end
+    end
+
+    context "when a custom serializer slot carries an unknown field" do
+      it "encodes the unknown field name and value" do
+        result = described_class.encode(snapshot(line_captures(c: {type: "Custom", customField: "x"})), cap)
+        expect(result.pruned).to be(false)
+        expect(locals_of(result)["c"]).to eq("type" => "Custom", "customField" => "x")
+      end
+    end
+
     context "when a captured value exceeds its slot mid-encoding" do
       let(:escaping) { snapshot(line_captures(x: {type: "String", value: "\u0001" * 100})) }
       let(:empty_base) { JSON.dump(snapshot(line_captures(x: {type: "String", value: ""}))).bytesize }
@@ -254,22 +316,6 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(result.encoded.bytesize).to be <= empty_base + 400
         expect(locals_of(result)["x"]).to eq("pruned" => true)
         expect(result.encoded).not_to include("\\u0001")
-      end
-    end
-
-    context "pruning preserves the variable name key" do
-      let(:named) { snapshot(line_captures(a: {type: "Integer", value: "1"}, b: {type: "Integer", value: "1"})) }
-
-      before do
-        named.dig(:debugger, :snapshot, :captures, :lines, 42, :locals, :a)[:value] = "9" * 2_000_000
-      end
-
-      it "keeps the JSON key for the pruned slot" do
-        result = described_class.encode(named, cap)
-        locals = locals_of(result)
-        expect(locals.key?("a")).to be(true)
-        expect(locals["a"]).to eq("pruned" => true)
-        expect(locals["b"]).to eq("type" => "Integer", "value" => "1")
       end
     end
 
