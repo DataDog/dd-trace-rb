@@ -657,6 +657,14 @@ NATIVE_EXTS = [
   ),
 ].compact.freeze
 
+if RUBY_ENGINE == "ruby"
+  spec_tasks = Rake::Task.tasks.map(&:name).grep(/\Aspec:/)
+  spec_tasks |= TEST_METADATA.keys.map { |key| "spec:#{key}" }
+  spec_tasks.each do |name|
+    task name => ["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"]
+  end
+end
+
 NATIVE_CLEAN = ::Rake::FileList[]
 # DEV: Should we suggest this Rake task for native development onboarding?
 namespace :native_dev do
