@@ -7,25 +7,12 @@ inputs:
     description: Exact installed bundle cache key
     required: true
 
-outputs:
-  restore-seconds:
-    description: Cache restore duration
-    value: ${{ steps.duration.outputs.seconds }}
-
 runs:
   using: composite
   steps:
-    - id: start
-      shell: bash
-      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Restore installed bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ inputs.cache-key }}
         path: /usr/local/bundle
         fail-on-cache-miss: true
-    - id: duration
-      shell: bash
-      env:
-        START_SECONDS: ${{ steps.start.outputs.seconds }}
-      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"

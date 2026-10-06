@@ -34,12 +34,6 @@ outputs:
   ready:
     description: Whether complete bundle is available to child jobs
     value: ${{ steps.result.outputs.ready }}
-  population-seconds:
-    description: Bundle population duration
-    value: ${{ steps.population-duration.outputs.seconds }}
-  save-seconds:
-    description: Cache save duration
-    value: ${{ steps.save-duration.outputs.seconds }}
   byte-count:
     description: Uncompressed installed bundle bytes
     value: ${{ steps.statistics.outputs.byte-count }}
@@ -117,10 +111,6 @@ runs:
           echo "::error::Base bundle key changed: expected $EXPECTED_KEY, got $ACTUAL_KEY." >&2
           exit 1
         fi
-    - id: population-start
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      shell: bash
-      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Install appraisal bundles
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
@@ -141,12 +131,6 @@ runs:
         ruby tasks/installed_bundle_cache_cli.rb check \
           --base-gemfile "$BASE_GEMFILE" \
           --matrix "$MATRIX"
-    - id: population-duration
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      shell: bash
-      env:
-        START_SECONDS: ${{ steps.population-start.outputs.seconds }}
-      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
     - id: statistics
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       name: Measure installed bundle
@@ -154,22 +138,12 @@ runs:
       run: |
         byte_count=$(du -sb /usr/local/bundle | cut -f1)
         echo "byte-count=$byte_count" >> "$GITHUB_OUTPUT"
-    - id: save-start
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      shell: bash
-      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Save installed bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.manifest.outputs.cache-key }}
         path: /usr/local/bundle
-    - id: save-duration
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      shell: bash
-      env:
-        START_SECONDS: ${{ steps.save-start.outputs.seconds }}
-      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
     - id: verify-save
       name: Verify installed bundle saved
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
