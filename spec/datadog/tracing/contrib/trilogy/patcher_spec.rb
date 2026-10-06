@@ -82,6 +82,21 @@ RSpec.describe "Trlogy::Client patcher" do
 
         it_behaves_like "with sql comment propagation", span_op_name: "trilogy.query"
         it_behaves_like "with sql comment base hash injection", span_op_name: "trilogy.query"
+
+        context "when configured with `on_error`" do
+          before do
+            Datadog.configure_onto(client, on_error: ->(_span, _error) { false })
+          end
+
+          let(:sql_statement) { "SELECT INVALID" }
+          let(:configuration_options) { {on_error: ->(span, error) { span.set_error(error) }} }
+
+          it "uses the client error handler instead of the integration error handler" do
+            expect { query }.to raise_error(Trilogy::Error)
+
+            expect(span).not_to have_error
+          end
+        end
       end
 
       context "when a successful query is made" do
@@ -154,6 +169,15 @@ RSpec.describe "Trlogy::Client patcher" do
 
         it_behaves_like "configured peer service span", "DD_TRACE_TRILOGY_PEER_SERVICE", error: Trilogy::Error do
           let(:configuration_options) { {} }
+        end
+
+        context "when configured with `on_error`" do
+          let(:configuration_options) { {on_error: ->(_span, _error) { false }} }
+
+          it "does not mark span with error" do
+            expect { query }.to raise_error(Trilogy::Error)
+            expect(span).not_to have_error
+          end
         end
       end
     end
