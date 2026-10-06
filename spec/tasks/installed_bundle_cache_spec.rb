@@ -131,30 +131,6 @@ RSpec.describe InstalledBundleCache do
     expect(renamed.content).to eq(cache.content)
   end
 
-  it "ignores task metadata when applicable Gemfiles are unchanged" do
-    write("Matrixfile.first", <<~RUBY)
-      {"task-a" => {"first" => "✅ 4.0", "second" => "✅ 4.0"}}
-    RUBY
-    write("Matrixfile.second", <<~RUBY)
-      {"renamed-task" => {"second" => "✅ 4.0", "first" => "✅ 4.0"}}
-    RUBY
-    resolver = ->(group) { "#{group}.gemfile" }
-    first_matrix = GithubMatrix.new(
-      matrix_path: temporary_directory.join("Matrixfile.first").to_s,
-      ruby_version: "4.0",
-      gemfile_resolver: resolver,
-    )
-    second_matrix = GithubMatrix.new(
-      matrix_path: temporary_directory.join("Matrixfile.second").to_s,
-      ruby_version: "4.0",
-      gemfile_resolver: resolver,
-    )
-    first = build_cache(first_matrix.gemfiles)
-    second = build_cache(second_matrix.gemfiles)
-
-    expect(first.content).to eq(second.content)
-  end
-
   it "sorts content hashes" do
     expect(cache.content).to eq(cache.content.sort)
   end

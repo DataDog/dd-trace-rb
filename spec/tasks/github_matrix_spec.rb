@@ -5,7 +5,6 @@ require_relative "../../tasks/github_matrix"
 RSpec.describe GithubMatrix do
   subject(:matrix) do
     described_class.new(
-      matrix_path: matrix_path,
       ruby_version: "4.0",
       gemfile_resolver: gemfile_resolver,
     )
@@ -39,7 +38,7 @@ RSpec.describe GithubMatrix do
   around do |example|
     Dir.mktmpdir do |directory|
       @temporary_directory = directory
-      example.run
+      Dir.chdir(directory) { example.run }
     end
   end
 
