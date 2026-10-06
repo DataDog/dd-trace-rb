@@ -45,11 +45,14 @@ namespace :github do
     # Seed
     batch_count = 7
 
-    tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
-
     batched_matrix = {"include" => []}
 
-    matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
+    task_groups = Array.new(batch_count) { [] }
+    matching_tasks.each_with_index do |task, index|
+      task_groups[index % batch_count] << task
+    end
+
+    task_groups.each_with_index do |task_group, index|
       batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
     end
 
