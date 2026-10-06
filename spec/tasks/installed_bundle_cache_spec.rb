@@ -34,13 +34,13 @@ RSpec.describe InstalledBundleCache do
   end
 
   it "returns the base and sorted applicable Gemfiles once" do
-    expect(cache.gemfiles.map { |path| path.basename.to_s }).to eq(
+    expect(cache.gemfiles.map { |path| File.basename(path) }).to eq(
       %w[base.gemfile first.gemfile second.gemfile]
     )
   end
 
   it "excludes the fallback base Gemfile from appraisal Gemfiles" do
-    expect(cache.appraisal_gemfiles.map { |path| path.basename.to_s }).to eq(
+    expect(cache.appraisal_gemfiles.map { |path| File.basename(path) }).to eq(
       %w[first.gemfile second.gemfile]
     )
   end

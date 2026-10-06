@@ -43,6 +43,7 @@ RSpec.describe GithubMatrix do
   end
 
   before do
+    matrix_path
     allow(AppraisalConversion).to receive(:parent_gemfile).and_return("Gemfile")
   end
 
