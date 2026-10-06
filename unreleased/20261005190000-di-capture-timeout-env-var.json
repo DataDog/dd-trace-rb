@@ -2,5 +2,5 @@
   "type": "Changed",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
-  "message": "Read the Dynamic Instrumentation capture-timeout budget from `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS`, matching the other tracers. `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is no longer read and logs a warning when set."
+  "message": "Read the capture-timeout budget from `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` (deprecated alias `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT`), matching the other tracers."
 }

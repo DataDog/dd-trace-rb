@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
+  "message": "Stop reading `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE`; setting it triggers a warning at Dynamic Instrumentation startup."
+}
