@@ -54,6 +54,12 @@ RSpec.describe Datadog::DI::Configuration::Settings do
     end
 
     context "default values" do
+      around do |example|
+        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil) do
+          example.run
+        end
+      end
+
       it "defaults max_time_to_serialize_ms to the 150 ms hard ceiling" do
         expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(150)
       end
@@ -116,21 +122,12 @@ RSpec.describe Datadog::DI::Configuration::Settings do
       end
     end
 
-    context "canonical env var alias" do
-      around do |example|
-        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "250") do
-          example.run
-        end
-      end
-
-      it "accepts DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS as an alias for max_time_to_serialize_ms" do
-        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 250
-      end
-    end
-
     context "legacy capture-timeout name" do
       around do |example|
-        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250") do
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
           example.run
         end
       end
