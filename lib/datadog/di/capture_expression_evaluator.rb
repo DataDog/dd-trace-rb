@@ -23,6 +23,15 @@ module Datadog
 
       attr_reader :telemetry
 
+      # Evaluates each of the probe's capture expressions against the given
+      # context and serializes the captured values, enforcing the capture
+      # time budget between expressions. An expression that fails to evaluate
+      # or serialize contributes an entry to the returned errors instead of
+      # the output.
+      #
+      # @param probe [Probe] the probe whose capture expressions are evaluated
+      # @param context [Context] evaluation context the expressions are evaluated against
+      # @return [Array(Hash, Array)] the serialized values keyed by expression name and the evaluation errors
       def evaluate(probe, context)
         budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
         deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns

@@ -29,6 +29,8 @@ module Datadog
       #   Used for handling serialization errors (disabling affected probes).
       # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
       #   creating status notifications. Used for reporting ERROR status.
+      # @param guardrails_telemetry [GuardrailsTelemetry, nil] Emitter for the canonical
+      #   guardrails drop metric at the queue-full admission drop.
       def initialize(settings, logger, agent_settings:,
         probe_repository:, probe_notification_builder:, telemetry: nil, guardrails_telemetry: nil)
         @settings = settings
@@ -263,6 +265,10 @@ module Datadog
         # Signals the background thread to wake up (and do the sending)
         # if it has been more than 1 second since the last send of the same
         # event type.
+        #
+        # @param event [Hash] the status or snapshot payload to enqueue
+        # @param probe [Probe, nil] the probe the payload belongs to, for status log attribution
+        # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
           # Enqueueing reads DI configuration and writes debug/trace logs, both
           # of which can call stdlib methods (e.g. Set#include? via the

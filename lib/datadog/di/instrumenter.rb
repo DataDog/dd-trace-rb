@@ -134,6 +134,10 @@ module Datadog
       # Boundaries the telemetry emission so a raising telemetry component
       # stays contained on the method-probe path, matching the line-probe
       # callback's method-level rescue.
+      #
+      # @param probe [Probe] the probe being skipped
+      # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
+      # @return [void]
       def record_rate_limit_skip(probe, reason)
         logger.trace do
           "di: #{probe.type} probe #{probe.id}: skipping due to " \
@@ -784,6 +788,17 @@ module Datadog
         public :kwargs_from_splat
       end
 
+      # Trace point callback for a line probe. Verifies the invocation is the
+      # probed line for untargeted trace points, evaluates the condition and
+      # the per-probe and global rate limiters, builds the snapshot context,
+      # and invokes the responder's executed callback. A rejected or failed
+      # invocation is logged and contained here.
+      #
+      # @param probe [Probe] the probe installed on this line
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param tp [TracePoint] the firing trace point
+      # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
