@@ -88,6 +88,17 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
       expect { trace_exporter_class.new }.to raise_error(TypeError)
     end
 
+    it "rejects a non-boolean client-computed stats setting" do
+      expect {
+        trace_exporter_class._native_new(
+          url: "http://127.0.0.1:8126",
+          tracer_version: nil, language: nil, language_version: nil,
+          language_interpreter: nil, hostname: nil, env: nil,
+          service: nil, version: nil, client_computed_stats: "true",
+        )
+      }.to raise_error(TypeError, /client_computed_stats/)
+    end
+
     context "GC safety" do
       it "does not crash when instances are garbage collected" do
         5.times do

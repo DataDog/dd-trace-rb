@@ -17,7 +17,8 @@ module Datadog
             hostname: ::String?,
             env: ::String?,
             service: ::String?,
-            version: ::String?
+            version: ::String?,
+            ?client_computed_stats: bool
           ) -> TraceExporter
           def _native_send_traces: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> ::Array[Response]
           def _native_before_fork: () -> void

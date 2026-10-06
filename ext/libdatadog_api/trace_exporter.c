@@ -1410,9 +1410,9 @@ static VALUE create_ok_response(long trace_count, VALUE payload) {
  *   TraceExporter._native_new(
  *     url:, tracer_version: nil, language: nil, language_version: nil,
  *     language_interpreter: nil, hostname: nil, env: nil,
- *     service: nil, version: nil) -> TraceExporter
+ *     service: nil, version: nil, client_computed_stats: false) -> TraceExporter
  *
- * +url+ is required (String).  All other arguments may be nil.
+ * +url+ is required (String). Metadata arguments may be nil.
  * ======================================================================== */
 
 static VALUE _native_exporter_new(
@@ -1432,6 +1432,7 @@ static VALUE _native_exporter_new(
   VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
   VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
 
+  VALUE rb_client_computed_stats = rb_hash_lookup2(options, ID2SYM(rb_intern("client_computed_stats")), Qfalse);
   /* Phase 1: validate types (may raise, no Rust resources yet) */
   ENFORCE_TYPE(rb_url, T_STRING);
   if (rb_tracer_version       != Qnil) ENFORCE_TYPE(rb_tracer_version,       T_STRING);
@@ -1443,6 +1444,9 @@ static VALUE _native_exporter_new(
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
 
+  if (rb_client_computed_stats != Qtrue && rb_client_computed_stats != Qfalse) {
+    rb_raise(rb_eTypeError, "client_computed_stats must be true or false");
+  }
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
@@ -1458,6 +1462,13 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /*
+  ddog_TraceExporterError *stats_err = ddog_trace_exporter_config_set_client_computed_stats(
+      config, rb_client_computed_stats == Qtrue);
+  if (stats_err != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("Failed to configure client-computed stats", stats_err);
+  }
+
    * Create a SharedRuntime and attach it to the config before building the
    * exporter.  The exporter holds a clone of the runtime's Arc; we keep our
    * own handle in the wrapper to drive fork-safety hooks and to free it when
