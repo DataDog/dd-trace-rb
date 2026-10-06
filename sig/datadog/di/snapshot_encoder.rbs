@@ -4,15 +4,64 @@ module Datadog
       MAX_ITEM_BYTES: Integer
       SLOT_OVERHEAD: Integer
       MAX_ESCAPE_EXPANSION: Integer
+      SLOT_STRING_FIELDS: Array[String]
       PRUNED: Hash[String, bool]
       PRUNED_ENCODED: String
 
-      class Result
-        attr_reader encoded: (::String | nil)
+      class Result < Struct[String? | bool]
+        attr_reader encoded: String?
         attr_reader pruned: bool
+
+        def self.new: (String? encoded, bool pruned) -> instance
       end
 
-      def self.encode: (untyped snapshot, Integer max_size) -> Result
+      class Budget
+        attr_reader remaining: Integer
+
+        def initialize: (Integer remaining) -> void
+
+        def consume: (Integer bytes) -> void
+      end
+
+      def self.encode: (Hash[Symbol, untyped] snapshot, Integer max_size) -> Result
+
+      def self.encode_value: (untyped node, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_slot:
+        (untyped slot, String out, Budget budget, item_cap: Integer?) ?{ () -> void } -> bool
+
+      def self.encode_slot_body: (untyped slot, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_elements: (untyped elements, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_entries: (untyped entries, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_slot_pair: (untyped pair, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_fields: (untyped fields, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_slot_hash: (untyped hash, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_envelope_hash: (untyped hash, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_envelope_array: (untyped array, String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.encode_scalar: (untyped scalar, String out, Budget budget) -> bool
+
+      def self.emit_json_fragment: (String out, Budget budget, String fragment) -> bool
+
+      def self.emit_pruned: (String out, Budget budget) ?{ () -> void } -> bool
+
+      def self.slot_collection?: (untyped slot) -> bool
+
+      def self.slot_upper_bound: (untyped slot) -> Integer
+
+      def self.slot_lower_bound: (untyped slot) -> Integer
+
+      def self.slot_string_fields_bound:
+        (untyped slot, bytes_per_byte: Integer, bytes_per_field: Integer) -> Integer
+
+      def self.field_value: (untyped slot, String field) -> untyped
     end
   end
 end
