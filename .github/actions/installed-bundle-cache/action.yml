@@ -63,7 +63,7 @@ runs:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         IMAGE_IDENTITY: ${{ inputs.image-identity }}
       run: |
-        ruby tasks/installed_bundle_cache_cli.rb manifest \
+        ruby tasks/installed_bundle_cache.rb manifest \
           --base-gemfile "$BASE_GEMFILE" \
           --base-cache-key "$BASE_CACHE_KEY" \
           --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
@@ -102,13 +102,13 @@ runs:
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-      run: ruby tasks/installed_bundle_cache_cli.rb install-appraisals --base-gemfile "$BASE_GEMFILE"
+      run: ruby tasks/installed_bundle_cache.rb install-appraisals --base-gemfile "$BASE_GEMFILE"
     - name: Verify complete matrix bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-      run: ruby tasks/installed_bundle_cache_cli.rb check --base-gemfile "$BASE_GEMFILE"
+      run: ruby tasks/installed_bundle_cache.rb check --base-gemfile "$BASE_GEMFILE"
     - name: Save installed bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
