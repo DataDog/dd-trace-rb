@@ -308,9 +308,10 @@ module Datadog
                   Datadog::DI.reraise_if_fatal(exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
                   # The drop already happened; the guarded body is the
-                  # telemetry emission itself, so the failure is contained
-                  # here with a log rather than reported through the failing
-                  # component or raised into the customer's probed call.
+                  # telemetry emission itself, so the failure is logged and
+                  # contained here: reporting through the failing component
+                  # would raise again inside the handler, and an escaping
+                  # raise would reach the customer's probed call.
                   logger.debug { "di: error emitting queue-full drop telemetry: #{exc.class}: #{exc.message}" }
                   nil
                 end
