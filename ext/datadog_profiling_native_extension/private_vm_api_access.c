@@ -62,12 +62,15 @@
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
 static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 static gvl_owner_context_t *get_gvl_owner_context(void);
+static inline rb_thread_t *thread_struct_from_object(VALUE thread);
 
 // Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
 // The native context stays at the same address across GC compaction and forks from the main ractor.
 static gvl_owner_context_t *main_ractor_gvl_owner_context = NULL;
 
 void private_vm_api_access_init(void) {
+  thread_struct_from_object(rb_thread_current()); // to initialize the thread_data_type inside
+
   main_ractor_gvl_owner_context = get_gvl_owner_context();
 }
 
@@ -79,7 +82,7 @@ void private_vm_api_access_self_test(void) {
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
-// Instead, we have our own version of that function, and we lazily initialize the thread_data_type pointer
+// Instead, we have our own version of that function, and we initialize the thread_data_type pointer
 // from a known-correct object: the current thread.
 //
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
