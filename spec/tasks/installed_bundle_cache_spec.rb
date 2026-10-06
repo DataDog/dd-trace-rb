@@ -1,0 +1,216 @@
+require "spec_helper"
+require "tmpdir"
+require_relative "../../tasks/installed_bundle_cache"
+
+RSpec.describe InstalledBundleCache do
+  subject(:cache) do
+    described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      matrix: matrix,
+      installed_path: temporary_directory.join("installed"),
+    )
+  end
+
+  around do |example|
+    Dir.mktmpdir do |directory|
+      @temporary_directory = Pathname(directory)
+      write("base.gemfile", "source \"https://rubygems.org\"\n")
+      write("base.gemfile.lock", "base lock\n")
+      write("first.gemfile", "eval_gemfile \"base.gemfile\"\n")
+      write("first.gemfile.lock", "first lock\n")
+      write("second.gemfile", "eval_gemfile \"base.gemfile\"\n")
+      write("second.gemfile.lock", "second lock\n")
+      example.run
+    end
+  end
+
+  let(:temporary_directory) { @temporary_directory }
+  let(:matrix) do
+    instance_double(GithubMatrix, gemfiles: ["second.gemfile", "base.gemfile", "first.gemfile"])
+  end
+
+  def write(path, content)
+    target = temporary_directory.join(path)
+    target.dirname.mkpath
+    target.write(content)
+  end
+
+  it "returns the base and sorted applicable Gemfiles once" do
+    expect(cache.gemfiles.map { |path| path.basename.to_s }).to eq(
+      %w[base.gemfile first.gemfile second.gemfile]
+    )
+  end
+
+  it "excludes the fallback base Gemfile from appraisal Gemfiles" do
+    expect(cache.appraisal_gemfiles.map { |path| path.basename.to_s }).to eq(
+      %w[first.gemfile second.gemfile]
+    )
+  end
+
+  it "uses schema, environment digest, and content digest in the cache key" do
+    manifest = cache.to_h(
+      cache_schema: "installed-full-v2",
+      image_identity: "image-a",
+      base_cache_key: "base-a",
+    )
+
+    expect(manifest.fetch(:cache_key)).to eq(
+      "installed-full-v2-#{manifest.fetch(:environment_digest)}-#{manifest.fetch(:content_digest)}"
+    )
+  end
+
+  it "produces deterministic digests regardless of applicable Gemfile order" do
+    reordered = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      matrix: instance_double(GithubMatrix, gemfiles: ["first.gemfile", "base.gemfile", "second.gemfile"]),
+      installed_path: temporary_directory.join("installed"),
+    )
+
+    expect(reordered.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).to eq(
+      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
+    )
+    expect(reordered.content_digest).to eq(cache.content_digest)
+  end
+
+  it "invalidates the environment digest when image identity changes" do
+    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.environment_digest(image_identity: "image-b", base_cache_key: "base-a")
+    )
+  end
+
+  it "invalidates the environment digest and key when the base cache identity changes" do
+    expect(cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-b")
+    )
+    expect(cache.cache_key(cache_schema: "schema", image_identity: "image-a", base_cache_key: "base-a")).not_to eq(
+      cache.cache_key(cache_schema: "schema", image_identity: "image-a", base_cache_key: "base-b")
+    )
+  end
+
+  it "invalidates the environment digest when native build flags change" do
+    original = cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
+    changed = ClimateControl.modify("CFLAGS" => "-march=changed") do
+      cache.environment_digest(image_identity: "image-a", base_cache_key: "base-a")
+    end
+
+    expect(changed).not_to eq(original)
+  end
+
+  it "hashes only Bundler settings that can change installed contents" do
+    settings = instance_double(
+      Bundler::Settings,
+      all: %w[build.pg cache_path force_ruby_platform frozen without],
+    )
+    allow(settings).to receive(:[]).with("build.pg").and_return("--with-pg-config=/tmp/pg_config")
+    allow(settings).to receive(:[]).with("force_ruby_platform").and_return("true")
+    allow(settings).to receive(:[]).with("without").and_return("development")
+    allow(Bundler).to receive(:settings).and_return(settings)
+
+    expect(
+      cache.environment(image_identity: "image-a", base_cache_key: "base-a").fetch("bundler_settings")
+    ).to eq(
+      "build.pg" => "--with-pg-config=/tmp/pg_config",
+      "force_ruby_platform" => "true",
+      "without" => "development",
+    )
+  end
+
+  it "invalidates the content digest when a Gemfile changes" do
+    original = cache.content_digest
+
+    write("first.gemfile", "eval_gemfile \"base.gemfile\"\ngem \"rake\"\n")
+
+    expect(cache.content_digest).not_to eq(original)
+  end
+
+  it "invalidates the content digest when a lockfile changes" do
+    original = cache.content_digest
+
+    write("second.gemfile.lock", "changed lock\n")
+
+    expect(cache.content_digest).not_to eq(original)
+  end
+
+  it "includes Gemfile and lockfile paths in the content digest" do
+    write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
+    write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
+    renamed = described_class.new(
+      root: temporary_directory,
+      base_gemfile: "base.gemfile",
+      matrix: instance_double(GithubMatrix, gemfiles: ["base.gemfile", "renamed.gemfile", "second.gemfile"]),
+      installed_path: temporary_directory.join("installed"),
+    )
+
+    expect(renamed.content_digest).not_to eq(cache.content_digest)
+  end
+
+  it "ignores task metadata when applicable Gemfiles are unchanged" do
+    write("Matrixfile.first", <<~RUBY)
+      {"task-a" => {"first" => "✅ 4.0", "second" => "✅ 4.0"}}
+    RUBY
+    write("Matrixfile.second", <<~RUBY)
+      {"renamed-task" => {"second" => "✅ 4.0", "first" => "✅ 4.0"}}
+    RUBY
+    resolver = ->(group) { "#{group}.gemfile" }
+    first_matrix = GithubMatrix.new(
+      matrix_path: temporary_directory.join("Matrixfile.first"),
+      ruby_version: "4.0",
+      gemfile_resolver: resolver,
+      fallback_gemfile: "base.gemfile",
+    )
+    second_matrix = GithubMatrix.new(
+      matrix_path: temporary_directory.join("Matrixfile.second"),
+      ruby_version: "4.0",
+      gemfile_resolver: resolver,
+      fallback_gemfile: "base.gemfile",
+    )
+    first = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: first_matrix)
+    second = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: second_matrix)
+
+    expect(first.content_digest).to eq(second.content_digest)
+  end
+
+  it "sorts content members by repository-relative path" do
+    paths = cache.content.map { |member| member.fetch("path") }
+
+    expect(paths).to eq(paths.sort)
+  end
+
+  it "installs each appraisal and checks every Gemfile" do
+    commands = []
+    allow(cache).to receive(:system) do |environment, command, *arguments|
+      commands << [environment.fetch("BUNDLE_GEMFILE"), command, arguments]
+      true
+    end
+
+    cache.install_appraisals(jobs: 4)
+    cache.check
+
+    installed = commands.select { |_gemfile, _command, arguments| arguments == ["install", "--jobs", "4"] }
+    expect(installed.map { |gemfile, _command, _arguments| File.basename(gemfile) }).to contain_exactly(
+      "first.gemfile",
+      "second.gemfile",
+    )
+    expect(commands.count { |_gemfile, _command, arguments| arguments == ["check"] }).to eq(3)
+  end
+
+  it "rejects missing lockfiles" do
+    temporary_directory.join("first.gemfile.lock").delete
+
+    expect { cache.content }.to raise_error("Lockfile not found: first.gemfile.lock")
+  end
+
+  it "reports failed appraisal installation" do
+    allow(cache).to receive(:system).and_return(false)
+
+    expect { cache.install_appraisals }.to raise_error("bundle install failed for first.gemfile")
+  end
+
+  it "reports failed bundle validation" do
+    allow(cache).to receive(:system).and_return(false)
+
+    expect { cache.check }.to raise_error("bundle check failed for base.gemfile")
+  end
+end

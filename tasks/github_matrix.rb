@@ -12,10 +12,16 @@ class GithubMatrix
 
   attr_reader :ruby_version
 
-  def initialize(matrix_path: "Matrixfile", ruby_version: RUBY_VERSION[0..2], gemfile_resolver: nil)
-    @matrix_path = matrix_path
+  def initialize(
+    matrix_path: "Matrixfile",
+    ruby_version: RUBY_VERSION[0..2],
+    gemfile_resolver: nil,
+    fallback_gemfile: AppraisalConversion.parent_gemfile
+  )
+    @matrix_path = matrix_path.to_s
     @ruby_version = ruby_version
     @gemfile_resolver = gemfile_resolver || AppraisalConversion.method(:to_bundle_gemfile)
+    @fallback_gemfile = fallback_gemfile
   end
 
   def tasks
@@ -36,8 +42,8 @@ class GithubMatrix
     tasks.select { |task| MISC_CANDIDATES.include?(task[:task]) }
   end
 
-  def appraisal_gemfiles
-    tasks.map { |task| task[:gemfile] }.reject { |path| path == "Gemfile" }.uniq.sort
+  def gemfiles
+    tasks.map { |task| task[:gemfile] }.uniq.sort
   end
 
   private
@@ -57,6 +63,6 @@ class GithubMatrix
   def resolve_gemfile(group)
     @gemfile_resolver.call(group)
   rescue
-    "Gemfile"
+    @fallback_gemfile
   end
 end

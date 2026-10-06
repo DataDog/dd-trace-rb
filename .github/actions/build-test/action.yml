@@ -10,6 +10,10 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
+  install-dependencies:
+    description: 'Install dependencies required by this batch'
+    required: false
+    default: 'true'
 
 runs:
   using: "composite"
@@ -18,24 +22,10 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - id: bundle-install-start
-    run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
-    shell: bash
-
   - name: Install batch dependencies
+    if: inputs.install-dependencies == 'true'
     run: bundle exec rake github:run_batch_build
     shell: bash
-
-  - name: Report batch dependency installation
-    shell: bash
-    env:
-      START_SECONDS: ${{ steps.bundle-install-start.outputs.seconds }}
-    run: |
-      duration=$(($(date +%s) - START_SECONDS))
-      {
-        echo "### Batch dependency installation"
-        echo "- Duration: \`${duration}s\`"
-      } >> "$GITHUB_STEP_SUMMARY"
 
   - name: Configure RSpec
     run: ln -s .rspec-local.example .rspec-local

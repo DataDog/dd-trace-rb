@@ -8,8 +8,11 @@ RSpec.describe GithubMatrix do
       matrix_path: matrix_path,
       ruby_version: "4.0",
       gemfile_resolver: gemfile_resolver,
+      fallback_gemfile: fallback_gemfile,
     )
   end
+
+  let(:fallback_gemfile) { "Gemfile" }
 
   let(:gemfile_resolver) do
     lambda do |group|
@@ -60,12 +63,51 @@ RSpec.describe GithubMatrix do
     expect(matrix.misc_tasks.map { |task| task[:task] }).to eq(["mongodb"])
   end
 
-  it "returns sorted unique appraisal Gemfiles" do
-    expect(matrix.appraisal_gemfiles).to eq(
+  it "returns sorted unique applicable Gemfiles" do
+    expect(matrix.gemfiles).to eq(
       [
+        "Gemfile",
         "gemfiles/ruby_4.0_mongo.gemfile",
         "gemfiles/ruby_4.0_rails.gemfile",
       ]
     )
+  end
+
+  context "with a custom fallback Gemfile" do
+    let(:fallback_gemfile) { "gemfiles/ruby-4.0.gemfile" }
+
+    it "uses the fallback for groups without an appraisal Gemfile" do
+      expect(matrix.gemfiles).to include("gemfiles/ruby-4.0.gemfile")
+      expect(matrix.gemfiles).not_to include("Gemfile")
+    end
+  end
+
+  context "when a non-empty group has no appraisal Gemfile" do
+    let(:gemfile_resolver) do
+      lambda do |group|
+        raise "missing appraisal" if group == "rails"
+
+        "gemfiles/ruby_4.0_#{group}.gemfile"
+      end
+    end
+
+    it "uses the fallback Gemfile" do
+      rails_task = matrix.tasks.find { |task| task[:group] == "rails" }
+
+      expect(rails_task).to include(gemfile: "Gemfile")
+    end
+  end
+
+  it "defaults fallback tasks to the committed runtime Gemfile" do
+    allow(AppraisalConversion).to receive(:parent_gemfile).and_return("gemfiles/ruby-4.0.gemfile")
+
+    default_matrix = described_class.new(
+      matrix_path: matrix_path,
+      ruby_version: "4.0",
+      gemfile_resolver: gemfile_resolver,
+    )
+
+    expect(default_matrix.gemfiles).to include("gemfiles/ruby-4.0.gemfile")
+    expect(default_matrix.gemfiles).not_to include("Gemfile")
   end
 end

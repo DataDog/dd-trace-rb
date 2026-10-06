@@ -1,0 +1,206 @@
+name: Prepare installed matrix bundle cache
+
+description: Find or build one installed bundle containing every applicable Gemfile
+
+inputs:
+  base-gemfile:
+    description: Runtime base Gemfile
+    required: true
+  matrix:
+    description: Matrixfile used to select applicable appraisal Gemfiles
+    required: false
+    default: Matrixfile
+  cache-schema:
+    description: Installed bundle cache schema
+    required: true
+  image-identity:
+    description: Immutable engine image identity
+    required: true
+  write-enabled:
+    description: Whether a miss may build and save current bundle
+    required: false
+    default: "false"
+
+outputs:
+  cache-key:
+    description: Exact installed bundle cache key
+    value: ${{ steps.manifest.outputs.cache-key }}
+  base-cache-key:
+    description: Exact lean base bundle cache key
+    value: ${{ steps.base-key.outputs.cache-key }}
+  base-lockfile:
+    description: Base lockfile artifact name when fallback is prepared
+    value: ${{ steps.base-bundle.outputs.lockfile }}
+  status:
+    description: "Cache status: exact, miss, or generated"
+    value: ${{ steps.result.outputs.status }}
+  ready:
+    description: Whether complete bundle is available to child jobs
+    value: ${{ steps.result.outputs.ready }}
+  population-seconds:
+    description: Bundle population duration
+    value: ${{ steps.population-duration.outputs.seconds }}
+  save-seconds:
+    description: Cache save duration
+    value: ${{ steps.save-duration.outputs.seconds }}
+  byte-count:
+    description: Uncompressed installed bundle bytes
+    value: ${{ steps.statistics.outputs.byte-count }}
+  file-count:
+    description: Installed bundle file count
+    value: ${{ steps.statistics.outputs.file-count }}
+
+runs:
+  using: composite
+  steps:
+    - id: ruby-environment
+      name: Compute base Ruby environment
+      shell: bash
+      run: |
+        value=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")')
+        echo "value=$value" >> "$GITHUB_OUTPUT"
+    - id: base-key
+      name: Compute base bundle key
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        LOCKFILE_HASH: ${{ hashFiles(format('{0}.lock', inputs.base-gemfile)) }}
+        RUBY_ENVIRONMENT: ${{ steps.ruby-environment.outputs.value }}
+      run: |
+        lockfile="$BASE_GEMFILE.lock"
+        if [ ! -f "$lockfile" ]; then
+          echo "::error::Expected lockfile $lockfile not found." >&2
+          exit 1
+        fi
+        if [ -z "$LOCKFILE_HASH" ]; then
+          echo "::error::Could not hash lockfile $lockfile." >&2
+          exit 1
+        fi
+        echo "cache-key=bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH" >> "$GITHUB_OUTPUT"
+    - id: manifest
+      name: Compute installed bundle key
+      shell: bash
+      env:
+        BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        CACHE_SCHEMA: ${{ inputs.cache-schema }}
+        IMAGE_IDENTITY: ${{ inputs.image-identity }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb manifest \
+          --base-gemfile "$BASE_GEMFILE" \
+          --base-cache-key "$BASE_CACHE_KEY" \
+          --matrix "$MATRIX" \
+          --cache-schema "$CACHE_SCHEMA" \
+          --image-identity "$IMAGE_IDENTITY" > /tmp/ddtrace-installed-bundle-manifest.json
+        ruby -rjson -e '
+          manifest = JSON.parse(File.read("/tmp/ddtrace-installed-bundle-manifest.json"))
+          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
+            output.puts("cache-key=#{manifest.fetch("cache_key")}")
+          end
+        '
+    - id: lookup
+      name: Find installed bundle
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.cache-key }}
+        path: /usr/local/bundle
+        lookup-only: true
+    - id: base-bundle
+      name: Prepare lean base bundle
+      if: steps.lookup.outputs.cache-hit != 'true'
+      uses: ./.github/actions/bundle-cache
+      env:
+        BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
+    - name: Verify base bundle identity
+      if: steps.lookup.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        ACTUAL_KEY: ${{ steps.base-bundle.outputs.cache-key }}
+        EXPECTED_KEY: ${{ steps.base-key.outputs.cache-key }}
+      run: |
+        if [ "$ACTUAL_KEY" != "$EXPECTED_KEY" ]; then
+          echo "::error::Base bundle key changed: expected $EXPECTED_KEY, got $ACTUAL_KEY." >&2
+          exit 1
+        fi
+    - id: population-start
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - name: Install appraisal bundles
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb install-appraisals \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX" \
+          --jobs 8
+    - name: Verify complete matrix bundle
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        ruby tasks/installed_bundle_cache_cli.rb check \
+          --base-gemfile "$BASE_GEMFILE" \
+          --matrix "$MATRIX"
+    - id: population-duration
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.population-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: statistics
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      name: Measure installed bundle
+      shell: bash
+      run: |
+        file_count=$(find /usr/local/bundle -type f | wc -l | tr -d ' ')
+        byte_count=$(du -sb /usr/local/bundle | cut -f1)
+        { echo "file-count=$file_count"; echo "byte-count=$byte_count"; } >> "$GITHUB_OUTPUT"
+    - id: save-start
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      run: echo "seconds=$(date +%s)" >> "$GITHUB_OUTPUT"
+    - name: Save installed bundle
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.cache-key }}
+        path: /usr/local/bundle
+    - id: save-duration
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        START_SECONDS: ${{ steps.save-start.outputs.seconds }}
+      run: echo "seconds=$(($(date +%s) - START_SECONDS))" >> "$GITHUB_OUTPUT"
+    - id: verify-save
+      name: Verify installed bundle saved
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.manifest.outputs.cache-key }}
+        path: /usr/local/bundle
+        lookup-only: true
+    - id: result
+      shell: bash
+      env:
+        EXACT_HIT: ${{ steps.lookup.outputs.cache-hit }}
+        SAVED_HIT: ${{ steps.verify-save.outputs.cache-hit }}
+        WRITE_ENABLED: ${{ inputs.write-enabled }}
+      run: |
+        if [ "$EXACT_HIT" = "true" ]; then
+          status=exact
+          ready=true
+        elif [ "$WRITE_ENABLED" = "true" ] && [ "$SAVED_HIT" = "true" ]; then
+          status=generated
+          ready=true
+        else
+          status=miss
+          ready=false
+        fi
+        { echo "status=$status"; echo "ready=$ready"; } >> "$GITHUB_OUTPUT"
