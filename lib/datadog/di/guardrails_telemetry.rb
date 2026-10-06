@@ -40,7 +40,7 @@ module Datadog
       def self.skipped(telemetry, reason:, probe_type:)
         telemetry&.inc(
           DI::TELEMETRY_NAMESPACE, "guardrails.events.skipped", 1,
-          tags: {reason: reason, probe_type: probe_type},
+          tags: skipped_tags(reason, probe_type),
         )
       end
 
@@ -58,6 +58,20 @@ module Datadog
           DI::TELEMETRY_NAMESPACE, "guardrails.queue.dropped_bytes", bytes,
           tags: {reason: reason, event_type: event_type},
         )
+      end
+
+      class << self
+        private
+
+        # One frozen tag hash per (reason, probe_type) pair, built on first
+        # use, so a rate-limit-rejected probe firing allocates no tag hash.
+        # The memo is unlocked: steady state performs no writes, and a racy
+        # first write can only discard a duplicate frozen hash.
+        def skipped_tags(reason, probe_type)
+          reason_tags = @skipped_tags ||= {}
+          probe_type_tags = reason_tags[reason] ||= {}
+          probe_type_tags[probe_type] ||= {reason: reason, probe_type: probe_type}.freeze
+        end
       end
     end
   end

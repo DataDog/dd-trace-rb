@@ -11,6 +11,8 @@ module Datadog
 
       EVENT_TYPE_DIAGNOSTIC: String
 
+      self.@skipped_tags: Hash[String, Hash[String, Hash[Symbol, String]]]
+
       def self?.probe_type_tag: (Probe probe) -> String
 
       def self?.event_type_tag: (Symbol event_type) -> String
@@ -18,6 +20,10 @@ module Datadog
       def self?.skipped: (Core::Telemetry::Component? telemetry, reason: String, probe_type: String) -> void
 
       def self?.dropped: (Core::Telemetry::Component? telemetry, reason: String, event_type: String, ?bytes: Integer?) -> void
+
+      private
+
+      def self.skipped_tags: (String reason, String probe_type) -> Hash[Symbol, String]
     end
   end
 end

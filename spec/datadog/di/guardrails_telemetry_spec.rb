@@ -57,6 +57,22 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
       described_class.skipped(telemetry, reason: described_class::Reason::RATE_LIMIT_PROBE,
         probe_type: "snapshot")
     end
+
+    it "reuses a single frozen tag hash for a reason and probe_type pair" do
+      emitted_tags = []
+      allow(telemetry).to receive(:inc) do |_namespace, _name, _value, tags:|
+        emitted_tags << tags
+      end
+
+      2.times do
+        described_class.skipped(telemetry, reason: described_class::Reason::RATE_LIMIT_PROBE,
+          probe_type: "snapshot")
+      end
+
+      expect(emitted_tags.length).to eq(2)
+      expect(emitted_tags.first).to equal(emitted_tags.last)
+      expect(emitted_tags.first).to be_frozen
+    end
   end
 
   describe ".dropped" do
