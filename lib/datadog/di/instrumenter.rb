@@ -79,11 +79,12 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil, guardrails_telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
@@ -95,6 +96,7 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :guardrails_telemetry
       attr_reader :code_tracker
 
       # The code tracker is a global singleton created lazily by
@@ -138,8 +140,8 @@ module Datadog
             "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
             " (#{reason})"
         end
-        GuardrailsTelemetry.skipped(
-          telemetry, reason: reason,
+        guardrails_telemetry&.skipped(
+          reason: reason,
           probe_type: GuardrailsTelemetry.probe_type_tag(probe),
         )
       rescue Exception => exc # standard:disable Lint/RescueException

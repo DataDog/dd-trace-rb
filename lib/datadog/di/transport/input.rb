@@ -27,10 +27,12 @@ module Datadog
 
         class Transport < Core::Transport::Transport
           attr_reader :telemetry
+          attr_reader :guardrails_telemetry
 
-          def initialize(apis, default_api, logger:, telemetry: nil)
+          def initialize(apis, default_api, logger:, telemetry: nil, guardrails_telemetry: nil)
             super(apis, default_api, logger: logger)
             @telemetry = telemetry
+            @guardrails_telemetry = guardrails_telemetry
           end
 
           # The limit on an individual snapshot payload, aka "log line",
@@ -79,8 +81,8 @@ module Datadog
                   "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
                 begin
-                  GuardrailsTelemetry.dropped(
-                    telemetry, reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                  guardrails_telemetry&.dropped(
+                    reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
                     event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
                   )
                 rescue Exception => exc # standard:disable Lint/RescueException

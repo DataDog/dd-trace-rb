@@ -1,6 +1,6 @@
 module Datadog
   module DI
-    module GuardrailsTelemetry
+    class GuardrailsTelemetry
       PROBE_TYPE_SNAPSHOT: String
 
       PROBE_TYPE_LOG: String
@@ -11,19 +11,25 @@ module Datadog
 
       EVENT_TYPE_DIAGNOSTIC: String
 
-      self.@skipped_tags: Hash[String, Hash[String, Hash[Symbol, String]]]
+      @telemetry: Core::Telemetry::Component?
 
-      def self?.probe_type_tag: (Probe probe) -> String
+      @skipped_tags: Hash[String, Hash[String, Hash[Symbol, String]]]
 
-      def self?.event_type_tag: (Symbol event_type) -> String
+      def initialize: (telemetry: Core::Telemetry::Component?) -> void
 
-      def self?.skipped: (Core::Telemetry::Component? telemetry, reason: String, probe_type: String) -> void
+      attr_reader telemetry: Core::Telemetry::Component?
 
-      def self?.dropped: (Core::Telemetry::Component? telemetry, reason: String, event_type: String, ?bytes: Integer?) -> void
+      def self.probe_type_tag: (Probe probe) -> String
+
+      def self.event_type_tag: (Symbol event_type) -> String
+
+      def skipped: (reason: String, probe_type: String) -> void
+
+      def dropped: (reason: String, event_type: String, ?bytes: Integer?) -> void
 
       private
 
-      def self.skipped_tags: (String reason, String probe_type) -> Hash[Symbol, String]
+      def skipped_tags: (String reason, String probe_type) -> Hash[Symbol, String]
     end
   end
 end

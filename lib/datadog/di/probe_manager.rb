@@ -20,13 +20,14 @@ module Datadog
     # @api private
     class ProbeManager
       def initialize(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, probe_repository, telemetry: nil)
+        probe_notifier_worker, logger, probe_repository, telemetry: nil, guardrails_telemetry: nil)
         @settings = settings
         @instrumenter = instrumenter
         @probe_notification_builder = probe_notification_builder
         @probe_notifier_worker = probe_notifier_worker
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
         @probe_repository = probe_repository
 
         @definition_trace_point = TracePoint.new(:end) do |tp|
@@ -41,6 +42,7 @@ module Datadog
 
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :guardrails_telemetry
       attr_reader :probe_repository
 
       # Stops the probe manager without permanently releasing resources.
@@ -330,8 +332,8 @@ module Datadog
               "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \
                 " (#{GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL})"
             end
-            GuardrailsTelemetry.skipped(
-              telemetry, reason: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+            guardrails_telemetry&.skipped(
+              reason: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
               probe_type: GuardrailsTelemetry.probe_type_tag(probe),
             )
           end
@@ -341,8 +343,8 @@ module Datadog
               " notification due to per-probe rate limit" \
               " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
           end
-          GuardrailsTelemetry.skipped(
-            telemetry, reason: GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED,
+          guardrails_telemetry&.skipped(
+            reason: GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED,
             probe_type: GuardrailsTelemetry.probe_type_tag(probe),
           )
         end

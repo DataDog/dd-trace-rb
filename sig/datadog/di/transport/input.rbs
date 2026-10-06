@@ -13,17 +13,22 @@ module Datadog
         class Transport < Core::Transport::Transport
           @telemetry: Datadog::Core::Telemetry::Component?
 
+          @guardrails_telemetry: DI::GuardrailsTelemetry?
+
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
 
           attr_reader telemetry: Datadog::Core::Telemetry::Component?
 
+          attr_reader guardrails_telemetry: DI::GuardrailsTelemetry?
+
           def initialize: (
             Datadog::Core::Transport::HTTP::API::Map apis,
             ::String default_api,
             logger: Datadog::Core::Logger,
-            ?telemetry: Datadog::Core::Telemetry::Component?
+            ?telemetry: Datadog::Core::Telemetry::Component?,
+            ?guardrails_telemetry: DI::GuardrailsTelemetry?
           ) -> void
 
           def send_input: (Array[Hash[Symbol, untyped]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, untyped]]

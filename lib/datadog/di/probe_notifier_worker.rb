@@ -30,9 +30,10 @@ module Datadog
       # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
       #   creating status notifications. Used for reporting ERROR status.
       def initialize(settings, logger, agent_settings:,
-        probe_repository:, probe_notification_builder:, telemetry: nil)
+        probe_repository:, probe_notification_builder:, telemetry: nil, guardrails_telemetry: nil)
         @settings = settings
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
         @status_queue = []
         @snapshot_queue = []
         @agent_settings = agent_settings
@@ -52,6 +53,7 @@ module Datadog
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :guardrails_telemetry
       attr_reader :agent_settings
       attr_reader :probe_repository
       attr_reader :probe_notification_builder
@@ -198,7 +200,8 @@ module Datadog
       end
 
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry)
       end
 
       # Sends a batch of snapshot payloads to the agent.
@@ -290,8 +293,8 @@ module Datadog
                       " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 end
-                GuardrailsTelemetry.dropped(
-                  telemetry, reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
+                guardrails_telemetry&.dropped(
+                  reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
                   event_type: GuardrailsTelemetry.event_type_tag(event_type),
                 )
               else

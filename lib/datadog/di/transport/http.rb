@@ -53,7 +53,8 @@ module Datadog
           agent_settings:,
           logger:,
           headers: nil,
-          telemetry: nil
+          telemetry: nil,
+          guardrails_telemetry: nil
         )
           builder = Core::Transport::HTTP.build(
             logger: logger,
@@ -72,7 +73,8 @@ module Datadog
             builder.to_api_instances,
             builder.default_api,
             logger: logger,
-            telemetry: telemetry
+            telemetry: telemetry,
+            guardrails_telemetry: guardrails_telemetry,
           )
         end
       end

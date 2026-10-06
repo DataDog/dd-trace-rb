@@ -6,8 +6,13 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:telemetry) { nil }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
+  end
+
   let(:transport) do
-    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
+    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry,
+      guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }

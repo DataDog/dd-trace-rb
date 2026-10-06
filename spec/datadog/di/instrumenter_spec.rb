@@ -2125,8 +2125,13 @@ RSpec.describe Datadog::DI::Instrumenter do
   describe "global rate limiting" do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
+    end
+
     let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+        guardrails_telemetry: guardrails_telemetry)
     end
 
     describe "constants and limiters" do

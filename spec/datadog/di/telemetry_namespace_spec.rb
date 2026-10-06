@@ -28,8 +28,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
       nil
     end
 
-    Datadog::DI::GuardrailsTelemetry.skipped(
-      telemetry,
+    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry).skipped(
       reason: Datadog::DI::GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
       probe_type: "snapshot",
     )

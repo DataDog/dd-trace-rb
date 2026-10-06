@@ -484,9 +484,14 @@ RSpec.describe Datadog::DI::ProbeManager do
       instance_double(Datadog::Core::Telemetry::Component)
     end
 
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
+    end
+
     let(:manager) do
       described_class.new(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, probe_repository, telemetry: telemetry)
+        probe_notifier_worker, logger, probe_repository, telemetry: telemetry,
+        guardrails_telemetry: guardrails_telemetry,)
     end
 
     let(:exc) { StandardError.new("boom") }

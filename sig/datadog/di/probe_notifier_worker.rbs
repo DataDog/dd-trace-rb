@@ -26,17 +26,21 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
+      @guardrails_telemetry: GuardrailsTelemetry?
+
       @probe_repository: ProbeRepository
 
       @probe_notification_builder: ProbeNotificationBuilder
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?, ?guardrails_telemetry: GuardrailsTelemetry?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader guardrails_telemetry: GuardrailsTelemetry?
 
       attr_reader probe_repository: ProbeRepository
 

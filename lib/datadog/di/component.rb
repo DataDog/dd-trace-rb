@@ -71,10 +71,12 @@ module Datadog
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = GuardrailsTelemetry.new(telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
@@ -83,10 +85,12 @@ module Datadog
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
         )
         # @started transitions are serialized by @lifecycle_mutex so that
         # concurrent RC callbacks (which run on the remote-config thread)
@@ -99,6 +103,7 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :guardrails_telemetry
       attr_reader :code_tracker
       attr_reader :instrumenter
       attr_reader :probe_repository
