@@ -3,6 +3,8 @@ require "spec_helper"
 if Gem.loaded_specs.key?("bundler-audit")
   require_relative "../../tasks/dependency_auditing"
   require "tmpdir"
+  require "fileutils"
+  require "open3"
 
   RSpec.describe DependencyAuditing do
     let(:fixtures) { "spec/fixtures/bundler_audit" }
@@ -106,6 +108,44 @@ if Gem.loaded_specs.key?("bundler-audit")
           )
         end
       end
+    end
+  end
+
+  # The task aborts the whole process when the gate fires, so it runs in a
+  # subprocess with its own Rakefile rooted at a throwaway tree.
+  RSpec.describe "the dependency:audit task" do
+    let(:tree_dir) { Dir.mktmpdir }
+
+    after { FileUtils.remove_entry(tree_dir) }
+
+    context "when a lockfile in gemfiles/ has no corresponding Gemfile" do
+      it "aborts naming the orphaned lockfiles before refreshing the advisory database" do
+        FileUtils.mkdir_p(File.join(tree_dir, "gemfiles"))
+        orphaned_lockfile = "gemfiles/ruby-3.1_contrib.gemfile.lock"
+        File.write(File.join(tree_dir, orphaned_lockfile), "")
+        File.write(File.join(tree_dir, "Rakefile"), "load #{dependency_audit_rakefile.inspect}\n")
+
+        out, status = run_dependency_audit_task
+
+        expect(out).to include(
+          "Dependency audit failed: lockfiles with no corresponding Gemfile: #{orphaned_lockfile}. " \
+          "Delete each orphaned lockfile; rake dependency:orphans reports the same orphans."
+        )
+        expect(out).not_to include("Updating advisory database")
+        expect(status.exitstatus).to eq(1)
+      end
+    end
+
+    def run_dependency_audit_task
+      Open3.capture2e(
+        {"BUNDLE_GEMFILE" => File.expand_path(Bundler.default_gemfile)},
+        "bundle", "exec", "rake", "dependency:audit",
+        chdir: tree_dir,
+      )
+    end
+
+    def dependency_audit_rakefile
+      File.expand_path("../../tasks/dependency_audit.rake", __dir__)
     end
   end
 end
