@@ -434,5 +434,177 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
     end
+
+    context "metric probes" do
+      let(:base_metric_spec) do
+        {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
+         "version" => 0,
+         "type" => "METRIC_PROBE",
+         "kind" => "COUNT",
+         "metricName" => "smoke.metric",
+         "where" => {"typeName" => "Foo", "methodName" => "bar"},
+         "evaluateAt" => "EXIT"}
+      end
+
+      ["COUNT", "GAUGE", "HISTOGRAM", "DISTRIBUTION"].each do |kind_string|
+        context "kind #{kind_string}" do
+          let(:rc_probe_spec) { base_metric_spec.merge("kind" => kind_string) }
+
+          it "creates a metric probe carrying the kind" do
+            expect(probe.type).to be :metric
+            expect(probe.metric_kind).to eq(kind_string.downcase.to_sym)
+            expect(probe.metric_name).to eq "smoke.metric"
+            expect(probe.metric_value).to be nil
+            expect(probe.tags).to eq []
+          end
+        end
+      end
+
+      context "line where" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("where" => {"sourceFile" => "foo.rb", "lines" => [17]})
+        end
+
+        it "creates a line metric probe" do
+          expect(probe.line?).to be true
+          expect(probe.file).to eq "foo.rb"
+          expect(probe.line_no).to eq 17
+        end
+      end
+
+      context "with a value expression" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("value" => {"dsl" => "@return", "json" => {"ref" => "@return"}})
+        end
+
+        it "compiles the value into an expression" do
+          expect(probe.metric_value).to be_a(Datadog::DI::EL::Expression)
+          expect(probe.metric_value.dsl_expr).to eq "@return"
+        end
+      end
+
+      context "with a condition" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("when" => {"dsl" => "id", "json" => {"ref" => "id"}})
+        end
+
+        it "compiles the condition" do
+          expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
+        end
+      end
+
+      context "with tags" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("tags" => ["env:prod", "team:core"])
+        end
+
+        it "passes the tags through verbatim" do
+          expect(probe.tags).to eq ["env:prod", "team:core"]
+        end
+      end
+
+      context "with a malformed value specification" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("value" => {"dsl" => "@return"})
+        end
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Malformed value specification/)
+        end
+      end
+
+      context "with an unknown kind" do
+        let(:rc_probe_spec) { base_metric_spec.merge("kind" => "PERCENTILE") }
+
+        it "raises ArgumentError naming the kind" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Unknown or missing metric kind: "PERCENTILE"/)
+        end
+      end
+
+      context "without a kind" do
+        let(:rc_probe_spec) { base_metric_spec.tap { |spec| spec.delete("kind") } }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Unknown or missing metric kind: nil/)
+        end
+      end
+
+      context "without a metric name" do
+        let(:rc_probe_spec) { base_metric_spec.tap { |spec| spec.delete("metricName") } }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Metric probe must have a non-empty metricName/)
+        end
+      end
+
+      context "with an empty metric name" do
+        let(:rc_probe_spec) { base_metric_spec.merge("metricName" => "") }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Metric probe must have a non-empty metricName/)
+        end
+      end
+
+      context "with tags that are not an array" do
+        let(:rc_probe_spec) { base_metric_spec.merge("tags" => "env:prod") }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /tags must be an array, got: String/)
+        end
+      end
+
+      context "with a non-string tag" do
+        let(:rc_probe_spec) { base_metric_spec.merge("tags" => ["env:prod", 42]) }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Metric probe tags must be an array of strings/)
+        end
+      end
+
+      context "with snapshot capture enabled" do
+        let(:rc_probe_spec) { base_metric_spec.merge("captureSnapshot" => true) }
+
+        it "raises ArgumentError" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, /Metric probe must not specify log probe capture or template fields/)
+        end
+      end
+
+      context "evaluateAt" do
+        ["ENTRY", "EXIT", "DEFAULT"].each do |evaluate_at_string|
+          context evaluate_at_string do
+            let(:rc_probe_spec) { base_metric_spec.merge("evaluateAt" => evaluate_at_string) }
+
+            it "maps like log probes do" do
+              expected = (evaluate_at_string == "ENTRY") ? :entry : :exit
+              expect(probe.evaluate_at).to eq(expected)
+            end
+          end
+        end
+
+        context "absent" do
+          let(:rc_probe_spec) { base_metric_spec.tap { |spec| spec.delete("evaluateAt") } }
+
+          it "defaults to :exit" do
+            expect(probe.evaluate_at).to eq(:exit)
+          end
+        end
+      end
+    end
   end
 end
