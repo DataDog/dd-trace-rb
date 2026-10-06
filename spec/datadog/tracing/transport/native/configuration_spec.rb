@@ -54,8 +54,10 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
-    context "when native_transport is not explicitly configured" do
+    context "outside the rollout version without an explicit setting" do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      before { stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.5")) }
 
       around do |example|
         ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
