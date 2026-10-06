@@ -134,22 +134,13 @@ runs:
       with:
         key: ${{ steps.manifest.outputs.cache-key }}
         path: /usr/local/bundle
-    - id: verify-save
-      name: Verify installed bundle saved
-      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        key: ${{ steps.manifest.outputs.cache-key }}
-        path: /usr/local/bundle
-        lookup-only: true
     - id: result
       shell: bash
       env:
         EXACT_HIT: ${{ steps.lookup.outputs.cache-hit }}
-        SAVED_HIT: ${{ steps.verify-save.outputs.cache-hit }}
         WRITE_ENABLED: ${{ inputs.write-enabled }}
       run: |
-        if [ "$EXACT_HIT" = "true" ] || { [ "$WRITE_ENABLED" = "true" ] && [ "$SAVED_HIT" = "true" ]; }; then
+        if [ "$EXACT_HIT" = "true" ] || [ "$WRITE_ENABLED" = "true" ]; then
           ready=true
         else
           ready=false

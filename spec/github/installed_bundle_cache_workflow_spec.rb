@@ -55,7 +55,6 @@ RSpec.describe "installed bundle cache workflow" do
     expect(names.index("Prepare lean base bundle")).to be < names.index("Verify base bundle identity")
     expect(names.index("Verify base bundle identity")).to be < names.index("Install appraisal bundles")
     expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
-    expect(names.index("Save installed bundle")).to be < names.index("Verify installed bundle saved")
   end
 
   it "includes the exact base cache key in the union manifest" do
@@ -70,16 +69,13 @@ RSpec.describe "installed bundle cache workflow" do
   it "reports whether the exact cache is ready" do
     result = steps.find { |step| step["id"] == "result" }.fetch("run")
 
-    expect(run_output(result, "EXACT_HIT" => "true", "SAVED_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
+    expect(run_output(result, "EXACT_HIT" => "true", "WRITE_ENABLED" => "false")).to include(
       "ready" => "true",
     )
-    expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "true", "WRITE_ENABLED" => "true")).to include(
+    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "true")).to include(
       "ready" => "true",
     )
-    expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
-      "ready" => "false",
-    )
-    expect(run_output(result, "EXACT_HIT" => "false", "SAVED_HIT" => "false", "WRITE_ENABLED" => "true")).to include(
+    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
       "ready" => "false",
     )
   end
@@ -100,29 +96,27 @@ RSpec.describe "installed bundle cache workflow" do
     expect(base.fetch("if")).to eq("steps.lookup.outputs.cache-hit != 'true'")
   end
 
-  it "skips base preparation, population, validation, statistics, and save on an exact hit" do
+  it "skips base preparation, population, validation, and save on an exact hit" do
     miss_only_steps = steps.select do |step|
       step["id"] == "base-bundle" ||
         step["name"] == "Verify base bundle identity" ||
-        %w[population-start population-duration statistics save-start save-duration verify-save].include?(step["id"]) ||
         step["name"] == "Install appraisal bundles" ||
         step["name"] == "Verify complete matrix bundle" ||
         step["name"] == "Save installed bundle"
     end
 
-    expect(miss_only_steps.length).to eq(11)
+    expect(miss_only_steps.length).to eq(5)
     expect(miss_only_steps).to all(include("if" => include("steps.lookup.outputs.cache-hit != 'true'")))
   end
 
-  it "skips population, validation, statistics, and save on a read-only miss" do
+  it "skips population, validation, and save on a read-only miss" do
     writable_steps = steps.select do |step|
-      %w[population-start population-duration statistics save-start save-duration verify-save].include?(step["id"]) ||
-        step["name"] == "Install appraisal bundles" ||
+      step["name"] == "Install appraisal bundles" ||
         step["name"] == "Verify complete matrix bundle" ||
         step["name"] == "Save installed bundle"
     end
 
-    expect(writable_steps.length).to eq(9)
+    expect(writable_steps.length).to eq(3)
     expect(writable_steps).to all(include("if" => include("inputs.write-enabled == 'true'")))
   end
 
@@ -212,20 +206,15 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "uses the same complete installed path for lookup, save verification, and restore" do
+  it "uses the same complete installed path for lookup, save, and restore" do
     lookup = steps.find { |step| step["id"] == "lookup" }
     save = steps.find { |step| step["name"] == "Save installed bundle" }
-    verify_save = steps.find { |step| step["name"] == "Verify installed bundle saved" }
     restore = restore_action.fetch("runs").fetch("steps").find do |step|
       step["name"] == "Restore installed bundle"
     end
 
     expect(lookup.fetch("with").fetch("path")).to eq("/usr/local/bundle")
     expect(save.fetch("with").fetch("path")).to eq("/usr/local/bundle")
-    expect(verify_save.fetch("with")).to include(
-      "lookup-only" => true,
-      "path" => "/usr/local/bundle",
-    )
     expect(restore.fetch("with")).to include(
       "path" => "/usr/local/bundle",
       "fail-on-cache-miss" => true,
