@@ -132,10 +132,6 @@ module Datadog
       # Boundaries the telemetry emission so a raising telemetry component
       # stays contained on the method-probe path, matching the line-probe
       # callback's method-level rescue.
-      #
-      # @param probe [Probe] the probe being skipped
-      # @param reason [String] a GuardrailsTelemetry::Reason constant
-      # @return [void]
       def record_rate_limit_skip(probe, reason)
         logger.trace do
           "di: #{probe.type} probe #{probe.id}: skipping due to " \
