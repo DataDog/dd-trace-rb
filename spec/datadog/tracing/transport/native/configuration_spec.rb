@@ -42,7 +42,7 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
-    context "when native_transport is false (default)" do
+    context "when native_transport is false" do
       let(:native_transport_enabled) { false }
 
       it "builds a writer with the default HTTP transport" do
@@ -51,6 +51,18 @@ RSpec.describe "Native transport configuration" do
         # The transport should NOT be our native one
         transport = writer.instance_variable_get(:@transport)
         expect(transport).not_to be_a(Datadog::Tracing::Transport::Native::Transport)
+      end
+    end
+
+    context "when native_transport is not explicitly configured" do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      around do |example|
+        ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
+      end
+
+      it "builds a writer with the Ruby HTTP transport by default" do
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Traces::Transport)
       end
     end
 

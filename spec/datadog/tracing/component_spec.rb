@@ -23,6 +23,7 @@ RSpec.describe Datadog::Tracing::Component do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:native_transport) { double("native transport") }
+    let(:default_writer_options) { settings.tracing.native_transport ? {transport: native_transport} : {} }
 
     before do
       allow(described_class).to receive(:build_native_transport)
@@ -99,7 +100,7 @@ RSpec.describe Datadog::Tracing::Component do
             .and_return(tracer)
 
           allow(Datadog::Tracing::Writer).to receive(:new)
-            .with(agent_settings: agent_settings, **writer_options.merge(transport: native_transport))
+            .with(agent_settings: agent_settings, **default_writer_options.merge(writer_options))
             .and_return(writer)
         end
 
@@ -388,7 +389,7 @@ RSpec.describe Datadog::Tracing::Component do
 
                   expect(Datadog::Tracing::Writer)
                     .to receive(:new)
-                    .with(agent_settings: agent_settings, **writer_options_test_mode.merge(transport: native_transport))
+                    .with(agent_settings: agent_settings, **default_writer_options.merge(writer_options_test_mode))
                     .and_return(writer)
                 end
 
