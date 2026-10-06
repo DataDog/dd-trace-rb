@@ -74,7 +74,7 @@ module Datadog
             encoded_snapshots = []
             payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
-              if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
+              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
                 logger.debug do
                   "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end

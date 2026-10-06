@@ -185,6 +185,30 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect_lazy_log(logger, :debug, "di: dropping too big snapshot (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
+
+      context "when a snapshot is within the character limit but over the byte limit" do
+        let(:snapshots) { [multibyte_snapshot] }
+
+        # One thousand three-byte UTF-8 characters: the encoded JSON is
+        # well under the 2 000-character stubbed limit but over it in bytes.
+        let(:multibyte_snapshot) do
+          {"capture" => ("\u20ac" * 1_000)}
+        end
+
+        before do
+          encoded = JSON.dump(multibyte_snapshot)
+          expect(encoded.length).to be < Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
+          expect(encoded.bytesize).to be > Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
+        end
+
+        it "drops the snapshot measured in bytes" do
+          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(transport).not_to receive(:send_input_chunk)
+
+          transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
+        end
+      end
     end
   end
 
