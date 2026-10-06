@@ -88,6 +88,8 @@ module Datadog
 
       def build_trace_point_context: (Probe probe, TracePoint tp) -> Context
 
+      def report_condition_evaluation_timeout: (Probe probe, Exception exc) -> void
+
       def check_and_disable_if_exceeded: (Probe probe, untyped responder, Float di_start_time, ?Float accumulated_duration) -> void
 
       def symbolize_class_name: (String? cls_name) -> Module

@@ -406,7 +406,8 @@ module Datadog
       # template evaluation (the +deadline+ default) and shared across all
       # segments. A timeout raised by the between-segment check below or by
       # the in-segment collection operators surfaces as an evaluationErrors
-      # entry, rendered as "[evaluation error]".
+      # entry, rendered as "[evaluation error]", and is counted in the
+      # evaluation_timeouts telemetry counter.
       #
       # @param template_segments [Array<String, EL::Expression>] compiled
       #   template segments to render.
@@ -419,7 +420,7 @@ module Datadog
         evaluation_errors = []
         message = template_segments.map do |segment|
           if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(deadline)
-            raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
+            raise DI::Error::EvaluationTimeout, EL::Evaluator::EVALUATION_TIMEOUT_MESSAGE
           end
           case segment
           when String
@@ -431,6 +432,10 @@ module Datadog
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
+          if exc.is_a?(DI::Error::EvaluationTimeout)
+            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+            logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc}" }
+          end
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr, # steep:ignore NoMethod

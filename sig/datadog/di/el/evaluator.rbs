@@ -6,6 +6,8 @@ module Datadog
 
         EVALUATION_DEADLINE_CHECK_INTERVAL: ::Integer
 
+        EVALUATION_TIMEOUT_MESSAGE: String
+
         @context: Context
 
         @deadline: Float?
@@ -59,6 +61,8 @@ module Datadog
         def filter: (Array[any] | Hash[any, any] collection) { (?) -> any } -> (Array[any] | Hash[any, any])
 
         private def evaluation_deadline_exceeded?: () -> bool
+
+        private def raise_if_evaluation_deadline_exceeded: (Integer item_index) -> void
 
         def instanceof: (any object, String cls_name) -> bool
       end

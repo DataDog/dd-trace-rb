@@ -534,8 +534,7 @@ module Datadog
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
               if exc.is_a?(DI::Error::EvaluationTimeout)
-                telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-                logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
+                report_condition_evaluation_timeout(probe, exc)
               end
 
               if context
@@ -819,8 +818,7 @@ module Datadog
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
             if exc.is_a?(DI::Error::EvaluationTimeout)
-              telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-              logger.debug { "di: probe #{probe.id}: condition evaluation timed out" }
+              report_condition_evaluation_timeout(probe, exc)
             end
 
             if context
@@ -875,6 +873,18 @@ module Datadog
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+      end
+
+      # Reports a condition evaluation timeout for +probe+: increments the
+      # evaluation_timeouts telemetry counter and logs the timeout at debug
+      # with the probe id and the exception.
+      #
+      # @param probe [Probe] the probe whose condition evaluation timed out.
+      # @param exc [Exception] the timeout exception that was raised.
+      # @return [void]
+      def report_condition_evaluation_timeout(probe, exc)
+        telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+        logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc}" }
       end
 
       def build_trace_point_context(probe, tp)
