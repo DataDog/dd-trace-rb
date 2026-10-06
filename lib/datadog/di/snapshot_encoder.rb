@@ -4,82 +4,115 @@ require "json"
 
 module Datadog
   module DI
-    # Encodes a snapshot Hash to JSON in a single pass, pruning captured
-    # values that do not fit a per-event byte cap instead of dropping
-    # the whole snapshot. Implements RFC C6 (per-event payload size cap
-    # + pruning).
+    # Encodes a snapshot Hash to a JSON string bounded by a per-event byte
+    # cap, pruning captured values that do not fit.
     #
     # The encoder walks the snapshot Hash once and emits JSON inline. The
-    # structural envelope (service, debugger.snapshot probe/stack,
-    # evaluationErrors, and the captures container) is emitted as-is; if
-    # the envelope alone exceeds the cap the snapshot cannot fit and
-    # +encode+ returns nil. The direct children of every +locals+,
-    # +arguments+, and +throwable+ node under +captures+ are prunable
-    # captured-value slots: a slot whose constant-time upper bound V
-    # exceeds the remaining byte budget is replaced in place with
-    # +{"pruned":true}+ and is not walked or encoded (project encoding
-    # constraints A to D in requirements.md).
+    # structural envelope (+service+, +debugger.snapshot.probe/stack+, and
+    # the +captures+ container) is emitted as-is; when the envelope alone
+    # exceeds the cap, +encode+ returns nil and the caller drops the
+    # snapshot. The direct children of every +locals+, +arguments+, and
+    # +throwable+ Hash are captured-value slots: a slot that does not fit
+    # the remaining byte budget is replaced in place with the
+    # +{"pruned":true}+ marker, preserving its variable name as the JSON
+    # key.
     #
-    # +Serializer#serialize_value+ stores Integer and Float values as
-    # +value: value.to_s+ with no truncation, so a captured value's
-    # encoded size is unbounded. The encoder's per-slot V is computed
-    # from +value.bytesize+ (O(1) in Ruby; * 6 bounds JSON \uXXXX
-    # escape expansion), so an oversized integer or float leaf is pruned
-    # to the marker without being encoded (constraint A: zero encodes of
-    # the oversized value). Every retained leaf is thereby at most
-    # MAX_ITEM_BYTES, so a collection's V = 2 + count * (MAX_ITEM_BYTES + 1)
-    # is at least the collection's actual encoded size (constraint D).
-    # This is C6 pruning in the encode walk, not a C5 serializer change.
+    # Two invariants hold during the walk. Each captured collection is
+    # gated before being walked: a constant-time bound on its encoded
+    # size, computed from the member count and the per-member cap
+    # MAX_ITEM_BYTES, must fit the remaining budget, and a collection
+    # failing the gate is pruned without being walked; a scalar slot whose
+    # minimum possible encoded size exceeds the budget is pruned without
+    # being encoded. And each captured value is encoded to JSON at most
+    # once: a slot whose encoding turns out to exceed the budget midway
+    # is pruned together with its partial emission, and the values it
+    # already encoded are not encoded again.
+    #
+    # Collection member names, stack frames, and the output shapes of
+    # custom serializers have no constant-time size bound, so the gate
+    # counts them up to a fixed allowance (SLOT_OVERHEAD); when such
+    # content exceeds the budget midway, the walk aborts at the budget
+    # boundary and the whole slot is pruned. The returned string is
+    # therefore always valid JSON of at most the requested size.
     #
     # @api private
     module SnapshotEncoder
-      # Per-leaf byte cap applied to every retained captured value inside
-      # a collection, so a collection's lower bound
-      # V = 2 + count * (MAX_ITEM_BYTES + 1) is at least its actual
-      # encoded size (constraint D). Chosen at least as large as the
-      # largest encoded scalar the serializer can produce under its
-      # structural capture limits (a 255-char string escapes to ~1530
-      # bytes), so legitimate max-length string slots are kept.
+      # Byte cap applied to every member of a retained captured collection
+      # (+elements+, +entries+, +fields+), so the collection's pre-walk
+      # bound computed from the member count and this constant is never
+      # lower than the collection's actual encoded size. A serializer
+      # captured string is at most max_capture_string_length characters
+      # (255 by default), which is at most four bytes per character in
+      # UTF-8 and at most four characters per byte in the binary escape
+      # form, so a length-bounded scalar slot always passes this cap.
       MAX_ITEM_BYTES = 2048
 
-      # Fixed overhead allowance for a scalar slot's framing (the
-      # +{"type":"...","value":...}+ keys, braces, colons, and small
-      # auxiliary fields such as +truncated+ or +size+). An upper bound;
-      # the actual framing is smaller.
+      # Byte allowance for a captured-value slot's framing: braces,
+      # colons, commas, and the small fixed-size auxiliary fields such as
+      # +truncated+, +size+, and +isNull+. Doubles as the fixed allowance
+      # for a collection member name or a throwable stack frame, whose
+      # encoded size has no constant-time bound.
       SLOT_OVERHEAD = 128
 
-      # Maximum JSON expansion of a single byte via \uXXXX escaping.
+      # Maximum JSON expansion of one byte of a string value, via the
+      # \uXXXX escaping of a control character.
       MAX_ESCAPE_EXPANSION = 6
+
+      # Slot fields that hold a string of unbounded size: the type name,
+      # the serialized value, the throwable message, and the capture
+      # failure reasons.
+      SLOT_STRING_FIELDS = %w[type value message notCapturedReason notSerializedReason].freeze
 
       PRUNED = {"pruned" => true}.freeze
       PRUNED_ENCODED = JSON.dump(PRUNED)
 
-      # Encodes +snapshot+ to JSON in a single pass, pruning captured
-      # values that do not fit +max_size+ bytes. Returns a +Result+
-      # whose +encoded+ is the JSON string (at most +max_size+,
-      # possibly pruned) or +nil+ when the structural envelope alone
-      # exceeds +max_size+, and whose +pruned+ is true iff any
-      # captured-value slot was replaced with the pruned marker.
+      # Encodes +snapshot+ to JSON, pruning captured values that do not
+      # fit +max_size+ bytes.
+      #
+      # @param snapshot [Hash] snapshot payload Hash
+      # @param max_size [Integer] per-event byte cap
+      # @return [Result] +encoded+ is the JSON string, of at most
+      #   +max_size+ bytes, or nil when the structural envelope alone
+      #   exceeds +max_size+. +pruned+ is true when any captured-value
+      #   slot was replaced with the pruned marker.
       def self.encode(snapshot, max_size)
         out = +""
         budget = Budget.new(max_size)
         pruned = false
-        unless encode_value(snapshot, out, budget, prunable: false) { |_, _| pruned = true }
-          return Result.new(nil, false)
-        end
+        on_prune = -> { pruned = true }
+        return Result.new(nil, false) unless encode_value(snapshot, out, budget, &on_prune)
         Result.new(out, pruned)
       end
 
-      Result = Struct.new(:encoded, :pruned) do
-        # +encoded+ is the JSON string, or +nil+ when the envelope
-        # alone exceeds the cap. +pruned+ is true iff any
-        # captured-value slot was replaced with the pruned marker.
-      end
+      # Outcome of one encoding pass: +encoded+ [String, nil] is the JSON
+      # string, or nil when the structural envelope alone exceeds the
+      # cap; +pruned+ [Boolean] is true when any captured-value slot was
+      # replaced with the pruned marker.
+      Result = Struct.new(:encoded, :pruned)
       private_constant :Result
 
-      Budget = Struct.new(:remaining) do
-        def consume(n)
-          self.remaining = remaining - n
+      # Byte budget for one encoding pass.
+      #
+      # @api private
+      class Budget
+        # Number of bytes still available for emission.
+        #
+        # @return [Integer] bytes still available
+        attr_reader :remaining
+
+        # Creates a budget of +remaining+ bytes.
+        #
+        # @param remaining [Integer] bytes available for emission
+        def initialize(remaining)
+          @remaining = remaining
+        end
+
+        # Consumes +bytes+ from the budget.
+        #
+        # @param bytes [Integer] number of bytes to consume
+        # @return [void]
+        def consume(bytes)
+          @remaining = remaining - bytes
         end
       end
       private_constant :Budget
@@ -87,120 +120,243 @@ module Datadog
       class << self
         private
 
-        def encode_value(node, out, budget, prunable:, &on_prune)
-          if prunable
-            encode_slot(node, out, budget, item_cap: nil, &on_prune)
-          elsif node.is_a?(Hash)
+        # Encodes a JSON value: a Hash, an Array, or a scalar.
+        #
+        # @param node [Object] value to encode
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget charged for the emission
+        # @param on_prune [Proc, nil] invoked when a captured-value slot
+        #   is pruned
+        # @return [Boolean] true when the value was emitted
+        def encode_value(node, out, budget, &on_prune)
+          if Hash === node
             encode_envelope_hash(node, out, budget, &on_prune)
-          elsif node.is_a?(Array)
+          elsif Array === node
             encode_envelope_array(node, out, budget, &on_prune)
           else
             encode_scalar(node, out, budget)
           end
         end
 
-        # Encodes a prunable captured-value slot. If the slot's upper
-        # bound V exceeds the byte budget, emits the pruned marker in
-        # its place without walking or encoding the slot (constraints B
-        # and D). +item_cap+ bounds each retained sub-item when set
-        # (collections); +nil+ lets a top-level slot use the whole
-        # remaining budget.
+        # Encodes one captured-value slot. A collection slot whose
+        # constant-time bound exceeds the byte budget is pruned without
+        # being walked; a scalar slot whose minimum possible encoded size
+        # exceeds the byte budget is pruned without being encoded. A slot
+        # whose encoding exceeds the budget midway is pruned together
+        # with its partial emission.
+        #
+        # @param slot [Object] captured-value slot
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget of the enclosing structure
+        # @param item_cap [Integer, nil] byte cap for a slot inside a
+        #   captured collection; nil to gate against the whole remaining
+        #   budget
+        # @param on_prune [Proc, nil] invoked when the slot is pruned
+        # @return [Boolean] true when the slot was emitted, either as its
+        #   content or as the pruned marker
         def encode_slot(slot, out, budget, item_cap:, &on_prune)
           cap = item_cap ? [budget.remaining, item_cap].min : budget.remaining
-          if slot_upper_bound(slot) > cap
-            on_prune&.call(nil, nil)
-            return emit_pruned(out, budget)
+          oversized = if Hash === slot
+            if slot_collection?(slot)
+              slot_upper_bound(slot) > cap
+            else
+              slot_lower_bound(slot) > cap
+            end
+          else
+            String === slot && slot.bytesize + 2 > cap
           end
-          encode_slot_body(slot, out, budget, &on_prune)
+          return emit_pruned(out, budget, &on_prune) if oversized
+          # The slot's content is emitted into a scratch buffer first, so
+          # a slot whose encoding exceeds the budget midway is discarded
+          # whole and the enclosing output never keeps a partial slot.
+          scratch = String.new(encoding: Encoding::UTF_8)
+          slot_budget = Budget.new(cap)
+          emitted = if Hash === slot
+            encode_slot_body(slot, scratch, slot_budget, &on_prune)
+          else
+            encode_value(slot, scratch, slot_budget, &on_prune)
+          end
+          return emit_pruned(out, budget, &on_prune) unless emitted
+          emit_json_fragment(out, budget, scratch)
         end
 
-        # Emits a captured-value slot's fields. Sub-collections
-        # (elements/entries/fields) recurse with each sub-item capped
-        # at MAX_ITEM_BYTES so the enclosing collection's V holds.
+        # Emits the fields of a Hash captured-value slot.
+        #
+        # @param slot [Hash] captured-value slot
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the slot's content
+        # @param on_prune [Proc, nil] invoked when a nested slot is pruned
+        # @return [Boolean] true when the slot was emitted in full
         def encode_slot_body(slot, out, budget, &on_prune)
-          out << "{"
+          return false unless emit_json_fragment(out, budget, "{")
           first = true
           slot.each do |k, val|
-            out << "," unless first
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
             first = false
-            out << JSON.dump(k.to_s)
-            out << ":"
+            return false unless emit_json_fragment(out, budget, JSON.dump(k.to_s))
+            return false unless emit_json_fragment(out, budget, ":")
             case k.to_s
             when "value"
-              encode_scalar(val, out, budget)
+              return false unless encode_scalar(val, out, budget)
             when "elements"
-              encode_slot_array(val, out, budget, &on_prune)
+              return false unless encode_elements(val, out, budget, &on_prune)
             when "entries"
-              encode_slot_entries(val, out, budget, &on_prune)
+              return false unless encode_entries(val, out, budget, &on_prune)
             when "fields"
-              encode_slot_hash(val, out, budget, &on_prune)
+              return false unless encode_fields(val, out, budget, &on_prune)
             else
-              # type, notCapturedReason, notSerializedReason,
-              # isNull, truncated, size, etc.
-              encode_scalar(val, out, budget)
+              # Remaining serializer fields (type, capture failure
+              # reasons, message, stacktrace) and custom serializer
+              # output are envelope data.
+              return false unless encode_value(val, out, budget, &on_prune)
             end
           end
-          out << "}"
-          true
+          emit_json_fragment(out, budget, "}")
         end
 
-        # Encodes a Hash of {name: slot} (a +locals+ or +arguments+
-        # value, or an object +fields+ value): each child value is a
-        # prunable captured-value slot.
-        def encode_slot_hash(hash, out, budget, &on_prune)
-          out << "{"
+        # Encodes an +elements+ field: an Array whose members are
+        # captured-value slots, each capped at MAX_ITEM_BYTES. A value of
+        # another type (custom serializer output) is encoded as a generic
+        # JSON value.
+        #
+        # @param elements [Object] value of the +elements+ field
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the collection
+        # @param on_prune [Proc, nil] invoked when a member is pruned
+        # @return [Boolean] true when the collection was emitted in full
+        def encode_elements(elements, out, budget, &on_prune)
+          return encode_value(elements, out, budget, &on_prune) unless Array === elements
+          return false unless emit_json_fragment(out, budget, "[")
           first = true
-          hash.each do |name, slot|
-            out << "," unless first
-            first = false
-            out << JSON.dump(name.to_s)
-            out << ":"
-            return false unless encode_slot(slot, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
-          end
-          out << "}"
-          true
-        end
-
-        def encode_slot_array(array, out, budget, &on_prune)
-          out << "["
-          first = true
-          array.each do |slot|
-            out << "," unless first
+          elements.each do |slot|
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
             first = false
             return false unless encode_slot(slot, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
           end
-          out << "]"
-          true
+          emit_json_fragment(out, budget, "]")
         end
 
-        def encode_slot_entries(entries, out, budget, &on_prune)
-          out << "["
+        # Encodes an +entries+ field: an Array of [key, value] pairs of
+        # captured-value slots, each capped at MAX_ITEM_BYTES. Pairs of
+        # another shape and values of another type are encoded as generic
+        # JSON values.
+        #
+        # @param entries [Object] value of the +entries+ field
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the collection
+        # @param on_prune [Proc, nil] invoked when a pair member is
+        #   pruned
+        # @return [Boolean] true when the collection was emitted in full
+        def encode_entries(entries, out, budget, &on_prune)
+          return encode_value(entries, out, budget, &on_prune) unless Array === entries
+          return false unless emit_json_fragment(out, budget, "[")
           first = true
           entries.each do |pair|
-            out << "," unless first
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
             first = false
-            out << "["
-            return false unless encode_slot(pair[0], out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
-            out << ","
-            return false unless encode_slot(pair[1], out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
-            out << "]"
+            encoded = if Array === pair
+              encode_slot_pair(pair, out, budget, &on_prune)
+            else
+              encode_value(pair, out, budget, &on_prune)
+            end
+            return false unless encoded
           end
-          out << "]"
-          true
+          emit_json_fragment(out, budget, "]")
         end
 
-        # Encodes an envelope/container Hash. The +locals+ and
-        # +arguments+ values are Hashes of {name: slot}; the
-        # +throwable+ value is a single slot (or nil). Other keys
-        # recurse as envelope.
+        # Encodes one [key, value] pair of an +entries+ field.
+        #
+        # @param pair [Array] two-element Array of captured-value slots
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the pair
+        # @param on_prune [Proc, nil] invoked when a pair member is pruned
+        # @return [Boolean] true when the pair was emitted in full
+        def encode_slot_pair(pair, out, budget, &on_prune)
+          return false unless emit_json_fragment(out, budget, "[")
+          return false unless encode_slot(pair[0], out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
+          return false unless emit_json_fragment(out, budget, ",")
+          return false unless encode_slot(pair[1], out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
+          emit_json_fragment(out, budget, "]")
+        end
+
+        # Encodes a +fields+ field: a Hash mapping member names to
+        # captured-value slots, each capped at MAX_ITEM_BYTES. A value of
+        # another type is encoded as a generic JSON value.
+        #
+        # @param fields [Object] value of the +fields+ field
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the collection
+        # @param on_prune [Proc, nil] invoked when a member is pruned
+        # @return [Boolean] true when the collection was emitted in full
+        def encode_fields(fields, out, budget, &on_prune)
+          return encode_value(fields, out, budget, &on_prune) unless Hash === fields
+          return false unless emit_json_fragment(out, budget, "{")
+          first = true
+          fields.each do |name, slot|
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
+            first = false
+            return false unless emit_json_fragment(out, budget, JSON.dump(name.to_s))
+            return false unless emit_json_fragment(out, budget, ":")
+            return false unless encode_slot(slot, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
+          end
+          emit_json_fragment(out, budget, "}")
+        end
+
+        # Encodes a +locals+ or +arguments+ value: a Hash mapping variable
+        # names to captured-value slots, each gated against the whole
+        # remaining budget. A value of another type is encoded as a
+        # generic JSON value.
+        #
+        # @param hash [Object] value of the +locals+ or +arguments+ field
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the collection
+        # @param on_prune [Proc, nil] invoked when a slot is pruned
+        # @return [Boolean] true when the collection was emitted in full
+        def encode_slot_hash(hash, out, budget, &on_prune)
+          return encode_value(hash, out, budget, &on_prune) unless Hash === hash
+          return false unless emit_json_fragment(out, budget, "{")
+          first = true
+          hash.each do |name, slot|
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
+            first = false
+            return false unless emit_json_fragment(out, budget, JSON.dump(name.to_s))
+            return false unless emit_json_fragment(out, budget, ":")
+            return false unless encode_slot(slot, out, budget, item_cap: nil, &on_prune)
+          end
+          emit_json_fragment(out, budget, "}")
+        end
+
+        # Encodes a structural envelope Hash. The +locals+ and
+        # +arguments+ values are Hashes of {variable name: slot}; the
+        # +throwable+ value is a single slot. Other values are envelope
+        # data and are never pruned.
+        #
+        # @param hash [Hash] envelope Hash to encode
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the structure
+        # @param on_prune [Proc, nil] invoked when a captured-value slot
+        #   is pruned
+        # @return [Boolean] true when the structure was emitted in full
         def encode_envelope_hash(hash, out, budget, &on_prune)
-          out << "{"
+          return false unless emit_json_fragment(out, budget, "{")
           first = true
           hash.each do |k, val|
-            out << "," unless first
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
             first = false
-            out << JSON.dump(k.to_s)
-            out << ":"
+            return false unless emit_json_fragment(out, budget, JSON.dump(k.to_s))
+            return false unless emit_json_fragment(out, budget, ":")
             case k.to_s
             when "locals", "arguments"
               return false unless encode_slot_hash(val, out, budget, &on_prune)
@@ -211,61 +367,152 @@ module Datadog
                 return false unless encode_slot(val, out, budget, item_cap: nil, &on_prune)
               end
             else
-              return false unless encode_value(val, out, budget, prunable: false, &on_prune)
+              return false unless encode_value(val, out, budget, &on_prune)
             end
           end
-          out << "}"
-          true
+          emit_json_fragment(out, budget, "}")
         end
 
+        # Encodes a structural envelope Array.
+        #
+        # @param array [Array] envelope Array to encode
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget for the structure
+        # @param on_prune [Proc, nil] invoked when a captured-value slot
+        #   is pruned
+        # @return [Boolean] true when the structure was emitted in full
         def encode_envelope_array(array, out, budget, &on_prune)
-          out << "["
+          return false unless emit_json_fragment(out, budget, "[")
           first = true
-          array.each do |elt|
-            out << "," unless first
+          array.each do |val|
+            unless first
+              return false unless emit_json_fragment(out, budget, ",")
+            end
             first = false
-            return false unless encode_value(elt, out, budget, prunable: false, &on_prune)
+            return false unless encode_value(val, out, budget, &on_prune)
           end
-          out << "]"
-          true
+          emit_json_fragment(out, budget, "]")
         end
 
+        # Encodes a scalar value to JSON once and emits it when it fits
+        # the budget.
+        #
+        # @param scalar [Object] scalar value to encode
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget charged for the emission
+        # @return [Boolean] true when the value was emitted
         def encode_scalar(scalar, out, budget)
-          s = JSON.dump(scalar)
-          return false if budget.remaining < s.bytesize
-          out << s
-          budget.consume(s.bytesize)
+          emit_json_fragment(out, budget, JSON.dump(scalar))
+        end
+
+        # Appends an already-encoded JSON fragment when it fits the
+        # budget.
+        #
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget charged for the fragment
+        # @param fragment [String] pre-encoded JSON fragment
+        # @return [Boolean] true when the fragment was appended
+        def emit_json_fragment(out, budget, fragment)
+          return false if budget.remaining < fragment.bytesize
+          out << fragment
+          budget.consume(fragment.bytesize)
           true
         end
 
-        def emit_pruned(out, budget)
-          return false if budget.remaining < PRUNED_ENCODED.bytesize
-          out << PRUNED_ENCODED
-          budget.consume(PRUNED_ENCODED.bytesize)
+        # Emits the pruned marker in place of a captured value.
+        #
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget charged for the marker
+        # @param on_prune [Proc, nil] invoked when the marker is emitted
+        # @return [Boolean] true when the marker was emitted
+        def emit_pruned(out, budget, &on_prune)
+          return false unless emit_json_fragment(out, budget, PRUNED_ENCODED)
+          on_prune&.call
           true
         end
 
-        # Constant-time upper bound on a captured-value slot's encoded
-        # size (constraint D). For a scalar slot, V is derived from
-        # the already-stringified +value.bytesize+ (O(1)); for a
-        # collection slot, V = 2 + count * (MAX_ITEM_BYTES + 1) where
-        # count is the number of sub-slots (O(1) via length/size).
+        # Returns whether the slot holds a captured collection: an
+        # +elements+ or +entries+ Array, a +fields+ Hash, or a +stacktrace+
+        # Array.
+        #
+        # @param slot [Hash] captured-value slot
+        # @return [Boolean] whether the slot holds a collection
+        def slot_collection?(slot)
+          Array === field_value(slot, "elements") ||
+            Array === field_value(slot, "entries") ||
+            Hash === field_value(slot, "fields") ||
+            Array === field_value(slot, "stacktrace")
+        end
+
+        # Constant-time upper bound on a collection slot's encoded size:
+        # the framing allowance, six bytes per byte of every string
+        # field, the member cap plus the name allowance per collection
+        # member, and the frame allowance per stack frame. The bound
+        # covers every slot shape the serializer produces; a custom
+        # serializer shape exceeding the bound aborts the walk and the
+        # slot is pruned.
+        #
+        # @param slot [Hash] captured-value slot
+        # @return [Integer] upper bound on the slot's encoded byte size
         def slot_upper_bound(slot)
-          if (elements = field_value(slot, "elements"))
-            2 + elements.length * (MAX_ITEM_BYTES + 1)
-          elsif (entries = field_value(slot, "entries"))
-            2 + entries.length * 2 * (MAX_ITEM_BYTES + 1)
-          elsif (fields = field_value(slot, "fields")) && fields.is_a?(Hash)
-            2 + fields.size * (MAX_ITEM_BYTES + 1)
-          else
-            value = field_value(slot, "value")
-            vb = value.is_a?(String) ? value.bytesize * MAX_ESCAPE_EXPANSION : 0
-            SLOT_OVERHEAD + vb
+          v = SLOT_OVERHEAD +
+            slot_string_fields_bound(slot, bytes_per_byte: MAX_ESCAPE_EXPANSION, bytes_per_field: 0)
+          if (elements = field_value(slot, "elements")) && Array === elements
+            v += 2 + elements.length * (MAX_ITEM_BYTES + 1)
           end
+          if (entries = field_value(slot, "entries")) && Array === entries
+            v += 2 + entries.length * (2 * (MAX_ITEM_BYTES + 1) + 3)
+          end
+          if (fields = field_value(slot, "fields")) && Hash === fields
+            v += 2 + fields.size * (MAX_ITEM_BYTES + 1 + SLOT_OVERHEAD)
+          end
+          if (stacktrace = field_value(slot, "stacktrace")) && Array === stacktrace
+            v += 2 + stacktrace.length * SLOT_OVERHEAD
+          end
+          v
         end
 
-        def field_value(slot, key)
-          slot[key.to_sym] || slot[key]
+        # Lower bound on a scalar slot's encoded size: every byte of a
+        # string field appears in the encoding (plus its quotes), so when
+        # this bound exceeds the budget, the slot cannot fit under any
+        # escaping and is pruned without being encoded.
+        #
+        # @param slot [Hash] captured-value slot
+        # @return [Integer] lower bound on the slot's encoded byte size
+        def slot_lower_bound(slot)
+          2 + slot_string_fields_bound(slot, bytes_per_byte: 1, bytes_per_field: 2)
+        end
+
+        # Accumulates the slot's string fields into a size bound: each
+        # string byte contributes +bytes_per_byte+ bytes and each present
+        # string field contributes +bytes_per_field+ bytes. Callers pass
+        # the per-byte contribution matching the bound they compute: one
+        # for a lower bound (a byte survives any escaping) and
+        # MAX_ESCAPE_EXPANSION for an upper bound (the \uXXXX
+        # expansion).
+        #
+        # @param slot [Hash] captured-value slot
+        # @param bytes_per_byte [Integer] bytes counted per string byte
+        # @param bytes_per_field [Integer] bytes counted per present
+        #   string field
+        # @return [Integer] bound contribution of the string fields
+        def slot_string_fields_bound(slot, bytes_per_byte:, bytes_per_field:)
+          total = 0
+          SLOT_STRING_FIELDS.each do |field|
+            value = field_value(slot, field)
+            total += value.bytesize * bytes_per_byte + bytes_per_field if String === value
+          end
+          total
+        end
+
+        # Returns the value of +field+ in +slot+, matching Symbol and
+        # String keys.
+        #
+        # @param slot [Hash] captured-value slot
+        # @param field [String] field name
+        # @return [Object, nil] the field value
+        def field_value(slot, field)
+          slot[field.to_sym] || slot[field]
         end
       end
     end
