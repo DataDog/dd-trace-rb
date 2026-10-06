@@ -19,6 +19,8 @@ module Datadog
       end
       class ProbeTargetForbidden < Error
       end
+      class MetricEmissionUnavailable < Error
+      end
       class MultiplePathsMatch < Error
       end
       class InvalidExpression < Error
