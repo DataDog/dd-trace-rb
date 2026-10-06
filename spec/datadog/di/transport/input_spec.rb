@@ -236,7 +236,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       end
 
       transport.send_input([oversized_snapshot], tags,
-        on_serialization_error: noop_serialization_error_handler)
+        on_serialization_error: noop_serialization_error_handler,)
 
       # The pruned snapshot is sent, fits under the cap, and is valid JSON.
       expect(chunks.length).to eq(1)
@@ -258,7 +258,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       end
 
       transport.send_input([capture_expression_snapshot], tags,
-        on_serialization_error: noop_serialization_error_handler)
+        on_serialization_error: noop_serialization_error_handler,)
 
       expect(chunks.length).to eq(1)
       expect(chunks.first.bytesize).to be <= 2_000
