@@ -78,10 +78,18 @@ module Datadog
                 logger.debug do
                   "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                GuardrailsTelemetry.dropped(
-                  telemetry, reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                  event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
-                )
+                begin
+                  GuardrailsTelemetry.dropped(
+                    telemetry, reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                    event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
+                  )
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
+                  # The drop already happened; a telemetry failure must stay
+                  # contained here, or the serialization rescue below attributes
+                  # it to this snapshot and disables the probe.
+                  logger.debug { "di: error emitting payload-too-large drop telemetry: #{exc.class}: #{exc.message}" }
+                end
                 next
               end
               encoded_snapshots << encoded

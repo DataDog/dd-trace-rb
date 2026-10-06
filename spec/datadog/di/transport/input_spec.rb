@@ -209,6 +209,42 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
         end
       end
+
+      context "when emitting the payload-too-large drop metric raises" do
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+            allow(telemetry).to receive(:report)
+          end
+        end
+
+        let(:oversized_snapshot) do
+          {
+            debugger: {
+              snapshot: {
+                probe: {id: "large-probe"},
+                data: (0...2_000).map { |i| i },
+              },
+            },
+          }
+        end
+
+        let(:snapshots) { [oversized_snapshot, small_snapshot] }
+
+        it "keeps the drop contained and still sends the other snapshots" do
+          serialization_errors = []
+          on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
+          expect(telemetry).not_to receive(:report)
+          expect_lazy_log_many(logger, :debug,
+            "di: dropping too big snapshot (payloadTooLarge)",
+            /error emitting payload-too-large drop telemetry.*StandardError.*telemetry down/)
+          expect(transport).to receive(:send_input_chunk).once
+
+          transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
+
+          expect(serialization_errors).to be_empty
+        end
+      end
     end
   end
 
