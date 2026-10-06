@@ -518,13 +518,15 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
 
     context "when the per-probe limiter rejects" do
-      it "does not consult the global limiter and enqueues nothing" do
+      before do
         allow(rate_limiter).to receive(:allow?).and_return(false)
+      end
 
+      it "does not consult the global limiter and enqueues nothing" do
         expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
-          tags: {reason: "evaluationErrorThrottled", probe_type: "log"})
+          tags: {reason: "evaluationErrorThrottled", probe_type: "log"},)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
@@ -532,6 +534,23 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(rate_limiter).to have_received(:allow?)
         expect(logger).to have_received(:trace) do |&block|
           expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+        end
+      end
+
+      context "when emitting the evaluationErrorThrottled skip metric raises" do
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+          end
+        end
+
+        it "keeps the callback contained and logs the telemetry failure" do
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+          expect_lazy_log(logger, :debug,
+            /error emitting condition error skip telemetry.*StandardError.*telemetry down/)
+
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
         end
       end
     end
@@ -550,12 +569,29 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
         expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
-          tags: {reason: "rateLimitGlobal", probe_type: "log"})
+          tags: {reason: "rateLimitGlobal", probe_type: "log"},)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
         expect(logger).to have_received(:trace) do |&block|
           expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+        end
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises" do
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+          end
+        end
+
+        it "keeps the callback contained and logs the telemetry failure" do
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+          expect_lazy_log(logger, :debug,
+            /error emitting condition error skip telemetry.*StandardError.*telemetry down/)
+
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
         end
       end
     end

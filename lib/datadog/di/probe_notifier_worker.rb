@@ -293,10 +293,21 @@ module Datadog
                       " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 end
-                guardrails_telemetry&.dropped(
-                  reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                  event_type: GuardrailsTelemetry.event_type_tag(event_type),
-                )
+                begin
+                  guardrails_telemetry&.dropped(
+                    reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
+                    event_type: GuardrailsTelemetry.event_type_tag(event_type),
+                  )
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+                  # The drop already happened; the guarded body is the
+                  # telemetry emission itself, so the failure is contained
+                  # here with a log rather than reported through the failing
+                  # component or raised into the customer's probed call.
+                  logger.debug { "di: error emitting queue-full drop telemetry: #{exc.class}: #{exc.message}" }
+                  nil
+                end
               else
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)

@@ -61,6 +61,8 @@ module Datadog
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
 
+      def record_condition_error_skip: (Probe probe, String reason) -> void
+
       attr_reader definition_trace_point: TracePoint
     end
   end
