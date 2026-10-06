@@ -338,7 +338,8 @@ module Datadog
         # against the whole remaining budget. A value of another type is
         # encoded as a generic JSON value.
         #
-        # @param hash [Object] value of the +locals+ or +arguments+ field
+        # @param hash [Object] value of the +locals+, +arguments+, or
+        #   +captureExpressions+ field
         # @param out [String] output buffer
         # @param budget [Budget] byte budget for the collection
         # @param on_prune [Proc, nil] invoked when a slot is pruned
