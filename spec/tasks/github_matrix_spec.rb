@@ -89,5 +89,4 @@ RSpec.describe GithubMatrix do
       expect(rails_task).to include(gemfile: "Gemfile")
     end
   end
-
 end
