@@ -177,23 +177,39 @@ RSpec.describe "installed bundle cache workflow" do
     end
   end
 
-  it "enables the installed cache only for Ruby 4.0" do
+  it "enables the installed cache for every production Ruby version" do
     jobs = production_workflow.fetch("jobs")
     runtime_jobs = jobs.select { |_name, job| job["uses"] == "./.github/workflows/_unit_test.yml" }
 
-    expect(runtime_jobs.fetch("ruby-40").fetch("with")).to include("installed-cache-enabled" => true)
-    expect(runtime_jobs.reject { |name, _job| name == "ruby-40" }.values).to all(
-      satisfy { |job| !job.fetch("with").key?("installed-cache-enabled") }
+    expect(runtime_jobs.keys).to contain_exactly(
+      "ruby-40",
+      "ruby-34",
+      "ruby-33",
+      "ruby-32",
+      "ruby-31",
+      "ruby-30",
+      "ruby-27",
+      "ruby-26",
+      "ruby-25",
+    )
+    expect(runtime_jobs.values).to all(
+      satisfy { |job| job.fetch("with").fetch("installed-cache-enabled") == true }
     )
   end
 
   it "permits writes only from the default branch at both workflow layers" do
-    ruby_40_inputs = production_workflow.fetch("jobs").fetch("ruby-40").fetch("with")
+    runtime_jobs = production_workflow.fetch("jobs").select do |_name, job|
+      job["uses"] == "./.github/workflows/_unit_test.yml"
+    end
     prepare = workflow.fetch("jobs").fetch("batch").fetch("steps").find do |step|
       step["name"] == "Prepare installed matrix bundle cache"
     end
 
-    expect(ruby_40_inputs.fetch("installed-cache-write")).to include("github.ref == 'refs/heads/master'")
+    expect(runtime_jobs.values).to all(
+      satisfy do |job|
+        job.fetch("with").fetch("installed-cache-write").include?("github.ref == 'refs/heads/master'")
+      end
+    )
     expect(prepare.fetch("with").fetch("write-enabled")).to include(
       "inputs.installed-cache-write",
       "github.ref == 'refs/heads/master'",
