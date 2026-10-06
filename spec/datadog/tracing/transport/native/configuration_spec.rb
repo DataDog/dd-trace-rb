@@ -61,8 +61,8 @@ RSpec.describe "Native transport configuration" do
         ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
       end
 
-      it "builds a writer with the Ruby HTTP transport by default" do
-        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Traces::Transport)
+      it "builds a writer with the native transport by default" do
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
       end
     end
 
@@ -141,15 +141,15 @@ RSpec.describe "Native transport configuration" do
   end
 
   describe "settings" do
-    it "has native_transport defaulting to false" do
+    it "has native_transport defaulting to true" do
       settings = Datadog::Core::Configuration::Settings.new
-      expect(settings.tracing.native_transport).to be false
+      expect(settings.tracing.native_transport).to be true
     end
 
-    it "can be set to true" do
+    it "can be set to false" do
       settings = Datadog::Core::Configuration::Settings.new
-      settings.tracing.native_transport = true
-      expect(settings.tracing.native_transport).to be true
+      settings.tracing.native_transport = false
+      expect(settings.tracing.native_transport).to be false
     end
   end
 end

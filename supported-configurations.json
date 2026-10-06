@@ -439,7 +439,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [

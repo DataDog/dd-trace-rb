@@ -489,18 +489,18 @@ module Datadog
               end
 
               # Use the native trace transport (Rust via C FFI) instead of
-              # the default pure-Ruby HTTP transport.
+              # the pure-Ruby HTTP transport.
               #
               # The native transport delegates serialization, stats
               # computation, and HTTP sending to the Rust data pipeline.
               #
               # This option is recommended for internal use only.
               #
-              # @default `false`
+              # @default `true`
               # @return [Boolean]
               option :native_transport do |o|
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 
