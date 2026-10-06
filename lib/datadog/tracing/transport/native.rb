@@ -47,7 +47,7 @@ module Datadog
           include Statistics
           include SpanEventsNegotiation
 
-          attr_reader :logger
+          attr_reader :logger, :url
 
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings (provides +#url+).
@@ -67,7 +67,7 @@ module Datadog
             # this is held across the fork through the matching completion hook.
             @fork_mutex = Mutex.new
 
-            url = agent_settings.url
+            @url = agent_settings.url
             tracer_version = tracer_version_string
             language = Core::Environment::Ext::LANG
             language_version = Core::Environment::Ext::LANG_VERSION

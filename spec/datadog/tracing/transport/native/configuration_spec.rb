@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "datadog/tracing/component"
+require "datadog/tracing/diagnostics/environment_logger"
 require "datadog/tracing/transport/native"
 
 RSpec.describe "Native transport configuration" do
@@ -61,6 +62,19 @@ RSpec.describe "Native transport configuration" do
         expect(writer).to be_a(Datadog::Tracing::Writer)
         transport = writer.instance_variable_get(:@transport)
         expect(transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
+      end
+
+      ["http://127.0.0.1:9/", "http://[::1]:9/", "unix:///tmp/native-diagnostics.socket"].each do |url|
+        context "with Agent URL #{url}" do
+          let(:agent_settings) { double("agent_settings", url: url) }
+
+          it "reports the native destination in startup diagnostics" do
+            tracer = instance_double(Datadog::Tracing::Tracer, writer: build_writer)
+            allow(Datadog::Tracing).to receive(:tracer).and_return(tracer)
+
+            expect(Datadog::Tracing::Diagnostics::EnvironmentCollector.agent_url).to eq(url)
+          end
+        end
       end
     end
 
