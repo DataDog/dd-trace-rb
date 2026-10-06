@@ -17,7 +17,7 @@ class GithubMatrix
     ruby_version: RUBY_VERSION[0..2],
     gemfile_resolver: nil
   )
-    @matrix_path = matrix_path.to_s
+    @matrix_path = matrix_path
     @ruby_version = ruby_version
     @gemfile_resolver = gemfile_resolver || AppraisalConversion.method(:to_bundle_gemfile)
   end

@@ -1,7 +1,6 @@
 require "bundler"
 require "digest"
 require "json"
-require "pathname"
 require_relative "github_matrix"
 
 class InstalledBundleCache
@@ -21,18 +20,12 @@ class InstalledBundleCache
     without
   ].freeze
 
-  attr_reader :root, :base_gemfile, :applicable_gemfiles, :installed_path
+  attr_reader :root, :base_gemfile, :applicable_gemfiles
 
-  def initialize(
-    root: Pathname.pwd,
-    base_gemfile: AppraisalConversion.parent_gemfile,
-    matrix: GithubMatrix.new,
-    installed_path: "/usr/local/bundle"
-  )
-    @root = Pathname(root).expand_path
+  def initialize(base_gemfile: AppraisalConversion.parent_gemfile)
+    @root = Dir.pwd
     @base_gemfile = absolute_path(base_gemfile)
-    @applicable_gemfiles = matrix.gemfiles.map { |path| absolute_path(path) }.sort
-    @installed_path = Pathname(installed_path).expand_path
+    @applicable_gemfiles = GithubMatrix.new.gemfiles.map { |path| absolute_path(path) }.sort
   end
 
   def gemfiles
@@ -129,20 +122,19 @@ class InstalledBundleCache
   end
 
   def lockfile_for(gemfile)
-    path = Pathname("#{gemfile}.lock")
-    raise "Lockfile not found: #{relative_path(path)}" unless path.file?
+    path = "#{gemfile}.lock"
+    raise "Lockfile not found: #{relative_path(path)}" unless File.file?(path)
 
     path
   end
 
   def absolute_path(path)
-    path = Pathname(path)
-    path.absolute? ? path : root.join(path)
+    File.expand_path(path, root)
   end
 
   def relative_path(path)
-    Pathname(path).relative_path_from(root).to_s
-  rescue ArgumentError
-    Pathname(path).to_s
+    expanded_path = File.expand_path(path)
+    root_prefix = "#{root}/"
+    expanded_path.start_with?(root_prefix) ? expanded_path[root_prefix.length..-1] : expanded_path
   end
 end

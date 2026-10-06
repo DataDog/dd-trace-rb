@@ -2,33 +2,21 @@
 
 require "json"
 require "optparse"
-require "pathname"
 require_relative "installed_bundle_cache"
 
-options = {
-  root: Pathname.pwd,
-  matrix: "Matrixfile",
-  installed_path: "/usr/local/bundle",
-}
+options = {}
 
 parser = OptionParser.new do |opts|
   opts.on("--base-gemfile PATH") { |value| options[:base_gemfile] = value }
   opts.on("--base-cache-key VALUE") { |value| options[:base_cache_key] = value }
-  opts.on("--matrix PATH") { |value| options[:matrix] = value }
   opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
-  opts.on("--installed-path PATH") { |value| options[:installed_path] = value }
 end
 
 command = ARGV.shift
 parser.parse!(ARGV)
 raise OptionParser::MissingArgument, "--base-gemfile" unless options[:base_gemfile]
 
-cache = InstalledBundleCache.new(
-  root: options[:root],
-  base_gemfile: options[:base_gemfile],
-  matrix: GithubMatrix.new(matrix_path: options[:matrix]),
-  installed_path: options[:installed_path],
-)
+cache = InstalledBundleCache.new(base_gemfile: options[:base_gemfile])
 
 case command
 when "manifest"

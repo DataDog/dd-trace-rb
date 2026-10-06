@@ -3,31 +3,28 @@ require "tmpdir"
 require_relative "../../tasks/installed_bundle_cache"
 
 RSpec.describe InstalledBundleCache do
-  subject(:cache) do
-    described_class.new(
-      root: temporary_directory,
-      base_gemfile: "base.gemfile",
-      matrix: matrix,
-      installed_path: temporary_directory.join("installed"),
-    )
-  end
+  subject(:cache) { build_cache(["second.gemfile", "base.gemfile", "first.gemfile"]) }
 
   around do |example|
     Dir.mktmpdir do |directory|
       @temporary_directory = Pathname(directory)
-      write("base.gemfile", "source \"https://rubygems.org\"\n")
-      write("base.gemfile.lock", "base lock\n")
-      write("first.gemfile", "eval_gemfile \"base.gemfile\"\n")
-      write("first.gemfile.lock", "first lock\n")
-      write("second.gemfile", "eval_gemfile \"base.gemfile\"\n")
-      write("second.gemfile.lock", "second lock\n")
-      example.run
+      Dir.chdir(directory) do
+        write("base.gemfile", "source \"https://rubygems.org\"\n")
+        write("base.gemfile.lock", "base lock\n")
+        write("first.gemfile", "eval_gemfile \"base.gemfile\"\n")
+        write("first.gemfile.lock", "first lock\n")
+        write("second.gemfile", "eval_gemfile \"base.gemfile\"\n")
+        write("second.gemfile.lock", "second lock\n")
+        example.run
+      end
     end
   end
 
   let(:temporary_directory) { @temporary_directory }
-  let(:matrix) do
-    instance_double(GithubMatrix, gemfiles: ["second.gemfile", "base.gemfile", "first.gemfile"])
+
+  def build_cache(gemfiles)
+    allow(GithubMatrix).to receive(:new).and_return(instance_double(GithubMatrix, gemfiles: gemfiles))
+    described_class.new(base_gemfile: "base.gemfile")
   end
 
   def write(path, content)
@@ -60,12 +57,7 @@ RSpec.describe InstalledBundleCache do
   end
 
   it "produces a deterministic identity regardless of applicable Gemfile order" do
-    reordered = described_class.new(
-      root: temporary_directory,
-      base_gemfile: "base.gemfile",
-      matrix: instance_double(GithubMatrix, gemfiles: ["first.gemfile", "base.gemfile", "second.gemfile"]),
-      installed_path: temporary_directory.join("installed"),
-    )
+    reordered = build_cache(["first.gemfile", "base.gemfile", "second.gemfile"])
 
     expect(reordered.identity_digest(image_identity: "image-a", base_cache_key: "base-a")).to eq(
       cache.identity_digest(image_identity: "image-a", base_cache_key: "base-a")
@@ -134,12 +126,7 @@ RSpec.describe InstalledBundleCache do
   it "does not include paths in content identity" do
     write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
     write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
-    renamed = described_class.new(
-      root: temporary_directory,
-      base_gemfile: "base.gemfile",
-      matrix: instance_double(GithubMatrix, gemfiles: ["base.gemfile", "renamed.gemfile", "second.gemfile"]),
-      installed_path: temporary_directory.join("installed"),
-    )
+    renamed = build_cache(["base.gemfile", "renamed.gemfile", "second.gemfile"])
 
     expect(renamed.content).to eq(cache.content)
   end
@@ -153,19 +140,17 @@ RSpec.describe InstalledBundleCache do
     RUBY
     resolver = ->(group) { "#{group}.gemfile" }
     first_matrix = GithubMatrix.new(
-      matrix_path: temporary_directory.join("Matrixfile.first"),
+      matrix_path: temporary_directory.join("Matrixfile.first").to_s,
       ruby_version: "4.0",
       gemfile_resolver: resolver,
-      fallback_gemfile: "base.gemfile",
     )
     second_matrix = GithubMatrix.new(
-      matrix_path: temporary_directory.join("Matrixfile.second"),
+      matrix_path: temporary_directory.join("Matrixfile.second").to_s,
       ruby_version: "4.0",
       gemfile_resolver: resolver,
-      fallback_gemfile: "base.gemfile",
     )
-    first = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: first_matrix)
-    second = described_class.new(root: temporary_directory, base_gemfile: "base.gemfile", matrix: second_matrix)
+    first = build_cache(first_matrix.gemfiles)
+    second = build_cache(second_matrix.gemfiles)
 
     expect(first.content).to eq(second.content)
   end
