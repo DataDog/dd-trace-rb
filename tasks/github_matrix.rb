@@ -1,4 +1,4 @@
-# Cache preparation loads this with bare Ruby.
+# Runs without Bundler.
 require_relative "appraisal_conversion"
 
 class GithubMatrix

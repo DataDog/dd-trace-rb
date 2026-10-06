@@ -1,4 +1,4 @@
-# Cache preparation invokes these tasks without bundle exec.
+# Runs without Bundler.
 require "json"
 require_relative "github_matrix"
 

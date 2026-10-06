@@ -1,4 +1,4 @@
-# Runs before dependency restore; keep loadable with bare Ruby.
+# Runs without Bundler.
 require "bundler"
 require "digest"
 require "json"
