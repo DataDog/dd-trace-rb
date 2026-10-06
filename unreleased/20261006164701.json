@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6351",
+  "message": "Add `dynamic_instrumentation.guardrails.*` metrics that show when and why probe events are skipped or dropped, so missing snapshots and log events can be attributed to a specific guardrail."
+}
