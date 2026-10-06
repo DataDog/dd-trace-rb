@@ -23,6 +23,10 @@ module Datadog
         # interval's worth of items past the deadline.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
+        # Message carried by DI::Error::EvaluationTimeout, raised by the
+        # cooperative evaluation-deadline checks.
+        EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
+
         # @param regexps [Array<Regexp>] Regexps precompiled from literal
         #   `matches` patterns, looked up by index by #matches_compiled.
         #    Empty when the expression has no `matches` pattern with
@@ -44,6 +48,24 @@ module Datadog
           self.class.evaluation_deadline_exceeded?(@deadline)
         end
         private :evaluation_deadline_exceeded?
+
+        # Raises DI::Error::EvaluationTimeout when the evaluation deadline
+        # has been crossed, aborting collection-operator iteration
+        # cooperatively. The deadline is only checked every
+        # EVALUATION_DEADLINE_CHECK_INTERVAL items (see the constant's
+        # comment), so +item_index+ is the zero-based index of the element
+        # being processed.
+        #
+        # @param item_index [Integer] zero-based index of the collection
+        #   element being processed.
+        # @return [void]
+        # @raise [DI::Error::EvaluationTimeout] the deadline has been crossed.
+        def raise_if_evaluation_deadline_exceeded(item_index)
+          if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
+            raise DI::Error::EvaluationTimeout, EVALUATION_TIMEOUT_MESSAGE
+          end
+        end
+        private :raise_if_evaluation_deadline_exceeded
 
         # Resolves a per-invocation wall-time deadline (float seconds) for
         # evaluating a probe condition, capture expression, or template
@@ -215,23 +237,29 @@ module Datadog
           String === haystack && haystack.end_with?(needle)
         end
 
+        # Returns true when +block+ returns a truthy value for every element
+        # of +collection+. The evaluation deadline is checked at most once
+        # per EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        #
+        # @param collection [Array, Hash] collection to test.
+        # @return [Boolean] whether the block is satisfied by every element.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   crossed mid-iteration.
+        # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
+        #   an Array or a Hash.
         def all(collection, &block)
           case collection
           when Array
             i = 0
             collection.all? do |item|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               block.call(item)
             end
           when Hash
             i = 0
             collection.all? do |key, value|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               # For hashes, the expression language has both @it and
               # @key/@value. Manufacture @it from the key and value.
@@ -242,23 +270,29 @@ module Datadog
           end
         end
 
+        # Returns true when +block+ returns a truthy value for any element
+        # of +collection+. The evaluation deadline is checked at most once
+        # per EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        #
+        # @param collection [Array, Hash] collection to test.
+        # @return [Boolean] whether the block is satisfied by any element.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   crossed mid-iteration.
+        # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
+        #   an Array or a Hash.
         def any(collection, &block)
           case collection
           when Array
             i = 0
             collection.any? do |item|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               block.call(item)
             end
           when Hash
             i = 0
             collection.any? do |key, value|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               # For hashes, the expression language has both @it and
               # @key/@value. Manufacture @it from the key and value.
@@ -269,15 +303,25 @@ module Datadog
           end
         end
 
+        # Returns the elements of +collection+ for which +block+ returns a
+        # truthy value: the selected items of an Array collection, and a
+        # Hash of the selected key-value pairs of a Hash collection. The
+        # evaluation deadline is checked at most once per
+        # EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        #
+        # @param collection [Array, Hash] collection to filter.
+        # @return [Array, Hash] the selected elements.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   crossed mid-iteration.
+        # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
+        #   an Array or a Hash.
         def filter(collection, &block)
           case collection
           when Array
             i = 0
             result = []
             collection.each do |item|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               result << item if block.call(item)
             end
@@ -286,9 +330,7 @@ module Datadog
             i = 0
             result = {}
             collection.each do |key, value|
-              if i % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 && evaluation_deadline_exceeded?
-                raise DI::Error::EvaluationTimeout, "expression evaluation timeout"
-              end
+              raise_if_evaluation_deadline_exceeded(i)
               i += 1
               result[key] = value if block.call([key, value], key, value)
             end
