@@ -9,9 +9,9 @@ module Datadog
     #
     # The encoder walks the snapshot Hash once and emits JSON inline. The
     # structural envelope (+service+, +debugger.snapshot.probe/stack+, and
-    # the +captures+ container) is emitted as-is; when the envelope alone
-    # exceeds the cap, +encode+ returns nil and the caller drops the
-    # snapshot. The direct children of every +locals+, +arguments+, and
+    # the +captures+ container) is emitted as-is. When the snapshot cannot
+    # fit within the cap even after pruning, +encode+ returns nil and the
+    # caller drops the snapshot. The direct children of every +locals+, +arguments+, and
     # +throwable+ Hash are captured-value slots: a slot that does not fit
     # the remaining byte budget is replaced in place with the
     # +{"pruned":true}+ marker, preserving its variable name as the JSON
@@ -72,9 +72,11 @@ module Datadog
       # @param snapshot [Hash] snapshot payload Hash
       # @param max_size [Integer] per-event byte cap
       # @return [Result] +encoded+ is the JSON string, of at most
-      #   +max_size+ bytes, or nil when the structural envelope alone
-      #   exceeds +max_size+. +pruned+ is true when any captured-value
-      #   slot was replaced with the pruned marker.
+      #   +max_size+ bytes, or nil when the snapshot cannot fit within
+      #   +max_size+ even after pruning. +pruned+ is true when any
+      #   captured-value slot was replaced with the pruned marker.
+      # @raise [JSON::GeneratorError] when a captured value cannot be
+      #   JSON-encoded
       def self.encode(snapshot, max_size)
         out = +""
         budget = Budget.new(max_size)
@@ -85,9 +87,9 @@ module Datadog
       end
 
       # Outcome of one encoding pass: +encoded+ [String, nil] is the JSON
-      # string, or nil when the structural envelope alone exceeds the
-      # cap; +pruned+ [Boolean] is true when any captured-value slot was
-      # replaced with the pruned marker.
+      # string, or nil when the snapshot cannot fit within the cap even
+      # after pruning; +pruned+ [Boolean] is true when any captured-value
+      # slot was replaced with the pruned marker.
       Result = Struct.new(:encoded, :pruned)
       private_constant :Result
 
