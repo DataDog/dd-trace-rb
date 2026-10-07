@@ -145,13 +145,3 @@ ignore_gem_versions:
   - gem: graphql
     version: 2.3.23
     reason: "Ceiling of graphql ~> 2.3.0 constraint in graphql-2.3 appraisal; intentionally tests old graphql minor version, no fixed 2.3.x release exists for GHSA-rmxg-5p3r-j6hh"
-
-  - gem: dalli
-    version: 2.7.11
-    reason: "dalli_2 Gemfiles intentionally pin the ~> 2 line (GHSA-3553-vcg5-72jw, GHSA-4qp6-2jcr-596v, GHSA-p6pm-ch9v-44vx, GHSA-w39f-xq2m-4g8x, GHSA-wr87-m4jw-29x5); no fixed 2.x release exists (first fixes are 3.2.12+)"
-  - gem: dalli
-    version: 4.3.4
-    reason: "dalli_latest lockfiles on Ruby 3.1/3.2 predate the fixes (3.2.12+, 4.3.6+); refresh the locks to pick up 4.3.7, then remove"
-  - gem: dalli
-    version: 5.1.1
-    reason: "dalli_latest lockfiles on Ruby 3.3+ predate the fixes (5.1.3+); refresh the locks to pick up 5.1.4, then remove. Note GHSA-m252-9cgf-vx2w affects 5.1.1"
