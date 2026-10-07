@@ -433,7 +433,7 @@ are treated as failing too). The task is intentionally not part of the
 bundle; it runs standalone via `rake -f`. To reproduce locally, run:
 
 ```bash
-.github/scripts/dependency_audit.sh
+.github/scripts/check/dependency_audit.sh
 ```
 
 If it fails:

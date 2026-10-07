@@ -119,7 +119,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install and run dependency audit
-        run: .github/scripts/dependency_audit.sh
+        run: .github/scripts/check/dependency_audit.sh
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
