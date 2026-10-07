@@ -64,8 +64,8 @@ module Datadog
 
       #: () -> Datadog::Profiling::Flush?
       def flush
-        worker_stats = @worker.stats_and_reset_not_thread_safe
         pprof_recorder = @worker.prepare_serialize
+        worker_stats = @worker.stats_and_reset_not_thread_safe
         serialization_result = pprof_recorder.serialize
         return if serialization_result.nil?
 
