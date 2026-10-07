@@ -118,10 +118,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install bundler-audit
-        run: gem install --no-document rake bundler-audit
-      - name: Run dependency audit
-        run: rake -f tasks/dependency_audit.rake dependency:audit
+      - name: Install and run dependency audit
+        run: .github/scripts/dependency_audit.sh
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.

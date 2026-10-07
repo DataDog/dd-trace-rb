@@ -433,8 +433,7 @@ are treated as failing too). The task is intentionally not part of the
 bundle; it runs standalone via `rake -f`. To reproduce locally, run:
 
 ```bash
-gem install bundler-audit
-rake -f tasks/dependency_audit.rake dependency:audit
+.github/scripts/dependency_audit.sh
 ```
 
 If it fails:
