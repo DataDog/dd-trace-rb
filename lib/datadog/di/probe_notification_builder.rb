@@ -304,6 +304,14 @@ module Datadog
         end
       end
 
+      # Builds the snapshot payload common to all probe snapshot notifications.
+      #
+      # @param context [Context] probe execution context for the snapshot
+      # @param evaluation_errors [Array<Hash>] errors from evaluating the probe
+      #   template or capture expressions
+      # @param captures [Hash, nil] serialized captured values
+      # @param message [String, nil] rendered probe template message
+      # @return [Hash] the snapshot payload
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
         probe = context.probe
 
