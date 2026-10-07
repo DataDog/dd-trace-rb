@@ -44,7 +44,7 @@ red audit on master, and on every open PR
 ## 2. Identify the CVE and its blast radius
 
 Run the audit. It scans every covered lockfile, so one container is
-enough. `docs/DevelopmentGuide.md#dependency-audit-bundler-audit` is
+enough. `docs/DependencyAudit.md` is
 authoritative on what the job covers and which advisories fail it.
 
 The audit runs standalone, outside any bundle: the script installs its

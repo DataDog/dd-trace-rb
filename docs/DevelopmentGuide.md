@@ -425,30 +425,7 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth tok
 
 #### Dependency audit (bundler-audit)
 
-The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
-(Ruby 3.1+) for gems with
-high/critical CVE advisories, plus any advisory the pinned scanner can't
-score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
-are treated as failing too). The job is skipped on `master` pushes and
-`bump_to_version_*` release PRs, since those ship lockfiles that predate
-the advisory database refresh. The task is intentionally not part of the
-bundle; it runs standalone via `rake -f`. To reproduce locally, run:
-
-```bash
-.github/scripts/check/dependency_audit.sh
-```
-
-For full triage guidance (blast radius, CVE research, upgrade vs
-exception), see the `handle-cve` skill in `.agents/skills/handle-cve/`.
-
-If it fails:
-
-1. Preferred fix: `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to upgrade the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
-2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
-   - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
-   - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
-   - Every entry must include a reason explaining what pins the gem and why it can't be upgraded.
-3. The audit output prints a summary, the fix instructions, and a table with every finding (lockfile, gem, version, advisory id). The same findings are also written to `tmp/dependency_audit_findings.json`.
+See [Dependency Audit](./DependencyAudit.md).
 
 ## Accessing Environment Variables
 

@@ -47,7 +47,7 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
         puts "Dependency audit failed: #{findings.size} high/critical advisory match(es) " \
           "in #{findings.map(&:lockfile).uniq.size} lockfiles."
         puts
-        puts "Fix or document them per docs/DevelopmentGuide.md#dependency-audit-bundler-audit " \
+        puts "Fix or document them per docs/DependencyAudit.md " \
           "(details below, also written to #{output_path})."
         puts
         puts Thor::Shell::Basic.new.print_table(
