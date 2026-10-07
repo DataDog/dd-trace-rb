@@ -189,8 +189,14 @@ requirements_json_test:
 generate-supported-versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends awscli
+    - curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+    - unzip -q /tmp/awscliv2.zip -d /tmp
+    - /tmp/aws/install
     - bundle install
+  # TEMPORARY: manual trigger on any branch, without the S3 upload.
+  rules:
+    - when: manual
+      allow_failure: true
 
 configure_system_tests:
   variables:
