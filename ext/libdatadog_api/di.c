@@ -166,8 +166,10 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
  * reused. Tokens are unique only within a runtime id.
  *
  * The token is a value of the process-wide counter above, stored in an
- * ivar on the Thread object and accessed directly via rb_ivar_get and
- * rb_ivar_set. This bypasses Thread#thread_variable_get and
+ * ivar on the Thread object. The ivar is read via rb_attr_get, which
+ * returns nil for an unset ivar and, unlike rb_ivar_get, emits no
+ * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
+ * Both accesses bypass Thread#thread_variable_get and
  * Thread#thread_variable_set method dispatch, so a user-installed method
  * probe on those methods cannot fire during DI snapshot building.
  *
@@ -176,7 +178,7 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
  */
 static VALUE current_thread_generation(DDTRACE_UNUSED VALUE _self) {
   VALUE thread = rb_thread_current();
-  VALUE generation = rb_ivar_get(thread, id_datadog_di_thread_generation);
+  VALUE generation = rb_attr_get(thread, id_datadog_di_thread_generation);
   if (NIL_P(generation)) {
     generation = ULL2NUM(++generation_counter);
     rb_ivar_set(thread, id_datadog_di_thread_generation, generation);
