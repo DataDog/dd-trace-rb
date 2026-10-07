@@ -31,11 +31,15 @@ if Gem.loaded_specs.key?("bundler-audit")
       if findings.empty?
         puts "No high or critical advisories found."
       else
-        # One log line per finding; on GitHub Actions a single summary
-        # annotation, because one annotation per finding floods the PR view.
-        findings.each do |finding|
-          severity = finding.criticality || "severity unknown"
-          puts "#{finding.lockfile}: #{finding.gem} #{finding.version} - #{finding.id} (#{severity})"
+        # Column-aligned table in the job log; on GitHub Actions a single
+        # summary annotation, because one annotation per finding floods the PR view.
+        rows = [["Lockfile", "Gem", "Version", "Advisory"]] +
+          findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
+        widths = rows.first.each_index.map { |i| rows.map { |r| r[i].length }.max }
+        rows.each_with_index do |row, index|
+          puts row.each_with_index.map { |c, i| c.ljust(widths[i]) }.join("  ").rstrip
+          next unless index.zero?
+          puts widths.map { |w| "-" * w }.join("  ")
         end
         if ENV["GITHUB_ACTIONS"] == "true"
           affected = findings.map { |f| "#{f.gem} #{f.version}" }.uniq.join(", ")
