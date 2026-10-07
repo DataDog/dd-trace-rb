@@ -121,6 +121,18 @@ jobs:
       - name: Install and run dependency audit
         run: .github/scripts/check/dependency_audit.sh
 
+  simple-english:
+    name: simple-english/lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install simple-english
+        run: gem install --no-document simple_english:0.6.0
+      - name: Lint the dependency audit doc
+        run: se docs/DependencyAudit.md
+
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
   green-ci-exclude-metrics:
@@ -290,6 +302,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
+      - 'simple-english'
       - 'green-ci-exclude-metrics'
       - 'changelog'
     runs-on: ubuntu-24.04
