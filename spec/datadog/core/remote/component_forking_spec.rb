@@ -80,8 +80,7 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect_in_fork do
           child_component = components.remote
 
-          # Remote config should still be started
-          expect(child_component.started?).to be true
+          expect(child_component.started?).to be false
 
           # Client should be a new instance
           expect(child_component.client.object_id).not_to eq(parent_client_object_id)
@@ -219,12 +218,13 @@ RSpec.describe Datadog::Core::Remote::Component do
     end
 
     it "sends requests with different client IDs from parent and child processes" do
-      # Start remote config and wait for first sync
-      result = component.barrier(:once)
-      expect(result).to eq(:lift)
+      expect(component.barrier(:once)).to eq(:lift)
+      expect(component.barrier(:once)).to eq(:pass)
+      expect(component.healthy).to be true
 
-      # Get parent requests (barrier already waited for sync to complete)
-      parent_requests = received_requests.select { |r| r[:endpoint] == "/v0.7/config" }
+      parent_requests = request_mutex.synchronize do
+        received_requests.select { |r| r[:endpoint] == "/v0.7/config" }
+      end
       expect(parent_requests).not_to be_empty
 
       parent_client_id = parent_requests.first[:client_id]
@@ -232,47 +232,46 @@ RSpec.describe Datadog::Core::Remote::Component do
       expect(parent_client_id).to be_valid_uuid
       expect(parent_runtime_id).to be_valid_uuid
 
-      # Record the parent PID
-      parent_pid = Process.pid
+      reader, writer = IO.pipe
+      begin
+        expect_in_fork do
+          reader.close
+          child_component = components.remote
+          expect(child_component).not_to be_started
+          expect(child_component.healthy).to be false
+          expect(Thread.list.map(&:name)).not_to include(Datadog::Core::Remote::Worker.name)
 
-      # Fork and verify child behavior
-      expect_in_fork do
-        child_pid = Process.pid
-        expect(child_pid).not_to eq(parent_pid)
+          expect(child_component.barrier(:once)).to eq(:lift)
+          expect(child_component.healthy).to be true
+          expect(child_component.barrier(:once)).to eq(:pass)
 
-        # Get the remote component - after_fork should have run
-        child_component = components.remote
-        child_client_id = child_component.client.id
-        child_runtime_id = Datadog::Core::Environment::Identity.id
-
-        # Client ID should be different after fork
-        expect(child_client_id).not_to eq(parent_client_id)
-        expect(child_client_id).to be_valid_uuid
-
-        # Runtime ID should also be different
-        expect(child_runtime_id).not_to eq(parent_runtime_id)
-        expect(child_runtime_id).to be_valid_uuid
-
-        # Start the worker in the child process (after_fork recreates the client but doesn't restart the worker).
-        # The barrier call starts the worker via `start`, though `wait_once` immediately returns :pass
-        # because the barrier state was inherited from the parent with @once = true.
-        result = child_component.barrier(:once)
-
-        # In the child, barrier returns :pass because the barrier was already lifted in the parent before fork
-        expect(result).to eq(:pass)
-
-        # Check if child made requests (server runs in parent, receives requests from child)
-        # Note: received_requests is modified by the parent process's HTTP server
-        # when it handles requests from the child
-        child_requests = received_requests.select do |r|
-          r[:endpoint] == "/v0.7/config" && r[:client_id] == child_client_id
+          writer.write(JSON.dump(
+            client_id: child_component.client.id,
+            runtime_id: Datadog::Core::Environment::Identity.id,
+          ))
+        ensure
+          child_component&.shutdown!
+          writer.close
         end
 
-        # If we got requests, verify they have the right IDs
-        if child_requests.any?
-          expect(child_requests.first[:client_id]).to eq(child_client_id)
-          expect(child_requests.first[:runtime_id]).to eq(child_runtime_id)
+        writer.close
+        child = JSON.parse(reader.read, symbolize_names: true)
+        expect(child[:client_id]).to be_valid_uuid
+        expect(child[:client_id]).not_to eq(parent_client_id)
+        expect(child[:runtime_id]).to be_valid_uuid
+        expect(child[:runtime_id]).not_to eq(parent_runtime_id)
+
+        child_requests = request_mutex.synchronize do
+          received_requests.select { |r| r[:endpoint] == "/v0.7/config" && r[:client_id] == child[:client_id] }
         end
+        expect(child_requests).not_to be_empty
+        expect(child_requests).to all(include(runtime_id: child[:runtime_id]))
+        expect(component).to be_started
+        expect(component.client.id).to eq(parent_client_id)
+        expect(component.barrier(:once)).to eq(:pass)
+      ensure
+        reader.close
+        writer.close unless writer.closed?
       end
     end
 
