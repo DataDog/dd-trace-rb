@@ -1,6 +1,6 @@
 {
-  "type": "Added",
+  "message": "Dynamic Instrumentation: snapshots now carry an execution-context generation token to disambiguate reused thread ids.",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6233",
-  "message": "Add a `generation` field to snapshots that identifies the thread that captured them, so snapshots from different threads remain distinguishable even when thread ids are reused."
+  "type": "Added"
 }
