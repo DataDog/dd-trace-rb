@@ -43,15 +43,16 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
         FileUtils.mkdir_p(File.dirname(output_path))
         File.write(output_path, JSON.pretty_generate(findings.map(&:to_h)))
 
+        puts
         puts "Dependency audit failed: #{findings.size} high/critical advisory match(es) " \
           "in #{findings.map(&:lockfile).uniq.size} lockfiles."
+        puts
         puts "Fix or document them per docs/DevelopmentGuide.md#dependency-audit-bundler-audit " \
           "(details below, also written to #{output_path})."
         puts
-        # thor ships with bundler-audit (its CLI is built on it), so the table
-        # renderer needs no separate install.
         puts Thor::Shell::Basic.new.print_table(
-          [%w[Lockfile Gem Version Advisory]] + findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
+          [%w[Lockfile Gem Version Advisory]] + findings.map { |f| [f.lockfile, f.gem, f.version, f.id] },
+          {borders: true}
         )
         exit(1)
       end
