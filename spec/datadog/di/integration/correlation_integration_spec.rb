@@ -128,6 +128,31 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
     end
 
+    it "starves the next trace's capturing probes once TOP_RATE traces have established units" do
+      # Freeze the time provider so the process-wide TOP bucket does not
+      # refill while this example drives its traces.
+      frozen_time = Datadog::Core::Utils::Time.get_time
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
+      probe_manager.add_probe(method_probe("p-alpha", "alpha"))
+
+      # One emit per trace keeps GLOBAL positive, so TOP is the gate the
+      # starved trace fails.
+      1.upto(Datadog::DI::CorrelationSampler::TOP_RATE) do |trace_index|
+        stub_trace(trace_index, span_id)
+        CorrelationIntegrationTestClass.new.inner
+      end
+
+      starved_trace_id = Datadog::DI::CorrelationSampler::TOP_RATE + 1
+      stub_trace(starved_trace_id, span_id)
+      CorrelationIntegrationTestClass.new.alpha
+      flush
+
+      expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::TOP_RATE)
+      expect(snapshots.map { |snapshot| snapshot[:"dd.trace_id"] }).to_not include(starved_trace_id.to_s)
+    end
+
     it "bounds one probe to the per-probe counter within a trace" do
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
