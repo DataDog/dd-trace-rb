@@ -124,6 +124,8 @@ jobs:
   document-lint:
     name: document-lint
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
