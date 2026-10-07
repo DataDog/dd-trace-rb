@@ -27,6 +27,8 @@ class SupportedVersionsGenerator
 
   def generate
     entries = Datadog::Tracing::Contrib::REGISTRY.map { |entry| build_entry(entry) }.compact
+    makara = build_makara_entry
+    entries << makara if makara
     entries.sort_by! { |entry| [entry[:integrationName], entry[:dependencyName]] }
     File.write(OUTPUT_PATH, "#{JSON.pretty_generate(entries)}\n")
   end
@@ -44,6 +46,24 @@ class SupportedVersionsGenerator
       integrationName: integration.name.to_s,
       autoInstrumented: integration.auto_instrument?,
       versions: build_versions(tested, supported_range(integration.class, dependency_name)),
+    }
+  end
+
+  # Makara is instrumented and tested through ActiveRecord, without its own registry entry.
+  def build_makara_entry
+    integration = Datadog::Tracing::Contrib::REGISTRY[:active_record]
+    tested = tested_versions(integration, "makara")
+    tested.delete_if do |ruby_version, _|
+      versions = locked_versions(lockfile_path(ruby_version, "relational_db"))
+      Gem::Version.new(versions.fetch("activerecord")) >= Gem::Version.new("7.2")
+    end
+    return if tested.empty?
+
+    {
+      dependencyName: "makara",
+      integrationName: integration.name.to_s,
+      autoInstrumented: integration.auto_instrument?,
+      versions: build_versions(tested, ">=0.5.1"),
     }
   end
 
