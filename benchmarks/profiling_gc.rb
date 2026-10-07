@@ -35,6 +35,9 @@ class ProfilerGcBenchmark
       x.compare!
     end
 
+    # Flush accumulated data in profile
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
+
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
@@ -125,7 +128,7 @@ class ProfilerGcBenchmark
       x.compare!
     end
 
-    Datadog.send(:components).profiler.send(:worker).prepare_serialize.serialize!
+    Datadog.shutdown!
   end
 end
 
