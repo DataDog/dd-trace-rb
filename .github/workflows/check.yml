@@ -128,11 +128,6 @@ jobs:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:audit
-      - name: Link to fix instructions
-        if: failure()
-        env:
-          DOC_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/DevelopmentGuide.md#dependency-audit-bundler-audit
-        run: echo "::error title=Dependency audit failed::See $DOC_URL for how to reproduce this locally and how to fix or document a CVE finding."
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.

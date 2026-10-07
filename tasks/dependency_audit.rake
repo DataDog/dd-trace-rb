@@ -31,17 +31,19 @@ if Gem.loaded_specs.key?("bundler-audit")
       if findings.empty?
         puts "No high or critical advisories found."
       else
-        # On GitHub Actions, also emit `::error` annotations so findings surface
-        # on the lockfile that contains them, not just in the job log.
-        in_ci = ENV["GITHUB_ACTIONS"] == "true"
+        # One log line per finding; on GitHub Actions a single summary
+        # annotation, because one annotation per finding floods the PR view.
         findings.each do |finding|
           severity = finding.criticality || "severity unknown"
-          if in_ci
-            puts "::error file=#{finding.lockfile},title=#{finding.gem} #{finding.version} #{finding.id}::" \
-              "#{finding.id}: #{finding.gem} #{finding.version} (#{severity}) in #{finding.lockfile}"
-          else
-            puts "#{finding.lockfile}: #{finding.gem} #{finding.version} - #{finding.id} (#{severity})"
-          end
+          puts "#{finding.lockfile}: #{finding.gem} #{finding.version} - #{finding.id} (#{severity})"
+        end
+        if ENV["GITHUB_ACTIONS"] == "true"
+          affected = findings.map { |f| "#{f.gem} #{f.version}" }.uniq.join(", ")
+          doc_url = "#{ENV["GITHUB_SERVER_URL"]}/#{ENV["GITHUB_REPOSITORY"]}/blob/#{ENV["GITHUB_SHA"]}" \
+            "/docs/DevelopmentGuide.md#dependency-audit-bundler-audit"
+          puts "::error title=Dependency audit failed::#{findings.size} high/critical advisory match(es) in " \
+            "#{findings.map(&:lockfile).uniq.size} lockfiles, affecting: #{affected}. " \
+            "See the job log for the full list. Fix or document the findings: #{doc_url}"
         end
         abort("Dependency audit failed: #{findings.size} high/critical advisory match(es) listed above.")
       end
