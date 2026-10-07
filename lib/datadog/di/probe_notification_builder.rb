@@ -4,7 +4,6 @@
 
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
-require_relative "thread_generation"
 
 module Datadog
   module DI
@@ -378,9 +377,7 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
-            # Execution-context generation token for the thread that
-            # captured this snapshot.
-            generation: DI::ThreadGeneration.current,
+            generation: DI.current_thread_generation,
             version: 2,
           },
           runtime_id: Core::Environment::Identity.id,
