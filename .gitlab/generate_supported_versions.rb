@@ -15,7 +15,7 @@ class SupportedVersionsGenerator
   OUTPUT_PATH = File.join(ROOT, "supported_versions.json")
   MATRIX = eval(File.read(File.join(ROOT, "Matrixfile"))).freeze # rubocop:disable Security/Eval
 
-  # Not locked in gemfiles: the tested Ruby version is the tested gem version.
+  # net-http is part of Ruby's standard library, so we use the Ruby version as a proxy.
   RUBY_BUNDLED_GEMS = ["net-http"].freeze
 
   # Specs that don't run under a Matrixfile task named after the integration directory.
