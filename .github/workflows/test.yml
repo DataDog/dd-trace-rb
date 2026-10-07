@@ -26,7 +26,6 @@ jobs:
       engine: ruby
       version: "4.0"
       alias: ruby-40
-      installed-cache-enabled: true
 
   ruby-34:
     name: "Ruby 3.4"
@@ -35,7 +34,6 @@ jobs:
       engine: ruby
       version: "3.4"
       alias: ruby-34
-      installed-cache-enabled: true
 
   ruby-33:
     name: "Ruby 3.3"
@@ -44,7 +42,6 @@ jobs:
       engine: ruby
       version: "3.3"
       alias: ruby-33
-      installed-cache-enabled: true
 
   ruby-32:
     name: "Ruby 3.2"
@@ -53,7 +50,6 @@ jobs:
       engine: ruby
       version: "3.2"
       alias: ruby-32
-      installed-cache-enabled: true
 
   ruby-31:
     name: "Ruby 3.1"
@@ -62,7 +58,6 @@ jobs:
       engine: ruby
       version: "3.1"
       alias: ruby-31
-      installed-cache-enabled: true
 
   ruby-30:
     name: "Ruby 3.0"
@@ -71,7 +66,6 @@ jobs:
       engine: ruby
       version: "3.0"
       alias: ruby-30
-      installed-cache-enabled: true
 
   ruby-27:
     name: "Ruby 2.7"
@@ -80,7 +74,6 @@ jobs:
       engine: ruby
       version: "2.7"
       alias: ruby-27
-      installed-cache-enabled: true
 
   ruby-26:
     name: "Ruby 2.6"
@@ -89,7 +82,6 @@ jobs:
       engine: ruby
       version: "2.6"
       alias: ruby-26
-      installed-cache-enabled: true
 
   ruby-25:
     name: "Ruby 2.5"
@@ -98,7 +90,6 @@ jobs:
       engine: ruby
       version: "2.5"
       alias: ruby-25
-      installed-cache-enabled: true
 
   junit:
     name: dd/junit

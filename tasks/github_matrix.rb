@@ -11,8 +11,6 @@ class GithubMatrix
     dalli
   ].freeze
 
-  attr_reader :ruby_version
-
   def initialize(
     ruby_version: RUBY_VERSION[0..2],
     gemfile_resolver: nil
@@ -48,7 +46,7 @@ class GithubMatrix
   def matching_entries
     matrix.each_with_object([]) do |(key, spec_metadata), entries|
       spec_metadata.each do |group, rubies|
-        entries << [key, group] if rubies.include?("✅ #{ruby_version}")
+        entries << [key, group] if rubies.include?("✅ #{@ruby_version}")
       end
     end
   end

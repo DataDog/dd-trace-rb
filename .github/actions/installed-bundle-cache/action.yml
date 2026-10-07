@@ -11,8 +11,7 @@ inputs:
     required: true
   write-enabled:
     description: Whether a miss may build and save current bundle
-    required: false
-    default: "false"
+    required: true
 
 outputs:
   cache-key:
@@ -26,47 +25,32 @@ outputs:
     value: ${{ steps.base-bundle.outputs.lockfile }}
   ready:
     description: Whether complete bundle is available to child jobs
-    value: ${{ steps.result.outputs.ready }}
+    value: ${{ steps.lookup.outputs.cache-hit == 'true' || inputs.write-enabled == 'true' }}
 
 runs:
   using: composite
   steps:
-    - id: ruby-environment
-      name: Compute base Ruby environment
-      shell: bash
-      run: |
-        value=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")')
-        echo "value=$value" >> "$GITHUB_OUTPUT"
     - id: base-key
       name: Compute base bundle key
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        LOCKFILE_HASH: ${{ hashFiles(format('{0}.lock', inputs.base-gemfile)) }}
-        RUBY_ENVIRONMENT: ${{ steps.ruby-environment.outputs.value }}
+        IMAGE_IDENTITY: ${{ inputs.image-identity }}
       run: |
-        lockfile="$BASE_GEMFILE.lock"
-        if [ ! -f "$lockfile" ]; then
-          echo "::error::Expected lockfile $lockfile not found." >&2
-          exit 1
-        fi
-        if [ -z "$LOCKFILE_HASH" ]; then
-          echo "::error::Could not hash lockfile $lockfile." >&2
-          exit 1
-        fi
-        echo "cache-key=bundle-$RUBY_ENVIRONMENT-$LOCKFILE_HASH" >> "$GITHUB_OUTPUT"
+        cache_key=$(ruby tasks/installed_bundle_cache.rb base-key \
+          --base-gemfile "$BASE_GEMFILE" \
+          --image-identity "$IMAGE_IDENTITY")
+        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: installed-key
       name: Compute installed bundle key
       shell: bash
       env:
         BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        IMAGE_IDENTITY: ${{ inputs.image-identity }}
       run: |
         cache_key=$(ruby tasks/installed_bundle_cache.rb key \
           --base-gemfile "$BASE_GEMFILE" \
-          --base-cache-key "$BASE_CACHE_KEY" \
-          --image-identity "$IMAGE_IDENTITY")
+          --base-cache-key "$BASE_CACHE_KEY")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: lookup
       name: Find installed bundle
@@ -101,15 +85,3 @@ runs:
       with:
         key: ${{ steps.installed-key.outputs.cache-key }}
         path: /usr/local/bundle
-    - id: result
-      shell: bash
-      env:
-        EXACT_HIT: ${{ steps.lookup.outputs.cache-hit }}
-        WRITE_ENABLED: ${{ inputs.write-enabled }}
-      run: |
-        if [ "$EXACT_HIT" = "true" ] || [ "$WRITE_ENABLED" = "true" ]; then
-          ready=true
-        else
-          ready=false
-        fi
-        echo "ready=$ready" >> "$GITHUB_OUTPUT"

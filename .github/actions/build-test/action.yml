@@ -12,8 +12,7 @@ inputs:
     required: true
   install-dependencies:
     description: 'Install dependencies required by this batch'
-    required: false
-    default: 'true'
+    required: true
 
 runs:
   using: "composite"

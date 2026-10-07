@@ -1,6 +1,4 @@
 require "spec_helper"
-require "open3"
-require "tempfile"
 require "yaml"
 
 RSpec.describe "installed bundle cache workflow" do
@@ -16,6 +14,12 @@ RSpec.describe "installed bundle cache workflow" do
       aliases: true,
     )
   end
+  let(:build_action) do
+    YAML.safe_load_file(
+      File.expand_path("../../.github/actions/build-test/action.yml", __dir__),
+      aliases: true,
+    )
+  end
   let(:production_workflow) do
     YAML.safe_load_file(
       File.expand_path("../../.github/workflows/test.yml", __dir__),
@@ -23,16 +27,6 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
   let(:steps) { action.fetch("runs").fetch("steps") }
-
-  def run_output(script, environment)
-    Tempfile.create do |output|
-      env = environment.merge("GITHUB_OUTPUT" => output.path)
-      _stdout, stderr, status = Open3.capture3(env, "bash", "-c", script)
-      raise stderr unless status.success?
-
-      File.readlines(output.path, chomp: true).to_h { |line| line.split("=", 2) }
-    end
-  end
 
   it "uses a lookup-only parent probe" do
     lookup = steps.find { |step| step["id"] == "lookup" }
@@ -56,22 +50,14 @@ RSpec.describe "installed bundle cache workflow" do
     base_key = steps.find { |step| step["id"] == "base-key" }
     installed_key = steps.find { |step| step["id"] == "installed-key" }
 
-    expect(base_key.fetch("env").fetch("LOCKFILE_HASH")).to include("hashFiles")
+    expect(base_key.fetch("run")).to include("base-key", '--image-identity "$IMAGE_IDENTITY"')
     expect(installed_key.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
     expect(installed_key.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
 
   it "reports whether the exact cache is ready" do
-    result = steps.find { |step| step["id"] == "result" }.fetch("run")
-
-    expect(run_output(result, "EXACT_HIT" => "true", "WRITE_ENABLED" => "false")).to include(
-      "ready" => "true",
-    )
-    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "true")).to include(
-      "ready" => "true",
-    )
-    expect(run_output(result, "EXACT_HIT" => "false", "WRITE_ENABLED" => "false")).to include(
-      "ready" => "false",
+    expect(action.fetch("outputs").fetch("ready").fetch("value")).to eq(
+      "${{ steps.lookup.outputs.cache-hit == 'true' || inputs.write-enabled == 'true' }}",
     )
   end
 
@@ -114,21 +100,26 @@ RSpec.describe "installed bundle cache workflow" do
 
     expect(outputs.fetch("cache-key")).to include("installed-bundle-cache.outputs.base-cache-key")
     expect(outputs.fetch("lockfile")).to include("installed-bundle-cache.outputs.base-lockfile")
-    expect(batch_steps).not_to include(include("name" => "Prepare fallback bundle cache"))
+    expect(batch_steps).not_to include(include("name" => "Prepare bundle cache"))
   end
 
-  it "maps fallback tasks to the committed runtime Gemfile" do
+  it "runs bootstrap tasks without Bundler" do
     batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
     batches = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
     summary = batch_steps.find { |step| step["name"] == "Generate batch summary" }
 
-    expect(batches.fetch("run")).to include(
-      "rake -f tasks/github.rake github:generate_batches",
-      "bundle exec rake github:generate_batches",
-    )
-    expect(summary.fetch("run")).to include(
-      "rake -f tasks/github.rake github:generate_batch_summary",
-      "bundle exec rake github:generate_batch_summary",
+    expect(batches.fetch("run")).to include("rake -f tasks/github.rake github:generate_batches")
+    expect(summary.fetch("run")).to eq("rake -f tasks/github.rake github:generate_batch_summary")
+  end
+
+  it "skips batch dependency installation when the union is ready" do
+    install = build_action.fetch("runs").fetch("steps").find do |step|
+      step["name"] == "Install batch dependencies"
+    end
+
+    expect(install).to include(
+      "if" => "inputs.install-dependencies == 'true'",
+      "run" => "bundle exec rake github:run_batch_build",
     )
   end
 
@@ -150,7 +141,7 @@ RSpec.describe "installed bundle cache workflow" do
     end
   end
 
-  it "enables the installed cache for every production Ruby version" do
+  it "uses the installed cache workflow for every production Ruby version" do
     jobs = production_workflow.fetch("jobs")
     runtime_jobs = jobs.select { |_name, job| job["uses"] == "./.github/workflows/_unit_test.yml" }
 
@@ -165,9 +156,18 @@ RSpec.describe "installed bundle cache workflow" do
       "ruby-26",
       "ruby-25",
     )
-    expect(runtime_jobs.values).to all(
-      satisfy { |job| job.fetch("with").fetch("installed-cache-enabled") == true }
-    )
+  end
+
+  it "uses the same engine image identity in the parent and children" do
+    jobs = workflow.fetch("jobs")
+    batch_image = jobs.fetch("batch").fetch("container").fetch("image")
+    prepare = jobs.fetch("batch").fetch("steps").find do |step|
+      step["name"] == "Prepare installed matrix bundle cache"
+    end
+
+    expect(prepare.fetch("with").fetch("image-identity")).to eq(batch_image)
+    expect(jobs.fetch("build-test-standard").fetch("container").fetch("image")).to eq(batch_image)
+    expect(jobs.fetch("build-test-misc").fetch("container").fetch("image")).to eq(batch_image)
   end
 
   it "permits writes only from the default branch" do
