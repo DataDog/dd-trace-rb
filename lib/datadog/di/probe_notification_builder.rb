@@ -5,7 +5,6 @@
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
-require_relative "thread_generation"
 
 module Datadog
   module DI
@@ -397,9 +396,7 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
-            # Execution-context generation token for the thread that
-            # captured this snapshot.
-            generation: DI::ThreadGeneration.current,
+            generation: DI.current_thread_generation,
           },
           # Per-process identity, distinguishing snapshots before and after a
           # restart inside the same container.

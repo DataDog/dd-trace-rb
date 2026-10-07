@@ -1,6 +1,5 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe_notification_builder"
-require "datadog/di/thread_generation"
 require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
@@ -280,9 +279,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       expect(payload[:runtime_id]).to eq(Datadog::Core::Environment::Identity.id)
     end
 
-    it "includes the execution-context generation token in the logger object" do
+    it "includes the thread generation token in the logger object" do
       expect(payload[:logger][:generation]).to be_an(Integer)
-      expect(payload[:logger][:generation]).to eq(Datadog::DI::ThreadGeneration.current)
+      expect(payload[:logger][:generation]).to eq(Datadog::DI.current_thread_generation)
     end
 
     context "with template" do
