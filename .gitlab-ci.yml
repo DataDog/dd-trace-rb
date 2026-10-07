@@ -38,6 +38,7 @@ variables:
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby-notifications"
   OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
   LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
+  SUPPORTED_VERSIONS_GENERATOR: ".gitlab/generate_supported_versions.rb"
 
 default:
   tags: ["arch:amd64"]
@@ -183,6 +184,13 @@ requirements_json_test:
   variables:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
+
+# One-pipeline's packaging image has no Ruby.
+generate-supported-versions:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends awscli
+    - bundle install
 
 configure_system_tests:
   variables:

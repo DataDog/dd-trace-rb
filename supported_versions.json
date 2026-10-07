@@ -1,0 +1,2451 @@
+[
+  {
+    "dependencyName": "actioncable",
+    "integrationName": "action_cable",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.10",
+          "8.0.5.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "8.0.5.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "actionmailer",
+    "integrationName": "action_mailer",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "6.1.7.10",
+          "8.0.5.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=5.0.0",
+        "tested": [
+          "8.0.5.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "actionpack",
+    "integrationName": "action_pack",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "5.2.8.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.8.4",
+          "7.1.3.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.10",
+          "7.1.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.10",
+          "7.1.6",
+          "8.0.5.1",
+          "8.1.3.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "actionview",
+    "integrationName": "action_view",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "5.2.8.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.0.6.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.8"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.2.3.2"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "activejob",
+    "integrationName": "active_job",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "4.2.11.3",
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "6.1.7.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "6.1.7.10",
+          "8.0.5.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4.2",
+        "tested": [
+          "8.0.5.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "active_model_serializers",
+    "integrationName": "active_model_serializers",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=0.9.0",
+        "tested": [
+          "0.10.13"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.9.0",
+        "tested": [
+          "0.10.16"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=0.9.0",
+        "tested": [
+          "0.10.14"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "activerecord",
+    "integrationName": "active_record",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "5.2.8.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.0.6.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.8"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.2.3.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.10"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "activesupport",
+    "integrationName": "active_support",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "5.2.8.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.0.6.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.0.8"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "7.2.3.2"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "aws-sdk",
+    "integrationName": "aws",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=2.0",
+        "tested": [
+          "3.1.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0",
+        "tested": [
+          "3.3.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "concurrent-ruby",
+    "integrationName": "concurrent_ruby",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.9",
+        "tested": [
+          "1.3.8"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "dalli",
+    "integrationName": "dalli",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "3.2.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.7.11",
+          "3.2.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.7.11",
+          "4.3.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.7.11",
+          "5.1.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "delayed_job",
+    "integrationName": "delayed_job",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=4.1",
+        "tested": [
+          "4.1.11"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4.1",
+        "tested": [
+          "4.1.13"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "elasticsearch",
+    "integrationName": "elasticsearch",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=1.0.0",
+        "tested": [
+          "7.17.11",
+          "8.19.3"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.0.0",
+        "tested": [
+          "7.17.11",
+          "9.5.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "ethon",
+    "integrationName": "ethon",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=0.11.0",
+        "tested": [
+          "0.16.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.11.0",
+        "tested": [
+          "0.18.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "excon",
+    "integrationName": "excon",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=0.50.0",
+        "tested": [
+          "0.109.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7",
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=0.50.0",
+        "tested": [
+          "1.2.5"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=0.50.0",
+        "tested": [
+          "1.6.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.50.0",
+        "tested": [
+          "1.7.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "faraday",
+    "integrationName": "faraday",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=0.14.0",
+        "tested": [
+          "0.14.0",
+          "1.10.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=0.14.0",
+        "tested": [
+          "0.14.0",
+          "2.8.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.14.0",
+        "tested": [
+          "2.14.4"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "grape",
+    "integrationName": "grape",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.7.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0",
+          "2.4.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0",
+          "2.4.0",
+          "3.0.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0",
+          "2.4.0",
+          "3.1.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0",
+          "2.4.0",
+          "3.2.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "1.8.0",
+          "2.4.0",
+          "3.3.5",
+          "4.0.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "graphql",
+    "integrationName": "graphql",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "tested": [
+          "2.0.32"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "tested": [
+          "1.13.25",
+          "2.0.32"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "tested": [
+          "1.13.25",
+          "2.0.32",
+          "2.1.15",
+          "2.2.17",
+          "2.3.23",
+          "2.6.11"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "grpc",
+    "integrationName": "grpc",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=1.7.0",
+        "tested": [
+          "1.48.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=1.7.0",
+        "tested": [
+          "1.65.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=1.7.0",
+        "tested": [
+          "1.73.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=1.7.0",
+        "tested": [
+          "1.80.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.7.0",
+        "tested": [
+          "1.84.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "hanami",
+    "integrationName": "hanami",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=1.0.0,<2.0.0",
+        "tested": [
+          "1.3.5"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "net-http",
+    "integrationName": "http",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": "*",
+        "tested": [
+
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "httpclient",
+    "integrationName": "httpclient",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.2.0",
+        "tested": [
+          "2.9.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "http",
+    "integrationName": "httprb",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "5.0.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "5.3.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "5.3.1",
+          "6.0.4"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "ruby-kafka",
+    "integrationName": "kafka",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.7.10",
+        "tested": [
+          "1.5.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "karafka",
+    "integrationName": "karafka",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=2.3.0",
+        "tested": [
+          "2.3.0",
+          "2.4.18"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=2.3.0",
+        "tested": [
+          "2.3.0",
+          "2.5.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.3.0",
+        "tested": [
+          "2.3.0",
+          "2.6.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "lograge",
+    "integrationName": "lograge",
+    "autoInstrumented": false,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=0.11.0",
+        "tested": [
+          "0.13.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.11.0",
+        "tested": [
+          "0.14.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "mongo",
+    "integrationName": "mongo",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=2.1.0",
+        "tested": [
+          "2.11.0",
+          "2.21.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=2.1.0",
+        "tested": [
+          "2.11.0",
+          "2.26.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.1.0",
+        "tested": [
+          "2.20.0",
+          "2.26.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "mysql2",
+    "integrationName": "mysql2",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=0.3.21",
+        "tested": [
+          "0.5.5"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.3.21",
+        "tested": [
+          "0.5.6"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "opensearch-ruby",
+    "integrationName": "opensearch",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.0.0",
+        "tested": [
+          "2.1.0",
+          "3.4.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "pg",
+    "integrationName": "pg",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=0.18.4",
+        "tested": [
+          "1.5.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=0.18.4",
+        "tested": [
+          "1.5.9"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.18.4",
+        "tested": [
+          "1.6.2"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "presto-client",
+    "integrationName": "presto",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.5.14",
+        "tested": [
+          "0.6.6"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "que",
+    "integrationName": "que",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=1.0.0.beta2",
+        "tested": [
+          "1.4.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=1.0.0.beta2",
+        "tested": [
+          "2.2.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=1.0.0.beta2",
+        "tested": [
+          "2.2.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=1.0.0.beta2",
+        "tested": [
+          "2.3.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.0.0.beta2",
+        "tested": [
+          "2.4.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "racecar",
+    "integrationName": "racecar",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=0.3.5",
+        "tested": [
+          "2.6.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=0.3.5",
+        "tested": [
+          "2.8.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=0.3.5",
+        "tested": [
+          "2.11.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=0.3.5",
+        "tested": [
+          "2.12.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "rack",
+    "integrationName": "rack",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=1.1.0",
+        "tested": [
+          "1.6.13",
+          "2.2.24",
+          "3.2.7"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.1.0",
+        "tested": [
+          "2.2.24",
+          "3.2.7"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "rails",
+    "integrationName": "rails",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "4.2.11.3",
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "5.2.8.1",
+          "6.0.6.1",
+          "6.1.7.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.2",
+          "6.1.7.6"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "6.1.7.10",
+          "8.0.5.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4",
+        "tested": [
+          "8.0.5.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "rake",
+    "integrationName": "rake",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=12.0",
+        "tested": [
+          "13.4.2"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "redis",
+    "integrationName": "redis",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=3.2",
+        "tested": [
+          "3.3.5",
+          "4.8.1",
+          "5.1.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=3.2",
+        "tested": [
+          "3.3.5",
+          "4.8.1",
+          "5.4.1"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=3.2",
+        "tested": [
+          "3.3.5",
+          "4.8.1",
+          "6.0.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "resque",
+    "integrationName": "resque",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "2.4.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "2.5.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "2.6.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.0",
+        "tested": [
+          "2.7.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "rest-client",
+    "integrationName": "rest_client",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.8",
+        "tested": [
+          "2.1.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "roda",
+    "integrationName": "roda",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=2.0.0,<4.0.0",
+        "tested": [
+          "3.70.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=2.0.0,<4.0.0",
+        "tested": [
+          "3.65.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=2.0.0,<4.0.0",
+        "tested": [
+          "3.68.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=2.0.0,<4.0.0",
+        "tested": [
+          "3.81.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0,<4.0.0",
+        "tested": [
+          "3.96.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "semantic_logger",
+    "integrationName": "semantic_logger",
+    "autoInstrumented": false,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=4.0.0",
+        "tested": [
+          "4.12.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=4.0.0",
+        "tested": [
+          "4.13.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=4.0.0",
+        "tested": [
+          "4.15.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=4.0.0",
+        "tested": [
+          "4.17.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "sequel",
+    "integrationName": "sequel",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=3.41",
+        "tested": [
+          "5.108.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "shoryuken",
+    "integrationName": "shoryuken",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=3.2",
+        "tested": [
+          "6.0.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=3.2",
+        "tested": [
+          "7.0.4"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "sidekiq",
+    "integrationName": "sidekiq",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=3.5.4",
+        "tested": [
+          "6.5.8"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=3.5.4",
+        "tested": [
+          "7.0.8"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=3.5.4",
+        "tested": [
+          "7.1.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4"
+          ]
+        },
+        "supportedRange": ">=3.5.4",
+        "tested": [
+          "8.0.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=3.5.4",
+        "tested": [
+          "8.0.7"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "sinatra",
+    "integrationName": "sinatra",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=1.4",
+        "tested": [
+          "2.2.4"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6",
+            "2.7"
+          ]
+        },
+        "supportedRange": ">=1.4",
+        "tested": [
+          "2.2.4",
+          "3.2.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=1.4",
+        "tested": [
+          "2.2.4",
+          "3.2.0",
+          "4.2.1"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "kicks",
+    "integrationName": "sneakers",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7"
+          ]
+        },
+        "tested": [
+          "3.0.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0"
+          ]
+        },
+        "tested": [
+          "3.0.0",
+          "3.3.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "tested": [
+          "3.0.0",
+          "3.4.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "sneakers",
+    "integrationName": "sneakers",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "tested": [
+          "2.12.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "stripe",
+    "integrationName": "stripe",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5"
+          ]
+        },
+        "supportedRange": ">=5.15.0",
+        "tested": [
+          "5.15.0",
+          "15.5.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.6"
+          ]
+        },
+        "supportedRange": ">=5.15.0",
+        "tested": [
+          "5.15.0",
+          "18.4.2"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=5.15.0",
+        "tested": [
+          "5.15.0",
+          "19.6.2"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "sucker_punch",
+    "integrationName": "sucker_punch",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "2.5",
+            "2.6",
+            "2.7",
+            "3.0",
+            "3.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "3.1.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "3.2.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "trilogy",
+    "integrationName": "trilogy",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.0",
+            "3.1",
+            "3.2"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.6.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.3"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.7.0"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.0.0",
+        "tested": [
+          "2.9.0"
+        ]
+      }
+    ]
+  },
+  {
+    "dependencyName": "waterdrop",
+    "integrationName": "waterdrop",
+    "autoInstrumented": true,
+    "versions": [
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.1"
+          ]
+        },
+        "supportedRange": ">=2.8.8.rc1",
+        "tested": [
+          "2.8.8.rc1",
+          "2.8.10"
+        ]
+      },
+      {
+        "testedRuntimes": {
+          "ruby": [
+            "3.2",
+            "3.3",
+            "3.4",
+            "4.0"
+          ]
+        },
+        "supportedRange": ">=2.8.8.rc1",
+        "tested": [
+          "2.8.8.rc1",
+          "2.10.5"
+        ]
+      }
+    ]
+  }
+]
