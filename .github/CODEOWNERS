@@ -4,6 +4,7 @@
 .gitlab-ci.yml @DataDog/ruby-guild
 .claude/ @DataDog/ruby-guild
 .cursor/ @DataDog/ruby-guild
+.agents/ @DataDog/ruby-guild
 .vscode/ @DataDog/ruby-guild
 .bundler-audit.yml @DataDog/ruby-guild
 .customcops.yml @DataDog/ruby-guild
@@ -36,6 +37,7 @@ LICENSE.Apache @DataDog/ruby-guild
 LICENSE.BSD3 @DataDog/ruby-guild
 NOTICE @DataDog/ruby-guild
 CHANGELOG.md @DataDog/ruby-guild
+unreleased/ @DataDog/ruby-guild
 
 # Build, release, and developer tooling
 Gemfile @DataDog/ruby-guild

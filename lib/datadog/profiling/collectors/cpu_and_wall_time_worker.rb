@@ -147,6 +147,11 @@ module Datadog
           end
         end
 
+        # @rbs return: Datadog::Profiling::StackRecorder
+        def prepare_serialize
+          self.class._native_prepare_serialize(self)
+        end
+
         #: () -> true
         def reset_after_fork
           self.class._native_reset_after_fork(self)
