@@ -79,6 +79,7 @@ module Datadog
         @stale_pending = false
         @error_handler = nil
         @initialization_ready_handler = nil
+        @waiting_component = nil
         @shutdown = false
       end
 
@@ -100,7 +101,13 @@ module Datadog
         cancel_initialization_if_shutdown!
         fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
 
-        wait_result = component.wait_for_configuration
+        @initialization_mutex.synchronize do
+          raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
+
+          @waiting_component = component
+        end
+        # Shutdown publishes this flag through the component lock; taking our mutex here would invert lock order.
+        wait_result = component.wait_for_configuration { @shutdown }
         cancel_initialization_if_shutdown!
 
         case wait_result
@@ -113,6 +120,8 @@ module Datadog
         else
           fail_initialization(component, "Feature Flags provider initialization stopped before configuration arrived")
         end
+      ensure
+        @initialization_mutex.synchronize { @waiting_component = nil }
       end
 
       def shutdown
@@ -121,6 +130,7 @@ module Datadog
         error_handler = nil
         # @type var initialization_ready_handler: Provider::provider_event_handler?
         initialization_ready_handler = nil
+        waiting_component = nil #: Component?
         @initialization_mutex.synchronize do
           return if @shutdown
 
@@ -128,10 +138,12 @@ module Datadog
           @initializing = false
           error_handler = @error_handler
           initialization_ready_handler = @initialization_ready_handler
+          waiting_component = @waiting_component
           @error_handler = nil
           @initialization_ready_handler = nil
         end
 
+        waiting_component&.wake_configuration_waiters
         configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
         if initialization_ready_handler
           configuration&.remove_handler(
@@ -238,9 +250,14 @@ module Datadog
         return unless configuration
 
         handler = @initialization_mutex.synchronize do
+          return if @shutdown
+
           @error_handler ||= ->(details) { provider_error(details) }
         end
         configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, handler)
+
+        cancelled = @initialization_mutex.synchronize { @shutdown }
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, handler) if cancelled
       end
 
       def provider_error(_details)
@@ -291,6 +308,10 @@ module Datadog
           elsif event == Component::CONFIGURATION_READY
             if @initializing
               @stale_pending = false
+              nil
+            elsif @initialization_failed && !@provider_error_observed
+              @stale_emitted = false
+              @ready_pending = true
               nil
             elsif @stale_emitted
               @stale_emitted = false

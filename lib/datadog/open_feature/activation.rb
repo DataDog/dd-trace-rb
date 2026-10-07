@@ -21,6 +21,7 @@ module Datadog
         @component = nil
         @configuration_source = nil
         @delivery_source = nil
+        @remote_receivers = nil
         @failure = nil
         @providers = {}.compare_by_identity
         @activated = false
@@ -153,6 +154,21 @@ module Datadog
         @component = nil
         @delivery_source = nil
         nil
+      rescue
+        configuration_source = @configuration_source
+        failed_component = @component
+        @component = nil
+        @configuration_source = nil
+        @delivery_source = nil
+        @activated = false
+        @delivery_started = false
+        @failure = nil
+        begin
+          configuration_source&.stop
+        ensure
+          failed_component&.shutdown!
+        end
+        raise
       end
 
       def start_delivery(source)
@@ -210,13 +226,14 @@ module Datadog
           return false
         end
 
+        receivers = @remote_receivers ||= Remote.receivers(
+          @telemetry,
+          component_provider: -> { @mutex.synchronize { @component } },
+        )
         remote.register(
           capabilities: Remote.capabilities,
           products: Remote.products,
-          receivers: Remote.receivers(
-            @telemetry,
-            component_provider: -> { @mutex.synchronize { @component } },
-          ),
+          receivers: receivers,
         )
         remote.start
         true

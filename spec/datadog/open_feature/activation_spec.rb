@@ -100,6 +100,21 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(activation.providers).to eq([provider])
     end
 
+    it "cleans up a failed agentless startup and allows another activation" do
+      allow(configuration_source).to receive(:start).and_raise("startup failed")
+
+      expect { activation.activate(provider) }.to raise_error("startup failed")
+
+      expect(activation).not_to be_activated
+      expect(activation.component).to be_nil
+      expect(configuration_source).to have_received(:stop).once
+      expect(component).to have_received(:shutdown!).once
+      expect(activation.providers).to eq([provider])
+
+      allow(configuration_source).to receive(:start).and_return(true)
+      expect(activation.activate(provider)).to be(component)
+    end
+
     it "tracks value-equal providers by identity" do
       allow(provider).to receive(:hash).and_return(0)
       allow(second_provider).to receive(:hash).and_return(0)
@@ -125,6 +140,33 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
     context "with Remote Configuration selected" do
       before { settings.feature_flags.configuration_source = "remote_config" }
+
+      [:register, :start].each do |operation|
+        it "cleans up a failed Remote Configuration #{operation} and reuses receivers on retry" do
+          registrations = []
+          allow(remote).to receive(:register) { |**options| registrations << options.fetch(:receivers) }
+          if operation == :register
+            allow(remote).to receive(:register) do |**options|
+              registrations << options.fetch(:receivers)
+              raise "startup failed" if registrations.length == 1
+            end
+          else
+            allow(remote).to receive(:start).and_raise("startup failed")
+          end
+          expect(remote).not_to receive(:shutdown!)
+
+          expect { activation.start! }.to raise_error("startup failed")
+
+          expect(activation).not_to be_activated
+          expect(activation.component).to be_nil
+          expect(component).to have_received(:shutdown!).once
+
+          allow(remote).to receive(:start).and_return(nil)
+          expect(activation.activate(provider)).to be(component)
+          expect(registrations.length).to eq(2)
+          expect(registrations.last.first).to be(registrations.first.first)
+        end
+      end
 
       it "registers and starts Remote Configuration eagerly" do
         expect(activation.start!).to be(component)

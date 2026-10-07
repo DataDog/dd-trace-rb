@@ -17,6 +17,8 @@ module Datadog
 
       @delivery_source: String?
 
+      @remote_receivers: Array[Core::Remote::Dispatcher::Receiver]?
+
       @failure: String?
 
       @providers: Hash[Provider, bool]

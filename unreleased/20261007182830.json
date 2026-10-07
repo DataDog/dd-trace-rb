@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6418",
+  "message": "Restore feature flag delivery for applications without traced requests. Agentless polling starts when the provider initializes; Remote Configuration starts during Datadog initialization when selected."
+}

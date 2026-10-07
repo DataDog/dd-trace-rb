@@ -102,13 +102,13 @@ module Datadog
         @on_configuration_change&.call(event) if event
       end
 
-      def wait_for_configuration
+      def wait_for_configuration(&cancelled)
         timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
         deadline = Core::Utils::Time.get_time + timeout_seconds
 
         @configuration_mutex.synchronize do
           loop do
-            return CONFIGURATION_SHUTDOWN if @configuration_shutdown
+            return CONFIGURATION_SHUTDOWN if @configuration_shutdown || cancelled&.call
             return CONFIGURATION_READY if @configuration_received
 
             remaining = deadline - Core::Utils::Time.get_time
@@ -117,6 +117,11 @@ module Datadog
             @configuration_condition.wait(@configuration_mutex, remaining)
           end
         end
+      end
+
+      def wake_configuration_waiters
+        @configuration_mutex.synchronize { @configuration_condition.broadcast }
+        nil
       end
 
       def configuration_received?

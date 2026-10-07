@@ -29,6 +29,8 @@ module Datadog
 
       @initialization_ready_handler: provider_event_handler?
 
+      @waiting_component: Component?
+
       @shutdown: bool
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata

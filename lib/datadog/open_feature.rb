@@ -2,6 +2,7 @@
 
 require_relative "core/configuration"
 require_relative "open_feature/configuration"
+require_relative "open_feature/configuration/source"
 
 module Datadog
   # A namespace for the OpenFeature component.
@@ -9,7 +10,7 @@ module Datadog
     Core::Configuration::Settings.extend(Configuration::Settings)
 
     def self.enabled?
-      Datadog.configuration.open_feature.enabled
+      Configuration::Source.resolve(Datadog.configuration).enabled?
     end
 
     def self.engine

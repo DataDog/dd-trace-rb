@@ -75,7 +75,9 @@ module Datadog
 
       def reconfigure!: (::String? configuration) -> void
 
-      def wait_for_configuration: () -> configuration_wait_result
+      def wait_for_configuration: () ?{ () -> bool } -> configuration_wait_result
+
+      def wake_configuration_waiters: () -> void
 
       def configuration_received?: () -> bool
 

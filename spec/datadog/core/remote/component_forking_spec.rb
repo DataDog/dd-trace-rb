@@ -93,12 +93,13 @@ RSpec.describe Datadog::Core::Remote::Component do
       end
 
       it "does not restart polling after fork" do
-        expect(component.worker.instance_variable_get(:@thr)).to be_alive
+        expect(component.worker).to be_started
 
         expect_in_fork do
           child_worker = components.remote.worker
 
-          expect(child_worker.instance_variable_get(:@thr)).not_to be_alive
+          expect(child_worker).not_to be_started
+          expect(Thread.list.map(&:name)).not_to include(Datadog::Core::Remote::Worker.name)
         end
       end
 
