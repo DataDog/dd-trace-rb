@@ -556,6 +556,14 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    #ifndef NO_T_MOVED
+      if (cfp->iseq && RB_TYPE_P((VALUE) cfp->iseq, T_MOVED)) {
+        // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
+        // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
+        continue;
+      }
+    #endif
+
     if (cfp->iseq && !cfp->pc) {
       // Fix: Do nothing -- this frame should not be used
       //

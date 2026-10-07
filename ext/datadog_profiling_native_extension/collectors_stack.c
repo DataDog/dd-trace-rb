@@ -642,8 +642,8 @@ void record_placeholder_stack(
 }
 
 bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
-  // Since this can get called from inside a signal handler, we don't want to touch the buffer if
-  // the thread was actually in the middle of marking it.
+  // While the signal handler checks if there's GC going on, it's actually possible for `sampling_buffer_mark` to
+  // still run outside of GC (see comments on that function) and thus we guard for it here.
   if (buffer->is_marking) return false;
 
   buffer->pending_sample = true;
@@ -705,12 +705,11 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
   }
 
   buffer->is_marking = true;
-  // Tell the compiler it's not allowed to reorder the `is_marking` flag with the iteration below.
+  // The sampling buffer isn't supposed to be touched during GC. Yet, marking can happen outside of GC -- in particular
+  // ObjectSpace.dump/dump_all and reachable_objects_from invoke mark callbacks outside GC to enumerate references.
+  // Thus we keep this flag to tell the signal handler "hey you're still not allowed to touch the buffer at this time".
   //
-  // Specifically, in the middle of `sampling_buffer_mark` a signal handler may execute and call
-  // `prepare_sample_thread` to add a new sample to the buffer. This flag is here to prevent that BUT we need to
-  // make sure the signal handler actually sees the flag being set.
-  //
+  // The fences ensure the compiler doesn't reorder the flags and a signal handler observes them
   // See https://github.com/ruby/ruby/pull/11036 for a similar change made to the Ruby VM with more context.
   atomic_signal_fence(memory_order_seq_cst);
 
