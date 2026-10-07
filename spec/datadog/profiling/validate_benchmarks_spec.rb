@@ -27,7 +27,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     skip("Skipping on Ruby 2.5 as it's flaky and we couldn't figure out why yet") if RubyVersion.is?("< 2.6")
   end
 
-  with_env "VALIDATE_BENCHMARK" => "true"
+  with_env "VALIDATE_BENCHMARK" => "true", "DD_TRACE_STARTUP_LOGS" => "true"
 
   benchmarks_to_validate = [
     "profiling_allocation",
