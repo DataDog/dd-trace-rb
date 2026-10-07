@@ -1240,7 +1240,11 @@ static void on_thread_begin_event(VALUE tracepoint_data, DDTRACE_UNUSED void *un
 
   VALUE thread = rb_tracearg_self(rb_tracearg_from_tracepoint(tracepoint_data));
   ENFORCE_THREAD(thread);
-  get_or_create_context_for(thread, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  // Raising here would prevent the thread from starting; a later `get_or_create_context_for` will create the missing context
+  if (current_monotonic_wall_time_ns == 0) return;
+
+  get_or_create_context_for(thread, current_monotonic_wall_time_ns);
 }
 
 #define LOGGING_GEM_PATH "/lib/logging/diagnostic_context.rb"
