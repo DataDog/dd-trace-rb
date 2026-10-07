@@ -31,15 +31,19 @@ if Gem.loaded_specs.key?("bundler-audit")
       if findings.empty?
         puts "No high or critical advisories found."
       else
-        require "json"
-        require "fileutils"
-
-        output_path = "tmp/dependency_audit_findings.json"
-        FileUtils.mkdir_p(File.dirname(output_path))
-        File.write(output_path, JSON.pretty_generate(findings.map(&:to_h)))
-
-        puts "Found #{findings.size} high/critical advisory match(es); details written to #{output_path}"
-        abort("Dependency audit failed: high/critical advisories present.")
+        # On GitHub Actions, also emit `::error` annotations so findings surface
+        # on the lockfile that contains them, not just in the job log.
+        in_ci = ENV["GITHUB_ACTIONS"] == "true"
+        findings.each do |finding|
+          severity = finding.criticality || "severity unknown"
+          if in_ci
+            puts "::error file=#{finding.lockfile},title=#{finding.gem} #{finding.version} #{finding.id}::" \
+              "#{finding.id}: #{finding.gem} #{finding.version} (#{severity}) in #{finding.lockfile}"
+          else
+            puts "#{finding.lockfile}: #{finding.gem} #{finding.version} - #{finding.id} (#{severity})"
+          end
+        end
+        abort("Dependency audit failed: #{findings.size} high/critical advisory match(es) listed above.")
       end
     end
   end
