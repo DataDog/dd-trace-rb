@@ -12,6 +12,7 @@ module Datadog
       ACTION_TAG = "ai_guard.action"
       REASON_TAG = "ai_guard.reason"
       BLOCKED_TAG = "ai_guard.blocked"
+      REDACTED_TAG = "ai_guard.redacted"
       EVENT_TAG = "ai_guard.event"
 
       METASTRUCT_TAG = "ai_guard"

@@ -21,6 +21,8 @@ module Datadog
 
         def started?: () -> bool
 
+        def after_fork: () -> void
+
         private
 
         def poll: (::Float interval) -> void

@@ -154,6 +154,38 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
   end
 
   describe "Resource Attributes" do
+    it "emits the canonical deployment environment attribute from OpenTelemetry resource attributes" do
+      setup_metrics("OTEL_RESOURCE_ATTRIBUTES" => "deployment.environment.name=production")
+
+      expect(attributes["deployment.environment.name"]).to eq("production")
+      expect(attributes).not_to have_key("deployment.environment")
+    end
+
+    it "prioritizes a programmatic stable attribute when the legacy attribute follows it" do
+      setup_metrics do |c|
+        c.tags = {
+          "deployment.environment.name" => "stable",
+          "deployment.environment" => "legacy",
+        }
+      end
+
+      expect(attributes["deployment.environment.name"]).to eq("stable")
+      expect(attributes).not_to have_key("deployment.environment")
+    end
+
+    it "prioritizes the configured environment when the stable attribute follows the legacy attribute" do
+      setup_metrics do |c|
+        c.env = "datadog"
+        c.tags = {
+          "deployment.environment" => "legacy",
+          "deployment.environment.name" => "stable",
+        }
+      end
+
+      expect(attributes["deployment.environment.name"]).to eq("datadog")
+      expect(attributes).not_to have_key("deployment.environment")
+    end
+
     it "includes service name, version, and environment from Datadog config" do
       setup_metrics(
         "DD_SERVICE" => "custom-service",
@@ -164,7 +196,8 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
       expect(attributes["service.name"]).to eq("custom-service")
       expect(attributes["service.version"]).to eq("2.0.0")
-      expect(attributes["deployment.environment"]).to eq("production")
+      expect(attributes["deployment.environment.name"]).to eq("production")
+      expect(attributes).not_to have_key("deployment.environment")
       expect(attributes["host.name"]).to eq(Datadog::Core::Environment::Socket.hostname)
     end
 
@@ -203,7 +236,8 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
 
       expect(attributes["service.name"]).to eq("test-service")
       expect(attributes["service.version"]).to eq("1.0.0")
-      expect(attributes["deployment.environment"]).to eq("test")
+      expect(attributes["deployment.environment.name"]).to eq("test")
+      expect(attributes).not_to have_key("deployment.environment")
       expect(attributes["host.name"]).to eq("myhost")
       expect(attributes["team"]).to eq("backend")
       expect(attributes["region"]).to eq("us-east-1")

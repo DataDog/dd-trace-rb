@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "message_adapter"
 require_relative "chat_instrumentation"
 
 module Datadog

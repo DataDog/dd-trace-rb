@@ -9,24 +9,89 @@ module Datadog
     # https://github.com/open-telemetry/opentelemetry-specification/blob/main/oteps/profiles/4947-thread-ctx.md
     #
     # Native functions are implemented in ext/libdatadog_api/otel_thread_context.c
-    module OTelThreadContext
-      class << self
-        def supported?
-          Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
+    class OTelThreadContext
+      UNKNOWN_LOCAL_ROOT_SPAN_ID = 0
+
+      def self.build(tracing_settings)
+        return unless tracing_settings.otel_thread_context_enabled
+
+        instance = new
+        instance if instance.supported? && instance._native_enable
+      end
+
+      def initialize
+        @span_before_start = proc do |event_span_op, event_trace_op|
+          set(
+            trace_id: event_trace_op.id,
+            span_id: event_span_op.id,
+            local_root_span_id: event_trace_op.send(:root_span).id
+          )
         end
 
-        def enable!
-          return false unless supported?
+        @span_finished = proc do |_event_span_op, event_trace_op|
+          next if event_trace_op.finished?
 
-          _native_enable
+          update_from_trace_op(event_trace_op)
+        end
+      end
+
+      private_class_method :new
+
+      def subscribe_to_tracer_events!(events)
+        events.span_before_start.subscribe(&@span_before_start)
+        events.span_finished.subscribe(&@span_finished)
+      end
+
+      def set(trace_id:, span_id:, local_root_span_id:)
+        # OTel requires trace-id and span-id to be either both set or both unset.
+        # Zeroes can be used to indicate that no trace and span are active.
+        # https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/oteps/profiles/4947-thread-ctx.md?plain=1#L116C144-L116C189
+        return clear if trace_id.zero? || span_id.zero?
+
+        _native_set(trace_id, span_id, local_root_span_id)
+      end
+
+      def after_fork
+        clear
+      end
+
+      def clear
+        _native_clear
+      rescue => e
+        Datadog.logger.debug do
+          "Error clearing OTel thread context: #{e.class}: #{e.message}"
         end
 
-        def set(trace_id:, span_id:, local_root_span_id:)
-          _native_set(trace_id, span_id, local_root_span_id)
-        end
+        false
+      end
 
-        def clear
-          _native_clear
+      def supported?
+        Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
+      end
+
+      def update_from_trace_op(trace_op)
+        active_span = trace_op.active_span
+
+        if active_span
+          # Internally created active span
+          set(
+            trace_id: trace_op.id,
+            span_id: active_span.id,
+            local_root_span_id: trace_op.send(:root_span).id
+          )
+        elsif trace_op.parent_span_id && trace_op.parent_span_id != 0
+          # Active distributed trace context, before first local trace is created
+          set(
+            trace_id: trace_op.id,
+            span_id: trace_op.parent_span_id,
+            local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID
+          )
+        else
+          clear
+        end
+      rescue => e
+        Datadog.logger.debug do
+          "Error updating OTel thread context: #{e.class}: #{e.message}"
         end
       end
     end
