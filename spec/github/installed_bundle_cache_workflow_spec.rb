@@ -51,7 +51,7 @@ RSpec.describe "installed bundle cache workflow" do
     installed_key = steps.find { |step| step["id"] == "installed-key" }
 
     expect(base_key.fetch("env").fetch("IMAGE")).to eq("${{ inputs.image }}")
-    expect(base_key.fetch("run")).to include("base-key", '--image-identity "${IMAGE##*/}"')
+    expect(base_key.fetch("run")).to include("base-key", '--image-identity "$IMAGE"')
     expect(installed_key.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
     expect(installed_key.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
