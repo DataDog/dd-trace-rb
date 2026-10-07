@@ -682,7 +682,7 @@ static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_ins
   during_sample_enter(state);
   return rb_ensure(
     thread_context_prepare_serialize, state->thread_context_collector_instance,
-    during_sample_exit_rescue, (VALUE) state
+    during_sample_exit_ensure, (VALUE) state
   );
 }
 
