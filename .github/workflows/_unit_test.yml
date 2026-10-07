@@ -43,7 +43,7 @@ jobs:
       installed-cache-key: "${{ steps.installed-bundle-cache.outputs.cache-key }}"
       installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -68,7 +68,7 @@ jobs:
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+          image: *engine-image
           write-enabled: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Generate batch summary
@@ -111,7 +111,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: *engine-image
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -209,7 +209,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: *engine-image
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
