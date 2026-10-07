@@ -83,6 +83,16 @@ RSpec.describe Lockfile do
         expect(described_class.orphaned_lockfile_paths(dir)).to eq([])
       end
     end
+
+    it "raises when the directory exists and cannot be read" do
+      Dir.mktmpdir do |dir|
+        allow(File).to receive(:readable?).and_call_original
+        allow(File).to receive(:readable?).with(dir).and_return(false)
+
+        expect { described_class.orphaned_lockfile_paths(dir) }
+          .to raise_error(ArgumentError, "Lockfiles directory not readable: #{dir}")
+      end
+    end
   end
 
   describe "#has_checksums_section?" do

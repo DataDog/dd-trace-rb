@@ -38,6 +38,8 @@ class Lockfile
   end
 
   def self.orphaned_lockfile_paths(dir)
+    raise ArgumentError, "Lockfiles directory not readable: #{dir}" if File.directory?(dir) && !File.readable?(dir)
+
     Dir.glob(File.join(dir, "*#{LOCK_EXTENSION}")).select { |path| new(path).orphaned? }.sort
   end
 
