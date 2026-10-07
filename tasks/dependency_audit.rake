@@ -1,6 +1,10 @@
 require_relative "lockfile"
 
-begin
+# The audit task runs standalone (gem-installed bundler-audit, `rake -f`),
+# not as part of the bundle, so skip defining it entirely when the gem is
+# absent -- e.g. under `bundle exec`, where requiring it would break every
+# other rake task.
+if Gem::Specification.find_all_by_name("bundler-audit").any?
   require_relative "dependency_auditing"
 
   namespace :dependency do
@@ -50,15 +54,6 @@ begin
         )
         exit(1)
       end
-    end
-  end
-rescue LoadError
-  # Define the task anyway so a missing gem install fails with instructions
-  # instead of an unknown-task error.
-  namespace :dependency do
-    task :audit do
-      abort("bundler-audit is not installed. Run: gem install bundler-audit, " \
-        "then: rake -f tasks/dependency_audit.rake dependency:audit")
     end
   end
 end
