@@ -4,5 +4,5 @@
 # full Rakefile (and its gem requirements) is never loaded.
 set -euo pipefail
 
-gem install --no-document rake:13.4.2 bundler-audit:0.9.3 terminal-table:4.0.0
+gem install --no-document rake:13.4.2 bundler-audit:0.9.3
 rake -f tasks/dependency_audit.rake dependency:audit

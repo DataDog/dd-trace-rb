@@ -37,7 +37,7 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
       else
         require "json"
         require "fileutils"
-        require "terminal-table"
+        require "thor/shell"
 
         output_path = "tmp/dependency_audit_findings.json"
         FileUtils.mkdir_p(File.dirname(output_path))
@@ -48,9 +48,10 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
         puts "Fix or document them per docs/DevelopmentGuide.md#dependency-audit-bundler-audit " \
           "(details below, also written to #{output_path})."
         puts
-        puts Terminal::Table.new(
-          headings: %w[Lockfile Gem Version Advisory],
-          rows: findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
+        # thor ships with bundler-audit (its CLI is built on it), so the table
+        # renderer needs no separate install.
+        puts Thor::Shell::Basic.new.print_table(
+          [%w[Lockfile Gem Version Advisory]] + findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
         )
         exit(1)
       end
