@@ -26,45 +26,42 @@ class SupportedVersionsGenerator
   end
 
   def generate
-    entries = Datadog::Tracing::Contrib::REGISTRY.map { |entry| build_entry(entry) }.compact
-    makara = build_makara_entry
-    entries << makara if makara
+    entries = Datadog::Tracing::Contrib::REGISTRY.map do |entry|
+      integration = entry.klass
+      dependency_name = dependency_name(entry)
+      build_entry(integration, dependency_name, supported_range(integration.class, dependency_name))
+    end.compact
+    entries.concat(exception_entries)
     entries.sort_by! { |entry| [entry[:integrationName], entry[:dependencyName]] }
     File.write(OUTPUT_PATH, "#{JSON.pretty_generate(entries)}\n")
   end
 
   private
 
-  def build_entry(entry)
-    integration = entry.klass
-    dependency_name = dependency_name(entry)
+  def build_entry(integration, dependency_name, supported_range, &filter)
     tested = tested_versions(integration, dependency_name)
+    tested.select!(&filter) if filter
     return if tested.empty?
 
     {
       dependencyName: dependency_name,
       integrationName: integration.name.to_s,
       autoInstrumented: integration.auto_instrument?,
-      versions: build_versions(tested, supported_range(integration.class, dependency_name)),
+      versions: build_versions(tested, supported_range),
     }
   end
 
-  # Makara is instrumented and tested through ActiveRecord, without its own registry entry.
-  def build_makara_entry
+  def exception_entries
+    entries = []
+    # Makara is instrumented and tested through ActiveRecord, without its own registry entry.
     integration = Datadog::Tracing::Contrib::REGISTRY[:active_record]
-    tested = tested_versions(integration, "makara")
-    tested.delete_if do |ruby_version, _|
+    range = ">=#{integration.class::MAKARA_MINIMUM_VERSION}"
+    entries << build_entry(integration, "makara", range) do |ruby_version, _|
       versions = locked_versions(lockfile_path(ruby_version, "relational_db"))
-      Gem::Version.new(versions.fetch("activerecord")) >= Gem::Version.new("7.2")
+      # Matches the Makara incompatibility skip in spec/datadog/tracing/contrib/active_record/tracer_spec.rb.
+      Gem::Version.new(versions.fetch("activerecord")) < Gem::Version.new("7.2")
     end
-    return if tested.empty?
-
-    {
-      dependencyName: "makara",
-      integrationName: integration.name.to_s,
-      autoInstrumented: integration.auto_instrument?,
-      versions: build_versions(tested, ">=0.5.1"),
-    }
+    entries.compact
   end
 
   # Aliases share the aliased integration instance, and are named after their own gem (e.g. `kicks` for `sneakers`).
