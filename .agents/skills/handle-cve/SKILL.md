@@ -1,6 +1,6 @@
 ---
 name: handle-cve
-description: 'Use when the dependency audit goes red — `rake dependency:audit` or the bundler-audit CI job — or when a newly published CVE/GHSA on a dependency gem blocks a PR.'
+description: 'Use when the dependency audit goes red — `.github/scripts/check/dependency_audit.sh` or the bundler-audit CI job — or when a newly published CVE/GHSA on a dependency gem blocks a PR.'
 ---
 
 # Handling a CVE that blocks CI (bundler-audit)
@@ -47,14 +47,15 @@ Run the audit. It scans every covered lockfile, so one container is
 enough. `docs/DevelopmentGuide.md#dependency-audit-bundler-audit` is
 authoritative on what the job covers and which advisories fail it.
 
-The findings JSON is written only on failure, and the command below
-prints it because the file stays in the container's `tmp/` volume.
-Each entry gives the advisory id, the gem and version, the
-criticality, and the lockfile.
+The audit runs standalone, outside any bundle: the script installs its
+own pinned gems and loads only the audit task. The findings JSON is
+written only on failure, and the command below prints it because the
+file stays in the container's `tmp/` volume. Each entry gives the
+advisory id, the gem and version, the criticality, and the lockfile.
 
 ```bash
 docker compose run --rm tracer-4.0 sh -c \
-  'bundle exec rake dependency:audit || cat tmp/dependency_audit_findings.json'
+  '.github/scripts/check/dependency_audit.sh || cat tmp/dependency_audit_findings.json'
 ```
 
 Every command in this skill runs inside the containers from
@@ -233,8 +234,9 @@ Validate what you changed:
 - Lockfile changed: `bundle exec rake dependency:checksum_coverage`.
   A lockfile rewrite can drop its `CHECKSUMS` section, which pins
   the content digest of every gem. This task catches the loss.
-- `.bundler-audit.yml` changed:
-  `bundle exec rspec spec/tasks/dependency_audit_spec.rb`
+- `.bundler-audit.yml` changed: the audit re-run at the end of this
+  section validates it. The ignore lists are consumed only by the
+  audit, so a green re-run is the check.
 - Gem version changed: run the blast-radius task in the containers of
   the earliest and the latest Ruby among the lockfiles that actually
   moved. A partial upgrade leaves the others on the old version, so
