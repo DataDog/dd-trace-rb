@@ -1,6 +1,6 @@
 require_relative "lockfile"
 
-if Gem.loaded_specs.key?("bundler-audit")
+begin
   require_relative "dependency_auditing"
 
   namespace :dependency do
@@ -31,23 +31,34 @@ if Gem.loaded_specs.key?("bundler-audit")
       if findings.empty?
         puts "No high or critical advisories found."
       else
-        # Column-aligned table for the job log, embedded in the single
-        # GitHub Actions annotation (%0A = escaped newline).
+        require "json"
+        require "fileutils"
         require "terminal-table"
-        table_lines = Terminal::Table.new(
+
+        output_path = "tmp/dependency_audit_findings.json"
+        FileUtils.mkdir_p(File.dirname(output_path))
+        File.write(output_path, JSON.pretty_generate(findings.map(&:to_h)))
+
+        puts "Dependency audit failed: #{findings.size} high/critical advisory match(es) " \
+          "in #{findings.map(&:lockfile).uniq.size} lockfiles."
+        puts "Fix or document them per docs/DevelopmentGuide.md#dependency-audit-bundler-audit " \
+          "(details below, also written to #{output_path})."
+        puts
+        puts Terminal::Table.new(
           headings: %w[Lockfile Gem Version Advisory],
           rows: findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
-        ).to_s.lines.map(&:chomp)
-        puts table_lines
-        if ENV["GITHUB_ACTIONS"] == "true"
-          doc_url = "#{ENV["GITHUB_SERVER_URL"]}/#{ENV["GITHUB_REPOSITORY"]}/blob/#{ENV["GITHUB_SHA"]}" \
-            "/docs/DevelopmentGuide.md#dependency-audit-bundler-audit"
-          puts "::error title=Dependency audit failed::#{findings.size} high/critical advisory match(es) " \
-            "in #{findings.map(&:lockfile).uniq.size} lockfiles. " \
-            "Fix or document the findings: #{doc_url}%0A#{table_lines.join("%0A")}"
-        end
-        abort("Dependency audit failed: #{findings.size} high/critical advisory match(es) listed above.")
+        )
+        exit(1)
       end
+    end
+  end
+rescue LoadError
+  # Define the task anyway so a missing gem install fails with instructions
+  # instead of an unknown-task error.
+  namespace :dependency do
+    task :audit do
+      abort("bundler-audit is not installed. Run: gem install bundler-audit, " \
+        "then: rake -f tasks/dependency_audit.rake dependency:audit")
     end
   end
 end

@@ -103,7 +103,6 @@ jobs:
   bundler-audit:
     name: bundler-audit
     runs-on: ubuntu-24.04
-    needs: ['build']
     # Release prep: master pushes and bump_to_version_* release PRs ship
     # lockfiles that predate the advisory database refresh, so a newly
     # published CVE there would only block the release without a fix path.
@@ -115,19 +114,14 @@ jobs:
       )
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
-      env:
-        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
-        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake dependency:audit
+      - name: Install bundler-audit
+        run: gem install --no-document rake bundler-audit
+      - name: Run dependency audit
+        run: rake -f tasks/dependency_audit.rake dependency:audit
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
