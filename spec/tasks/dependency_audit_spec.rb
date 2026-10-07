@@ -1,6 +1,6 @@
 require "spec_helper"
 
-if Gem.loaded_specs.key?("bundler-audit")
+if Gem::Specification.find_all_by_name("bundler-audit").any?
   require_relative "../../tasks/dependency_auditing"
   require "tmpdir"
 
