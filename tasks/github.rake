@@ -1,3 +1,5 @@
+require "digest"
+require "fileutils"
 require "json"
 require_relative "appraisal_conversion"
 
@@ -92,15 +94,21 @@ namespace :github do
   task :run_batch_build do
     tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
 
-    tasks.each do |task|
+    timings = tasks.map do |task|
       env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle check || bundle install"
       # Retry mechanism to improve reliability in Github Actions,
       # since network issues can cause `bundle install` to fail.
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
+      duration = measure_duration do
+        with_retry do
+          Bundler.with_unbundled_env { sh(env, cmd) }
+        end
       end
+
+      task.merge("build_seconds" => duration)
     end
+
+    write_task_timings(tasks, timings)
   end
 
   task :run_batch_tests do
@@ -108,23 +116,37 @@ namespace :github do
 
     rng = Random.new(ENV["CI_TEST_SEED"].to_i)
 
+    timings = read_task_timings(tasks)
+
     durations = tasks.map do |task|
       env = {"BUNDLE_GEMFILE" => task["gemfile"]}
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       junit_files_before = Dir["tmp/rspec/*.xml"]
 
-      begin
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      rescue RuntimeError
-        raise annotate_test_failures(env, cmd)
+      test_seconds = measure_duration do
+        begin
+          Bundler.with_unbundled_env { sh(env, cmd) }
+        rescue RuntimeError
+          raise annotate_test_failures(env, cmd)
+        end
       end
 
       junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
+      junit_seconds = junit_files_after.sum { |file| junit_suite_time(file) }
 
-      [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
+      timing = timings.find do |entry|
+        entry.values_at("task", "group", "gemfile") == task.values_at("task", "group", "gemfile")
+      end
+      timing ||= task.dup
+      timing["test_seconds"] = test_seconds
+      timing["junit_seconds"] = junit_seconds
+      timings << timing unless timings.include?(timing)
+
+      [task["task"], junit_seconds]
     end
 
+    write_task_timings(tasks, timings)
     report_task_durations(durations)
   end
 
@@ -163,6 +185,31 @@ namespace :github do
     File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
   rescue Errno::ENOENT
     0.0
+  end
+
+  def measure_duration
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    yield
+    Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+  end
+
+  def task_timings_path(tasks)
+    identity = tasks.flat_map { |task| task.values_at("task", "group", "gemfile") }.join("\0")
+    digest = Digest::SHA256.hexdigest(identity)[0, 12]
+    "tmp/ci-task-timings/#{RUBY_VERSION[0..2]}-#{digest}.json"
+  end
+
+  def read_task_timings(tasks)
+    path = task_timings_path(tasks)
+    return [] unless File.exist?(path)
+
+    JSON.parse(File.read(path)).fetch("tasks")
+  end
+
+  def write_task_timings(tasks, timings)
+    path = task_timings_path(tasks)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, JSON.pretty_generate({"ruby_version" => RUBY_VERSION[0..2], "tasks" => timings}))
   end
 
   def report_task_durations(durations)
