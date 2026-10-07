@@ -77,6 +77,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
   def macos_memory_snapshot
     [
       "/usr/bin/vm_stat",
+      "/usr/bin/memory_pressure",
       "/usr/sbin/sysctl vm.swapusage",
       "/bin/ps -A -m -o pid,ppid,rss,comm",
     ].map do |command|
