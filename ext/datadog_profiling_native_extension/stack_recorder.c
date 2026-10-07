@@ -9,7 +9,6 @@
 #include "time_helpers.h"
 #include "heap_recorder.h"
 #include "encoded_profile.h"
-#include "collectors_thread_context.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -178,10 +177,6 @@ typedef struct {
   heap_recorder *heap_recorder;
   bool heap_clean_after_gc_enabled;
 
-  // When set, _native_serialize will call thread_context_collector_on_serialize on this instance
-  // before serializing, so that threads suspended across the whole profile period still get sampled.
-  VALUE thread_context_collector_instance;
-
   pthread_mutex_t mutex_slot_one;
   profile_slot profile_slot_one;
   pthread_mutex_t mutex_slot_two;
@@ -343,7 +338,6 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   state->heap_clean_after_gc_enabled = false;
-  state->thread_context_collector_instance = Qnil;
 
   ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
 
@@ -415,7 +409,6 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Sam
 static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
-  rb_gc_mark(state->thread_context_collector_instance);
   heap_recorder_mark(state->heap_recorder);
 }
 
@@ -539,14 +532,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
-  // Need to do this while still holding the Global VM Lock; see comments on method for why
-  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
-
-  if (state->thread_context_collector_instance != Qnil) {
-    thread_context_collector_on_serialize(state->thread_context_collector_instance);
-  }
-
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding the GVL.
@@ -554,6 +539,10 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
+
+  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
+  // Need to do this while still holding the Global VM Lock; see comments on method for why
+  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -1205,11 +1194,4 @@ static VALUE _native_commit_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE re
   heap_recorder_commit_recordings_may_lose_gvl(state->heap_recorder);
 
   return Qtrue;
-}
-
-void recorder_install_on_serialize(VALUE recorder_instance, VALUE thread_context_collector_instance) {
-  stack_recorder_state *state;
-  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-
-  state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
 }

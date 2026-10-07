@@ -13,8 +13,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     expect(Thread.list).to include(*testing_threads)
   end
 
-  let(:recorder) do
-    Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true)
+  # Not a let because prepare_serialize should run before every call to serialize
+  def recorder
+    described_class::Testing._native_prepare_serialize(thread_context_collector)
   end
   let(:ready_queue) { Queue.new }
   let(:t1) do
@@ -55,7 +56,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   subject(:thread_context_collector) do
     collector = described_class.new(
-      recorder: recorder,
+      recorder: Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true),
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
@@ -200,7 +201,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     context "when otel_context_enabled has an invalid value" do
       it "raises an ArgumentError with the value formatted via PRIsVALUE" do
         expect {
-          described_class.for_testing(recorder: recorder, otel_context_enabled: :invalid)
+          described_class.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing, otel_context_enabled: :invalid)
         }.to raise_error(ArgumentError, "Unexpected value for otel_context_enabled: :invalid")
       end
     end
@@ -1226,7 +1227,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 expect(latest_sample.values.fetch(:"cpu-time")).to be 0
 
                 latest_sample = sample_and_check(expected_state: "had cpu")
-                expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
+                # This is >= and not == because while we "wait" for the thread to be marked as sleeping, we can't control
+                # if it was already completely done and stays put with no extra CPU. This caused flakiness (with valgrind) in
+                # https://github.com/DataDog/ruby-guild/issues/329 .
+                expect(latest_sample.values.fetch(:"cpu-time")).to be >= 12345
               end
             end
           end
@@ -1393,6 +1397,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     context "when thread has been sampled before" do
       before { sample }
 
+      shared_examples_for "preparing a requested sample" do
+        it "prepares the stack, attributing the next sample to the stack active inside on_gc_finish" do
+          recorder.serialize!
+          described_class::Testing._native_request_prepare_on_gc_finish
+
+          on_gc_finish
+          sample
+
+          expect(sample_for_thread(samples, Thread.current).locations.first).to have_attributes(
+            label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish",
+          )
+        end
+      end
+
       context "when on_gc_start was not called before" do
         # See comment in the actual implementation on when/why this can happen
 
@@ -1401,10 +1419,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(gc_tracking.fetch(:wall_time_at_previous_gc_ns)).to be invalid_time
         end
+
+        it_behaves_like "preparing a requested sample"
       end
 
       context "when on_gc_start was previously called" do
         before { on_gc_start }
+
+        it_behaves_like "preparing a requested sample"
 
         it "records the wall-time when garbage collection finished in the gc_tracking" do
           wall_time_before_on_gc_finish_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
@@ -2076,7 +2098,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         result = recorder.serialize!
         expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
         t1_samples = samples_for_thread(samples_from_pprof(result), t1)
-        # 2 samples: the first sample (updates snapshot) + the on-serialize flush
+        # 2 samples: the first sample (updates snapshot) + prepare_serialize
         expect(t1_samples.size).to eq(2)
         expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
 
@@ -2090,7 +2112,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         result = recorder.serialize!
         expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
         t1_samples = samples_for_thread(samples_from_pprof(result), t1)
-        # Exactly 1 sample from the on-serialize flush
+        # Exactly 1 sample from prepare_serialize
         expect(t1_samples.size).to eq(1)
         expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
       end
@@ -2117,7 +2139,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it "reports profiler-internal threads in the first reporting period" do
-      # Timestamps are seeded by initialize_context, so the first on_serialize flush
+      # Timestamps are seeded by initialize_context, so the first prepare_serialize
       # produces a real wall-time delta even without any prior sample.
       t2 = Thread.new { sleep }
       mark_thread_as_profiler_internal(t2)
@@ -2199,6 +2221,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         expect(result.locations.first).to have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
       end
+    end
+  end
+
+  describe "#request_prepare_on_gc_finish" do
+    it "sets the flag to prepare a sample at GC finish" do
+      expect { described_class::Testing._native_request_prepare_on_gc_finish }
+        .to change { per_thread_context.fetch(Thread.current).fetch(:prepare_sample_on_gc_finish) }.from(false).to(true)
     end
   end
 
@@ -2494,6 +2523,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         gvl_state_change_count: 0,
         gvl_state_change_count_at_previous_sample: 0,
         was_skipped_at_last_sample: false,
+        prepare_sample_on_gc_finish: false,
         thread_id: include(t1.object_id.to_s),
         thread_invoke_location: before_reset.fetch(t1).fetch(:thread_invoke_location),
         thread_cpu_time_id_valid?: true,

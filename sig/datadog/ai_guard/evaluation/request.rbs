@@ -4,38 +4,23 @@ module Datadog
       class Request
         REQUEST_PATH: ::String
 
-        type serialized_text_part = { type: ::String, text: ::String }
-        type serialized_image_url_part = { type: ::String, image_url: { url: ::String } }
-        type serialized_content_part = serialized_text_part | serialized_image_url_part
-
-        type serialized_message = {
-          role: ::Symbol,
-          ?content: ::String | ::Array[serialized_content_part] | nil,
-          ?tool_calls: ::Array[{
-            id: ::String,
-            function: {
-              name: ::String,
-              arguments: ::String
+        type body = {
+          data: {
+            attributes: {
+              messages: Array[Message::serialized],
+              meta: {
+                service: String?,
+                env: String?
+              }
             }
-          }],
-          ?tool_call_id: ::String?
+          }
         }
 
-        attr_reader serialized_messages: ::Array[serialized_message]
+        @messages: Array[Message]
 
         def initialize: (::Array[Message] messages) -> void
 
-        def perform: () -> Result
-
-        private
-
-        def build_request_body: () -> ::Hash[::Symbol, untyped]
-
-        def serialize_messages: (::Array[Message] messages) -> ::Array[serialized_message]
-
-        def serialize_message: (Message message) -> serialized_message
-
-        def serialize_content_parts: (::Array[Message::content_part] parts) -> ::Array[serialized_content_part]
+        def body: () -> body
       end
     end
   end

@@ -51,7 +51,7 @@ module Datadog
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
           skip_idle_samples_for_testing: false,
-          idle_sampling_helper: IdleSamplingHelper.new(thread_context_collector: thread_context_collector)
+          idle_sampling_helper: IdleSamplingHelper.new
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
@@ -98,7 +98,7 @@ module Datadog
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
-            @idle_sampling_helper.start
+            @idle_sampling_helper.start(self)
 
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
@@ -145,6 +145,11 @@ module Datadog
             @worker_thread = nil
             @failure_exception = nil
           end
+        end
+
+        # @rbs return: Datadog::Profiling::StackRecorder
+        def prepare_serialize
+          self.class._native_prepare_serialize(self)
         end
 
         #: () -> true
