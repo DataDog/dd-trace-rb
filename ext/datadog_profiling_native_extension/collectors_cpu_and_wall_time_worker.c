@@ -291,7 +291,6 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
 static VALUE handle_sampling_failure_rescued_commit_heap_recordings(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
-static VALUE during_sample_exit_rescue(VALUE state_ptr);
 static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -655,6 +654,11 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   return Qnil;
 }
 
+static VALUE during_sample_exit_ensure(VALUE state_ptr) {
+  during_sample_exit((cpu_and_wall_time_worker_state *) state_ptr);
+  return Qnil;
+}
+
 static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -662,7 +666,7 @@ static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
   during_sample_enter(state);
   return rb_ensure(
     thread_context_collector_profiler_internal_thread_done, state->thread_context_collector_instance,
-    during_sample_exit_rescue, (VALUE) state
+    during_sample_exit_ensure, (VALUE) state
   );
 }
 
@@ -1818,9 +1822,4 @@ static inline void during_sample_exit(cpu_and_wall_time_worker_state* state) {
   // happens before the fence is not reordered with the flag update.
   atomic_signal_fence(memory_order_seq_cst);
   state->during_sample = false;
-}
-
-static VALUE during_sample_exit_rescue(VALUE state_ptr) {
-  during_sample_exit((cpu_and_wall_time_worker_state *) state_ptr);
-  return Qnil;
 }
