@@ -35,9 +35,7 @@ static ID id_mesg;
 static ID id_datadog_di_in_probe;
 
 // ID for the ivar on each Thread object that holds that thread's snapshot
-// generation token. Accessed directly via rb_ivar_get / rb_ivar_set so that
-// user-installed method probes on Ruby's thread state accessors cannot
-// intercept the accesses.
+// generation token.
 static ID id_datadog_di_thread_generation;
 
 // Process-wide source of snapshot generation tokens. Incremented only inside
