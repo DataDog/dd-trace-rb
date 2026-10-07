@@ -497,11 +497,11 @@ module Datadog
               #
               # This option is recommended for internal use only.
               #
-              # @default `true` on CRuby 4.0.6 and later, otherwise `false`
+              # @default `true` on CRuby 4.0.0 and later, otherwise `false`
               # @return [Boolean]
               option :native_transport do |o|
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
-                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.6") }
+                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.0") }
                 o.type :bool
               end
 

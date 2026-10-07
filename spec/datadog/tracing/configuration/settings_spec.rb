@@ -656,12 +656,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       [
         ["ruby", "3.4.6", false],
-        ["ruby", "4.0.5", false],
-        ["ruby", "4.0.6", true],
+        ["ruby", "4.0.0", true],
+        ["ruby", "4.0.5", true],
         ["ruby", "4.0.10", true],
         ["ruby", "4.1.0", true],
         ["ruby", "5.0.0", true],
-        ["jruby", "4.0.6", false],
+        ["jruby", "4.0.0", false],
         ["truffleruby", "4.1.0", false],
       ].each do |engine, version, default|
         context "on #{engine} #{version}" do

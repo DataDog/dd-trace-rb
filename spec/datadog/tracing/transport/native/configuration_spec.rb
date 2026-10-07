@@ -57,7 +57,7 @@ RSpec.describe "Native transport configuration" do
     context "outside the rollout version without an explicit setting" do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-      before { stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.5")) }
+      before { stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.4.6")) }
 
       around do |example|
         ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
@@ -125,7 +125,7 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
-    context "on CRuby 4.0.6 without an explicit setting" do
+    context "on CRuby 4.0.0 without an explicit setting" do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
 
       around do |example|
@@ -134,7 +134,7 @@ RSpec.describe "Native transport configuration" do
 
       before do
         stub_const("RUBY_ENGINE", "ruby")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.6"))
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.0"))
       end
 
       it "selects the native transport by default" do
@@ -170,7 +170,7 @@ RSpec.describe "Native transport configuration" do
 
   describe "settings" do
     it "defaults native_transport to false outside the rollout version" do
-      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.5"))
+      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.4.6"))
       settings = Datadog::Core::Configuration::Settings.new
       expect(settings.tracing.native_transport).to be false
     end
