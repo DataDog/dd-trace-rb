@@ -33,13 +33,11 @@ if Gem.loaded_specs.key?("bundler-audit")
       else
         # Column-aligned table for the job log, embedded in the single
         # GitHub Actions annotation (%0A = escaped newline).
-        rows = [["Lockfile", "Gem", "Version", "Advisory"]] +
-          findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
-        widths = rows.first.each_index.map { |i| rows.map { |r| r[i].length }.max }
-        table_lines = rows.each_with_index.map do |row, index|
-          line = row.each_with_index.map { |c, i| c.ljust(widths[i]) }.join("  ").rstrip
-          index.zero? ? [line, widths.map { |w| "-" * w }.join("  ")] : line
-        end.flatten
+        require "terminal-table"
+        table_lines = Terminal::Table.new(
+          headings: %w[Lockfile Gem Version Advisory],
+          rows: findings.map { |f| [f.lockfile, f.gem, f.version, f.id] }
+        ).to_s.lines.map(&:chomp)
         puts table_lines
         if ENV["GITHUB_ACTIONS"] == "true"
           doc_url = "#{ENV["GITHUB_SERVER_URL"]}/#{ENV["GITHUB_REPOSITORY"]}/blob/#{ENV["GITHUB_SHA"]}" \
