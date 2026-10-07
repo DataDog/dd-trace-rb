@@ -429,12 +429,17 @@ The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
 (Ruby 3.1+) for gems with
 high/critical CVE advisories, plus any advisory the pinned scanner can't
 score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
-are treated as failing too). The task is intentionally not part of the
+are treated as failing too). The job is skipped on `master` pushes and
+`bump_to_version_*` release PRs, since those ship lockfiles that predate
+the advisory database refresh. The task is intentionally not part of the
 bundle; it runs standalone via `rake -f`. To reproduce locally, run:
 
 ```bash
 .github/scripts/check/dependency_audit.sh
 ```
+
+For full triage guidance (blast radius, CVE research, upgrade vs
+exception), see the `handle-cve` skill in `.agents/skills/handle-cve/`.
 
 If it fails:
 
