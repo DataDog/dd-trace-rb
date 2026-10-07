@@ -8,12 +8,37 @@ if [[ -z "${HEAD_REF:-}" ]]; then
     exit 1
 fi
 
-if [[ -z "${BASE_SHA:-}" ]]; then
-    echo "Error: BASE_SHA environment variable is not set"
+if [[ -z "${HEAD_SHA:-}" ]]; then
+    echo "Error: HEAD_SHA environment variable is not set"
     exit 1
 fi
 
-changed_files=$(git diff --no-renames --name-only "${BASE_SHA}"...HEAD)
+if [[ -z "${BASE_REF:-}" ]]; then
+    echo "Error: BASE_REF environment variable is not set"
+    exit 1
+fi
+
+if ! git rev-parse --verify --quiet "${HEAD_SHA}^{commit}" >/dev/null; then
+    echo "Error: pull request commit ${HEAD_SHA} is not present in the local checkout"
+    exit 1
+fi
+
+base_ref="refs/remotes/origin/${BASE_REF}"
+if ! git rev-parse --verify --quiet "${base_ref}^{commit}" >/dev/null; then
+    echo "Error: base branch ${BASE_REF} is not present in the local checkout"
+    exit 1
+fi
+
+if ! merge_base=$(git merge-base "${HEAD_SHA}" "${base_ref}"); then
+    echo "Error: no common ancestor between ${HEAD_SHA} and ${base_ref}"
+    exit 1
+fi
+
+# HEAD is the merge ref, whose history carries base-branch commits made after the pull
+# request's recorded base SHA, so a diff anchored at HEAD reports base-branch CHANGELOG.md
+# release bumps as pull request changes. Diff the pull request head from its merge base
+# with the current base tip instead, matching the pull request's Files changed view.
+changed_files=$(git diff --no-renames --name-only "${merge_base}" "${HEAD_SHA}")
 
 touches_changelog=false
 if grep -qx 'CHANGELOG.md' <<< "${changed_files}"; then
