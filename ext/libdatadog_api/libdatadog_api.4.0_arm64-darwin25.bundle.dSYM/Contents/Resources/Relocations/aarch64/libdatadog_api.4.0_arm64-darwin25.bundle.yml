@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     libdatadog_api.4.0_arm64-darwin25.bundle
-relocations:     []
-...
