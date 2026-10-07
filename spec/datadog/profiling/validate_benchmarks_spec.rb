@@ -44,6 +44,18 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
+      after do |example|
+        next unless example.exception && PlatformHelpers.mac?
+
+        # Diagnostics for when this fails in CI
+        warn "macOS system logs after failure in #{benchmark}:"
+        # We use "sudo -n" which fails if sudo would ask for a password instead of prompting
+        success = system(%q(sudo -n /usr/bin/log show --last 2m --style compact --predicate 'process == "kernel" OR process == "syspolicyd" OR process == "taskgated"'))
+        warn "Unable to collect macOS system logs" unless success
+      rescue => e
+        warn "Unable to collect macOS system logs: #{e.class}: #{e.message}"
+      end
+
       it("runs without raising errors") { expect_in_fork(timeout_seconds: 15, trigger_stacktrace_on_kill: true) { load "./benchmarks/#{benchmark}.rb" } }
     end
   end
