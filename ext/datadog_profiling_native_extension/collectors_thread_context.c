@@ -905,6 +905,9 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
 }
 
 // This function gets called when Ruby has finished running the Garbage Collector on the current thread.
+// (Note: The `GC_EXIT` event gets emitted by the VM while `during_gc` is still set to true -- the flag
+// is only cleared after the event gets emitted -- see top of the file for more details)
+//
 // It records the cpu/wall-time observed during GC, which will be used to later
 // create an event including the cpu/wall time spent from the start of garbage collector work until now.
 //
