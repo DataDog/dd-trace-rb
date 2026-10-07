@@ -2,6 +2,7 @@ require "digest"
 require "fileutils"
 require "json"
 require_relative "appraisal_conversion"
+require_relative "github_batching"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
@@ -49,13 +50,16 @@ namespace :github do
 
     batched_matrix = {"include" => []}
 
-    task_groups = Array.new(batch_count) { [] }
-    matching_tasks.each_with_index do |task, index|
-      task_groups[index % batch_count] << task
-    end
+    timings_path = File.expand_path("ci_task_timings.json", __dir__)
+    estimates = GithubBatching.timing_estimates(timings_path, ruby_version)
+    task_groups = GithubBatching.distribute(matching_tasks, estimates, batch_count)
 
     task_groups.each_with_index do |task_group, index|
-      batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
+      batched_matrix["include"] << {
+        "batch" => index.to_s,
+        "tasks" => task_group.fetch(:tasks),
+        "estimated_seconds" => task_group.fetch(:seconds).round(1),
+      }
     end
 
     data = {
@@ -82,13 +86,25 @@ namespace :github do
 
         f.puts <<~SUMMARY
           <details>
-          <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks)</summary>
+          <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks, #{batch["estimated_seconds"]} estimated seconds)</summary>
 
           #{rows.join("\n")}
           </details>
         SUMMARY
       end
     end
+  end
+
+  task :update_task_timings, [:directory] do |_, args|
+    directory = args[:directory]
+    raise "timings directory not provided" if directory.to_s.empty?
+
+    paths = Dir[File.join(directory, "**", "*.json")]
+    raise "no timing files found in #{directory}" if paths.empty?
+
+    aggregate = GithubBatching.aggregate_timing_files(paths)
+    path = File.expand_path("ci_task_timings.json", __dir__)
+    File.write(path, JSON.pretty_generate(aggregate) + "\n")
   end
 
   task :run_batch_build do
@@ -125,11 +141,9 @@ namespace :github do
       junit_files_before = Dir["tmp/rspec/*.xml"]
 
       test_seconds = measure_duration do
-        begin
-          Bundler.with_unbundled_env { sh(env, cmd) }
-        rescue RuntimeError
-          raise annotate_test_failures(env, cmd)
-        end
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
       end
 
       junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
