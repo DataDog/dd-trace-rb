@@ -229,6 +229,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_profiler_internal_thread_done(VALUE self_instance);
+static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *optional_exception_during_operation);
 static void stop_state(cpu_and_wall_time_worker_state *state, VALUE optional_exception, const char *optional_operation_name);
@@ -383,6 +384,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
@@ -660,6 +662,22 @@ static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
   during_sample_enter(state);
   return rb_ensure(
     thread_context_collector_profiler_internal_thread_done, state->thread_context_collector_instance,
+    during_sample_exit_rescue, (VALUE) state
+  );
+}
+
+// This method exists so that we run `thread_context_prepare_serialize` protected with
+// `during_sample_enter`/`during_sample_exit` before we actually serialize.
+//
+// That's why in normal operation we go through the `CpuAndWallTimeWorker` and not directly to the `ThreadContext` to
+// serialize.
+static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  during_sample_enter(state);
+  return rb_ensure(
+    thread_context_prepare_serialize, state->thread_context_collector_instance,
     during_sample_exit_rescue, (VALUE) state
   );
 }
