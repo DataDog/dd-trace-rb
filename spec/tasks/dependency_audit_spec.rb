@@ -1,5 +1,8 @@
 require "spec_helper"
 
+# bundler-audit is intentionally not part of the bundle (the audit runs standalone,
+# see .github/scripts/check/dependency_audit.sh), so this spec only runs under
+# standalone rspec, never under `bundle exec`.
 if Gem::Specification.find_all_by_name("bundler-audit").any?
   require_relative "../../tasks/dependency_auditing"
   require "tmpdir"
