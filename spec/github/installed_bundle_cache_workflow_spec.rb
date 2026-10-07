@@ -50,7 +50,8 @@ RSpec.describe "installed bundle cache workflow" do
     base_key = steps.find { |step| step["id"] == "base-key" }
     installed_key = steps.find { |step| step["id"] == "installed-key" }
 
-    expect(base_key.fetch("run")).to include("base-key", '--image-identity "$IMAGE_IDENTITY"')
+    expect(base_key.fetch("env").fetch("IMAGE")).to eq("${{ inputs.image }}")
+    expect(base_key.fetch("run")).to include("base-key", '--image-identity "${IMAGE##*/}"')
     expect(installed_key.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
     expect(installed_key.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
   end
@@ -158,14 +159,14 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "uses the same engine image identity in the parent and children" do
+  it "uses the same engine image in the parent, cache, and children" do
     jobs = workflow.fetch("jobs")
     batch_image = jobs.fetch("batch").fetch("container").fetch("image")
     prepare = jobs.fetch("batch").fetch("steps").find do |step|
       step["name"] == "Prepare installed matrix bundle cache"
     end
 
-    expect(prepare.fetch("with").fetch("image-identity")).to eq(batch_image)
+    expect(prepare.fetch("with").fetch("image")).to eq(batch_image)
     expect(jobs.fetch("build-test-standard").fetch("container").fetch("image")).to eq(batch_image)
     expect(jobs.fetch("build-test-misc").fetch("container").fetch("image")).to eq(batch_image)
   end

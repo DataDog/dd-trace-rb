@@ -68,7 +68,7 @@ jobs:
         uses: ./.github/actions/installed-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
-          image-identity: *engine-image
+          image: *engine-image
           write-enabled: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Generate batch summary

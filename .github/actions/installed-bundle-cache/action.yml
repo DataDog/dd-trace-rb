@@ -6,8 +6,8 @@ inputs:
   base-gemfile:
     description: Runtime base Gemfile
     required: true
-  image-identity:
-    description: Immutable engine image identity
+  image:
+    description: Engine image reference
     required: true
   write-enabled:
     description: Whether a miss may build and save current bundle
@@ -35,11 +35,11 @@ runs:
       shell: bash
       env:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
-        IMAGE_IDENTITY: ${{ inputs.image-identity }}
+        IMAGE: ${{ inputs.image }}
       run: |
         cache_key=$(ruby tasks/installed_bundle_cache.rb base-key \
           --base-gemfile "$BASE_GEMFILE" \
-          --image-identity "$IMAGE_IDENTITY")
+          --image-identity "${IMAGE##*/}")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: installed-key
       name: Compute installed bundle key
