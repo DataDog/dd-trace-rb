@@ -11,9 +11,6 @@ outputs:
   cache-key:
     description: Exact base bundle cache key
     value: ${{ steps.key.outputs.cache-key }}
-  coverage:
-    description: Dependency coverage of the base cache
-    value: base
 
 runs:
   using: composite

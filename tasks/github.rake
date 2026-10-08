@@ -6,21 +6,43 @@ require_relative "appraisal_conversion"
 namespace :github do
   task :generate_batches do
     matrix = eval(File.read("Matrixfile"), binding, "Matrixfile").freeze # rubocop:disable Security/Eval
-    all_tasks = matrix.each_with_object([]) do |(key, spec_metadata), tasks|
+
+    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
+    misc_candidates = [
+      "mongodb",
+      "elasticsearch",
+      "opensearch",
+      "presto",
+      "dalli",
+    ]
+
+    ruby_version = RUBY_VERSION[0..2]
+
+    matching_tasks = []
+    misc_tasks = []
+
+    matrix.each do |key, spec_metadata|
       spec_metadata.each do |group, rubies|
-        next unless rubies.include?("✅ #{RUBY_VERSION[0..2]}")
+        matched = rubies.include?("✅ #{ruby_version}")
+
+        next unless matched
 
         gemfile = begin
           AppraisalConversion.to_bundle_gemfile(group)
         rescue
           AppraisalConversion.parent_gemfile
         end
-        tasks << {task: key, group: group, gemfile: gemfile}
+
+        task = {task: key, group: group, gemfile: gemfile}
+
+        if misc_candidates.include?(key)
+          misc_tasks << task
+        else
+          matching_tasks << task
+        end
       end
     end
-    misc_tasks, matching_tasks = all_tasks.partition do |task|
-      %w[mongodb elasticsearch opensearch presto dalli].include?(task[:task])
-    end
+
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
@@ -34,7 +56,7 @@ namespace :github do
     data = {
       batches: batched_matrix,
       misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
-      gemfiles: all_tasks.map { |task| task[:gemfile] }.uniq.sort,
+      gemfiles: (matching_tasks + misc_tasks).map { |task| task[:gemfile] }.uniq.sort,
     }
 
     puts JSON.dump(data)

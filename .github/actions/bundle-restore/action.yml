@@ -23,16 +23,16 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Restore cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      id: restore-cache
-      with:
-        key: ${{ inputs.cache-key }}
-        path: /usr/local/bundle
-        lookup-only: ${{ inputs.lookup-only == 'true' }}
-    - name: Require exact cache hit
-      if: inputs.require-exact == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: |
-        echo "::error::Expected an exact bundle cache hit." >&2
-        exit 1
+  - name: Restore cache
+    uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    id: restore-cache
+    with:
+      key: "${{ inputs.cache-key }}"
+      path: "/usr/local/bundle"
+      lookup-only: ${{ inputs.lookup-only == 'true' }}
+  - name: Require exact cache hit
+    if: inputs.require-exact == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
+    shell: bash
+    run: |
+      echo "::error::Expected an exact bundle cache hit." >&2
+      exit 1
