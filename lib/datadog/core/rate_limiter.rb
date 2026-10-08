@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "utils/time"
+require_relative "refillable_bucket"
+require_relative "borrowing_token_bucket"
 
 module Datadog
   module Core
@@ -26,54 +28,6 @@ module Datadog
       end
     end
 
-    # Token-bucket balance and refill mechanics: constructor validation, a
-    # token balance that refills at +rate+ tokens per second toward
-    # +max_tokens+, and readers for the rate and ceiling. Including classes
-    # define the admission policy on top of the shared balance.
-    module RefillableBucket
-      # @param rate [Numeric] refill rate, in tokens per second
-      # @param max_tokens [Numeric] ceiling the balance refills toward
-      # @raise [ArgumentError] when rate or max_tokens is not a number
-      def initialize(rate, max_tokens)
-        raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
-        raise ArgumentError, "max_tokens must be a number: #{max_tokens}" unless max_tokens.is_a?(Numeric)
-
-        super()
-
-        @rate = rate
-        @max_tokens = max_tokens
-        @tokens = max_tokens
-        @last_refill = Core::Utils::Time.get_time
-      end
-
-      # @return [Numeric] refill rate, in tokens per second
-      attr_reader :rate
-
-      # @return [Numeric] ceiling the balance refills toward
-      attr_reader :max_tokens
-
-      # @return [Numeric] the token balance as of the last refill; reads
-      #   between refills return a stale balance
-      def available_tokens
-        @tokens
-      end
-
-      private
-
-      # Adds +rate+ times the seconds elapsed since the last refill to the
-      # balance, capping it at +max_tokens+.
-      def refill
-        now = Core::Utils::Time.get_time
-        refill_tokens(@rate * (now - @last_refill))
-        @last_refill = now
-      end
-
-      def refill_tokens(size)
-        @tokens += size
-        @tokens = @max_tokens if @tokens > @max_tokens
-      end
-    end
-
     # Implementation of the Token Bucket metering algorithm
     # for rate limiting.
     #
@@ -81,6 +35,9 @@ module Datadog
     class TokenBucket < RateLimiter
       include RefillableBucket
 
+      # Initializes the bucket balance and the conformance-rate statistics
+      # windows.
+      #
       # @param rate [Numeric] Allowance rate, in units per second
       #  if rate is negative, always allow
       #  if rate is zero, never allow
@@ -116,7 +73,7 @@ module Datadog
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
-      # @return [Float] Conformance ratio, between +[0,1]+
+      # @return [Float] Conformance ratio, between +[0,1]
       def effective_rate
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
@@ -135,7 +92,7 @@ module Datadog
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
-      # @return [Float] Conformance ratio, between +[0,1]+
+      # @return [Float] Conformance ratio, between +[0,1]
       def current_window_rate
         return 1.0 if @total_messages.zero?
 
@@ -194,41 +151,6 @@ module Datadog
         increment_conforming_count if allowed
 
         increment_total_count
-      end
-    end
-
-    # Token bucket that permits consumption below zero. The deficit refills over
-    # time at +rate+.
-    class BorrowingTokenBucket
-      include RefillableBucket
-
-      # @param rate [Numeric] refill rate, in tokens per second. A zero rate
-      #   refills nothing, so the balance only decreases; a negative rate
-      #   raises +ArgumentError+.
-      # @param max_tokens [Numeric] ceiling the balance refills toward
-      # @raise [ArgumentError] when rate is negative, or rate or max_tokens
-      #   is not a number
-      def initialize(rate, max_tokens: rate)
-        super(rate, max_tokens)
-
-        raise ArgumentError, "rate must not be negative: #{rate}" if rate < 0
-      end
-
-      # @return [Boolean] whether the balance is currently positive
-      def available?
-        refill
-        @tokens > 0
-      end
-
-      # Removes +size+ tokens, driving the balance negative when the bucket is
-      # short.
-      #
-      # @param size [Numeric] tokens to remove
-      # @return [void]
-      def consume(size: 1)
-        refill
-        @tokens -= size
-        nil
       end
     end
 

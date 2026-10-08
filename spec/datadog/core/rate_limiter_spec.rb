@@ -2,6 +2,24 @@ require "spec_helper"
 
 require "datadog/core/rate_limiter"
 
+RSpec.shared_examples "a refillable bucket validating constructor arguments" do
+  context "with invalid rate" do
+    let(:rate) { :bad }
+
+    it "raises argument error" do
+      expect { bucket }.to raise_error(ArgumentError, /rate must be a number/)
+    end
+  end
+
+  context "with invalid max_tokens" do
+    let(:max_tokens) { :bad }
+
+    it "raises argument error" do
+      expect { bucket }.to raise_error(ArgumentError, /max_tokens must be a number/)
+    end
+  end
+end
+
 RSpec.describe Datadog::Core::TokenBucket do
   subject(:bucket) { described_class.new(rate, max_tokens) }
 
@@ -17,21 +35,7 @@ RSpec.describe Datadog::Core::TokenBucket do
       expect(bucket.available_tokens).to eq(max_tokens)
     end
 
-    context "with invalid rate" do
-      let(:rate) { :bad }
-
-      it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /rate must be a number/)
-      end
-    end
-
-    context "with invalid max_tokens" do
-      let(:max_tokens) { :bad }
-
-      it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /max_tokens must be a number/)
-      end
-    end
+    include_examples "a refillable bucket validating constructor arguments"
   end
 
   describe "#allow?" do
@@ -229,27 +233,21 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       expect(bucket.available?).to be(true)
     end
 
-    context "with invalid rate" do
-      let(:rate) { :bad }
-
-      it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /rate must be a number/)
-      end
-    end
-
-    context "with invalid max_tokens" do
-      let(:max_tokens) { :bad }
-
-      it "raises argument error" do
-        expect { bucket }.to raise_error(ArgumentError, /max_tokens must be a number/)
-      end
-    end
+    include_examples "a refillable bucket validating constructor arguments"
 
     context "with negative rate" do
       let(:rate) { -1 }
 
       it "raises argument error" do
         expect { bucket }.to raise_error(ArgumentError, /must not be negative/)
+      end
+    end
+
+    context "with negative max_tokens" do
+      let(:max_tokens) { -1 }
+
+      it "raises argument error" do
+        expect { bucket }.to raise_error(ArgumentError, /max_tokens must not be negative/)
       end
     end
   end
@@ -269,6 +267,14 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       25.times { bucket.consume }
       expect(bucket.available_tokens).to eq(-5)
       expect(bucket.available?).to be(false)
+    end
+
+    it "raises argument error when size is not a number" do
+      expect { bucket.consume(size: :bad) }.to raise_error(ArgumentError, /size must be a number/)
+    end
+
+    it "raises argument error when size is negative" do
+      expect { bucket.consume(size: -1) }.to raise_error(ArgumentError, /size must not be negative/)
     end
   end
 

@@ -6,30 +6,6 @@ module Datadog
       def effective_rate: () -> ::Float
     end
 
-    module RefillableBucket
-      @rate: ::Float | ::Integer
-
-      @max_tokens: ::Numeric
-
-      @tokens: ::Numeric
-
-      @last_refill: ::Numeric
-
-      attr_reader rate: ::Float | ::Integer
-
-      attr_reader max_tokens: ::Numeric
-
-      def initialize: (::Float | ::Integer rate, ::Numeric max_tokens) -> void
-
-      def available_tokens: () -> ::Numeric
-
-      private
-
-      def refill: () -> void
-
-      def refill_tokens: (::Numeric size) -> void
-    end
-
     class TokenBucket < RateLimiter
       include RefillableBucket
 
@@ -66,16 +42,6 @@ module Datadog
       def allow?: (?::Integer _) -> true
 
       def effective_rate: () -> ::Float
-    end
-
-    class BorrowingTokenBucket
-      include RefillableBucket
-
-      def initialize: (::Float | ::Integer rate, ?max_tokens: ::Numeric) -> void
-
-      def available?: () -> bool
-
-      def consume: (?size: ::Numeric) -> void
     end
   end
 end
