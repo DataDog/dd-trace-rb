@@ -119,15 +119,6 @@ jobs:
       - name: Record stats
         run: bundle exec rake 'steep:stats[md,--jobs=4]' >> "$GITHUB_STEP_SUMMARY"
 
-  steep:
-    name: steep/typecheck
-    runs-on: ubuntu-24.04
-    needs:
-      - steep-check
-      - steep-stats
-    steps:
-      - run: echo "DONE!"
-
   bundler-audit:
     name: bundler-audit
     runs-on: ubuntu-24.04
@@ -321,7 +312,8 @@ jobs:
   complete:
     name: Static Analysis (complete)
     needs:
-      - 'steep'
+      - 'steep-check'
+      - 'steep-stats'
       - 'standard'
       - 'rubocop'
       - 'semgrep'
