@@ -9,7 +9,7 @@ inputs:
 
 outputs:
   cache-key:
-    description: 'Exact base bundle cache key'
+    description: 'Cache key for the bundle'
     value: ${{ steps.key.outputs.cache-key }}
 
 runs:
