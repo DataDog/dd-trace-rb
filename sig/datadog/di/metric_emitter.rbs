@@ -1,0 +1,34 @@
+module Datadog
+  module DI
+    class MetricEmitter
+      NAMESPACE: String
+
+      @logger: Logger
+      @telemetry: Core::Telemetry::Component?
+      @open: bool
+      @last_emitted_at: Time?
+      @statsd: Datadog::Statsd?
+      @available: bool
+
+      def initialize: (Logger logger, ?telemetry: Core::Telemetry::Component?) -> void
+
+      attr_reader logger: Logger
+
+      attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader statsd: Datadog::Statsd?
+
+      def available?: () -> bool
+
+      attr_reader last_emitted_at: Time?
+
+      def emit: (Probe probe, Integer | Float value) -> bool
+
+      def close: () -> void
+
+      private
+
+      def build_statsd_client: (Gem::Version version) -> Datadog::Statsd?
+    end
+  end
+end
