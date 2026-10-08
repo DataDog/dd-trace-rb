@@ -32,7 +32,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v1' }}
+  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v0' }}
 
 jobs:
   batch:
