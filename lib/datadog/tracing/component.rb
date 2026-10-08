@@ -125,6 +125,8 @@ module Datadog
       end
 
       def build_native_transport(agent_settings, settings)
+        return unless settings.tracing.enabled
+
         require_relative "transport/native"
 
         unless Transport::Native.supported?

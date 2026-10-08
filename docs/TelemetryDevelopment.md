@@ -72,8 +72,8 @@ its existing shared runtime. Ruby retains application lifecycle, configuration,
 dependencies, and unrelated metrics. Native exporter series keep
 `src_library:libdatadog`.
 
-Enablement requires telemetry and metrics to be enabled, Agent-based telemetry,
-and native headers and symbols supporting mutable identity and bounded shutdown.
+Enablement requires tracing, telemetry, and metrics to be enabled, Agent-based
+telemetry, and native headers and symbols supporting mutable identity and bounded shutdown.
 The pinned libdatadog 44.0.1 package lacks these APIs; development requires a
 matching `LIBDATADOG_VENDOR_OVERRIDE` build. Agentless telemetry, including its
 URL override, does not enable the native worker.

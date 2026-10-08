@@ -324,7 +324,7 @@ module Datadog
           private
 
           def telemetry_enabled?
-            @settings.telemetry.enabled && @settings.telemetry.metrics_enabled &&
+            @settings.tracing.enabled && @settings.telemetry.enabled && @settings.telemetry.metrics_enabled &&
               !@settings.telemetry.agentless_enabled
           end
 

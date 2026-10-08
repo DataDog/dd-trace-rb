@@ -334,6 +334,14 @@ RSpec.describe "Native exporter telemetry" do
     expect(agent.drain.count { |request| request.fetch("path").include?("apmtelemetry") }).to eq(before)
   end
 
+  it "does not emit native telemetry for a directly constructed transport when tracing is disabled" do
+    settings.tracing.enabled = false
+    transport = build_transport
+    send_trace(transport)
+    transport.close
+    expect(agent.drain.map { |request| request.fetch("path") }).not_to include(/apmtelemetry/)
+  end
+
   it "discards pending metrics when telemetry is disabled before close" do
     transport = build_transport
     send_trace(transport)
