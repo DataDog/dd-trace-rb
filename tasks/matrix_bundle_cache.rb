@@ -32,11 +32,11 @@ class MatrixBundleCache
     @gemfiles = gemfiles.map { |path| absolute_path(path) }
   end
 
-  def base_cache_key(image_identity:)
+  def base_cache_key(image:)
     identity = {
       "bundler_settings" => bundler_settings,
       "dependencies" => dependency_content(@base_gemfile),
-      "image_identity" => image_identity,
+      "image" => image,
       "native_build_overrides" => native_build_overrides,
       "recipe" => recipe_fingerprint,
     }
@@ -111,7 +111,7 @@ if $PROGRAM_NAME == __FILE__
   parser = OptionParser.new do |opts|
     opts.on("--base-gemfile PATH") { |value| options[:base_gemfile] = value }
     opts.on("--base-cache-key VALUE") { |value| options[:base_cache_key] = value }
-    opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
+    opts.on("--image VALUE") { |value| options[:image] = value }
     opts.on("--gemfiles JSON") { |value| options[:gemfiles] = JSON.parse(value) }
   end
 
@@ -123,9 +123,9 @@ if $PROGRAM_NAME == __FILE__
 
   case command
   when "base-key"
-    raise OptionParser::MissingArgument, "--image-identity" unless options[:image_identity]
+    raise OptionParser::MissingArgument, "--image" unless options[:image]
 
-    puts cache.base_cache_key(image_identity: options[:image_identity])
+    puts cache.base_cache_key(image: options[:image])
   when "matrix-key"
     raise OptionParser::MissingArgument, "--base-cache-key" unless options[:base_cache_key]
     raise OptionParser::MissingArgument, "--gemfiles" unless options[:gemfiles]

@@ -45,7 +45,7 @@ runs:
       run: |
         cache_key=$(ruby tasks/matrix_bundle_cache.rb base-key \
           --base-gemfile "$BASE_GEMFILE" \
-          --image-identity "$IMAGE")
+          --image "$IMAGE")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: matrix-key
       name: Compute matrix bundle key
