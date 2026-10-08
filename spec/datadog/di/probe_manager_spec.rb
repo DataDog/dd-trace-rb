@@ -461,6 +461,62 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
   end
 
+  describe "#probe_metric_emitted_callback" do
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "test-probe", type: :metric,
+        type_name: "ProbeManagerSpecTestClass", method_name: "bar",
+        metric_kind: :count, metric_name: "probe.metric",
+      )
+    end
+
+    before do
+      allow(probe_notification_builder).to receive(:build_emitting).and_return({status: "EMITTING"})
+      allow(probe_notifier_worker).to receive(:add_status)
+    end
+
+    it "queues the EMITTING status once" do
+      manager.probe_metric_emitted_callback(probe)
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe_notifier_worker).to have_received(:add_status).with({status: "EMITTING"}, probe: probe).once
+    end
+
+    it "flips the probe's emitting_notified flag" do
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe.emitting_notified?).to be true
+    end
+
+    it "does not queue an EMITTING status for an already notified probe" do
+      probe.emitting_notified = true
+
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe_notifier_worker).to_not have_received(:add_status)
+    end
+
+    context "sharing the notification with the executed callback path" do
+      let(:context) do
+        instance_double(Datadog::DI::Context, probe: probe)
+      end
+
+      before do
+        allow(probe_notification_builder).to receive(:build_executed).and_return({snapshot: "data"})
+        allow(probe_notifier_worker).to receive(:add_snapshot)
+      end
+
+      it "does not re-send EMITTING for the executed snapshot after the first emission" do
+        manager.probe_metric_emitted_callback(probe)
+        manager.probe_executed_callback(context)
+
+        expect(probe.emitting_notified?).to be true
+        expect(probe_notifier_worker).to have_received(:add_status).once
+        expect(probe_notifier_worker).to have_received(:add_snapshot).once
+      end
+    end
+  end
+
   describe "#probe_expression_evaluation_failed_callback" do
     let(:probe) do
       instance_double(

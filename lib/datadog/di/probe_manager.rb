@@ -293,17 +293,43 @@ module Datadog
       # This method is responsible for queueing probe status to be sent to the
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
-      def probe_executed_callback(context)
-        probe = context.probe
-        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+      # Sends the EMITTING status for the probe once per probe lifetime,
+      # using the probe's emitting_notified flag. Java re-sends EMITTING on
+      # every diagnostics interval; the Ruby diagnostics path emits statuses
+      # on transition only, and the probe tracker's "last captured" for
+      # metric probes is driven by the metric query rather than repeated
+      # statuses.
+      #
+      # @param probe [Probe] the probe that is emitting
+      # @return [void]
+      private def notify_emitting(probe)
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload, probe: probe)
           probe.emitting_notified = true
         end
+      end
+
+      def probe_executed_callback(context)
+        probe = context.probe
+        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+        notify_emitting(probe)
 
         payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload)
+      end
+
+      # Callback invoked when a metric probe successfully submits a metric
+      # to the agent's dogstatsd listener.
+      #
+      # Sends the EMITTING status once per the probe's lifetime, after the
+      # first successful submission; submission failures do not reach this
+      # callback.
+      #
+      # @param probe [Probe] the probe whose metric was submitted
+      # @return [void]
+      def probe_metric_emitted_callback(probe)
+        notify_emitting(probe)
       end
 
       # Callback invoked when a probe's condition or metric value

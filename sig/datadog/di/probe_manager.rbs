@@ -53,11 +53,16 @@ module Datadog
 
       def probe_executed_callback: (Context context) -> void
 
+      def probe_metric_emitted_callback: (Probe probe) -> void
+
       def probe_expression_evaluation_failed_callback: (Context context, EL::Expression expr, Exception exc) -> void
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
 
       attr_reader definition_trace_point: TracePoint
+
+      private
+      def notify_emitting: (Probe probe) -> void
     end
   end
 end
