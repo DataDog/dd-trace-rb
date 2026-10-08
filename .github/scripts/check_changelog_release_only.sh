@@ -18,11 +18,6 @@ if [[ -z "${PR_HEAD_SHA:-}" ]]; then
     exit 1
 fi
 
-# The pull_request checkout is GitHub's test-merge commit, and the recorded
-# base SHA can lag the base tip by days; diffing from either attributes
-# base-branch CHANGELOG.md edits (e.g. a release, possibly pulled into the
-# branch by a master merge) to the PR. Diffing the PR head against the
-# current base tip counts only the PR's own changes.
 changed_files=$(git diff --no-renames --name-only "origin/${BASE_REF}...${PR_HEAD_SHA}")
 
 touches_changelog=false
