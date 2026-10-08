@@ -5,7 +5,7 @@ require "datadog/tracing/transport/http"
 require "datadog/tracing/component"
 require "datadog/core/telemetry/component"
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:logger) { Logger.new(File::NULL) }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: logger) }
