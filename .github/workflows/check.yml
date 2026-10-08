@@ -4,6 +4,7 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
+      - tonyc.t.hsu/steep-jobs-4
   pull_request:
 
 concurrency:
