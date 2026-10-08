@@ -42,7 +42,6 @@ jobs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
       base-cache-key: "${{ steps.matrix-bundle-cache.outputs.base-cache-key }}"
-      base-lockfile: "${{ steps.matrix-bundle-cache.outputs.base-lockfile }}"
       matrix-cache-key: "${{ steps.matrix-bundle-cache.outputs.matrix-cache-key }}"
       matrix-cache-ready: "${{ steps.matrix-bundle-cache.outputs.ready }}"
     container:
@@ -86,7 +85,6 @@ jobs:
           image: *engine-image
           tasks: ${{ steps.set-batches.outputs.all }}
           gemfiles: ${{ steps.set-batches.outputs.gemfiles }}
-          write-enabled: ${{ github.ref == 'refs/heads/master' }}
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -189,16 +187,20 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle
+        id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
-          lockfile: ${{ needs.batch.outputs.matrix-cache-ready != 'true' && needs.batch.outputs.base-lockfile || '' }}
           require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
+      - name: Install base dependencies
+        if: steps.restore-bundle.outputs.cache-hit != 'true'
+        run: bundle install
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
+          bundle-ready: ${{ needs.batch.outputs.matrix-cache-ready }}
 
   build-test-misc:
     needs:
@@ -278,13 +280,17 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle
+        id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
-          lockfile: ${{ needs.batch.outputs.matrix-cache-ready != 'true' && needs.batch.outputs.base-lockfile || '' }}
           require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
+      - name: Install base dependencies
+        if: steps.restore-bundle.outputs.cache-hit != 'true'
+        run: bundle install
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
+          bundle-ready: ${{ needs.batch.outputs.matrix-cache-ready }}

@@ -15,9 +15,6 @@ outputs:
   cache-key:
     description: 'Cache key for the base bundle'
     value: ${{ steps.base-key.outputs.cache-key }}
-  lockfile:
-    description: 'Lockfile name'
-    value: ${{ steps.lockfile.outputs.lockfile }}
 
 runs:
   using: "composite"
@@ -36,23 +33,6 @@ runs:
             --image "$IMAGE")
         fi
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
-    - name: Resolve lockfile
-      id: lockfile
-      shell: bash
-      env:
-        LOCKFILE: lockfile-${{ steps.base-key.outputs.cache-key }}
-      run: |
-        path="${BUNDLE_GEMFILE:-Gemfile}.lock"
-        if [ ! -f "$path" ]; then
-          echo "::error::Expected lockfile $path not found. Regenerate via the lock-dependency workflow." >&2
-          exit 1
-        fi
-        { echo "lockfile=$LOCKFILE"; echo "path=$path"; } >> "$GITHUB_OUTPUT"
-    - name: Upload lockfile
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: ${{ steps.lockfile.outputs.lockfile }}
-        path: ${{ steps.lockfile.outputs.path }}
     - name: Restore cache
       uses: ./.github/actions/bundle-restore
       id: restore-cache
@@ -61,11 +41,9 @@ runs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
       run: bundle install
-    - if: steps.restore-cache.outputs.cache-hit != 'true'
+    - if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.base-key.outputs.cache-key }}
         path: "/usr/local/bundle"
-    - run: bundle check
-      shell: bash

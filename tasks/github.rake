@@ -67,8 +67,11 @@ namespace :github do
 
   task :run_batch_build do
     tasks = JSON.parse(ENV.fetch("BATCHED_TASKS"))
+    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
     tasks.uniq { |task| task.fetch("gemfile") }.each do |task|
+      next if File.expand_path(task.fetch("gemfile")) == base_gemfile
+
       env = {"BUNDLE_GEMFILE" => task.fetch("gemfile")}
       # Network failures can interrupt bundle installation.
       with_retry do
@@ -78,8 +81,11 @@ namespace :github do
   end
 
   task :check_matrix_bundle do
-    gemfiles = [ENV.fetch("BUNDLE_GEMFILE")] + JSON.parse(ENV.fetch("GEMFILES"))
+    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE"))
+    gemfiles = JSON.parse(ENV.fetch("GEMFILES"))
     gemfiles.uniq { |gemfile| File.expand_path(gemfile) }.each do |gemfile|
+      next if File.expand_path(gemfile) == base_gemfile
+
       Bundler.with_unbundled_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end

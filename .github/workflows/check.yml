@@ -26,7 +26,6 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     outputs:
-      lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,10 +50,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare base bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
+          image: *engine-image
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake standard
 
@@ -71,10 +70,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare base bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
+          image: *engine-image
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake rubocop
 
@@ -91,10 +90,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare base bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
+          image: *engine-image
           cache-key: ${{ needs.build.outputs.cache-key }}
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
@@ -220,10 +219,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare base bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
+          image: *engine-image
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:checksum_coverage
 
