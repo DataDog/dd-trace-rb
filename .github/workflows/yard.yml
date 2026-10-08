@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v0' }}
+  CACHE_VERSION: ${{ vars.CACHE_VERSION }}
 
 jobs:
   deploy:

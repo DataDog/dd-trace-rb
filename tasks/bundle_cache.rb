@@ -2,7 +2,8 @@ require "bundler"
 require "digest"
 require "json"
 
-CACHE_RECIPE_FILES = %w[
+# Changing these might affect caching output
+CACHE_LOGIC_FILES = %w[
   .github/actions/prepare-base-bundle/action.yml
   .github/actions/prepare-matrix-bundle/action.yml
   .github/actions/restore-bundle-cache/action.yml
@@ -21,19 +22,20 @@ def dependency_content(gemfile)
   ]
 end
 
-cache_version = ENV.fetch("CACHE_VERSION")
+cache_version = ENV.fetch("CACHE_VERSION", "0")
+cache_version = "0" if cache_version.empty?
 
 case ARGV.shift
 when "base-key"
   settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
-  recipe = CACHE_RECIPE_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
+  recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
   identity = {
     "bundler_settings" => settings,
     "dependencies" => dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile")),
     "image" => ENV.fetch("IMAGE"),
     "recipe" => digest(recipe),
   }
-  puts "bundle-base-#{cache_version}-#{digest(identity)}"
+  puts "bundle-base-v#{cache_version}-#{digest(identity)}"
 when "matrix-key"
   identity = {
     "base_cache_key" => ARGV.fetch(0),

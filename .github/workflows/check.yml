@@ -14,7 +14,7 @@ concurrency:
 permissions: {}
 
 env:
-  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v0' }}
+  CACHE_VERSION: ${{ vars.CACHE_VERSION }}
 
 jobs:
   build:
