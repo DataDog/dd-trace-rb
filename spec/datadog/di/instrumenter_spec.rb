@@ -48,7 +48,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   let(:instrumenter) do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-      correlation_sampler: nil)
+      correlation_sampler: Datadog::DI::CorrelationSampler.new,)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1943,7 +1943,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-        correlation_sampler: nil, telemetry: telemetry)
+        correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry,)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
@@ -2155,22 +2155,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe "#emit? with nil correlation_sampler" do
-      let(:probe) do
-        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-          id: 1, type: :log, rate_limit: 1)
-      end
-
-      before do
-        expect(instrumenter.correlation_sampler).to be_nil
-      end
-
-      it "falls back to the probe's own rate limiter" do
-        expect(probe.rate_limiter).to receive(:allow?).and_return(true)
-        expect(instrumenter.send(:emit?, probe)).to be(true)
-      end
-    end
-
     describe "#emit? with a correlation sampler" do
       let(:probe) do
         Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
@@ -2179,32 +2163,39 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:instrumenter) do
         described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-          correlation_sampler: Datadog::DI::CorrelationSampler.new)
+          correlation_sampler: Datadog::DI::CorrelationSampler.new,)
       end
 
       context "with an active trace" do
         before do
-          trace = instance_double(Datadog::Tracing::TraceOperation, id: 123)
-          allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
+          stub_active_trace(123)
+
+          # Freeze the rate limiter clock so the drain below is deterministic.
+          frozen_time = Datadog::Core::Utils::Time.get_time
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+          Datadog::DI::Instrumenter::GLOBAL_SNAPSHOT_RATE_LIMIT.times do
+            instrumenter.global_snapshot_rate_limiter.allow?
+          end
+          expect(instrumenter.global_snapshot_rate_limiter.allow?).to be(false)
         end
 
         it "admits a correlated hit past an exhausted hard snapshot limit" do
-          20.times { instrumenter.global_snapshot_rate_limiter.allow? }
-
           expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+
           expect(instrumenter.send(:emit?, probe)).to be(true)
         end
 
         it "applies the sampler's drop to a correlated hit" do
-          allow(instrumenter.correlation_sampler).to receive(:emit?).and_return(false)
-
+          # The first hit establishes the trace's unit and admits; the second
+          # is dropped once PER_PROBE_BUDGET is spent.
+          expect(instrumenter.send(:emit?, probe)).to be(true)
           expect(instrumenter.send(:emit?, probe)).to be(false)
         end
       end
 
       context "without an active trace" do
         before do
-          allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
+          stub_no_trace
         end
 
         it "applies the hard snapshot limit to an uncorrelated capturing hit" do
@@ -2217,24 +2208,24 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      describe "gate errors" do
+      context "when the correlation gate raises" do
         let(:propagate_all_exceptions) { false }
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         let(:instrumenter) do
           described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-            correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry)
+            correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry,)
         end
 
         before do
-          trace = instance_double(Datadog::Tracing::TraceOperation, id: 123)
-          allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
+          stub_active_trace(123)
         end
 
         it "fails open through the probe's own rate limit and reports telemetry" do
           allow(logger).to receive(:debug)
-          allow(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
 
+          expect(probe.rate_limiter).to receive(:allow?).and_return(true)
           expect(telemetry).to receive(:report) do |exc, description:|
             expect(exc).to be_a(StandardError)
             expect(exc.message).to eq("gate boom")
@@ -2244,9 +2235,21 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "re-raises fatal exceptions" do
-          allow(instrumenter.correlation_sampler).to receive(:emit?).and_raise(SystemExit)
+          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(SystemExit)
 
           expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
+        end
+
+        it "fails open when resolving the active trace raises" do
+          allow(logger).to receive(:debug)
+          expect(Datadog::DI).to receive(:active_trace).and_raise(StandardError, "trace boom")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("trace boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
         end
       end
     end

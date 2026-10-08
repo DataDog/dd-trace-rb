@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "../core/rate_limiter"
+require_relative "correlation_sampler/trace_budget"
+require_relative "correlation_sampler/trace_budget_ledger"
 
 module Datadog
   module DI
@@ -19,56 +21,57 @@ module Datadog
       # Snapshots per second, process-wide, across all emits.
       GLOBAL_RATE = 20
 
-      # Snapshots one probe may emit within one trace. The mechanism supports
-      # a higher limit; the value is set to 1 so each probe contributes at most
-      # one snapshot per trace.
+      # Snapshots one probe may emit within one trace.
       PER_PROBE_BUDGET = 1
 
       # Snapshots all probes together may emit within one trace.
       ALL_BUDGET = 20
 
-      # The coordinated-sampling model (process-wide TOP/GLOBAL token buckets,
-      # per-trace per-probe and all counters, and the borrowing global bucket)
-      # follows the cross-tracer RFC "Improvements to Casual Correlation for
-      # Live Debugger Snapshots". dd-trace-java coordinates through a debug
-      # session riding the trace, with per-probe-per-trace budgets and a
-      # process-wide global sampler; the Ruby implementation follows the
-      # RFC's in-process model, so the divergence is intentional.
-      # PER_PROBE_BUDGET is 1, below the RFC's higher target, to satisfy the
-      # system-tests correlation gate (DataDog/system-tests#7425).
-
+      # Initializes an empty per-trace ledger and full process-wide TOP/GLOBAL
+      # buckets.
+      #
       # @param max_entries [Integer] bound for the per-trace budget ledger
       # @param top_rate [Numeric] TOP rate limit, snapshots/second
       # @param global_rate [Numeric] GLOBAL rate limit, snapshots/second
-      # @param per_probe_budget [Integer] per-probe per-trace emission counter
-      # @param all_budget [Integer] all-probe per-trace emission counter
+      # @param per_probe_budget [Integer] per-probe counter start value for
+      #   each trace's budget
+      # @param all_budget [Integer] all-probe counter start value for each
+      #   trace's budget
+      # @raise [ArgumentError] when max_entries is not a positive Integer, or
+      #   per_probe_budget or all_budget is not a non-negative Integer
       def initialize(max_entries: DEFAULT_MAX_ENTRIES, top_rate: TOP_RATE,
         global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
         all_budget: ALL_BUDGET)
-        @max_entries = max_entries
+        unless max_entries.is_a?(Integer) && max_entries.positive?
+          raise ArgumentError, "max_entries must be a positive Integer: #{max_entries}"
+        end
+        unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
+          raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"
+        end
+        unless all_budget.is_a?(Integer) && all_budget >= 0
+          raise ArgumentError, "all_budget must be a non-negative Integer: #{all_budget}"
+        end
+
         @per_probe_budget = per_probe_budget
         @all_budget = all_budget
         @lock = Mutex.new
-        @trace_budgets = {}
+        @trace_budgets = TraceBudgetLedger.new(max_entries)
         @top_limiter = Core::TokenBucket.new(top_rate)
         @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+
+        nil # standard:disable Lint/Void
       end
 
       # Decides whether this capturing probe hit emits a snapshot.
-      #
-      # @param probe [Datadog::DI::Probe]
-      # @param sampling_unit [Datadog::DI::SamplingUnit]
-      # @return [Boolean]
-      def emit?(probe, sampling_unit)
-        key = sampling_unit.key
-        return emit_uncorrelated?(probe) if key.nil?
+      def emit?(probe, trace_id)
+        return emit_uncorrelated?(probe) if trace_id.nil?
 
         lock.synchronize do
-          budget = fetch_budget(key)
+          budget = touch_budget(trace_id)
           if budget
             emit_correlated?(budget, probe)
           else
-            emit_top?(key, probe)
+            emit_top?(trace_id, probe)
           end
         end
       end
@@ -78,60 +81,48 @@ module Datadog
       # Process-wide mutex guarding trace_budgets and the shared limiters; every
       # correlated capturing fire serializes here, a conscious trade-off for O(1)
       # critical sections.
+      # @return [Thread::Mutex]
       attr_reader :lock
 
-      # Per-trace budgets keyed by trace id, in LRU insertion order.
+      # Bounded store of per-trace budgets.
+      # @return [TraceBudgetLedger]
       attr_reader :trace_budgets
 
-      # Process-wide TOP gate limiting how many traces per second may start emitting.
+      # Process-wide TOP gate.
+      # @return [Datadog::Core::TokenBucket]
       attr_reader :top_limiter
 
-      # Process-wide GLOBAL gate bounding total snapshots per second across all emits.
+      # Process-wide GLOBAL gate.
+      # @return [Datadog::Core::BorrowingTokenBucket]
       attr_reader :global_limiter
 
-      # Upper bound on retained per-trace budgets before LRU eviction.
-      attr_reader :max_entries
-
-      # Per-probe per-trace emission counter this sampler was constructed with.
+      # Per-probe counter start value this sampler seeds trace budgets with.
+      # @return [Integer]
       attr_reader :per_probe_budget
 
-      # All-probe per-trace emission counter this sampler was constructed with.
+      # All-probe counter start value this sampler seeds trace budgets with.
+      # @return [Integer]
       attr_reader :all_budget
 
       # Decides a hit with no active trace through the probe's own rate limit,
       # so uncorrelated hits are decided independently of one another.
-      #
-      # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
       def emit_uncorrelated?(probe)
         probe.own_rate_limit_allows?
       end
 
-      # Returns the trace's budget, refreshing its LRU recency; nil when the
-      # trace has no established unit yet. Must hold the lock.
-      #
-      # @param key [Integer]
-      # @return [TraceBudget, nil]
-      def fetch_budget(key)
-        budget = trace_budgets.delete(key)
-        trace_budgets[key] = budget if budget
-        budget
+      # Refreshes the trace budget's LRU recency and returns the budget; nil
+      # when the trace has no established unit yet. Must hold the lock.
+      def touch_budget(key)
+        trace_budgets.fetch(key)
       end
 
       # First capturing probe in the trace. Passes the process-wide GLOBAL and
       # TOP gates to emit and seed the trace counters; on either gate's refusal,
       # or when the seeded budget denies the top probe itself, marks the trace
-      # starved so every correlated probe in it also drops. Must hold the lock.
-      #
-      # @param key [Integer]
-      # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
+      # starved so every correlated probe in it also drops without re-querying
+      # the process-wide gates. Must hold the lock.
       def emit_top?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
-          # Store a starved budget so correlated probes in this trace drop
-          # without re-querying the process-wide gates. The slot is reclaimed
-          # by LRU eviction; at DEFAULT_MAX_ENTRIES the ledger bounds how many
-          # starved traces occupy live slots.
           store(key, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return false
         end
@@ -144,10 +135,6 @@ module Datadog
 
       # A capturing probe firing inside an established unit. Bounded by the
       # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
-      #
-      # @param budget [TraceBudget]
-      # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
       def emit_correlated?(budget, probe)
         return false unless budget.admit(probe.id)
 
@@ -155,48 +142,9 @@ module Datadog
         true
       end
 
-      # Stores the trace's budget, evicting the oldest trace when the ledger
-      # exceeds the bound. Must hold the lock.
-      #
-      # @param key [Integer]
-      # @param budget [TraceBudget]
-      # @return [void]
+      # Stores the trace's budget in the ledger. Must hold the lock.
       def store(key, budget)
-        trace_budgets[key] = budget
-        trace_budgets.shift if trace_budgets.size > max_entries
-        nil
-      end
-
-      # Per-trace emission counters: one all counter shared by every probe, and
-      # a per-probe counter that starts at +per_probe_budget+ for each distinct
-      # probe.
-      #
-      # @api private
-      class TraceBudget
-        # @param per_probe_budget [Integer] per-probe counter start value
-        # @param all_budget [Integer] all-probe counter start value
-        def initialize(per_probe_budget:, all_budget:)
-          @all_remaining = all_budget
-          @per_probe_budget = per_probe_budget
-          @per_probe = {}
-        end
-
-        # Remaining all-probe counter.
-        attr_reader :all_remaining
-
-        # Consumes one per-probe and one all token for +probe_id+.
-        #
-        # @param probe_id [String]
-        # @return [Boolean] true when both counters had budget and were
-        #   consumed, false when either was exhausted
-        def admit(probe_id)
-          remaining = @per_probe.fetch(probe_id, @per_probe_budget)
-          return false if remaining <= 0 || all_remaining <= 0
-
-          @per_probe[probe_id] = remaining - 1
-          @all_remaining -= 1
-          true
-        end
+        trace_budgets.store(key, budget)
       end
     end
   end

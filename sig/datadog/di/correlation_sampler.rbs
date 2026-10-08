@@ -11,15 +11,13 @@ module Datadog
 
       ALL_BUDGET: ::Integer
 
-      @max_entries: ::Integer
-
       @per_probe_budget: ::Integer
 
       @all_budget: ::Integer
 
-      @lock: ::Thread::Mutex
+      @lock: Thread::Mutex
 
-      @trace_budgets: ::Hash[::Integer, TraceBudget]
+      @trace_budgets: TraceBudgetLedger
 
       @top_limiter: Core::TokenBucket
 
@@ -27,19 +25,17 @@ module Datadog
 
       def initialize: (?max_entries: ::Integer, ?top_rate: (::Float | ::Integer), ?global_rate: (::Float | ::Integer), ?per_probe_budget: ::Integer, ?all_budget: ::Integer) -> void
 
-      def emit?: (Probe probe, SamplingUnit sampling_unit) -> bool
+      def emit?: (Probe probe, ::Integer? trace_id) -> bool
 
       private
 
-      attr_reader lock: ::Thread::Mutex
+      attr_reader lock: Thread::Mutex
 
-      attr_reader trace_budgets: ::Hash[::Integer, TraceBudget]
+      attr_reader trace_budgets: TraceBudgetLedger
 
       attr_reader top_limiter: Core::TokenBucket
 
       attr_reader global_limiter: Core::BorrowingTokenBucket
-
-      attr_reader max_entries: ::Integer
 
       attr_reader per_probe_budget: ::Integer
 
@@ -47,27 +43,13 @@ module Datadog
 
       def emit_uncorrelated?: (Probe probe) -> bool
 
-      def fetch_budget: (::Integer key) -> TraceBudget?
+      def touch_budget: (::Integer key) -> TraceBudget?
 
       def emit_top?: (::Integer key, Probe probe) -> bool
 
       def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
 
       def store: (::Integer key, TraceBudget budget) -> void
-
-      class TraceBudget
-        @all_remaining: ::Integer
-
-        @per_probe_budget: ::Integer
-
-        @per_probe: ::Hash[::String, ::Integer]
-
-        def initialize: (per_probe_budget: ::Integer, all_budget: ::Integer) -> void
-
-        attr_reader all_remaining: ::Integer
-
-        def admit: (::String probe_id) -> bool
-      end
     end
   end
 end

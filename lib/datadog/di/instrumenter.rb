@@ -3,7 +3,6 @@
 require_relative "../core/rate_limiter"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
-require_relative "sampling_unit"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
 
@@ -79,11 +78,14 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
+      # Initializes the instrumenter with its per-probe hard rate limiters
+      # and the coordination gate.
+      #
       # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings.
       # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots.
       # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output.
-      # @param correlation_sampler [Datadog::DI::CorrelationSampler, nil] coordinated
-      #   sampling gate for capturing probes; nil disables coordination.
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler] coordinated
+      #   sampling gate for capturing probes.
       # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
       #   tracking is not active.
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
@@ -99,6 +101,8 @@ module Datadog
         @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
+
+        nil # standard:disable Lint/Void
       end
 
       attr_reader :settings
@@ -106,6 +110,8 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      # Coordinated sampling gate for capturing probe hits.
+      # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
@@ -481,24 +487,21 @@ module Datadog
 
       attr_reader :lock
 
-      # Coordinated sampling gate. Returns true when the probe hit should emit a
-      # snapshot. A capturing probe with an active trace delegates the whole
-      # decision to the correlation sampler so probes in one sampling unit
-      # share it; the sampler's GLOBAL borrowing budget is the process-wide
-      # bound for those hits, so they bypass the hard limiter. Every other hit
-      # (uncorrelated, non-capturing, the coordination-disabled mode, or a hit
-      # failing open after a gate error) consults the probe's own rate limiter
-      # and then the process-wide hard limiter for the probe's category.
+      # Coordinated sampling gate. A capturing probe with an active trace
+      # delegates the whole decision to the correlation sampler so probes in
+      # one sampling unit share it. Every other hit (uncorrelated,
+      # non-capturing, or a hit failing open after a gate error) consults the
+      # probe's own rate limiter and then the process-wide hard limiter for
+      # the probe's category.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
-      # @return [Boolean] true when the probe hit should emit a snapshot
+      # @return [Boolean]
       def emit?(probe)
-        correlation_sampler = self.correlation_sampler
-        if correlation_sampler && probe.capturing?
-          sampling_unit = SamplingUnit.current
+        if probe.capturing?
           begin
-            emit = correlation_sampler.emit?(probe, sampling_unit)
-            return emit if sampling_unit.key
+            trace_id = current_trace_id
+            emit = correlation_sampler.emit?(probe, trace_id)
+            return emit if trace_id
 
             # Uncorrelated hit: the sampler already consulted the probe's own
             # rate limiter, so only the hard limiter remains.
@@ -517,6 +520,13 @@ module Datadog
         return false unless probe.own_rate_limit_allows?
 
         global_rate_limit_allows?(probe)
+      end
+
+      # Trace id of the active APM trace, or nil when no trace is active.
+      #
+      # @return [Integer, nil]
+      def current_trace_id
+        Datadog::DI.active_trace&.id
       end
 
       # Consults the process-wide hard rate limiter for the probe's category.

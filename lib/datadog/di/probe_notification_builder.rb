@@ -437,9 +437,7 @@ module Datadog
       end
 
       def active_trace
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_trace
-        end
+        Datadog::DI.active_trace
       end
 
       def active_span

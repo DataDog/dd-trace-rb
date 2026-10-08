@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    class CorrelationSampler
+      class TraceBudgetLedger
+        @max_entries: ::Integer
+
+        @entries: ::Hash[::Integer, TraceBudget]
+
+        def initialize: (::Integer max_entries) -> void
+
+        attr_reader max_entries: ::Integer
+
+        attr_reader entries: ::Hash[::Integer, TraceBudget]
+
+        def fetch: (::Integer key) -> TraceBudget?
+
+        def store: (::Integer key, TraceBudget entry) -> void
+      end
+    end
+  end
+end

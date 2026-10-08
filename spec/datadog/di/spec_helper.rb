@@ -225,6 +225,24 @@ module DIHelpers
         hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false
       )
     end
+
+    # Stub the active APM trace that the correlation gate and the snapshot
+    # builder read from the tracing context, plus the active span the builder
+    # reports.
+    def stub_active_trace(trace_id, span_id: nil)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+      if span_id
+        span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(span)
+      end
+    end
+
+    # Stub the absence of an active APM trace.
+    def stub_no_trace
+      allow(Datadog::DI).to receive(:active_trace).and_return(nil)
+      allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
+    end
   end
 end
 

@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/instrumenter"
+require "datadog/di/correlation_sampler"
 require "datadog/di/code_tracker"
 require "datadog/di/serializer"
 require "datadog/di/probe"
@@ -113,7 +114,7 @@ RSpec.describe "Method probe dispatch semantics" do
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
   let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
   let(:logger) { instance_double(Logger, debug: nil) }
-  let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil, correlation_sampler: nil) }
+  let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil, correlation_sampler: Datadog::DI::CorrelationSampler.new) }
 
   def install_probe(type_name, method_name, &on_fire)
     probe = Datadog::DI::Probe.new(
