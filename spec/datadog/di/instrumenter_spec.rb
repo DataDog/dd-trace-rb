@@ -2208,6 +2208,19 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
+      context "with an active trace that has no id" do
+        before do
+          stub_active_trace(nil)
+        end
+
+        it "decides the hit uncorrelated, through the hard snapshot limit" do
+          expect(instrumenter.correlation_sampler).to receive(:emit?).with(probe, nil).and_call_original
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+      end
+
       context "when the correlation gate raises" do
         let(:propagate_all_exceptions) { false }
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
