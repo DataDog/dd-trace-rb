@@ -34,17 +34,16 @@ module Datadog
       # @return [Numeric] ceiling the balance refills toward
       attr_reader :max_tokens
 
-      # @return [Numeric] the current token balance; reads between refills
-      #   return a stale balance
-      attr_reader :tokens
-
-      # Wall-clock time of the last refill.
+      # Monotonic time of the last refill, in seconds, read from the process
+      # monotonic clock.
       #
       # @return [Numeric]
       attr_reader :last_refill
 
+      # @return [Numeric] the token balance as of the last refill; reads
+      #   between refills return a stale balance
       def available_tokens
-        tokens
+        @tokens
       end
 
       private
@@ -64,8 +63,8 @@ module Datadog
       # @param size [Numeric] tokens to add
       # @return [void]
       def refill_tokens(size)
-        @tokens = tokens + size
-        @tokens = max_tokens if tokens > max_tokens
+        @tokens = available_tokens + size
+        @tokens = max_tokens if available_tokens > max_tokens
 
         nil
       end
