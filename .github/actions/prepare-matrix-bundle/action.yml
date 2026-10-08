@@ -32,14 +32,8 @@ runs:
         IMAGE: ${{ inputs.image }}
         GEMFILES: ${{ inputs.gemfiles }}
       run: |
-        base_gemfile="${BUNDLE_GEMFILE:-Gemfile}"
-        base_key=$(ruby tasks/bundle_cache.rb base-key \
-          --base-gemfile "$base_gemfile" \
-          --image "$IMAGE")
-        cache_key=$(ruby tasks/bundle_cache.rb matrix-key \
-          --base-gemfile "$base_gemfile" \
-          --base-cache-key "$base_key" \
-          --gemfiles "$GEMFILES")
+        base_key=$(ruby tasks/bundle_cache.rb base-key)
+        cache_key=$(ruby tasks/bundle_cache.rb matrix-key "$base_key")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Find matrix cache
       id: lookup

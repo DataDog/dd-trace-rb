@@ -24,9 +24,7 @@ runs:
       env:
         IMAGE: ${{ inputs.image }}
       run: |
-        cache_key=$(ruby tasks/bundle_cache.rb base-key \
-          --base-gemfile "${BUNDLE_GEMFILE:-Gemfile}" \
-          --image "$IMAGE")
+        cache_key=$(ruby tasks/bundle_cache.rb base-key)
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Restore base cache
       id: restore
