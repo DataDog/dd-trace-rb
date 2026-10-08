@@ -78,6 +78,14 @@ RSpec.describe "Native transport configuration" do
         expect(build_writer).to be_a(Datadog::Tracing::Writer)
       end
 
+      it "keeps the native transport enabled in AppSec standalone mode" do
+        settings.appsec.enabled = true
+        settings.apm.tracing.enabled = false
+
+        expect(settings.tracing.enabled).to be true
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
+      end
+
       it "creates a native transport when tracing is enabled by reconfiguration" do
         settings.tracing.enabled = false
         build_writer

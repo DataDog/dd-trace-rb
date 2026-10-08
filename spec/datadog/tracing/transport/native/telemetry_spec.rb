@@ -342,6 +342,17 @@ RSpec.describe "Native exporter telemetry" do
     expect(agent.drain.map { |request| request.fetch("path") }).not_to include(/apmtelemetry/)
   end
 
+  it "reports native telemetry in AppSec standalone mode" do
+    settings.appsec.enabled = true
+    settings.apm.tracing.enabled = false
+    transport = build_transport
+
+    send_trace(transport)
+    transport.close
+
+    expect(request_count(agent.telemetry)).to eq(1)
+  end
+
   it "discards pending metrics when telemetry is disabled before close" do
     transport = build_transport
     send_trace(transport)
