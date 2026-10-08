@@ -18,7 +18,7 @@ module Datadog
       attr_reader :settings
       attr_reader :target
 
-      def_delegators :target, :debug
+      def_delegators :target, :debug, :warn
 
       def trace
         if settings.dynamic_instrumentation.internal.trace_logging

@@ -22,6 +22,10 @@ module Datadog
 
     def increment: (String stat, ?Hash[Symbol, untyped] opts) -> void
 
+    def host: () -> String?
+
+    def port: () -> Integer?
+
     def close: (?flush: boolish) -> void
   end
 end
