@@ -3,6 +3,7 @@
 require_relative "logger"
 require_relative "base"
 require_relative "error"
+require_relative "metric_emitter"
 require_relative "code_tracker"
 require_relative "component"
 require_relative "context"
