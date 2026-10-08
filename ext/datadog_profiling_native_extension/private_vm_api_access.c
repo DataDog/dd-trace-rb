@@ -373,7 +373,6 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
     VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
     VM_ASSERT(n >= 0);
-    ASSUME(n >= 0);
     size_t pos = n; /* no overflow */
     if (LIKELY(pos)) {
       /* use pos-1 because PC points next instruction at the beginning of instruction */
