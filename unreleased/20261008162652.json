@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6118",
+  "message": "Live Debugger snapshot probes firing within one trace now share a single sampling decision and emit related snapshots together, with total snapshot volume bounded process-wide; per-probe snapshot rates continue to apply outside traces."
+}
