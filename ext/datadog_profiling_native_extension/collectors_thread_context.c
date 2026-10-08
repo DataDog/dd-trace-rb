@@ -1693,23 +1693,24 @@ static VALUE thread_list(thread_context_collector_state *state) {
   return result;
 }
 
-// Inside a signal handler, we don't want to do the whole work of recording a sample, but we only record the stack of
-// the current thread.
-//
-// This function also gets called from the GC-finish hook when the signal handler interrupted GC and we had to wait
-// until GC was at its end before preparing the sample. In that situation it gets called from outside a signal handler,
-// with `during_sample` set to prevent reentrancy.
-//
-// Assumptions for this function are same as for `thread_context_collector_sample` except that this function is
-// expected to be async-signal-safe. When called from a signal handler, `during_sample` MUST be unset.
-//
-// Also, no allocation (Ruby or malloc) can happen.
-bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
+static inline bool thread_context_collector_prepare_sample_internal(void) {
   VALUE current_thread = rb_thread_current();
   per_thread_context *thread_context = get_per_thread_context(current_thread);
   if (thread_context == NULL) return false;
 
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
+}
+
+// Called from a signal handler on the main Ractor with the GVL held, outside GC and with `during_sample` unset.
+// Must remain async-signal-safe: no allocation (Ruby or malloc), exceptions, or releasing the GVL.
+bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
+  return thread_context_collector_prepare_sample_internal();
+}
+
+// Called at RUBY_INTERNAL_EVENT_GC_EXIT on the main Ractor with the GVL held; `during_sample` MUST be set to prevent reentrancy.
+// Ruby is still doing GC: no allocation (Ruby or malloc), exceptions, or releasing the GVL.
+void thread_context_collector_prepare_sample_on_gc_finish(void) {
+  thread_context_collector_prepare_sample_internal();
 }
 
 // This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should neither allocate in the

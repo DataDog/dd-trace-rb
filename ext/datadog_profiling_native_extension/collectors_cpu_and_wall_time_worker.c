@@ -1092,8 +1092,7 @@ static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
     if (state->prepare_sample_on_gc_finish && !state->during_sample) {
       during_sample_enter(state);
-      // If we can't prepare the stack here, we can still collect it when taking the next sample.
-      DDTRACE_UNUSED bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
+      thread_context_collector_prepare_sample_on_gc_finish();
       during_sample_exit(state);
     }
     bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);

@@ -641,6 +641,7 @@ void record_placeholder_stack(
   );
 }
 
+// Also called from a signal handler or during GC; check callers' safety requirements before changing this function.
 bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   // While the signal handler checks if there's GC going on, it's actually possible for `sampling_buffer_mark` to
   // still run outside of GC (see comments on that function) and thus we guard for it here.
