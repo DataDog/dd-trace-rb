@@ -62,20 +62,23 @@
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
 static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
 static gvl_owner_context_t *get_gvl_owner_context(void);
-static inline rb_thread_t *thread_struct_from_object(VALUE thread);
+
+typedef struct {
+  gvl_owner_context_t *main_ractor_gvl_owner_context;
+  const rb_data_type_t *thread_data_type;
+} private_vm_api_global_t;
 
 // Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
 // The native context stays at the same address across GC compaction and forks from the main ractor.
-static gvl_owner_context_t *main_ractor_gvl_owner_context = NULL;
+static private_vm_api_global_t private_vm_api_global;
 
 void private_vm_api_access_init(void) {
-  thread_struct_from_object(rb_thread_current()); // to initialize the thread_data_type inside
-
-  main_ractor_gvl_owner_context = get_gvl_owner_context();
+  private_vm_api_global.thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  private_vm_api_global.main_ractor_gvl_owner_context = get_gvl_owner_context();
 }
 
 void private_vm_api_access_self_test(void) {
-  if (main_ractor_gvl_owner_context != get_gvl_owner_context()) {
+  if (private_vm_api_global.main_ractor_gvl_owner_context != get_gvl_owner_context()) {
     rb_raise(rb_eRuntimeError, "BUG: main_ractor_gvl_owner_context changed unexpectedly");
   }
 }
@@ -88,12 +91,7 @@ void private_vm_api_access_self_test(void) {
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
-  static const rb_data_type_t *thread_data_type = NULL;
-  if (UNLIKELY(thread_data_type == NULL)) {
-    thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
-  }
-
-  return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
+  return (rb_thread_t *) rb_check_typeddata(thread, private_vm_api_global.thread_data_type);
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
@@ -158,15 +156,15 @@ static gvl_owner_context_t *get_gvl_owner_context(void) {
 // * In a case where we observe a different thread, then this may change by the time we do something with this value
 //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
 current_gvl_owner main_ractor_gvl_owner(void) {
-  if (main_ractor_gvl_owner_context == NULL) return (current_gvl_owner) {.valid = false};
+  if (private_vm_api_global.main_ractor_gvl_owner_context == NULL) return (current_gvl_owner) {.valid = false};
 
   const rb_thread_t *current_owner =
     #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-      main_ractor_gvl_owner_context->threads.sched.running;
+      private_vm_api_global.main_ractor_gvl_owner_context->threads.sched.running;
     #elif HAVE_RUBY_RACTOR_H
-      main_ractor_gvl_owner_context->threads.gvl.owner;
+      private_vm_api_global.main_ractor_gvl_owner_context->threads.gvl.owner;
     #else
-      main_ractor_gvl_owner_context->gvl.owner;
+      private_vm_api_global.main_ractor_gvl_owner_context->gvl.owner;
     #endif
 
   if (current_owner == NULL) {
@@ -188,7 +186,7 @@ current_gvl_owner main_ractor_gvl_owner(void) {
 }
 #else
 current_gvl_owner main_ractor_gvl_owner(void) {
-  rb_vm_t *vm = main_ractor_gvl_owner_context;
+  rb_vm_t *vm = private_vm_api_global.main_ractor_gvl_owner_context;
   if (vm == NULL) return (current_gvl_owner) {.valid = false};
 
   // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
