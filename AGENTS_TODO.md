@@ -16,7 +16,7 @@ Some persona ideas:
     1. `ci-failure` – tells you why your commit is failing on GitHub or Gitlab (e.g using remote APIs).
     1. `code-reviewer` – ensures reviewer agents gather the right resources.
     1. `gem-files` – helps with updates to Appraisals, `Matrixfile`, `Rakefile`, and dependency matrices.
-    1. `instrumentation` - knows how to create/maintain contrib integrations (possibly seperate personas per-product).
+    1. `instrumentation` - knows how to create/maintain contrib integrations (possibly separate personas per-product).
     1. `native-extensions` - helps with native extensions changes (`libdatadog` vs "other ext's" are likely separate personas). Helps with MacOS compilation/testing too.
     1. `new-ruby-version` – stewards MRI/JRuby/TruffleRuby version bumps.
     1. TODO: QUESTION TO REVIEWERS: `release` - not sure what this one would do exactly

@@ -1,0 +1,37 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class TraceState
+        class Datadog
+          type tags = ::Hash[::String, ::String]
+
+          def self.from_digest: (TraceDigest digest) -> Datadog
+          def self.from_tracestate_member: (::String? value) -> Datadog
+          def self.encode: (::Hash[::Object, ::Object] tags) -> ::String
+          def self.decode: (::String string) -> tags
+
+          class EncodingError < StandardError
+          end
+
+          class DecodingError < StandardError
+          end
+
+          attr_reader sampling_priority: ::Integer?
+          attr_reader origin: ::String?
+          attr_reader ts_parent_id: ::String?
+          attr_reader tags: tags?
+          attr_reader unknown_fields: ::String?
+
+          def initialize: (?sampling_priority: ::Integer?, ?origin: ::String?, ?ts_parent_id: ::String?, ?tags: tags?, ?unknown_fields: ::String?) -> void
+          def to_s: -> ::String
+
+          private
+
+          def serialize_origin: (::String value) -> ::String
+          def serialize_tag_key: (::String name) -> ::String
+          def serialize_tag_value: (::String value) -> ::String
+        end
+      end
+    end
+  end
+end

@@ -31,6 +31,7 @@ CORE_WITH_LIBDATADOG_API = [
   "spec/datadog/open_feature_spec.rb",
   "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
   "spec/datadog/core/datadog_ruby_common_spec.rb",
+  "spec/datadog/tracing/otel_thread_context_spec.rb",
 ].freeze
 
 # Native trace exporter / transport specs (spec/datadog/tracing/transport/native).
@@ -54,6 +55,9 @@ DSM_ENABLED_LIBRARIES = [
   :kafka,
   :karafka,
 ].freeze
+
+# The Rakefile is only for development, enable testing the profiler on macOS
+ENV["DD_PROFILING_MACOS_TESTING"] = "true"
 
 # rubocop:disable Metrics/BlockLength
 namespace :test do
@@ -90,7 +94,7 @@ end
 desc "Run RSpec"
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
-  task all: [:main, :benchmark, :custom_cop,
+  task all: [:main, :benchmark, :custom_cop, :tasks,
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
@@ -100,6 +104,8 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = "spec/**/*_spec.rb"
     t.exclude_pattern = "spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb," \
+                        " spec/github/**/*_spec.rb," \
+                        " spec/tasks/**/*_spec.rb," \
                         " spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb," \
                         " spec/**/*_rails_spec.rb," \
                         " spec/datadog/core/environment/execution_spec.rb," \
@@ -118,6 +124,16 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
     t.pattern = "spec/rubocop/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:github) do |t, args|
+    t.pattern = "spec/github/**/*_spec.rb"
+    t.rspec_opts = args.to_a.join(" ")
+  end
+
+  RSpec::Core::RakeTask.new(:tasks) do |t, args|
+    t.pattern = "spec/tasks/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
 
@@ -153,6 +169,10 @@ namespace :spec do
     t.pattern = "spec/datadog/open_feature/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
+  # Some open_feature specs drive the libdatadog_api C extension directly
+  # (Core::FeatureFlags::Configuration#get_assignment), so the extension must be
+  # compiled before this task runs.
+  Rake::Task["spec:open_feature"].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
@@ -283,6 +303,20 @@ namespace :spec do
   # run in their own process (see NATIVE_TRANSPORT_SPECS) to avoid sharing with
   # the fork-heavy ProcessDiscovery specs.
   Rake::Task["spec:native_transport"].enhance([:compile])
+
+  desc "Run native transport cleanup specs with memory leak checking"
+  if Gem.loaded_specs.key?("ruby_memcheck")
+    RubyMemcheck::RSpec::RakeTask.new(:native_transport_memcheck) do |t, args|
+      t.pattern = NATIVE_TRANSPORT_SPECS.join(", ")
+      t.rspec_opts = [*args.to_a, "--tag native_transport_memcheck"].join(" ")
+    end
+    Rake::Task["spec:native_transport_memcheck"].enhance([:compile])
+    Rake::Task["spec:core_with_libdatadog_api_memcheck"].enhance(["spec:native_transport_memcheck"])
+  else
+    task :native_transport_memcheck do
+      raise "Memcheck requires the ruby_memcheck gem to be installed"
+    end
+  end
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
@@ -514,8 +548,8 @@ namespace :spec do
     task all: [:main, :ractors]
 
     task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-      if RUBY_ENGINE == "ruby" && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("2.3.0")
+      # "bundle exec rake compile" currently only works on CRuby
+      if RUBY_ENGINE == "ruby"
         Rake::Task[:clean].invoke
         Rake::Task[:compile].invoke
       end
@@ -614,11 +648,14 @@ NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = "ext/libdatadog_api"
   end,
-
-  Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = "ext/datadog_profiling_native_extension"
-  end,
-].freeze
+  (
+    if RUBY_ENGINE == "ruby"
+      Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+        ext.ext_dir = "ext/datadog_profiling_native_extension"
+      end
+    end
+  ),
+].compact.freeze
 
 NATIVE_CLEAN = ::Rake::FileList[]
 # DEV: Should we suggest this Rake task for native development onboarding?

@@ -5,6 +5,7 @@
 #include "crashtracker.h"
 #include "feature_flags.h"
 #include "library_config.h"
+#include "otel_thread_context.h"
 #include "process_discovery.h"
 #include "trace_exporter.h"
 
@@ -24,8 +25,11 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   library_config_init(core_module);
   ddsketch_init(core_module);
   feature_flags_init(core_module);
-  di_init(datadog_module);
+  #ifndef TRUFFLERUBY
+    di_init(datadog_module);
+  #endif
 
   VALUE tracing_module = rb_define_module_under(datadog_module, "Tracing");
   trace_exporter_init(tracing_module);
+  otel_thread_context_init(tracing_module);
 }

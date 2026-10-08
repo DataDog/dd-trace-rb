@@ -771,6 +771,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
     end
 
+    it "dispatches after_fork to the tracer when supported" do
+      tracer = instance_double(Datadog::Tracing::Tracer)
+      allow(components).to receive(:tracer).and_return(tracer)
+      expect(tracer).to receive(:after_fork)
+
+      after_fork
+    end
+
     it "dispatches after_fork! to the symbol_database when present" do
       symbol_database = instance_double(Datadog::SymbolDatabase::Component)
       allow(components).to receive(:symbol_database).and_return(symbol_database)
@@ -781,6 +789,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     it "does not raise when symbol_database is nil" do
       allow(components).to receive(:symbol_database).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
+
+    it "dispatches restart_flush_thread to the data_streams processor when present" do
+      data_streams = instance_double(Datadog::DataStreams::Processor)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+      expect(data_streams).to receive(:restart_flush_thread)
+
+      after_fork
+    end
+
+    it "does not raise when data_streams is nil" do
+      allow(components).to receive(:data_streams).and_return(nil)
 
       expect { after_fork }.not_to raise_error
     end

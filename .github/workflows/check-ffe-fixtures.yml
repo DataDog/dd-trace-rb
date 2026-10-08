@@ -1,0 +1,27 @@
+name: Check FFE fixtures
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    paths:
+      - '.github/workflows/check-ffe-fixtures.yml'
+      - 'tasks/ffe_fixtures.rb'
+      - 'spec/tasks/ffe_fixtures_spec.rb'
+      - 'spec/datadog/open_feature/ffe-system-test-data/**'
+  merge_group:
+  push:
+    branches:
+      - mq-working-branch-*
+
+permissions:
+  contents: read
+
+jobs:
+  check-ffe-fixtures:
+    name: Check canonical FFE fixture snapshot
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify the recorded fixture snapshot
+        run: ruby tasks/ffe_fixtures.rb --check

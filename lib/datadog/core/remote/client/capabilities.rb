@@ -16,14 +16,15 @@ module Datadog
         class Capabilities
           attr_reader :capabilities, :receivers, :base64_capabilities
 
-          def initialize(settings, telemetry)
+          def initialize(settings, telemetry, open_feature_component_provider: nil)
+            open_feature_component_provider ||= -> {}
             @capabilities = []
             @products = []
             @products_mutex = Mutex.new
             @receivers = []
             @telemetry = telemetry
 
-            register(settings)
+            register(settings, open_feature_component_provider)
 
             @base64_capabilities = capabilities_to_base64
           end
@@ -46,7 +47,7 @@ module Datadog
 
           private
 
-          def register(settings)
+          def register(settings, open_feature_component_provider)
             if settings.respond_to?(:appsec) && settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
@@ -98,7 +99,12 @@ module Datadog
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
               register_capabilities(Datadog::OpenFeature::Remote.capabilities)
               register_products(Datadog::OpenFeature::Remote.products)
-              register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
+              register_receivers(
+                Datadog::OpenFeature::Remote.receivers(
+                  @telemetry,
+                  component_provider: open_feature_component_provider,
+                ),
+              )
             end
           end
 

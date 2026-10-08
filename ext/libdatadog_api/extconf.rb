@@ -24,7 +24,7 @@ end
 if ENV["DD_NO_EXTENSION"].to_s.strip.downcase == "true"
   skip_building_extension!("the `DD_NO_EXTENSION` environment variable is/was set to `true` during installation")
 end
-skip_building_extension!("current Ruby VM is not supported") if RUBY_ENGINE != "ruby"
+skip_building_extension!("current Ruby VM is not supported") unless %w[ruby truffleruby].include?(RUBY_ENGINE)
 skip_building_extension!("Microsoft Windows is not supported") if Gem.win_platform?
 
 libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issue
@@ -97,6 +97,9 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 have_func("rb_iseq_type")
+
+$defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
+$defs << "-DHAVE_RUBY_THREAD_HAS_GVL_P" if have_func("ruby_thread_has_gvl_p")
 
 create_makefile(EXTENSION_NAME)
 

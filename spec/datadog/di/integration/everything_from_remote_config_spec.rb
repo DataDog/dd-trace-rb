@@ -212,6 +212,7 @@ RSpec.describe "DI integration from remote config" do
       },
       message: nil,
       process_tags: String,
+      runtime_id: String,
       service: "rspec",
       timestamp: Integer,
     }
@@ -486,6 +487,7 @@ RSpec.describe "DI integration from remote config" do
           # second expression fails evaluation
           message: "hello false[evaluation error]",
           process_tags: String,
+          runtime_id: String,
           service: "rspec",
           timestamp: Integer,
         }
@@ -663,6 +665,7 @@ RSpec.describe "DI integration from remote config" do
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
+          runtime_id: String,
           service: "rspec",
           timestamp: Integer,
         }
@@ -748,6 +751,7 @@ RSpec.describe "DI integration from remote config" do
             },
             message: nil,
             process_tags: String,
+            runtime_id: String,
             service: "rspec",
             timestamp: Integer,
           }

@@ -35,7 +35,7 @@ module Datadog
 
         def flush: (?timeout: Numeric?) -> bool?
 
-        def client_configuration_change!: (Array[[String, Numeric | bool | String]] changes) -> void
+        def client_configuration_change!: (Event::AppClientConfigurationChange::configuration_changes changes) -> void
 
         def emit_closing!: () -> void
 

@@ -43,6 +43,57 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(processor.loop_base_interval).to eq(5.0)
       end
     end
+
+    it "sets fork_policy to restart, so the flush thread is recreated after a fork" do
+      expect(processor.fork_policy).to eq(Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART)
+    end
+  end
+
+  describe "#restart_flush_thread" do
+    it "re-invokes #perform" do
+      expect(processor).to receive(:perform)
+
+      processor.restart_flush_thread
+    end
+
+    it "restarts the flush thread across a real fork" do
+      skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
+
+      processor # eagerly build, so the worker is started in the parent before forking
+
+      expect_in_fork do
+        expect(processor.running?).to be false # the parent's thread does not survive the fork
+
+        processor.restart_flush_thread
+
+        expect(processor.running?).to be true
+      end
+    end
+
+    it "discards state inherited from the parent across a real fork, instead of double-flushing it" do
+      skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
+
+      processor.track_kafka_produce("orders", 0, 1, Datadog::Core::Utils::Time.now) # buffer an event in the parent, pre-fork
+      processor.instance_variable_get(:@buckets)[123] = {fake: "bucket"}
+      processor.instance_variable_get(:@consumer_stats) << {fake: "stat"}
+
+      expect_in_fork do
+        processor.restart_flush_thread
+
+        expect(processor.instance_variable_get(:@event_buffer)).to be_empty
+        expect(processor.instance_variable_get(:@buckets)).to be_empty
+        expect(processor.instance_variable_get(:@consumer_stats)).to be_empty
+      end
+    end
+
+    it "does not discard buffered state when no fork occurred" do
+      processor.stop(true)
+      processor.track_kafka_produce("orders", 0, 1, Datadog::Core::Utils::Time.now)
+
+      processor.restart_flush_thread
+
+      expect(processor.instance_variable_get(:@event_buffer)).not_to be_empty
+    end
   end
 
   describe "public checkpoint API" do

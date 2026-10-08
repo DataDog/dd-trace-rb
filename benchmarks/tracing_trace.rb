@@ -108,13 +108,13 @@ class TracingTraceBenchmark
     end
   end
 
-  def benchmark_to_digest_continue
+  def benchmark_continue_trace
     Datadog::Tracing.trace("op.name") do |span, trace|
+      digest = trace.to_digest
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
-        x.report("trace.to_digest - Continue") do
-          digest = trace.to_digest
+        x.report("Tracing.continue_trace!") do
           Datadog::Tracing.continue_trace!(digest)
         end
 
@@ -196,7 +196,7 @@ TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_no_network }
   run_benchmark { benchmark_to_digest }
   run_benchmark { benchmark_log_correlation }
-  run_benchmark { benchmark_to_digest_continue }
+  run_benchmark { benchmark_continue_trace }
   run_benchmark { benchmark_propagation_datadog }
   run_benchmark { benchmark_propagation_trace_context }
 end

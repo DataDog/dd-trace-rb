@@ -65,6 +65,7 @@ module Datadog
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
           cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
         )
 
         internal_metadata = {
@@ -72,7 +73,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
         }.freeze
 
-        exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
+        exporter = build_profiler_exporter(settings, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
         profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler)
@@ -102,20 +103,18 @@ module Datadog
           max_frames: settings.profiling.advanced.max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
           native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
           show_classes: settings.profiling.advanced.experimental_show_classes_enabled,
         )
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder, worker, internal_metadata:)
+      private_class_method def self.build_profiler_exporter(settings, worker, internal_metadata:)
         info_collector = Profiling::Collectors::Info.new(settings)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
-          pprof_recorder: recorder,
           worker: worker,
           info_collector: info_collector,
           code_provenance_collector: code_provenance_collector,
@@ -227,11 +226,13 @@ module Datadog
           return false
         end
 
-        # Heap profiling relies on `ObjectSpace._id2ref`, which was removed on Ruby 4.1
-        # (https://bugs.ruby-lang.org/issues/22135).
-        if RubyVersion.is?(">= 4.1")
+        # Heap profiling tracks live objects using an `ObjectSpace::WeakMap`, which could corrupt its internal
+        # state during compaction before these versions (https://bugs.ruby-lang.org/issues/19529).
+        if RubyVersion.is?("< 3.1.4") || RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
-            "Heap profiling is currently incompatible with Ruby 4.1+ and has been disabled."
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to a VM bug. " \
+            "Please upgrade to Ruby >= 3.1.4 or >= 3.2.3 in order to use this feature. " \
+            "Heap profiling has been disabled."
           )
           return false
         end
@@ -252,17 +253,7 @@ module Datadog
       private_class_method def self.enable_heap_size_profiling?(settings, heap_profiling_enabled, logger)
         heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
 
-        return false unless heap_profiling_enabled && heap_size_profiling_enabled
-
-        if RubyVersion.is?(">= 4")
-          logger.info(
-            "Heap live size profiling is currently incompatible with Ruby 4 and has been disabled. " \
-            "Heap live objects is not affected and remains enabled."
-          )
-          return false
-        end
-
-        true
+        heap_profiling_enabled && heap_size_profiling_enabled
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings, logger) # rubocop:disable Metrics/MethodLength

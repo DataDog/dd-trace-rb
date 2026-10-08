@@ -96,6 +96,8 @@ module Datadog
         # Recreates the remote configuration client after a fork.
         # This ensures each forked process has a unique client ID and fresh state.
         def after_fork
+          @worker.after_fork
+          @barrier = Barrier.new(@settings.remote.boot_timeout_seconds)
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
           @healthy = false
           logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
@@ -187,10 +189,15 @@ module Datadog
           #
           # Those checks are instead performed inside the worker loop.
           # This allows users to upgrade their agent while keeping their application running.
-          def build(settings, agent_settings, logger:, telemetry:)
+          def build(settings, agent_settings, logger:, telemetry:, open_feature_component_provider: nil)
             return unless settings.remote.enabled
 
-            new(settings, Client::Capabilities.new(settings, telemetry), agent_settings, logger: logger)
+            capabilities = Client::Capabilities.new(
+              settings,
+              telemetry,
+              open_feature_component_provider: open_feature_component_provider,
+            )
+            new(settings, capabilities, agent_settings, logger: logger)
           end
         end
       end

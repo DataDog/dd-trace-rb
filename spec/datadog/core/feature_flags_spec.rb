@@ -2,7 +2,6 @@
 
 require "datadog/core"
 require "datadog/core/feature_flags"
-require "datadog/open_feature/native_evaluator"
 
 RSpec.describe Datadog::Core::FeatureFlags do
   let(:flags_json) do
@@ -63,6 +62,29 @@ RSpec.describe Datadog::Core::FeatureFlags do
       it "raises an error with invalid JSON" do
         expect { described_class::Configuration.new("invalid json") }
           .to raise_error(described_class::Error, /Failed to create configuration from JSON/)
+      end
+    end
+
+    describe "#observe_full_evaluation_data" do
+      subject(:observe_full_evaluation_data) { configuration.observe_full_evaluation_data }
+
+      let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
+      let(:config) { JSON.parse(flags_json) }
+
+      it "defaults to false when absent" do
+        is_expected.to be(false)
+      end
+
+      context "when enabled" do
+        before { config["observeFullEvaluationData"] = true }
+
+        it { is_expected.to be(true) }
+      end
+
+      context "when the field has the malformed value from FFL-3125" do
+        before { config["observeFullEvaluationData"] = 42 }
+
+        it { is_expected.to be(false) }
       end
     end
 
@@ -149,59 +171,5 @@ RSpec.describe Datadog::Core::FeatureFlags do
         end
       end
     end
-  end
-end
-
-RSpec.describe Datadog::OpenFeature::NativeEvaluator do
-  fixture_root = File.expand_path("../open_feature/ffe-system-test-data", __dir__)
-  fixture_files = Dir[File.join(fixture_root, "evaluation-cases", "*.json")].sort
-
-  raise "FFE fixture submodule is missing or empty" if fixture_files.empty?
-
-  subject(:evaluator) { described_class.new(configuration) }
-
-  let(:configuration) { File.read(File.join(fixture_root, "ufc-config.json")) }
-
-  describe "canonical FFE fixtures" do
-    fixture_files.each do |fixture_file|
-      JSON.parse(File.read(fixture_file)).each_with_index do |test_case, index|
-        it "evaluates #{File.basename(fixture_file)}[#{index}]" do
-          result = evaluator.get_assignment(
-            test_case.fetch("flag"),
-            default_value: test_case.fetch("defaultValue"),
-            expected_type: expected_type(test_case.fetch("variationType")),
-            context: evaluation_context(test_case),
-          )
-
-          expected = test_case.fetch("result")
-
-          expect(result.value).to eq(expected.fetch("value"))
-          expect(result.reason).to eq(expected.fetch("reason"))
-          expect(result.variant).to eq(expected["variant"]) if expected.key?("variant")
-          expect(result.error_code).to eq(expected["errorCode"]) if expected.key?("errorCode")
-        end
-      end
-    end
-  end
-
-  def expected_type(variation_type)
-    case variation_type
-    when "BOOLEAN"
-      :boolean
-    when "STRING"
-      :string
-    when "INTEGER"
-      :integer
-    when "NUMERIC"
-      :number
-    when "JSON"
-      :object
-    else
-      raise "Unsupported variation type: #{variation_type}"
-    end
-  end
-
-  def evaluation_context(test_case)
-    {"targeting_key" => test_case["targetingKey"]}.merge(test_case.fetch("attributes") || {})
   end
 end

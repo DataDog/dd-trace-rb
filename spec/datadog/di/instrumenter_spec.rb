@@ -3,10 +3,15 @@ require "datadog/di/instrumenter"
 require "datadog/di/code_tracker"
 require "datadog/di/serializer"
 require "datadog/di/probe"
+require "datadog/di/capture_expression"
 require "datadog/di/proc_responder"
+require "datadog/di/logger"
+require "datadog/di/probe_manager"
+require "datadog/di/probe_notification_builder"
+require "datadog/di/probe_notifier_worker"
+require "datadog/di/probe_repository"
 require_relative "hook_line"
 require_relative "hook_method"
-require "logger"
 
 # The examples below use a local code tracker when they set line probes,
 # for better test encapsulation and to avoid having to clear/reset global state.
@@ -38,9 +43,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Serializer.new(settings, redactor)
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  di_logger_double
 
   let(:instrumenter) do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker)
@@ -1237,6 +1240,33 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         include_examples "does not report the call and reports evaluation failure"
       end
+
+      context "when the responder is a ProcResponder with a failed proc" do
+        let(:propagate_all_exceptions) { false }
+
+        let(:condition) do
+          Datadog::DI::EL::Expression.new(
+            "(expression)",
+            "unknown_function('kwarg') == 42"
+          )
+        end
+
+        it "invokes the failed proc with the context and exception" do
+          observed = []
+          responder = Datadog::DI::ProcResponder.new(
+            proc { |context| observed << [:executed, context] },
+            proc { |context, exc| observed << [:failed, context, exc] }
+          )
+          instrumenter.hook_method(probe, responder)
+
+          target_call
+
+          expect(observed.length).to eq 1
+          expect(observed.first[0]).to eq :failed
+          expect(observed.first[1]).to be_a(Datadog::DI::Context)
+          expect(observed.first[2]).to be_an(Exception)
+        end
+      end
     end
 
     # The wrapper passes caller_locations to run_method_probe so the
@@ -2075,6 +2105,293 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect do
           HookLineLoadTestClass.new.test_method_with_local
         end.not_to raise_error
+      end
+    end
+  end
+
+  describe "global rate limiting" do
+    describe "constants and limiters" do
+      it "builds token bucket limiters at those rates" do
+        expect(instrumenter.global_snapshot_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+        expect(instrumenter.global_snapshot_rate_limiter.rate).to eq 20
+        expect(instrumenter.global_log_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+        expect(instrumenter.global_log_rate_limiter.rate).to eq 5000
+      end
+    end
+
+    describe "#probe_global_rate_limiter" do
+      let(:snapshot_probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: true)
+      end
+
+      let(:log_probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: false)
+      end
+
+      let(:capture_expression_probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
+          method_name: "hook_test_method", capture_snapshot: false,
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)])
+      end
+
+      it "returns the snapshot limiter for capturing probes" do
+        expect(instrumenter.probe_global_rate_limiter(snapshot_probe))
+          .to be(instrumenter.global_snapshot_rate_limiter)
+      end
+
+      it "returns the snapshot limiter for capture-expression-only probes" do
+        expect(instrumenter.probe_global_rate_limiter(capture_expression_probe))
+          .to be(instrumenter.global_snapshot_rate_limiter)
+      end
+
+      it "returns the log limiter for non-capturing probes" do
+        expect(instrumenter.probe_global_rate_limiter(log_probe))
+          .to be(instrumenter.global_log_rate_limiter)
+      end
+    end
+
+    describe "method probe enforcement" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      context "when the global limit rejects" do
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback but still runs the target method" do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when the global snapshot limit rejects a capturing probe" do
+        let(:probe) do
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+            id: 1, type: :log, capture_snapshot: true)
+        end
+
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback and draws from the snapshot bucket" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when the per-probe limit rejects" do
+        let(:probe) do
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+            id: 1, type: :log, rate_limit: 0)
+        end
+
+        it "does not consult the global limiter" do
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 0
+        end
+      end
+
+      context "when both limits allow" do
+        it "invokes the callback and consumes a global token" do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_call_original
+
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+    end
+
+    describe "line probe enforcement" do
+      before do
+        expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      context "when the global limit rejects" do
+        before do
+          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when the global snapshot limit rejects a capturing probe" do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
+            capture_snapshot: true)
+        end
+
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not invoke the callback and draws from the snapshot bucket" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to be_empty
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when both limits allow" do
+        it "invokes the callback" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+    end
+
+    describe "condition error enforcement" do
+      let(:propagate_all_exceptions) { false }
+
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        instrumenter.unhook(probe)
+        manager.close
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+        )
+      end
+
+      let(:probe_notification_builder) do
+        instance_double(Datadog::DI::ProbeNotificationBuilder)
+      end
+
+      let(:probe_notifier_worker) do
+        instance_double(Datadog::DI::ProbeNotifierWorker)
+      end
+
+      let(:probe_repository) do
+        Datadog::DI::ProbeRepository.new
+      end
+
+      let(:manager) do
+        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+          probe_notifier_worker, logger, probe_repository)
+      end
+
+      context "when the global snapshot limit admits a condition error" do
+        let(:snapshot) { double("snapshot") }
+
+        before do
+          allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+            .and_return(snapshot)
+        end
+
+        it "emits the condition error snapshot through the probe manager" do
+          expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
+
+          instrumenter.hook_method(probe, manager)
+
+          expect(DITestClass.new.test_method(42)).to eq 43
+        end
+      end
+
+      context "when the global snapshot limit rejects a condition error" do
+        before do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        end
+
+        it "does not emit the condition error snapshot and logs at trace" do
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+          instrumenter.hook_method(probe, manager)
+
+          expect(DITestClass.new.test_method(42)).to eq 43
+
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
       end
     end
   end

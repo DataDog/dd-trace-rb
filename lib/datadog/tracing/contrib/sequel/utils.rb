@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
-require "uri"
-
 require_relative "../../metadata/ext"
 require_relative "../utils/database"
 require_relative "ext"
+require_relative "jdbc_connection_string"
 require_relative "../ext"
 require_relative "../span_attribute_schema"
 
@@ -14,11 +13,6 @@ module Datadog
       module Sequel
         # General purpose functions for Sequel
         module Utils
-          JDBC_URI_PATTERN = %r{\Ajdbc:(?<vendor>[a-z][a-z0-9+.-]*):(?<location>//[^\r\n]*)\z}i
-          DATABASE_PROPERTY_PATTERN =
-            /(?:\A|[&;])(?<key>databaseName|database|libraries)=(?<value>[^&;]+)/i
-          private_constant :JDBC_URI_PATTERN, :DATABASE_PROPERTY_PATTERN
-
           class << self
             # Ruby database connector library
             #
@@ -40,34 +34,6 @@ module Datadog
             # e.g. database:mysql (adapter:mysql2), database:postgres (adapter:jdbc)
             def database_type(database)
               Contrib::Utils::Database.normalize_vendor(database.database_type.to_s)
-            end
-
-            # Parses URI-style JDBC connection strings, extracting host, port, and
-            # (best-effort) database name. Unsupported or ambiguous forms return empty
-            # metadata rather than potentially incorrect tags.
-            def parse_jdbc_uri(uri)
-              result = {host: nil, port: nil, database: nil}
-              return result unless uri.is_a?(String) && uri.valid_encoding?
-
-              match = JDBC_URI_PATTERN.match(uri)
-              return result unless match
-
-              vendor = match[:vendor].downcase
-              location, properties = match[:location].split(";", 2)
-
-              # Several JDBC vendors append properties with semicolons, outside the URI
-              # grammar. Parse the URI-compatible location separately from those properties.
-              parsed = URI.parse("#{vendor}:#{location}")
-
-              host = parsed.hostname
-              port = parsed.port
-
-              database = database_from_path(parsed.path) ||
-                database_from_properties(properties) || database_from_properties(parsed.query)
-
-              {host: host, port: port&.to_s, database: database}
-            rescue URI::InvalidURIError, Encoding::CompatibilityError, ArgumentError
-              result
             end
 
             def parse_opts(sql, opts, db_opts, dataset = nil)
@@ -121,25 +87,38 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
             end
 
-            # Resolves the connection host/port/database for a Sequel::Database. When the
-            # connection string is a JDBC URL (Sequel's JDBC adapter, used on JRuby), the
-            # host/port/database are parsed from it regardless of whether opts[:host] is set.
+            # Resolves the connection host/port/database for a Sequel::Database. For Sequel's
+            # JDBC adapter (used on JRuby), metadata is parsed from the JDBC connection string
+            # regardless of whether opts[:host] is set.
             def connection_metadata(db)
               opts = db.opts || {}
               host = opts[:host]
               port = opts[:port]
               database = opts[:database]
 
-              # A JDBC URL (in :uri, :url, or :database) can carry credentials, so always parse
-              # it and emit only the parsed database name -- never the raw connection string.
-              conn = opts[:uri] || opts[:url] || opts[:database]
-              is_jdbc = conn.is_a?(String) && conn.byteslice(0, 5)&.casecmp("jdbc:") == 0
+              # A JDBC connection string (in :uri, :url, or :database) can carry credentials, so
+              # always emit only parsed metadata -- never the raw connection string.
+              connection_string = opts[:uri] || opts[:url] || opts[:database]
+              is_jdbc = connection_string.is_a?(String) &&
+                connection_string.byteslice(0, 5)&.casecmp("jdbc:") == 0
               if is_jdbc
-                parsed = parse_jdbc_uri(conn)
+                parsed = JDBCConnectionString.parse(connection_string)
 
-                # Sequel's JDBC adapter connects with the URL and ignores separate
+                # JNDI/DataSource-managed connections keep only a lookup name in opts (e.g.
+                # "jdbc:jndi:..."), so nothing can be parsed from it. Recover the endpoint from the
+                # live connection's JDBC metadata, the same way Sequel resolves JNDI. This stays a
+                # fallback rather than the primary source: it requires a connection checkout and
+                # some drivers report no connection string, whereas the opts value is free and
+                # already present for direct connections (and non-JDBC adapters have no such
+                # metadata at all).
+                if parsed[:host].nil? && parsed[:port].nil? && parsed[:database].nil?
+                  fallback_metadata = jdbc_metadata_from_connection(db)
+                  parsed = fallback_metadata if fallback_metadata
+                end
+
+                # Sequel's JDBC adapter connects with the connection string and ignores separate
                 # :host/:port options, unlike native adapters where those options take precedence.
-                if !parsed[:host].nil? || !parsed[:port].nil? || !parsed[:database].nil?
+                if parsed[:host] || parsed[:port] || parsed[:database]
                   host = parsed[:host]
                   port = parsed[:port]
                 end
@@ -151,24 +130,32 @@ module Datadog
 
             private
 
-            def database_from_path(path)
-              return unless path&.start_with?("/")
+            # Resolves host/port/database from the live connection's JDBC metadata
+            # (java.sql.DatabaseMetaData#getURL), for JNDI/DataSource connections whose opts hold
+            # only a lookup name. Returns the parsed metadata, or nil when it can't be resolved.
+            #
+            # Only *parsed, credential-free* metadata is memoized -- the raw connection string is
+            # used transiently and never stored or logged. A completed lookup that yields no usable
+            # connection string is a permanent property of the connection, so it is cached to avoid
+            # re-checking out a connection on every query. A raised error is treated as transient
+            # (pool checkout timeout, dropped connection, ...) and left uncached, so a later query
+            # can retry once connectivity recovers.
+            def jdbc_metadata_from_connection(db)
+              return db.instance_variable_get(:@datadog_jdbc_metadata) if db.instance_variable_defined?(:@datadog_jdbc_metadata)
 
-              database = path[1..-1]
-              return if database.empty? || database.include?("/")
+              connection_string =
+                begin
+                  db.synchronize do |conn|
+                    conn.get_meta_data.get_url if conn.respond_to?(:get_meta_data)
+                  end
+                rescue => e
+                  Datadog.logger.debug { "Sequel: unable to resolve JDBC connection metadata (#{e.class})" }
+                  return nil
+                end
 
-              database
-            end
-
-            def database_from_properties(properties)
-              return unless properties
-
-              match = DATABASE_PROPERTY_PATTERN.match(properties)
-              return unless match
-
-              database = match[:value]
-              database = database.split(",", 2).first if match[:key].casecmp("libraries").zero?
-              database
+              metadata = connection_string && JDBCConnectionString.parse(connection_string)
+              db.instance_variable_set(:@datadog_jdbc_metadata, metadata)
+              metadata
             end
 
             def datadog_configuration

@@ -64,7 +64,6 @@ module Datadog
 
           def resolve_option: (untyped settings, ::String config_path) -> Configuration::Option
 
-          def implements_to_s?: (any value) -> bool
         end
       end
     end

@@ -3,7 +3,6 @@
 require_relative "../ext"
 require_relative "../metadata/ext"
 require_relative "../trace_digest"
-require_relative "datadog_tags_codec"
 require_relative "../utils"
 require_relative "helpers"
 require "uri"

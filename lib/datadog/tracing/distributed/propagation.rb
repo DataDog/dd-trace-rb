@@ -146,6 +146,9 @@ module Datadog
                 span_id: parent_id,
                 trace_state: tracecontext_digest.trace_state,
                 trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields,
+                trace_otel_random_value: tracecontext_digest.trace_otel_random_value,
+                trace_otel_threshold: tracecontext_digest.trace_otel_threshold,
+                trace_otel_unknown_fields: tracecontext_digest.trace_otel_unknown_fields,
                 trace_distributed_tags: distributed_tags
               )
             end

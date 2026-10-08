@@ -9,6 +9,7 @@ module Datadog
 
       @logger: Core::Logger
       @span_links: ::Array[SpanLink]?
+      @distributed_sampling_priority: bool
 
       attr_reader logger: Core::Logger
 
@@ -26,8 +27,7 @@ module Datadog
       attr_reader id: untyped
       attr_reader max_length: untyped
       attr_reader parent_span_id: untyped
-      attr_reader trace_state: untyped
-      attr_reader trace_state_unknown_fields: untyped
+      attr_reader trace_state: Distributed::TraceState
       attr_writer name: untyped
       attr_writer resource: untyped
       attr_writer sampled: untyped
@@ -55,9 +55,9 @@ module Datadog
         ?apm_tracing_enabled: untyped?,
         ?tags: untyped?,
         ?metrics: untyped?,
-        ?trace_state: untyped?,
-        ?trace_state_unknown_fields: untyped?,
+        ?trace_state: Distributed::TraceState?,
         ?remote_parent: untyped?,
+        ?distributed_sampling_priority: bool,
         ?tracer: untyped?,
         ?baggage: untyped?,
         ?auto_finish: bool

@@ -17,6 +17,7 @@ module Datadog
           sighandler_sampling_enabled: bool,
           skip_idle_samples_for_testing: bool,
           cpu_sampling_interval_ms: ::Integer,
+          waiting_for_gvl_threshold_ns: ::Integer,
         ) -> true
 
         def self._native_stop: (CpuAndWallTimeWorker self_instance, ::Thread worker_thread) -> true
@@ -29,6 +30,10 @@ module Datadog
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_hold_signals: () -> void
         def self._native_resume_signals: () -> void
+
+        def _native_profiler_internal_thread_done: () -> nil
+
+        def self._native_prepare_serialize: (CpuAndWallTimeWorker self_instance) -> Datadog::Profiling::StackRecorder
       end
     end
   end

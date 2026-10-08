@@ -339,6 +339,88 @@ RSpec.shared_examples "Trace Context distributed format" do
         end
       end
 
+      context "with OpenTelemetry consistent probability sampling values" do
+        let(:options) do
+          {
+            trace_sampling_priority: 1,
+            trace_otel_random_value: "ef284ace7a91e1",
+            trace_otel_threshold: "e6666666666668",
+          }
+        end
+
+        it "emits the `ot=` member immediately after `dd=`" do
+          expect(tracestate).to eq("dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668")
+        end
+
+        context "with only a random value (non-probability decision)" do
+          let(:options) do
+            {
+              trace_sampling_priority: 2,
+              trace_otel_random_value: "ef284ace7a91e1",
+            }
+          end
+
+          it "emits `ot=` with no threshold" do
+            expect(tracestate).to eq("dd=s:2,ot=rv:ef284ace7a91e1")
+          end
+        end
+
+        context "with unknown `ot=` sub-keys" do
+          let(:options) do
+            super().merge(trace_otel_unknown_fields: "future:field;")
+          end
+
+          it "forwards the unknown sub-keys" do
+            expect(tracestate).to eq("dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668;future:field")
+          end
+        end
+
+        context "with an upstream tracestate" do
+          let(:options) { super().merge(trace_state: "other=vendor") }
+
+          it "orders `dd=`, then `ot=`, then other vendors" do
+            expect(tracestate).to eq("dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668,other=vendor")
+          end
+        end
+
+        context "with an upstream `ot=` vendor member" do
+          let(:options) { super().merge(trace_state: "ot=rv:00000000000001;th:0,other=vendor") }
+
+          it "re-emits our own `ot=` and drops the upstream one" do
+            expect(tracestate).to eq("dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668,other=vendor")
+          end
+        end
+
+        context "with 32 upstream tracestate entries" do
+          let(:options) { super().merge(trace_state: Array.new(32) { |i| "v#{i}=x" }.join(",")) }
+
+          it "reserves both leading `dd=` and `ot=`, keeping 30 upstream members" do
+            members = tracestate.split(",")
+            expect(members[0]).to eq("dd=s:1")
+            expect(members[1]).to eq("ot=rv:ef284ace7a91e1;th:e6666666666668")
+            expect(members.length).to eq(32)
+          end
+        end
+
+        context "when `dd=` and `ot=` together would exceed the 512-byte tracestate limit" do
+          let(:options) do
+            {
+              trace_sampling_priority: 1,
+              trace_state_unknown_fields: "u:#{"x" * 247};",
+              trace_otel_random_value: "e" * 14,
+              trace_otel_threshold: "f" * 14,
+              trace_otel_unknown_fields: "u:#{"y" * 215};",
+            }
+          end
+
+          it "drops `ot=` entirely rather than truncating it, keeping `dd=`" do
+            expect(tracestate).to start_with("dd=")
+            expect(tracestate).not_to include("ot=")
+            expect(tracestate.bytesize).to be <= 512
+          end
+        end
+      end
+
       context "with span_id nil" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
@@ -554,6 +636,38 @@ RSpec.shared_examples "Trace Context distributed format" do
         it { expect(digest.trace_origin).to eq("origin") }
       end
 
+      context "with an OpenTelemetry `ot=` member" do
+        let(:tracestate) { "dd=s:1;t.dm:-4,ot=rv:ef284ace7a91e1;th:e6666666666668,other=vendor" }
+
+        it "parses the random value and threshold as their raw hex strings" do
+          expect(digest.trace_otel_random_value).to eq("ef284ace7a91e1")
+          expect(digest.trace_otel_threshold).to eq("e6666666666668")
+        end
+
+        it "removes the `ot=` member from the preserved trace_state" do
+          expect(digest.trace_state).to eq("other=vendor")
+        end
+
+        context "without a `dd=` member" do
+          let(:tracestate) { "ot=rv:00000000000005;th:8,vendor=x" }
+
+          it "still parses the `ot=` values, keeping the threshold trimmed as sent" do
+            expect(digest.trace_otel_random_value).to eq("00000000000005")
+            expect(digest.trace_otel_threshold).to eq("8")
+            expect(digest.trace_state).to eq("vendor=x")
+          end
+        end
+
+        context "with unknown `ot=` sub-keys" do
+          let(:tracestate) { "dd=s:1,ot=rv:00000000000005;future:field" }
+
+          it "preserves the unknown sub-keys for forwarding" do
+            expect(digest.trace_otel_random_value).to eq("00000000000005")
+            expect(digest.trace_otel_unknown_fields).to eq("future:field;")
+          end
+        end
+      end
+
       # HTTP frameworks (Rack and friends) hand header values to applications tagged
       # as ASCII-8BIT. See https://github.com/rack/rack/blob/5f06728c28f651a12eba6201e408474d30f79d3d/SPEC.rdoc?plain=1#L17
       # msgpack-ruby serializes those as `bin` rather than `str`,
@@ -585,9 +699,7 @@ RSpec.shared_examples "Trace Context distributed format" do
         end
       end
 
-      # The size-limit truncation in split_tracestate runs before encoding
-      # validation, so an invalid byte that would be discarded by truncation
-      # does not poison the parseable prefix.
+      # Truncation precedes encoding validation so invalid bytes in the discarded tail are harmless.
       context "with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail" do
         let(:tracestate) do
           String.new("dd=o:origin,v=1,#{"a" * 600}\xFF", encoding: Encoding::ASCII_8BIT)

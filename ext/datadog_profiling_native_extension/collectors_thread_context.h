@@ -6,24 +6,29 @@
 
 #include "gvl_profiling_helper.h"
 
-void thread_context_collector_sample(
+// Returns true if `thread_context_collector_resolve_otel_span_key_may_lose_gvl` needs to be called (which the caller
+// must only do once the sample is over)
+__attribute__((warn_unused_result)) bool thread_context_collector_sample(
   VALUE self_instance,
   long current_monotonic_wall_time_ns
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(void);
+void thread_context_collector_request_prepare_on_gc_finish(void);
 __attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object);
-void thread_context_collector_after_allocation(VALUE self_instance);
+void thread_context_collector_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
+VALUE thread_context_collector_heap_update_may_lose_gvl(VALUE self_instance);
+void thread_context_collector_resolve_otel_span_key_may_lose_gvl(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
-__attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
+__attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance, bool allow_prepare_sample);
 VALUE enforce_thread_context_collector_instance(VALUE object);
 void thread_context_collector_stats(VALUE self_instance, VALUE stats_hash);
 void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance);
-void thread_context_collector_on_serialize(VALUE self_instance);
+VALUE thread_context_prepare_serialize(VALUE self_instance);
 void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance);
 void thread_context_collector_profiler_internal_thread_started(void);
-void thread_context_collector_profiler_internal_thread_done(VALUE self_instance);
+VALUE thread_context_collector_profiler_internal_thread_done(VALUE self_instance);
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {
@@ -38,7 +43,7 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
   } on_gvl_running_result;
 
   void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context);
-  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread, per_thread_context *thread_context);
+  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread, per_thread_context *thread_context, uint32_t waiting_for_gvl_threshold_ns);
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns);
   void thread_context_collector_on_gvl_released(per_thread_context *thread_context);
 #endif

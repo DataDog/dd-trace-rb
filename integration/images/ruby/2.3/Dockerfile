@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:2.3-gnu-gcc-g27019b38640025d7722ca3969437962037b5877f
+FROM ghcr.io/datadog/images-rb/engines/ruby:2.3-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
 
 # Add stretch repos
 RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list

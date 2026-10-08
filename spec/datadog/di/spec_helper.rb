@@ -248,7 +248,7 @@ module ProbeNotifierWorkerLeakDetector
   end
 
   def stop(*args)
-    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, example)|
+    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, _example)|
       worker == self
     end
     super

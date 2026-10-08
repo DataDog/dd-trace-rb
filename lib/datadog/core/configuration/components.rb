@@ -188,7 +188,14 @@ module Datadog
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          # Bind Remote Configuration dispatch to this tree, which starts before it becomes the global Components instance.
+          @remote = Remote::Component.build(
+            settings,
+            agent_settings,
+            logger: @logger,
+            telemetry: telemetry,
+            open_feature_component_provider: -> { @open_feature },
+          )
           @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
@@ -243,11 +250,13 @@ module Datadog
 
         # Called when a fork is detected
         def after_fork
+          tracer.after_fork
           telemetry.after_fork
           remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
         end
 
         # Hot-swaps with a new sampler.

@@ -7,13 +7,13 @@ module Datadog
 
           attr_reader env_var: String
           def initialize: (String name, String env_var) -> void
-          def call: (Object value) -> void
+          def call: (Object? value) -> Datadog::Core::Telemetry::Event::telemetry_value
         end
         class SimpleOption < Option
           @setting_key: Symbol
 
           def initialize: (String name, String env_var, Symbol setting_key) -> void
-          def call: (Object value) -> void
+          def call: (Object? value) -> Datadog::Core::Telemetry::Event::telemetry_value
           def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
       end
