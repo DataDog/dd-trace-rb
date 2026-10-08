@@ -2,6 +2,7 @@ require "datadog/di/spec_helper"
 require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
+require "datadog/di/correlation_sampler"
 require "datadog/di/probe_notification_builder"
 
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
@@ -29,7 +30,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
 
     let(:instrumenter) do
-      Datadog::DI::Instrumenter.new(settings, serializer, logger, correlation_sampler: nil)
+      Datadog::DI::Instrumenter.new(settings, serializer, logger, correlation_sampler: Datadog::DI::CorrelationSampler.new)
     end
 
     let(:settings) do

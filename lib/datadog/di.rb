@@ -134,6 +134,22 @@ module Datadog
         end
       end
 
+      # Returns the active APM trace, or nil when tracing is not loaded or no
+      # trace is active. The +defined?+ guard is evaluated per call because DI
+      # may be loaded before Datadog::Tracing. The component lookup does not
+      # initialize the component tree: this runs on the application thread
+      # inside the probe wrapper and the line-probe TracePoint callback, where
+      # the constructive default would build the whole tree from the
+      # customer's call stack.
+      #
+      # @return [Datadog::Tracing::TraceSegment, nil]
+      def active_trace
+        if defined?(Datadog::Tracing)
+          components = Datadog.send(:components, allow_initialization: false)
+          components&.tracer&.active_trace
+        end
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

@@ -1,6 +1,5 @@
 require "datadog/di/spec_helper"
 require "datadog/di/correlation_sampler"
-require "datadog/di/sampling_unit"
 
 RSpec.describe Datadog::DI::CorrelationSampler do
   di_test
@@ -8,7 +7,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   subject(:correlation) do
     described_class.new(max_entries: max_entries, top_rate: top_rate,
       global_rate: global_rate, per_probe_budget: per_probe_budget,
-      all_budget: all_budget)
+      all_budget: all_budget,)
   end
 
   let(:max_entries) { 4096 }
@@ -17,65 +16,82 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   let(:per_probe_budget) { 5 }
   let(:all_budget) { 20 }
 
-  # Freeze the clock so the process-wide buckets never refill mid-example.
+  # Freeze the clock so the process-wide buckets hold a fixed balance
+  # for each example.
   before do
     allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
   end
 
   def probe(id, own_rate_limit_allows: true)
     instance_double(Datadog::DI::Probe, id: id,
-      own_rate_limit_allows?: own_rate_limit_allows)
+      own_rate_limit_allows?: own_rate_limit_allows,)
   end
 
-  def unit(key)
-    Datadog::DI::SamplingUnit.new(key)
-  end
+  describe "#initialize" do
+    it "rejects a max_entries that is not a positive Integer" do
+      expect { described_class.new(max_entries: 0) }
+        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
+      expect { described_class.new(max_entries: -1) }
+        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
+      expect { described_class.new(max_entries: 4096.0) }
+        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
+    end
 
-  def none
-    Datadog::DI::SamplingUnit.new(nil)
+    it "rejects a per_probe_budget that is not a non-negative Integer" do
+      expect { described_class.new(per_probe_budget: -1) }
+        .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
+      expect { described_class.new(per_probe_budget: 1.5) }
+        .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
+    end
+
+    it "rejects an all_budget that is not a non-negative Integer" do
+      expect { described_class.new(all_budget: -1) }
+        .to raise_error(ArgumentError, /all_budget must be a non-negative Integer/)
+      expect { described_class.new(all_budget: 2.5) }
+        .to raise_error(ArgumentError, /all_budget must be a non-negative Integer/)
+    end
+
+    it "accepts a zero budget" do
+      expect { described_class.new(all_budget: 0) }.not_to raise_error
+    end
   end
 
   describe "#emit?" do
     context "no active trace" do
       it "admits when the probe's own rate limit allows" do
-        expect(correlation.emit?(probe("a"), none)).to be(true)
+        expect(correlation.emit?(probe("a"), nil)).to be(true)
       end
 
       it "drops when the probe's own rate limit denies" do
-        expect(correlation.emit?(probe("a", own_rate_limit_allows: false), none)).to be(false)
+        expect(correlation.emit?(probe("a", own_rate_limit_allows: false), nil)).to be(false)
       end
 
       it "defers to the probe's own rate limit across hits" do
         p = probe("a")
         allow(p).to receive(:own_rate_limit_allows?).and_return(true, false)
-        expect(correlation.emit?(p, none)).to be(true)
-        expect(correlation.emit?(p, none)).to be(false)
+        expect(correlation.emit?(p, nil)).to be(true)
+        expect(correlation.emit?(p, nil)).to be(false)
       end
 
-      it "does not coordinate independent hits" do
+      it "decides uncorrelated hits independently" do
         p = probe("a")
-        allow(p).to receive(:own_rate_limit_allows?).and_return(true, true)
-        expect(correlation.emit?(p, none)).to be(true)
-        expect(correlation.emit?(p, none)).to be(true)
+        expect(correlation.emit?(p, nil)).to be(true)
+        expect(correlation.emit?(p, nil)).to be(true)
       end
     end
 
     context "top probe (first capturing probe in a trace)" do
       it "emits when GLOBAL and TOP admit" do
-        expect(correlation.emit?(probe("a"), unit(1))).to be(true)
+        expect(correlation.emit?(probe("a"), 1)).to be(true)
       end
 
       context "when TOP is exhausted" do
         let(:top_rate) { 1 }
 
         it "starves the trace: the top probe and every correlated probe drop" do
-          # trace 1's top probe consumes the only TOP token.
-          expect(correlation.emit?(probe("a"), unit(1))).to be(true)
-
-          # trace 2's top probe finds TOP empty and marks the trace starved.
-          expect(correlation.emit?(probe("a"), unit(2))).to be(false)
-          # a correlated probe in the starved trace also drops.
-          expect(correlation.emit?(probe("b"), unit(2))).to be(false)
+          expect(correlation.emit?(probe("a"), 1)).to be(true)
+          expect(correlation.emit?(probe("a"), 2)).to be(false)
+          expect(correlation.emit?(probe("b"), 2)).to be(false)
         end
       end
 
@@ -83,8 +99,8 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         let(:global_rate) { 0 }
 
         it "starves the trace" do
-          expect(correlation.emit?(probe("a"), unit(1))).to be(false)
-          expect(correlation.emit?(probe("b"), unit(1))).to be(false)
+          expect(correlation.emit?(probe("a"), 1)).to be(false)
+          expect(correlation.emit?(probe("b"), 1)).to be(false)
         end
       end
 
@@ -92,8 +108,8 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         let(:all_budget) { 0 }
 
         it "drops the top probe and starves the trace" do
-          expect(correlation.emit?(probe("a"), unit(1))).to be(false)
-          expect(correlation.emit?(probe("b"), unit(1))).to be(false)
+          expect(correlation.emit?(probe("a"), 1)).to be(false)
+          expect(correlation.emit?(probe("b"), 1)).to be(false)
         end
       end
     end
@@ -104,15 +120,15 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
       it "lets one probe emit exactly per_probe_budget times in a trace" do
         p = probe("a")
-        emitted = 6.times.count { correlation.emit?(p, unit(1)) }
+        emitted = 6.times.count { correlation.emit?(p, 1) }
         expect(emitted).to eq(3)
       end
 
       it "gives each distinct probe its own per-probe counter" do
         a = probe("a")
-        3.times { correlation.emit?(a, unit(1)) } # exhausts a
-        expect(correlation.emit?(a, unit(1))).to be(false)
-        expect(correlation.emit?(probe("b"), unit(1))).to be(true)
+        3.times { correlation.emit?(a, 1) }
+        expect(correlation.emit?(a, 1)).to be(false)
+        expect(correlation.emit?(probe("b"), 1)).to be(true)
       end
     end
 
@@ -121,7 +137,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       let(:all_budget) { 4 }
 
       it "lets a trace emit exactly all_budget snapshots across probes" do
-        emitted = %w[a b c d e f].count { |id| correlation.emit?(probe(id), unit(1)) }
+        emitted = %w[a b c d e f].count { |id| correlation.emit?(probe(id), 1) }
         expect(emitted).to eq(4)
       end
     end
@@ -132,17 +148,14 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       let(:all_budget) { 100 }
 
       it "consumes GLOBAL past zero for correlated probes, then starves new traces" do
-        # 8 emits in trace 1 (1 top + 7 correlated) drive GLOBAL from 5 to -3;
-        # correlated probes consume GLOBAL without checking it.
-        emitted = %w[a b c d e f g h].count { |id| correlation.emit?(probe(id), unit(1)) }
+        emitted = %w[a b c d e f g h].count { |id| correlation.emit?(probe(id), 1) }
         expect(emitted).to eq(8)
 
-        # GLOBAL is negative, so a new trace's top probe is starved.
-        expect(correlation.emit?(probe("a"), unit(2))).to be(false)
+        expect(correlation.emit?(probe("a"), 2)).to be(false)
       end
     end
 
-    describe "per-trace ledger LRU eviction" do
+    context "when the per-trace ledger exceeds max_entries" do
       let(:max_entries) { 2 }
       let(:per_probe_budget) { 1 }
       let(:all_budget) { 100 }
@@ -151,13 +164,13 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
       it "evicts the oldest trace, resetting its counters" do
         p = probe("a")
-        expect(correlation.emit?(p, unit(1))).to be(true)
-        expect(correlation.emit?(p, unit(1))).to be(false)
+        expect(correlation.emit?(p, 1)).to be(true)
+        expect(correlation.emit?(p, 1)).to be(false)
 
-        correlation.emit?(probe("b"), unit(2))
-        correlation.emit?(probe("c"), unit(3))
+        correlation.emit?(probe("b"), 2)
+        correlation.emit?(probe("c"), 3)
 
-        expect(correlation.emit?(p, unit(1))).to be(true)
+        expect(correlation.emit?(p, 1)).to be(true)
       end
     end
   end
@@ -185,6 +198,17 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       budget = described_class.new(per_probe_budget: 5, all_budget: 100)
       expect(budget.admit("unseen")).to be(true)
       expect(budget.all_remaining).to eq(99)
+    end
+
+    it "rejects a budget that is not a non-negative Integer" do
+      expect { described_class.new(per_probe_budget: -1, all_budget: 20) }
+        .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
+      expect { described_class.new(per_probe_budget: 1.5, all_budget: 20) }
+        .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
+      expect { described_class.new(per_probe_budget: 5, all_budget: -1) }
+        .to raise_error(ArgumentError, /all_budget must be a non-negative Integer/)
+      expect { described_class.new(per_probe_budget: 5, all_budget: 1.5) }
+        .to raise_error(ArgumentError, /all_budget must be a non-negative Integer/)
     end
   end
 end

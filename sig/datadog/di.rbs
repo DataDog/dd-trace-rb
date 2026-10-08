@@ -1,7 +1,7 @@
 module Datadog
   module DI
     type instrumentation_kind = :line | :method
-    INSTRUMENTED_COUNTERS_LOCK: Mutex
+    INSTRUMENTED_COUNTERS_LOCK: Thread::Mutex
 
     self.@instrumented_count: ::Hash[instrumentation_kind, ::Integer]
 
@@ -13,6 +13,8 @@ module Datadog
 
     def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
+
+    def self.active_trace: () -> Datadog::Tracing::TraceSegment?
     def self.exception_message: (Exception exception) -> untyped
     EXCEPTION_BACKTRACE_LOCATIONS: UnboundMethod
     EXCEPTION_BACKTRACE: UnboundMethod

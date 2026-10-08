@@ -2,6 +2,7 @@
 
 require "datadog/symbol_database/extractor"
 require "datadog/di"
+require "datadog/di/correlation_sampler"
 require "datadog/di/instrumenter"
 require "datadog/di/probe"
 require "fileutils"
@@ -1282,7 +1283,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
           settings: settings, serializer: nil, logger: logger,
           guardrails_telemetry: guardrails, telemetry: nil,
         ),
-        correlation_sampler: nil,)
+        correlation_sampler: Datadog::DI::CorrelationSampler.new,)
     end
     let(:probes) do
       %w[home home secret].each_with_index.map do |method_name, index|

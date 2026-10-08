@@ -27,7 +27,7 @@ module Datadog
 
       @probe_manager: ProbeManager
 
-      @lifecycle_mutex: ::Thread::Mutex
+      @lifecycle_mutex: Thread::Mutex
 
       @started: bool
 

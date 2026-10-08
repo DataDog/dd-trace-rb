@@ -115,6 +115,8 @@ module Datadog
         # cannot race a foreground start! with a background stop!.
         @lifecycle_mutex = Mutex.new
         @started = false
+
+        nil # standard:disable Lint/Void
       end
 
       attr_reader :settings
@@ -128,6 +130,8 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # Coordinated sampling gate for capturing probe hits.
+      # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
