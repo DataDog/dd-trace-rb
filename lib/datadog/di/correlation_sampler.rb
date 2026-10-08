@@ -63,6 +63,10 @@ module Datadog
       end
 
       # Decides whether this capturing probe hit emits a snapshot.
+      #
+      # @param probe [Datadog::DI::Probe]
+      # @param trace_id [Integer, nil]
+      # @return [Boolean]
       def emit?(probe, trace_id)
         return emit_uncorrelated?(probe) if trace_id.nil?
 
@@ -106,12 +110,18 @@ module Datadog
 
       # Decides a hit with no active trace through the probe's own rate limit,
       # so uncorrelated hits are decided independently of one another.
+      #
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
       def emit_uncorrelated?(probe)
         probe.own_rate_limit_allows?
       end
 
       # Refreshes the trace budget's LRU recency and returns the budget; nil
       # when the trace has no established unit yet. Must hold the lock.
+      #
+      # @param key [Integer]
+      # @return [TraceBudget, nil]
       def touch_budget(key)
         trace_budgets.fetch(key)
       end
@@ -121,6 +131,10 @@ module Datadog
       # or when the seeded budget denies the top probe itself, marks the trace
       # starved so every correlated probe in it also drops without re-querying
       # the process-wide gates. Must hold the lock.
+      #
+      # @param key [Integer]
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
       def emit_top?(key, probe)
         unless global_limiter.available? && top_limiter.allow?
           store(key, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
@@ -135,6 +149,10 @@ module Datadog
 
       # A capturing probe firing inside an established unit. Bounded by the
       # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
+      #
+      # @param budget [TraceBudget]
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
       def emit_correlated?(budget, probe)
         return false unless budget.admit(probe.id)
 
@@ -143,6 +161,10 @@ module Datadog
       end
 
       # Stores the trace's budget in the ledger. Must hold the lock.
+      #
+      # @param key [Integer]
+      # @param budget [TraceBudget]
+      # @return [void]
       def store(key, budget)
         trace_budgets.store(key, budget)
       end

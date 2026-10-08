@@ -147,6 +147,8 @@ module Datadog
       # (non-capturing hits, capturing hits with no active trace, and hits
       # failing open after a gate error); a capturing hit inside an active
       # trace is bounded by the correlation sampler instead.
+      #
+      # @return [Integer]
       attr_reader :rate_limit
 
       # Rate limiter object. For internal DI use only.
