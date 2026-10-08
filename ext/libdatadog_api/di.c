@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <string.h>
 
 #include "datadog_ruby_common.h"
 
@@ -12,6 +13,9 @@ VALUE rb_iseqw_new(const void *iseq);
 // rb_iseqw_to_iseq unwraps a RubyVM::InstructionSequence object back
 // to its internal iseq pointer.
 const void *rb_iseqw_to_iseq(VALUE iseqw);
+#ifdef HAVE_RB_IMEMO_NAME
+const char *rb_imemo_name(int imemo_type);
+#endif
 int rb_objspace_internal_object_p(VALUE obj);
 void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
@@ -200,6 +204,15 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 #endif
 
 void di_init(VALUE datadog_module) {
+  #ifdef HAVE_RB_IMEMO_NAME
+    const char *iseq_name = rb_imemo_name(IMEMO_TYPE_ISEQ);
+    if (strcmp(iseq_name, "iseq") != 0) {
+      rb_raise(rb_eRuntimeError,
+        "IMEMO_TYPE_ISEQ self-test failed: rb_imemo_name(%d) returned '%s' instead of 'iseq'",
+        IMEMO_TYPE_ISEQ, iseq_name);
+    }
+  #endif
+
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
 
