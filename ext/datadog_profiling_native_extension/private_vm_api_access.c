@@ -108,17 +108,14 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
-// Queries if the current thread is the owner of the global VM lock.
+// Combines checking for main ractor and GVL in one check that can be done safely from a signal handler, even
+// if the thread is not a Ruby thread or if we're in the middle of GC.
 //
-// @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
-// still return `true` even when a thread DOES NOT HAVE the global VM lock.
-// In particular, looking at the implementation, that API assumes that if a thread is not in a "blocking region" then it
-// will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
-// does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
-// GVL due to a scheduler decision, not because it decided to block.)
-// I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
+// Note that Ruby has `ruby_thread_has_gvl_p`, but unfortunately it can return true in a signal
+// handler even when the thread doesn't hold the GVL. It assumes that a thread outside a "blocking region" holds
+// the GVL, but the scheduler can also take it away (https://bugs.ruby-lang.org/issues/19172).
 //
-// Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
+// This must not touch Ruby objects, since GC compaction may have protected their heap pages.
 bool is_current_thread_in_main_ractor_and_holding_the_gvl(void) {
   current_gvl_owner owner = main_ractor_gvl_owner();
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
