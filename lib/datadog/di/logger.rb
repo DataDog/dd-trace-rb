@@ -37,6 +37,15 @@ module Datadog
         nil
       end
 
+      # Writes the given message to the target logger at warn level.
+      #
+      # @param message [String] message written
+      # @return [void]
+      def warn(message)
+        target.warn(message)
+        nil
+      end
+
       # Writes the block's message to the target logger at debug level when
       # the trace-logging gate resolved at construction is enabled.
       #
