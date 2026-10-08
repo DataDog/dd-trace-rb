@@ -186,7 +186,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: d981c2704a83a08853a50f2824ae9f219e740f7e # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: robertomonteromiguel/ssi-secrets-vault-templates # temporary Vault SSI test
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
