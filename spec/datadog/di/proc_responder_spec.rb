@@ -28,4 +28,25 @@ RSpec.describe Datadog::DI::ProcResponder do
       end.to raise_error(NotImplementedError, "Failed proc not provided")
     end
   end
+
+  describe "#probe_metric_emitted_callback" do
+    it "invokes the emitted proc with the probe" do
+      observed_probes = []
+      emitted_proc = proc { |probe| observed_probes << probe }
+      responder = described_class.new(proc {}, nil, emitted_proc)
+
+      probe = double("probe")
+      responder.probe_metric_emitted_callback(probe)
+
+      expect(observed_probes).to eq [probe]
+    end
+
+    it "raises NotImplementedError when no emitted proc is provided" do
+      responder = described_class.new(proc {})
+
+      expect do
+        responder.probe_metric_emitted_callback(double("probe"))
+      end.to raise_error(NotImplementedError, "Emitted proc not provided")
+    end
+  end
 end
