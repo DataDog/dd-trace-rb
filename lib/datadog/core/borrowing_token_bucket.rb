@@ -30,7 +30,7 @@ module Datadog
       # @return [Boolean] whether the balance is currently positive
       def available?
         refill
-        tokens > 0
+        available_tokens > 0
       end
 
       # Removes +size+ tokens, driving the balance negative when the bucket is
@@ -44,7 +44,7 @@ module Datadog
         raise ArgumentError, "size must not be negative: #{size}" if size < 0
 
         refill
-        @tokens = tokens - size
+        @tokens = available_tokens - size
         nil
       end
     end

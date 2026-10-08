@@ -13,8 +13,6 @@ module Datadog
 
       attr_reader max_tokens: ::Numeric
 
-      attr_reader tokens: ::Numeric
-
       attr_reader last_refill: ::Numeric
 
       def initialize: (::Float | ::Integer rate, ::Numeric max_tokens) -> void
