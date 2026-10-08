@@ -77,7 +77,7 @@ namespace :github do
     end
   end
 
-  task :check_installed_bundle do
+  task :check_matrix_bundle do
     gemfiles = [ENV.fetch("BUNDLE_GEMFILE")] + JSON.parse(ENV.fetch("GEMFILES"))
     gemfiles.uniq { |gemfile| File.expand_path(gemfile) }.each do |gemfile|
       Bundler.with_unbundled_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }

@@ -38,10 +38,10 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.installed-bundle-cache.outputs.base-cache-key }}"
-      lockfile: "${{ steps.installed-bundle-cache.outputs.base-lockfile }}"
-      installed-cache-key: "${{ steps.installed-bundle-cache.outputs.cache-key }}"
-      installed-cache-ready: "${{ steps.installed-bundle-cache.outputs.ready }}"
+      base-cache-key: "${{ steps.matrix-bundle-cache.outputs.base-cache-key }}"
+      base-lockfile: "${{ steps.matrix-bundle-cache.outputs.base-lockfile }}"
+      matrix-cache-key: "${{ steps.matrix-bundle-cache.outputs.matrix-cache-key }}"
+      matrix-cache-ready: "${{ steps.matrix-bundle-cache.outputs.ready }}"
     container:
       image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
@@ -75,9 +75,9 @@ jobs:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
         run: rake -f tasks/github.rake github:generate_batch_summary
 
-      - name: Prepare installed matrix bundle cache
-        id: installed-bundle-cache
-        uses: ./.github/actions/installed-bundle-cache
+      - name: Prepare matrix bundle cache
+        id: matrix-bundle-cache
+        uses: ./.github/actions/matrix-bundle-cache
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           image: *engine-image
@@ -185,17 +185,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        if: needs.batch.outputs.installed-cache-ready != 'true'
+      - name: Restore base bundle
+        if: needs.batch.outputs.matrix-cache-ready != 'true'
         uses: ./.github/actions/bundle-restore
         with:
-          lockfile: ${{ needs.batch.outputs.lockfile }}
-          cache-key: ${{ needs.batch.outputs.cache-key }}
-      - if: needs.batch.outputs.installed-cache-ready == 'true'
-        name: Restore installed matrix bundle
+          lockfile: ${{ needs.batch.outputs.base-lockfile }}
+          cache-key: ${{ needs.batch.outputs.base-cache-key }}
+      - if: needs.batch.outputs.matrix-cache-ready == 'true'
+        name: Restore matrix bundle
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          key: ${{ needs.batch.outputs.installed-cache-key }}
+          key: ${{ needs.batch.outputs.matrix-cache-key }}
           path: /usr/local/bundle
           fail-on-cache-miss: true
       - name: Build & Test
@@ -281,17 +281,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        if: needs.batch.outputs.installed-cache-ready != 'true'
+      - name: Restore base bundle
+        if: needs.batch.outputs.matrix-cache-ready != 'true'
         uses: ./.github/actions/bundle-restore
         with:
-          lockfile: ${{ needs.batch.outputs.lockfile }}
-          cache-key: ${{ needs.batch.outputs.cache-key }}
-      - if: needs.batch.outputs.installed-cache-ready == 'true'
-        name: Restore installed matrix bundle
+          lockfile: ${{ needs.batch.outputs.base-lockfile }}
+          cache-key: ${{ needs.batch.outputs.base-cache-key }}
+      - if: needs.batch.outputs.matrix-cache-ready == 'true'
+        name: Restore matrix bundle
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          key: ${{ needs.batch.outputs.installed-cache-key }}
+          key: ${{ needs.batch.outputs.matrix-cache-key }}
           path: /usr/local/bundle
           fail-on-cache-miss: true
       - name: Build & Test

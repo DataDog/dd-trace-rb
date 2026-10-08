@@ -2,14 +2,14 @@ require "bundler"
 require "digest"
 require "json"
 
-class InstalledBundleCache
+class MatrixBundleCache
   BASE_CACHE_KEY_PREFIX = "bundle-base-v1"
-  CACHE_KEY_PREFIX = "bundle-installed-matrix-v3"
+  MATRIX_CACHE_KEY_PREFIX = "bundle-installed-matrix-v3"
   CACHE_RECIPE_FILES = %w[
     .github/actions/bundle-cache/action.yml
-    .github/actions/installed-bundle-cache/action.yml
+    .github/actions/matrix-bundle-cache/action.yml
     tasks/github.rake
-    tasks/installed_bundle_cache.rb
+    tasks/matrix_bundle_cache.rb
   ].freeze
   BUILD_ENVIRONMENT_KEYS = %w[
     ARCHFLAGS
@@ -48,7 +48,7 @@ class InstalledBundleCache
       "base_cache_key" => base_cache_key,
       "dependencies" => @gemfiles.map { |gemfile| dependency_content(gemfile) }.uniq.sort,
     }
-    "#{CACHE_KEY_PREFIX}-#{digest(identity)}"
+    "#{MATRIX_CACHE_KEY_PREFIX}-#{digest(identity)}"
   end
 
   private
@@ -119,14 +119,14 @@ if $PROGRAM_NAME == __FILE__
   parser.parse!(ARGV)
   raise OptionParser::MissingArgument, "--base-gemfile" unless options[:base_gemfile]
 
-  cache = InstalledBundleCache.new(base_gemfile: options[:base_gemfile], gemfiles: options.fetch(:gemfiles, []))
+  cache = MatrixBundleCache.new(base_gemfile: options[:base_gemfile], gemfiles: options.fetch(:gemfiles, []))
 
   case command
   when "base-key"
     raise OptionParser::MissingArgument, "--image-identity" unless options[:image_identity]
 
     puts cache.base_cache_key(image_identity: options[:image_identity])
-  when "key"
+  when "matrix-key"
     raise OptionParser::MissingArgument, "--base-cache-key" unless options[:base_cache_key]
     raise OptionParser::MissingArgument, "--gemfiles" unless options[:gemfiles]
 

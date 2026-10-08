@@ -1,14 +1,14 @@
-name: 'Restore bundle cache'
+name: 'Restore base bundle cache'
 
 # TODO: Improve description
-description: 'Restores bundle cache for GitHub Actions'
+description: 'Restores a base bundle cache for GitHub Actions'
 
 inputs:
   lockfile:
     description: 'Name of the lockfile artifact to download'
     required: true
   cache-key:
-    description: 'Cache key for bundle'
+    description: 'Cache key for the base bundle'
     required: true
 
 runs:

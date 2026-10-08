@@ -1,6 +1,6 @@
-name: 'Prepare bundle cache'
+name: 'Prepare base bundle cache'
 
-description: 'Sets up bundle cache for GitHub Actions'
+description: 'Sets up a base bundle cache for GitHub Actions'
 
 inputs:
   cache-key:
@@ -10,7 +10,7 @@ inputs:
 
 outputs:
   cache-key:
-    description: 'Cache key for the bundle'
+    description: 'Cache key for the base bundle'
     value: ${{ steps.restore-cache.outputs.cache-primary-key }}
   lockfile:
     description: 'Lockfile name'

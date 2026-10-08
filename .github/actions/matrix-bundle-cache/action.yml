@@ -1,6 +1,6 @@
-name: Prepare installed matrix bundle cache
+name: Prepare matrix bundle cache
 
-description: Find or build one installed bundle containing every applicable Gemfile
+description: Find or build a matrix bundle containing dependencies for every selected Gemfile
 
 inputs:
   base-gemfile:
@@ -20,17 +20,17 @@ inputs:
     required: true
 
 outputs:
-  cache-key:
-    description: Exact installed bundle cache key
-    value: ${{ steps.installed-key.outputs.cache-key }}
+  matrix-cache-key:
+    description: Exact matrix bundle cache key
+    value: ${{ steps.matrix-key.outputs.cache-key }}
   base-cache-key:
-    description: Exact lean base bundle cache key
+    description: Exact base bundle cache key
     value: ${{ steps.base-key.outputs.cache-key }}
   base-lockfile:
     description: Base lockfile artifact name when fallback is prepared
     value: ${{ steps.base-bundle.outputs.lockfile }}
   ready:
-    description: Whether complete bundle is available to child jobs
+    description: Whether the matrix bundle is available to child jobs
     value: ${{ steps.lookup.outputs.cache-hit == 'true' || inputs.write-enabled == 'true' }}
 
 runs:
@@ -43,32 +43,32 @@ runs:
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         IMAGE: ${{ inputs.image }}
       run: |
-        cache_key=$(ruby tasks/installed_bundle_cache.rb base-key \
+        cache_key=$(ruby tasks/matrix_bundle_cache.rb base-key \
           --base-gemfile "$BASE_GEMFILE" \
           --image-identity "$IMAGE")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
-    - id: installed-key
-      name: Compute installed bundle key
+    - id: matrix-key
+      name: Compute matrix bundle key
       shell: bash
       env:
         BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
         GEMFILES: ${{ inputs.gemfiles }}
       run: |
-        cache_key=$(ruby tasks/installed_bundle_cache.rb key \
+        cache_key=$(ruby tasks/matrix_bundle_cache.rb matrix-key \
           --base-gemfile "$BASE_GEMFILE" \
           --base-cache-key "$BASE_CACHE_KEY" \
           --gemfiles "$GEMFILES")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: lookup
-      name: Find installed bundle
+      name: Find matrix bundle
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.installed-key.outputs.cache-key }}
+        key: ${{ steps.matrix-key.outputs.cache-key }}
         path: /usr/local/bundle
         lookup-only: true
     - id: base-bundle
-      name: Prepare lean base bundle
+      name: Prepare base bundle
       if: steps.lookup.outputs.cache-hit != 'true'
       uses: ./.github/actions/bundle-cache
       env:
@@ -94,10 +94,10 @@ runs:
       env:
         BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
         GEMFILES: ${{ inputs.gemfiles }}
-      run: bundle exec rake github:check_installed_bundle
-    - name: Save installed bundle
+      run: bundle exec rake github:check_matrix_bundle
+    - name: Save matrix bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.installed-key.outputs.cache-key }}
+        key: ${{ steps.matrix-key.outputs.cache-key }}
         path: /usr/local/bundle

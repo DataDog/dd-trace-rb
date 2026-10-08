@@ -1,8 +1,8 @@
 require "spec_helper"
 require "tmpdir"
-require_relative "../../tasks/installed_bundle_cache"
+require_relative "../../tasks/matrix_bundle_cache"
 
-RSpec.describe InstalledBundleCache do
+RSpec.describe MatrixBundleCache do
   subject(:cache) { build_cache(["second.gemfile", "base.gemfile", "first.gemfile"]) }
 
   around do |example|
@@ -33,14 +33,14 @@ RSpec.describe InstalledBundleCache do
     target.write(content)
   end
 
-  it "uses versioned base and union cache keys" do
+  it "uses versioned base and matrix cache keys" do
     base_key = cache.base_cache_key(image_identity: "image-a")
 
     expect(base_key).to start_with("bundle-base-v1-")
     expect(cache.cache_key(base_cache_key: base_key)).to start_with("bundle-installed-matrix-v3-")
   end
 
-  it "produces the same union key regardless of applicable Gemfile order" do
+  it "produces the same matrix key regardless of selected Gemfile order" do
     reordered = build_cache(["first.gemfile", "base.gemfile", "second.gemfile"])
 
     expect(reordered.cache_key(base_cache_key: "base-a")).to eq(
@@ -48,7 +48,7 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "invalidates the base and union keys when image identity changes" do
+  it "invalidates the base and matrix keys when image identity changes" do
     original_base = cache.base_cache_key(image_identity: "image-a")
     changed_base = cache.base_cache_key(image_identity: "image-b")
 
@@ -58,7 +58,7 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "invalidates the union key when the base cache key changes" do
+  it "invalidates the matrix key when the base cache key changes" do
     expect(cache.cache_key(base_cache_key: "base-a")).not_to eq(
       cache.cache_key(base_cache_key: "base-b")
     )
@@ -66,24 +66,24 @@ RSpec.describe InstalledBundleCache do
 
   %w[
     .github/actions/bundle-cache/action.yml
-    .github/actions/installed-bundle-cache/action.yml
+    .github/actions/matrix-bundle-cache/action.yml
     tasks/github.rake
-    tasks/installed_bundle_cache.rb
+    tasks/matrix_bundle_cache.rb
   ].each do |path|
-    it "invalidates the base and union keys when #{path} changes" do
+    it "invalidates the base and matrix keys when #{path} changes" do
       original_base = cache.base_cache_key(image_identity: "image-a")
-      original_union = cache.cache_key(base_cache_key: original_base)
+      original_matrix = cache.cache_key(base_cache_key: original_base)
 
       write(path, "changed recipe\n")
       changed_base = cache.base_cache_key(image_identity: "image-a")
 
       expect(changed_base).not_to eq(original_base)
-      expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_union)
+      expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_matrix)
     end
   end
 
   %w[ARCHFLAGS CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MAKEFLAGS].each do |flag|
-    it "invalidates the base and union keys when #{flag} changes" do
+    it "invalidates the base and matrix keys when #{flag} changes" do
       original_base = cache.base_cache_key(image_identity: "image-a")
       changed_base = ClimateControl.modify(flag => "changed") do
         cache.base_cache_key(image_identity: "image-a")
@@ -97,7 +97,7 @@ RSpec.describe InstalledBundleCache do
   end
 
   %w[force_ruby_platform only with without build.pg].each do |key|
-    it "invalidates the base and union keys when Bundler #{key} changes" do
+    it "invalidates the base and matrix keys when Bundler #{key} changes" do
       values = {key => "original"}
       settings = instance_double(Bundler::Settings, all: values.keys)
       allow(settings).to receive(:[]) { |setting| values.fetch(setting) }
@@ -134,18 +134,18 @@ RSpec.describe InstalledBundleCache do
     expect(cache.base_cache_key(image_identity: "image-a")).not_to eq(original)
   end
 
-  it "invalidates the base and union keys when the base Gemfile changes" do
+  it "invalidates the base and matrix keys when the base Gemfile changes" do
     original_base = cache.base_cache_key(image_identity: "image-a")
-    original_union = cache.cache_key(base_cache_key: original_base)
+    original_matrix = cache.cache_key(base_cache_key: original_base)
 
     write("base.gemfile", "source \"https://rubygems.org\"\ngem \"rake\"\n")
     changed_base = cache.base_cache_key(image_identity: "image-a")
 
     expect(changed_base).not_to eq(original_base)
-    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_union)
+    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_matrix)
   end
 
-  it "invalidates the union key when an appraisal Gemfile changes" do
+  it "invalidates the matrix key when an appraisal Gemfile changes" do
     original = cache.cache_key(base_cache_key: "base-a")
 
     write("first.gemfile", "eval_gemfile \"base.gemfile\"\ngem \"rake\"\n")
@@ -153,7 +153,7 @@ RSpec.describe InstalledBundleCache do
     expect(cache.cache_key(base_cache_key: "base-a")).not_to eq(original)
   end
 
-  it "invalidates the union key when an appraisal lockfile changes" do
+  it "invalidates the matrix key when an appraisal lockfile changes" do
     original = cache.cache_key(base_cache_key: "base-a")
 
     write("second.gemfile.lock", "changed lock\n")
@@ -202,15 +202,15 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "invalidates the base and union keys when the base lockfile changes" do
+  it "invalidates the base and matrix keys when the base lockfile changes" do
     original_base = cache.base_cache_key(image_identity: "image-a")
-    original_union = cache.cache_key(base_cache_key: original_base)
+    original_matrix = cache.cache_key(base_cache_key: original_base)
 
     write("base.gemfile.lock", "changed lock\n")
     changed_base = cache.base_cache_key(image_identity: "image-a")
 
     expect(changed_base).not_to eq(original_base)
-    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_union)
+    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_matrix)
   end
 
   it "rejects missing base and appraisal lockfiles" do

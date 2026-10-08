@@ -108,7 +108,7 @@ RSpec.describe "GitHub batch tasks" do
     end
   end
 
-  describe "complete bundle validation" do
+  describe "matrix bundle validation" do
     it "checks the base and every selected Gemfile once without installing" do
       commands = []
       allow(runner).to receive(:sh) do |environment, command|
@@ -124,7 +124,7 @@ RSpec.describe "GitHub batch tasks" do
           "gemfiles/mongo.gemfile",
           "gemfiles/rails.gemfile",
         ]),
-      ) { invoke("check_installed_bundle") }
+      ) { invoke("check_matrix_bundle") }
 
       expect(commands).to eq([
         ["gemfiles/base.gemfile", "bundle check"],
@@ -141,7 +141,7 @@ RSpec.describe "GitHub batch tasks" do
         "BUNDLE_GEMFILE" => "gemfiles/base.gemfile",
         "GEMFILES" => JSON.generate(["gemfiles/rails.gemfile"]),
       ) do
-        expect { invoke("check_installed_bundle") }.to raise_error("missing gems")
+        expect { invoke("check_matrix_bundle") }.to raise_error("missing gems")
       end
     end
   end
