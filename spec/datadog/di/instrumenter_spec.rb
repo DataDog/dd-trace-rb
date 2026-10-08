@@ -1175,7 +1175,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it "does not report the call and reports evaluation failure" do
           expect(responder).not_to receive(:probe_executed_callback)
-          expect(responder).to receive(:probe_condition_evaluation_failed_callback)
+          expect(responder).to receive(:probe_expression_evaluation_failed_callback)
           instrumenter.hook_method(probe, responder)
 
           target_call
@@ -2019,7 +2019,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry, metric_emitter: metric_emitter)
     end
 
-    describe "method probe condition evaluation failed callback exceptions" do
+    describe "method probe expression evaluation failed callback exceptions" do
       before do
         Object.const_set(:DITestClass, Class.new do
           def test_method(arg)
@@ -2042,7 +2042,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:responder) do
         double("responder").tap do |r|
           # Allow the callback to be called, but have it raise an error
-          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+          allow(r).to receive(:probe_expression_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
 
@@ -2052,7 +2052,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(telemetry).to receive(:report) do |exc, description:|
           expect(exc).to be_a(StandardError)
           expect(exc.message).to eq("callback error")
-          expect(description).to eq("Error in probe condition evaluation failed callback")
+          expect(description).to eq("Error in probe expression evaluation failed callback")
         end
 
         begin
@@ -2140,7 +2140,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe "line probe condition evaluation failed callback exceptions" do
+    describe "line probe expression evaluation failed callback exceptions" do
       include_context "with code tracking"
 
       before do
@@ -2161,7 +2161,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:responder) do
         double("responder").tap do |r|
           # Allow the callback to be called, but have it raise an error
-          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+          allow(r).to receive(:probe_expression_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
 
@@ -2171,13 +2171,13 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(telemetry).to receive(:report) do |exc, description:|
           expect(exc).to be_a(StandardError)
           expect(exc.message).to eq("callback error")
-          expect(description).to eq("Error in probe condition evaluation failed callback")
+          expect(description).to eq("Error in probe expression evaluation failed callback")
         end
 
         instrumenter.hook_line(probe, responder)
 
         # Trigger the line probe - condition evaluation will fail due to undefined_function()
-        # which will call probe_condition_evaluation_failed_callback, which will raise
+        # which will call probe_expression_evaluation_failed_callback, which will raise
         expect do
           HookLineLoadTestClass.new.test_method_with_local
         end.not_to raise_error

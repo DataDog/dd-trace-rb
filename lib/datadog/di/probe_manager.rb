@@ -306,25 +306,26 @@ module Datadog
         probe_notifier_worker.add_snapshot(payload)
       end
 
-      # Callback invoked when a probe's condition expression fails to evaluate.
+      # Callback invoked when a probe's condition or metric value
+      # expression fails to evaluate.
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
       # Rate-limited to 1 notification per second per probe, and subject to
       # the process-wide global snapshot rate limit, to avoid flooding the
-      # backend when conditions fail repeatedly.
+      # backend when expressions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
-      # @param expr [EL::Expression] The condition expression that failed
-      # @param exc [Exception] The exception raised during condition evaluation
-      def probe_condition_evaluation_failed_callback(context, expr, exc)
+      # @param expr [EL::Expression] The condition or metric value expression that failed
+      # @param exc [Exception] The exception raised during expression evaluation
+      def probe_expression_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         if probe.expression_evaluation_failed_rate_limiter&.allow?
           if instrumenter.global_snapshot_rate_limiter.allow?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload)
           else
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" }
+            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping expression error snapshot due to global rate limit" }
           end
         end
       end

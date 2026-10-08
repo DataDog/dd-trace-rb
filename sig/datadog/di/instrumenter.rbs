@@ -76,7 +76,7 @@ module Datadog
       # untyped uses: args/kwargs values, target_self, and the return type
       # all carry the customer-supplied method's signature, which is unknown
       # at this layer. responder is a duck-typed interface
-      # (#probe_executed_callback, #probe_condition_evaluation_failed_callback,
+      # (#probe_executed_callback, #probe_expression_evaluation_failed_callback,
       # #probe_disabled_callback) with no shared base class to name.
       def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, any target_self, Probe probe, untyped responder, [::String, ::Integer]? loc, ::String method_name) { () -> untyped } -> untyped
 

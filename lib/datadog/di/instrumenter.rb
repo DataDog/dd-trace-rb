@@ -510,7 +510,7 @@ module Datadog
       # @param target_block [Proc, nil] block argument passed to the probed method
       # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
-      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param responder [#probe_executed_callback, #probe_expression_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @yield invokes the original method via super and returns its value
@@ -554,13 +554,13 @@ module Datadog
                 # the context, we won't be able to report anything as
                 # the probe notifier builder requires a context.
                 begin
-                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                  responder.probe_expression_evaluation_failed_callback(context, condition, exc)
                 rescue Exception => nested_exc # standard:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                  logger.debug { "di: error in probe expression evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe expression evaluation failed callback")
                 end
               else
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -819,13 +819,13 @@ module Datadog
               # the context, we won't be able to report anything as
               # the probe notifier builder requires a context.
               begin
-                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                responder.probe_expression_evaluation_failed_callback(context, condition, exc)
               rescue Exception => nested_exc # standard:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(nested_exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                logger.debug { "di: error in probe expression evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                telemetry&.report(nested_exc, description: "Error in probe expression evaluation failed callback")
               end
 
               return

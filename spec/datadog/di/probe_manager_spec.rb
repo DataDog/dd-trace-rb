@@ -461,7 +461,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
   end
 
-  describe "#probe_condition_evaluation_failed_callback" do
+  describe "#probe_expression_evaluation_failed_callback" do
     let(:probe) do
       instance_double(
         Datadog::DI::Probe,
@@ -491,13 +491,13 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
-      it "builds and enqueues the condition error snapshot" do
+      it "builds and enqueues the expression error snapshot" do
         snapshot = double("snapshot")
         expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
           .with(context, expr, exc).and_return(snapshot)
         expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
       end
     end
 
@@ -511,7 +511,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
 
         expect(per_probe_limiter).to have_received(:allow?)
       end
@@ -530,7 +530,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
 
         expect(logger).to have_received(:trace) do |&block|
           expect(block.call).to match(/global rate limit/)
