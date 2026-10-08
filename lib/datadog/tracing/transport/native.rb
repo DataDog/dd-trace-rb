@@ -4,6 +4,7 @@ require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
 require_relative "span_events_negotiation"
+require_relative "native/telemetry"
 
 module Datadog
   module Tracing
@@ -49,6 +50,16 @@ module Datadog
 
           attr_reader :logger
 
+          def telemetry=(client)
+            @send_mutex.synchronize do
+              if (reporter = @telemetry)
+                reporter.client = client
+              elsif @exporter
+                @telemetry = Telemetry.new(client, @exporter)
+              end
+            end
+          end
+
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings (provides +#url+).
           # @param logger [Logger]
@@ -58,6 +69,7 @@ module Datadog
             end
 
             @logger = logger
+            @telemetry = nil
 
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
@@ -215,26 +227,32 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_hooks = @send_mutex.synchronize do
-              hooks = @fork_hooks
-              return if hooks.nil?
+            # @type var fork_hooks: Hash[Symbol, Proc]?
+            fork_hooks = nil
+            @send_mutex.synchronize do
+              return if @fork_hooks.nil?
 
+              fork_hooks = @fork_hooks
               @fork_hooks = nil
-              @exporter = nil
-              hooks
+              begin
+                if (exporter = @exporter)
+                  counts = exporter._native_close
+                  @telemetry&.record_stats(counts)
+                end
+              ensure
+                @telemetry&.close
+                @exporter = nil
+              end
             end
-
-            fork_hooks.each do |stage, block|
-              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-            end
-
-            # The finalizer only exists to deregister the hooks for a transport
-            # dropped without #close. We have just done that, so remove it;
-            # otherwise its closed-over hook blocks keep the exporter alive until
-            # this transport is itself collected.
-            ObjectSpace.undefine_finalizer(self)
 
             nil
+          ensure
+            if fork_hooks
+              fork_hooks.each do |stage, block|
+                Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+              end
+              ObjectSpace.undefine_finalizer(self)
+            end
           end
 
           # Builds the proc that deregisters a transport's fork hooks.
@@ -284,7 +302,11 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks, native_events_supported)
+              result = exporter._native_send_traces(chunks, native_events_supported) do |observations|
+                @telemetry&.record(observations)
+              end
+              @telemetry&.collect
+              result
             end
 
             # Update statistics from the response
