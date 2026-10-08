@@ -1545,12 +1545,17 @@ static VALUE _native_after_fork_in_child(VALUE self) {
     raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
   }
   ddog_TraceExporterStatsObservations discarded = {0};
+  ddog_TraceExporterError *discard_err = NULL;
   if (wrapper->exporter != NULL) {
-    check_exporter_error("Failed to discard inherited observations",
-        ddog_trace_exporter_take_stats_observations(wrapper->exporter, &discarded));
+    discard_err = ddog_trace_exporter_take_stats_observations(wrapper->exporter, &discarded);
   }
+  /* A failed discard must not leave the child's runtime quiesced. */
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
+  if (err != NULL && discard_err != NULL) {
+    ddog_trace_exporter_error_free(discard_err);
+  }
   check_shared_runtime_error("Failed to restore after fork in child", err);
+  check_exporter_error("Failed to discard inherited observations", discard_err);
   return Qnil;
 }
 
