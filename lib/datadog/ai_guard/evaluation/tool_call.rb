@@ -3,14 +3,27 @@
 module Datadog
   module AIGuard
     module Evaluation
-      # Tool call class for AI Guard
+      # Represents a tool invocation requested by an assistant message
       class ToolCall
         attr_reader :tool_name, :id, :arguments
 
         def initialize(tool_name, id:, arguments:)
           @tool_name = tool_name
           @id = id
-          @arguments = arguments
+          @arguments =
+            case arguments
+            when String then arguments
+            when Hash then JSON.generate(arguments)
+            else raise ArgumentError, "Tool call arguments must be a String or Hash"
+            end
+        end
+
+        def copy(arguments:)
+          ToolCall.new(tool_name, id: id, arguments: arguments)
+        end
+
+        def to_h
+          {id: id, function: {name: tool_name, arguments: arguments}}
         end
       end
     end

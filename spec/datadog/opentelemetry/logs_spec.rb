@@ -91,6 +91,49 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
 
   describe "Resource Attributes" do
     subject(:resource_attributes) { attributes }
+
+    context "with deployment.environment.name provided by OpenTelemetry resource attributes" do
+      let(:env_overrides) { {"OTEL_RESOURCE_ATTRIBUTES" => "deployment.environment.name=production"} }
+
+      it "emits the canonical deployment environment attribute" do
+        expect(resource_attributes["deployment.environment.name"]).to eq("production")
+        expect(resource_attributes).not_to have_key("deployment.environment")
+      end
+    end
+
+    context "with programmatic deployment environment tags" do
+      let(:configuration) do
+        proc do |c|
+          c.tags = {
+            "deployment.environment" => "legacy",
+            "deployment.environment.name" => "stable",
+          }
+        end
+      end
+
+      it "prioritizes the stable attribute when it follows the legacy attribute" do
+        expect(resource_attributes["deployment.environment.name"]).to eq("stable")
+        expect(resource_attributes).not_to have_key("deployment.environment")
+      end
+
+      context "when DD_ENV is set and the legacy attribute follows the stable attribute" do
+        let(:env_overrides) { {"DD_ENV" => "datadog"} }
+        let(:configuration) do
+          proc do |c|
+            c.tags = {
+              "deployment.environment.name" => "stable",
+              "deployment.environment" => "legacy",
+            }
+          end
+        end
+
+        it "prioritizes DD_ENV" do
+          expect(resource_attributes["deployment.environment.name"]).to eq("datadog")
+          expect(resource_attributes).not_to have_key("deployment.environment")
+        end
+      end
+    end
+
     context "with service metadata provided by environment variables" do
       let(:env_overrides) do
         {
@@ -105,9 +148,10 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
         expect(resource_attributes).to include(
           "service.name" => "custom-service",
           "service.version" => "2.0.0",
-          "deployment.environment" => "production",
+          "deployment.environment.name" => "production",
           "host.name" => Datadog::Core::Environment::Socket.hostname,
         )
+        expect(resource_attributes).not_to have_key("deployment.environment")
       end
     end
 
@@ -178,11 +222,12 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
         expect(resource_attributes).to include(
           "service.name" => "test-service",
           "service.version" => "1.0.0",
-          "deployment.environment" => "test",
+          "deployment.environment.name" => "test",
           "host.name" => "myhost",
           "team" => "backend",
           "region" => "us-east-1",
         )
+        expect(resource_attributes).not_to have_key("deployment.environment")
       end
     end
 

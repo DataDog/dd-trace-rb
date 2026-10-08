@@ -281,6 +281,23 @@ VALUE thread_name_for(VALUE thread) {
   return thread_struct_from_object(thread)->name;
 }
 
+// This test doubles as a validation for the layout of the rb_thread_t structure. Because the `name` is almost at
+// the end of the structure, if somehow we can't read the name, this probably means we're getting the structure wrong
+// and we should stop immediately (this includes covering the use of `stat_insn_usage` on Ruby <= 3.2).
+//
+// One example where this happens is in patches such as
+// https://github.com/gitlabhq/omnibus-gitlab/blob/master/config/patches/ruby/thread-memory-allocations-3.2.patch
+// that add items to the structure and thus shift its position from where we expect.
+void self_test_thread_name_for(void) {
+  VALUE thread = rb_eval_string("Thread.new { Thread.current.name = 'dd-prof-test' }.join");
+  VALUE expected_name = rb_funcall(thread, rb_intern("name"), 0);
+  if (thread_name_for(thread) != expected_name) {
+    rb_raise(rb_eRuntimeError,
+      "thread_name_for() self-test failed; this usually means the `rb_thread_t` on this Ruby doesn't match what the profiler expects"
+    );
+  }
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.
@@ -359,7 +376,6 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
     VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
     VM_ASSERT(n >= 0);
-    ASSUME(n >= 0);
     size_t pos = n; /* no overflow */
     if (LIKELY(pos)) {
       /* use pos-1 because PC points next instruction at the beginning of instruction */
@@ -562,6 +578,14 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       #endif
     #else
       const rb_iseq_t *iseq = cfp->iseq;
+    #endif
+
+    #ifndef NO_T_MOVED
+      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) {
+        // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
+        // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
+        continue;
+      }
     #endif
 
     if (iseq && !pc) {
