@@ -62,10 +62,9 @@ runs:
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: lookup
       name: Find matrix bundle
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: ./.github/actions/bundle-restore
       with:
-        key: ${{ steps.matrix-key.outputs.cache-key }}
-        path: /usr/local/bundle
+        cache-key: ${{ steps.matrix-key.outputs.cache-key }}
         lookup-only: true
     - id: base-bundle
       name: Prepare base bundle
@@ -74,6 +73,7 @@ runs:
       env:
         BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
       with:
+        image: ${{ inputs.image }}
         cache-key: ${{ steps.base-key.outputs.cache-key }}
     - name: Clean restored base bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'

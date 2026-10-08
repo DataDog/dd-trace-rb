@@ -188,19 +188,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore base bundle
-        if: needs.batch.outputs.matrix-cache-ready != 'true'
+      - name: Restore bundle
         uses: ./.github/actions/bundle-restore
         with:
-          lockfile: ${{ needs.batch.outputs.base-lockfile }}
-          cache-key: ${{ needs.batch.outputs.base-cache-key }}
-      - if: needs.batch.outputs.matrix-cache-ready == 'true'
-        name: Restore matrix bundle
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          key: ${{ needs.batch.outputs.matrix-cache-key }}
-          path: /usr/local/bundle
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
+          lockfile: ${{ needs.batch.outputs.matrix-cache-ready != 'true' && needs.batch.outputs.base-lockfile || '' }}
+          require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
@@ -284,19 +277,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore base bundle
-        if: needs.batch.outputs.matrix-cache-ready != 'true'
+      - name: Restore bundle
         uses: ./.github/actions/bundle-restore
         with:
-          lockfile: ${{ needs.batch.outputs.base-lockfile }}
-          cache-key: ${{ needs.batch.outputs.base-cache-key }}
-      - if: needs.batch.outputs.matrix-cache-ready == 'true'
-        name: Restore matrix bundle
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          key: ${{ needs.batch.outputs.matrix-cache-key }}
-          path: /usr/local/bundle
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
+          lockfile: ${{ needs.batch.outputs.matrix-cache-ready != 'true' && needs.batch.outputs.base-lockfile || '' }}
+          require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:

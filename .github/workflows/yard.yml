@@ -19,6 +19,9 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v1' }}
+
 jobs:
   deploy:
     environment:
@@ -26,7 +29,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: &engine-image ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -39,6 +42,8 @@ jobs:
       - name: Prepare bundle cache
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
+        with:
+          image: *engine-image
       - name: Generate YARD documentation
         run: bundle exec rake docs --rakefile=tasks/yard.rake
       - name: Setup Pages

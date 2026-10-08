@@ -3,6 +3,9 @@ name: 'Prepare base bundle cache'
 description: 'Sets up a base bundle cache for GitHub Actions'
 
 inputs:
+  image:
+    description: 'Engine image reference'
+    required: true
   cache-key:
     description: 'Precomputed exact cache key'
     required: false
@@ -11,7 +14,7 @@ inputs:
 outputs:
   cache-key:
     description: 'Cache key for the base bundle'
-    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
+    value: ${{ steps.base-key.outputs.cache-key }}
   lockfile:
     description: 'Lockfile name'
     value: ${{ steps.lockfile.outputs.lockfile }}
@@ -19,17 +22,25 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Generate unique Ruby environment key
-      id: ruby-env-id
+    - name: Compute base bundle key
+      id: base-key
       shell: bash
+      env:
+        CACHE_KEY: ${{ inputs.cache-key }}
+        IMAGE: ${{ inputs.image }}
       run: |
-        id=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")') # Includes patchlevel, os, arch, and extension ABI
-        echo "id=$id" >> "$GITHUB_OUTPUT"
+        cache_key="$CACHE_KEY"
+        if [ -z "$cache_key" ]; then
+          cache_key=$(ruby tasks/matrix_bundle_cache.rb base-key \
+            --base-gemfile "${BUNDLE_GEMFILE:-Gemfile}" \
+            --image "$IMAGE")
+        fi
+        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Resolve lockfile
       id: lockfile
       shell: bash
       env:
-        LOCKFILE: lockfile-${{ steps.ruby-env-id.outputs.id }}
+        LOCKFILE: lockfile-${{ steps.base-key.outputs.cache-key }}
       run: |
         path="${BUNDLE_GEMFILE:-Gemfile}.lock"
         if [ ! -f "$path" ]; then
@@ -43,11 +54,10 @@ runs:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: ${{ steps.lockfile.outputs.path }}
     - name: Restore cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: ./.github/actions/bundle-restore
       id: restore-cache
       with:
-        key: ${{ inputs.cache-key || format('bundle-{0}-{1}', steps.ruby-env-id.outputs.id, hashFiles(steps.lockfile.outputs.path)) }}
-        path: "/usr/local/bundle"
+        cache-key: ${{ steps.base-key.outputs.cache-key }}
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
       run: bundle install
@@ -55,7 +65,7 @@ runs:
       name: Save cache
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        key: ${{ steps.base-key.outputs.cache-key }}
         path: "/usr/local/bundle"
     - run: bundle check
       shell: bash

@@ -1,30 +1,47 @@
-name: 'Restore base bundle cache'
+name: 'Restore bundle cache'
 
-# TODO: Improve description
-description: 'Restores a base bundle cache for GitHub Actions'
+description: 'Restores a base or matrix bundle cache for GitHub Actions'
 
 inputs:
   lockfile:
-    description: 'Name of the lockfile artifact to download'
-    required: true
+    description: 'Name of the lockfile artifact to download, if needed'
+    required: false
+    default: ''
   cache-key:
-    description: 'Cache key for the base bundle'
+    description: 'Exact bundle cache key'
     required: true
+  lookup-only:
+    description: 'Check availability without downloading the bundle'
+    required: false
+    default: 'false'
+  require-exact:
+    description: 'Fail unless the requested cache key matches exactly'
+    required: false
+    default: 'false'
+
+outputs:
+  cache-hit:
+    description: 'Whether the requested cache key matched exactly'
+    value: ${{ steps.restore-cache.outputs.cache-hit }}
 
 runs:
   using: composite
   steps:
-  - name: Download lockfile
-    uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-    with:
-      name: ${{ inputs.lockfile }}
-
-  - name: Restore cache
-    uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-    id: restore-cache
-    with:
-      key: "${{ inputs.cache-key }}"
-      path: "/usr/local/bundle"
-
-  - run: bundle check
-    shell: bash
+    - name: Download lockfile
+      if: inputs.lockfile != ''
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: ${{ inputs.lockfile }}
+    - name: Restore cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: restore-cache
+      with:
+        key: ${{ inputs.cache-key }}
+        path: /usr/local/bundle
+        lookup-only: ${{ inputs.lookup-only == 'true' }}
+    - name: Require exact cache hit
+      if: inputs.require-exact == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "::error::Expected an exact bundle cache hit." >&2
+        exit 1

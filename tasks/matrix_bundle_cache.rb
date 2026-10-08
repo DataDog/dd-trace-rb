@@ -5,6 +5,7 @@ require "optparse"
 
 CACHE_RECIPE_FILES = %w[
   .github/actions/bundle-cache/action.yml
+  .github/actions/bundle-restore/action.yml
   .github/actions/matrix-bundle-cache/action.yml
   tasks/github.rake
   tasks/matrix_bundle_cache.rb
