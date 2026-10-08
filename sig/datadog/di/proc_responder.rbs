@@ -5,15 +5,21 @@ module Datadog
 
       @failed_proc: Proc?
 
-      def initialize: (Proc executed_proc, ?Proc? failed_proc) -> void
+      @emitted_proc: Proc?
+
+      def initialize: (Proc executed_proc, ?Proc? failed_proc, ?Proc? emitted_proc) -> void
 
       attr_reader executed_proc: Proc
 
       attr_reader failed_proc: Proc?
 
+      attr_reader emitted_proc: Proc?
+
       def probe_executed_callback: (Context context) -> untyped
 
       def probe_expression_evaluation_failed_callback: (Context context, EL::Expression expr, Exception exc) -> void
+
+      def probe_metric_emitted_callback: (Probe probe) -> void
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
     end
