@@ -354,7 +354,7 @@ RSpec.describe "Native exporter telemetry" do
     transport = build_transport
     parent = identity.first
     send_trace(transport)
-    allow(Datadog::Core::Environment::Identity).to receive(:id).and_raise("identity unavailable")
+    allow(Datadog::Core::Environment::Identity).to receive(:root_runtime_id).and_raise("identity unavailable")
     child = fork do
       span = Datadog::Tracing::Span.new("child", id: 123, trace_id: 456)
       trace = Datadog::Tracing::TraceSegment.new([span], id: 456, root_span_id: 123)
