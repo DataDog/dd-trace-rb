@@ -4,7 +4,9 @@ require "datadog/di"
 require_relative "correlation_integration_test_class"
 
 # The active APM trace is stubbed at the Datadog::DI.active_trace seam.
-# Production sampler limits are ample for these examples.
+# The examples run against the production default sampler and hard-limiter
+# limits; the ones that exhaust a process-wide limit freeze the
+# rate-limiter clock and drain the production default bucket.
 
 RSpec.describe "Correlation integration" do
   di_test
