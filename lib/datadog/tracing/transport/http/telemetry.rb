@@ -46,13 +46,13 @@ module Datadog
               if (status = request.http_status)
                 observations[:responses_count] = 1
                 observations[:status_code] = status
-                if status.between?(400, 599)
+                if status.between?(200, 299)
+                  observations[:chunks_sent] = chunks
+                  observations[:bytes_sent] = bytes
+                else
                   observations[:errors_status_code] = 1
                   observations[:chunks_dropped_send_failure] = chunks
                   observations[:spans_dropped_api_error] = spans
-                else
-                  observations[:chunks_sent] = chunks
-                  observations[:bytes_sent] = bytes
                 end
               else
                 error = response.error if response.is_a?(Core::Transport::InternalErrorResponse)

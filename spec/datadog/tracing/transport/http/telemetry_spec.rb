@@ -77,15 +77,34 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry do
     expect(metrics.find { |metric| metric[:metric] == "trace_api.bytes" }[:points].length).to eq(1)
   end
 
-  it "reports terminal HTTP failures without successful byte samples" do
-    stub_request(:post, v4).to_return(status: 503, body: "{}")
-    expect(transport.send_traces(traces).first.server_error?).to be true
-    expect(count("trace_api.requests", ruby_tags)).to eq(1)
-    expect(count("trace_api.responses", ruby_tags("status_code:503"))).to eq(1)
-    expect(count("trace_api.errors", ruby_tags("type:status_code"))).to eq(1)
-    expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(2)
-    expect(count("spans_dropped", ["reason:api_error"])).to eq(traces.sum(&:length))
-    expect(metrics.none? { |metric| metric[:metric] == "trace_api.bytes" }).to be true
+  [202, 204, 299].each do |status|
+    it "reports HTTP #{status} as successful delivery" do
+      stub_request(:post, v4).to_return(status: status, body: "")
+      expect(transport.send_traces(traces).first.ok?).to be true
+      expect(count("trace_api.responses", ruby_tags("status_code:#{status}"))).to eq(1)
+      expect(count("trace_chunks_sent", ruby_tags)).to eq(2)
+      expect(count("trace_api.errors", ruby_tags("type:status_code"))).to eq(0)
+      expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(0)
+      expect(count("spans_dropped", ["reason:api_error"])).to eq(0)
+      expect(metrics.find { |metric| metric[:metric] == "trace_api.bytes" }[:points].length).to eq(1)
+    end
+  end
+
+  [300, 302, 307, 400, 503, 600].each do |status|
+    it "reports terminal HTTP #{status} as a failure without successful byte samples" do
+      target = stub_request(:any, "#{v4}/redirect").to_return(status: 200)
+      request = stub_request(:post, v4).to_return(status: status, body: "{}", headers: {"Location" => "#{v4}/redirect"})
+      expect(transport.send_traces(traces).first.ok?).to be false
+      expect(request).to have_been_requested.once
+      expect(target).not_to have_been_requested
+      expect(count("trace_api.requests", ruby_tags)).to eq(1)
+      expect(count("trace_api.responses", ruby_tags("status_code:#{status}"))).to eq(1)
+      expect(count("trace_api.errors", ruby_tags("type:status_code"))).to eq(1)
+      expect(count("trace_chunks_sent", ruby_tags)).to eq(0)
+      expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(2)
+      expect(count("spans_dropped", ["reason:api_error"])).to eq(traces.sum(&:length))
+      expect(metrics.none? { |metric| metric[:metric] == "trace_api.bytes" }).to be true
+    end
   end
 
   [
