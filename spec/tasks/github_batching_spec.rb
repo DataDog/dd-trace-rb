@@ -48,6 +48,43 @@ RSpec.describe GithubBatching do
     end
   end
 
+  describe ".timing_estimates" do
+    def weights(ruby_version, main_seconds)
+      {
+        "ruby_versions" => {
+          ruby_version => {
+            "tasks" => [{"task" => "main", "group" => "", "p90_seconds" => main_seconds}],
+            "gemfiles" => [{"gemfile" => "Gemfile", "p90_seconds" => 5}],
+          },
+        },
+      }
+    end
+
+    it "prefers remote weights over the checked-in file" do
+      Dir.mktmpdir do |directory|
+        path = File.join(directory, "local.json")
+        File.write(path, JSON.dump(weights("3.1", 1)))
+        allow(described_class).to receive(:fetch_weights).and_return(weights("3.1", 42))
+
+        estimates = described_class.timing_estimates(path, "3.1")
+
+        expect(estimates[:tasks]).to eq(["main", ""] => 42)
+      end
+    end
+
+    it "falls back to the checked-in file when the fetch fails" do
+      Dir.mktmpdir do |directory|
+        path = File.join(directory, "local.json")
+        File.write(path, JSON.dump(weights("3.1", 1)))
+        allow(described_class).to receive(:fetch_weights).and_return(nil)
+
+        estimates = described_class.timing_estimates(path, "3.1")
+
+        expect(estimates[:tasks]).to eq(["main", ""] => 1)
+      end
+    end
+  end
+
   describe ".distribute" do
     def task(name, gemfile = "Gemfile")
       {task: name, group: "", gemfile: gemfile}
