@@ -1,13 +1,26 @@
 # Runs without Bundler.
 require "json"
-require_relative "github_matrix"
+require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   task :generate_batches do
-    matrix = GithubMatrix.new
-    matching_tasks = matrix.standard_tasks
-    misc_tasks = matrix.misc_tasks
+    matrix = eval(File.read("Matrixfile"), binding, "Matrixfile").freeze # rubocop:disable Security/Eval
+    all_tasks = matrix.each_with_object([]) do |(key, spec_metadata), tasks|
+      spec_metadata.each do |group, rubies|
+        next unless rubies.include?("✅ #{RUBY_VERSION[0..2]}")
+
+        gemfile = begin
+          AppraisalConversion.to_bundle_gemfile(group)
+        rescue
+          AppraisalConversion.parent_gemfile
+        end
+        tasks << {task: key, group: group, gemfile: gemfile}
+      end
+    end
+    misc_tasks, matching_tasks = all_tasks.partition do |task|
+      %w[mongodb elasticsearch opensearch presto dalli].include?(task[:task])
+    end
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
@@ -21,9 +34,10 @@ namespace :github do
     data = {
       batches: batched_matrix,
       misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
+      all: all_tasks,
+      gemfiles: all_tasks.map { |task| task[:gemfile] }.uniq.sort,
     }
 
-    # Output the JSON
     puts JSON.dump(data)
   end
 
@@ -52,16 +66,21 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
+    tasks = JSON.parse(ENV.fetch("BATCHED_TASKS"))
 
-    tasks.each do |task|
-      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
-      cmd = "bundle check || bundle install"
-      # Retry mechanism to improve reliability in Github Actions,
-      # since network issues can cause `bundle install` to fail.
+    tasks.uniq { |task| task.fetch("gemfile") }.each do |task|
+      env = {"BUNDLE_GEMFILE" => task.fetch("gemfile")}
+      # Network failures can interrupt bundle installation.
       with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
+        Bundler.with_unbundled_env { sh(env, "bundle check || bundle install") }
       end
+    end
+  end
+
+  task :check_installed_bundle do
+    gemfiles = [ENV.fetch("BUNDLE_GEMFILE")] + JSON.parse(ENV.fetch("GEMFILES"))
+    gemfiles.uniq { |gemfile| File.expand_path(gemfile) }.each do |gemfile|
+      Bundler.with_unbundled_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end
 

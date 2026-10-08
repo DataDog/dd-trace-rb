@@ -1,12 +1,16 @@
-# Runs without Bundler.
 require "bundler"
 require "digest"
 require "json"
-require_relative "github_matrix"
 
 class InstalledBundleCache
   BASE_CACHE_KEY_PREFIX = "bundle-base-v1"
   CACHE_KEY_PREFIX = "bundle-installed-matrix-v3"
+  CACHE_RECIPE_FILES = %w[
+    .github/actions/bundle-cache/action.yml
+    .github/actions/installed-bundle-cache/action.yml
+    tasks/github.rake
+    tasks/installed_bundle_cache.rb
+  ].freeze
   BUILD_ENVIRONMENT_KEYS = %w[
     ARCHFLAGS
     CFLAGS
@@ -22,19 +26,19 @@ class InstalledBundleCache
     without
   ].freeze
 
-  def initialize(base_gemfile: AppraisalConversion.parent_gemfile)
+  def initialize(base_gemfile:, gemfiles: [])
     @root = Dir.pwd
     @base_gemfile = absolute_path(base_gemfile)
-    @applicable_gemfiles = GithubMatrix.new.gemfiles.map { |path| absolute_path(path) }.sort
+    @gemfiles = gemfiles.map { |path| absolute_path(path) }
   end
 
   def base_cache_key(image_identity:)
     identity = {
       "bundler_settings" => bundler_settings,
-      "content" => content([@base_gemfile]),
+      "dependencies" => dependency_content(@base_gemfile),
       "image_identity" => image_identity,
       "native_build_overrides" => native_build_overrides,
-      "ruby_environment" => [RUBY_DESCRIPTION, Gem.extension_api_version].join("-"),
+      "recipe" => recipe_fingerprint,
     }
     "#{BASE_CACHE_KEY_PREFIX}-#{digest(identity)}"
   end
@@ -42,39 +46,26 @@ class InstalledBundleCache
   def cache_key(base_cache_key:)
     identity = {
       "base_cache_key" => base_cache_key,
-      "content" => content(appraisal_gemfiles),
+      "dependencies" => @gemfiles.map { |gemfile| dependency_content(gemfile) }.uniq.sort,
     }
     "#{CACHE_KEY_PREFIX}-#{digest(identity)}"
   end
 
-  def install_appraisals
-    appraisal_gemfiles.each { |gemfile| run_bundle(gemfile, "install") }
-  end
-
-  def check
-    gemfiles.each { |gemfile| run_bundle(gemfile, "check") }
-  end
-
   private
 
-  def gemfiles
-    ([@base_gemfile] + @applicable_gemfiles).uniq
+  def dependency_content(gemfile)
+    lockfile = lockfile_for(gemfile)
+    [
+      Digest::SHA256.file(gemfile).hexdigest,
+      Digest::SHA256.file(lockfile).hexdigest,
+    ]
   end
 
-  def appraisal_gemfiles
-    @applicable_gemfiles.reject { |gemfile| gemfile == @base_gemfile }
-  end
-
-  def content(gemfiles)
-    gemfiles.map do |gemfile|
-      lockfile = lockfile_for(gemfile)
-      [
-        relative_path(gemfile),
-        Digest::SHA256.file(gemfile).hexdigest,
-        relative_path(lockfile),
-        Digest::SHA256.file(lockfile).hexdigest,
-      ]
+  def recipe_fingerprint
+    content = CACHE_RECIPE_FILES.map do |path|
+      [path, Digest::SHA256.file(absolute_path(path)).hexdigest]
     end
+    digest(content)
   end
 
   def digest(identity)
@@ -91,17 +82,8 @@ class InstalledBundleCache
 
   def native_build_overrides
     ENV.sort.each_with_object({}) do |(key, value), selected|
-      if BUILD_ENVIRONMENT_KEYS.include?(key) || key.start_with?("BUNDLE_BUILD__")
-        selected[key] = value
-      end
+      selected[key] = value if BUILD_ENVIRONMENT_KEYS.include?(key)
     end
-  end
-
-  def run_bundle(gemfile, *arguments)
-    relative_gemfile = relative_path(gemfile)
-    puts "BUNDLE_GEMFILE=#{relative_gemfile} bundle #{arguments.join(" ")}"
-    success = system({"BUNDLE_GEMFILE" => gemfile}, "bundle", *arguments)
-    raise "bundle #{arguments.first} failed for #{relative_gemfile}" unless success
   end
 
   def lockfile_for(gemfile)
@@ -130,13 +112,14 @@ if $PROGRAM_NAME == __FILE__
     opts.on("--base-gemfile PATH") { |value| options[:base_gemfile] = value }
     opts.on("--base-cache-key VALUE") { |value| options[:base_cache_key] = value }
     opts.on("--image-identity VALUE") { |value| options[:image_identity] = value }
+    opts.on("--gemfiles JSON") { |value| options[:gemfiles] = JSON.parse(value) }
   end
 
   command = ARGV.shift
   parser.parse!(ARGV)
   raise OptionParser::MissingArgument, "--base-gemfile" unless options[:base_gemfile]
 
-  cache = InstalledBundleCache.new(base_gemfile: options[:base_gemfile])
+  cache = InstalledBundleCache.new(base_gemfile: options[:base_gemfile], gemfiles: options.fetch(:gemfiles, []))
 
   case command
   when "base-key"
@@ -145,12 +128,9 @@ if $PROGRAM_NAME == __FILE__
     puts cache.base_cache_key(image_identity: options[:image_identity])
   when "key"
     raise OptionParser::MissingArgument, "--base-cache-key" unless options[:base_cache_key]
+    raise OptionParser::MissingArgument, "--gemfiles" unless options[:gemfiles]
 
     puts cache.cache_key(base_cache_key: options[:base_cache_key])
-  when "install-appraisals"
-    cache.install_appraisals
-  when "check"
-    cache.check
   else
     warn parser
     exit 1

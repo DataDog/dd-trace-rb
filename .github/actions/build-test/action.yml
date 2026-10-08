@@ -10,9 +10,6 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
-  install-dependencies:
-    description: 'Install dependencies required by this batch'
-    required: true
 
 runs:
   using: "composite"
@@ -22,7 +19,6 @@ runs:
     shell: bash
 
   - name: Install batch dependencies
-    if: inputs.install-dependencies == 'true'
     run: bundle exec rake github:run_batch_build
     shell: bash
 

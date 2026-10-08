@@ -27,33 +27,76 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
   let(:steps) { action.fetch("runs").fetch("steps") }
+  let(:batch) { workflow.fetch("jobs").fetch("batch") }
+  let(:batch_steps) { batch.fetch("steps") }
+  let(:prepare) { batch_steps.find { |step| step["uses"] == "./.github/actions/installed-bundle-cache" } }
+  let(:lookup) { steps.find { |step| step["id"] == "lookup" } }
+  let(:base) { steps.find { |step| step["id"] == "base-bundle" } }
+  let(:population) { steps.find { |step| step["run"].to_s.include?("github:run_batch_build") } }
+  let(:validation) { steps.find { |step| step["run"].to_s.include?("github:check_installed_bundle") } }
+  let(:save) { steps.find { |step| step["uses"].to_s.start_with?("actions/cache/save@") } }
 
-  it "uses a lookup-only parent probe" do
-    lookup = steps.find { |step| step["id"] == "lookup" }
-
+  it "uses an exact lookup-only parent probe without a restore prefix" do
     expect(lookup.fetch("with")).to include(
+      "key" => "${{ steps.installed-key.outputs.cache-key }}",
       "lookup-only" => true,
       "path" => "/usr/local/bundle",
     )
+    expect(lookup.fetch("with")).not_to have_key("restore-keys")
   end
 
-  it "restores the computed base before installing appraisals and validates the union before saving" do
-    names = steps.map { |step| step["name"] }
-    base = steps.find { |step| step["name"] == "Prepare lean base bundle" }
-
-    expect(base.fetch("with").fetch("cache-key")).to include("steps.base-key.outputs.cache-key")
-    expect(names.index("Prepare lean base bundle")).to be < names.index("Install appraisal bundles")
-    expect(names.index("Verify complete matrix bundle")).to be < names.index("Save installed bundle")
+  it "restores the computed base before population and validates the union before saving" do
+    expect(base.fetch("uses")).to eq("./.github/actions/bundle-cache")
+    expect(base.fetch("with").fetch("cache-key")).to eq("${{ steps.base-key.outputs.cache-key }}")
+    expect(base.fetch("env").fetch("BUNDLE_GEMFILE")).to eq("${{ inputs.base-gemfile }}")
+    expect(steps.index(base)).to be < steps.index(population)
+    expect(steps.index(population)).to be < steps.index(validation)
+    expect(steps.index(validation)).to be < steps.index(save)
   end
 
-  it "includes the exact base cache key in the union identity" do
+  it "includes the exact base cache key and generated Gemfile list in the union identity" do
     base_key = steps.find { |step| step["id"] == "base-key" }
     installed_key = steps.find { |step| step["id"] == "installed-key" }
 
     expect(base_key.fetch("env").fetch("IMAGE")).to eq("${{ inputs.image }}")
     expect(base_key.fetch("run")).to include("base-key", '--image-identity "$IMAGE"')
-    expect(installed_key.fetch("env").fetch("BASE_CACHE_KEY")).to include("steps.base-key.outputs.cache-key")
-    expect(installed_key.fetch("run")).to include('--base-cache-key "$BASE_CACHE_KEY"')
+    expect(installed_key.fetch("env")).to include(
+      "BASE_CACHE_KEY" => "${{ steps.base-key.outputs.cache-key }}",
+      "GEMFILES" => "${{ inputs.gemfiles }}",
+    )
+    expect(installed_key.fetch("run")).to include(
+      '--base-cache-key "$BASE_CACHE_KEY"',
+      '--gemfiles "$GEMFILES"',
+    )
+    expect(installed_key.fetch("run")).not_to include("Matrixfile")
+  end
+
+  it "requires complete task and Gemfile lists from batch generation" do
+    expect(action.fetch("inputs").fetch("tasks").fetch("required")).to be(true)
+    expect(action.fetch("inputs").fetch("gemfiles").fetch("required")).to be(true)
+    expect(prepare.fetch("with")).to include(
+      "tasks" => "${{ steps.set-batches.outputs.all }}",
+      "gemfiles" => "${{ steps.set-batches.outputs.gemfiles }}",
+    )
+
+    batches = batch_steps.find { |step| step["id"] == "set-batches" }
+    run = batches.fetch("run")
+
+    %w[all gemfiles].each do |output|
+      expect(run).to include("[\"#{output}\"].to_json")
+      expect(run).to match(/echo "#{output}=\$\w+"/)
+    end
+    expect(run).to include('>> "$GITHUB_OUTPUT"')
+  end
+
+  it "populates through existing batch installation and checks all selected Gemfiles" do
+    expect(population.fetch("run")).to eq("bundle exec rake github:run_batch_build")
+    expect(population.fetch("env").fetch("BATCHED_TASKS")).to eq("${{ inputs.tasks }}")
+    expect(validation.fetch("run")).to eq("bundle exec rake github:check_installed_bundle")
+    expect(validation.fetch("env")).to include(
+      "GEMFILES" => "${{ inputs.gemfiles }}",
+      "BUNDLE_GEMFILE" => "${{ inputs.base-gemfile }}",
+    )
   end
 
   it "reports whether the exact cache is ready" do
@@ -62,83 +105,84 @@ RSpec.describe "installed bundle cache workflow" do
     )
   end
 
-  it "does not restore the base before an exact union lookup" do
-    lookup_index = steps.index { |step| step["id"] == "lookup" }
-    base_index = steps.index { |step| step["id"] == "base-bundle" }
-    base = steps.fetch(base_index)
-
-    expect(lookup_index).to be < base_index
+  it "prepares the lean base only after an exact union miss" do
+    expect(steps.index(lookup)).to be < steps.index(base)
     expect(base.fetch("if")).to eq("steps.lookup.outputs.cache-hit != 'true'")
   end
 
-  it "skips base preparation, population, validation, and save on an exact hit" do
-    miss_only_steps = steps.select do |step|
-      step["id"] == "base-bundle" ||
-        step["name"] == "Install appraisal bundles" ||
-        step["name"] == "Verify complete matrix bundle" ||
-        step["name"] == "Save installed bundle"
+  it "populates, validates, and saves only on a writable exact miss" do
+    [population, validation, save].each do |step|
+      expect(step.fetch("if")).to eq(
+        "steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'",
+      )
     end
-
-    expect(miss_only_steps.length).to eq(4)
-    expect(miss_only_steps).to all(include("if" => include("steps.lookup.outputs.cache-hit != 'true'")))
-  end
-
-  it "skips population, validation, and save on a read-only miss" do
-    writable_steps = steps.select do |step|
-      step["name"] == "Install appraisal bundles" ||
-        step["name"] == "Verify complete matrix bundle" ||
-        step["name"] == "Save installed bundle"
-    end
-
-    expect(writable_steps.length).to eq(3)
-    expect(writable_steps).to all(include("if" => include("inputs.write-enabled == 'true'")))
+    expect(save.fetch("with")).to include(
+      "key" => "${{ steps.installed-key.outputs.cache-key }}",
+      "path" => "/usr/local/bundle",
+    )
+    expect(save.fetch("with")).not_to have_key("restore-keys")
   end
 
   it "routes a union miss directly to the prepared base outputs" do
-    batch = workflow.fetch("jobs").fetch("batch")
-    outputs = batch.fetch("outputs")
-    batch_steps = batch.fetch("steps")
-
-    expect(outputs.fetch("cache-key")).to include("installed-bundle-cache.outputs.base-cache-key")
-    expect(outputs.fetch("lockfile")).to include("installed-bundle-cache.outputs.base-lockfile")
-    expect(batch_steps).not_to include(include("name" => "Prepare bundle cache"))
+    expect(batch.fetch("outputs")).to include(
+      "cache-key" => "${{ steps.installed-bundle-cache.outputs.base-cache-key }}",
+      "lockfile" => "${{ steps.installed-bundle-cache.outputs.base-lockfile }}",
+      "installed-cache-key" => "${{ steps.installed-bundle-cache.outputs.cache-key }}",
+      "installed-cache-ready" => "${{ steps.installed-bundle-cache.outputs.ready }}",
+    )
+    expect(batch_steps).not_to include(include("uses" => "./.github/actions/bundle-cache"))
   end
 
-  it "runs bootstrap tasks without Bundler" do
-    batch_steps = workflow.fetch("jobs").fetch("batch").fetch("steps")
-    batches = batch_steps.find { |step| step["name"] == "Distribute tasks into batches" }
-    summary = batch_steps.find { |step| step["name"] == "Generate batch summary" }
+  it "generates batches and summary without Bundler before cache preparation" do
+    batches = batch_steps.find { |step| step["id"] == "set-batches" }
+    summary = batch_steps.find { |step| step["run"].to_s.include?("github:generate_batch_summary") }
 
     expect(batches.fetch("run")).to include("rake -f tasks/github.rake github:generate_batches")
+    expect(batches.fetch("run")).not_to include("bundle exec")
     expect(summary.fetch("run")).to eq("rake -f tasks/github.rake github:generate_batch_summary")
+    expect(summary.fetch("env").fetch("batches_json")).to eq("${{ steps.set-batches.outputs.batches }}")
+    expect(batch_steps.index(batches)).to be < batch_steps.index(summary)
+    expect(batch_steps.index(summary)).to be < batch_steps.index(prepare)
   end
 
-  it "skips batch dependency installation when the union is ready" do
-    install = build_action.fetch("runs").fetch("steps").find do |step|
-      step["name"] == "Install batch dependencies"
-    end
+  it "always prepares batch dependencies before tests regardless of cache readiness" do
+    build_steps = build_action.fetch("runs").fetch("steps")
+    install = build_steps.find { |step| step["run"].to_s.include?("github:run_batch_build") }
+    tests = build_steps.find { |step| step["run"].to_s.include?("github:run_batch_tests") }
 
-    expect(install).to include(
-      "if" => "inputs.install-dependencies == 'true'",
-      "run" => "bundle exec rake github:run_batch_build",
-    )
+    expect(build_action.fetch("inputs")).not_to have_key("install-dependencies")
+    expect(install.fetch("run")).to eq("bundle exec rake github:run_batch_build")
+    expect(install).not_to have_key("if")
+    expect(build_steps.index(install)).to be < build_steps.index(tests)
+    expect(build_steps).not_to include(include("run" => include("github:check_installed_bundle")))
   end
 
-  it "restores one exact union in each ready child" do
+  it "restores the exact union in ready children and the lean base otherwise" do
     jobs = workflow.fetch("jobs")
 
     %w[build-test-standard build-test-misc].each do |job_name|
       child_steps = jobs.fetch(job_name).fetch("steps")
-      base = child_steps.find { |step| step["name"] == "Restore bundle cache" }
-      installed = child_steps.find { |step| step["name"] == "Restore installed matrix bundle" }
-      build = child_steps.find { |step| step["name"] == "Build & Test" }
+      base_restore = child_steps.find { |step| step["uses"] == "./.github/actions/bundle-restore" }
+      installed = child_steps.find { |step| step["uses"].to_s.start_with?("actions/cache/restore@") }
+      build = child_steps.find { |step| step["uses"] == "./.github/actions/build-test" }
 
-      expect(base.fetch("if")).to include("installed-cache-ready != 'true'")
-      expect(installed.fetch("if")).to include("installed-cache-ready == 'true'")
-      expect(installed.fetch("with").fetch("key")).to include("installed-cache-key")
-      expect(build.fetch("with").fetch("install-dependencies")).to include("installed-cache-ready != 'true'")
-      expect(child_steps.count { |step| step["uses"] == "./.github/actions/bundle-restore" }).to eq(1)
-      expect(child_steps.count { |step| step["uses"].to_s.start_with?("actions/cache/restore@") }).to eq(1)
+      expect(base_restore.fetch("if")).to eq("needs.batch.outputs.installed-cache-ready != 'true'")
+      expect(base_restore.fetch("with")).to include(
+        "lockfile" => "${{ needs.batch.outputs.lockfile }}",
+        "cache-key" => "${{ needs.batch.outputs.cache-key }}",
+      )
+      expect(installed.fetch("if")).to eq("needs.batch.outputs.installed-cache-ready == 'true'")
+      expect(installed.fetch("with")).to include(
+        "key" => "${{ needs.batch.outputs.installed-cache-key }}",
+        "path" => "/usr/local/bundle",
+        "fail-on-cache-miss" => true,
+      )
+      expect(installed.fetch("with")).not_to have_key("restore-keys")
+      expect(installed.fetch("with")).not_to have_key("lookup-only")
+      expect(build.fetch("with")).not_to have_key("install-dependencies")
+      expect(child_steps.index(base_restore)).to be < child_steps.index(build)
+      expect(child_steps.index(installed)).to be < child_steps.index(build)
+      expect(child_steps).not_to include(include("run" => include("github:check_installed_bundle")))
     end
   end
 
@@ -157,42 +201,21 @@ RSpec.describe "installed bundle cache workflow" do
       "ruby-26",
       "ruby-25",
     )
+    expect(runtime_jobs.values).to all(include("with" => include("engine" => "ruby")))
   end
 
   it "uses the same engine image in the parent, cache, and children" do
     jobs = workflow.fetch("jobs")
-    batch_image = jobs.fetch("batch").fetch("container").fetch("image")
-    prepare = jobs.fetch("batch").fetch("steps").find do |step|
-      step["name"] == "Prepare installed matrix bundle cache"
-    end
+    batch_image = batch.fetch("container").fetch("image")
 
     expect(prepare.fetch("with").fetch("image")).to eq(batch_image)
     expect(jobs.fetch("build-test-standard").fetch("container").fetch("image")).to eq(batch_image)
     expect(jobs.fetch("build-test-misc").fetch("container").fetch("image")).to eq(batch_image)
   end
 
-  it "permits writes only from the default branch" do
-    prepare = workflow.fetch("jobs").fetch("batch").fetch("steps").find do |step|
-      step["name"] == "Prepare installed matrix bundle cache"
-    end
-
+  it "permits writes only from master" do
     expect(prepare.fetch("with").fetch("write-enabled")).to eq(
       "${{ github.ref == 'refs/heads/master' }}",
-    )
-  end
-
-  it "uses the same complete installed path for lookup, save, and restore" do
-    lookup = steps.find { |step| step["id"] == "lookup" }
-    save = steps.find { |step| step["name"] == "Save installed bundle" }
-    restore = workflow.fetch("jobs").fetch("build-test-standard").fetch("steps").find do |step|
-      step["name"] == "Restore installed matrix bundle"
-    end
-
-    expect(lookup.fetch("with").fetch("path")).to eq("/usr/local/bundle")
-    expect(save.fetch("with").fetch("path")).to eq("/usr/local/bundle")
-    expect(restore.fetch("with")).to include(
-      "path" => "/usr/local/bundle",
-      "fail-on-cache-miss" => true,
     )
   end
 end

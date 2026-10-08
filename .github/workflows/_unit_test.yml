@@ -60,8 +60,20 @@ jobs:
 
           batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
           misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
+          all_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["all"].to_json')
+          gemfiles_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["gemfiles"].to_json')
 
-          { echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
+          {
+            echo "batches=$batches_data"
+            echo "misc=$misc_data"
+            echo "all=$all_data"
+            echo "gemfiles=$gemfiles_data"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate batch summary
+        env:
+          batches_json: "${{ steps.set-batches.outputs.batches }}"
+        run: rake -f tasks/github.rake github:generate_batch_summary
 
       - name: Prepare installed matrix bundle cache
         id: installed-bundle-cache
@@ -69,12 +81,9 @@ jobs:
         with:
           base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           image: *engine-image
+          tasks: ${{ steps.set-batches.outputs.all }}
+          gemfiles: ${{ steps.set-batches.outputs.gemfiles }}
           write-enabled: ${{ github.ref == 'refs/heads/master' }}
-
-      - name: Generate batch summary
-        env:
-          batches_json: "${{ steps.set-batches.outputs.batches }}"
-        run: rake -f tasks/github.rake github:generate_batch_summary
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -194,7 +203,6 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
-          install-dependencies: ${{ needs.batch.outputs.installed-cache-ready != 'true' }}
 
   build-test-misc:
     needs:
@@ -291,4 +299,3 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
-          install-dependencies: ${{ needs.batch.outputs.installed-cache-ready != 'true' }}

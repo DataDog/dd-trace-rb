@@ -9,6 +9,12 @@ inputs:
   image:
     description: Engine image reference
     required: true
+  tasks:
+    description: Complete selected task list as JSON
+    required: true
+  gemfiles:
+    description: Unique selected Gemfiles as JSON
+    required: true
   write-enabled:
     description: Whether a miss may build and save current bundle
     required: true
@@ -47,10 +53,12 @@ runs:
       env:
         BASE_CACHE_KEY: ${{ steps.base-key.outputs.cache-key }}
         BASE_GEMFILE: ${{ inputs.base-gemfile }}
+        GEMFILES: ${{ inputs.gemfiles }}
       run: |
         cache_key=$(ruby tasks/installed_bundle_cache.rb key \
           --base-gemfile "$BASE_GEMFILE" \
-          --base-cache-key "$BASE_CACHE_KEY")
+          --base-cache-key "$BASE_CACHE_KEY" \
+          --gemfiles "$GEMFILES")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - id: lookup
       name: Find installed bundle
@@ -67,18 +75,20 @@ runs:
         BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
       with:
         cache-key: ${{ steps.base-key.outputs.cache-key }}
-    - name: Install appraisal bundles
+    - name: Install matrix bundles
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-      run: ruby tasks/installed_bundle_cache.rb install-appraisals --base-gemfile "$BASE_GEMFILE"
+        BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
+        BATCHED_TASKS: ${{ inputs.tasks }}
+      run: bundle exec rake github:run_batch_build
     - name: Verify complete matrix bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash
       env:
-        BASE_GEMFILE: ${{ inputs.base-gemfile }}
-      run: ruby tasks/installed_bundle_cache.rb check --base-gemfile "$BASE_GEMFILE"
+        BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
+        GEMFILES: ${{ inputs.gemfiles }}
+      run: bundle exec rake github:check_installed_bundle
     - name: Save installed bundle
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

@@ -15,6 +15,7 @@ RSpec.describe InstalledBundleCache do
         write("first.gemfile.lock", "first lock\n")
         write("second.gemfile", "eval_gemfile \"base.gemfile\"\n")
         write("second.gemfile.lock", "second lock\n")
+        described_class::CACHE_RECIPE_FILES.each { |path| write(path, "recipe: #{path}\n") }
         example.run
       end
     end
@@ -23,8 +24,7 @@ RSpec.describe InstalledBundleCache do
   let(:temporary_directory) { @temporary_directory }
 
   def build_cache(gemfiles)
-    allow(GithubMatrix).to receive(:new).and_return(instance_double(GithubMatrix, gemfiles: gemfiles))
-    described_class.new(base_gemfile: "base.gemfile")
+    described_class.new(base_gemfile: "base.gemfile", gemfiles: gemfiles)
   end
 
   def write(path, content)
@@ -64,16 +64,53 @@ RSpec.describe InstalledBundleCache do
     )
   end
 
-  it "invalidates the base and union keys when native build flags change" do
-    original_base = cache.base_cache_key(image_identity: "image-a")
-    changed_base = ClimateControl.modify("CFLAGS" => "-march=changed") do
-      cache.base_cache_key(image_identity: "image-a")
-    end
+  %w[
+    .github/actions/bundle-cache/action.yml
+    .github/actions/installed-bundle-cache/action.yml
+    tasks/github.rake
+    tasks/installed_bundle_cache.rb
+  ].each do |path|
+    it "invalidates the base and union keys when #{path} changes" do
+      original_base = cache.base_cache_key(image_identity: "image-a")
+      original_union = cache.cache_key(base_cache_key: original_base)
 
-    expect(changed_base).not_to eq(original_base)
-    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(
-      cache.cache_key(base_cache_key: original_base)
-    )
+      write(path, "changed recipe\n")
+      changed_base = cache.base_cache_key(image_identity: "image-a")
+
+      expect(changed_base).not_to eq(original_base)
+      expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_union)
+    end
+  end
+
+  %w[ARCHFLAGS CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MAKEFLAGS].each do |flag|
+    it "invalidates the base and union keys when #{flag} changes" do
+      original_base = cache.base_cache_key(image_identity: "image-a")
+      changed_base = ClimateControl.modify(flag => "changed") do
+        cache.base_cache_key(image_identity: "image-a")
+      end
+
+      expect(changed_base).not_to eq(original_base)
+      expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(
+        cache.cache_key(base_cache_key: original_base)
+      )
+    end
+  end
+
+  %w[force_ruby_platform only with without build.pg].each do |key|
+    it "invalidates the base and union keys when Bundler #{key} changes" do
+      values = {key => "original"}
+      settings = instance_double(Bundler::Settings, all: values.keys)
+      allow(settings).to receive(:[]) { |setting| values.fetch(setting) }
+      allow(Bundler).to receive(:settings).and_return(settings)
+      original_base = cache.base_cache_key(image_identity: "image-a")
+      values[key] = "changed"
+      changed_base = cache.base_cache_key(image_identity: "image-a")
+
+      expect(changed_base).not_to eq(original_base)
+      expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(
+        cache.cache_key(base_cache_key: original_base)
+      )
+    end
   end
 
   it "hashes only Bundler settings that can change installed contents" do
@@ -135,32 +172,45 @@ RSpec.describe InstalledBundleCache do
     expect(cache.cache_key(base_cache_key: "base-a")).not_to eq(original)
   end
 
-  it "includes paths in dependency identity" do
+  it "excludes paths from dependency identity" do
     write("renamed.gemfile", temporary_directory.join("first.gemfile").read)
     write("renamed.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
     renamed = build_cache(["base.gemfile", "renamed.gemfile", "second.gemfile"])
 
-    expect(renamed.cache_key(base_cache_key: "base-a")).not_to eq(
+    expect(renamed.cache_key(base_cache_key: "base-a")).to eq(
       cache.cache_key(base_cache_key: "base-a")
     )
   end
 
-  it "installs each appraisal and checks every Gemfile" do
-    commands = []
-    allow(cache).to receive(:system) do |environment, command, *arguments|
-      commands << [environment.fetch("BUNDLE_GEMFILE"), command, arguments]
-      true
-    end
+  it "excludes the base Gemfile path from base identity" do
+    write("renamed.gemfile", temporary_directory.join("base.gemfile").read)
+    write("renamed.gemfile.lock", temporary_directory.join("base.gemfile.lock").read)
+    renamed = described_class.new(base_gemfile: "renamed.gemfile")
 
-    cache.install_appraisals
-    cache.check
-
-    installed = commands.select { |_gemfile, _command, arguments| arguments == ["install"] }
-    expect(installed.map { |gemfile, _command, _arguments| File.basename(gemfile) }).to contain_exactly(
-      "first.gemfile",
-      "second.gemfile",
+    expect(renamed.base_cache_key(image_identity: "image-a")).to eq(
+      cache.base_cache_key(image_identity: "image-a")
     )
-    expect(commands.count { |_gemfile, _command, arguments| arguments == ["check"] }).to eq(3)
+  end
+
+  it "deduplicates identical dependency content" do
+    write("duplicate.gemfile", temporary_directory.join("first.gemfile").read)
+    write("duplicate.gemfile.lock", temporary_directory.join("first.gemfile.lock").read)
+    duplicated = build_cache(["base.gemfile", "first.gemfile", "duplicate.gemfile", "second.gemfile"])
+
+    expect(duplicated.cache_key(base_cache_key: "base-a")).to eq(
+      cache.cache_key(base_cache_key: "base-a")
+    )
+  end
+
+  it "invalidates the base and union keys when the base lockfile changes" do
+    original_base = cache.base_cache_key(image_identity: "image-a")
+    original_union = cache.cache_key(base_cache_key: original_base)
+
+    write("base.gemfile.lock", "changed lock\n")
+    changed_base = cache.base_cache_key(image_identity: "image-a")
+
+    expect(changed_base).not_to eq(original_base)
+    expect(cache.cache_key(base_cache_key: changed_base)).not_to eq(original_union)
   end
 
   it "rejects missing base and appraisal lockfiles" do
@@ -174,17 +224,5 @@ RSpec.describe InstalledBundleCache do
     expect { cache.cache_key(base_cache_key: "base-a") }.to raise_error(
       "Lockfile not found: first.gemfile.lock"
     )
-  end
-
-  it "reports failed appraisal installation" do
-    allow(cache).to receive(:system).and_return(false)
-
-    expect { cache.install_appraisals }.to raise_error("bundle install failed for first.gemfile")
-  end
-
-  it "reports failed bundle validation" do
-    allow(cache).to receive(:system).and_return(false)
-
-    expect { cache.check }.to raise_error("bundle check failed for base.gemfile")
   end
 end
