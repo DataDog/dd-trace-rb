@@ -61,6 +61,13 @@ class SupportedVersionsGenerator
       # Matches the Makara incompatibility skip in spec/datadog/tracing/contrib/active_record/tracer_spec.rb.
       Gem::Version.new(versions.fetch("activerecord")) < Gem::Version.new("7.2")
     end
+
+    integration = Datadog::Tracing::Contrib::REGISTRY[:aws]
+    entries << build_entry(integration, "aws-sdk-core", supported_range(integration.class, "aws-sdk-core"))
+
+    integration = Datadog::Tracing::Contrib::REGISTRY[:redis]
+    entries << build_entry(integration, "redis-client", ">=#{integration.class::REDISCLIENT_MINIMUM_VERSION}")
+
     entries.compact
   end
 
