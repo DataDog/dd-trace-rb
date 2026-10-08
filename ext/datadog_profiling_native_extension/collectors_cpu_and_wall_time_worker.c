@@ -147,6 +147,7 @@ typedef struct {
   //
   // It's not an actual lock because we rely on the GVL for correct synchronization
   // (and thus this flag is only valid when we know we have the GVL).
+  // Exception: `on_gvl_event` sets it for RUBY_INTERNAL_THREAD_EVENT_RESUMED without the GVL -- see the notes there.
   //
   // Similar to a lock, it should not be held across long-running operations,
   // **in particular it MUST NEVER be held during operations where we might lose the GVL**
