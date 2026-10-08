@@ -33,7 +33,9 @@ module Datadog
 
       @capture_expression_evaluator: CaptureExpressionEvaluator?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
+      @metric_emitter: MetricEmitter
+
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, metric_emitter: MetricEmitter, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -46,6 +48,8 @@ module Datadog
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader metric_emitter: MetricEmitter
 
       attr_reader global_snapshot_rate_limiter: Datadog::Core::TokenBucket
 

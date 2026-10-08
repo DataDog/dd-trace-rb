@@ -78,11 +78,12 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, metric_emitter:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @metric_emitter = metric_emitter
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
@@ -95,6 +96,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      attr_reader :metric_emitter
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -427,6 +429,20 @@ module Datadog
       end
 
       def hook(probe, responder)
+        # Unlike Java, .NET, and Python, which bundle a statsd client, the
+        # Ruby tracer does not depend on dogstatsd-ruby; when the customer's
+        # application does not carry a compatible one, metric probes fail at
+        # installation with an ERROR status naming the dependency instead of
+        # installing probes that can never emit.
+        if probe.type == :metric && !metric_emitter.available?
+          exc = Error::MetricEmissionUnavailable.new(
+            "metric probes are unavailable: dogstatsd-ruby >= 3.3.0 (excluding 5.0.x, 5.1.x, 5.2.x) is required; " \
+            "install or upgrade the gem in the application",
+          )
+          logger.debug { "di: cannot install :metric probe at #{probe.location} (#{probe.id}): #{exc.message}" }
+          raise exc
+        end
+
         if probe.method?
           hook_method(probe, responder)
         elsif probe.line?

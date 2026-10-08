@@ -16,7 +16,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:logger) do
-      instance_double(Logger)
+      instance_double(Logger).as_null_object
     end
 
     context "when remote config is enabled" do
@@ -202,7 +202,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Logger).as_null_object }
 
     it "registers the built component in DI.current_component" do
       component = described_class.build(settings, agent_settings, logger)
@@ -239,7 +239,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Logger).as_null_object }
 
     it "completes synchronously without I/O" do
       baseline = Thread.list.size
@@ -268,7 +268,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:logger) do
-      instance_double(Logger)
+      instance_double(Logger).as_null_object
     end
 
     let(:component) do
@@ -306,6 +306,40 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be false
       component.start!
       expect(component.started?).to be true
+    end
+
+    context "metric emitter lifecycle" do
+      let(:metric_probe) do
+        Datadog::DI::Probe.new(
+          id: "component-spec-metric-probe", type: :metric,
+          type_name: "Foo", method_name: "bar",
+          metric_kind: :count, metric_name: "component.spec.metric",
+        )
+      end
+
+      before do
+        component.start!
+      end
+
+      it "builds the emitter and injects it into the instrumenter" do
+        expect(component.metric_emitter).to be_a(Datadog::DI::MetricEmitter)
+        expect(component.instrumenter.metric_emitter).to be component.metric_emitter
+      end
+
+      it "keeps the emitter emitting across stop and start" do
+        component.stop!
+
+        expect(component.metric_emitter.emit(metric_probe, 1)).to be true
+
+        component.start!
+        expect(component.metric_emitter.emit(metric_probe, 1)).to be true
+      end
+
+      it "closes the emitter at shutdown so emission stops" do
+        component.shutdown!
+
+        expect(component.metric_emitter.emit(metric_probe, 1)).to be false
+      end
     end
 
     context "when code tracking is activated after the component is built (in-product enablement)" do
@@ -401,7 +435,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Logger).as_null_object }
     let(:component) { described_class.build(settings, agent_settings, logger) }
     let(:mutex) { component.instance_variable_get(:@lifecycle_mutex) }
 
@@ -456,7 +490,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:logger) do
-      instance_double(Logger)
+      instance_double(Logger).as_null_object
     end
 
     let(:telemetry) do

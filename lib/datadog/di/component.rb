@@ -74,7 +74,9 @@ module Datadog
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+        @metric_emitter = MetricEmitter.new(logger, telemetry: telemetry)
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+          metric_emitter: @metric_emitter)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
@@ -101,6 +103,7 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
       attr_reader :instrumenter
+      attr_reader :metric_emitter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker
       attr_reader :probe_notification_builder
@@ -189,6 +192,7 @@ module Datadog
           probe_manager.clear_hooks
           probe_manager.close
           probe_notifier_worker.stop
+          metric_emitter.close
         end
       end
 

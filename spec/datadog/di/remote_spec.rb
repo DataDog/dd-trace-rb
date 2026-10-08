@@ -339,7 +339,8 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:instrumenter) do
-        Datadog::DI::Instrumenter.new(settings, serializer, logger)
+        Datadog::DI::Instrumenter.new(settings, serializer, logger,
+          metric_emitter: instance_double(Datadog::DI::MetricEmitter, available?: true))
       end
 
       let(:probe_notification_builder) do

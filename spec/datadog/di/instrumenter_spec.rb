@@ -46,7 +46,11 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_logger_double
 
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker, metric_emitter: metric_emitter)
+  end
+
+  let(:metric_emitter) do
+    instance_double(Datadog::DI::MetricEmitter, available?: true)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1378,6 +1382,78 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
+  describe "metric probe availability gate" do
+    let(:logger) do
+      instance_double(Datadog::DI::Logger).tap do |logger|
+        allow(logger).to receive(:trace)
+        allow(logger).to receive(:debug)
+      end
+    end
+
+    let(:metric_probe) do
+      Datadog::DI::Probe.new(
+        id: "1234", type: :metric,
+        type_name: "HookTestClass", method_name: "hook_test_method",
+        metric_kind: :count, metric_name: "probe.metric",
+      )
+    end
+
+    let(:responder) { Datadog::DI::ProcResponder.new(->(_context) {}) }
+
+    after do
+      instrumenter.unhook(metric_probe)
+    end
+
+    context "when the metric emitter is unavailable" do
+      let(:metric_emitter) do
+        instance_double(Datadog::DI::MetricEmitter, available?: false)
+      end
+
+      it "raises MetricEmissionUnavailable and installs nothing" do
+        expect do
+          instrumenter.hook(metric_probe, responder)
+        end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable, /dogstatsd-ruby >= 3\.3\.0/)
+
+        expect(metric_probe.instrumentation_module).to be nil
+      end
+
+      it "logs the rejection at debug with the probe location" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to match(
+            /di: cannot install :metric probe at HookTestClass.hook_test_method \(1234\): metric probes are unavailable/,
+          )
+        end
+
+        expect do
+          instrumenter.hook(metric_probe, responder)
+        end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable)
+      end
+
+      it "does not raise for log probes" do
+        log_probe = Datadog::DI::Probe.new(
+          id: "1235", type: :log,
+          type_name: "HookTestClass", method_name: "hook_test_method",
+        )
+
+        begin
+          instrumenter.hook(log_probe, responder)
+
+          expect(log_probe.instrumentation_module).to_not be nil
+        ensure
+          instrumenter.unhook(log_probe)
+        end
+      end
+    end
+
+    context "when the metric emitter is available" do
+      it "hooks the metric probe like any method probe" do
+        instrumenter.hook(metric_probe, responder)
+
+        expect(metric_probe.instrumentation_module).to_not be nil
+      end
+    end
+  end
+
   describe ".hook_line" do
     after do
       instrumenter.unhook(probe)
@@ -1940,7 +2016,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry, metric_emitter: metric_emitter)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
