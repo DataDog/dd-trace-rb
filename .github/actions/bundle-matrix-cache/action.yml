@@ -37,14 +37,14 @@ runs:
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Find matrix cache
       id: lookup
-      uses: ./.github/actions/restore-bundle-cache
+      uses: ./.github/actions/bundle-restore
       with:
         cache-key: ${{ steps.key.outputs.cache-key }}
         lookup-only: true
     - name: Prepare base fallback
       id: base
       if: steps.lookup.outputs.cache-hit != 'true'
-      uses: ./.github/actions/prepare-base-bundle
+      uses: ./.github/actions/bundle-cache
       with:
         image: ${{ inputs.image }}
     - name: Clean restored base bundle

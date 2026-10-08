@@ -4,9 +4,9 @@ require "json"
 
 # Changing these might affect caching output
 CACHE_LOGIC_FILES = %w[
-  .github/actions/prepare-base-bundle/action.yml
-  .github/actions/prepare-matrix-bundle/action.yml
-  .github/actions/restore-bundle-cache/action.yml
+  .github/actions/bundle-cache/action.yml
+  .github/actions/bundle-matrix-cache/action.yml
+  .github/actions/bundle-restore/action.yml
   tasks/github.rake
   tasks/bundle_cache.rb
 ].freeze

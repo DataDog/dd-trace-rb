@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
       - run: ls -al
       - name: Prepare base bundle
-        uses: ./.github/actions/prepare-base-bundle
+        uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image
       - name: Generate YARD documentation

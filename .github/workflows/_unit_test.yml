@@ -41,8 +41,8 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.prepare-matrix-bundle.outputs.cache-key }}"
-      bundle-coverage: "${{ steps.prepare-matrix-bundle.outputs.coverage }}"
+      cache-key: "${{ steps.bundle-matrix-cache.outputs.cache-key }}"
+      bundle-coverage: "${{ steps.bundle-matrix-cache.outputs.coverage }}"
     container:
       image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
@@ -75,8 +75,8 @@ jobs:
         run: rake -f tasks/github.rake github:generate_batch_summary
 
       - name: Prepare matrix bundle
-        id: prepare-matrix-bundle
-        uses: ./.github/actions/prepare-matrix-bundle
+        id: bundle-matrix-cache
+        uses: ./.github/actions/bundle-matrix-cache
         with:
           image: *engine-image
           gemfiles: ${{ steps.set-batches.outputs.gemfiles }}
@@ -183,7 +183,7 @@ jobs:
           persist-credentials: false
       - name: Restore bundle
         id: restore-bundle
-        uses: ./.github/actions/restore-bundle-cache
+        uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
@@ -276,7 +276,7 @@ jobs:
           persist-credentials: false
       - name: Restore bundle
         id: restore-bundle
-        uses: ./.github/actions/restore-bundle-cache
+        uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}

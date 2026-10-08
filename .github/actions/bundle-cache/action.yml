@@ -28,7 +28,7 @@ runs:
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Restore base cache
       id: restore
-      uses: ./.github/actions/restore-bundle-cache
+      uses: ./.github/actions/bundle-restore
       with:
         cache-key: ${{ steps.key.outputs.cache-key }}
     - name: Install base dependencies
