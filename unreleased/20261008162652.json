@@ -1,5 +1,5 @@
 {
-  "message": "Live Debugger snapshots now capture all or no probes within one APM trace.",
+  "message": "Coordinate Live Debugger snapshots within one APM trace: capturing probes in the trace emit together or drop together, up to 20 snapshots per trace and one per probe.",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6118",
   "type": "Changed"
