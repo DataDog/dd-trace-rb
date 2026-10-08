@@ -187,7 +187,7 @@ jobs:
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
-      - name: Install base dependencies
+      - name: Install core dependencies
         if: steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle install
       - name: Build & Test
@@ -280,7 +280,7 @@ jobs:
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
-      - name: Install base dependencies
+      - name: Install core dependencies
         if: steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle install
       - name: Build & Test

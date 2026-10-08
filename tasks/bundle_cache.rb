@@ -26,7 +26,7 @@ cache_version = ENV.fetch("CACHE_VERSION", "0")
 cache_version = "0" if cache_version.empty?
 
 case ARGV.shift
-when "base-key"
+when "core-key"
   settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
   recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
   identity = {
@@ -35,13 +35,13 @@ when "base-key"
     "image" => ENV.fetch("IMAGE"),
     "recipe" => digest(recipe),
   }
-  puts "bundle-base-v#{cache_version}-#{digest(identity)}"
+  puts "bundle-core-v#{cache_version}-#{digest(identity)}"
 when "matrix-key"
   identity = {
-    "base_cache_key" => ARGV.fetch(0),
+    "core_cache_key" => ARGV.fetch(0),
     "dependencies" => JSON.parse(ENV.fetch("GEMFILES")).map { |gemfile| dependency_content(gemfile) }.uniq.sort,
   }
   puts "bundle-matrix-#{cache_version}-#{digest(identity)}"
 else
-  abort "Expected base-key or matrix-key"
+  abort "Expected core-key or matrix-key"
 end

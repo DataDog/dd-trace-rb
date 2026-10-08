@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare base bundle
+      - name: Prepare core bundle
         uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare base bundle
+      - name: Prepare core bundle
         uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare base bundle
+      - name: Prepare core bundle
         uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image
@@ -213,7 +213,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare base bundle
+      - name: Prepare core bundle
         uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image

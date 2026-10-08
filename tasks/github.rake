@@ -179,10 +179,10 @@ namespace :github do
   end
 
   def install_bundle_gemfiles(gemfiles)
-    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
+    core_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
     gemfiles = gemfiles.uniq { |gemfile| File.expand_path(gemfile) }
-    gemfiles.reject! { |gemfile| File.expand_path(gemfile) == base_gemfile }
+    gemfiles.reject! { |gemfile| File.expand_path(gemfile) == core_gemfile }
 
     gemfiles.each do |gemfile|
       env = {"BUNDLE_GEMFILE" => gemfile}

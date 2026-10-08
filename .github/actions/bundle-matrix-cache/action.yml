@@ -1,6 +1,6 @@
 name: Prepare matrix bundle
 
-description: Select a complete matrix cache or prepare its base fallback, populating the matrix only on master
+description: Select a complete matrix cache or prepare its core fallback, populating the matrix only on master
 
 inputs:
   image:
@@ -12,15 +12,15 @@ inputs:
 
 outputs:
   cache-key:
-    description: Exact key for the selected base or matrix cache
+    description: Exact key for the selected core or matrix cache
     value: >-
       ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
-          && steps.key.outputs.cache-key || steps.base.outputs.cache-key }}
+          && steps.key.outputs.cache-key || steps.core.outputs.cache-key }}
   coverage:
-    description: Dependency coverage of the selected cache, base or matrix
+    description: Dependency coverage of the selected cache, core or matrix
     value: >-
       ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
-          && 'matrix' || 'base' }}
+          && 'matrix' || 'core' }}
 
 runs:
   using: composite
@@ -32,8 +32,8 @@ runs:
         IMAGE: ${{ inputs.image }}
         GEMFILES: ${{ inputs.gemfiles }}
       run: |
-        base_key=$(ruby tasks/bundle_cache.rb base-key)
-        cache_key=$(ruby tasks/bundle_cache.rb matrix-key "$base_key")
+        core_key=$(ruby tasks/bundle_cache.rb core-key)
+        cache_key=$(ruby tasks/bundle_cache.rb matrix-key "$core_key")
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Find matrix cache
       id: lookup
@@ -41,13 +41,13 @@ runs:
       with:
         cache-key: ${{ steps.key.outputs.cache-key }}
         lookup-only: true
-    - name: Prepare base fallback
-      id: base
+    - name: Prepare core fallback
+      id: core
       if: steps.lookup.outputs.cache-hit != 'true'
       uses: ./.github/actions/bundle-cache
       with:
         image: ${{ inputs.image }}
-    - name: Clean restored base bundle
+    - name: Clean restored core bundle
       if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
       shell: bash
       run: bundle clean --force

@@ -11,7 +11,7 @@ inputs:
     description: 'Container Identifier'
     required: true
   bundle-coverage:
-    description: 'Dependency coverage of the restored bundle, base or matrix'
+    description: 'Dependency coverage of the restored bundle, core or matrix'
     required: true
 
 runs:
