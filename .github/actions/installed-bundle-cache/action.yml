@@ -75,6 +75,12 @@ runs:
         BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
       with:
         cache-key: ${{ steps.base-key.outputs.cache-key }}
+    - name: Clean restored base bundle
+      if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
+      shell: bash
+      env:
+        BUNDLE_GEMFILE: ${{ inputs.base-gemfile }}
+      run: bundle clean --force
     - name: Install matrix bundles
       if: steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'
       shell: bash

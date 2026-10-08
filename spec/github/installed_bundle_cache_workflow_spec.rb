@@ -32,6 +32,7 @@ RSpec.describe "installed bundle cache workflow" do
   let(:prepare) { batch_steps.find { |step| step["uses"] == "./.github/actions/installed-bundle-cache" } }
   let(:lookup) { steps.find { |step| step["id"] == "lookup" } }
   let(:base) { steps.find { |step| step["id"] == "base-bundle" } }
+  let(:cleanup) { steps.find { |step| step["run"].to_s.start_with?("bundle clean") } }
   let(:population) { steps.find { |step| step["run"].to_s.include?("github:run_batch_build") } }
   let(:validation) { steps.find { |step| step["run"].to_s.include?("github:check_installed_bundle") } }
   let(:save) { steps.find { |step| step["uses"].to_s.start_with?("actions/cache/save@") } }
@@ -45,11 +46,14 @@ RSpec.describe "installed bundle cache workflow" do
     expect(lookup.fetch("with")).not_to have_key("restore-keys")
   end
 
-  it "restores the computed base before population and validates the union before saving" do
+  it "restores and cleans the base before population and validates the union before saving" do
     expect(base.fetch("uses")).to eq("./.github/actions/bundle-cache")
     expect(base.fetch("with").fetch("cache-key")).to eq("${{ steps.base-key.outputs.cache-key }}")
     expect(base.fetch("env").fetch("BUNDLE_GEMFILE")).to eq("${{ inputs.base-gemfile }}")
-    expect(steps.index(base)).to be < steps.index(population)
+    expect(cleanup.fetch("env").fetch("BUNDLE_GEMFILE")).to eq("${{ inputs.base-gemfile }}")
+    expect(cleanup.fetch("run")).to eq("bundle clean --force")
+    expect(steps.index(base)).to be < steps.index(cleanup)
+    expect(steps.index(cleanup)).to be < steps.index(population)
     expect(steps.index(population)).to be < steps.index(validation)
     expect(steps.index(validation)).to be < steps.index(save)
   end
@@ -110,8 +114,8 @@ RSpec.describe "installed bundle cache workflow" do
     expect(base.fetch("if")).to eq("steps.lookup.outputs.cache-hit != 'true'")
   end
 
-  it "populates, validates, and saves only on a writable exact miss" do
-    [population, validation, save].each do |step|
+  it "cleans, populates, validates, and saves only on a writable exact miss" do
+    [cleanup, population, validation, save].each do |step|
       expect(step.fetch("if")).to eq(
         "steps.lookup.outputs.cache-hit != 'true' && inputs.write-enabled == 'true'",
       )
@@ -121,6 +125,15 @@ RSpec.describe "installed bundle cache workflow" do
       "path" => "/usr/local/bundle",
     )
     expect(save.fetch("with")).not_to have_key("restore-keys")
+  end
+
+  it "does not clean auxiliary lean-cache preparations" do
+    base_action = YAML.safe_load_file(
+      File.expand_path("../../.github/actions/bundle-cache/action.yml", __dir__),
+      aliases: true,
+    )
+
+    expect(base_action.fetch("runs").fetch("steps")).not_to include(include("run" => include("bundle clean")))
   end
 
   it "routes a union miss directly to the prepared base outputs" do
@@ -155,6 +168,7 @@ RSpec.describe "installed bundle cache workflow" do
     expect(install).not_to have_key("if")
     expect(build_steps.index(install)).to be < build_steps.index(tests)
     expect(build_steps).not_to include(include("run" => include("github:check_installed_bundle")))
+    expect(build_steps).not_to include(include("run" => include("bundle clean")))
   end
 
   it "restores the exact union in ready children and the lean base otherwise" do
@@ -183,6 +197,7 @@ RSpec.describe "installed bundle cache workflow" do
       expect(child_steps.index(base_restore)).to be < child_steps.index(build)
       expect(child_steps.index(installed)).to be < child_steps.index(build)
       expect(child_steps).not_to include(include("run" => include("github:check_installed_bundle")))
+      expect(child_steps).not_to include(include("run" => include("bundle clean")))
     end
   end
 
