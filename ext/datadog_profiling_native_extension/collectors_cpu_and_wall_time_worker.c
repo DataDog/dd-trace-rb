@@ -273,7 +273,6 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
-static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
@@ -317,7 +316,6 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 // (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
-static VALUE clock_failure_exception_class = Qnil;
 
 // Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
 // touched, even when we're not sure it's safe to touch the state (e.g. signal handler, no GVL, etc).
@@ -367,8 +365,6 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_worker_class, "Testing");
-  clock_failure_exception_class = rb_define_class_under(collectors_cpu_and_wall_time_worker_class, "ClockFailure", rb_eRuntimeError);
-  rb_gc_register_mark_object(clock_failure_exception_class);
 
   // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -421,7 +417,7 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long now = monotonic_wall_time_now_ns();
 
   cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(cpu_and_wall_time_worker_state));
 
@@ -518,8 +514,9 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     // TODO: May be nice to offer customization here? Distribute available "overhead" margin with a bias towards one or the other
     // sampler.
     dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage / 2);
-    long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2, now);
+    discrete_dynamic_sampler_set_overhead_target_percentage(
+      &state->allocation_sampler, total_overhead_target_percentage / 2, monotonic_wall_time_now_ns()
+    );
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
@@ -576,8 +573,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
-  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
+  discrete_dynamic_sampler_reset(&state->allocation_sampler, monotonic_wall_time_now_ns());
 
   // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
   // affect or be included in samples taken by this profiler about to run.
@@ -890,7 +886,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // Note that we deliberately should NOT combine this sleep_for with the one above because the result of
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
-      dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
+      dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns());
     if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) {
       state->stats.trigger_sample_extra_sleep++;
       sleep_for(extra_sleep);
@@ -944,7 +940,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long wall_time_ns_before_sample = monotonic_wall_time_now_ns();
 
   if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_before_sample)) {
     state->stats.cpu_skipped++;
@@ -956,7 +952,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   bool needs_otel_span_key =
     thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
-  long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long wall_time_ns_after_sample = monotonic_wall_time_now_ns();
 
   if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
     raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
@@ -1393,15 +1389,6 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
 
-#define HANDLE_CLOCK_FAILURE(call) ({ \
-    long _result = (call); \
-    if (_result == 0) { \
-        delayed_error_clock_failure(state); \
-        return; \
-    } \
-    _result; \
-})
-
 // Implements memory-related profiling events. This function is called by Ruby via the `rb_add_event_hook2`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
 //
@@ -1467,16 +1454,13 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
     state->stats.allocation_skipped++;
 
-    coarse_instant now = monotonic_coarse_wall_time_now_ns();
-    HANDLE_CLOCK_FAILURE(now.timestamp_ns);
-
-    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, now);
+    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, monotonic_coarse_wall_time_now_ns());
     if (RB_UNLIKELY(needs_readjust)) {
       // We rarely readjust, so this is a cold path
       // Also, while above we used the cheaper monotonic_coarse, for this call we want the regular monotonic call,
       // which is why we end up getting time "again".
       discrete_dynamic_sampler_readjust(
-        &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+        &state->allocation_sampler, monotonic_wall_time_now_ns()
       );
     }
 
@@ -1486,7 +1470,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   // From here on, we've decided to go ahead with the sample, which is way less common than skipping it
 
   discrete_dynamic_sampler_before_sample(
-    &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+    &state->allocation_sampler, monotonic_wall_time_now_ns()
   );
 
   during_sample_enter(state);
@@ -1500,12 +1484,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   );
 
   if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error_clock_failure(state);
-      // NOTE: Not short-circuiting here to make sure cleanup happens
-    }
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
+    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, monotonic_wall_time_now_ns());
     // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
     //       why we're fine with having this inside this conditional.
     state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
@@ -1588,11 +1567,6 @@ static VALUE rescued_sample_allocation(VALUE arg) {
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error) {
   // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
   stop_state(state, rb_exc_new_cstr(rb_eRuntimeError, error), "delayed_error");
-}
-
-static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state) {
-  // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
-  stop_state(state, rb_exc_new_cstr(clock_failure_exception_class, "failed to get clock time"), "delayed_error_clock_failure");
 }
 
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {
@@ -1714,9 +1688,9 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-    long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    long wall_time_ns_before_sample = monotonic_wall_time_now_ns();
     thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
-    long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    long wall_time_ns_after_sample = monotonic_wall_time_now_ns();
 
     if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
       raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
