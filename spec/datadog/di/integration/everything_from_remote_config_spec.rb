@@ -409,7 +409,7 @@ RSpec.describe "DI integration from remote config" do
               parentId: nil,
               probeId: "11",
               probeVersion: 0,
-              runtimeId: String,
+              runtimeId: be_valid_uuid,
               status: "ERROR",
               exception: {
                 type: "Datadog::DI::Error::InvalidExpression",
