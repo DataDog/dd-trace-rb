@@ -9,29 +9,15 @@ CACHE_RECIPE_FILES = %w[
   tasks/github.rake
   tasks/bundle_cache.rb
 ].freeze
-BUILD_ENVIRONMENT_KEYS = %w[
-  ARCHFLAGS
-  CFLAGS
-  CPPFLAGS
-  CXXFLAGS
-  LDFLAGS
-  MAKEFLAGS
-].freeze
-BUNDLER_SETTING_KEYS = %w[
-  force_ruby_platform
-  only
-  with
-  without
-].freeze
 
 def digest(identity)
-  Digest::SHA256.hexdigest(JSON.generate(identity))
+  Digest::MD5.hexdigest(JSON.generate(identity))
 end
 
 def dependency_content(gemfile)
   [
-    Digest::SHA256.file(gemfile).hexdigest,
-    Digest::SHA256.file("#{gemfile}.lock").hexdigest,
+    Digest::MD5.file(gemfile).hexdigest,
+    Digest::MD5.file("#{gemfile}.lock").hexdigest,
   ]
 end
 
@@ -39,15 +25,12 @@ cache_version = ENV.fetch("CACHE_VERSION")
 
 case ARGV.shift
 when "base-key"
-  settings = Bundler.settings.all.sort.each_with_object({}) do |key, selected|
-    selected[key] = Bundler.settings[key] if BUNDLER_SETTING_KEYS.include?(key) || key.start_with?("build.")
-  end
-  recipe = CACHE_RECIPE_FILES.map { |path| [path, Digest::SHA256.file(path).hexdigest] }
+  settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
+  recipe = CACHE_RECIPE_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
   identity = {
     "bundler_settings" => settings,
     "dependencies" => dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile")),
     "image" => ENV.fetch("IMAGE"),
-    "native_build_overrides" => ENV.to_h.slice(*BUILD_ENVIRONMENT_KEYS).sort.to_h,
     "recipe" => digest(recipe),
   }
   puts "bundle-base-#{cache_version}-#{digest(identity)}"
