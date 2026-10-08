@@ -1,4 +1,4 @@
-name: Prepare base bundle
+name: 'Prepare bundle cache'
 
 description: Restore or install the base bundle and save its cache only on master
 
@@ -9,11 +9,11 @@ inputs:
 
 outputs:
   cache-key:
-    description: Exact base bundle cache key
+    description: 'Exact base bundle cache key'
     value: ${{ steps.key.outputs.cache-key }}
 
 runs:
-  using: composite
+  using: "composite"
   steps:
     - name: Compute base cache key
       id: key
@@ -23,18 +23,18 @@ runs:
       run: |
         cache_key=$(ruby tasks/bundle_cache.rb base-key)
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
-    - name: Restore base cache
-      id: restore
+    - name: Restore cache
+      id: restore-cache
       uses: ./.github/actions/bundle-restore
       with:
         cache-key: ${{ steps.key.outputs.cache-key }}
     - name: Install base dependencies
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
       run: bundle install
-    - name: Save base cache
-      if: github.ref == 'refs/heads/master' && steps.restore.outputs.cache-hit != 'true'
+    - name: Save cache
+      if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: ${{ steps.key.outputs.cache-key }}
-        path: /usr/local/bundle
+        key: "${{ steps.key.outputs.cache-key }}"
+        path: "/usr/local/bundle"

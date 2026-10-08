@@ -39,7 +39,7 @@ jobs:
         with:
           persist-credentials: false
       - run: ls -al
-      - name: Prepare base bundle
+      - name: Prepare bundle cache
         uses: ./.github/actions/bundle-cache
         with:
           image: *engine-image

@@ -1,10 +1,10 @@
 name: 'Restore bundle cache'
 
-description: 'Restores a base or matrix bundle cache for GitHub Actions'
+description: 'Restores bundle cache for GitHub Actions'
 
 inputs:
   cache-key:
-    description: 'Exact bundle cache key'
+    description: 'Cache key for bundle'
     required: true
   lookup-only:
     description: 'Check availability without downloading the bundle'
