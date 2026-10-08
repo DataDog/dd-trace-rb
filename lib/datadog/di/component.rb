@@ -100,10 +100,12 @@ module Datadog
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
         @correlation_sampler = CorrelationSampler.new
+        @metric_emitter = MetricEmitter.new(logger, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
           correlation_sampler: correlation_sampler, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
-          capture_expression_evaluator: capture_expression_evaluator)
+          capture_expression_evaluator: capture_expression_evaluator,
+          metric_emitter: @metric_emitter)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
           capture_expression_evaluator: capture_expression_evaluator, guardrails_telemetry: guardrails_telemetry,
@@ -142,6 +144,7 @@ module Datadog
       # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
       attr_reader :instrumenter
+      attr_reader :metric_emitter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker
       attr_reader :probe_notification_builder
@@ -307,6 +310,7 @@ module Datadog
           probe_manager.clear_hooks
           probe_manager.close
           probe_notifier_worker.stop
+          metric_emitter.close
         end
       end
 

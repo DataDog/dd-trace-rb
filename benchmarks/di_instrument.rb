@@ -183,7 +183,8 @@ class DIInstrumentBenchmark
         settings: settings, serializer: serializer, logger: di_logger,
         guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
       ),
-      correlation_sampler: Datadog::DI::CorrelationSampler.new)
+      correlation_sampler: Datadog::DI::CorrelationSampler.new,
+      metric_emitter: Datadog::DI::MetricEmitter.new(di_logger))
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

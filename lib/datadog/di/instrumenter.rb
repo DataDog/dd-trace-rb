@@ -94,19 +94,21 @@ module Datadog
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
       # @param correlation_sampler [Datadog::DI::CorrelationSampler] coordinated
       #   sampling gate for capturing probes
+      # @param metric_emitter [MetricEmitter] emitter for metric probe submissions
       # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
       #   tracking is not active
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
       #   when telemetry is disabled
       # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
-        correlation_sampler:, code_tracker: nil, telemetry: nil)
+        correlation_sampler:, metric_emitter:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @guardrails_telemetry = guardrails_telemetry
         @capture_expression_evaluator = capture_expression_evaluator
+        @metric_emitter = metric_emitter
         @code_tracker = code_tracker
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
         @correlation_sampler = correlation_sampler
@@ -127,6 +129,7 @@ module Datadog
       attr_reader :code_tracker
       # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
+      attr_reader :metric_emitter
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -514,6 +517,20 @@ module Datadog
       end
 
       def hook(probe, responder)
+        # Unlike Java, .NET, and Python, which bundle a statsd client, the
+        # Ruby tracer does not depend on dogstatsd-ruby; when the customer's
+        # application does not carry a compatible one, metric probes fail at
+        # installation with an ERROR status naming the dependency instead of
+        # installing probes that can never emit.
+        if probe.type == :metric && !metric_emitter.available?
+          exc = Error::MetricEmissionUnavailable.new(
+            "metric probes are unavailable: dogstatsd-ruby >= 3.3.0 (excluding 5.0.x, 5.1.x, 5.2.x) is required; " \
+            "install or upgrade the gem in the application",
+          )
+          logger.debug { "di: cannot install :metric probe at #{probe.location} (#{probe.id}): #{exc.message}" }
+          raise exc
+        end
+
         if probe.method?
           hook_method(probe, responder)
         elsif probe.line?
