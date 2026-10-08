@@ -71,7 +71,7 @@ namespace :github do
 
   task :prepare_matrix_bundle do
     install_bundle_gemfiles(JSON.parse(ENV.fetch("GEMFILES"))).each do |gemfile|
-      Bundler.with_unbundled_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
+      Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end
 
@@ -87,7 +87,7 @@ namespace :github do
       junit_files_before = Dir["tmp/rspec/*.xml"]
 
       begin
-        Bundler.with_unbundled_env { sh(env, cmd) }
+        Bundler.with_original_env { sh(env, cmd) }
       rescue RuntimeError
         raise annotate_test_failures(env, cmd)
       end
@@ -166,7 +166,7 @@ namespace :github do
       env = {"BUNDLE_GEMFILE" => gemfile}
       # Network failures can interrupt bundle installation.
       with_retry do
-        Bundler.with_unbundled_env { sh(env, "bundle check || bundle install") }
+        Bundler.with_original_env { sh(env, "bundle check || bundle install") }
       end
     end
   end
