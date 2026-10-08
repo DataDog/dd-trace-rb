@@ -31,6 +31,9 @@ on: # yamllint disable-line rule:truthy
 
 permissions: {}
 
+env:
+  CACHE_VERSION: ${{ vars.CACHE_VERSION || 'v1' }}
+
 jobs:
   batch:
     runs-on: ubuntu-24.04
