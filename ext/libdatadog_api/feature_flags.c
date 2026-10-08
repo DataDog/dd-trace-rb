@@ -34,7 +34,7 @@ static const rb_data_type_t configuration_data_type = {
   .function = {
     .dmark = NULL,
     .dfree = configuration_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
@@ -44,7 +44,7 @@ static const rb_data_type_t resolution_details_typed_data = {
   .function = {
     .dmark = NULL,
     .dfree = resolution_details_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
@@ -88,7 +88,6 @@ static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
 void feature_flags_init(VALUE core_module) {
   VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
 
-  rb_gc_register_address(&feature_flags_error_class);
   feature_flags_error_class = rb_define_class_under(feature_flags_module, "Error", rb_eStandardError);
 
   VALUE configuration_class = rb_define_class_under(feature_flags_module, "Configuration", rb_cObject);
@@ -97,7 +96,6 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
   rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
-  rb_gc_register_address(&resolution_details_class);
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
   rb_undef_alloc_func(resolution_details_class);
   rb_define_method(resolution_details_class, "raw_value", resolution_details_get_raw_value, 0);

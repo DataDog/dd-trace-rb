@@ -65,7 +65,7 @@ static bool process_crash_frames(VALUE frames_data, ddog_crasht_Handle_StackTrac
   }
 
   for (size_t i = 0; i < frame_count; i++) {
-    VALUE frame_array = RARRAY_AREF(frames_data, i);
+    VALUE frame_array = rb_ary_entry(frames_data, i);
 
     // ruby should guarantee [String, String, Integer]
     if (!RB_TYPE_P(frame_array, T_ARRAY) || RARRAY_LEN(frame_array) != 3) {
@@ -73,9 +73,9 @@ static bool process_crash_frames(VALUE frames_data, ddog_crasht_Handle_StackTrac
       return false;
     }
 
-    VALUE file_val = RARRAY_AREF(frame_array, 0);
-    VALUE func_val = RARRAY_AREF(frame_array, 1);
-    VALUE line_val = RARRAY_AREF(frame_array, 2);
+    VALUE file_val = rb_ary_entry(frame_array, 0);
+    VALUE func_val = rb_ary_entry(frame_array, 1);
+    VALUE line_val = rb_ary_entry(frame_array, 2);
 
     // validate types; Ruby should guarantee these
     if (!RB_TYPE_P(file_val, T_STRING) || !RB_TYPE_P(func_val, T_STRING) || !RB_TYPE_P(line_val, T_FIXNUM)) {

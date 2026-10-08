@@ -170,5 +170,5 @@ VALUE ruby_safe_inspect(VALUE obj) {
   if (rb_respond_to(obj, inspect_id)) return rb_sprintf("%+"PRIsVALUE, obj);
   if (rb_respond_to(obj, to_s_id))    return rb_sprintf("%"PRIsVALUE, obj);
 
-  return rb_str_new_cstr("(Not inspectable)");
+  return rb_str_new_lit("(Not inspectable)");
 }
