@@ -60,14 +60,14 @@ module Datadog
         #
         # @return [String]
         def default_hostname
-          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          DATADOG_ENV[Configuration::Ext::Agent::ENV_DEFAULT_HOST] || Ext::DEFAULT_HOST
         end
 
         # Default dogstatsd listener port, read from the environment.
         #
         # @return [Integer]
         def default_port
-          DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          (DATADOG_ENV[Configuration::Ext::Metrics::ENV_DEFAULT_PORT] || Ext::DEFAULT_PORT).to_i
         end
       end
     end
