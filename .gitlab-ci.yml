@@ -193,10 +193,6 @@ generate-supported-versions:
     - unzip -q /tmp/awscliv2.zip -d /tmp
     - /tmp/aws/install
     - bundle install
-  # TEMPORARY: manual trigger on any branch, without the S3 upload.
-  rules:
-    - when: manual
-      allow_failure: true
 
 configure_system_tests:
   variables:
