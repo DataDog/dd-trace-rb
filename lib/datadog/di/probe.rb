@@ -143,6 +143,10 @@ module Datadog
       attr_reader :evaluate_at
 
       # Rate limit in effect, in invocations per second. Always present.
+      # Applies to hits the correlation sampler leaves uncoordinated
+      # (non-capturing hits, capturing hits with no active trace, and hits
+      # failing open after a gate error); a capturing hit inside an active
+      # trace is bounded by the correlation sampler instead.
       attr_reader :rate_limit
 
       # Rate limiter object. For internal DI use only.
