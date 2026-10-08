@@ -60,28 +60,20 @@ RSpec.describe GithubBatching do
       }
     end
 
-    it "prefers remote weights over the checked-in file" do
-      Dir.mktmpdir do |directory|
-        path = File.join(directory, "local.json")
-        File.write(path, JSON.dump(weights("3.1", 1)))
-        allow(described_class).to receive(:fetch_weights).and_return(weights("3.1", 42))
+    it "uses the fetched remote weights" do
+      allow(described_class).to receive(:fetch_weights).and_return(weights("3.1", 42))
 
-        estimates = described_class.timing_estimates(path, "3.1")
+      estimates = described_class.timing_estimates("3.1")
 
-        expect(estimates[:tasks]).to eq(["main", ""] => 42)
-      end
+      expect(estimates[:tasks]).to eq(["main", ""] => 42)
     end
 
-    it "falls back to the checked-in file when the fetch fails" do
-      Dir.mktmpdir do |directory|
-        path = File.join(directory, "local.json")
-        File.write(path, JSON.dump(weights("3.1", 1)))
-        allow(described_class).to receive(:fetch_weights).and_return(nil)
+    it "returns empty estimates when the fetch fails so tasks use fallback durations" do
+      allow(described_class).to receive(:fetch_weights).and_return(nil)
 
-        estimates = described_class.timing_estimates(path, "3.1")
+      estimates = described_class.timing_estimates("3.1")
 
-        expect(estimates[:tasks]).to eq(["main", ""] => 1)
-      end
+      expect(estimates).to eq(tasks: {}, gemfiles: {})
     end
   end
 

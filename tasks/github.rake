@@ -50,8 +50,7 @@ namespace :github do
 
     batched_matrix = {"include" => []}
 
-    timings_path = File.expand_path("ci_task_timings.json", __dir__)
-    estimates = GithubBatching.timing_estimates(timings_path, ruby_version)
+    estimates = GithubBatching.timing_estimates(ruby_version)
     task_groups = GithubBatching.distribute(matching_tasks, estimates, batch_count)
 
     task_groups.each_with_index do |task_group, index|
