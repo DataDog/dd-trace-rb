@@ -436,6 +436,10 @@ module Datadog
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
       end
 
+      # Returns the active APM trace supplying the snapshot's trace id,
+      # or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceSegment, nil]
       def active_trace
         Datadog::DI.active_trace
       end

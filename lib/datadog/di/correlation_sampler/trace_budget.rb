@@ -48,6 +48,7 @@ module Datadog
 
         # Consumes one per-probe and one all token for +probe_id+.
         #
+        # @param probe_id [String]
         # @return [Boolean] true when both counters had budget and were
         #   consumed, false when either was exhausted
         def admit(probe_id)

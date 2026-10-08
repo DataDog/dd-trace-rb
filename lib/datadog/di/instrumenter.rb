@@ -489,7 +489,7 @@ module Datadog
 
       # Coordinated sampling gate. A capturing probe with an active trace
       # delegates the whole decision to the correlation sampler so probes in
-      # one sampling unit share it. Every other hit (uncorrelated,
+      # one trace share the decision. Every other hit (uncorrelated,
       # non-capturing, or a hit failing open after a gate error) consults the
       # probe's own rate limiter and then the process-wide hard limiter for
       # the probe's category.
