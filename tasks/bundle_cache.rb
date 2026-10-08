@@ -4,7 +4,8 @@ require "json"
 require "optparse"
 
 CACHE_RECIPE_FILES = %w[
-  .github/actions/prepare-bundle-cache/action.yml
+  .github/actions/prepare-base-bundle/action.yml
+  .github/actions/prepare-matrix-bundle/action.yml
   .github/actions/restore-bundle-cache/action.yml
   tasks/github.rake
   tasks/bundle_cache.rb

@@ -41,8 +41,8 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.prepare-bundle-cache.outputs.cache-key }}"
-      bundle-coverage: "${{ steps.prepare-bundle-cache.outputs.coverage }}"
+      cache-key: "${{ steps.prepare-matrix-bundle.outputs.cache-key }}"
+      bundle-coverage: "${{ steps.prepare-matrix-bundle.outputs.coverage }}"
     container:
       image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
@@ -74,9 +74,9 @@ jobs:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
         run: rake -f tasks/github.rake github:generate_batch_summary
 
-      - name: Prepare bundle cache
-        id: prepare-bundle-cache
-        uses: ./.github/actions/prepare-bundle-cache
+      - name: Prepare matrix bundle
+        id: prepare-matrix-bundle
+        uses: ./.github/actions/prepare-matrix-bundle
         with:
           image: *engine-image
           gemfiles: ${{ steps.set-batches.outputs.gemfiles }}

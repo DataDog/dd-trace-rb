@@ -29,8 +29,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Prepare bundle cache
-        uses: ./.github/actions/prepare-bundle-cache
+      - name: Prepare base bundle
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
 
@@ -48,7 +48,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/prepare-bundle-cache
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
       - run: bundle exec rake standard
@@ -67,7 +67,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/prepare-bundle-cache
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
       - run: bundle exec rake rubocop
@@ -86,7 +86,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/prepare-bundle-cache
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
       - name: Check for stale signature files
@@ -214,7 +214,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/prepare-bundle-cache
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
       - run: bundle exec rake dependency:checksum_coverage

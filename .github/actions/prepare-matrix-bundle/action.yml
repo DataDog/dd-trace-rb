@@ -1,0 +1,71 @@
+name: Prepare matrix bundle
+
+description: Select a complete matrix cache or prepare its base fallback, populating the matrix only on master
+
+inputs:
+  image:
+    description: Engine image reference
+    required: true
+  gemfiles:
+    description: Selected matrix Gemfiles as JSON
+    required: true
+
+outputs:
+  cache-key:
+    description: Exact key for the selected base or matrix cache
+    value: >-
+      ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
+          && steps.key.outputs.cache-key || steps.base.outputs.cache-key }}
+  coverage:
+    description: Dependency coverage of the selected cache, base or matrix
+    value: >-
+      ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
+          && 'matrix' || 'base' }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute matrix cache key
+      id: key
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        GEMFILES: ${{ inputs.gemfiles }}
+      run: |
+        base_gemfile="${BUNDLE_GEMFILE:-Gemfile}"
+        base_key=$(ruby tasks/bundle_cache.rb base-key \
+          --base-gemfile "$base_gemfile" \
+          --image "$IMAGE")
+        cache_key=$(ruby tasks/bundle_cache.rb matrix-key \
+          --base-gemfile "$base_gemfile" \
+          --base-cache-key "$base_key" \
+          --gemfiles "$GEMFILES")
+        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
+    - name: Find matrix cache
+      id: lookup
+      uses: ./.github/actions/restore-bundle-cache
+      with:
+        cache-key: ${{ steps.key.outputs.cache-key }}
+        lookup-only: true
+    - name: Prepare base fallback
+      id: base
+      if: steps.lookup.outputs.cache-hit != 'true'
+      uses: ./.github/actions/prepare-base-bundle
+      with:
+        image: ${{ inputs.image }}
+    - name: Clean restored base bundle
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      shell: bash
+      run: bundle clean --force
+    - name: Prepare matrix dependencies
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        GEMFILES: ${{ inputs.gemfiles }}
+      run: bundle exec rake github:prepare_matrix_bundle
+    - name: Save matrix cache
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ steps.key.outputs.cache-key }}
+        path: /usr/local/bundle

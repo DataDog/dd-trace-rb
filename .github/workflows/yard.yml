@@ -39,8 +39,8 @@ jobs:
         with:
           persist-credentials: false
       - run: ls -al
-      - name: Prepare bundle cache
-        uses: ./.github/actions/prepare-bundle-cache
+      - name: Prepare base bundle
+        uses: ./.github/actions/prepare-base-bundle
         with:
           image: *engine-image
       - name: Generate YARD documentation
