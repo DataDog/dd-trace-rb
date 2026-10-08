@@ -5,9 +5,8 @@ module GithubBatching
 
   module_function
 
-  def timing_estimates(path, ruby_version, url: WEIGHTS_URL)
-    data = fetch_weights(url) || JSON.parse(File.read(path))
-    entries = data.fetch("ruby_versions").fetch(ruby_version, {})
+  def timing_estimates(ruby_version, url: WEIGHTS_URL)
+    entries = (fetch_weights(url) || {}).fetch("ruby_versions", {}).fetch(ruby_version, {})
 
     {
       tasks: entries.fetch("tasks", []).map do |entry|
