@@ -3,7 +3,7 @@ require "datadog/di/proc_responder"
 require "datadog/di/el/expression"
 
 RSpec.describe Datadog::DI::ProcResponder do
-  describe "#probe_condition_evaluation_failed_callback" do
+  describe "#probe_expression_evaluation_failed_callback" do
     let(:condition) do
       Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
     end
@@ -15,7 +15,7 @@ RSpec.describe Datadog::DI::ProcResponder do
 
       context = double("context")
       exc = RuntimeError.new("boom")
-      responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+      responder.probe_expression_evaluation_failed_callback(context, condition, exc)
 
       expect(observed_args).to eq [[context, exc]]
     end
@@ -24,7 +24,7 @@ RSpec.describe Datadog::DI::ProcResponder do
       responder = described_class.new(proc {})
 
       expect do
-        responder.probe_condition_evaluation_failed_callback(double("context"), condition, RuntimeError.new("boom"))
+        responder.probe_expression_evaluation_failed_callback(double("context"), condition, RuntimeError.new("boom"))
       end.to raise_error(NotImplementedError, "Failed proc not provided")
     end
   end

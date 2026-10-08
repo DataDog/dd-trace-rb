@@ -322,19 +322,20 @@ module Datadog
         probe_notifier_worker.add_snapshot(payload, probe: probe)
       end
 
-      # Callback invoked when a probe's condition expression fails to evaluate.
+      # Callback invoked when a probe's condition or metric value
+      # expression fails to evaluate.
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
       # Rate-limited to 1 notification per second per probe, and subject to
       # the process-wide global snapshot rate limit, to avoid flooding the
-      # backend when conditions fail repeatedly.
+      # backend when expressions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
-      # @param expr [EL::Expression] The condition expression that failed
-      # @param exc [Exception] The exception raised during condition evaluation
+      # @param expr [EL::Expression] The condition or metric value expression that failed
+      # @param exc [Exception] The exception raised during expression evaluation
       # @return [void]
-      def probe_condition_evaluation_failed_callback(context, expr, exc)
+      def probe_expression_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         rate_limiter = probe.expression_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
@@ -343,14 +344,14 @@ module Datadog
             probe_notifier_worker.add_snapshot(payload, probe: probe)
           else
             logger.trace do
-              "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \
+              "di: #{probe.type} probe #{probe.id}: skipping expression error snapshot due to global rate limit" \
                 " (#{GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL})"
             end
             record_condition_error_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
           end
         elsif rate_limiter
           logger.trace do
-            "di: #{probe.type} probe #{probe.id}: skipping condition evaluation failure" \
+            "di: #{probe.type} probe #{probe.id}: skipping expression evaluation failure" \
               " notification due to per-probe rate limit" \
               " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
           end
