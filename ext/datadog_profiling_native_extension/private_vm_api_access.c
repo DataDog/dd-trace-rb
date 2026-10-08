@@ -561,23 +561,24 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     const VALUE *pc = cfp->pc;
     #ifdef HAVE_ZJIT_FRAME
       const rb_iseq_t *iseq = cfp->_iseq;
-      #if USE_ZJIT
-        // Based on CFP_ZJIT_FRAME, which we currently can't use directly.
-        if (CFP_ZJIT_FRAME_P(cfp)) {
-          if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
-            // ZJIT uses this sentinel for C method frames, which have no Ruby ISEQ or bytecode PC.
-            // Set both to NULL explicitly because ZJIT leaves those fields untouched, so they may contain stale data.
-            iseq = NULL;
-            pc = NULL;
-          } else {
-            const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
-            iseq = jit_frame->iseq;
-            pc = jit_frame->pc;
-          }
-        }
-      #endif
     #else
       const rb_iseq_t *iseq = cfp->iseq;
+    #endif
+
+    #if defined(HAVE_ZJIT_FRAME) && USE_ZJIT
+      // Based on CFP_ZJIT_FRAME, which we currently can't use directly.
+      if (CFP_ZJIT_FRAME_P(cfp)) {
+        if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
+          // ZJIT uses this sentinel for C method frames, which have no Ruby ISEQ or bytecode PC.
+          // Set both to NULL explicitly because ZJIT leaves those fields untouched, so they may contain stale data.
+          iseq = NULL;
+          pc = NULL;
+        } else {
+          const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
+          iseq = jit_frame->iseq;
+          pc = jit_frame->pc;
+        }
+      }
     #endif
 
     #ifndef NO_T_MOVED
