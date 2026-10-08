@@ -34,7 +34,6 @@ namespace :github do
     data = {
       batches: batched_matrix,
       misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
-      all: all_tasks,
       gemfiles: all_tasks.map { |task| task[:gemfile] }.uniq.sort,
     }
 
@@ -67,25 +66,11 @@ namespace :github do
 
   task :run_batch_build do
     tasks = JSON.parse(ENV.fetch("BATCHED_TASKS"))
-    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
-
-    tasks.uniq { |task| task.fetch("gemfile") }.each do |task|
-      next if File.expand_path(task.fetch("gemfile")) == base_gemfile
-
-      env = {"BUNDLE_GEMFILE" => task.fetch("gemfile")}
-      # Network failures can interrupt bundle installation.
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, "bundle check || bundle install") }
-      end
-    end
+    install_bundle_gemfiles(tasks.map { |task| task.fetch("gemfile") })
   end
 
-  task :check_matrix_bundle do
-    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE"))
-    gemfiles = JSON.parse(ENV.fetch("GEMFILES"))
-    gemfiles.uniq { |gemfile| File.expand_path(gemfile) }.each do |gemfile|
-      next if File.expand_path(gemfile) == base_gemfile
-
+  task :prepare_matrix_bundle do
+    install_bundle_gemfiles(JSON.parse(ENV.fetch("GEMFILES"))).each do |gemfile|
       Bundler.with_unbundled_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end
@@ -168,6 +153,21 @@ namespace :github do
         #{rows.join("\n")}
         </details>
       SUMMARY
+    end
+  end
+
+  def install_bundle_gemfiles(gemfiles)
+    base_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
+
+    gemfiles = gemfiles.uniq { |gemfile| File.expand_path(gemfile) }
+    gemfiles.reject! { |gemfile| File.expand_path(gemfile) == base_gemfile }
+
+    gemfiles.each do |gemfile|
+      env = {"BUNDLE_GEMFILE" => gemfile}
+      # Network failures can interrupt bundle installation.
+      with_retry do
+        Bundler.with_unbundled_env { sh(env, "bundle check || bundle install") }
+      end
     end
   end
 

@@ -41,9 +41,8 @@ jobs:
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
-      base-cache-key: "${{ steps.matrix-bundle-cache.outputs.base-cache-key }}"
-      matrix-cache-key: "${{ steps.matrix-bundle-cache.outputs.matrix-cache-key }}"
-      matrix-cache-ready: "${{ steps.matrix-bundle-cache.outputs.ready }}"
+      cache-key: "${{ steps.prepare-bundle-cache.outputs.cache-key }}"
+      bundle-coverage: "${{ steps.prepare-bundle-cache.outputs.coverage }}"
     container:
       image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
@@ -62,13 +61,11 @@ jobs:
 
           batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
           misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
-          all_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["all"].to_json')
           gemfiles_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["gemfiles"].to_json')
 
           {
             echo "batches=$batches_data"
             echo "misc=$misc_data"
-            echo "all=$all_data"
             echo "gemfiles=$gemfiles_data"
           } >> "$GITHUB_OUTPUT"
 
@@ -77,13 +74,11 @@ jobs:
           batches_json: "${{ steps.set-batches.outputs.batches }}"
         run: rake -f tasks/github.rake github:generate_batch_summary
 
-      - name: Prepare matrix bundle cache
-        id: matrix-bundle-cache
-        uses: ./.github/actions/matrix-bundle-cache
+      - name: Prepare bundle cache
+        id: prepare-bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
-          base-gemfile: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
           image: *engine-image
-          tasks: ${{ steps.set-batches.outputs.all }}
           gemfiles: ${{ steps.set-batches.outputs.gemfiles }}
 
   # `Initialize containers` step becomes quite heavily when many services are used.
@@ -188,10 +183,10 @@ jobs:
           persist-credentials: false
       - name: Restore bundle
         id: restore-bundle
-        uses: ./.github/actions/bundle-restore
+        uses: ./.github/actions/restore-bundle-cache
         with:
-          cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
-          require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
+          cache-key: ${{ needs.batch.outputs.cache-key }}
+          require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
       - name: Install base dependencies
         if: steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle install
@@ -200,7 +195,7 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
-          bundle-ready: ${{ needs.batch.outputs.matrix-cache-ready }}
+          bundle-coverage: ${{ needs.batch.outputs.bundle-coverage }}
 
   build-test-misc:
     needs:
@@ -281,10 +276,10 @@ jobs:
           persist-credentials: false
       - name: Restore bundle
         id: restore-bundle
-        uses: ./.github/actions/bundle-restore
+        uses: ./.github/actions/restore-bundle-cache
         with:
-          cache-key: ${{ needs.batch.outputs.matrix-cache-ready == 'true' && needs.batch.outputs.matrix-cache-key || needs.batch.outputs.base-cache-key }}
-          require-exact: ${{ needs.batch.outputs.matrix-cache-ready }}
+          cache-key: ${{ needs.batch.outputs.cache-key }}
+          require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
       - name: Install base dependencies
         if: steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle install
@@ -293,4 +288,4 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
-          bundle-ready: ${{ needs.batch.outputs.matrix-cache-ready }}
+          bundle-coverage: ${{ needs.batch.outputs.bundle-coverage }}

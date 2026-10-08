@@ -4,11 +4,10 @@ require "json"
 require "optparse"
 
 CACHE_RECIPE_FILES = %w[
-  .github/actions/bundle-cache/action.yml
-  .github/actions/bundle-restore/action.yml
-  .github/actions/matrix-bundle-cache/action.yml
+  .github/actions/prepare-bundle-cache/action.yml
+  .github/actions/restore-bundle-cache/action.yml
   tasks/github.rake
-  tasks/matrix_bundle_cache.rb
+  tasks/bundle_cache.rb
 ].freeze
 BUILD_ENVIRONMENT_KEYS = %w[
   ARCHFLAGS

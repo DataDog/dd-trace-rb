@@ -25,15 +25,12 @@ jobs:
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
-    outputs:
-      cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Prepare bundle cache
-        id: bundle-cache
-        uses: ./.github/actions/bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
           image: *engine-image
 
@@ -51,10 +48,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
           image: *engine-image
-          cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake standard
 
   rubocop:
@@ -71,10 +67,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
           image: *engine-image
-          cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake rubocop
 
   steep:
@@ -91,10 +86,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
           image: *engine-image
-          cache-key: ${{ needs.build.outputs.cache-key }}
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
       - name: Check for missing signature files
@@ -220,10 +214,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare base bundle
-        uses: ./.github/actions/bundle-cache
+        uses: ./.github/actions/prepare-bundle-cache
         with:
           image: *engine-image
-          cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake dependency:checksum_coverage
 
   semgrep:

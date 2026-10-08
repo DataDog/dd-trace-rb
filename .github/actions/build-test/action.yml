@@ -10,8 +10,8 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
-  bundle-ready:
-    description: 'Whether the complete matrix bundle is already installed'
+  bundle-coverage:
+    description: 'Dependency coverage of the restored bundle, base or matrix'
     required: true
 
 runs:
@@ -22,7 +22,7 @@ runs:
     shell: bash
 
   - name: Install batch dependencies
-    if: inputs.bundle-ready != 'true'
+    if: inputs.bundle-coverage != 'matrix'
     run: bundle exec rake github:run_batch_build
     shell: bash
 
