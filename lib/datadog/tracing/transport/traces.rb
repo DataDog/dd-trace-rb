@@ -6,6 +6,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../../core/utils/enumerable_compat"
 require_relative "http/client"
+require_relative "http/telemetry"
 require_relative "serializable_trace"
 require_relative "span_events_negotiation"
 require_relative "trace_formatter"
@@ -26,6 +27,24 @@ module Datadog
 
         # Traces request
         class Request < Datadog::Core::Transport::Request
+          attr_reader :http_status
+          attr_writer :capture_telemetry
+
+          def initialize(parcel = nil)
+            super
+            @http_status = nil
+            @capture_telemetry = false
+          end
+
+          def capture_status(response)
+            return unless @capture_telemetry && response.respond_to?(:code)
+
+            code = response.code
+            @http_status = code if code.is_a?(Integer) && code.between?(100, 999)
+            nil
+          rescue
+            nil
+          end
         end
 
         # Traces response
@@ -49,11 +68,12 @@ module Datadog
           # @param encoder [Datadog::Core::Encoding::Encoder]
           # @param logger [Datadog::Core::Logger]
           # @param max_size [String] maximum acceptable payload size
-          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
+          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE, telemetry: nil)
             @encoder = encoder
             @logger = logger
             @native_events_supported = native_events_supported
             @max_size = max_size
+            @telemetry = telemetry
           end
 
           # Encodes a list of traces in chunks.
@@ -63,29 +83,47 @@ module Datadog
           # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
           #   number of traces
           def encode_in_chunks(traces)
+            span_counts = [] if @telemetry
             encoded_traces = Core::Utils::EnumerableCompat.filter_map(traces) do |trace|
-              encode_one(trace)
+              encoded = encode_one(trace)
+              span_counts << trace.length if encoded && span_counts
+              encoded
             end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
-              [encoder.join(chunk), chunk.size]
+              payload = [join(chunk), chunk.size]
+              payload << span_counts.shift(chunk.size).sum if span_counts
+              payload
             end
           end
 
           private
 
+          def join(chunk)
+            encoder.join(chunk)
+          rescue
+            @telemetry&.serialization_failed
+            raise
+          end
+
           def encode_one(trace)
-            encoded = Encoder.encode_trace(
-              encoder,
-              trace,
-              logger: logger,
-              native_events_supported: @native_events_supported
-            )
+            encoded = begin
+              Encoder.encode_trace(
+                encoder,
+                trace,
+                logger: logger,
+                native_events_supported: @native_events_supported
+              )
+            rescue
+              @telemetry&.serialization_failed
+              raise
+            end
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
               logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
               Datadog.health_metrics.transport_trace_too_large(1)
+              @telemetry&.drop_large(trace.length)
 
               return nil
             end
@@ -122,19 +160,38 @@ module Datadog
           include SpanEventsNegotiation
           self.http_client_class = Tracing::Transport::HTTP::Client
 
+          def initialize(apis, default_api, logger:)
+            super
+            @telemetry = nil
+          end
+
+          def telemetry=(client)
+            if (reporter = @telemetry)
+              reporter.client = client
+            else
+              @telemetry = HTTP::Telemetry.new(client)
+            end
+          end
+
           def send_traces(traces)
             encoder = current_api.encoder
+            native_events_supported = native_events_supported?
+            telemetry = @telemetry&.batch(traces)
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
               logger: logger,
-              native_events_supported: native_events_supported?
+              native_events_supported: native_events_supported,
+              telemetry: telemetry,
             )
 
-            responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
+            responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count, span_count|
               request = Request.new(Parcel.new(encoded_traces, trace_count: trace_count))
+              request.capture_telemetry = true if telemetry
 
               client.send_request(:traces, request).tap do |response|
-                if downgrade?(response)
+                fallback = downgrade?(response)
+                telemetry&.sent(request, response, trace_count, span_count, encoded_traces.bytesize, fallback: fallback)
+                if fallback
                   downgrade!
                   return send_traces(traces)
                 end

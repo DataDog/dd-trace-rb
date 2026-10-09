@@ -17,6 +17,8 @@ module Datadog
         attr_reader worker: Datadog::Core::Telemetry::Worker
         attr_reader agent_settings: Datadog::Core::Configuration::AgentSettings
 
+        attr_reader metrics_manager: Datadog::Core::Telemetry::MetricsManager
+
         include Core::Telemetry::Logging
         include Core::Telemetry::_Logging
         include Core::Utils::Forking
