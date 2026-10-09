@@ -2,7 +2,7 @@ require "bundler"
 require "digest"
 require "json"
 
-# Changing these might affect caching output
+# Cache logic is part of the identity to avoid reusing bundles prepared by outdated code.
 CACHE_LOGIC_FILES = %w[
   .github/actions/bundle-cache/action.yml
   .github/actions/bundle-matrix-cache/action.yml
