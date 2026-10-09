@@ -19,7 +19,7 @@ module Datadog
 
       private
 
-      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, untyped]
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, Datadog::Helpers::json]
 
       def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
       def self.probe_known?: (untyped probe_id, Component component) -> bool

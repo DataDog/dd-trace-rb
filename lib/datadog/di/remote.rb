@@ -292,6 +292,8 @@ module Datadog
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
           probe_id = probe_spec.fetch("id")
+          raise TypeError, "probe id must be a String, got #{probe_id.class}" unless probe_id.is_a?(String)
+
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
