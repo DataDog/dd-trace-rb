@@ -21,7 +21,7 @@ inputs:
 
 outputs:
   cache-key:
-    description: 'Full matched cache key, or empty on a miss; lookup-only does not download it'
+    description: 'Matched cache key, or empty on a miss; lookup-only does not download it'
     value: ${{ steps.restore-cache.outputs.cache-matched-key }}
   cache-outcome:
     description: 'Cache lookup or restore outcome, exact, partial, or miss'
