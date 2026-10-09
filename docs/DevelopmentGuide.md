@@ -50,6 +50,26 @@ All changes should be covered by corresponding RSpec tests. Unit tests are prefe
 
 ### Running tests
 
+#### Canonical feature flag fixtures
+
+The OpenFeature specs use a checked-in snapshot from
+[`DataDog/ffe-system-test-data`](https://github.com/DataDog/ffe-system-test-data).
+Normal local and CI tests need neither a network request nor submodule setup.
+Run them with `bundle exec rake test:open_feature`.
+
+Add or correct shared expectations upstream, then refresh with
+`ruby tasks/ffe_fixtures.rb --ref <upstream-commit>` (requires Git and network access).
+The updater copies only `ufc-config.json` and `evaluation-cases/*.json` and records
+the full source commit in `spec/datadog/open_feature/ffe-system-test-data/SOURCE.md`.
+Run `ruby tasks/ffe_fixtures.rb --check` to compare filenames and bytes against that
+commit without modifying the snapshot. Pull request CI also checks this provenance.
+
+The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
+opens a signed draft PR only when fixture contents change. It leaves an existing
+update PR untouched, so evaluator fixes can be added there. New cases may expose
+evaluator bugs: fix those before accepting the update instead of editing copied
+expectations locally.
+
 #### For the core library
 
 Any file that is **not** inside a `contrib` folder is part of the core library.
