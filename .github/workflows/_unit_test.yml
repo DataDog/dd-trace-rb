@@ -192,8 +192,8 @@ jobs:
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: |
           echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
-          # Use core to enable batch dependency checks after local core repair;
-          # this does not imply that a core cache was restored.
+          # core means core dependencies are ready when the build action starts;
+          # the next step ensures that. Batch dependencies still need checking/installing.
           echo "cache-match=core" >> "$GITHUB_OUTPUT"
       - &install-core-dependencies
         name: Install core dependencies
