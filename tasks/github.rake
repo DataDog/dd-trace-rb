@@ -53,9 +53,11 @@ namespace :github do
       batched_matrix["include"] << {"batch" => index.to_s, "container-id" => "standard-#{index}", "tasks" => task_group}
     end
 
+    misc_batch = "0"
+
     data = {
       batches: batched_matrix,
-      misc: {"include" => [{"batch" => "0", "container-id" => "misc-0", "tasks" => misc_tasks}]},
+      misc: {"include" => [{"batch" => misc_batch, "container-id" => "misc-#{misc_batch}", "tasks" => misc_tasks}]},
       gemfiles: (matching_tasks + misc_tasks).map { |task| task[:gemfile] }.uniq.sort,
     }
 
