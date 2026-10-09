@@ -17,7 +17,15 @@ variables:
   needs: []
   timeout: 1h
   rules:
+    # On master: run only when the merge touched files that can affect benchmark results;
+    # nightly schedules can't evaluate changes: and always match, so benchmark history stays continuous.
     - if: $CI_COMMIT_REF_NAME == "master"
+      changes:
+        - lib/**/*
+        - ext/**/*
+        - benchmarks/**/*
+        - datadog.gemspec
+        - .gitlab/**/*
       when: always
       interruptible: false
     - when: manual
