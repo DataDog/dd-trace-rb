@@ -92,8 +92,42 @@ For detailed instructions on creating and configuring probes, see the
 
 ### Currently Supported
 
-Ruby Dynamic Instrumentation supports **log probes**, which can be
-created as either line probes or method probes.
+Ruby Dynamic Instrumentation supports **log probes** and **metric
+probes**, which can be created as either line probes or method probes.
+
+#### Metric Probes
+
+Metric probes submit a DogStatsD metric to the Datadog agent each time
+the probe target executes, with no snapshot captured. The metric
+appears in the metrics explorer under the name
+`dynamic.instrumentation.metric.probe.<name>`.
+
+A metric probe has a metric kind — **COUNT**, **GAUGE**, **HISTOGRAM**,
+or **DISTRIBUTION** — mapping to the matching DogStatsD metric types,
+and a metric name you choose.
+
+- **Value expression (optional):** an expression evaluated at each hit and
+  submitted as the metric value. Integer and Float results pass through,
+  booleans count as 1 and 0, and any other result is reported as an
+  expression evaluation error. A **COUNT** probe without a value
+  expression increments by 1 per hit; the other kinds emit nothing
+  without a value expression.
+- **Evaluation timing:** for method probes, the value expression and the
+  optional condition evaluate at method exit by default, where `@return`,
+  `@duration` (milliseconds), and `@exception` are available, or at method
+  entry, where method arguments and `@` variables are available. Line
+  probes always evaluate at the line.
+- **Tags:** your probe tags are attached to every metric point together
+  with the `debugger.probeid:<probe id>` tag, so metrics can be queried
+  per probe.
+
+Metric probes require the `dogstatsd-ruby` gem (version 3.3.0 or newer,
+excluding 5.0.x, 5.1.x, and 5.2.x) in your application. The metric is
+submitted to the agent's DogStatsD listener, configured with the same
+`DD_AGENT_HOST` and `DD_METRIC_AGENT_PORT` environment variables the
+tracer's runtime metrics use (defaults `127.0.0.1:8125`). When the gem
+is missing, the probe card shows an ERROR status naming the dependency
+instead of installing a probe that could never emit.
 
 #### Line Probes
 
@@ -148,7 +182,6 @@ the entire method execution.
 The following probe types available in other languages are not
 supported for Ruby:
 
-- Metric probes
 - Span probes
 - Dynamic span tags
 
