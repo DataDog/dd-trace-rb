@@ -34,6 +34,15 @@ static ID id_mesg;
 // method probes on Thread#[] / Thread#[]= cannot intercept guard reads/writes.
 static ID id_datadog_di_in_probe;
 
+// ID for the ivar on each Thread object that holds that thread's snapshot
+// generation token.
+static ID id_datadog_di_thread_generation;
+
+// Process-wide source of snapshot generation tokens. Incremented only inside
+// current_thread_generation, which runs with the GVL held and never releases
+// it, so the counter and the accompanying ivar write need no lock.
+static unsigned long long generation_counter;
+
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
 // The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
 static inline int ddtrace_imemo_type(VALUE imemo) {
@@ -144,6 +153,39 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
 
 /*
  * call-seq:
+ *   DI.current_thread_generation -> Integer
+ *
+ * Returns the snapshot generation token for the current thread, assigning
+ * one on the first call for the thread. Snapshots captured by the same
+ * thread share a token, and snapshots captured by different threads carry
+ * different tokens, so a consumer can tell which thread captured each
+ * snapshot. All fibers of a thread share that thread's token. Distinct
+ * Thread objects get distinct tokens, even when native thread ids are
+ * reused. Tokens are unique only within a runtime id.
+ *
+ * The token is a value of the process-wide counter above, stored in an
+ * ivar on the Thread object. The ivar is read via rb_attr_get, which
+ * returns nil for an unset ivar and, unlike rb_ivar_get, emits no
+ * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
+ * Both accesses bypass Thread#thread_variable_get and
+ * Thread#thread_variable_set method dispatch, so a user-installed method
+ * probe on those methods cannot fire during DI snapshot building.
+ *
+ * @return [Integer] the generation token of the current thread
+ * @api private
+ */
+static VALUE current_thread_generation(DDTRACE_UNUSED VALUE _self) {
+  VALUE thread = rb_thread_current();
+  VALUE generation = rb_attr_get(thread, id_datadog_di_thread_generation);
+  if (NIL_P(generation)) {
+    generation = ULL2NUM(++generation_counter);
+    rb_ivar_set(thread, id_datadog_di_thread_generation, generation);
+  }
+  return generation;
+}
+
+/*
+ * call-seq:
  *   DI.hash?(obj) -> true | false
  *
  * Returns whether the given object is a Hash via a direct type check
@@ -202,6 +244,7 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
+  id_datadog_di_thread_generation = rb_intern("@datadog_di_thread_generation");
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
@@ -210,6 +253,7 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
+  rb_define_singleton_method(di_module, "current_thread_generation", current_thread_generation, 0);
   #ifdef HAVE_RB_ISEQ_TYPE
     rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
   #endif
