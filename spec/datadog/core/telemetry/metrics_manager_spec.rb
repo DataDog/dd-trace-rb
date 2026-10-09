@@ -21,6 +21,36 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
   let(:tags) { {tag1: "val1", tag2: "val2"} }
   let(:common) { true }
 
+  describe "external collection" do
+    it "collects before flushing and unregisters without retaining the producer" do
+      collector = double("collector")
+      manager.register_collector(collector)
+      expect(collector).to receive(:collect) { manager.inc("tracers", "stats_collapsed_spans", 2) }.once
+      expect(manager.flush!).not_to be_empty
+      manager.unregister_collector(collector)
+      expect(manager.flush!).to be_empty
+    end
+
+    it "isolates a failing collector from other telemetry" do
+      collector = double("collector", collect: nil)
+      allow(collector).to receive(:collect).and_raise("failed")
+      manager.register_collector(collector)
+      manager.inc(namespace, metric_name, 1)
+      expect(manager.flush!).not_to be_empty
+    end
+
+    it "allows an abandoned collector to be garbage collected" do
+      reference = -> do
+        collector = Class.new { define_method(:collect) {} }.new
+        manager.register_collector(collector)
+        WeakRef.new(collector)
+      end.call
+      GC.start(full_mark: true, immediate_sweep: true)
+      expect(reference.weakref_alive?).to be_falsey
+      expect(manager.flush!).to eq([])
+    end
+  end
+
   describe "#inc" do
     subject(:inc) { manager.inc(namespace, metric_name, value, tags: tags, common: common) }
 

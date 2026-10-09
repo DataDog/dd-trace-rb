@@ -198,6 +198,14 @@ module Datadog
           @metrics_manager.inc(namespace, metric_name, value, tags: tags, common: common)
         end
 
+        def register_metrics_collector(collector)
+          @metrics_manager.register_collector(collector)
+        end
+
+        def unregister_metrics_collector(collector)
+          @metrics_manager.unregister_collector(collector)
+        end
+
         # Decremenets a count metric.
         def dec(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.dec(namespace, metric_name, value, tags: tags, common: common)

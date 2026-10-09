@@ -1,0 +1,10 @@
+class WeakRef[A]
+  def initialize: (A object) -> void
+
+  def __getobj__: () -> A
+
+  def weakref_alive?: () -> (bool | String)?
+
+  class RefError < StandardError
+  end
+end

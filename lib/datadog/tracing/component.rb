@@ -69,7 +69,10 @@ module Datadog
         return unless writer.respond_to?(:transport)
 
         transport = writer.transport
-        transport.telemetry = telemetry if transport.is_a?(Transport::Traces::Transport)
+        if transport.is_a?(Transport::Traces::Transport) ||
+            (defined?(Transport::Native::Transport) && transport.is_a?(Transport::Native::Transport))
+          transport.telemetry = telemetry
+        end
         nil
       end
 

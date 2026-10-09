@@ -1,6 +1,12 @@
 module Datadog
   module Core
     module Telemetry
+      interface _MetricsCollector
+        def collect: () -> void
+
+        def object_id: () -> Integer
+      end
+
       class MetricsManager
         @interval: Float
 
@@ -9,6 +15,8 @@ module Datadog
         @mutex: Thread::Mutex
 
         @collections: Hash[String, Datadog::Core::Telemetry::MetricsCollection]
+
+        @collectors: Hash[Integer, WeakRef[_MetricsCollector]]
 
         attr_reader enabled: bool
 
@@ -25,6 +33,12 @@ module Datadog
         def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
         def flush!: () -> Array[Datadog::Core::Telemetry::Event::Base]
+
+        def register_collector: (_MetricsCollector collector) -> void
+
+        def unregister_collector: (_MetricsCollector collector) -> void
+
+        def collect: () -> void
 
         def disable!: () -> void
         
