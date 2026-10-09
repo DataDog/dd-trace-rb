@@ -1,12 +1,12 @@
 require "json"
 
 module GithubBatching
-  WEIGHTS_URL = "https://raw.githubusercontent.com/TonyCTHsu/dd-test-weights/main/ci_task_timings.json"
+  WEIGHTS_PATH = "tmp/ci_task_timings.json"
 
   module_function
 
-  def timing_estimates(ruby_version, url: WEIGHTS_URL)
-    entries = (fetch_weights(url) || {}).fetch("ruby_versions", {}).fetch(ruby_version, {})
+  def timing_estimates(ruby_version, path: WEIGHTS_PATH)
+    entries = weights(path).fetch("ruby_versions", {}).fetch(ruby_version, {})
 
     {
       tasks: entries.fetch("tasks", []).map do |entry|
@@ -18,13 +18,12 @@ module GithubBatching
     }
   end
 
-  def fetch_weights(url)
-    require "open-uri"
+  def weights(path)
+    JSON.parse(File.read(path))
+  rescue Errno::ENOENT, JSON::ParserError => e
+    warn "Falling back to default task timings: could not read #{path} (#{e.class}: #{e.message})"
 
-    JSON.parse(URI(url).open(open_timeout: 5, read_timeout: 10, &:read))
-  rescue => e
-    warn "Falling back to checked-in task timings: could not fetch #{url} (#{e.class}: #{e.message})"
-    nil
+    {}
   end
 
   def aggregate_timing_files(paths)
@@ -199,5 +198,5 @@ module GithubBatching
       "samples" => sorted.length,
     }
   end
-  private_class_method :duration_estimates, :fallback_duration, :fetch_weights, :improve_batches, :median
+  private_class_method :duration_estimates, :fallback_duration, :improve_batches, :median, :weights
 end

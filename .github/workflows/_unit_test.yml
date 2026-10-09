@@ -61,6 +61,14 @@ jobs:
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
+      - name: Restore task weights
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/ci_task_timings.json
+          key: ci-task-weights-exact
+          restore-keys: |
+            ci-task-weights-
+
       - id: set-batches
         name: Distribute tasks into batches
         run: |
