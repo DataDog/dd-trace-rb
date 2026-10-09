@@ -91,6 +91,7 @@ RSpec.describe Datadog::Core::Remote::Worker do
   describe "#after_fork" do
     forking_platform_only
 
+    # Queues are copied, not shared across fork; a matching PID proves which process polled.
     let(:queue) { Queue.new }
     let(:task) { proc { queue << Process.pid } }
     subject(:worker) { described_class.new(interval: 60, logger: logger, &task) }
@@ -102,6 +103,7 @@ RSpec.describe Datadog::Core::Remote::Worker do
       expect(queue.pop).to eq(Process.pid)
 
       expect_in_fork do
+        # Forbid thread creation only during reset; the explicit start below must remain possible.
         RSpec::Mocks.with_temporary_scope do
           expect(Thread).not_to receive(:new)
           worker.after_fork
