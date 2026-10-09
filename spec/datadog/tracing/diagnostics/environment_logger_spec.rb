@@ -44,7 +44,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         json = JSON.parse(msg.partition("- TRACING -")[2].strip)
         expect(json).to match(
           "enabled" => true,
-          "agent_url" => start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
+          "agent_url" => start_with("http://#{agent_hostname}:#{agent_port}"),
           "analytics_enabled" => false,
           "sample_rate" => nil,
           "sampling_rules" => nil,
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       it "with a default tracer" do
         is_expected.to match(
           enabled: true,
-          agent_url: start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
+          agent_url: start_with("http://#{agent_hostname}:#{agent_port}"),
           analytics_enabled: false,
           sample_rate: nil,
           sampling_rules: nil,
@@ -160,6 +160,12 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         end
 
         it { is_expected.to include agent_url: nil }
+      end
+
+      context "with Ruby HTTP transport" do
+        before { Datadog.configuration.tracing.native_transport = false }
+
+        it { is_expected.to include agent_url: start_with("http://#{agent_hostname}:#{agent_port}?timeout=") }
       end
 
       context "with unix socket transport" do

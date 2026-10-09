@@ -988,7 +988,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect(total_samples).to eq test_num_allocated_object
 
-        expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
+        # Each of the test_num_allocated_object structs is 40 bytes before Ruby 4.1 and 32 bytes on Ruby 4.1+.
+        # Keep these values hardcoded so we notice size changes.
+        expected_size_of_object = RubyVersion.is?(">= 4.1") ? 32 : 40
 
         expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
@@ -1177,24 +1179,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
           skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
         end
-      end
-    end
-
-    describe "crash-safety during nested signal handler (such as during GC compaction)", :memcheck_valgrind_skip do
-      # See `is_running_on_alternate_signal_stack` for details. Note that our little experiment here works on all Rubies,
-      # but GC compaction in particular is only for 2.7+
-      it "skips sampling in the signal handler" do
-        start
-
-        # Simulate signals arriving on the altstack
-        described_class::Testing._native_install_sigprof_handler_on_altstack
-
-        loop_until(check_condition_every_seconds: 0.01) do
-          cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
-        end
-
-        # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
-        # `_native_install_sigprof_handler_on_altstack` for mode details.
       end
     end
 
@@ -1520,6 +1504,57 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "preparing a sample at GC exit" do
+    before do
+      cpu_and_wall_time_worker
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_global_reset_per_thread_context(thread_context_collector)
+      record_sample
+      gc_event(:enter)
+    end
+
+    def request_sample_at_gc_exit
+      described_class::Testing._native_request_prepare_on_gc_finish(cpu_and_wall_time_worker)
+    end
+
+    def gc_event(event, during_sample: false)
+      described_class::Testing._native_on_gc_event(cpu_and_wall_time_worker, event, during_sample)
+    end
+
+    def record_sample
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+      samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).first
+    end
+
+    it "prepares a requested stack at GC exit" do
+      request_sample_at_gc_exit
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_on_gc_event")
+    end
+
+    it "does not prepare a stack without a request" do
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "does not prepare a stack when already processing a sample" do
+      request_sample_at_gc_exit
+      gc_event(:exit, during_sample: true)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "discards a late request from the previous GC step" do
+      gc_event(:exit)
+      request_sample_at_gc_exit
+      gc_event(:enter)
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+  end
+
   describe "#reset_after_fork" do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
@@ -1579,7 +1614,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_prepared_sample: 0,
-          signal_handler_skipped_sample_on_altstack: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,

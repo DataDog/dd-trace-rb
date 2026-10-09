@@ -4,6 +4,15 @@ require "timeout"
 RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   before { skip "Forking not supported" unless Datadog::Core::Utils::AtForkMonkeyPatch.supported? } # rubocop:disable RSpec/DescribedClass
 
+  around(:example, :isolated_fork_registry) do |example|
+    registry = Datadog::Core::Utils::AtForkMonkeyPatch
+    saved = registry.snapshot_at_fork_blocks
+    clear_at_fork_blocks
+    example.run
+  ensure
+    registry.send(:replace_at_fork_blocks, saved)
+  end
+
   def clear_at_fork_blocks
     Datadog::Core::Utils::AtForkMonkeyPatch.send(
       :replace_at_fork_blocks,
@@ -85,7 +94,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch, :isolated_fork_registry do
     shared_context "fork class" do
       def new_fork_class
         Class.new.tap do |c|
@@ -214,7 +223,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch, :isolated_fork_registry do
     let(:_fork_result) { nil }
     let(:process_module) do
       result = _fork_result
@@ -402,7 +411,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe "::at_fork and ::run_at_fork_blocks" do
+  describe "::at_fork and ::run_at_fork_blocks", :isolated_fork_registry do
     after do
       clear_at_fork_blocks
     end
@@ -553,7 +562,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe "::remove_at_fork" do
+  describe "::remove_at_fork", :isolated_fork_registry do
     after do
       clear_at_fork_blocks
     end
