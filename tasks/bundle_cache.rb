@@ -1,3 +1,4 @@
+# Runs without bundle exec; Bundler is loaded only for its settings API.
 require "bundler"
 require "digest"
 require "json"
