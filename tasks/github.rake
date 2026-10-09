@@ -1,9 +1,9 @@
-# Runs without Bundler.
 require "json"
 require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
+  # Batch generation runs before bundle setup; keep it independent of installed gems.
   task :generate_batches do
     matrix = eval(File.read("Matrixfile"), binding, "Matrixfile").freeze # rubocop:disable Security/Eval
 
