@@ -240,6 +240,7 @@ compute-changes:
         BASE=$(git merge-base origin/master "$CI_COMMIT_SHA" 2>/dev/null || echo origin/master)
       fi
 
+      echo "diff base: $BASE"
       if git diff --name-only "$BASE" "$CI_COMMIT_SHA" | grep -qE '^(lib/|ext/|datadog\.gemspec$|Gemfile\.lock$|\.gitlab-ci\.yml$)'; then
         emit true
       fi
