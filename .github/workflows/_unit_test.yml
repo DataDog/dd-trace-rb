@@ -192,6 +192,8 @@ jobs:
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: |
           echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
+          # Use core to enable batch dependency checks after local core repair;
+          # this does not imply that a core cache was restored.
           echo "cache-match=core" >> "$GITHUB_OUTPUT"
       - &install-core-dependencies
         name: Install core dependencies
@@ -203,8 +205,6 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: ${{ matrix.container-id }}
-          # Use core to enable batch dependency checks after local core repair;
-          # this does not imply that a core cache was restored.
           cache-match: ${{ steps.matrix-cache-mismatch.outputs.cache-match || needs.batch.outputs.cache-match }}
 
   build-test-misc:
