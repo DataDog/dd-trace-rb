@@ -203,6 +203,10 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 }
 #endif
 
+static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
+  return INT2NUM(IMEMO_MASK);
+}
+
 void di_init(VALUE datadog_module) {
   #ifdef HAVE_RB_IMEMO_NAME
     const char *iseq_name = rb_imemo_name(IMEMO_TYPE_ISEQ);
@@ -226,6 +230,9 @@ void di_init(VALUE datadog_module) {
   #ifdef HAVE_RB_ISEQ_TYPE
     rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
   #endif
+
+  VALUE testing_module = rb_define_module_under(di_module, "Testing");
+  rb_define_singleton_method(testing_module, "_native_imemo_mask", _native_imemo_mask, 0);
 }
 
 #endif // TRUFFLERUBY

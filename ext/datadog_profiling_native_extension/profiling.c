@@ -47,6 +47,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
+static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   // The profiler still has a lot of limitations around being used in Ractors BUT for now we're choosing to take care of those
@@ -101,6 +102,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
   rb_define_singleton_method(testing_module, "_native_safe_object_info", _native_safe_object_info, 1);
+  rb_define_singleton_method(testing_module, "_native_imemo_mask", _native_imemo_mask, 0);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
@@ -328,4 +330,8 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
 
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return rb_str_new_cstr(safe_object_info(obj));
+}
+
+static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
+  return INT2NUM(imemo_mask());
 }
