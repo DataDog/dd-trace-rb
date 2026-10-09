@@ -186,7 +186,11 @@ jobs:
         uses: ./.github/actions/bundle-restore
         with:
           key: ${{ needs.batch.outputs.cache-key }}
-          require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
+      - name: Require exact matrix cache hit
+        if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
+        run: |
+          echo "::error::Expected an exact bundle cache hit." >&2
+          exit 1
       - name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: bundle check || bundle install
@@ -279,7 +283,11 @@ jobs:
         uses: ./.github/actions/bundle-restore
         with:
           key: ${{ needs.batch.outputs.cache-key }}
-          require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
+      - name: Require exact matrix cache hit
+        if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
+        run: |
+          echo "::error::Expected an exact bundle cache hit." >&2
+          exit 1
       - name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: bundle check || bundle install

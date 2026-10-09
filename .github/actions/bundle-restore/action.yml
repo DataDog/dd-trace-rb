@@ -14,10 +14,6 @@ inputs:
     description: 'Check availability without downloading the bundle'
     required: false
     default: 'false'
-  require-exact:
-    description: 'Fail unless the requested cache key matches exactly'
-    required: false
-    default: 'false'
 
 outputs:
   cache-key:
@@ -40,9 +36,3 @@ runs:
       path: "/usr/local/bundle"
       lookup-only: ${{ inputs.lookup-only == 'true' }}
       restore-keys: ${{ inputs.restore-keys }}
-  - name: Require exact cache hit
-    if: inputs.require-exact == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
-    shell: bash
-    run: |
-      echo "::error::Expected an exact bundle cache hit." >&2
-      exit 1
