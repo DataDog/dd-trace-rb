@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6352",
+  "message": "Stop duplicating pathway nodes after every rolling deploy for apps with `experimental_propagate_process_tags_enabled`, which could also drop stats once a service exceeded its pathway limit."
+}

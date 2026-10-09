@@ -15,8 +15,7 @@ RSpec.describe Datadog::DataStreams::Transport do
       adapter: :net_http, hostname: "localhost", port: http_server_port
     )
   end
-  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
-  let(:processor) { Datadog::DataStreams::Processor.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings, agent_info: agent_info) }
+  let(:processor) { Datadog::DataStreams::Processor.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
   let(:received_requests) { [] }
 

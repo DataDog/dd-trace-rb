@@ -457,6 +457,31 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "::build_data_streams" do
+    subject(:build_data_streams) { described_class.build_data_streams(settings, agent_settings, logger) }
+    let(:logger) { instance_double(Logger) }
+
+    context "when data streams is enabled" do
+      before { settings.data_streams.enabled = true }
+      after { build_data_streams&.stop }
+
+      # The broad rescue below turns any error here into a nil return, so assert on the
+      # processor rather than on "no exception raised".
+      it "builds a processor" do
+        expect(logger).not_to receive(:warn)
+        expect(build_data_streams).to be_a(Datadog::DataStreams::Processor)
+      end
+    end
+
+    context "when data streams is disabled" do
+      before { settings.data_streams.enabled = false }
+
+      it "builds nothing" do
+        expect(build_data_streams).to be_nil
+      end
+    end
+  end
+
   describe "::build_runtime_metrics" do
     subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger, telemetry) }
 

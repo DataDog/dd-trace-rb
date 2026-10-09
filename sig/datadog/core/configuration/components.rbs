@@ -16,7 +16,7 @@ module Datadog
 
         def self.build_telemetry: (untyped settings) -> untyped
 
-        def self.build_data_streams: (untyped settings, untyped agent_settings, Core::Logger logger, Environment::AgentInfo agent_info) -> DataStreams::Processor?
+        def self.build_data_streams: (untyped settings, untyped agent_settings, Core::Logger logger) -> DataStreams::Processor?
 
         private
 
