@@ -571,7 +571,11 @@ RSpec.describe "Tracer integration tests" do
         end
       end
 
-      context "ensures correct stats calculation in the agent" do
+      context "ensures correct stats calculation with Ruby HTTP transport" do
+        around do |example|
+          ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => "false") { example.run }
+        end
+
         it "sets the Datadog-Client-Computed-Top-Level header to a non-empty value" do
           expect(WebMock)
             .to have_requested(:post, %r{/traces}).with(headers: {"Datadog-Client-Computed-Top-Level" => /.+/})
@@ -716,9 +720,24 @@ RSpec.describe "Tracer integration tests" do
       end
     end
 
-    context "with agent rates", webmock: true do
+    context "with agent rates" do
+      http_server do |server|
+        body = service_rates.to_json
+        server.mount_proc("/v0.4/traces") do |_request, response|
+          response["Content-Type"] = "application/json"
+          response.body = body
+        end
+        server.mount_proc("/info") do |_request, response|
+          response["Content-Type"] = "application/json"
+          response.body = {endpoints: ["/v0.4/traces"]}.to_json
+        end
+      end
+
       before do
-        stub_request(:post, %r{/v0.4/traces}).to_return(status: 200, body: service_rates.to_json)
+        Datadog.configure do |c|
+          c.agent.host = "127.0.0.1"
+          c.agent.port = http_server_port
+        end
       end
 
       let(:service_rates) { {rate_by_service: {"service:kept,env:" => 1.0, "service:dropped,env:" => Float::MIN}} }

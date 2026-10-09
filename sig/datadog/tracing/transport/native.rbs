@@ -17,9 +17,14 @@ module Datadog
             hostname: ::String?,
             env: ::String?,
             service: ::String?,
-            version: ::String?
+            version: ::String?,
+            ?client_computed_stats: bool,
+            ?timeout_milliseconds: Integer?
           ) -> TraceExporter
           def _native_send_traces: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> ::Array[Response]
+
+          def _native_close: () -> nil
+
           def _native_before_fork: () -> void
           def _native_after_fork_in_parent: () -> void
           def _native_after_fork_in_child: () -> void
@@ -36,6 +41,8 @@ module Datadog
           @fork_hooks: ::Hash[::Symbol, ::Proc]?
 
           attr_reader logger: Datadog::Core::Logger
+
+          attr_reader url: String
 
           def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger) -> void
           def self.fork_hooks_remover: (::Hash[::Symbol, ::Proc] fork_hooks) -> ::Proc
