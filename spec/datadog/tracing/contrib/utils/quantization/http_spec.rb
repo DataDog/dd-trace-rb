@@ -134,6 +134,18 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
         it { is_expected.to eq("http://example.com/path?password=hunter2&NOPE") }
       end
+
+      context "when obfuscation fails" do
+        let(:url) { "http://example.com/path?password=secret&page=2" }
+        let(:options) { {query: {obfuscate: :internal}} }
+
+        it "drops query params" do
+          allow(described_class).to receive(:obfuscate_query)
+            .and_raise(StandardError, "some error")
+
+          expect(subject).to eq("http://example.com/path")
+        end
+      end
     end
   end
 
@@ -445,6 +457,53 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
           it { is_expected.to eq("key2=val2&key3=val3") }
         end
+
+        context "with a JWT" do
+          let(:jwt) { "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJ" }
+          let(:options) { {obfuscate: :internal} }
+
+          context "at the beginning of the query" do
+            let(:query) { jwt }
+
+            it { is_expected.to eq("<redacted>") }
+          end
+
+          context "as parameter value" do
+            let(:query) { "jwt=#{jwt}&page=2" }
+
+            it { is_expected.to eq("jwt<redacted>&page=2") }
+          end
+
+          context "inside encoded quotes" do
+            let(:query) { "jwt=%22#{jwt}%22" }
+
+            it { is_expected.to eq("jwt=<redacted>%22") }
+          end
+
+          %w[abs -].each do |prefix|
+            context "immediately after #{prefix.inspect}" do
+              let(:query) { "jwt=#{prefix}#{jwt}" }
+
+              it { is_expected.to eq(query) }
+            end
+          end
+
+          %w[= %3D].each do |padding|
+            context "with #{padding.inspect} padding" do
+              context "at the end of both segments" do
+                let(:query) { "jwt=eyJheader#{padding}.eyJpayload#{padding}.signature" }
+
+                it { is_expected.to eq("jwt<redacted>") }
+              end
+
+              context "inside the first segment" do
+                let(:query) { "jwt=eyJhe#{padding}ader.eyJpayload.signature" }
+
+                it { is_expected.to eq(query) }
+              end
+            end
+          end
+        end
       end
 
       context "and an obfuscate with custom options" do
@@ -588,6 +647,20 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       else
         expect(Regexp.linear_time?(regex)).to be true
       end
+    end
+
+    it "redacts the added sensitive key names" do
+      input = "new-password=value&appKey=value&application_key_id=value"
+
+      expect(input.gsub(regex, "<redacted>"))
+        .to eq("<redacted>&<redacted>&<redacted>")
+    end
+
+    it "redacts SSH keys with encoded whitespace" do
+      key = value_matches.fetch("OpenSSH RSA public key")
+      input = key.sub(" ", "%09").sub(" ", "%20")
+
+      expect(input.gsub(regex, "<redacted>")).to eq("<redacted>")
     end
 
     key_matches.each do |key|

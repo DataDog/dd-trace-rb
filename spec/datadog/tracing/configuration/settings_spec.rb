@@ -654,17 +654,38 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe "#native_transport" do
       subject(:native_transport) { settings.tracing.native_transport }
 
-      it_behaves_like "a binary setting with",
-        env_variable: "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED",
-        default: true
-    end
+      [
+        ["ruby", "2.5.9"],
+        ["ruby", "3.4.6"],
+        ["ruby", "4.0.0"],
+        ["ruby", "4.0.5"],
+        ["ruby", "4.0.10"],
+        ["ruby", "4.1.0"],
+        ["ruby", "5.0.0"],
+        ["jruby", "4.0.0"],
+        ["truffleruby", "4.1.0"],
+      ].each do |engine, version|
+        context "on #{engine} #{version}" do
+          before do
+            stub_const("RUBY_ENGINE", engine)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(version))
+          end
 
-    describe "#native_transport=" do
-      it "changes the #native_transport setting" do
-        expect { settings.tracing.native_transport = false }
-          .to change { settings.tracing.native_transport }
-          .from(true)
-          .to(false)
+          it_behaves_like "a binary setting with",
+            env_variable: "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED",
+            default: true
+
+          [true, false].each do |value|
+            context "when explicitly configured to #{value}" do
+              let(:envs) { {"DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => (!value).to_s} }
+
+              it "overrides the environment setting" do
+                settings.tracing.native_transport = value
+                is_expected.to be value
+              end
+            end
+          end
+        end
       end
     end
 
