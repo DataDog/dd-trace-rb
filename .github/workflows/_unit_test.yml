@@ -192,9 +192,9 @@ jobs:
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: |
           echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
-          # Set cache-match to core: the next step ensures core dependencies are ready before build starts,
-          # but a non-exact matrix restore does not guarantee batch dependencies are ready.
-          # core tells the build action to check/install those batch dependencies instead of skipping them.
+          # core enables normal dependency preparation instead of trusting a non-exact matrix restore.
+          # The next step checks/installs core; build then checks/installs this worker's batch Gemfiles.
+          # Test selection is unchanged. This repairs the worker, not the shared matrix cache.
           echo "cache-match=core" >> "$GITHUB_OUTPUT"
       - &install-core-dependencies
         name: Install core dependencies
