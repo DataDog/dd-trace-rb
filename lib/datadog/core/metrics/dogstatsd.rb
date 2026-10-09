@@ -57,6 +57,10 @@ module Datadog
         end
 
         # Default dogstatsd listener host, read from the environment.
+        # Java, Python, and .NET read the endpoint from their agent-side
+        # settings; Ruby resolves it from the same environment variables the
+        # gem's runtime metrics use, so one dogstatsd endpoint convention
+        # covers both features.
         #
         # @return [String]
         def default_hostname
