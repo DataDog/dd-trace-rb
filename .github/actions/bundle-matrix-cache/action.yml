@@ -16,8 +16,8 @@ outputs:
     value: >-
       ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
           || steps.lookup.outputs.cache-matched-key || steps.core.outputs.cache-key }}
-  coverage:
-    description: Dependency coverage of the selected cache, core, partial, or matrix
+  cache-match:
+    description: Selected cache match, core, partial, or matrix
     value: >-
       ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
           && 'matrix' || (steps.lookup.outputs.cache-matched-key != '' && 'partial' || 'core') }}

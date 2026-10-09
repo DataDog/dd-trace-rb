@@ -42,7 +42,7 @@ jobs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
       cache-key: "${{ steps.bundle-matrix-cache.outputs.cache-key }}"
-      bundle-coverage: "${{ steps.bundle-matrix-cache.outputs.coverage }}"
+      cache-match: "${{ steps.bundle-matrix-cache.outputs.cache-match }}"
     container:
       image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
@@ -186,16 +186,16 @@ jobs:
         uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
-          require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
+          require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
       - name: Install core dependencies
-        if: needs.batch.outputs.bundle-coverage == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'
+        if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle check || bundle install
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
-          bundle-coverage: ${{ needs.batch.outputs.bundle-coverage }}
+          cache-match: ${{ needs.batch.outputs.cache-match }}
 
   build-test-misc:
     needs:
@@ -279,13 +279,13 @@ jobs:
         uses: ./.github/actions/bundle-restore
         with:
           cache-key: ${{ needs.batch.outputs.cache-key }}
-          require-exact: ${{ needs.batch.outputs.bundle-coverage == 'matrix' }}
+          require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
       - name: Install core dependencies
-        if: needs.batch.outputs.bundle-coverage == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'
+        if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'
         run: bundle check || bundle install
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"
-          bundle-coverage: ${{ needs.batch.outputs.bundle-coverage }}
+          cache-match: ${{ needs.batch.outputs.cache-match }}
