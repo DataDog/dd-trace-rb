@@ -89,12 +89,12 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV.fetch("BATCHED_TASKS"))
+    tasks = JSON.parse(ENV["BATCHED_TASKS"])
     install_bundle_gemfiles(tasks.map { |task| task.fetch("gemfile") })
   end
 
   task :install_matrix_dependencies do
-    install_bundle_gemfiles(JSON.parse(ENV.fetch("GEMFILES"))).each do |gemfile|
+    install_bundle_gemfiles(JSON.parse(ENV["GEMFILES"])).each do |gemfile|
       Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end

@@ -44,7 +44,7 @@ when "core-key"
   }
   puts "bundle-core-v#{cache_version}-#{digest(identity)}"
 when "matrix-key"
-  dependencies = JSON.parse(ENV.fetch("GEMFILES")).map { |gemfile| dependency_content(gemfile) }
+  dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
   puts "bundle-matrix-#{cache_version}-#{digest(identity)}-#{digest(recipe)}-#{digest(dependencies)}"
 else
