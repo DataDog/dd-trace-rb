@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
     it "matches in linear time" do
       if !Regexp.respond_to?(:linear_time?)
-        skip "Regexp.linear_time? method is only available on Ruby 3.3+"
+        skip "Regexp.linear_time? method is only available on Ruby 3.2+"
       else
         pending
         expect(Regexp.linear_time?(regex)).to be true
@@ -584,7 +584,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
     it "matches in linear time" do
       if !Regexp.respond_to?(:linear_time?)
-        skip "Regexp.linear_time? method is only available on Ruby 3.3+"
+        skip "Regexp.linear_time? method is only available on Ruby 3.2+"
       else
         expect(Regexp.linear_time?(regex)).to be true
       end
