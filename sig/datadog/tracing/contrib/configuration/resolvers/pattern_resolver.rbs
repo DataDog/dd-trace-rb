@@ -3,8 +3,8 @@ module Datadog
     module Contrib
       module Configuration
         module Resolvers
-          class PatternResolver < Contrib::Configuration::Resolver
-            def resolve: (untyped value) -> (nil | untyped)
+          class PatternResolver < Contrib::Configuration::Resolver[untyped, untyped, untyped]
+            def resolve: (untyped value) -> untyped
 
             def parse_matcher: (untyped matcher) -> untyped
           end
