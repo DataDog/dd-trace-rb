@@ -4,6 +4,8 @@
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
+#include "otel_thread_context.h"
+#include "helpers.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
@@ -74,6 +76,16 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_PROCESS_TAGS, StringValueCStr(process_tags));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_CONTAINER_ID, StringValueCStr(container_id));
 
+  if (otel_thread_context_was_enabled()) {
+    ddog_VoidResult include_result = ddog_tracer_metadata_include_otel_thread_context(builder);
+
+    if (include_result.tag == DDOG_VOID_RESULT_ERR) {
+      ddog_tracer_metadata_free(builder);
+    }
+
+    CHECK_VOID_RESULT("Failed to include OTel thread context metadata", include_result);
+  }
+
   ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
   ddog_tracer_metadata_free(builder);
 
@@ -89,6 +101,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   *fd = result.ok.fd;
   VALUE tracer_memfd_class = rb_const_get(self, rb_intern("TracerMemfd"));
   VALUE tracer_memfd = TypedData_Wrap_Struct(tracer_memfd_class, &tracer_memfd_type, fd);
+
   return tracer_memfd;
 }
 
