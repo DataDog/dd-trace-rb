@@ -377,6 +377,87 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe "#implicitly_enabled?" do
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    before { allow(logger).to receive(:debug) }
+
+    after { component&.shutdown! }
+
+    context "when the component is started and the enabled setting is at its default" do
+      # The implicit-enablement scenario: the customer never set
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED, so RC may have started the
+      # component. A withdrawn RC enable signal must treat this as a disable.
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      before { component.start! }
+
+      it "is true" do
+        expect(component.implicitly_enabled?).to be true
+      end
+    end
+
+    context "when the component is started but the customer explicitly enabled it" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      before { component.start! }
+
+      it "is false (explicit opt-in is independent of RC enablement)" do
+        expect(component.implicitly_enabled?).to be false
+      end
+    end
+
+    context "when the component is started and the customer then explicitly disables it" do
+      # Regression for the using_default? decision. Datadog.configure mutates
+      # the singleton settings before Components#state reads this predicate, so
+      # an explicit enabled=false can arrive while the component is still
+      # started. using_default? keeps the result false in that case, letting
+      # the explicit disable win on the next rebuild. A predicate keyed on the
+      # enabled value would report true here and restart DI.
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      before do
+        component.start!
+        settings.dynamic_instrumentation.enabled = false
+      end
+
+      it "is false" do
+        expect(component.implicitly_enabled?).to be false
+      end
+    end
+
+    context "when the component is stopped" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.dynamic_instrumentation.internal.development = true
+          s.remote.enabled = true
+        end
+      end
+
+      it "is false" do
+        expect(component.implicitly_enabled?).to be false
+      end
+    end
+  end
+
   describe "@lifecycle_mutex serialization" do
     # The mutex serializes start!, stop!, and shutdown! so concurrent RC
     # callbacks (which run on the remote-config worker thread) cannot race

@@ -166,6 +166,25 @@ module Datadog
         @started
       end
 
+      # Whether the component is started while the customer left
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED at its default, the state produced
+      # by remote-configuration enablement.
+      #
+      # The decision reads using_default?(:enabled) so that an explicit
+      # enabled=false takes effect even after RC started the component.
+      # Datadog.configure mutates the singleton settings before
+      # Components#state runs; a direct read of the enabled value would
+      # classify a customer's explicit enabled=false as implicit and restart
+      # DI on reconfiguration. using_default? answers whether the customer
+      # ever set the option, which drives RC carry-over and lets a withdrawn
+      # RC enable signal be handled as a disable.
+      #
+      # @return [Boolean] true when the component is started and the customer
+      #   left the enabled setting at its default
+      def implicitly_enabled?
+        started? && @settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
       # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
