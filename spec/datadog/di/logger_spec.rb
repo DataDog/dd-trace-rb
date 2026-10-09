@@ -15,12 +15,51 @@ RSpec.describe Datadog::DI::Logger do
     StringIO.new
   end
 
+  let(:trace_logging) { true }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation.internal).to receive(:trace_logging).and_return(trace_logging)
   end
 
   subject(:logger) do
     described_class.new(settings, target)
+  end
+
+  describe "#debug" do
+    context "when called with a block" do
+      it "delegates to the target logger at debug level" do
+        expect(target).to receive(:debug) do |&block|
+          expect(block.call).to eq("di: hello")
+        end
+
+        logger.debug { "di: hello" }
+      end
+
+      it "writes the block's message to the target's output" do
+        logger.debug { "di: hello" }
+
+        expect(io.string).to include("di: hello")
+      end
+    end
+
+    context "when called with a message argument" do
+      it "delegates the message to the target logger" do
+        expect(target).to receive(:debug).with("di: hello")
+
+        logger.debug("di: hello")
+      end
+
+      it "writes the message to the target's output" do
+        logger.debug("di: hello")
+
+        expect(io.string).to include("di: hello")
+      end
+    end
+
+    it "returns nil on both forms" do
+      expect(logger.debug { "di: hello" }).to be_nil
+      expect(logger.debug("di: hello")).to be_nil
+    end
   end
 
   describe "#trace" do
@@ -35,6 +74,10 @@ RSpec.describe Datadog::DI::Logger do
         logger.trace { "di: hello" }
       end
 
+      it "returns nil" do
+        expect(logger.trace { "di: hello" }).to be_nil
+      end
+
       it "writes the message to the target's output" do
         logger.trace { "di: hello" }
 
@@ -45,10 +88,10 @@ RSpec.describe Datadog::DI::Logger do
     context "when trace logging is disabled" do
       let(:trace_logging) { false }
 
-      it "does not invoke the target logger" do
+      it "does not invoke the target logger and returns nil" do
         expect(target).not_to receive(:debug)
 
-        logger.trace { "di: hello" }
+        expect(logger.trace { "di: hello" }).to be_nil
       end
 
       it "does not invoke the block" do
@@ -65,6 +108,17 @@ RSpec.describe Datadog::DI::Logger do
 
         expect(io.string).to be_empty
       end
+    end
+  end
+
+  describe "the trace-logging gate" do
+    it "resolves the gate once at construction" do
+      logger
+
+      allow(settings.dynamic_instrumentation.internal).to receive(:trace_logging).and_return(false)
+
+      expect(target).to receive(:debug)
+      logger.trace { "di: hello" }
     end
   end
 end
