@@ -83,29 +83,41 @@ module Datadog
           # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
           #   number of traces
           def encode_in_chunks(traces)
-            span_counts = []
+            span_counts = [] if @telemetry
             encoded_traces = Core::Utils::EnumerableCompat.filter_map(traces) do |trace|
               encoded = encode_one(trace)
-              span_counts << trace.length if encoded && @telemetry
+              span_counts << trace.length if encoded && span_counts
               encoded
             end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
-              payload = [encoder.join(chunk), chunk.size]
-              payload << span_counts.shift(chunk.size).sum if @telemetry
+              payload = [join(chunk), chunk.size]
+              payload << span_counts.shift(chunk.size).sum if span_counts
               payload
             end
           end
 
           private
 
+          def join(chunk)
+            encoder.join(chunk)
+          rescue
+            @telemetry&.serialization_failed
+            raise
+          end
+
           def encode_one(trace)
-            encoded = Encoder.encode_trace(
-              encoder,
-              trace,
-              logger: logger,
-              native_events_supported: @native_events_supported
-            )
+            encoded = begin
+              Encoder.encode_trace(
+                encoder,
+                trace,
+                logger: logger,
+                native_events_supported: @native_events_supported
+              )
+            rescue
+              @telemetry&.serialization_failed
+              raise
+            end
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
@@ -162,12 +174,13 @@ module Datadog
           end
 
           def send_traces(traces)
-            telemetry = @telemetry&.batch(traces)
             encoder = current_api.encoder
+            native_events_supported = native_events_supported?
+            telemetry = @telemetry&.batch(traces)
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
               logger: logger,
-              native_events_supported: native_events_supported?,
+              native_events_supported: native_events_supported,
               telemetry: telemetry,
             )
 
@@ -180,8 +193,6 @@ module Datadog
                 telemetry&.sent(request, response, trace_count, span_count, encoded_traces.bytesize, fallback: fallback)
                 if fallback
                   downgrade!
-                  # The recursive pass owns any subsequent serialization failure.
-                  telemetry = nil
                   return send_traces(traces)
                 end
               end
@@ -204,9 +215,6 @@ module Datadog
             Datadog.health_metrics.transport_chunked(responses.size)
 
             responses
-          rescue
-            telemetry&.serialization_failed
-            raise
           end
 
           def stats

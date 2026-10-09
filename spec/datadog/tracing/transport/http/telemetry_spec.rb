@@ -153,6 +153,50 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
     expect(count("trace_api.requests", ruby_tags)).to eq(0)
   end
 
+  it "does not report capability lookup failures as serialization failures" do
+    failure = RuntimeError.new("agent unavailable")
+    allow(transport).to receive(:native_events_supported?).and_raise(failure)
+
+    expect { transport.send_traces(traces) }.to raise_error { |error| expect(error).to equal(failure) }
+    expect(metrics).to eq([])
+  end
+
+  it "does not report request dispatch exceptions as serialization failures" do
+    failure = RuntimeError.new("dispatch failed")
+    allow(transport.client).to receive(:send_request).and_raise(failure)
+
+    expect { transport.send_traces(traces) }.to raise_error { |error| expect(error).to equal(failure) }
+    expect(count("spans_enqueued_for_serialization")).to eq(traces.sum(&:length))
+    expect(count("trace_chunks_dropped", ruby_tags("reason:serialization_error"))).to eq(0)
+    expect(count("spans_dropped", ["reason:serialization_error"])).to eq(0)
+  end
+
+  it "reports payload assembly failures during lazy enumeration" do
+    failure = ArgumentError.new("cannot join")
+    allow(transport.current_api.encoder).to receive(:join).and_raise(failure)
+
+    expect { transport.send_traces(traces) }.to raise_error { |error| expect(error).to equal(failure) }
+    expect(count("trace_chunks_dropped", ruby_tags("reason:serialization_error"))).to eq(2)
+    expect(count("spans_dropped", ["reason:serialization_error"])).to eq(traces.sum(&:length))
+    expect(count("trace_api.requests", ruby_tags)).to eq(0)
+  end
+
+  it "reports fallback serialization failures only once" do
+    stub_request(:post, v4).to_return(status: 404, body: "{}")
+    failure = ArgumentError.new("cannot encode fallback")
+    calls = 0
+    allow(Datadog::Tracing::Transport::Traces::Encoder).to receive(:encode_trace).and_wrap_original do |method, *args, **kwargs|
+      calls += 1
+      raise failure if calls > traces.length
+      method.call(*args, **kwargs)
+    end
+
+    expect { transport.send_traces(traces) }.to raise_error { |error| expect(error).to equal(failure) }
+    expect(count("trace_api.requests", ruby_tags)).to eq(1)
+    expect(count("trace_chunks_dropped", ruby_tags("reason:serialization_error"))).to eq(2)
+    expect(count("spans_dropped", ["reason:serialization_error"])).to eq(traces.sum(&:length))
+  end
+
   context "with split payloads" do
     before do
       stub_const("Datadog::Tracing::Transport::Traces::Chunker::DEFAULT_MAX_PAYLOAD_SIZE", 2)
@@ -205,11 +249,32 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
       Datadog::Core::Configuration::Settings.new.tap { |settings| settings.telemetry.metrics_enabled = false }
     end
 
-    it "does not report observations" do
+    it "does not build batch accounting or report observations" do
+      expect(described_class::Batch).not_to receive(:new)
       stub_request(:post, v4).to_return(status: 200, body: "{}")
       expect(transport.send_traces(traces).first.ok?).to be true
       expect(metrics).to eq([])
     end
+  end
+
+  it "skips batch accounting when the telemetry client is disabled" do
+    client.disable!
+    expect(described_class::Batch).not_to receive(:new)
+    stub_request(:post, v4).to_return(status: 200, body: "{}")
+
+    expect(transport.send_traces(traces).first.ok?).to be true
+    expect(metrics).to eq([])
+  end
+
+  it "stops batch accounting when metrics are disabled after binding" do
+    stub_request(:post, v4).to_return(status: 200, body: "{}")
+    expect(transport.send_traces(traces).first.ok?).to be true
+    client.metrics_manager.flush!
+    client.metrics_manager.disable!
+    expect(described_class::Batch).not_to receive(:new)
+
+    expect(transport.send_traces(traces).first.ok?).to be true
+    expect(metrics).to eq([])
   end
 
   it "does not label unexpected exceptions as network errors" do
@@ -236,6 +301,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
     replacement = Datadog::Core::Telemetry::Component.new(settings: settings, agent_settings: agent_settings, logger: logger, enabled: true)
     tracer = Datadog::Tracing::Tracer.new(writer: Datadog::Tracing::SyncWriter.new(transport: transport), logger: logger)
     begin
+      client.disable!
       Datadog::Tracing::Component.bind_transport_telemetry(tracer, replacement)
       client.shutdown!
       stub_request(:post, v4).to_return(status: 200, body: "{}")

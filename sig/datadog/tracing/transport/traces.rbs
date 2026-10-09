@@ -10,6 +10,10 @@ module Datadog
           def initialize: (String data, trace_count: Integer, **untyped) -> void
         end
         class Request < Datadog::Core::Transport::Request
+          interface _Response
+            def code: () -> Integer?
+          end
+
           @http_status: Integer?
 
           @capture_telemetry: bool
@@ -20,7 +24,7 @@ module Datadog
 
           def initialize: (?Core::Transport::Parcel? parcel) -> void
 
-          def capture_status: (untyped response) -> void
+          def capture_status: ((_Response & Object) response) -> void
         end
         module Response
           attr_reader service_rates: untyped
@@ -48,6 +52,8 @@ module Datadog
           def encode_in_chunks: (untyped traces) -> untyped
 
           private
+
+          def join: (Array[String] chunk) -> String
 
           def encode_one: (untyped trace) -> (nil | untyped)
         end
