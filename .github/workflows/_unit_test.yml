@@ -196,11 +196,12 @@ jobs:
         name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: bundle check || bundle install
-      - name: Build & Test
+      - &build-test
+        name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
-          container-id: "standard-${{ matrix.batch }}"
+          container-id: ${{ matrix.container-id }}
           cache-match: ${{ needs.batch.outputs.cache-match }}
 
   build-test-misc:
@@ -281,9 +282,4 @@ jobs:
       - *restore-bundle
       - *require-exact-matrix-cache
       - *install-core-dependencies
-      - name: Build & Test
-        uses: ./.github/actions/build-test
-        with:
-          alias: ${{ inputs.alias }}
-          container-id: "misc-${{ matrix.batch }}"
-          cache-match: ${{ needs.batch.outputs.cache-match }}
+      - *build-test
