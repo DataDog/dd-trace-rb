@@ -49,7 +49,8 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -178,20 +179,21 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
+      - *checkout
+      - &restore-bundle
+        name: Restore bundle cache
         id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
           key: ${{ needs.batch.outputs.cache-key }}
-      - name: Require exact matrix cache hit
+      - &require-exact-matrix-cache
+        name: Require exact matrix cache hit
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: |
           echo "::error::Expected an exact bundle cache hit." >&2
           exit 1
-      - name: Install core dependencies
+      - &install-core-dependencies
+        name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: bundle check || bundle install
       - name: Build & Test
@@ -275,22 +277,10 @@ jobs:
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        id: restore-bundle
-        uses: ./.github/actions/bundle-restore
-        with:
-          key: ${{ needs.batch.outputs.cache-key }}
-      - name: Require exact matrix cache hit
-        if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
-        run: |
-          echo "::error::Expected an exact bundle cache hit." >&2
-          exit 1
-      - name: Install core dependencies
-        if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
-        run: bundle check || bundle install
+      - *checkout
+      - *restore-bundle
+      - *require-exact-matrix-cache
+      - *install-core-dependencies
       - name: Build & Test
         uses: ./.github/actions/build-test
         with:
