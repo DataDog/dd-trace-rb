@@ -31,25 +31,13 @@ jobs:
           ruby-version: '3.4'
 
       - name: Download timing artifacts
-        run: |
-          set -eu
-          mkdir -p timings
-          run_ids="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Unit Tests" --branch master --status success --limit 5 --json databaseId --jq '.[].databaseId')"
-          for run_id in $run_ids; do
-            names="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name | startswith("timings-")) | .name')"
-            for name in $names; do
-              gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name "$name" --dir "timings/$run_id"
-            done
-          done
+        run: .github/scripts/download_timing_artifacts.sh timings
 
-      - name: Aggregate timings
-        run: |
-          rake -f tasks/github.rake "github:update_task_timings[$PWD/timings]"
-          mkdir -p tmp
-          cp tasks/ci_task_timings.json tmp/ci_task_timings.json
+      - name: Aggregate task weights
+        run: rake -f tasks/github.rake "github:update_task_timings[$PWD/timings]"
 
       - name: Save weights cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/ci_task_timings.json
-          key: ci-task-weights-${{ github.run_number }}-${{ github.run_attempt }}
+          key: spec-task-weights-${{ github.run_number }}-${{ github.run_attempt }}
