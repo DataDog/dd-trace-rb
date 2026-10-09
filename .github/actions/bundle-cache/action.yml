@@ -21,7 +21,7 @@ runs:
       env:
         IMAGE: ${{ inputs.image }}
       run: |
-        cache_key=$(ruby tasks/bundle_cache.rb core-key)
+        cache_key=$(ruby tasks/bundle_cache.rb core)
         echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
     - name: Restore cache
       id: restore-cache
