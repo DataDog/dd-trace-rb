@@ -34,7 +34,12 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   let(:agent_settings) { instance_double_agent_settings_with_stubs }
-  let(:logger) { instance_double(Logger) }
+  let(:logger) do
+        instance_double(Logger).tap do |logger|
+          # The DI component's metric emitter logs its construction at debug.
+          allow(logger).to receive(:debug)
+        end
+      end
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   let(:component) do
