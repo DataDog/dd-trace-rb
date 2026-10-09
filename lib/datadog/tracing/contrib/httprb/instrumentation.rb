@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../http"
 require_relative "../analytics"
 require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
 require_relative "../../../core/telemetry/logger"
 
 module Datadog
@@ -70,17 +71,22 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
+              uri = req.uri
+              path = uri&.path
               if req.verb&.is_a?(String) || req.verb.is_a?(Symbol)
                 http_method = req.verb.to_s.upcase
-                span.resource = http_method
+                span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                  http_method,
+                  path,
+                  enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+                )
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
               else
                 logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing request verb")
               end
 
-              if req.uri
-                uri = req.uri
-                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              if uri
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
