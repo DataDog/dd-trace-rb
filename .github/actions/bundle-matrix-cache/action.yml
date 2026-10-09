@@ -59,12 +59,12 @@ runs:
       if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       shell: bash
       run: bundle clean --force
-    - name: Prepare matrix dependencies
+    - name: Install matrix dependencies
       if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       shell: bash
       env:
         GEMFILES: ${{ inputs.gemfiles }}
-      run: bundle exec rake github:prepare_matrix_bundle
+      run: bundle exec rake github:install_matrix_dependencies
     - name: Save matrix cache
       if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

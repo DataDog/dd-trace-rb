@@ -93,7 +93,7 @@ namespace :github do
     install_bundle_gemfiles(tasks.map { |task| task.fetch("gemfile") })
   end
 
-  task :prepare_matrix_bundle do
+  task :install_matrix_dependencies do
     install_bundle_gemfiles(JSON.parse(ENV.fetch("GEMFILES"))).each do |gemfile|
       Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
