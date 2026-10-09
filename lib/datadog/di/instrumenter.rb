@@ -116,7 +116,8 @@ module Datadog
 
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+          settings: settings, serializer: serializer, logger: logger, guardrails_telemetry: guardrails_telemetry,
+          telemetry: telemetry,
         )
       end
 

@@ -3,15 +3,27 @@
 require_relative "capture_expression"
 require_relative "capture_limits"
 require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 require_relative "telemetry_namespace"
 
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      def initialize(settings:, serializer:, logger:, telemetry: nil)
+      # Initializes the evaluator with the settings, serializer, logger
+      # and telemetry components the capture expressions are evaluated
+      # against.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured expression values
+      # @param logger [DI::Logger] logger for evaluation failure diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation failures are reported through
+      # @return [void]
+      def initialize(settings:, serializer:, logger:, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
+        @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
       end
 
@@ -20,6 +32,10 @@ module Datadog
       attr_reader :serializer
 
       attr_reader :logger
+
+      # The guardrails skip-metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
 
       attr_reader :telemetry
 
@@ -45,6 +61,10 @@ module Datadog
           if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
+            guardrails_telemetry.skipped(
+              reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+              probe: probe,
+            )
             next
           end
 

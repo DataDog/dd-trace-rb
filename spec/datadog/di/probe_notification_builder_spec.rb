@@ -46,7 +46,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
-  let(:builder) { described_class.new(settings, serializer, logger, telemetry: telemetry) }
+  let(:builder) do
+    described_class.new(settings, serializer, logger,
+      guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
+        settings: settings, logger: logger, telemetry: telemetry,
+      ), telemetry: telemetry)
+  end
 
   let(:probe) do
     Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1)

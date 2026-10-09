@@ -357,6 +357,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     let(:probe_notification_builder) do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
+        guardrails_telemetry: guardrails_telemetry,
         telemetry: instance_double(Datadog::Core::Telemetry::Component).as_null_object,
       )
     end
