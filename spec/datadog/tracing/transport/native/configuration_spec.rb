@@ -62,6 +62,38 @@ RSpec.describe "Native transport configuration" do
         transport = writer.instance_variable_get(:@transport)
         expect(transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
       end
+
+      it "does not create a native worker for a custom writer" do
+        writer = double("custom writer")
+        settings.tracing.writer = writer
+        expect(Datadog::Tracing::Transport::Native::TraceExporter).not_to receive(:_native_new)
+        expect(build_writer).to eq(writer)
+      end
+
+      it "does not allocate a native runtime when tracing is disabled" do
+        settings.tracing.enabled = false
+        settings.telemetry.enabled = true
+        settings.telemetry.metrics_enabled = true
+        expect(Datadog::Tracing::Transport::Native::TraceExporter).not_to receive(:_native_new)
+        expect(build_writer).to be_a(Datadog::Tracing::Writer)
+      end
+
+      it "creates a native transport when tracing is enabled by reconfiguration" do
+        settings.tracing.enabled = false
+        build_writer
+
+        settings.tracing.enabled = true
+        expect(Datadog::Tracing::Transport::Native::TraceExporter).to receive(:_native_new).once.and_call_original
+        build_writer
+      end
+
+      it "preserves a custom transport without creating a native worker" do
+        transport = double("custom transport")
+        settings.tracing.writer_options = {transport: transport}
+        expect(Datadog::Tracing::Transport::Native::TraceExporter).not_to receive(:_native_new)
+        expect(Datadog::Tracing::Writer).to receive(:new).with(agent_settings: agent_settings, transport: transport).and_call_original
+        build_writer
+      end
     end
 
     context "when native_transport is true but native extension is unavailable" do
