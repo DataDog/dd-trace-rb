@@ -1,8 +1,0 @@
-module Datadog
-  module DataStreams
-    module Extensions
-      def self.activate!: () -> void
-    end
-  end
-end
-
