@@ -64,7 +64,7 @@ namespace :github do
     puts JSON.dump(data)
   end
 
-  # Runs without bundle exec, like generate_batches.
+  # Runs without bundle exec.
   task :generate_batch_summary do
     batches_json = ENV["batches_json"]
     raise "batches_json environment variable not set" unless batches_json
