@@ -9,7 +9,7 @@ CACHE_LOGIC_FILES = %w[
   .github/actions/bundle-matrix-cache/action.yml
   .github/actions/bundle-restore/action.yml
   tasks/github.rake
-  tasks/bundle_cache.rb
+  .github/scripts/bundle_cache.rb
 ].freeze
 
 def digest(identity)

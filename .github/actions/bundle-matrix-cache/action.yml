@@ -32,7 +32,7 @@ runs:
         IMAGE: ${{ inputs.image }}
         GEMFILES: ${{ inputs.gemfiles }}
       run: |
-        cache_key=$(ruby tasks/bundle_cache.rb matrix)
+        cache_key=$(ruby .github/scripts/bundle_cache.rb matrix)
         logic_prefix="${cache_key%-*}-"
         image_prefix="${cache_key%-*-*}-"
         {
