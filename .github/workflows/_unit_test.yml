@@ -188,8 +188,11 @@ jobs:
           key: ${{ needs.batch.outputs.cache-key }}
       - &report-matrix-cache-mismatch
         name: Report matrix cache restore mismatch
+        id: matrix-cache-mismatch
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
-        run: echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
+        run: |
+          echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
+          echo "cache-match=core" >> "$GITHUB_OUTPUT"
       - &install-core-dependencies
         name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
@@ -200,7 +203,7 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: ${{ matrix.container-id }}
-          cache-match: ${{ steps.restore-bundle.outputs.cache-outcome == 'exact' && needs.batch.outputs.cache-match || 'core' }}
+          cache-match: ${{ steps.matrix-cache-mismatch.outputs.cache-match || needs.batch.outputs.cache-match }}
 
   build-test-misc:
     needs:
