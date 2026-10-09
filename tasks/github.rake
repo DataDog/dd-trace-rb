@@ -187,10 +187,9 @@ namespace :github do
     gemfiles.reject! { |gemfile| File.expand_path(gemfile) == core_gemfile }
 
     gemfiles.each do |gemfile|
-      env = {"BUNDLE_GEMFILE" => gemfile}
       # Network failures can interrupt bundle installation.
       with_retry do
-        Bundler.with_original_env { sh(env, "bundle check || bundle install") }
+        Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check || bundle install") }
       end
     end
   end
