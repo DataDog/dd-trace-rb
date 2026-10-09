@@ -3,7 +3,7 @@ require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
-  # Runs without Bundler.
+  # Runs without bundle exec.
   task :generate_batches do
     matrix = eval(File.read("Matrixfile"), binding, "Matrixfile").freeze # rubocop:disable Security/Eval
 
@@ -64,7 +64,7 @@ namespace :github do
     puts JSON.dump(data)
   end
 
-  # Runs without Bundler, like generate_batches.
+  # Runs without bundle exec, like generate_batches.
   task :generate_batch_summary do
     batches_json = ENV["batches_json"]
     raise "batches_json environment variable not set" unless batches_json
