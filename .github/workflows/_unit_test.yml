@@ -39,8 +39,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: batch
     outputs:
-      batches: "${{ steps.set-batches.outputs.batches }}"
-      misc: "${{ steps.set-batches.outputs.misc }}"
+      data: "${{ steps.set-batches.outputs.data }}"
       cache-key: "${{ steps.bundle-matrix-cache.outputs.cache-key }}"
       cache-match: "${{ steps.bundle-matrix-cache.outputs.cache-match }}"
     container:
@@ -60,19 +59,11 @@ jobs:
           data=$(rake -f tasks/github.rake github:generate_batches)
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
-          batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
-          misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
-          gemfiles_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["gemfiles"].to_json')
-
-          {
-            echo "batches=$batches_data"
-            echo "misc=$misc_data"
-            echo "gemfiles=$gemfiles_data"
-          } >> "$GITHUB_OUTPUT"
+          echo "data=$data" >> "$GITHUB_OUTPUT"
 
       - name: Generate batch summary
         env:
-          batches_json: "${{ steps.set-batches.outputs.batches }}"
+          batches_json: "${{ toJSON(fromJSON(steps.set-batches.outputs.data).batches) }}"
         run: rake -f tasks/github.rake github:generate_batch_summary
 
       - name: Prepare matrix bundle
@@ -80,7 +71,7 @@ jobs:
         uses: ./.github/actions/bundle-matrix-cache
         with:
           image: *engine-image
-          gemfiles: ${{ steps.set-batches.outputs.gemfiles }}
+          gemfiles: ${{ toJSON(fromJSON(steps.set-batches.outputs.data).gemfiles) }}
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -114,8 +105,7 @@ jobs:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.batch.outputs.batches).include }}"
+      matrix: ${{ fromJSON(needs.batch.outputs.data).batches }}
     container:
       image: *engine-image
       env:
@@ -217,8 +207,7 @@ jobs:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.batch.outputs.misc).include }}"
+      matrix: ${{ fromJSON(needs.batch.outputs.data).misc }}
     container:
       image: *engine-image
       env:
