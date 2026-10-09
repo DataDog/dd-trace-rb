@@ -139,6 +139,8 @@ end
 
 have_func "malloc_stats"
 
+$defs << "-DHAVE_ZJIT_FRAME" if RUBY_VERSION >= "4.1"
+
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
