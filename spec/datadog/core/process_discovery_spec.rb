@@ -254,7 +254,23 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         "container.id" => "test-container-id"
       )
 
-      expect(extra_attributes).to eq("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
+      expect(extra_attributes).to include("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)
+    end
+
+    it "publishes threadlocal discovery metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
+      Datadog.configure do |config|
+        config.tracing.otel_thread_context_enabled = true
+      end
+
+      keys = process_context.extra_attributes.map(&:key)
+      expect(keys).to include("threadlocal.schema_version").once
+      expect(keys).to include("threadlocal.attribute_key_map").once
+
+      values = process_context.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
+      expect(values.fetch("threadlocal.schema_version").string_value).to eq("tlsdesc_v1_dev")
+      expect(
+        values.fetch("threadlocal.attribute_key_map").array_value.values.map(&:string_value)
+      ).to eq(["datadog.local_root_span_id"])
     end
 
     context "when app uses fork" do

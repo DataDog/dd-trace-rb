@@ -26,7 +26,7 @@
 
 static ID fiber_context_slot;
 
-DDTRACE_UNUSED static bool otel_context_enabled = false;
+static bool otel_context_enabled = false;
 
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
 static VALUE native_clear(VALUE _self);
@@ -46,6 +46,10 @@ void otel_thread_context_init(VALUE tracing_module) {
 
   VALUE testing_module = rb_define_module_under(otel_thread_context_class, "Testing");
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
+}
+
+bool otel_thread_context_was_enabled(void) {
+  return otel_context_enabled;
 }
 
 #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
