@@ -86,6 +86,7 @@ require "datadog"
 # currently integrated into the Ruby tracer due to being under development.
 require "datadog/di"
 require "datadog/di/logger"
+require "datadog/di/correlation_sampler"
 require "datadog/di/proc_responder"
 
 class DIInstrumentBenchmark
@@ -157,7 +158,7 @@ class DIInstrumentBenchmark
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
-      code_tracker: Datadog::DI.code_tracker)
+      code_tracker: Datadog::DI.code_tracker, correlation_sampler: Datadog::DI::CorrelationSampler.new,)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

@@ -13,6 +13,8 @@ module Datadog
 
       @serializer: Serializer
 
+      @correlation_sampler: CorrelationSampler
+
       @instrumenter: Instrumenter
 
       @code_tracker: CodeTracker?
@@ -25,7 +27,7 @@ module Datadog
 
       @probe_manager: ProbeManager
 
-      @lifecycle_mutex: ::Thread::Mutex
+      @lifecycle_mutex: Thread::Mutex
 
       @started: bool
 
@@ -44,6 +46,8 @@ module Datadog
       attr_reader telemetry: Core::Telemetry::Component?
 
       attr_reader code_tracker: CodeTracker?
+
+      attr_reader correlation_sampler: CorrelationSampler
 
       attr_reader instrumenter: Instrumenter
 

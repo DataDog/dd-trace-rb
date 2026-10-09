@@ -379,6 +379,8 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          # Per-process identity, distinguishing snapshots before and after a
+          # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
@@ -434,10 +436,12 @@ module Datadog
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
       end
 
+      # Returns the active APM trace supplying the snapshot's trace id,
+      # or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceSegment, nil]
       def active_trace
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_trace
-        end
+        Datadog::DI.active_trace
       end
 
       def active_span

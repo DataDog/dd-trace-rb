@@ -1,0 +1,55 @@
+module Datadog
+  module DI
+    class CorrelationSampler
+      DEFAULT_MAX_ENTRIES: ::Integer
+
+      TOP_RATE: ::Integer
+
+      GLOBAL_RATE: ::Integer
+
+      PER_PROBE_BUDGET: ::Integer
+
+      ALL_BUDGET: ::Integer
+
+      @per_probe_budget: ::Integer
+
+      @all_budget: ::Integer
+
+      @lock: Thread::Mutex
+
+      @trace_budgets: TraceBudgetLedger
+
+      @top_limiter: Core::TokenBucket
+
+      @global_limiter: Core::BorrowingTokenBucket
+
+      def initialize: (?max_entries: ::Integer, ?top_rate: (::Float | ::Integer), ?global_rate: (::Float | ::Integer), ?per_probe_budget: ::Integer, ?all_budget: ::Integer) -> void
+
+      def emit?: (Probe probe, ::Integer? trace_id) -> bool
+
+      private
+
+      attr_reader lock: Thread::Mutex
+
+      attr_reader trace_budgets: TraceBudgetLedger
+
+      attr_reader top_limiter: Core::TokenBucket
+
+      attr_reader global_limiter: Core::BorrowingTokenBucket
+
+      attr_reader per_probe_budget: ::Integer
+
+      attr_reader all_budget: ::Integer
+
+      def emit_uncorrelated?: (Probe probe) -> bool
+
+      def touch_budget: (::Integer key) -> TraceBudget?
+
+      def emit_top?: (::Integer key, Probe probe) -> bool
+
+      def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
+
+      def store: (::Integer key, TraceBudget budget) -> void
+    end
+  end
+end

@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
+require "datadog/di/correlation_sampler"
 require "spec_helper"
 require "logger"
 
@@ -339,7 +340,7 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:instrumenter) do
-        Datadog::DI::Instrumenter.new(settings, serializer, logger)
+        Datadog::DI::Instrumenter.new(settings, serializer, logger, correlation_sampler: Datadog::DI::CorrelationSampler.new)
       end
 
       let(:probe_notification_builder) do

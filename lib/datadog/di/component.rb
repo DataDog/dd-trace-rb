@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "correlation_sampler"
 require_relative "fatal_exceptions"
 
 module Datadog
@@ -74,7 +75,8 @@ module Datadog
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+        @correlation_sampler = CorrelationSampler.new
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, correlation_sampler: correlation_sampler, telemetry: telemetry)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
@@ -93,6 +95,8 @@ module Datadog
         # cannot race a foreground start! with a background stop!.
         @lifecycle_mutex = Mutex.new
         @started = false
+
+        nil # standard:disable Lint/Void
       end
 
       attr_reader :settings
@@ -100,6 +104,9 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      # Coordinated sampling gate for capturing probe hits.
+      # @return [Datadog::DI::CorrelationSampler]
+      attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker
