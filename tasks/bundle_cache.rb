@@ -3,7 +3,7 @@ require "bundler"
 require "digest"
 require "json"
 
-# Partial restores may reuse older logic; bump CACHE_VERSION for incompatible cache layouts.
+# Changing these might affect caching output
 CACHE_LOGIC_FILES = %w[
   .github/actions/bundle-cache/action.yml
   .github/actions/bundle-matrix-cache/action.yml
