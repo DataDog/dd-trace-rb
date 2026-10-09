@@ -437,10 +437,9 @@
     ],
     "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
-        "__comment": "Default is true on CRuby 4.0.0 and later",
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [

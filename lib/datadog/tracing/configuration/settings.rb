@@ -2,7 +2,6 @@
 
 require_relative "../../tracing/configuration/ext"
 require_relative "../../core/environment/variable_helpers"
-require_relative "../../ruby_version"
 require_relative "../contrib/status_range_matcher"
 require_relative "../contrib/status_range_env_parser"
 require_relative "http"
@@ -490,18 +489,18 @@ module Datadog
               end
 
               # Use the native trace transport (Rust via C FFI) instead of
-              # the default pure-Ruby HTTP transport.
+              # the pure-Ruby HTTP transport.
               #
               # The native transport delegates serialization, stats
               # computation, and HTTP sending to the Rust data pipeline.
               #
               # This option is recommended for internal use only.
               #
-              # @default `true` on CRuby 4.0.0 and later, otherwise `false`
+              # @default `true`
               # @return [Boolean]
               option :native_transport do |o|
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
-                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.0") }
+                o.default true
                 o.type :bool
               end
 
