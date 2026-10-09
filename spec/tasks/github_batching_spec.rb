@@ -60,20 +60,36 @@ RSpec.describe GithubBatching do
       }
     end
 
-    it "uses the fetched remote weights" do
-      allow(described_class).to receive(:fetch_weights).and_return(weights("3.1", 42))
+    it "reads estimates from the weights file" do
+      Dir.mktmpdir do |directory|
+        path = File.join(directory, "weights.json")
+        File.write(path, JSON.dump(weights("3.1", 42)))
 
-      estimates = described_class.timing_estimates("3.1")
+        estimates = described_class.timing_estimates("3.1", path: path)
 
-      expect(estimates[:tasks]).to eq(["main", ""] => 42)
+        expect(estimates[:tasks]).to eq(["main", ""] => 42)
+      end
     end
 
-    it "returns empty estimates when the fetch fails so tasks use fallback durations" do
-      allow(described_class).to receive(:fetch_weights).and_return(nil)
+    it "returns empty estimates when the weights file is missing so tasks use fallback durations" do
+      Dir.mktmpdir do |directory|
+        path = File.join(directory, "missing.json")
 
-      estimates = described_class.timing_estimates("3.1")
+        estimates = described_class.timing_estimates("3.1", path: path)
 
-      expect(estimates).to eq(tasks: {}, gemfiles: {})
+        expect(estimates).to eq(tasks: {}, gemfiles: {})
+      end
+    end
+
+    it "returns empty estimates when the weights file is invalid" do
+      Dir.mktmpdir do |directory|
+        path = File.join(directory, "weights.json")
+        File.write(path, "not json")
+
+        estimates = described_class.timing_estimates("3.1", path: path)
+
+        expect(estimates).to eq(tasks: {}, gemfiles: {})
+      end
     end
   end
 
