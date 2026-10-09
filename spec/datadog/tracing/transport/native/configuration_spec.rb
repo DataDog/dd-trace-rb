@@ -54,8 +54,10 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
-    context "when native_transport is not explicitly configured" do
+    context "outside the rollout version without an explicit setting" do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      before { stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.4.6")) }
 
       around do |example|
         ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
@@ -123,6 +125,32 @@ RSpec.describe "Native transport configuration" do
       end
     end
 
+    context "on CRuby 4.0.0 without an explicit setting" do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      around do |example|
+        ClimateControl.modify("DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED" => nil) { example.run }
+      end
+
+      before do
+        stub_const("RUBY_ENGINE", "ruby")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("4.0.0"))
+      end
+
+      it "selects the native transport by default" do
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
+      end
+
+      context "when the native extension is unavailable" do
+        before { allow(Datadog::Tracing::Transport::Native).to receive(:supported?).and_return(false) }
+
+        it "falls back to the Ruby HTTP transport" do
+          expect(logger).to receive(:warn).with(/not available/)
+          expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Traces::Transport)
+        end
+      end
+    end
+
     context "when native_transport is true but native extension is unavailable" do
       let(:native_transport_enabled) { true }
 
@@ -141,7 +169,8 @@ RSpec.describe "Native transport configuration" do
   end
 
   describe "settings" do
-    it "has native_transport defaulting to false" do
+    it "defaults native_transport to false outside the rollout version" do
+      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.4.6"))
       settings = Datadog::Core::Configuration::Settings.new
       expect(settings.tracing.native_transport).to be false
     end
