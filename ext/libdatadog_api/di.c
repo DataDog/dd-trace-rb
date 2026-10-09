@@ -21,10 +21,11 @@ void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
     void *data);
 
-// The mask is unchanged between Ruby 2.5 and 4.1-dev, but the `enum imemo_type` values do get
-// renumbered from time to time (e.g. Ruby 4.0 moved imemo_callinfo from 11 to 10), and 4.1-dev already uses all
-// 16 values the mask allows. Thus IMEMO_TYPE_ISEQ must be re-checked when adding support for a new Ruby.
-#define IMEMO_MASK 0x0f
+#ifdef HAVE_SHIFTED_IMEMO_MASK // Ruby 4.1+
+  #define IMEMO_MASK (FL_USER0 | FL_USER1 | FL_USER2 | FL_USER3 | FL_USER4)
+#else
+  #define IMEMO_MASK 0x0f
+#endif
 #define IMEMO_TYPE_ISEQ 7
 
 // The ID value of the string "mesg" which is used in Ruby source as
@@ -41,7 +42,11 @@ static ID id_datadog_di_in_probe;
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
 // The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
 static inline int ddtrace_imemo_type(VALUE imemo) {
-  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+  #ifdef HAVE_SHIFTED_IMEMO_MASK // Ruby 4.1+
+    return (RBASIC(imemo)->flags & IMEMO_MASK) >> FL_USHIFT;
+  #else
+    return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+  #endif
 }
 
 // Returns whether the argument is an IMEMO of type ISEQ.
