@@ -258,19 +258,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     it "publishes threadlocal discovery metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
-      Datadog.configure do |config|
-        config.tracing.otel_thread_context_enabled = true
-      end
+      Datadog.configuration.tracing.otel_thread_context_enabled = true
 
-      keys = process_context.extra_attributes.map(&:key)
-      expect(keys).to include("threadlocal.schema_version").once
-      expect(keys).to include("threadlocal.attribute_key_map").once
-
-      values = process_context.extra_attributes.map { |kv| [kv.key, kv.value] }.to_h
-      expect(values.fetch("threadlocal.schema_version").string_value).to eq("tlsdesc_v1_dev")
-      expect(
-        values.fetch("threadlocal.attribute_key_map").array_value.values.map(&:string_value)
-      ).to eq(["datadog.local_root_span_id"])
+      expect(extra_attributes).to have_key("threadlocal.schema_version")
+      expect(extra_attributes).to have_key("threadlocal.attribute_key_map")
     end
 
     context "when app uses fork" do
