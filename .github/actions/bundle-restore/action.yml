@@ -4,14 +4,14 @@ description: 'Restores bundle cache for GitHub Actions'
 
 inputs:
   key:
-    description: 'Cache key for bundle'
+    description: 'Cache key'
     required: true
   restore-keys:
     description: 'Ordered fallback key prefixes'
     required: false
     default: ''
   lookup-only:
-    description: 'Check availability without downloading the bundle'
+    description: 'Find matching cache without the downloading cached content'
     required: false
     default: 'false'
 
@@ -20,7 +20,7 @@ outputs:
     description: 'Matched cache key, or empty on a miss'
     value: ${{ steps.restore-cache.outputs.cache-matched-key }}
   cache-outcome:
-    description: 'Cache lookup or restore outcome, exact, partial, or miss'
+    description: 'Cache lookup or restore matching precision: exact, partial, or miss'
     value: >-
       ${{ steps.restore-cache.outputs.cache-hit == 'true' && 'exact'
           || (steps.restore-cache.outputs.cache-matched-key != '' && 'partial' || 'miss') }}
