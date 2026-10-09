@@ -382,8 +382,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             raise StandardError, "Test Ruby unhandled exception"
           end
 
-          # Errors intake sends 2 messages, telemetry sends 2 messages
-          expect(messages.length).to eq(4)
+          paths = messages.select { |message| message.request_method == "POST" }.map(&:path)
+          expect(paths.count("/evp_proxy/v4/api/v2/errorsintake")).to eq(2)
+          expect(paths.count("/telemetry/proxy/api/v2/apmtelemetry")).to eq(2)
         end
       end
 
