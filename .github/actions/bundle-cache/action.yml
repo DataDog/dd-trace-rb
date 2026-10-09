@@ -1,6 +1,6 @@
 name: 'Prepare bundle cache'
 
-description: Restore or install the core bundle and save its cache only on master
+description: 'Sets up bundle cache for GitHub Actions'
 
 inputs:
   image:

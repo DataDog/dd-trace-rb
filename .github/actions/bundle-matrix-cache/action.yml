@@ -1,6 +1,6 @@
 name: Prepare matrix bundle
 
-description: Select a complete matrix cache or prepare its core fallback, populating the matrix only on master
+description: 'Sets up bundle cache for matrix tests'
 
 inputs:
   image:
