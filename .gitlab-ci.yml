@@ -184,19 +184,34 @@ requirements_json_test:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
 
-configure_system_tests:
-  # The needs list re-declares the upstream jobs from the one-pipeline template
-  # (version pinned in .gitlab/one-pipeline.locked.yml) plus compute-changes;
-  # review it on every template bump.
-  needs: ["kubernetes-injection-test-ecr-publish", "oci-internal-test-publish", "compute-changes"]
-  rules:
+# Rules for the SSI shared pipeline. configure_system_tests and system_tests
+# must always be included or excluded together: system_tests needs
+# configure_system_tests, and needing a job absent from the pipeline fails
+# pipeline creation.
+.ssi_pipeline_rules:
+  rules: &ssi_pipeline_rules
     - if: $SKIP_SHARED_PIPELINE == "true"
       when: never
     - if: $DANGEROUSLY_SKIP_SHARED_PIPELINE_TESTS == "true"
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $RUN_SSI == "true"
+    - if: '$CI_COMMIT_TAG'
+    - changes:
+        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
+        paths:
+          - lib/**
+          - ext/**
+          - datadog.gemspec
+          - Gemfile.lock
+          - .gitlab-ci.yml
+          - .gitlab/install_datadog_deps.rb
+          - .gitlab/prepare-oci-package.sh
+          - .gitlab/one-pipeline.locked.yml
+          - lib-injection/requirements.json
     - when: never
+
+configure_system_tests:
+  rules: *ssi_pipeline_rules
   variables:
     SYSTEM_TESTS_REF: d981c2704a83a08853a50f2824ae9f219e740f7e # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
@@ -214,40 +229,8 @@ save_versions:
     paths:
       - upstream.env
 
-compute-changes:
-  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
-  stage: package
-  needs: []
-  script:
-    - |
-      set -eu
-      emit() { echo "RUN_SSI=$1" | tee changes.env; exit 0; }
-
-      # Fail open: any condition we cannot compute means run the SSI pipeline.
-      case "${CI_PIPELINE_SOURCE:-}" in
-        push | merge_request_event) ;;
-        *) emit true ;;
-      esac
-      if [ -n "${CI_COMMIT_TAG:-}" ] || [ "${CI_COMMIT_BRANCH:-}" = "$CI_DEFAULT_BRANCH" ]; then
-        emit true
-      fi
-
-      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
-        git fetch -q origin "$CI_MERGE_REQUEST_DIFF_BASE_SHA" || emit true
-        BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
-      else
-        git fetch -q origin master || emit true
-        BASE=$(git merge-base origin/master "$CI_COMMIT_SHA" 2>/dev/null || echo origin/master)
-      fi
-
-      echo "diff base: $BASE"
-      if git diff --name-only "$BASE" "$CI_COMMIT_SHA" | grep -qE '^(lib/|ext/|datadog\.gemspec$|Gemfile\.lock$|\.gitlab-ci\.yml$)'; then
-        emit true
-      fi
-      emit false
-  artifacts:
-    reports:
-      dotenv: changes.env
+system_tests:
+  rules: *ssi_pipeline_rules
 
 deploy_to_reliability_env:
   needs:
