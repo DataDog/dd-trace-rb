@@ -159,7 +159,9 @@ typedef struct {
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
   bool during_sample;
-  // Used from the signal handler to ask for a sample at the end of GC
+  // Used from the signal handler to ask for a sample at the end of GC.
+  // The GC_EXIT event is emitted by the thread that had the GVL + was doing GC, e.g. Ruby won't switch threads between
+  // this flag getting set in the signal handler and the GC_EXIT event.
   bool prepare_sample_on_gc_finish;
 
   #ifndef NO_GVL_INSTRUMENTATION

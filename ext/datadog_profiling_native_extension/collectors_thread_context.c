@@ -42,6 +42,7 @@
 //
 // When `thread_context_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
 // context: `cpu_time_at_gc_start_ns` and `wall_time_at_gc_start_ns`.
+// (Ruby won't switch threads during GC, so `gc_start` and `gc_finish` will happen on the same thread)
 //
 // While `cpu_time_at_gc_start_ns` is set, we don't expect the thread to be sampled: the VM is doing GC
 // on the thread holding the GVL so no other samples can/will be triggered until GC finishes.
