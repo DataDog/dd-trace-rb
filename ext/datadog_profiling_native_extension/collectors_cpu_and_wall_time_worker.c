@@ -1035,7 +1035,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // If we stopped sampling due to an exception, re-raise it (now in the worker thread)
   if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
 
-  thread_context_collector_profiler_internal_thread_done(state->thread_context_collector_instance);
+  _native_profiler_internal_thread_done(instance);
 
   return Qnil;
 }
