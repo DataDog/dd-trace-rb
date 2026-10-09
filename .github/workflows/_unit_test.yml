@@ -186,9 +186,9 @@ jobs:
         uses: ./.github/actions/bundle-restore
         with:
           key: ${{ needs.batch.outputs.cache-key }}
-      - &report-matrix-cache-mismatch
-        name: Report matrix cache restore mismatch
-        id: matrix-cache-mismatch
+      - &require-exact-matrix-cache
+        name: Require exact matrix cache hit
+        id: require-exact-matrix-cache
         if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: |
           echo "::warning::Matrix cache restore mismatch; rebuilding dependencies locally."
@@ -205,7 +205,7 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: ${{ matrix.container-id }}
-          cache-match: ${{ steps.matrix-cache-mismatch.outputs.cache-match || needs.batch.outputs.cache-match }}
+          cache-match: ${{ steps.require-exact-matrix-cache.outputs.cache-match || needs.batch.outputs.cache-match }}
 
   build-test-misc:
     needs:
@@ -283,6 +283,6 @@ jobs:
     steps:
       - *checkout
       - *restore-bundle
-      - *report-matrix-cache-mismatch
+      - *require-exact-matrix-cache
       - *install-core-dependencies
       - *build-test
