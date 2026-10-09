@@ -184,7 +184,34 @@ requirements_json_test:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
 
+# Rules for the SSI shared pipeline. configure_system_tests and system_tests
+# must always be included or excluded together: system_tests needs
+# configure_system_tests, and needing a job absent from the pipeline fails
+# pipeline creation.
+.ssi_pipeline_rules:
+  rules: &ssi_pipeline_rules
+    - if: $SKIP_SHARED_PIPELINE == "true"
+      when: never
+    - if: $DANGEROUSLY_SKIP_SHARED_PIPELINE_TESTS == "true"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: '$CI_COMMIT_TAG'
+    - changes:
+        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
+        paths:
+          - lib/**
+          - ext/**
+          - datadog.gemspec
+          - Gemfile.lock
+          - .gitlab-ci.yml
+          - .gitlab/install_datadog_deps.rb
+          - .gitlab/prepare-oci-package.sh
+          - .gitlab/one-pipeline.locked.yml
+          - lib-injection/requirements.json
+    - when: never
+
 configure_system_tests:
+  rules: *ssi_pipeline_rules
   variables:
     SYSTEM_TESTS_REF: d981c2704a83a08853a50f2824ae9f219e740f7e # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
@@ -201,6 +228,9 @@ save_versions:
   artifacts:
     paths:
       - upstream.env
+
+system_tests:
+  rules: *ssi_pipeline_rules
 
 deploy_to_reliability_env:
   needs:
