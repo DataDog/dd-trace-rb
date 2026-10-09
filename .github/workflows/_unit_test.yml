@@ -61,6 +61,28 @@ jobs:
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
+      - name: Restore task weights
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/ci_task_timings.json
+          key: spec-task-weights-exact
+          restore-keys: |
+            spec-task-weights-
+
+      # TEMPORARY: source weights from the old repository until the daily
+      # weights job saves the first Actions cache. The file guard keeps the
+      # cache authoritative once it exists. Remove this step once the cache
+      # holds real timings.
+      - name: Fetch task weights
+        env:
+          WEIGHTS_URL: https://raw.githubusercontent.com/TonyCTHsu/dd-test-weights/main/ci_task_timings.json
+        run: |
+          if [ ! -f tmp/ci_task_timings.json ]; then
+            mkdir -p tmp
+            curl -fsSL "$WEIGHTS_URL" -o tmp/ci_task_timings.json
+            ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'
+          fi
+
       - id: set-batches
         name: Distribute tasks into batches
         run: |
@@ -235,7 +257,7 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: "true"
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       elasticsearch:
-        image: elasticsearch:8.19.11
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.19.11
         env:
           discovery.type: single-node
           xpack.security.enabled: "false"

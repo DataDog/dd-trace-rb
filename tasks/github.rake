@@ -1,200 +1,51 @@
+# frozen_string_literal: true
+
 require "json"
-require_relative "appraisal_conversion"
+require_relative "lib/test_batching"
 
-# rubocop:disable Metrics/BlockLength
+# Each task is one step of the Unit Tests / Update Task Weights workflows,
+# which own the pipeline's orchestration.
+
 namespace :github do
+  desc "Emit the batched task matrix as JSON (Unit Tests batch job)"
   task :generate_batches do
-    matrix = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
-
-    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
-    misc_candidates = [
-      "mongodb",
-      "elasticsearch",
-      "opensearch",
-      "presto",
-      "dalli",
-    ]
-
+    matrix = TestBatching::TaskMatrix.new(eval(File.read("Matrixfile")).freeze) # rubocop:disable Security/Eval
     ruby_version = RUBY_VERSION[0..2]
 
-    matching_tasks = []
-    misc_tasks = []
-
-    matrix.each do |key, spec_metadata|
-      spec_metadata.each do |group, rubies|
-        matched = rubies.include?("✅ #{ruby_version}")
-
-        next unless matched
-
-        gemfile = begin
-          AppraisalConversion.to_bundle_gemfile(group)
-        rescue
-          AppraisalConversion.parent_gemfile
-        end
-
-        task = {task: key, group: group, gemfile: gemfile}
-
-        if misc_candidates.include?(key)
-          misc_tasks << task
-        else
-          matching_tasks << task
-        end
+    # Weighted batching turns itself on once the scheduled Update Task Weights
+    # workflow has saved a manifest into the cache. Until then keep master's
+    # static even-split batching, byte-identical to today.
+    weights = TestBatching::ManifestStore.load
+    strategy =
+      if weights.empty?
+        TestBatching::Static.new
+      else
+        TestBatching::Weighted.new(weights.for_ruby(ruby_version))
       end
-    end
 
-    # Seed
-    batch_count = 7
-
-    tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
-
-    batched_matrix = {"include" => []}
-
-    matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
-    end
-
-    data = {
-      batches: batched_matrix,
-      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
-    }
-
-    # Output the JSON
-    puts JSON.dump(data)
+    puts strategy.plan(matrix, ruby_version).to_json
   end
 
+  desc "Append the batch matrix to the job's step summary"
   task :generate_batch_summary do
-    batches_json = ENV["batches_json"]
-    raise "batches_json environment variable not set" unless batches_json
-
-    data = JSON.parse(batches_json)
-    summary = ENV["GITHUB_STEP_SUMMARY"]
-
-    File.open(summary, "a") do |f|
-      data["include"].each do |batch|
-        rows = batch["tasks"].map do |t|
-          "* #{t["task"]} (#{t["group"]})"
-        end
-
-        f.puts <<~SUMMARY
-          <details>
-          <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks)</summary>
-
-          #{rows.join("\n")}
-          </details>
-        SUMMARY
-      end
-    end
+    TestBatching::Runner.write_batch_summary(ENV["batches_json"])
   end
 
+  desc "Aggregate a directory of downloaded timing artifacts into the weights manifest"
+  task :update_task_timings, [:directory] do |_, args|
+    directory = args[:directory]
+    raise "timings directory not provided" if directory.to_s.empty?
+
+    TestBatching::ManifestStore.update_from(directory)
+  end
+
+  desc "Run the build steps of one batch and record the Gemfile setup durations"
   task :run_batch_build do
-    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
-
-    tasks.each do |task|
-      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
-      cmd = "bundle check || bundle install"
-      # Retry mechanism to improve reliability in Github Actions,
-      # since network issues can cause `bundle install` to fail.
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      end
-    end
+    TestBatching::Runner.build(JSON.parse(ENV["BATCHED_TASKS"] || {}))
   end
 
+  desc "Run the test steps of one batch and record the task durations"
   task :run_batch_tests do
-    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
-
-    rng = Random.new(ENV["CI_TEST_SEED"].to_i)
-
-    durations = tasks.map do |task|
-      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
-      cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
-
-      junit_files_before = Dir["tmp/rspec/*.xml"]
-
-      begin
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      rescue RuntimeError
-        raise annotate_test_failures(env, cmd)
-      end
-
-      junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
-
-      [task["task"], junit_files_after.sum { |file| junit_suite_time(file) }]
-    end
-
-    report_task_durations(durations)
-  end
-
-  def annotate_test_failures(env, cmd)
-    env_prefix = env.map { |k, v| "#{k}=#{v}" }.join(" ")
-    repro_command = "#{env_prefix} #{cmd}"
-
-    file = ENV.fetch("RSPEC_FAILURES_FILE", "tmp/rspec/failures.txt")
-    return "RSpec failure" unless File.exist?(file)
-
-    content = File.read(file)
-    return "RSpec failure" if content.strip.empty?
-
-    # GitHub Actions truncates large annotations in the UI; above this size,
-    # fall back to failed example titles only.
-    annotation_size_threshold = 4096
-
-    title = escape_annotation("RSpec failure: #{repro_command}")
-
-    summary = if content.bytesize <= annotation_size_threshold
-      content
-    else
-      content[/^Failed examples:.*/m] || content
-    end
-
-    body = "#{title}\n\n#{summary}"
-    puts "::error title=#{title}::#{escape_annotation(body)}"
-    body
-  end
-
-  def escape_annotation(text)
-    text.gsub("%", "%25").gsub("\r", "%0D").gsub("\n", "%0A")
-  end
-
-  def junit_suite_time(file)
-    File.read(file)[/<testsuite\b[^>]*\btime="([\d.]+)"/, 1].to_f
-  rescue Errno::ENOENT
-    0.0
-  end
-
-  def report_task_durations(durations)
-    summary = ENV["GITHUB_STEP_SUMMARY"]
-    return if summary.to_s.empty?
-
-    rows = durations.map { |(task, time)| "| #{task} | #{time.round(1)}s |" }
-
-    File.open(summary, "a") do |f|
-      f.puts <<~SUMMARY
-        <details>
-        <summary>Task durations</summary>
-
-        | Task | Duration |
-        | --- | --- |
-        #{rows.join("\n")}
-        </details>
-      SUMMARY
-    end
-  end
-
-  def with_retry(&block)
-    retries = 0
-    begin
-      yield
-    rescue => e
-      rake_output_message(
-        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-        Source:\n#{Array(e.backtrace).join("\n")}"
-      )
-      sleep(2**retries)
-      retries += 1
-      retry if retries < 3
-      raise
-    end
+    TestBatching::Runner.tests(JSON.parse(ENV["BATCHED_TASKS"] || {}))
   end
 end
-# rubocop:enable Metrics/BlockLength
