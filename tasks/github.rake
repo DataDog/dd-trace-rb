@@ -89,8 +89,7 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV["BATCHED_TASKS"])
-    install_bundle_gemfiles(tasks.map { |task| task.fetch("gemfile") })
+    install_bundle_gemfiles(JSON.parse(ENV["BATCHED_TASKS"]).map { |task| task.fetch("gemfile") })
   end
 
   task :install_matrix_dependencies do
