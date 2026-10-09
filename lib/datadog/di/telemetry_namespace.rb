@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
-# Defined in this leaf file rather than datadog/di.rb (the module's home)
-# because the emitter files that reference it are loaded by direct requires
-# whose chains never reach datadog/di.rb. One definition keeps the literal
-# from drifting between emitters.
-
 module Datadog
   module DI
+    # The namespace string under which the DI telemetry metrics are
+    # emitted. The emitter files that use the namespace are loaded by
+    # direct requires whose chains can skip datadog/di.rb, so the
+    # constant lives in this leaf file that every emitter requires.
     TELEMETRY_NAMESPACE = "dynamic_instrumentation"
   end
 end

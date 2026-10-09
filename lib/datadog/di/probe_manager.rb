@@ -19,6 +19,19 @@ module Datadog
     #
     # @api private
     class ProbeManager
+      # Initializes the probe manager with its settings, instrumenter,
+      # notification builder, worker, logger, repository and telemetry
+      # components, installing the class-definition trace point.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param instrumenter [Instrumenter] instrumenter that executes installed probes
+      # @param probe_notification_builder [ProbeNotificationBuilder] builder for status and snapshot payloads
+      # @param probe_notifier_worker [ProbeNotifierWorker] worker that sends the built payloads
+      # @param logger [DI::Logger] logger for probe manager diagnostics
+      # @param probe_repository [ProbeRepository] repository of installed probes
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical condition-error skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component probe manager errors are reported through
+      # @return [void]
       def initialize(settings, instrumenter, probe_notification_builder,
         probe_notifier_worker, logger, probe_repository, guardrails_telemetry:, telemetry: nil)
         @settings = settings

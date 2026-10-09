@@ -79,6 +79,17 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
+      # Initializes the instrumenter with its settings, serializer,
+      # logger, code tracker and telemetry components, building the
+      # process-wide rate limiters.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for instrumenter diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
+      # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
