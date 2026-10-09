@@ -7,8 +7,6 @@ require_relative "fatal_exceptions"
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
       def initialize(settings:, serializer:, logger:, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -24,9 +22,17 @@ module Datadog
 
       attr_reader :telemetry
 
+      # Evaluates every capture expression of +probe+ against +context+,
+      # resolving one capture deadline through the serializer and sharing
+      # it across all expressions.
+      #
+      # @param probe [Probe] probe whose capture expressions to evaluate
+      # @param context [Context] execution context the expressions evaluate against
+      # @return [Array(Hash{String => Hash}, Array<Hash{Symbol => String}>)] the
+      #   serialized capture results keyed by expression name, and the
+      #   evaluation errors
       def evaluate(probe, context)
-        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
-        deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
+        deadline = serializer.serialization_deadline
 
         output = {}
         evaluation_errors = []
@@ -34,7 +40,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
+          if serializer.monotonic_now >= deadline
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             next
@@ -53,6 +59,7 @@ module Datadog
               attribute_count: limits[:attribute_count],
               length: limits[:length],
               collection_size: limits[:collection_size],
+              deadline: deadline,
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

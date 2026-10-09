@@ -30,6 +30,38 @@ RSpec.describe Datadog::DI::Component do
         expect(component.started?).to be false
         component.shutdown!
       end
+
+      context "when the legacy capture-timeout env var is set" do
+        around do |example|
+          ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250") do
+            example.run
+          end
+        end
+
+        it "warns that the legacy capture-timeout name is no longer read" do
+          expect(logger).to receive(:warn).with(
+            a_string_matching(/DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE is no longer read; set DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS/)
+          )
+          component = described_class.build(settings, agent_settings, logger)
+          expect(component).to be_a(described_class)
+          component.shutdown!
+        end
+      end
+
+      context "when the legacy capture-timeout env var is unset" do
+        around do |example|
+          ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => nil) do
+            example.run
+          end
+        end
+
+        it "does not warn about the legacy capture-timeout name" do
+          expect(logger).not_to receive(:warn)
+          component = described_class.build(settings, agent_settings, logger)
+          expect(component).to be_a(described_class)
+          component.shutdown!
+        end
+      end
     end
 
     # Log level on build-time precondition failures follows the customer's

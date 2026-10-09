@@ -25,6 +25,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         [nil, "max_capture_collection_size", 10],
         [nil, "max_capture_string_length", 20],
         [nil, "max_capture_attribute_count", 4],
+        [nil, "max_time_to_serialize_ms", 300],
       ].each do |(scope_name_, name_, value_)|
         name = name_
         scope_name = scope_name_
@@ -52,11 +53,38 @@ RSpec.describe Datadog::DI::Configuration::Settings do
       end
     end
 
+    context "default values" do
+      around do |example|
+        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil) do
+          example.run
+        end
+      end
+
+      it "defaults max_time_to_serialize_ms to the 150 ms hard ceiling" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(150)
+      end
+    end
+
+    context "max_time_to_serialize_ms validation" do
+      it "accepts zero as a valid exhausted-budget sentinel" do
+        settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(0)
+      end
+
+      it "raises ArgumentError for a negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms = -5
+        end.to raise_error(ArgumentError, /must not be negative/)
+      end
+    end
+
     context "environment variable configuration" do
       [
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "true", "enabled", true],
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "false", "enabled", false],
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", nil, "enabled", false],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS", "300", "max_time_to_serialize_ms", 300],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "300", "max_time_to_serialize_ms", 300],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo", "redacted_identifiers", %w[foo]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo,bar", "redacted_identifiers", %w[foo bar]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo, bar", "redacted_identifiers", %w[foo bar]],
@@ -91,6 +119,21 @@ RSpec.describe Datadog::DI::Configuration::Settings do
             expect(settings.dynamic_instrumentation.public_send(setting_name)).to eq setting_value
           end
         end
+      end
+    end
+
+    context "legacy capture-timeout name" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "does not resolve DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 150
       end
     end
   end

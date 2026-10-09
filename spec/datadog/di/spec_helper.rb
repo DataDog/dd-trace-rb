@@ -215,6 +215,25 @@ module DIHelpers
       end
     end
 
+    # Stubs the dynamic instrumentation settings accessors read by the
+    # serialization paths, with per-spec overrides for the values that differ.
+    def stub_di_settings(settings, enabled: true, max_capture_depth: 2,
+      max_capture_attribute_count: 2, max_capture_string_length: 100,
+      max_capture_collection_size: 100, max_time_to_serialize_ms: 200,
+      redacted_type_names: [], redacted_identifiers: [], redaction_excluded_identifiers: [])
+      allow(settings).to receive_messages(
+        enabled: enabled,
+        max_capture_depth: max_capture_depth,
+        max_capture_attribute_count: max_capture_attribute_count,
+        max_capture_string_length: max_capture_string_length,
+        max_capture_collection_size: max_capture_collection_size,
+        max_time_to_serialize_ms: max_time_to_serialize_ms,
+        redacted_type_names: redacted_type_names,
+        redacted_identifiers: redacted_identifiers,
+        redaction_excluded_identifiers: redaction_excluded_identifiers,
+      )
+    end
+
     def instance_double_agent_settings
       instance_double(Datadog::Core::Configuration::AgentSettings)
     end

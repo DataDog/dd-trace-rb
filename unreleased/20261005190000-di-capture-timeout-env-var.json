@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
+  "message": "Read the capture-timeout budget from `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` (deprecated alias `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT`), matching the other tracers."
+}

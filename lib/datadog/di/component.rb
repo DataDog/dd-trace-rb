@@ -16,6 +16,16 @@ module Datadog
     # resources and installed tracepoints upon shutdown.
     class Component
       class << self
+        # Builds and registers the DI component, or returns nil without
+        # building one when the settings have no dynamic_instrumentation
+        # section, DI is explicitly disabled, the runtime is unsupported,
+        # or Remote Configuration is disabled.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
+        # @param logger [Core::Logger]
+        # @param telemetry [Core::Telemetry::Component, nil]
+        # @return [Component, nil] the built component, or nil when no component was built
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
@@ -41,6 +51,14 @@ module Datadog
             level = explicitly_enabled?(settings) ? :warn : :debug
             logger.public_send(level, "di: dynamic instrumentation is disabled: #{reason}")
             return
+          end
+
+          # DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE was replaced by
+          # DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS; a customer who
+          # still sets the old name gets a warn here pointing at the new one.
+          if (legacy_timeout = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"])
+            logger.warn("di: DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE is no longer read; " \
+              "set DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead (found value: #{legacy_timeout})")
           end
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|

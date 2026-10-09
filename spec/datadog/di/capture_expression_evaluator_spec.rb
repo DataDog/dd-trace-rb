@@ -49,22 +49,34 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   describe "#evaluate" do
-    context "with a single successful expression" do
-      let(:probe) do
-        Datadog::DI::Probe.new(
-          id: "p1", type: :log, type_name: "F", method_name: "m",
-          capture_expressions: [
-            Datadog::DI::CaptureExpression.new(
-              name: "x", expr: compile_expression("x", {"ref" => "x"}),
-            ),
-          ],
-        )
-      end
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "p1", type: :log, type_name: "F", method_name: "m",
+        capture_expressions: [
+          Datadog::DI::CaptureExpression.new(
+            name: "x", expr: compile_expression("x", {"ref" => "x"}),
+          ),
+        ],
+      )
+    end
 
+    context "with a single successful expression" do
       it "emits the serialized value under the name" do
         output, errors = evaluator.evaluate(probe, context)
         expect(output.keys).to eq(["x"])
         expect(output["x"]).to include(type: "Integer", value: "42")
+        expect(errors).to eq([])
+      end
+    end
+
+    context "when the serializer resolves a deadline in the past" do
+      before do
+        expect(serializer).to receive(:serialization_deadline).and_return(-Float::INFINITY)
+      end
+
+      it "reports a timeout stub for every expression" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output).to eq("x" => {notCapturedReason: "timeout"})
         expect(errors).to eq([])
       end
     end
@@ -211,16 +223,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     context "time budget exhausted mid-loop after some expressions have evaluated" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        clock_calls = 0
-        clock_returns = [0, 0, 200_000_000]
-        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
-            clock_returns[clock_calls].tap { clock_calls += 1 }
-          else
-            original.call(*args)
-          end
-        end
       end
+
+      deadline_calc = 0.0
+      first_expr_check = 0.0
+      first_result_serialize = 0.0
+      second_expr_check = 0.2  # past the deadline
+      stub_monotonic_clock([deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(
