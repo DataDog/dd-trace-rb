@@ -6,6 +6,10 @@ inputs:
   cache-key:
     description: 'Cache key for bundle'
     required: true
+  restore-keys:
+    description: 'Ordered fallback key prefixes'
+    required: false
+    default: ''
   lookup-only:
     description: 'Check availability without downloading the bundle'
     required: false
@@ -19,6 +23,9 @@ outputs:
   cache-hit:
     description: 'Whether the requested cache key matched exactly'
     value: ${{ steps.restore-cache.outputs.cache-hit }}
+  cache-matched-key:
+    description: 'Full key of the matching cache, including partial matches'
+    value: ${{ steps.restore-cache.outputs.cache-matched-key }}
 
 runs:
   using: composite
@@ -30,6 +37,7 @@ runs:
       key: "${{ inputs.cache-key }}"
       path: "/usr/local/bundle"
       lookup-only: ${{ inputs.lookup-only == 'true' }}
+      restore-keys: ${{ inputs.restore-keys }}
   - name: Require exact cache hit
     if: inputs.require-exact == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
     shell: bash

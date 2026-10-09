@@ -2,7 +2,7 @@ require "bundler"
 require "digest"
 require "json"
 
-# Cache logic is part of the identity to avoid reusing bundles prepared by outdated code.
+# Partial restores may reuse older logic; bump CACHE_VERSION for incompatible cache layouts.
 CACHE_LOGIC_FILES = %w[
   .github/actions/bundle-cache/action.yml
   .github/actions/bundle-matrix-cache/action.yml
@@ -25,23 +25,28 @@ end
 cache_version = ENV.fetch("CACHE_VERSION", "0")
 cache_version = "0" if cache_version.empty?
 
+settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
+recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
+image = ENV.fetch("IMAGE")
+identity = {
+  "bundler_settings" => settings,
+  "image" => image,
+}
+core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
+
 case ARGV.shift
 when "core-key"
-  settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
-  recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
   identity = {
     "bundler_settings" => settings,
-    "dependencies" => dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile")),
-    "image" => ENV.fetch("IMAGE"),
+    "dependencies" => core_dependencies,
+    "image" => image,
     "recipe" => digest(recipe),
   }
   puts "bundle-core-v#{cache_version}-#{digest(identity)}"
 when "matrix-key"
-  identity = {
-    "core_cache_key" => ARGV.fetch(0),
-    "dependencies" => JSON.parse(ENV.fetch("GEMFILES")).map { |gemfile| dependency_content(gemfile) }.uniq.sort,
-  }
-  puts "bundle-matrix-#{cache_version}-#{digest(identity)}"
+  dependencies = JSON.parse(ENV.fetch("GEMFILES")).map { |gemfile| dependency_content(gemfile) }
+  dependencies = (dependencies + [core_dependencies]).uniq.sort
+  puts "bundle-matrix-#{cache_version}-#{digest(identity)}-#{digest(recipe)}-#{digest(dependencies)}"
 else
   abort "Expected core-key or matrix-key"
 end

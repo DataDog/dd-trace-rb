@@ -12,15 +12,15 @@ inputs:
 
 outputs:
   cache-key:
-    description: Exact key for the selected core or matrix cache
+    description: Full key for the selected core or matrix cache
     value: >-
-      ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
-          && steps.key.outputs.cache-key || steps.core.outputs.cache-key }}
+      ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
+          || steps.lookup.outputs.cache-matched-key || steps.core.outputs.cache-key }}
   coverage:
-    description: Dependency coverage of the selected cache, core or matrix
+    description: Dependency coverage of the selected cache, core, partial, or matrix
     value: >-
       ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
-          && 'matrix' || 'core' }}
+          && 'matrix' || (steps.lookup.outputs.cache-matched-key != '' && 'partial' || 'core') }}
 
 runs:
   using: composite
@@ -32,18 +32,26 @@ runs:
         IMAGE: ${{ inputs.image }}
         GEMFILES: ${{ inputs.gemfiles }}
       run: |
-        core_key=$(ruby tasks/bundle_cache.rb core-key)
-        cache_key=$(ruby tasks/bundle_cache.rb matrix-key "$core_key")
-        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
+        cache_key=$(ruby tasks/bundle_cache.rb matrix-key)
+        logic_prefix="${cache_key%-*}-"
+        image_prefix="${cache_key%-*-*}-"
+        {
+          echo "cache-key=$cache_key"
+          echo 'restore-keys<<EOF'
+          echo "$logic_prefix"
+          echo "$image_prefix"
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
     - name: Find matrix cache
       id: lookup
       uses: ./.github/actions/bundle-restore
       with:
         cache-key: ${{ steps.key.outputs.cache-key }}
         lookup-only: true
+        restore-keys: ${{ github.ref != 'refs/heads/master' && steps.key.outputs.restore-keys || '' }}
     - name: Prepare core fallback
       id: core
-      if: steps.lookup.outputs.cache-hit != 'true'
+      if: steps.lookup.outputs.cache-matched-key == ''
       uses: ./.github/actions/bundle-cache
       with:
         image: ${{ inputs.image }}
