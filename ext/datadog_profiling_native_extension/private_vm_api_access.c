@@ -25,6 +25,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
   #include <iseq.h>
+  #ifdef HAVE_ZJIT_FRAME
+    #include <zjit.h>
+  #endif
 #pragma GCC diagnostic pop
 
 #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
@@ -555,15 +558,38 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    const VALUE *pc = cfp->pc;
+    #ifdef HAVE_ZJIT_FRAME
+      const rb_iseq_t *iseq = cfp->_iseq;
+    #else
+      const rb_iseq_t *iseq = cfp->iseq;
+    #endif
+
+    #if defined(HAVE_ZJIT_FRAME) && USE_ZJIT
+      // Based on CFP_ZJIT_FRAME, which we currently can't use directly.
+      if (CFP_ZJIT_FRAME_P(cfp)) {
+        if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
+          // ZJIT uses this sentinel for C method frames, which have no Ruby ISEQ or bytecode PC.
+          // Set both to NULL explicitly because ZJIT leaves those fields untouched, so they may contain stale data.
+          iseq = NULL;
+          pc = NULL;
+        } else {
+          const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
+          iseq = jit_frame->iseq;
+          pc = jit_frame->pc;
+        }
+      }
+    #endif
+
     #ifndef NO_T_MOVED
-      if (cfp->iseq && RB_TYPE_P((VALUE) cfp->iseq, T_MOVED)) {
+      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) {
         // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
         // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
         continue;
       }
     #endif
 
-    if (cfp->iseq && !cfp->pc) {
+    if (iseq && !pc) {
       // Fix: Do nothing -- this frame should not be used
       //
       // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
@@ -592,8 +618,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
       stack_buffer[i].same_frame =
         stack_buffer[i].is_ruby_frame &&
-        stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
-        stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+        stack_buffer[i].as.ruby_frame.iseq == iseq &&
+        stack_buffer[i].as.ruby_frame.caching_pc == pc &&
         stack_buffer[i].cme == cme;
 
       if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
@@ -601,8 +627,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         continue;
       }
 
-      stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
-      stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
+      stack_buffer[i].as.ruby_frame.iseq = iseq;
+      stack_buffer[i].as.ruby_frame.caching_pc = (void *) pc;
       stack_buffer[i].cme = cme;
 
       // The topmost frame may not have an updated PC because the JIT
@@ -613,10 +639,10 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         if (cfp == top && cfp->jit_return) {
           stack_buffer[i].as.ruby_frame.line = 0;
         } else {
-          stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+          stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
         }
       #else // Ruby < 3.1
-        stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+        stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
       #endif
 
       stack_buffer[i].is_ruby_frame = true;
@@ -821,26 +847,11 @@ void self_test_mn_enabled(void) {
   #endif
 }
 
-// Taken from upstream imemo.h at commit 6ebcf25de2859b5b6402b7e8b181066c32d0e0bf (November 2023, master branch)
-// (See the Ruby project copyright and license above)
-// to enable calling rb_imemo_name
-//
-// Modifications:
-// * Added IMEMO_MASK define
-// * Changed return type to int to avoid having to define `enum imemo_type`
-static inline int ddtrace_imemo_type(VALUE imemo) {
-  // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
-  // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
-  // we'll get incorrect results (and never a VM crash)
-  #define IMEMO_MASK   0x0f
-  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
-}
-
 // Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
 // a string that doesn't make any sense.
 #ifndef NO_IMEMO_NAME
 const char *imemo_kind(VALUE imemo) {
-  return rb_imemo_name(ddtrace_imemo_type(imemo));
+  return rb_imemo_name(imemo_type(imemo));
 }
 #else
 const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
