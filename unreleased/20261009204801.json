@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6459",
+  "message": "Add Dynamic Instrumentation metric probes (COUNT, GAUGE, HISTOGRAM, DISTRIBUTION) that submit a metric each time the probed method or line runs; they require the optional `dogstatsd-ruby` gem (>= 3.3.0, excluding 5.0.x-5.2.x)."
+}
