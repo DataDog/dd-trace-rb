@@ -1,0 +1,19 @@
+module Rdkafka
+  class Consumer
+    class Message
+      attr_reader topic: ::String
+
+      attr_reader partition: ::Integer
+
+      attr_reader payload: ::String?
+
+      attr_reader key: ::String?
+
+      attr_reader offset: ::Integer
+
+      attr_reader timestamp: ::Time?
+
+      attr_reader headers: ::Hash[::String, ::String]
+    end
+  end
+end
