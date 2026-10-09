@@ -15,12 +15,12 @@ outputs:
     description: Full key for the selected core or matrix cache
     value: >-
       ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
-          || steps.lookup.outputs.cache-matched-key || steps.core.outputs.cache-key }}
+          || steps.lookup.outputs.cache-key || steps.core.outputs.cache-key }}
   cache-match:
     description: Selected cache match, core, partial, or matrix
     value: >-
-      ${{ (steps.lookup.outputs.cache-hit == 'true' || github.ref == 'refs/heads/master')
-          && 'matrix' || (steps.lookup.outputs.cache-matched-key != '' && 'partial' || 'core') }}
+      ${{ (steps.lookup.outputs.cache-outcome == 'exact' || github.ref == 'refs/heads/master')
+          && 'matrix' || (steps.lookup.outputs.cache-outcome == 'partial' && 'partial' || 'core') }}
 
 runs:
   using: composite
@@ -51,22 +51,22 @@ runs:
         restore-keys: ${{ github.ref != 'refs/heads/master' && steps.key.outputs.restore-keys || '' }}
     - name: Prepare core fallback
       id: core
-      if: steps.lookup.outputs.cache-matched-key == ''
+      if: steps.lookup.outputs.cache-outcome == 'miss'
       uses: ./.github/actions/bundle-cache
       with:
         image: ${{ inputs.image }}
     - name: Clean restored core bundle
-      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       shell: bash
       run: bundle clean --force
     - name: Prepare matrix dependencies
-      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       shell: bash
       env:
         GEMFILES: ${{ inputs.gemfiles }}
       run: bundle exec rake github:prepare_matrix_bundle
     - name: Save matrix cache
-      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-hit != 'true'
+      if: github.ref == 'refs/heads/master' && steps.lookup.outputs.cache-outcome != 'exact'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ steps.key.outputs.cache-key }}

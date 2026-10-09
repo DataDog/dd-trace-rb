@@ -20,12 +20,14 @@ inputs:
     default: 'false'
 
 outputs:
-  cache-hit:
-    description: 'Whether the requested cache key matched exactly'
-    value: ${{ steps.restore-cache.outputs.cache-hit }}
-  cache-matched-key:
-    description: 'Full key of the matching cache, including partial matches'
+  cache-key:
+    description: 'Full matched cache key, or empty on a miss; lookup-only does not download it'
     value: ${{ steps.restore-cache.outputs.cache-matched-key }}
+  cache-outcome:
+    description: 'Cache lookup or restore outcome, exact, partial, or miss'
+    value: >-
+      ${{ steps.restore-cache.outputs.cache-hit == 'true' && 'exact'
+          || (steps.restore-cache.outputs.cache-matched-key != '' && 'partial' || 'miss') }}
 
 runs:
   using: composite

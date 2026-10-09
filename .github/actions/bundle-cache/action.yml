@@ -29,11 +29,11 @@ runs:
       with:
         key: ${{ steps.key.outputs.cache-key }}
     - name: Install core dependencies
-      if: steps.restore-cache.outputs.cache-hit != 'true'
+      if: steps.restore-cache.outputs.cache-outcome != 'exact'
       shell: bash
       run: bundle install
     - name: Save cache
-      if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-hit != 'true'
+      if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-outcome != 'exact'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: "${{ steps.key.outputs.cache-key }}"
