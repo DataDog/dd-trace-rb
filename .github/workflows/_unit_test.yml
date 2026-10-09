@@ -185,7 +185,7 @@ jobs:
         id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
-          cache-key: ${{ needs.batch.outputs.cache-key }}
+          key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
       - name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'
@@ -278,7 +278,7 @@ jobs:
         id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
-          cache-key: ${{ needs.batch.outputs.cache-key }}
+          key: ${{ needs.batch.outputs.cache-key }}
           require-exact: ${{ needs.batch.outputs.cache-match == 'matrix' }}
       - name: Install core dependencies
         if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-hit != 'true'

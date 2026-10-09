@@ -27,7 +27,7 @@ runs:
       id: restore-cache
       uses: ./.github/actions/bundle-restore
       with:
-        cache-key: ${{ steps.key.outputs.cache-key }}
+        key: ${{ steps.key.outputs.cache-key }}
     - name: Install core dependencies
       if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash

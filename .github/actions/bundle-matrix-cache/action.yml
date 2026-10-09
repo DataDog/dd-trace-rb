@@ -46,7 +46,7 @@ runs:
       id: lookup
       uses: ./.github/actions/bundle-restore
       with:
-        cache-key: ${{ steps.key.outputs.cache-key }}
+        key: ${{ steps.key.outputs.cache-key }}
         lookup-only: true
         restore-keys: ${{ github.ref != 'refs/heads/master' && steps.key.outputs.restore-keys || '' }}
     - name: Prepare core fallback
