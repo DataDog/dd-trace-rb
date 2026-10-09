@@ -22,7 +22,12 @@ RSpec.describe "DI integration from remote config" do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  let(:logger) { instance_double(Logger) }
+  let(:logger) do
+        instance_double(Logger).tap do |logger|
+          # The DI component's metric emitter logs its construction at debug.
+          allow(logger).to receive(:debug)
+        end
+      end
 
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
