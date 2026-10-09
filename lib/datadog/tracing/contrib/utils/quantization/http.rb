@@ -60,6 +60,8 @@ module Datadog
             def query(query, options = {})
               query!(query, options)
             rescue
+              return "" if options && options[:obfuscate]
+
               options[:placeholder] || PLACEHOLDER
             end
 
@@ -136,7 +138,7 @@ module Datadog
                  (?:"|%22)?
               )
               (?: # common keys
-                 (?:old[-_]?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
+                 (?:old[-_]?|new[-_]?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
                 |pass(?:[-_]?phrase)?  # pass, passphrase variants
                 |secret
                 |(?: # key, key_id variants
@@ -145,6 +147,7 @@ module Datadog
                     |public[-_]?
                     |access[-_]?
                     |secret[-_]?
+                    |app(?:lication)?[-_]?
                  )key(?:[-_]?id)?
                 |token
                 |consumer[-_]?(?:id|key|secret)
@@ -165,9 +168,9 @@ module Datadog
                  bearer(?:\s|%20)+[a-z0-9._-]+
                 |token(?::|%3A)[a-z0-9]{13}
                 |gh[opsu]_[0-9a-zA-Z]{36}
-                |ey[I-L](?:[\w=-]|%3D)+\.ey[I-L](?:[\w=-]|%3D)+(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
+                |(?:^|[^\w%-]|%[0-9a-f]{2})ey[I-L][\w-]+(?:=|%3D)*\.ey[I-L][\w-]+(?:=|%3D)*(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
                 |-{5}BEGIN(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY-{5}[^-]+-{5}END(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY(?:-{5})?(?:\n|%0A)?
-                |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20)*(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s+)[a-z0-9._-]+)?
+                |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20|%09)+(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s|%20|%09)+[a-z0-9._-]+)?
               )
             }ix.freeze
             # rubocop:enable Layout/LineLength

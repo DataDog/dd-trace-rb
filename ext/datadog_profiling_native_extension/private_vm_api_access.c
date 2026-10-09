@@ -25,6 +25,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
   #include <iseq.h>
+  #ifdef HAVE_ZJIT_FRAME
+    #include <zjit.h>
+  #endif
 #pragma GCC diagnostic pop
 
 #ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
@@ -53,23 +56,45 @@
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
+#ifdef HAVE_RUBY_RACTOR_H
+  typedef rb_ractor_t gvl_owner_context_t;
+#else
+  typedef rb_vm_t gvl_owner_context_t;
+#endif
+
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
 static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
+static gvl_owner_context_t *get_gvl_owner_context(void);
+
+typedef struct {
+  gvl_owner_context_t *main_ractor_gvl_owner_context;
+  const rb_data_type_t *thread_data_type;
+} private_vm_api_global_t;
+
+// Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
+// The native context stays at the same address across GC compaction and forks from the main ractor.
+static private_vm_api_global_t private_vm_api_global;
+
+void private_vm_api_access_init(void) {
+  private_vm_api_global.thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  private_vm_api_global.main_ractor_gvl_owner_context = get_gvl_owner_context();
+}
+
+void private_vm_api_access_self_test(void) {
+  if (private_vm_api_global.main_ractor_gvl_owner_context != get_gvl_owner_context()) {
+    rb_raise(rb_eRuntimeError, "BUG: main_ractor_gvl_owner_context changed unexpectedly");
+  }
+}
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
-// Instead, we have our own version of that function, and we lazily initialize the thread_data_type pointer
+// Instead, we have our own version of that function, and we initialize the thread_data_type pointer
 // from a known-correct object: the current thread.
 //
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
-  static const rb_data_type_t *thread_data_type = NULL;
-  if (UNLIKELY(thread_data_type == NULL)) {
-    thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
-  }
-
-  return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
+  return (rb_thread_t *) rb_check_typeddata(thread, private_vm_api_global.thread_data_type);
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
@@ -86,19 +111,16 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
-// Queries if the current thread is the owner of the global VM lock.
+// Combines checking for main ractor and GVL in one check that can be done safely from a signal handler, even
+// if the thread is not a Ruby thread or if we're in the middle of GC.
 //
-// @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
-// still return `true` even when a thread DOES NOT HAVE the global VM lock.
-// In particular, looking at the implementation, that API assumes that if a thread is not in a "blocking region" then it
-// will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
-// does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
-// GVL due to a scheduler decision, not because it decided to block.)
-// I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
+// Note that Ruby has `ruby_thread_has_gvl_p`, but unfortunately it can return true in a signal
+// handler even when the thread doesn't hold the GVL. It assumes that a thread outside a "blocking region" holds
+// the GVL, but the scheduler can also take it away (https://bugs.ruby-lang.org/issues/19172).
 //
-// Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
-bool is_current_thread_holding_the_gvl(void) {
-  current_gvl_owner owner = gvl_owner();
+// This must not touch Ruby objects, since GC compaction may have protected their heap pages.
+bool is_current_thread_in_main_ractor_and_holding_the_gvl(void) {
+  current_gvl_owner owner = main_ractor_gvl_owner();
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
@@ -112,23 +134,37 @@ static inline rb_ractor_t *ddtrace_get_ractor(void) {
 }
 #endif
 
+static gvl_owner_context_t *get_gvl_owner_context(void) {
+  if (!ddtrace_rb_ractor_main_p()) {
+    rb_raise(rb_eRuntimeError, "BUG: get_gvl_owner_context must be called from the main ractor");
+  }
+
+  #ifdef HAVE_RUBY_RACTOR_H
+    return ddtrace_get_ractor();
+  #else
+    return GET_VM();
+  #endif
+}
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
 // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
 //
 // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
-// * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+// * In the case where a thread owns the GVL and calls `main_ractor_gvl_owner`, it will always see the correct value. That's
 //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
-//   That means that `is_current_thread_holding_the_gvl` is always accurate.
+//   That means that `is_current_thread_in_main_ractor_and_holding_the_gvl` is always accurate.
 // * In a case where we observe a different thread, then this may change by the time we do something with this value
 //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
-current_gvl_owner gvl_owner(void) {
+current_gvl_owner main_ractor_gvl_owner(void) {
+  if (private_vm_api_global.main_ractor_gvl_owner_context == NULL) return (current_gvl_owner) {.valid = false};
+
   const rb_thread_t *current_owner =
     #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-      ddtrace_get_ractor()->threads.sched.running;
+      private_vm_api_global.main_ractor_gvl_owner_context->threads.sched.running;
     #elif HAVE_RUBY_RACTOR_H
-      ddtrace_get_ractor()->threads.gvl.owner;
+      private_vm_api_global.main_ractor_gvl_owner_context->threads.gvl.owner;
     #else
-      GET_VM()->gvl.owner;
+      private_vm_api_global.main_ractor_gvl_owner_context->gvl.owner;
     #endif
 
   if (current_owner == NULL) {
@@ -149,8 +185,9 @@ current_gvl_owner gvl_owner(void) {
   #endif
 }
 #else
-current_gvl_owner gvl_owner(void) {
-  rb_vm_t *vm = GET_VM();
+current_gvl_owner main_ractor_gvl_owner(void) {
+  rb_vm_t *vm = private_vm_api_global.main_ractor_gvl_owner_context;
+  if (vm == NULL) return (current_gvl_owner) {.valid = false};
 
   // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
   // "atomic" -- when a thread sets it, it "declares" two things in a single step
@@ -169,15 +206,15 @@ current_gvl_owner gvl_owner(void) {
   // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
   // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
   // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
-  // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+  // * Thread A calls main_ractor_gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
   //   function returns an incorrect result.
   // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
   //
-  // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+  // This is especially problematic because we use `main_ractor_gvl_owner` to implement `is_current_thread_in_main_ractor_and_holding_the_gvl` which
   // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
   // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
   //
-  // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+  // Thus an incorrect `is_current_thread_in_main_ractor_and_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
   //
   // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
   // warning when customers force-enable it.
@@ -373,7 +410,6 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
     ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
     VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
     VM_ASSERT(n >= 0);
-    ASSUME(n >= 0);
     size_t pos = n; /* no overflow */
     if (LIKELY(pos)) {
       /* use pos-1 because PC points next instruction at the beginning of instruction */
@@ -556,7 +592,38 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
-    if (cfp->iseq && !cfp->pc) {
+    const VALUE *pc = cfp->pc;
+    #ifdef HAVE_ZJIT_FRAME
+      const rb_iseq_t *iseq = cfp->_iseq;
+    #else
+      const rb_iseq_t *iseq = cfp->iseq;
+    #endif
+
+    #if defined(HAVE_ZJIT_FRAME) && USE_ZJIT
+      // Based on CFP_ZJIT_FRAME, which we currently can't use directly.
+      if (CFP_ZJIT_FRAME_P(cfp)) {
+        if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
+          // ZJIT uses this sentinel for C method frames, which have no Ruby ISEQ or bytecode PC.
+          // Set both to NULL explicitly because ZJIT leaves those fields untouched, so they may contain stale data.
+          iseq = NULL;
+          pc = NULL;
+        } else {
+          const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
+          iseq = jit_frame->iseq;
+          pc = jit_frame->pc;
+        }
+      }
+    #endif
+
+    #ifndef NO_T_MOVED
+      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) {
+        // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
+        // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
+        continue;
+      }
+    #endif
+
+    if (iseq && !pc) {
       // Fix: Do nothing -- this frame should not be used
       //
       // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
@@ -585,8 +652,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
       stack_buffer[i].same_frame =
         stack_buffer[i].is_ruby_frame &&
-        stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
-        stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+        stack_buffer[i].as.ruby_frame.iseq == iseq &&
+        stack_buffer[i].as.ruby_frame.caching_pc == pc &&
         stack_buffer[i].cme == cme;
 
       if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
@@ -594,8 +661,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         continue;
       }
 
-      stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
-      stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
+      stack_buffer[i].as.ruby_frame.iseq = iseq;
+      stack_buffer[i].as.ruby_frame.caching_pc = (void *) pc;
       stack_buffer[i].cme = cme;
 
       // The topmost frame may not have an updated PC because the JIT
@@ -606,10 +673,10 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         if (cfp == top && cfp->jit_return) {
           stack_buffer[i].as.ruby_frame.line = 0;
         } else {
-          stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+          stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
         }
       #else // Ruby < 3.1
-        stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
+        stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
       #endif
 
       stack_buffer[i].is_ruby_frame = true;
@@ -814,26 +881,11 @@ void self_test_mn_enabled(void) {
   #endif
 }
 
-// Taken from upstream imemo.h at commit 6ebcf25de2859b5b6402b7e8b181066c32d0e0bf (November 2023, master branch)
-// (See the Ruby project copyright and license above)
-// to enable calling rb_imemo_name
-//
-// Modifications:
-// * Added IMEMO_MASK define
-// * Changed return type to int to avoid having to define `enum imemo_type`
-static inline int ddtrace_imemo_type(VALUE imemo) {
-  // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
-  // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
-  // we'll get incorrect results (and never a VM crash)
-  #define IMEMO_MASK   0x0f
-  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
-}
-
 // Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
 // a string that doesn't make any sense.
 #ifndef NO_IMEMO_NAME
 const char *imemo_kind(VALUE imemo) {
-  return rb_imemo_name(ddtrace_imemo_type(imemo));
+  return rb_imemo_name(imemo_type(imemo));
 }
 #else
 const char *imemo_kind(__attribute__((unused)) VALUE imemo) {

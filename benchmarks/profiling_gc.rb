@@ -9,8 +9,7 @@ require_relative "benchmarks_helper"
 
 class ProfilerGcBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)
@@ -36,6 +35,9 @@ class ProfilerGcBenchmark
       x.compare!
     end
 
+    # Flush accumulated data in profile
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
+
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
@@ -55,7 +57,7 @@ class ProfilerGcBenchmark
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
         end
 
-        @recorder.serialize
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
       end
 
       x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -126,7 +128,7 @@ class ProfilerGcBenchmark
       x.compare!
     end
 
-    @recorder.serialize
+    Datadog.shutdown!
   end
 end
 

@@ -9,7 +9,6 @@
 #include "time_helpers.h"
 #include "heap_recorder.h"
 #include "encoded_profile.h"
-#include "collectors_thread_context.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -178,10 +177,6 @@ typedef struct {
   heap_recorder *heap_recorder;
   bool heap_clean_after_gc_enabled;
 
-  // When set, _native_serialize will call thread_context_collector_on_serialize on this instance
-  // before serializing, so that threads suspended across the whole profile period still get sampled.
-  VALUE thread_context_collector_instance;
-
   pthread_mutex_t mutex_slot_one;
   profile_slot profile_slot_one;
   pthread_mutex_t mutex_slot_two;
@@ -343,7 +338,6 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   state->heap_clean_after_gc_enabled = false;
-  state->thread_context_collector_instance = Qnil;
 
   ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
 
@@ -415,7 +409,6 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Sam
 static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
-  rb_gc_mark(state->thread_context_collector_instance);
   heap_recorder_mark(state->heap_recorder);
 }
 
@@ -539,17 +532,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  if (state->thread_context_collector_instance != Qnil) {
-    thread_context_collector_on_serialize(state->thread_context_collector_instance);
-  }
-
-  long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns();
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding the GVL.
   // NOTE: While rare, it's possible for the GVL to be released inside this function (see comments on `heap_recorder_update`)
   // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
-  long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
+  long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns() - heap_iteration_prep_start_time_ns;
 
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
   // Need to do this while still holding the Global VM Lock; see comments on method for why
@@ -811,7 +800,7 @@ static void build_heap_profile_without_gvl(stack_recorder_state *state, profile_
 static void *call_serialize_without_gvl(void *call_args) {
   call_serialize_without_gvl_arguments *args = (call_serialize_without_gvl_arguments *) call_args;
 
-  long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns();
 
   profile_slot *slot_now_inactive = serializer_flip_active_and_inactive_slots(args->state);
   args->slot = slot_now_inactive;
@@ -819,13 +808,13 @@ static void *call_serialize_without_gvl(void *call_args) {
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
   build_heap_profile_without_gvl(args->state, args->slot);
-  args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
+  args->heap_profile_build_time_ns = monotonic_wall_time_now_ns() - serialize_no_gvl_start_time_ns;
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
   args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
-  args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
+  args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns() - serialize_no_gvl_start_time_ns);
 
   return NULL; // Unused
 }
@@ -925,7 +914,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
 }
 
 static ddog_Timespec system_epoch_now_timespec(void) {
-  long now_ns = system_epoch_time_now_ns(RAISE_ON_FAILURE);
+  long now_ns = system_epoch_time_now_ns();
   return (ddog_Timespec) {.seconds = now_ns / SECONDS_AS_NS(1), .nanoseconds = now_ns % SECONDS_AS_NS(1)};
 }
 
@@ -1205,11 +1194,4 @@ static VALUE _native_commit_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE re
   heap_recorder_commit_recordings_may_lose_gvl(state->heap_recorder);
 
   return Qtrue;
-}
-
-void recorder_install_on_serialize(VALUE recorder_instance, VALUE thread_context_collector_instance) {
-  stack_recorder_state *state;
-  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-
-  state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
 }

@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   after { mock_agent.stop }
 
   let(:agent_settings) do
-    double("agent_settings", url: "http://127.0.0.1:#{mock_agent.port}")
+    double("agent_settings", url: "http://127.0.0.1:#{mock_agent.port}", timeout_seconds: 30)
   end
 
   # Track every transport built by these examples so we can deterministically
