@@ -1195,6 +1195,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           is_expected.to eq("otel-service-name")
         end
       end
+
+      context "and OTEL_SERVICE_NAME is empty" do
+        with_env "OTEL_SERVICE_NAME" => ""
+
+        it "uses the service name from DD_TAGS" do
+          is_expected.to eq("service-name-from-tag")
+        end
+      end
+    end
+
+    context "when OTEL_SERVICE_NAME is empty and OTEL_RESOURCE_ATTRIBUTES defines service.name" do
+      with_env "OTEL_SERVICE_NAME" => "", "OTEL_RESOURCE_ATTRIBUTES" => "service.name=resource-service"
+
+      it "uses the service name from OTEL_RESOURCE_ATTRIBUTES" do
+        is_expected.to eq("resource-service")
+      end
     end
   end
 
