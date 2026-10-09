@@ -27,9 +27,11 @@ module Datadog
 
         class Transport < Core::Transport::Transport
           attr_reader :telemetry
+          # The guardrails drop-metric emitter.
+          # @return [GuardrailsTelemetry]
           attr_reader :guardrails_telemetry
 
-          def initialize(apis, default_api, logger:, telemetry: nil, guardrails_telemetry: nil)
+          def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
             super(apis, default_api, logger: logger)
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
@@ -69,29 +71,20 @@ module Datadog
           # @param tags [Hash] Tags to send with the snapshots
           # @param on_serialization_error [Proc] Called with (probe_id, exception)
           #   when a snapshot fails to serialize.
+          # @return [Array<Hash>] the payloads that were sent
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
             # Serialize each snapshot individually to isolate failures
             encoded_snapshots = []
+            dropped_snapshot_sizes = []
             payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
               if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
                 logger.debug do
                   "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                begin
-                  guardrails_telemetry&.dropped(
-                    reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                    event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: encoded.bytesize,
-                  )
-                rescue Exception => exc # standard:disable Lint/RescueException
-                  Datadog::DI.reraise_if_fatal(exc)
-                  # The drop already happened; a telemetry failure must stay
-                  # contained here, or the serialization rescue below attributes
-                  # it to this snapshot and disables the probe.
-                  logger.debug { "di: error emitting payload-too-large drop telemetry: #{exc.class}: #{exc.message}" }
-                end
+                dropped_snapshot_sizes << encoded.bytesize
                 next
               end
               encoded_snapshots << encoded
@@ -112,6 +105,18 @@ module Datadog
                   telemetry&.report(callback_exc, description: "Error in serialization error callback")
                 end
               end
+            end
+
+            # The drop metric is emitted after the encoding loop: the loop's
+            # per-snapshot rescue treats every exception it catches as a
+            # serialization failure for that snapshot and disables the probe,
+            # so with internal.propagate_all_exceptions a re-raised telemetry
+            # failure must reach the worker's send containment instead.
+            dropped_snapshot_sizes.each do |bytes|
+              guardrails_telemetry.dropped(
+                reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: bytes,
+              )
             end
 
             return payload if encoded_snapshots.empty?

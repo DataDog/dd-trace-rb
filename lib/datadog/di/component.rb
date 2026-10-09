@@ -65,18 +65,29 @@ module Datadog
         end
       end
 
+      # Initializes the DI component with its settings, agent settings,
+      # logger, code tracker and telemetry component, building the
+      # serializer, guardrails telemetry emitter, instrumenter, probe
+      # repository, notification builder, worker and probe manager.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports
+      # @param logger [Datadog::Core::Logger] diagnostics logger, wrapped in the DI logger facade
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component DI errors and guardrails metrics are emitted through
+      # @return [void]
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
-        @guardrails_telemetry = GuardrailsTelemetry.new(telemetry: telemetry)
+        @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-          guardrails_telemetry: guardrails_telemetry)
+          guardrails_telemetry: guardrails_telemetry,)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
@@ -103,6 +114,8 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails skip/drop-metric emitter.
+      # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       attr_reader :code_tracker
       attr_reader :instrumenter

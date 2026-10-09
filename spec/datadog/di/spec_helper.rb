@@ -188,6 +188,15 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Builds a telemetry component double whose metric increments raise the
+    # given exception, for exercising emission containment paths.
+    def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
+      instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+        allow(telemetry).to receive(:inc).and_raise(exception)
+        allow(telemetry).to receive(:report)
+      end
+    end
+
     # Helper method to generate a deeply nested hash for circuit breaker tests
     def generate_deep_hash(keys_per_level, depth)
       return "leaf_value" if depth == 0

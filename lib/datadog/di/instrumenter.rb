@@ -79,7 +79,7 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil, guardrails_telemetry: nil)
+      def initialize(settings, serializer, logger, guardrails_telemetry:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -96,6 +96,8 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails skip-metric emitter.
+      # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       attr_reader :code_tracker
 
@@ -130,10 +132,9 @@ module Datadog
         end
       end
 
-      # Logs and emits the canonical rate-limit skip metric for a probe.
-      # Boundaries the telemetry emission so a raising telemetry component
-      # stays contained on the method-probe path, matching the line-probe
-      # callback's method-level rescue.
+      # Logs the rate-limit skip at trace level and emits the canonical
+      # rate-limit skip metric for a probe. The emission stays contained
+      # within the emitter on the method-probe path.
       #
       # @param probe [Probe] the probe being skipped
       # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
@@ -144,19 +145,10 @@ module Datadog
             "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
             " (#{reason})"
         end
-        guardrails_telemetry&.skipped(
+        guardrails_telemetry.skipped(
           reason: reason,
-          probe_type: GuardrailsTelemetry.probe_type_tag(probe),
+          probe: probe,
         )
-      rescue Exception => exc # standard:disable Lint/RescueException
-        Datadog::DI.reraise_if_fatal(exc)
-        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        # Reporting goes to the logger only: the guarded body is the
-        # telemetry emission itself, so routing the report through the
-        # failing telemetry component would raise again inside this
-        # handler. The probed method completes normally; the skip metric
-        # is the only thing lost.
-        logger.debug { "di: error emitting rate-limit skip telemetry: #{exc.class}: #{exc.message}" }
         nil
       end
 
@@ -894,12 +886,14 @@ module Datadog
         responder.probe_executed_callback(context)
 
         check_and_disable_if_exceeded(probe, responder, di_start_time)
+        nil
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+        nil
       end
 
       def build_trace_point_context(probe, tp)
@@ -932,6 +926,7 @@ module Datadog
           # avoid a dependency on ProbeManager from Instrumenter.
           probe.disable!
           responder.probe_disabled_callback(probe, di_duration)
+          nil
         end
       end
 

@@ -12,9 +12,12 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     Datadog::Core::TagBuilder.reset_for_tests
   end
 
+  let(:propagate_all_exceptions) { false }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions)
+      .and_return(propagate_all_exceptions)
     # Reduce to 1 to have the test run faster
     allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(1)
     allow(settings.dynamic_instrumentation.internal).to receive(:snapshot_queue_capacity).and_return(10)
@@ -35,7 +38,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
   end
 
   let(:default_probe_repository) do
@@ -74,6 +77,41 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     worker.stop
   end
 
+  # Stubs the transport and prevents the background worker from draining
+  # the queue so the capacity guard is reached deterministically, then
+  # fills the given queue past capacity.
+  def fill_queue_beyond_capacity(add_method, event, queue, probe: nil)
+    allow(input_transport).to receive(:send_input)
+    allow(worker).to receive(:start)
+    (capacity + 1).times { worker.public_send(add_method, event, probe: probe) }
+    expect(queue.length).to eq(capacity + 1)
+  end
+
+  describe "#snapshot_transport" do
+    let(:agent_settings) do
+      Datadog::Core::Configuration::AgentSettingsResolver.call(
+        Datadog::Core::Configuration::Settings.new, logger: nil,
+      )
+    end
+
+    let(:logger) do
+      Datadog::DI::Logger.new(
+        Datadog::Core::Configuration::Settings.new, Logger.new(File::NULL),
+      )
+    end
+
+    before do
+      allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
+    end
+
+    it "wires the guardrails telemetry emitter into the built transport" do
+      transport = worker.send(:snapshot_transport)
+
+      expect(transport).to be_a(Datadog::DI::Transport::Input::Transport)
+      expect(transport.guardrails_telemetry).to equal(guardrails_telemetry)
+    end
+  end
+
   context "not started" do
     describe "#add_snapshot" do
       let(:snapshot) do
@@ -97,12 +135,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
 
         before do
-          allow(input_transport).to receive(:send_input)
-          # Prevent the background worker from draining the queue so the
-          # capacity guard is reached deterministically.
-          allow(worker).to receive(:start)
-          (capacity + 1).times { worker.add_snapshot(snapshot) }
-          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+          fill_queue_beyond_capacity(:add_snapshot, snapshot, worker.send(:snapshot_queue))
         end
 
         it "drops the snapshot and emits the canonical queueFull drop metric" do
@@ -115,54 +148,61 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
           expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
         end
-      end
 
-      context "when emitting the queueFull drop metric raises" do
-        let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
+        context "when emitting the queueFull drop metric raises" do
+          let(:telemetry) { telemetry_double_raising_on_inc }
 
-        let(:telemetry) do
-          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
-            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+          it "keeps the drop contained and logs the telemetry failure" do
+            expect(telemetry).to receive(:report).with(instance_of(StandardError),
+              description: "Error emitting guardrails.events.dropped metric")
+            expect_lazy_log_many(logger, :debug,
+              /dropping snapshot event because queue is full \(queueFull\)/,
+              /error emitting guardrails.events.dropped metric.*StandardError.*telemetry down/)
+
+            expect { worker.add_snapshot(snapshot) }.not_to raise_error
+
+            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
           end
         end
 
-        before do
-          allow(input_transport).to receive(:send_input)
-          allow(worker).to receive(:start)
-          (capacity + 1).times { worker.add_snapshot(snapshot) }
-          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+        context "when emitting the queueFull drop metric raises and all exceptions propagate" do
+          let(:propagate_all_exceptions) { true }
+          let(:telemetry) { telemetry_double_raising_on_inc }
+
+          it "raises the telemetry failure out of the enqueueing call" do
+            expect_lazy_log(logger, :debug,
+              "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
+
+            expect { worker.add_snapshot(snapshot) }.to raise_error(StandardError, "telemetry down")
+
+            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+          end
         end
 
-        it "keeps the drop contained and logs the telemetry failure" do
-          expect_lazy_log_many(logger, :debug,
-            /dropping snapshot event because queue is full \(queueFull\)/,
-            /error emitting queue-full drop telemetry.*StandardError.*telemetry down/)
+        context "when emitting the queueFull drop metric raises a fatal exception" do
+          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
 
-          expect { worker.add_snapshot(snapshot) }.not_to raise_error
+          it "re-raises the fatal exception out of the enqueueing call" do
+            expect_lazy_log(logger, :debug,
+              "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
 
-          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
-        end
-      end
+            expect { worker.add_snapshot(snapshot) }.to raise_error(SystemExit)
 
-      context "when telemetry is nil" do
-        let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
-
-        before do
-          allow(input_transport).to receive(:send_input)
-          # Prevent the background worker from draining the queue so the
-          # capacity guard is reached deterministically.
-          allow(worker).to receive(:start)
-          (capacity + 1).times { worker.add_snapshot(snapshot) }
-          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+          end
         end
 
-        it "drops the snapshot without raising" do
-          expect_lazy_log(logger, :debug,
-            "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
+        context "when telemetry is nil" do
+          let(:telemetry) { nil }
 
-          expect { worker.add_snapshot(snapshot) }.not_to raise_error
+          it "drops the snapshot without raising" do
+            expect_lazy_log(logger, :debug,
+              "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
 
-          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+            expect { worker.add_snapshot(snapshot) }.not_to raise_error
+
+            expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+          end
         end
       end
     end
@@ -333,12 +373,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         before do
           # The outer "started" context runs the real worker thread; quiesce
           # it before filling so the drain cannot race the fill loop, and
-          # stub start so the auto-restart inside add_status stays off.
+          # the helper's start stub keeps the auto-restart inside add_status
+          # off.
           worker.stop
-          allow(input_transport).to receive(:send_input)
-          allow(worker).to receive(:start)
-          (capacity + 1).times { worker.add_status(status, probe: probe) }
-          expect(worker.send(:status_queue).length).to eq(capacity + 1)
+          fill_queue_beyond_capacity(:add_status, status, worker.send(:status_queue), probe: probe)
         end
 
         it "drops the status event and emits the queueFull drop metric with the diagnostic event type" do
@@ -370,6 +408,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           settings, logger,
           agent_settings: agent_settings,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
         )
@@ -461,6 +500,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           agent_settings: agent_settings,
           logger: logger,
           telemetry: nil,
+          guardrails_telemetry: guardrails_telemetry,
         ).tap do |transport|
           allow(transport).to receive(:send_input_chunk)
         end
@@ -471,6 +511,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           settings, logger,
           agent_settings: agent_settings,
           telemetry: nil,
+          guardrails_telemetry: guardrails_telemetry,
           probe_repository: real_probe_repository,
           probe_notification_builder: error_probe_notification_builder,
         )

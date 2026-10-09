@@ -17,10 +17,15 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     instance_double(Datadog::DI::ProbeNotificationBuilder)
   end
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
   let(:worker) do
     described_class.new(
       settings, logger,
       agent_settings: agent_settings,
+      guardrails_telemetry: guardrails_telemetry,
       probe_repository: probe_repository,
       probe_notification_builder: probe_notification_builder,
     )

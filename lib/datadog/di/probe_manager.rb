@@ -20,7 +20,7 @@ module Datadog
     # @api private
     class ProbeManager
       def initialize(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, probe_repository, telemetry: nil, guardrails_telemetry: nil)
+        probe_notifier_worker, logger, probe_repository, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @instrumenter = instrumenter
         @probe_notification_builder = probe_notification_builder
@@ -42,6 +42,8 @@ module Datadog
 
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails skip-metric emitter.
+      # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       attr_reader :probe_repository
 
@@ -343,6 +345,7 @@ module Datadog
           end
           record_condition_error_skip(probe, GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED)
         end
+        nil
       end
 
       # Callback invoked when a probe is disabled, for example due to
@@ -358,24 +361,17 @@ module Datadog
       end
 
       # Emits the canonical skip metric for a condition evaluation failure
-      # rejected by a rate limit. The emission is boundary-contained: a
-      # raising telemetry component is logged at debug and the callback
-      # returns normally, because reporting through the failing component
-      # would raise again inside the handler and reach the customer's
-      # probed call.
+      # notification rejected by a rate limiter. The emission stays
+      # contained within the emitter.
       #
       # @param probe [Probe] the probe whose condition evaluation failed
       # @param reason [String] the GuardrailsTelemetry::Reason constant for the rejecting limit
       # @return [void]
       def record_condition_error_skip(probe, reason)
-        guardrails_telemetry&.skipped(
+        guardrails_telemetry.skipped(
           reason: reason,
-          probe_type: GuardrailsTelemetry.probe_type_tag(probe),
+          probe: probe,
         )
-      rescue Exception => exc # standard:disable Lint/RescueException
-        Datadog::DI.reraise_if_fatal(exc)
-        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        logger.debug { "di: error emitting condition error skip telemetry: #{exc.class}: #{exc.message}" }
         nil
       end
 

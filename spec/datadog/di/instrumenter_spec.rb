@@ -45,8 +45,13 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   di_logger_double
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+      guardrails_telemetry: guardrails_telemetry)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1953,7 +1958,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+        guardrails_telemetry: guardrails_telemetry)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
@@ -2126,14 +2132,16 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:guardrails_telemetry) do
-      Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry)
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
     end
 
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry)
+        guardrails_telemetry: guardrails_telemetry,)
     end
 
+    # Asserts the guardrails skip metric emission for a rejected probe
+    # firing.
     def expect_rate_limit_skip_metric(reason:, probe_type:)
       expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.skipped", 1,
         tags: {reason: reason, probe_type: probe_type},)
@@ -2278,94 +2286,71 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "when emitting the skip metric raises" do
+      context "when the global log limit rejects" do
         let(:propagate_all_exceptions) { false }
 
-        let(:telemetry) do
-          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
-            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
-          end
-        end
-
         before do
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
-        it "completes the probed method normally and logs the telemetry failure" do
-          expect_lazy_log(logger, :debug,
-            /error emitting rate-limit skip telemetry.*StandardError.*telemetry down/)
+        context "when emitting the skip metric raises" do
+          let(:telemetry) { telemetry_double_raising_on_inc }
 
-          hook_method(probe) do |payload|
-            observed_calls << payload
-          end
+          it "completes the probed method normally and logs the telemetry failure" do
+            expect_lazy_log(logger, :debug,
+              /error emitting guardrails.events.skipped metric.*StandardError.*telemetry down/)
+            expect(telemetry).to receive(:report).with(instance_of(StandardError),
+              description: "Error emitting guardrails.events.skipped metric")
 
-          expect(HookTestClass.new.hook_test_method).to eq 42
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
 
-          expect(observed_calls.length).to eq 0
-        end
-      end
+            expect(HookTestClass.new.hook_test_method).to eq 42
 
-      context "when emitting the skip metric raises and all exceptions propagate" do
-        let(:propagate_all_exceptions) { true }
-
-        let(:telemetry) do
-          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
-            allow(telemetry).to receive(:inc).and_raise(StandardError, "telemetry down")
+            expect(observed_calls.length).to eq 0
           end
         end
 
-        before do
-          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
-        end
+        context "when emitting the skip metric raises and all exceptions propagate" do
+          let(:propagate_all_exceptions) { true }
+          let(:telemetry) { telemetry_double_raising_on_inc }
 
-        it "raises the telemetry failure out of the probed method" do
-          hook_method(probe) do |payload|
-            observed_calls << payload
-          end
+          it "raises the telemetry failure out of the probed method" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
 
-          expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
-        end
-      end
-
-      context "when emitting the skip metric raises a fatal exception" do
-        let(:propagate_all_exceptions) { false }
-
-        let(:telemetry) do
-          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
-            allow(telemetry).to receive(:inc).and_raise(SystemExit)
+            expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
           end
         end
 
-        before do
-          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
-        end
+        context "when emitting the skip metric raises a fatal exception" do
+          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
 
-        it "re-raises the fatal exception out of the probed method" do
-          hook_method(probe) do |payload|
-            observed_calls << payload
+          it "re-raises the fatal exception out of the probed method" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect { HookTestClass.new.hook_test_method }.to raise_error(SystemExit)
+
+            expect(observed_calls).to be_empty
           end
-
-          expect { HookTestClass.new.hook_test_method }.to raise_error(SystemExit)
-
-          expect(observed_calls).to be_empty
-        end
-      end
-
-      context "when telemetry is nil" do
-        let(:telemetry) { nil }
-
-        before do
-          expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
         end
 
-        it "still runs the target method with nothing observed" do
-          hook_method(probe) do |payload|
-            observed_calls << payload
+        context "when telemetry is nil" do
+          let(:telemetry) { nil }
+
+          it "still runs the target method with nothing observed" do
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            expect(HookTestClass.new.hook_test_method).to eq 42
+
+            expect(observed_calls).to be_empty
           end
-
-          expect(HookTestClass.new.hook_test_method).to eq 42
-
-          expect(observed_calls).to be_empty
         end
       end
     end
@@ -2393,6 +2378,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect_rate_limit_skip_metric(reason: "rateLimitProbe", probe_type: "log")
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
+          # The untargeted TracePoint#enable form is exercised by the
+          # sibling contexts of this describe across the full supported
+          # Ruby matrix (2.6 through 4.0).
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
           hook_line(probe) do |payload|
@@ -2513,7 +2501,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:manager) do
         Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
-          probe_notifier_worker, logger, probe_repository)
+          probe_notifier_worker, logger, probe_repository, guardrails_telemetry: guardrails_telemetry)
       end
 
       context "when the global snapshot limit admits a condition error" do

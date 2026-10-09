@@ -148,12 +148,15 @@ class DIInstrumentBenchmark
     @logger ||= Logger.new($stderr)
   end
 
-  # Real telemetry component, mirroring the DI component's wiring, so the
-  # skip variants measure the production cost of emitting the
-  # guardrails.events.skipped metric. The component is not started, so no
-  # background upload thread runs during measurements.
+  # The telemetry component, built with the same settings, agent settings
+  # and logger the DI component wires in, so the skip variants measure the
+  # production cost of emitting the guardrails.events.skipped metric. The
+  # emitters work from construction, and the background upload thread runs
+  # only after Component#start, which the benchmark skips.
   def telemetry
-    @telemetry ||= begin
+    return telemetry_component if telemetry_component
+
+    self.telemetry_component = begin
       settings = Datadog.configuration
       agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(
         settings, logger: logger,
@@ -161,6 +164,10 @@ class DIInstrumentBenchmark
       Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
     end
   end
+
+  # The memoized telemetry component.
+  # @return [Datadog::Core::Telemetry::Component, nil]
+  attr_accessor :telemetry_component
 
   def configure
     settings = Datadog.configuration
@@ -174,7 +181,9 @@ class DIInstrumentBenchmark
     di_logger = Datadog::DI::Logger.new(settings, logger)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
-      guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry),)
+      guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
+        settings: settings, logger: di_logger, telemetry: telemetry,
+      ),)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

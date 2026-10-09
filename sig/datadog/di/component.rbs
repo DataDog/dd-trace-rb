@@ -43,7 +43,7 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader guardrails_telemetry: GuardrailsTelemetry?
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
 
       attr_reader code_tracker: CodeTracker?
 

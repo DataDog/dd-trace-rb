@@ -34,8 +34,13 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
 
   let(:logger) { logger_allowing_debug }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
   let(:instrumenter) do
-    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil)
+    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
+      guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:responder) do
@@ -385,6 +390,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         probe_notifier_worker,
         logger,
         probe_repository,
+        guardrails_telemetry: guardrails_telemetry,
       )
     end
 

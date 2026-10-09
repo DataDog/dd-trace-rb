@@ -28,9 +28,15 @@ RSpec.describe "DI telemetry namespace under direct requires" do
       nil
     end
 
-    Datadog::DI::GuardrailsTelemetry.new(telemetry: telemetry).skipped(
+    probe = Object.new
+
+    def probe.capture_snapshot?
+      true
+    end
+
+    Datadog::DI::GuardrailsTelemetry.new(settings: Object.new, logger: Object.new, telemetry: telemetry).skipped(
       reason: Datadog::DI::GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
-      probe_type: "snapshot",
+      probe: probe,
     )
   SCRIPT
 

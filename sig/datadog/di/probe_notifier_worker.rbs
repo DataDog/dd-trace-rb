@@ -22,17 +22,29 @@ module Datadog
 
       @stop_requested: bool
 
+      @sleep_remaining: Numeric?
+
+      @wake_scheduled: bool
+
+      @pid: Integer?
+
+      @flush: Integer
+
+      @status_transport_instance: DI::Transport::Diagnostics::Transport?
+
+      @snapshot_transport_instance: DI::Transport::Input::Transport?
+
       @logger: DI::Logger
 
       @telemetry: Core::Telemetry::Component?
 
-      @guardrails_telemetry: GuardrailsTelemetry?
+      @guardrails_telemetry: GuardrailsTelemetry
 
       @probe_repository: ProbeRepository
 
       @probe_notification_builder: ProbeNotificationBuilder
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?, ?guardrails_telemetry: GuardrailsTelemetry?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?, guardrails_telemetry: GuardrailsTelemetry) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -40,7 +52,7 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader guardrails_telemetry: GuardrailsTelemetry?
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
 
       attr_reader probe_repository: ProbeRepository
 
@@ -53,8 +65,9 @@ module Datadog
       def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
       def add_snapshot: (Hash[Symbol, untyped] event) -> void
 
-      def status_transport: () -> DI::Transport::Diagnostics::Transport
-      def snapshot_transport: () -> DI::Transport::Input::Transport
+      attr_accessor status_transport_instance: DI::Transport::Diagnostics::Transport?
+
+      attr_accessor snapshot_transport_instance: DI::Transport::Input::Transport?
 
       private
 
@@ -72,6 +85,18 @@ module Datadog
 
       attr_reader thread: Thread?
 
+      def status_transport: () -> DI::Transport::Diagnostics::Transport
+
+      def snapshot_transport: () -> DI::Transport::Input::Transport
+
+      def do_send_status: (Array[Hash[Symbol, untyped]] batch) -> void
+
+      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+
+      def handle_serialization_error: (String probe_id, Exception exception) -> void
+
+      def tags: () -> Hash[String, String]
+
       def io_in_progress?: () -> bool
 
       def maybe_send: () -> bool
@@ -81,10 +106,6 @@ module Datadog
       def maybe_send_snapshot: () -> bool
 
       def min_send_interval: () -> Float
-
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
-
-      def handle_serialization_error: (String probe_id, Exception exception) -> void
     end
   end
 end
