@@ -203,6 +203,8 @@ jobs:
         with:
           alias: ${{ inputs.alias }}
           container-id: ${{ matrix.container-id }}
+          # Use core to enable batch dependency checks after local core repair;
+          # this does not imply that a core cache was restored.
           cache-match: ${{ steps.matrix-cache-mismatch.outputs.cache-match || needs.batch.outputs.cache-match }}
 
   build-test-misc:
