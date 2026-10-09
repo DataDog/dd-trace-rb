@@ -102,7 +102,7 @@ class ProfilerSampleLoopBenchmark
     end
 
     threads.map(&:kill).each(&:join)
-    @recorder.serialize!
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(collector).serialize!
   end
 
   def run_varying_depth_benchmark
@@ -124,7 +124,7 @@ class ProfilerSampleLoopBenchmark
       x.compare!
     end
 
-    @recorder.serialize!
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(collector).serialize!
   end
 
   def sample(collector)

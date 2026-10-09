@@ -30,8 +30,7 @@ class ProfilerSampleGvlBenchmark
   end
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
   end
 
   def thread_with_very_deep_stack(depth: 200)
@@ -63,7 +62,7 @@ class ProfilerSampleGvlBenchmark
       x.compare!
     end
 
-    @recorder.serialize!
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize!
   end
 end
 
