@@ -35,7 +35,7 @@ identity = {
 }
 core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
-image_prefix = "bundle-matrix-#{version}-#{digest(identity)}-"
+image_prefix = "bundle-matrix-v#{version}-#{digest(identity)}-"
 logic_prefix = "#{image_prefix}#{digest(recipe)}-"
 
 cache_key = case ARGV.shift
