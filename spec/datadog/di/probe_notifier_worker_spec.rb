@@ -141,7 +141,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         it "drops the snapshot and emits the canonical queueFull drop metric" do
           expect_lazy_log(logger, :debug,
             "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
+          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "queueFull", event_type: "snapshot"},)
 
           worker.add_snapshot(snapshot)
@@ -154,10 +154,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
           it "keeps the drop contained and logs the telemetry failure" do
             expect(telemetry).to receive(:report).with(instance_of(StandardError),
-              description: "Error emitting guardrails.events.dropped metric")
+              description: "Error emitting debugger.events.dropped metric")
             expect_lazy_log_many(logger, :debug,
               /dropping snapshot event because queue is full \(queueFull\)/,
-              /error emitting guardrails.events.dropped metric.*StandardError.*telemetry down/)
+              /error emitting debugger.events.dropped metric.*StandardError.*telemetry down/)
 
             expect { worker.add_snapshot(snapshot) }.not_to raise_error
 
@@ -379,11 +379,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           fill_queue_beyond_capacity(:add_status, status, worker.send(:status_queue), probe: probe)
         end
 
-        it "drops the status event and emits the queueFull drop metric with the diagnostic event type" do
+        it "drops the status event and emits no drop metric" do
           expect_lazy_log(logger, :debug,
             "di: dropping status for log probe at test.rb:42 (test-probe): received because queue is full (queueFull)")
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.events.dropped", 1,
-            tags: {reason: "queueFull", event_type: "diagnostic"},)
+          expect(telemetry).not_to receive(:inc)
 
           worker.add_status(status, probe: probe)
 

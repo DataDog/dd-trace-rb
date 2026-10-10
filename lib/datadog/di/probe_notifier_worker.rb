@@ -328,10 +328,12 @@ module Datadog
                       " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 end
-                guardrails_telemetry.dropped(
-                  reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                  event_type: GuardrailsTelemetry.event_type_tag(event_type),
-                )
+                if event_type == :snapshot
+                  guardrails_telemetry.dropped(
+                    reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
+                    event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT,
+                  )
+                end
               else
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)

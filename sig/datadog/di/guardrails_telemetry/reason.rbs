@@ -21,6 +21,20 @@ module Datadog
         PAYLOAD_TOO_LARGE: String
 
         BATCH_BYTES_EXCEEDED: String
+
+        RUNTIME_ERROR: String
+
+        TIMEOUT: String
+
+        DEPTH: String
+
+        FIELD_COUNT: String
+
+        COLLECTION_SIZE: String
+
+        STRING_LENGTH: String
+
+        OTHER: String
       end
     end
   end

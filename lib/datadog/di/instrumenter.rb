@@ -160,6 +160,7 @@ module Datadog
         guardrails_telemetry.skipped(
           reason: reason,
           probe: probe,
+          probe_id: reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE ? probe.id : nil,
         )
         nil
       end

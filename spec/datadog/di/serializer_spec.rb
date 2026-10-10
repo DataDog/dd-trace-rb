@@ -63,6 +63,12 @@ class DISerializerSpecBrokenHash < Hash
   end
 end
 
+class DISerializerSpecRaisingEachHash < Hash
+  def each(*, &)
+    raise "Arrgh!"
+  end
+end
+
 class DISerializerSpecRaisingToSKey
   def to_s
     raise "#to_s must not be called on a non-String/Symbol hash key"
@@ -160,6 +166,54 @@ RSpec.describe Datadog::DI::Serializer do
     ]
 
     define_serialize_value_cases(cases)
+  end
+
+  describe "capture.incomplete emission" do
+    let(:guardrails_telemetry) { instance_double(Datadog::DI::GuardrailsTelemetry).as_null_object }
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:serializer) do
+      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    def expect_capture_incomplete(reason)
+      expect(guardrails_telemetry).to receive(:capture_incomplete).with(reason: reason, event_type: "snapshot")
+    end
+
+    it "emits the depth reason for a value at the capture depth limit" do
+      expect_capture_incomplete("depth")
+      expect(serializer.serialize_value([1], depth: 0)).to include(notCapturedReason: "depth")
+    end
+
+    it "emits the collectionSize reason for an oversized collection" do
+      expect_capture_incomplete("collectionSize")
+      expect(serializer.serialize_value([1, 2, 3], collection_size: 1))
+        .to include(notCapturedReason: "collectionSize")
+    end
+
+    it "emits the fieldCount reason for an object over the field limit" do
+      expect_capture_incomplete("fieldCount")
+      expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"),
+        attribute_count: 1)).to include(notCapturedReason: "fieldCount")
+    end
+
+    it "emits the stringLength reason for a trimmed string" do
+      allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(3)
+      expect_capture_incomplete("stringLength")
+      expect(serializer.serialize_value("abcdef")).to include(truncated: true)
+    end
+
+    it "emits the runtimeError reason when serialization raises" do
+      expect_capture_incomplete("runtimeError")
+      expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new))
+        .to include(notSerializedReason: "Arrgh!")
+    end
+
+    it "emits no metric when the serializer has no guardrails telemetry emitter" do
+      bare_serializer = described_class.new(settings, redactor)
+      expect(bare_serializer.serialize_value([1], depth: 0)).to include(notCapturedReason: "depth")
+    end
   end
 
   describe "#serialize_vars" do

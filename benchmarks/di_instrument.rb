@@ -150,7 +150,7 @@ class DIInstrumentBenchmark
 
   # The telemetry component, built with the same settings, agent settings
   # and logger the DI component wires in, so the skip variants measure the
-  # production cost of emitting the guardrails.events.skipped metric. The
+  # production cost of emitting the debugger.events.skipped metric. The
   # emitters work from construction, and the background upload thread runs
   # only after Component#start, which the benchmark skips.
   def telemetry

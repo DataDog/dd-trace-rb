@@ -3,9 +3,9 @@
 module Datadog
   module DI
     class GuardrailsTelemetry
-      # Canonical skip and drop reason codes. The +di:+ debug logs and the
-      # guardrails metrics tag each guardrail decision with one of these
-      # strings.
+      # Canonical skip, drop and capture-incomplete reason codes. The
+      # +di:+ debug logs and the guardrails metrics tag each guardrail
+      # decision with one of these strings.
       module Reason
         # Skip reason emitted when a probe firing is rejected by the
         # probe's own rate limiter. Matches the reason code of the same
@@ -52,6 +52,41 @@ module Datadog
         # Drop reason naming the batch byte-cap guardrail decision.
         # Ruby's name for the batch byte-cap guardrail.
         BATCH_BYTES_EXCEEDED = "batchBytesExceeded"
+
+        # Capture-incomplete reason emitted when a capture or
+        # serialization runtime exception ends the capture of a value
+        # early. Matches the reason code of the same name in the GA RFC.
+        RUNTIME_ERROR = "runtimeError"
+
+        # Capture-incomplete reason emitted when the capture time budget
+        # ends the capture of a value early. Matches the reason code of
+        # the same name in the GA RFC.
+        TIMEOUT = "timeout"
+
+        # Capture-incomplete reason emitted when a value at the maximum
+        # capture depth is not captured. Matches the reason code of the
+        # same name in the GA RFC.
+        DEPTH = "depth"
+
+        # Capture-incomplete reason emitted when an object with more
+        # fields than the capture limit is partially captured. Matches
+        # the reason code of the same name in the GA RFC.
+        FIELD_COUNT = "fieldCount"
+
+        # Capture-incomplete reason emitted when a collection with more
+        # items than the capture limit is partially captured. Matches the
+        # reason code of the same name in the GA RFC.
+        COLLECTION_SIZE = "collectionSize"
+
+        # Capture-incomplete reason emitted when a captured string is
+        # trimmed to the capture limit. Matches the reason code of the
+        # same name in the GA RFC.
+        STRING_LENGTH = "stringLength"
+
+        # Capture-incomplete reason naming a capture limit the GA RFC
+        # enum leaves to the tracer. Ruby's name for the remaining
+        # early-capture causes; currently unused.
+        OTHER = "other"
       end
     end
   end

@@ -23,7 +23,8 @@ RSpec.describe "DI telemetry namespace under direct requires" do
     telemetry = Object.new
 
     def telemetry.inc(namespace, metric_name, value, tags: {}, common: true)
-      raise "wrong telemetry namespace: #{namespace}" unless namespace == "dynamic_instrumentation"
+      raise "wrong telemetry namespace: #{namespace}" unless namespace == "debugger"
+      raise "wrong metric name: #{metric_name}" unless metric_name == "events.skipped"
 
       nil
     end
@@ -53,7 +54,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
   SCRIPT
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
-  it "emits the guardrails skip metric when guardrails telemetry is required directly" do
+  it "emits the guardrails skip metric under the debugger namespace when guardrails telemetry is required directly" do
     expect(run_direct_require_script(EMIT_SKIP_SCRIPT)).to be_empty
   end
 
