@@ -23,7 +23,7 @@ def dependency_content(gemfile)
   ]
 end
 
-cache_version = ENV.fetch("CACHE_VERSION", "0")
+cache_version = ENV["CACHE_VERSION"].to_s
 cache_version = "0" if cache_version.empty?
 
 settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
