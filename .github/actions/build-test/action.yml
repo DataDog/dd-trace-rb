@@ -21,7 +21,7 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - name: Install matrix dependencies
+  - name: Install matrix dependencies for this worker
     if: inputs.cache-match != 'matrix'
     run: bundle exec rake github:run_batch_build
     shell: bash
