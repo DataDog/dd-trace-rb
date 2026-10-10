@@ -1,18 +1,38 @@
 name: 'Prepare bundle cache'
 
 description: >-
-  Reuse installed gems so CI jobs do not rebuild the same dependencies independently.
-  Core caches hold build tools and common test dependencies.
-  Matrix caches add dependencies for the test suites assigned to an engine image,
-  so test batches can share one prepared bundle.
+  Caching strategy: two cache entries total:
+    * `matrix` cache: *all* gems, including the whole Matrixfile. This is used to run tests.
+    * `core` cache: only gems related to Ruby versions themselves. This is used for everything else.
 
-  Only master saves caches to avoid branch-specific copies crowding out shared caches.
-  Branch jobs prefer exact cache matches, then use partial cache matches to reduce installation work.
+  `matrix` includes `core` gems: it's safer to duplicate this data, than try to remove the intersection safely.
 
-  Cache keys isolate engine images and Bundler settings but allow reuse across dependency and cache-logic changes.
-  Current lockfiles, not cache contents, determine required dependencies;
-  jobs check dependencies and install missing gems before tests when using partial caches.
-  Bump CACHE_VERSION when cache-layout changes make older caches incompatible.
+  The cache key is:
+       bundle-<core|matrix>-v<version>-<image+bundler config>-<cache logic>-<gemfiles>
+
+  Which allows for partial cache reuse, from higher to lower reuse:
+    1. Gemfiles changes.
+    2. Cache logic changes.
+
+  If the docker image or bundler configuration changes, it's a cache miss.
+
+  On miss, or partial matching, bundle install is run after cache restoration.
+
+  New cache entries are only uploaded on master runs. This accomplishes a few things:
+    1. Given our concurrent test suite, we cannot have multiple runners publishing to the
+    same cache key (GitHub doesn't like it). If we instead created a separate cache key per
+    concurrent run, we'd quickly exhaust our 10GiB repo cache limit, given each unique
+    cache key combination (if we combine both core and matrix) is around 400MiB.
+    2. dd-trace-rb's cache is only valuable for reuse if it matches the criteria
+    `<image+bundler config>-<cache logic>-<gemfiles>`. Otherwise, we'd be publishing
+    caches that are too specific to our branches, and exhusting the 10GiB limit
+    for almost not cache reuse.
+      a. Publishing in every branch or PR is unnecessary, if change criteria is not met,
+      even if cache entries were smaller.
+
+  Break glass mechanism: If external forces messed up the saved cache, change the value
+  of the CI environment variable `CACHE_VERSION` to invalidate all caches; then rerun
+  master for a fresh start.
 
 inputs:
   image:
