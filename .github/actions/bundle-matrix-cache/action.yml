@@ -17,7 +17,7 @@ outputs:
       ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
           || steps.lookup.outputs.cache-key || steps.core.outputs.cache-key }}
   cache-match:
-    description: Selected cache match, core, partial, or matrix
+    description: 'Selected cache match: core, partial, or matrix'
     value: >-
       ${{ (steps.lookup.outputs.cache-outcome == 'exact' || github.ref == 'refs/heads/master')
           && 'matrix' || (steps.lookup.outputs.cache-outcome == 'partial' && 'partial' || 'core') }}

@@ -11,7 +11,7 @@ inputs:
     description: 'Container Identifier'
     required: true
   cache-match:
-    description: 'Selected cache match, core, partial, or matrix'
+    description: 'Selected cache match: core, partial, or matrix'
     required: true
 
 runs:
