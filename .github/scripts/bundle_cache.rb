@@ -43,11 +43,18 @@ when "core"
     "image" => image,
     "recipe" => digest(recipe),
   }
-  puts "bundle-core-v#{version}-#{digest(identity)}"
+  puts "cache-key=bundle-core-v#{version}-#{digest(identity)}"
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
-  puts "bundle-matrix-#{version}-#{digest(identity)}-#{digest(recipe)}-#{digest(dependencies)}"
+  image_prefix = "bundle-matrix-#{version}-#{digest(identity)}-"
+  logic_prefix = "#{image_prefix}#{digest(recipe)}-"
+
+  puts "cache-key=#{logic_prefix}#{digest(dependencies)}"
+  puts "restore-keys<<EOF"
+  puts logic_prefix
+  puts image_prefix
+  puts "EOF"
 else
   abort "Expected core or matrix"
 end

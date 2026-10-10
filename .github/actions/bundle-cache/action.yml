@@ -20,9 +20,7 @@ runs:
       shell: bash
       env:
         IMAGE: ${{ inputs.image }}
-      run: |
-        cache_key=$(ruby .github/scripts/bundle_cache.rb core)
-        echo "cache-key=$cache_key" >> "$GITHUB_OUTPUT"
+      run: ruby .github/scripts/bundle_cache.rb core >> "$GITHUB_OUTPUT"
     - name: Restore cache
       id: restore-cache
       uses: ./.github/actions/bundle-restore

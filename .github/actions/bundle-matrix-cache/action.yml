@@ -35,17 +35,7 @@ runs:
       env:
         IMAGE: ${{ inputs.image }}
         GEMFILES: ${{ inputs.gemfiles }}
-      run: |
-        cache_key=$(ruby .github/scripts/bundle_cache.rb matrix)
-        logic_prefix="${cache_key%-*}-"
-        image_prefix="${cache_key%-*-*}-"
-        {
-          echo "cache-key=$cache_key"
-          echo 'restore-keys<<EOF'
-          echo "$logic_prefix"
-          echo "$image_prefix"
-          echo 'EOF'
-        } >> "$GITHUB_OUTPUT"
+      run: ruby .github/scripts/bundle_cache.rb matrix >> "$GITHUB_OUTPUT"
     - name: Find matrix cache
       id: lookup
       uses: ./.github/actions/bundle-restore
