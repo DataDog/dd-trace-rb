@@ -1,8 +1,8 @@
 name: 'Prepare bundle cache'
 
 description: >-
-  Caching strategy: two cache entries total:
-    * `matrix` cache: *all* gems, including the whole Matrixfile. This is used to run tests.
+  The caching strategy is to have two cache types per Ruby version:
+    * `matrix` cache: *all* gems, including the Matrixfile. This is used to run tests.
     * `core` cache: only gems related to Ruby versions themselves. This is used for everything else.
 
   `matrix` includes `core` gems: it's safer to duplicate this data than try to remove the intersection safely.
@@ -10,22 +10,22 @@ description: >-
   The cache key is:
        bundle-<core|matrix>-v<version>-<image+bundler config>-<cache logic>-<gemfiles>
 
-  This allows for partial cache reuse, from higher to lower reuse:
+  This allows for partial cache reuse, from higher to lower reuse, when:
     1. Gemfile changes.
     2. Cache logic changes.
 
   If the Docker image or Bundler configuration changes, it's a cache miss.
 
-  On a miss or partial match, bundle install is run after cache restoration.
+  On a miss or partial match, bundle check/install is run after cache restoration.
 
   New cache entries are only uploaded on master runs. This accomplishes a few things:
     1. Given our concurrent test suite, we cannot have multiple runners publishing to the
     same cache key (GitHub doesn't like it). If we instead created a separate cache key per
     concurrent run, we'd quickly exhaust our 10 GiB repo cache limit, given that each unique
     cache key combination (if we combine both core and matrix) is around 400 MiB.
-    2. dd-trace-rb's cache is only valuable for reuse if it matches the criteria
-    `<image+bundler config>-<cache logic>-<gemfiles>`. Otherwise, we'd be publishing
-    caches that are too specific to our branches and exhausting the 10 GiB limit
+    2. dd-trace-rb's cache is only valuable for reuse if it matches most of the
+    reuse criteria: `<image+bundler config>-<cache logic>-<gemfiles>`. Otherwise,
+    we'd publish caches that are too specific to our branches and exhaust the 10 GiB limit
     for almost no cache reuse.
       a. Publishing in every branch or PR is unnecessary if the change criteria are not met,
       even if cache entries were smaller.
