@@ -23,8 +23,8 @@ def dependency_content(gemfile)
   ]
 end
 
-cache_version = ENV["CACHE_VERSION"]
-cache_version = "0" if cache_version.empty?
+version = ENV["CACHE_VERSION"]
+version = "0" if version.empty?
 
 settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
 recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
@@ -43,11 +43,11 @@ when "core"
     "image" => image,
     "recipe" => digest(recipe),
   }
-  puts "bundle-core-v#{cache_version}-#{digest(identity)}"
+  puts "bundle-core-v#{version}-#{digest(identity)}"
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
-  puts "bundle-matrix-#{cache_version}-#{digest(identity)}-#{digest(recipe)}-#{digest(dependencies)}"
+  puts "bundle-matrix-#{version}-#{digest(identity)}-#{digest(recipe)}-#{digest(dependencies)}"
 else
   abort "Expected core or matrix"
 end
