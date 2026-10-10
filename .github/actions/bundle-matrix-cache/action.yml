@@ -19,10 +19,9 @@ outputs:
   cache-match:
     description: >-
       Selected cache match: core, partial, or matrix.
-      core: dependencies for BUNDLE_GEMFILE, set to gemfiles/<engine>-<version>.gemfile in _unit_test.yml.
-      matrix: core plus inputs.gemfiles, the gemfiles list emitted by github:generate_batches.
-      partial: restore-keys matched a different matrix cache key; workers check/install dependencies
-      for BUNDLE_GEMFILE and the Gemfiles in their matrix.tasks.
+      core: cache for gemfiles/<engine>-<version>.gemfile gems.
+      matrix: cache for core plus selected gemfiles/<engine>_<version>_<gemset>.gemfile gems.
+      partial: best-effort, older matrix cache; must check gems before using them.
     value: >-
       ${{ (steps.lookup.outputs.cache-outcome == 'exact' || github.ref == 'refs/heads/master')
           && 'matrix' || (steps.lookup.outputs.cache-outcome == 'partial' && 'partial' || 'core') }}
