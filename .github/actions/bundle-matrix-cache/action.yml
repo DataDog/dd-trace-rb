@@ -17,7 +17,11 @@ outputs:
       ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
           || steps.lookup.outputs.cache-key || steps.core.outputs.cache-key }}
   cache-match:
-    description: 'Selected cache match: core, partial, or matrix'
+    description: >-
+      Selected cache match: core, partial, or matrix.
+      core covers dependencies for the runtime core Gemfile.
+      matrix covers core plus every selected test Gemfile.
+      partial provides no dependency completeness guarantee.
     value: >-
       ${{ (steps.lookup.outputs.cache-outcome == 'exact' || github.ref == 'refs/heads/master')
           && 'matrix' || (steps.lookup.outputs.cache-outcome == 'partial' && 'partial' || 'core') }}
