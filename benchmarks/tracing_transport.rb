@@ -78,7 +78,7 @@ class TracingTransportBenchmark
   end
 
   def agent_settings
-    @agent_settings ||= Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    @agent_settings ||= Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", 30)
   end
 
   def build_http_transport

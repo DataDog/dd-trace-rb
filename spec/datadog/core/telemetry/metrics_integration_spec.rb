@@ -41,6 +41,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   after do
     component.shutdown!
+  ensure
+    components.tracer.shutdown!
   end
 
   let(:initial_event) do

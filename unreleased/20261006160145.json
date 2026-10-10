@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6433",
+  "message": "Fix child processes hanging during garbage collection after closing a native trace transport and then forking."
+}

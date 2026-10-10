@@ -72,8 +72,8 @@ jobs:
           image: *engine-image
       - run: bundle exec rake rubocop
 
-  steep:
-    name: steep/typecheck
+  steep-check:
+    name: steep/check
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
@@ -94,9 +94,27 @@ jobs:
       - name: Check for missing signature files
         run: bundle exec rake rbs:missing
       - name: Check types
-        run: bundle exec rake steep:check
+        run: bundle exec rake 'steep:check[--jobs=4]'
+
+  steep-stats:
+    name: steep/stats
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
+        with:
+          image: *engine-image
       - name: Record stats
-        run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
+        run: bundle exec rake 'steep:stats[md,--jobs=4]' >> "$GITHUB_STEP_SUMMARY"
 
   bundler-audit:
     name: bundler-audit
@@ -290,7 +308,8 @@ jobs:
   complete:
     name: Static Analysis (complete)
     needs:
-      - 'steep'
+      - 'steep-check'
+      - 'steep-stats'
       - 'standard'
       - 'rubocop'
       - 'semgrep'

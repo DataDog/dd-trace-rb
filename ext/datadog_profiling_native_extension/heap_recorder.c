@@ -627,7 +627,7 @@ static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_
   }
 
   size_t current_gc_gen = rb_gc_count();
-  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long now_ns = monotonic_wall_time_now_ns();
 
   if (!full_update) {
     if (current_gc_gen == heap_recorder->update_gen) {
@@ -641,7 +641,7 @@ static VALUE heap_recorder_update_locked(VALUE heap_recorder_update_locked_args_
       return Qnil;
     }
 
-    if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS) {
+    if ((now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS) {
       // We did an update not too long ago. Let's skip this one to avoid over-taxing the system.
       heap_recorder->stats_lifetime.updates_skipped_time++;
       return Qnil;

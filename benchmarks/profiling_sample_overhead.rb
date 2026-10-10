@@ -22,7 +22,9 @@ Datadog::Profiling.wait_until_running
 
 DURATION = VALIDATE_BENCHMARK_MODE ? 1.0 : 10.0
 
+puts "Sleeping for #{DURATION} seconds"
 sleep DURATION
+puts "Woke up after sleeping"
 
 Datadog.shutdown!
 

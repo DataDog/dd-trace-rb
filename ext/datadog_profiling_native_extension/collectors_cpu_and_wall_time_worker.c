@@ -16,6 +16,7 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 #ifdef __APPLE__
   #include "macos_sampler_thread.h"
@@ -122,6 +123,7 @@ typedef struct {
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
+  idle_sampling_loop_state *idle_sampling_helper_state;
   VALUE owner_thread;
   dynamic_sampling_rate_state cpu_dynamic_sampling_rate;
   discrete_dynamic_sampler allocation_sampler;
@@ -145,6 +147,7 @@ typedef struct {
   //
   // It's not an actual lock because we rely on the GVL for correct synchronization
   // (and thus this flag is only valid when we know we have the GVL).
+  // Exception: `on_gvl_event` sets it for RUBY_INTERNAL_THREAD_EVENT_RESUMED without the GVL -- see the notes there.
   //
   // Similar to a lock, it should not be held across long-running operations,
   // **in particular it MUST NEVER be held during operations where we might lose the GVL**
@@ -157,6 +160,10 @@ typedef struct {
   // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
   // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
   bool during_sample;
+  // Used from the signal handler to ask for a sample at the end of GC.
+  // The GC_EXIT event is emitted by the thread that had the GVL + was doing GC, e.g. Ruby won't switch threads between
+  // this flag getting set in the signal handler and the GC_EXIT event.
+  bool prepare_sample_on_gc_finish;
 
   #ifndef NO_GVL_INSTRUMENTATION
   // Only set when sampling is active (gets created at start and cleaned on stop)
@@ -245,10 +252,12 @@ static VALUE _native_failure_exception_during_operation(DDTRACE_UNUSED VALUE sel
 static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
-static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE self);
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event);
+static VALUE _native_on_gc_event(VALUE self, VALUE instance, VALUE event, VALUE during_sample);
+static VALUE _native_request_prepare_on_gc_finish(VALUE self, VALUE instance);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE safely_call(
   VALUE (*function_to_call_safely)(VALUE),
@@ -273,7 +282,6 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
-static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
@@ -317,16 +325,6 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 // (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
-static VALUE clock_failure_exception_class = Qnil;
-
-// Stats that live outside of any particular `cpu_and_wall_time_worker_state`, so that they can always be safely
-// touched, even when we're not sure it's safe to touch the state (e.g. signal handler, no GVL, etc).
-typedef struct {
-  // How many times we skipped sampling because we were running on the alternate  signal stack (e.g. nested inside
-  // another signal handler, presumably GC compaction).
-  unsigned int signal_handler_skipped_sample_on_altstack;
-} global_stats_t;
-static global_stats_t global_stats;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -367,8 +365,6 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_worker_class, "Testing");
-  clock_failure_exception_class = rb_define_class_under(collectors_cpu_and_wall_time_worker_class, "ClockFailure", rb_eRuntimeError);
-  rb_gc_register_mark_object(clock_failure_exception_class);
 
   // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -396,9 +392,10 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_resume_signals", _native_resume_signals, 0);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
-  rb_define_singleton_method(testing_module, "_native_install_sigprof_handler_on_altstack", _native_install_sigprof_handler_on_altstack, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
   rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
+  rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
+  rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
@@ -421,7 +418,7 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long now = monotonic_wall_time_now_ns();
 
   cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(cpu_and_wall_time_worker_state));
 
@@ -440,6 +437,7 @@ static VALUE _native_new(VALUE klass) {
   state->waiting_for_gvl_threshold_ns = 10 * 1000 * 1000;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
+  state->idle_sampling_helper_state = NULL;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
@@ -518,12 +516,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     // TODO: May be nice to offer customization here? Distribute available "overhead" margin with a bias towards one or the other
     // sampler.
     dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage / 2);
-    long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2, now);
+    discrete_dynamic_sampler_set_overhead_target_percentage(
+      &state->allocation_sampler, total_overhead_target_percentage / 2, monotonic_wall_time_now_ns()
+    );
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
+  state->idle_sampling_helper_state = idle_sampling_helper_get_state(idle_sampling_helper_instance);
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
   return Qtrue;
@@ -576,8 +576,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
-  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
+  discrete_dynamic_sampler_reset(&state->allocation_sampler, monotonic_wall_time_now_ns());
 
   // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
   // affect or be included in samples taken by this profiler about to run.
@@ -714,57 +713,19 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
   return Qtrue;
 }
 
-// Our SIGPROF handler is not installed with SA_ONSTACK (see `install_sigprof_signal_handler`).
-// If we detect our signal handler is running on the alt stack, it means we interrupted another signal handler
-// that IS running on the alt stack -- in practice, Ruby's GC compaction read-barrier handler.
-#ifdef __APPLE__
-  // On macOS, `ucontext->uc_stack.ss_sp` reports the (live) stack pointer near the top of the alt stack rather than the
-  // alt-stack base like Linux does, and `ss_size` is the full alt-stack size. Thus the linux version of the check
-  // didn't work for macOS.
-  // As an alternative, we query `sigaltstack()`; we save/restore errno since `sigaltstack()` may clobber it.
-  static bool is_running_on_alternate_signal_stack(DDTRACE_UNUSED void *ucontext) {
-    int old_errno = errno;
-    stack_t current_alt_stack;
-    bool on_alt_stack = sigaltstack(NULL, &current_alt_stack) == 0 && (current_alt_stack.ss_flags & SS_ONSTACK) != 0;
-    errno = old_errno;
-    return on_alt_stack;
-  }
-#else
-  // NOTE: On Linux we use the alt-stack bounds from the `ucontext` rather than `sigaltstack()`, allowing us to avoid one syscall.
-  static bool is_running_on_alternate_signal_stack(void *ucontext) {
-    if (ucontext == NULL) return false;
-
-    stack_t alt_stack = ((ucontext_t *) ucontext)->uc_stack;
-    if (alt_stack.ss_size == 0) return false; // No alternate signal stack registered on this thread
-
-    char stack_local;
-    uintptr_t current_sp = (uintptr_t) &stack_local;
-    uintptr_t alt_stack_start = (uintptr_t) alt_stack.ss_sp;
-
-    return current_sp >= alt_stack_start && current_sp < alt_stack_start + alt_stack.ss_size;
-  }
-#endif
-
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
-static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, void *ucontext) {
-  // If we're running on the alternate signal stack, we've interrupted another signal handler that's running
-  // there -- in practice, Ruby's GC compaction read-barrier handler.
-  // During GC compaction, Ruby protects pages containing Ruby objects, so many of the checks we do below are unsafe
-  // since they can touch those pages, and thus we just bail out here in this situation to avoid crashes.
-  if (is_running_on_alternate_signal_stack(ucontext)) {
-    global_stats.signal_handler_skipped_sample_on_altstack++;
-    return;
-  }
-
+//
+// Neither this handler nor its callees may dereference Ruby objects before confirming GVL ownership or during GC.
+// Holding the GVL is not enough: we may have interrupted GC itself, with Ruby heap pages protected by compaction.
+static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   // We must first check that we landed on the correct thread and can proceed.
   // We must never touch the state before we confirm that we have landed on the thread that is holding the GVL on the main
   // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
-    !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+    !is_current_thread_in_main_ractor_and_holding_the_gvl() // Not safe to enqueue a sample from this thread
   ) return;
 
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
@@ -789,11 +750,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (sample_from_signal_handler) {
     if (rb_during_gc()) {
       // During GC Ruby might be marking our buffer or compacting (moving) where iseqs live so we skip preparing the
-      // sample immediately, and instead ask on_gc_finish to do the job when GC is at its end.
+      // sample immediately, and instead defer preparation until GC_EXIT.
       //
       // When GC profiling is disabled, we just fall back to sampling the stack after GC finishes, e.g. it's the
       // equivalent of disabling `sample_from_signal_handler` for samples that happen during GC.
-      thread_context_collector_request_prepare_on_gc_finish();
+      state->prepare_sample_on_gc_finish = true;
     } else {
       // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
       // until the postponed job below gets run.
@@ -834,7 +795,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   #endif
 }
 
-// The actual sampling trigger loop always runs **without** the global vm lock.
+// Runs without the GVL: neither this loop nor its callees may dereference Ruby objects until they reacquire it.
+// GC compaction can protect Ruby heap pages while this loop runs, so even reading an object's header is unsafe.
 static void *run_sampling_trigger_loop(void *state_ptr) {
   cpu_and_wall_time_worker_state *state = (cpu_and_wall_time_worker_state *) state_ptr;
 
@@ -854,7 +816,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       state->stats.trigger_simulated_signal_delivery_attempts++;
       grab_gvl_and_sample(); // Note: Can raise exceptions
     } else {
-      current_gvl_owner owner = gvl_owner();
+      current_gvl_owner owner = main_ractor_gvl_owner();
       if (owner.valid) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
@@ -878,7 +840,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
           // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
           // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
           state->stats.trigger_simulated_signal_delivery_attempts++;
-          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+          idle_sampling_helper_request_action(state->idle_sampling_helper_state, grab_gvl_and_sample);
         }
       }
     }
@@ -890,7 +852,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // Note that we deliberately should NOT combine this sleep_for with the one above because the result of
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
-      dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
+      dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns());
     if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) {
       state->stats.trigger_sample_extra_sleep++;
       sleep_for(extra_sleep);
@@ -944,7 +906,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long wall_time_ns_before_sample = monotonic_wall_time_now_ns();
 
   if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_before_sample)) {
     state->stats.cpu_skipped++;
@@ -956,7 +918,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   bool needs_otel_span_key =
     thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
-  long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long wall_time_ns_after_sample = monotonic_wall_time_now_ns();
 
   if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
     raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
@@ -1035,7 +997,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // If we stopped sampling due to an exception, re-raise it (now in the worker thread)
   if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
 
-  thread_context_collector_profiler_internal_thread_done(state->thread_context_collector_instance);
+  _native_profiler_internal_thread_done(instance);
 
   return Qnil;
 }
@@ -1072,28 +1034,6 @@ static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   remove_sigprof_signal_handler();
-  return Qtrue;
-}
-
-// Reproduces a profiler sample being taken in the middle of GC compaction: during compaction a SIGPROF can be
-// delivered while nested inside Ruby's read-barrier signal handler, which runs on the alternate signal stack. We
-// simulate that here by re-installing the production `handle_sampling_signal` with the `SA_ONSTACK` flag, so it runs
-// on the alternate signal stack just like it would in that scenario.
-//
-// The `SA_ONSTACK` will be undone by any next `replace_sigprof_signal_handler_with_empty_handler` /
-// `install_sigprof_signal_handler_internal` / `remove_sigprof_signal_handle` so this doesn't need a specific, symmetric
-// `uninstall` to undo this.
-static VALUE _native_install_sigprof_handler_on_altstack(DDTRACE_UNUSED VALUE self) {
-  struct sigaction signal_handler_config = {
-    .sa_flags = SA_RESTART | SA_SIGINFO | SA_ONSTACK,
-    .sa_sigaction = handle_sampling_signal,
-  };
-  sigemptyset(&signal_handler_config.sa_mask);
-
-  if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) {
-    rb_sys_fail("Failed to install SA_ONSTACK SIGPROF signal handler for testing");
-  }
-
   return Qtrue;
 }
 
@@ -1140,13 +1080,21 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // and disabled before it is cleared, but just in case...
   if (state == NULL) return;
 
+  handle_gc_event(state, event);
+}
+
+static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    // A signal can arrive after GC_EXIT while `rb_during_gc` is still true; discard requests from the previous GC step.
+    state->prepare_sample_on_gc_finish = false;
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    bool allow_prepare_sample = !state->during_sample;
-    if (allow_prepare_sample) during_sample_enter(state);
-    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance, allow_prepare_sample);
-    if (allow_prepare_sample) during_sample_exit(state);
+    if (state->prepare_sample_on_gc_finish && !state->during_sample) {
+      during_sample_enter(state);
+      thread_context_collector_prepare_sample_on_gc_finish();
+      during_sample_exit(state);
+    }
+    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.
@@ -1158,6 +1106,31 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
       #endif
     }
   }
+}
+
+static VALUE _native_request_prepare_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  state->prepare_sample_on_gc_finish = true;
+  return Qnil;
+}
+
+static VALUE _native_on_gc_event(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE event, VALUE during_sample) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  ENFORCE_BOOLEAN(during_sample);
+  rb_event_flag_t event_flag;
+  if (event == ID2SYM(rb_intern("enter"))) event_flag = RUBY_INTERNAL_EVENT_GC_ENTER;
+  else if (event == ID2SYM(rb_intern("exit"))) event_flag = RUBY_INTERNAL_EVENT_GC_EXIT;
+  else rb_raise(rb_eArgError, "Expected :enter or :exit");
+
+  bool was_during_sample = state->during_sample;
+  if (during_sample == Qtrue) during_sample_enter(state);
+  debug_enter_unsafe_context();
+  handle_gc_event(state, event_flag);
+  debug_leave_unsafe_context();
+  if (!was_during_sample) during_sample_exit(state);
+  return Qnil;
 }
 
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
@@ -1244,6 +1217,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   // Disable all hooks, so that there are no more attempts to mutate the profile
   disable_hooks(state);
 
+  private_vm_api_access_self_test();
+
   reset_stats_not_thread_safe(state);
 
   // Remove all state from the `Collectors::ThreadState` and connected downstream components
@@ -1278,7 +1253,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
-    ID2SYM(rb_intern("signal_handler_skipped_sample_on_altstack")),  /* => */ UINT2NUM(global_stats.signal_handler_skipped_sample_on_altstack),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
@@ -1364,7 +1338,6 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
     .gvl_sampling_time_ns_min        = UINT64_MAX,
     // Other fields are reset to 0
   };
-  global_stats = (global_stats_t) {0};
 }
 
 static void sleep_for(uint64_t time_ns) {
@@ -1392,15 +1365,6 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 
   return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
-
-#define HANDLE_CLOCK_FAILURE(call) ({ \
-    long _result = (call); \
-    if (_result == 0) { \
-        delayed_error_clock_failure(state); \
-        return; \
-    } \
-    _result; \
-})
 
 // Implements memory-related profiling events. This function is called by Ruby via the `rb_add_event_hook2`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
@@ -1467,16 +1431,13 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
     state->stats.allocation_skipped++;
 
-    coarse_instant now = monotonic_coarse_wall_time_now_ns();
-    HANDLE_CLOCK_FAILURE(now.timestamp_ns);
-
-    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, now);
+    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, monotonic_coarse_wall_time_now_ns());
     if (RB_UNLIKELY(needs_readjust)) {
       // We rarely readjust, so this is a cold path
       // Also, while above we used the cheaper monotonic_coarse, for this call we want the regular monotonic call,
       // which is why we end up getting time "again".
       discrete_dynamic_sampler_readjust(
-        &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+        &state->allocation_sampler, monotonic_wall_time_now_ns()
       );
     }
 
@@ -1486,7 +1447,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   // From here on, we've decided to go ahead with the sample, which is way less common than skipping it
 
   discrete_dynamic_sampler_before_sample(
-    &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+    &state->allocation_sampler, monotonic_wall_time_now_ns()
   );
 
   during_sample_enter(state);
@@ -1500,12 +1461,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   );
 
   if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error_clock_failure(state);
-      // NOTE: Not short-circuiting here to make sure cleanup happens
-    }
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
+    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, monotonic_wall_time_now_ns());
     // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
     //       why we're fine with having this inside this conditional.
     state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
@@ -1590,11 +1546,6 @@ static void delayed_error(cpu_and_wall_time_worker_state *state, const char *err
   stop_state(state, rb_exc_new_cstr(rb_eRuntimeError, error), "delayed_error");
 }
 
-static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state) {
-  // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
-  stop_state(state, rb_exc_new_cstr(clock_failure_exception_class, "failed to get clock time"), "delayed_error_clock_failure");
-}
-
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {
   ENFORCE_TYPE(error_msg, T_STRING);
 
@@ -1643,6 +1594,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       VALUE target_thread = rb_thread_current();
     #endif
 
+    // TODO: `rb_internal_thread_specific_get` is documented as "async and native thread safe.",
+    // unclear if that holds during GC compaction.
     per_thread_context* thread_context = get_per_thread_context(target_thread);
     if (!thread_context) return;
     // If non-NULL the thread is profiled and from the main Ractor
@@ -1714,9 +1667,9 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-    long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    long wall_time_ns_before_sample = monotonic_wall_time_now_ns();
     thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
-    long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    long wall_time_ns_after_sample = monotonic_wall_time_now_ns();
 
     if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
       raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
