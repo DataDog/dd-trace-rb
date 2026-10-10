@@ -1,10 +1,11 @@
+# Runs without bundle exec.
 require "json"
 require_relative "appraisal_conversion"
 
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   task :generate_batches do
-    matrix = eval(File.read("Matrixfile")).freeze # rubocop:disable Security/Eval
+    matrix = eval(File.read("Matrixfile"), binding, "Matrixfile").freeze # rubocop:disable Security/Eval
 
     # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
     misc_candidates = [
@@ -42,7 +43,6 @@ namespace :github do
       end
     end
 
-    # Seed
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
@@ -50,15 +50,17 @@ namespace :github do
     batched_matrix = {"include" => []}
 
     matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix["include"] << {"batch" => index.to_s, "tasks" => task_group}
+      batched_matrix["include"] << {"batch" => index.to_s, "container-id" => "standard-#{index}", "tasks" => task_group}
     end
+
+    misc_batch = "0"
 
     data = {
       batches: batched_matrix,
-      misc: {"include" => [{"batch" => "0", "tasks" => misc_tasks}]},
+      misc: {"include" => [{"batch" => misc_batch, "container-id" => "misc-#{misc_batch}", "tasks" => misc_tasks}]},
+      gemfiles: (matching_tasks + misc_tasks).map { |task| task[:gemfile] }.uniq.sort,
     }
 
-    # Output the JSON
     puts JSON.dump(data)
   end
 
@@ -87,16 +89,13 @@ namespace :github do
   end
 
   task :run_batch_build do
-    tasks = JSON.parse(ENV["BATCHED_TASKS"] || {})
+    tasks = JSON.parse(ENV["BATCHED_TASKS"])
+    install_bundle_gemfiles(tasks.map { |task| task.fetch("gemfile") })
+  end
 
-    tasks.each do |task|
-      env = {"BUNDLE_GEMFILE" => task["gemfile"]}
-      cmd = "bundle check || bundle install"
-      # Retry mechanism to improve reliability in Github Actions,
-      # since network issues can cause `bundle install` to fail.
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      end
+  task :install_matrix_dependencies do
+    install_bundle_gemfiles(JSON.parse(ENV["GEMFILES"])).each do |gemfile|
+      Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check") }
     end
   end
 
@@ -112,7 +111,7 @@ namespace :github do
       junit_files_before = Dir["tmp/rspec/*.xml"]
 
       begin
-        Bundler.with_unbundled_env { sh(env, cmd) }
+        Bundler.with_original_env { sh(env, cmd) }
       rescue RuntimeError
         raise annotate_test_failures(env, cmd)
       end
@@ -178,6 +177,20 @@ namespace :github do
         #{rows.join("\n")}
         </details>
       SUMMARY
+    end
+  end
+
+  def install_bundle_gemfiles(gemfiles)
+    core_gemfile = File.expand_path(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
+
+    gemfiles = gemfiles.uniq { |gemfile| File.expand_path(gemfile) }
+    gemfiles.reject! { |gemfile| File.expand_path(gemfile) == core_gemfile }
+
+    gemfiles.each do |gemfile|
+      # Network failures can interrupt bundle installation.
+      with_retry do
+        Bundler.with_original_env { sh({"BUNDLE_GEMFILE" => gemfile}, "bundle check || bundle install") }
+      end
     end
   end
 

@@ -13,25 +13,26 @@ concurrency:
 # Default permissions for all jobs
 permissions: {}
 
+env:
+  CACHE_VERSION: ${{ vars.CACHE_VERSION }}
+
 jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: &engine-image ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
-    outputs:
-      lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
-      cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Prepare bundle cache
-        id: bundle-cache
         uses: ./.github/actions/bundle-cache
+        with:
+          image: *engine-image
 
   standard:
     name: standard/lint
@@ -46,11 +47,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
+          image: *engine-image
       - run: bundle exec rake standard
 
   rubocop:
@@ -66,11 +66,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
+          image: *engine-image
       - run: bundle exec rake rubocop
 
   steep-check:
@@ -86,11 +85,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
+          image: *engine-image
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
       - name: Check for missing signature files
@@ -111,11 +109,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
+          image: *engine-image
       - name: Record stats
         run: bundle exec rake 'steep:stats[md,--jobs=4]' >> "$GITHUB_STEP_SUMMARY"
 
@@ -234,11 +231,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+      - name: Prepare core bundle
+        uses: ./.github/actions/bundle-cache
         with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
+          image: *engine-image
       - run: bundle exec rake dependency:checksum_coverage
 
   semgrep:
@@ -290,7 +286,7 @@ jobs:
           persist-credentials: false
       - name: Run actionlint
         env:
-          ACTIONLINT_IMAGE: rhysd/actionlint@sha256:96d4a8c87dbbfb3bdd324f8fdc285fc3df5261e2decc619a4dd7e8ee52bbfd46 # 1.7.8
+          ACTIONLINT_IMAGE: rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
         run: |
           docker run --rm \
             --volume "$GITHUB_WORKSPACE:/repo:ro" \

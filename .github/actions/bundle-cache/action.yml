@@ -1,55 +1,73 @@
 name: 'Prepare bundle cache'
 
-description: 'Sets up bundle cache for GitHub Actions'
+description: >-
+  The caching strategy is to have two cache types per Ruby version:
+    * `matrix` cache: *all* gems, including the Matrixfile. This is used to run tests.
+    * `core` cache: only gems related to Ruby versions themselves. This is used for everything else.
+
+  `matrix` includes `core` gems: it's safer to duplicate this data than try to remove the intersection safely.
+
+  The cache key is:
+       bundle-<core|matrix>-v<version>-<image+bundler config>-<cache logic>-<gemfiles>
+
+  This allows for partial cache reuse, from higher to lower reuse, when:
+    1. Gemfile changes.
+    2. Cache logic changes.
+
+  If the Docker image or Bundler configuration changes, it's a cache miss.
+
+  On a miss or partial match, bundle check/install is run after cache restoration.
+
+  New cache entries are only uploaded on master runs. This accomplishes a few things:
+    1. Given our concurrent test suite, we cannot have multiple runners publishing to the
+    same cache key (GitHub doesn't like it). If we instead created a separate cache key per
+    concurrent run, we'd quickly exhaust our 10 GiB repo cache limit, given that each unique
+    cache key combination (if we combine both core and matrix) is around 400 MiB.
+    2. dd-trace-rb's cache is only valuable for reuse if it matches most of the
+    reuse criteria: `<image+bundler config>-<cache logic>-<gemfiles>`. Otherwise,
+    we'd publish caches that are too specific to our branches and exhaust the 10 GiB limit
+    for almost no cache reuse.
+      a. Publishing in every branch or PR is unnecessary if the change criteria are not met,
+      even if cache entries were smaller.
+
+  Break-glass mechanism: If external forces messed up the saved cache, change the value
+  of the CI environment variable `CACHE_VERSION` to invalidate all caches; then rerun
+  master for a fresh start.
+
+inputs:
+  image:
+    description: Engine image reference
+    required: true
 
 outputs:
   cache-key:
     description: 'Cache key for the bundle'
-    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
-  lockfile:
-    description: 'Lockfile name'
-    value: ${{ steps.lockfile.outputs.lockfile }}
+    value: >-
+      ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
+          || steps.restore-cache.outputs.cache-key || steps.key.outputs.cache-key }}
 
 runs:
   using: "composite"
   steps:
-    - name: Generate unique Ruby environment key
-      id: ruby-env-id
-      shell: bash
-      run: |
-        id=$(ruby -rrubygems -e 'puts [RUBY_DESCRIPTION, Gem.extension_api_version].join("-")') # Includes patchlevel, os, arch, and extension ABI
-        echo "id=$id" >> "$GITHUB_OUTPUT"
-    - name: Resolve lockfile
-      id: lockfile
+    - name: Compute core cache key
+      id: key
       shell: bash
       env:
-        LOCKFILE: lockfile-${{ steps.ruby-env-id.outputs.id }}
-      run: |
-        path="${BUNDLE_GEMFILE:-Gemfile}.lock"
-        if [ ! -f "$path" ]; then
-          echo "::error::Expected lockfile $path not found. Regenerate via the lock-dependency workflow." >&2
-          exit 1
-        fi
-        { echo "lockfile=$LOCKFILE"; echo "path=$path"; } >> "$GITHUB_OUTPUT"
-    - name: Upload lockfile
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: ${{ steps.lockfile.outputs.lockfile }}
-        path: ${{ steps.lockfile.outputs.path }}
+        IMAGE: ${{ inputs.image }}
+      run: ruby .github/scripts/bundle_cache.rb core >> "$GITHUB_OUTPUT"
     - name: Restore cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: restore-cache
+      uses: ./.github/actions/bundle-restore
       with:
-        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(steps.lockfile.outputs.path) }}
-        path: "/usr/local/bundle"
-    - if: steps.restore-cache.outputs.cache-hit != 'true'
+        key: ${{ steps.key.outputs.cache-key }}
+        restore-keys: ${{ github.ref != 'refs/heads/master' && steps.key.outputs.restore-keys || '' }}
+    - name: Install core dependencies
+      if: steps.restore-cache.outputs.cache-outcome != 'exact'
       shell: bash
-      run: bundle install
-    - if: steps.restore-cache.outputs.cache-hit != 'true'
-      name: Save cache
+      run: bundle check || bundle install
+    - name: Save cache
+      if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-outcome != 'exact'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        key: "${{ steps.key.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
-      shell: bash
