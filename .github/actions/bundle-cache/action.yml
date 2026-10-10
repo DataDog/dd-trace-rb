@@ -1,6 +1,8 @@
 name: 'Prepare bundle cache'
 
-description: 'Sets up bundle cache for GitHub Actions'
+description: >-
+  Sets up bundle cache for GitHub Actions.
+  Saves caches only on refs/heads/master; other branches may restore caches and install gems locally.
 
 inputs:
   image:
