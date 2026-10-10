@@ -29,10 +29,6 @@ version = "0" if version.empty?
 settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
 logic = digest(CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] })
 image = ENV.fetch("IMAGE")
-identity = {
-  "bundler_settings" => settings,
-  "image" => image,
-}
 core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
 type = ARGV.shift
@@ -48,6 +44,10 @@ when "core"
   }
   puts "cache-key=#{key_prefix}#{digest(identity)}"
 when "matrix"
+  identity = {
+    "bundler_settings" => settings,
+    "image" => image,
+  }
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
   image_prefix = "#{key_prefix}#{digest(identity)}-"
