@@ -11,13 +11,23 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer, logger, telemetry: nil)
+      # Initializes the builder with its settings, serializer, logger and
+      # telemetry components, building the capture expression evaluator.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for builder diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component builder errors are reported through
+      # @return [void]
+      def initialize(settings, serializer, logger, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @capture_expression_evaluator = CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+          settings: settings, serializer: serializer, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
       end
 

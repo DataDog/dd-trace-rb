@@ -1,19 +1,17 @@
 module Datadog
   module DI
     class Logger
-      extend Forwardable
-
-      @settings: Datadog::Core::Configuration::Settings
+      @trace_logging: bool
 
       @target: ::Logger
 
       def initialize: (Datadog::Core::Configuration::Settings settings, ::Logger target) -> void
 
-      attr_reader settings: Datadog::Core::Configuration::Settings
+      attr_reader trace_logging: bool
 
       attr_reader target: ::Logger
 
-      def debug: () { () -> String } -> void
+      def debug: (*untyped args) ?{ () -> untyped } -> void
       def trace: () { () -> String } -> void
     end
   end

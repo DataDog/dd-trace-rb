@@ -30,6 +30,16 @@ RSpec.describe Datadog::DI::Component do
         expect(component.started?).to be false
         component.shutdown!
       end
+
+      it "wires the guardrails telemetry emitter into every consumer" do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
+        expect(component.probe_manager.guardrails_telemetry).to equal(component.guardrails_telemetry)
+        expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
+        expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
+          .to equal(component.guardrails_telemetry)
+        component.shutdown!
+      end
     end
 
     # Log level on build-time precondition failures follows the customer's

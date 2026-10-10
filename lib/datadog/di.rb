@@ -3,6 +3,7 @@
 require_relative "di/configuration"
 require_relative "di/extensions"
 require_relative "di/remote"
+require_relative "di/telemetry_namespace"
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.

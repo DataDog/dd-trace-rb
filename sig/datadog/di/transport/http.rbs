@@ -6,7 +6,7 @@ module Datadog
         INPUT: Input::API::Endpoint
         LEGACY_INPUT: Input::API::Endpoint
         def self.diagnostics: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger, ?headers: Hash[String, String]?) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> DI::Transport::Diagnostics::Transport
-        def self.input: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger, ?headers: Hash[String, String]?, ?telemetry: Datadog::Core::Telemetry::Component?) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> DI::Transport::Input::Transport
+        def self.input: (agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Datadog::Core::Logger, ?headers: Hash[String, String]?, ?telemetry: Datadog::Core::Telemetry::Component?, guardrails_telemetry: DI::GuardrailsTelemetry) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> DI::Transport::Input::Transport
       end
     end
   end

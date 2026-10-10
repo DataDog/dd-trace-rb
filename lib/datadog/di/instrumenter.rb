@@ -5,6 +5,7 @@ require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
 require_relative "capture_expression_evaluator"
+require_relative "guardrails_telemetry"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -78,11 +79,23 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      # Initializes the instrumenter with its settings, serializer,
+      # logger, code tracker and telemetry components, building the
+      # process-wide rate limiters.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for instrumenter diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
+      # @return [void]
+      def initialize(settings, serializer, logger, guardrails_telemetry:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
@@ -94,6 +107,9 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails skip-metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
       attr_reader :code_tracker
 
       # The code tracker is a global singleton created lazily by
@@ -111,7 +127,8 @@ module Datadog
 
       def capture_expression_evaluator
         @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+          settings: settings, serializer: serializer, logger: logger, guardrails_telemetry: guardrails_telemetry,
+          telemetry: telemetry,
         )
       end
 
@@ -125,6 +142,27 @@ module Datadog
         else
           global_log_rate_limiter
         end
+      end
+
+      # Logs the rate-limit skip at trace level and emits the canonical
+      # rate-limit skip metric for a probe. The emission stays contained
+      # within the emitter on the method-probe path.
+      #
+      # @param probe [Probe] the probe being skipped
+      # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
+      # @return [void]
+      def record_rate_limit_skip(probe, reason)
+        logger.trace do
+          "di: #{probe.type} probe #{probe.id}: skipping due to " \
+            "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
+            " (#{reason})"
+        end
+        guardrails_telemetry.skipped(
+          reason: reason,
+          probe: probe,
+          probe_id: reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE ? probe.id : nil,
+        )
+        nil
       end
 
       # This is a substitute for Thread::Backtrace::Location
@@ -559,10 +597,14 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          admitted = continue && (rate_limiter.nil? || rate_limiter.allow?)
+          admitted = continue
+          if continue && rate_limiter && !rate_limiter.allow?
+            admitted = false
+            record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE)
+          end
           if admitted && !probe_global_rate_limiter(probe).allow?
             admitted = false
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+            record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL)
           end
           if admitted
             # Arguments may be mutated by the method, therefore
@@ -751,6 +793,17 @@ module Datadog
         public :kwargs_from_splat
       end
 
+      # Trace point callback for a line probe. Verifies the invocation is the
+      # probed line for untargeted trace points, evaluates the condition and
+      # the per-probe and global rate limiters, builds the snapshot context,
+      # and invokes the responder's executed callback. A rejected or failed
+      # invocation is logged and contained here.
+      #
+      # @param probe [Probe] the probe installed on this line
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param tp [TracePoint] the firing trace point
+      # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -827,10 +880,13 @@ module Datadog
 
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
+        if probe.rate_limiter && !probe.rate_limiter.allow?
+          record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE)
+          return
+        end
 
         unless probe_global_rate_limiter(probe).allow?
-          logger.trace { "di: #{probe.type} probe #{probe.id}: skipping due to global rate limit" }
+          record_rate_limit_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL)
           return
         end
 
@@ -843,12 +899,14 @@ module Datadog
         responder.probe_executed_callback(context)
 
         check_and_disable_if_exceeded(probe, responder, di_start_time)
+        nil
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+        nil
       end
 
       def build_trace_point_context(probe, tp)
@@ -881,6 +939,7 @@ module Datadog
           # avoid a dependency on ProbeManager from Instrumenter.
           probe.disable!
           responder.probe_disabled_callback(probe, di_duration)
+          nil
         end
       end
 

@@ -87,6 +87,8 @@ require "datadog"
 require "datadog/di"
 require "datadog/di/logger"
 require "datadog/di/proc_responder"
+require "datadog/core/configuration/agent_settings_resolver"
+require "datadog/core/telemetry/component"
 
 class DIInstrumentBenchmark
   class Target
@@ -146,6 +148,27 @@ class DIInstrumentBenchmark
     @logger ||= Logger.new($stderr)
   end
 
+  # The telemetry component, built with the same settings, agent settings
+  # and logger the DI component wires in, so the skip variants measure the
+  # production cost of emitting the debugger.events.skipped metric. The
+  # emitters work from construction, and the background upload thread runs
+  # only after Component#start, which the benchmark skips.
+  def telemetry
+    return telemetry_component if telemetry_component
+
+    self.telemetry_component = begin
+      settings = Datadog.configuration
+      agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(
+        settings, logger: logger,
+      )
+      Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
+    end
+  end
+
+  # The memoized telemetry component.
+  # @return [Datadog::Core::Telemetry::Component, nil]
+  attr_accessor :telemetry_component
+
   def configure
     settings = Datadog.configuration
     yield settings if block_given?
@@ -157,7 +180,10 @@ class DIInstrumentBenchmark
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
-      code_tracker: Datadog::DI.code_tracker)
+      code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
+      guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
+        settings: settings, logger: di_logger, telemetry: telemetry,
+      ),)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

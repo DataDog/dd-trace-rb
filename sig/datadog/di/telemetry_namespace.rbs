@@ -1,0 +1,5 @@
+module Datadog
+  module DI
+    TELEMETRY_NAMESPACE: String
+  end
+end

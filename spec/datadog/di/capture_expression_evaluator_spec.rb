@@ -29,8 +29,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+  end
+
   let(:evaluator) do
-    described_class.new(settings: settings, serializer: serializer, logger: logger, telemetry: telemetry)
+    described_class.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   def compile_expression(dsl_string, json)
@@ -204,6 +209,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(telemetry).to receive(:inc).with(
           "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
         ).twice
+        evaluator.evaluate(probe, context)
+      end
+
+      it "emits the canonical evaluationTimeout skip metric for each timed-out expression" do
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"},).twice
+
         evaluator.evaluate(probe, context)
       end
     end

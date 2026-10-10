@@ -1,0 +1,65 @@
+module Datadog
+  module DI
+    class GuardrailsTelemetry
+      NAMESPACE: String
+
+      EVENTS_SKIPPED: String
+
+      EVENTS_DROPPED: String
+
+      CAPTURE_INCOMPLETE: String
+
+      QUEUE_DROPPED_BYTES: String
+
+      EVENT_TYPE_SNAPSHOT: String
+
+      EVENT_TYPE_LOG: String
+
+      @settings: Datadog::Core::Configuration::Settings
+
+      @logger: DI::Logger
+
+      @telemetry: Core::Telemetry::Component?
+
+      @skipped_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      @dropped_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      @capture_incomplete_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      def initialize: (settings: Datadog::Core::Configuration::Settings, logger: DI::Logger, telemetry: Core::Telemetry::Component?) -> void
+
+      attr_reader settings: Datadog::Core::Configuration::Settings
+
+      attr_reader logger: DI::Logger
+
+      attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader skipped_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      attr_reader dropped_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      attr_reader capture_incomplete_tags_memo: Hash[String, Hash[String, Hash[Symbol, String]]]
+
+      def self.probe_event_type_tag: (Probe probe) -> String
+
+      def skipped: (reason: String, probe: Probe, ?probe_id: String?) -> void
+
+      def dropped: (reason: String, event_type: String, ?bytes: Integer?) -> void
+
+      def capture_incomplete: (reason: String, event_type: String) -> void
+
+      private
+
+      def inc_metric: (String namespace, String metric_name, Integer value, tags: Hash[Symbol, String]) -> void
+
+      def report_emission_failure: (String namespace, String metric_name, Exception exc) -> void
+
+      def skipped_tags: (String reason, String event_type, String? probe_id) -> Hash[Symbol, String]
+
+      def dropped_tags: (String reason, String event_type) -> Hash[Symbol, String]
+
+      def capture_incomplete_tags: (String reason, String event_type) -> Hash[Symbol, String]
+    end
+  end
+end

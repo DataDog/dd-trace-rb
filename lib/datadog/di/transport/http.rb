@@ -47,11 +47,21 @@ module Datadog
           end.to_transport(DI::Transport::Diagnostics::Transport)
         end
 
-        # Builds a new Transport::HTTP::Client with default settings
-        # Pass a block to override any settings.
+        # Builds the snapshot input transport, wiring the telemetry and
+        # guardrails telemetry components into it. Pass a block to override
+        # any transport settings.
+        #
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings
+        # @param logger [DI::Logger] logger for transport diagnostics
+        # @param headers [Hash{String => String}, nil] headers to send with every request
+        # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
+        # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrails drop metric
+        # @return [DI::Transport::Input::Transport]
+        # @yield [builder] block overriding the default transport builder settings
         def self.input(
           agent_settings:,
           logger:,
+          guardrails_telemetry:,
           headers: nil,
           telemetry: nil
         )
@@ -72,7 +82,8 @@ module Datadog
             builder.to_api_instances,
             builder.default_api,
             logger: logger,
-            telemetry: telemetry
+            telemetry: telemetry,
+            guardrails_telemetry: guardrails_telemetry,
           )
         end
       end

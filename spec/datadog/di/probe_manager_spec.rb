@@ -8,9 +8,12 @@ class ProbeManagerSpecTestClass; end
 RSpec.describe Datadog::DI::ProbeManager do
   di_test
 
+  let(:propagate_all_exceptions) { false }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions)
+      .and_return(propagate_all_exceptions)
   end
 
   let(:instrumenter) do
@@ -31,8 +34,13 @@ RSpec.describe Datadog::DI::ProbeManager do
     Datadog::DI::ProbeRepository.new
   end
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
   let(:manager) do
-    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository)
+    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+      probe_repository, guardrails_telemetry: guardrails_telemetry)
   end
 
   describe ".new" do
@@ -462,12 +470,17 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#probe_condition_evaluation_failed_callback" do
+    let(:rate_limiter) do
+      instance_double(Datadog::Core::TokenBucket, allow?: true)
+    end
+
     let(:probe) do
       instance_double(
         Datadog::DI::Probe,
         id: "test-probe",
         type: "log",
-        condition_evaluation_failed_rate_limiter: per_probe_limiter,
+        capture_snapshot?: false,
+        condition_evaluation_failed_rate_limiter: rate_limiter,
       )
     end
 
@@ -475,11 +488,34 @@ RSpec.describe Datadog::DI::ProbeManager do
       instance_double(Datadog::DI::Context, probe: probe)
     end
 
+    let(:telemetry) do
+      instance_double(Datadog::Core::Telemetry::Component)
+    end
+
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    end
+
+    let(:manager) do
+      described_class.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository, telemetry: telemetry,
+        guardrails_telemetry: guardrails_telemetry,)
+    end
+
     let(:exc) { StandardError.new("boom") }
     let(:expr) { "undefined_function()" }
 
-    let(:per_probe_limiter) do
-      instance_double(Datadog::Core::TokenBucket, allow?: true)
+    shared_examples "contained skip emission failure" do
+      it "keeps the callback contained and logs the telemetry failure" do
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(telemetry).to receive(:report).with(instance_of(StandardError),
+          description: "Error emitting debugger.events.skipped metric")
+        expect_lazy_log(logger, :debug,
+          /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+
+        expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+      end
     end
 
     context "when both the per-probe and global limiters admit" do
@@ -502,7 +538,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
 
     context "when the per-probe limiter rejects" do
-      let(:per_probe_limiter) do
+      let(:rate_limiter) do
         instance_double(Datadog::Core::TokenBucket, allow?: false)
       end
 
@@ -513,7 +549,21 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
-        expect(per_probe_limiter).to have_received(:allow?)
+        expect(rate_limiter).to have_received(:allow?)
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+        end
+      end
+
+      context "when telemetry is nil" do
+        let(:telemetry) { nil }
+
+        it "keeps the callback contained with no metric emitted" do
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+        end
       end
     end
 
@@ -526,14 +576,41 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
-      it "does not build or enqueue a snapshot and logs at trace" do
+      it "does not build or enqueue a snapshot and emits the rateLimitGlobal skip metric" do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "rateLimitGlobal", event_type: "log"},)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
         expect(logger).to have_received(:trace) do |&block|
-          expect(block.call).to match(/global rate limit/)
+          expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+        end
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises" do
+        let(:telemetry) { telemetry_double_raising_on_inc }
+
+        include_examples "contained skip emission failure"
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises and all exceptions propagate" do
+        let(:propagate_all_exceptions) { true }
+        let(:telemetry) { telemetry_double_raising_on_inc }
+
+        it "raises the telemetry failure out of the callback" do
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+            .to raise_error(StandardError, "telemetry down")
+        end
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises a fatal exception" do
+        let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
+
+        it "re-raises the fatal exception out of the callback" do
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+            .to raise_error(SystemExit)
         end
       end
     end

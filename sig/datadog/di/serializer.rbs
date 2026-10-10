@@ -12,15 +12,21 @@ module Datadog
 
       @redactor: Redactor
 
+      @guardrails_telemetry: DI::GuardrailsTelemetry?
+
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, ?guardrails_telemetry: DI::GuardrailsTelemetry?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
 
+      attr_reader guardrails_telemetry: DI::GuardrailsTelemetry?
+
       attr_reader telemetry: Core::Telemetry::Component?
+
+      def record_capture_incomplete: (String reason) -> void
 
       def combine_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, Object target_self) -> Hash[Symbol, untyped]
       def serialize_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, untyped instance_vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, untyped]
