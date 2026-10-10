@@ -2,16 +2,15 @@ name: 'Prepare bundle cache'
 
 description: >-
   Reuse installed gems so CI jobs do not rebuild the same dependencies independently.
-  Core caches cover the runtime Gemfile; matrix caches also cover scheduled test Gemfiles,
-  allowing workers for the same runtime to share one prepared bundle.
+  Core caches cover the core Gemfile; matrix caches also cover the Gemfiles used by the test batches,
+  allowing batches for the same engine image to share one prepared bundle.
 
-  Only master publishes caches to avoid branch-specific copies crowding out shared caches.
-  Branch jobs prefer caches for their current dependencies and cache logic,
-  then use older compatible caches to reduce installation work.
+  Only master saves caches to avoid branch-specific copies crowding out shared caches.
+  Branch jobs prefer exact cache matches, then use partial cache matches to reduce installation work.
 
-  Cache keys isolate images and Bundler settings but allow reuse across dependency and cache-logic changes.
+  Cache keys isolate engine images and Bundler settings but allow reuse across dependency and cache-logic changes.
   Current lockfiles, not cache contents, determine required dependencies;
-  jobs check and repair older caches before tests.
+  jobs check dependencies and install missing gems before tests when using partial caches.
   Bump CACHE_VERSION when cache-layout changes make older caches incompatible.
 
 inputs:
