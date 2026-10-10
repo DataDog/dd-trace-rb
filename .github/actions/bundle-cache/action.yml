@@ -1,18 +1,18 @@
 name: 'Prepare bundle cache'
 
 description: >-
-  Sets up bundle cache for GitHub Actions in /usr/local/bundle.
-  Core caches cover BUNDLE_GEMFILE; matrix caches also cover selected test Gemfiles.
-  Keys include CACHE_VERSION and separate hashes for image/Bundler settings, cache logic,
-  and Gemfile/lockfile contents.
-  Master uses exact keys and is the only branch that saves prepared caches.
-  Other branches try the exact key, then the image/settings-plus-logic prefix,
-  then the image/settings prefix, and never save caches.
-  Matched historical keys are forwarded to matrix test workers.
-  Prefix matches provide warm dependencies, not proof that current Gemfiles are satisfied.
-  Workers skip dependency preparation only after an exact restore of the current matrix cache.
-  Otherwise they check/install core and assigned matrix dependencies, even when a historical key restores exactly.
-  Lockfiles stay frozen. Bump CACHE_VERSION when cache layouts become incompatible.
+  Reuse installed gems so CI jobs do not rebuild the same dependencies independently.
+  Core caches cover the runtime Gemfile; matrix caches also cover scheduled test Gemfiles,
+  allowing workers for the same runtime to share one prepared bundle.
+
+  Only master publishes caches to avoid branch-specific copies crowding out shared caches.
+  Branch jobs prefer caches for their current dependencies and cache logic,
+  then use older compatible caches to reduce installation work.
+
+  Cache keys isolate images and Bundler settings but allow reuse across dependency and cache-logic changes.
+  Current lockfiles, not cache contents, determine required dependencies;
+  jobs check and repair older caches before tests.
+  Bump CACHE_VERSION when cache-layout changes make older caches incompatible.
 
 inputs:
   image:
