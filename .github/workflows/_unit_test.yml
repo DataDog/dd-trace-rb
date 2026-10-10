@@ -187,7 +187,7 @@ jobs:
           echo "cache-match=core" >> "$GITHUB_OUTPUT"
       - &install-core-dependencies
         name: Install core dependencies
-        if: needs.batch.outputs.cache-match == 'partial' || steps.restore-bundle.outputs.cache-outcome != 'exact'
+        if: needs.batch.outputs.cache-match != 'matrix' || steps.restore-bundle.outputs.cache-outcome != 'exact'
         run: bundle check || bundle install
       - &build-test
         name: Build & Test

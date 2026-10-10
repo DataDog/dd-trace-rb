@@ -10,7 +10,9 @@ inputs:
 outputs:
   cache-key:
     description: 'Cache key for the bundle'
-    value: ${{ steps.key.outputs.cache-key }}
+    value: >-
+      ${{ github.ref == 'refs/heads/master' && steps.key.outputs.cache-key
+          || steps.restore-cache.outputs.cache-key || steps.key.outputs.cache-key }}
 
 runs:
   using: "composite"
@@ -26,10 +28,11 @@ runs:
       uses: ./.github/actions/bundle-restore
       with:
         key: ${{ steps.key.outputs.cache-key }}
+        restore-keys: ${{ github.ref != 'refs/heads/master' && steps.key.outputs.restore-keys || '' }}
     - name: Install core dependencies
       if: steps.restore-cache.outputs.cache-outcome != 'exact'
       shell: bash
-      run: bundle install
+      run: bundle check || bundle install
     - name: Save cache
       if: github.ref == 'refs/heads/master' && steps.restore-cache.outputs.cache-outcome != 'exact'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

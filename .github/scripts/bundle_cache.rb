@@ -34,30 +34,25 @@ core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 type = ARGV.shift
 key_prefix = "bundle-#{type}-v#{version}-"
 
-case type
+dependencies = case type
 when "core"
-  identity = {
-    "bundler_settings" => settings,
-    "dependencies" => core_dependencies,
-    "image" => image,
-    "logic" => logic,
-  }
-  puts "cache-key=#{key_prefix}#{digest(identity)}"
+  [core_dependencies]
 when "matrix"
-  identity = {
-    "bundler_settings" => settings,
-    "image" => image,
-  }
-  dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
-  dependencies = (dependencies + [core_dependencies]).uniq.sort
-  image_prefix = "#{key_prefix}#{digest(identity)}-"
-  logic_prefix = "#{image_prefix}#{logic}-"
-
-  puts "cache-key=#{logic_prefix}#{digest(dependencies)}"
-  puts "restore-keys<<EOF"
-  puts logic_prefix
-  puts image_prefix
-  puts "EOF"
+  JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) } + [core_dependencies]
 else
   abort "Expected core or matrix"
 end
+
+identity = {
+  "bundler_settings" => settings,
+  "image" => image,
+}
+dependencies = dependencies.uniq.sort
+image_prefix = "#{key_prefix}#{digest(identity)}-"
+logic_prefix = "#{image_prefix}#{logic}-"
+
+puts "cache-key=#{logic_prefix}#{digest(dependencies)}"
+puts "restore-keys<<EOF"
+puts logic_prefix
+puts image_prefix
+puts "EOF"
