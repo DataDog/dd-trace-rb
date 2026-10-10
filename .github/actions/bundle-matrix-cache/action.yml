@@ -2,7 +2,7 @@ name: Prepare matrix bundle
 
 description: >-
   Sets up bundle cache for matrix tests.
-  Saves caches only on refs/heads/master; other branches may restore caches and install gems locally.
+  See .github/actions/bundle-cache/action.yml for the cache strategy.
 
 inputs:
   image:

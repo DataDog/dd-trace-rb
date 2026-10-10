@@ -1,6 +1,8 @@
 name: 'Restore bundle cache'
 
-description: 'Restores bundle cache for GitHub Actions'
+description: >-
+  Restores bundle cache for GitHub Actions.
+  See .github/actions/bundle-cache/action.yml for the cache strategy.
 
 inputs:
   key:
