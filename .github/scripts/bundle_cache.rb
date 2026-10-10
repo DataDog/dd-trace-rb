@@ -27,7 +27,7 @@ version = ENV["CACHE_VERSION"]
 version = "0" if version.empty?
 
 settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
-recipe = CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] }
+recipe = digest(CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] })
 image = ENV.fetch("IMAGE")
 identity = {
   "bundler_settings" => settings,
@@ -37,23 +37,26 @@ core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
 type = ARGV.shift
 
-cache_key = case type
+case type
 when "core"
   identity = {
     "bundler_settings" => settings,
     "dependencies" => core_dependencies,
     "image" => image,
-    "recipe" => digest(recipe),
+    "recipe" => recipe,
   }
-  "bundle-#{type}-v#{version}-#{digest(identity)}"
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
-  image_prefix = "bundle-#{type}-v#{version}-#{digest(identity)}-"
-  logic_prefix = "#{image_prefix}#{digest(recipe)}-"
-  "#{logic_prefix}#{digest(dependencies)}"
 else
   abort "Expected core or matrix"
+end
+
+cache_key = "bundle-#{type}-v#{version}-#{digest(identity)}"
+if dependencies
+  image_prefix = "#{cache_key}-"
+  logic_prefix = "#{image_prefix}#{recipe}-"
+  cache_key = "#{logic_prefix}#{digest(dependencies)}"
 end
 
 puts "cache-key=#{cache_key}"
