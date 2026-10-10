@@ -35,7 +35,9 @@ identity = {
 }
 core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
-cache_key = case ARGV.shift
+cache_type = ARGV.shift
+
+cache_key = case cache_type
 when "core"
   identity = {
     "bundler_settings" => settings,
@@ -43,11 +45,11 @@ when "core"
     "image" => image,
     "recipe" => digest(recipe),
   }
-  "bundle-core-v#{version}-#{digest(identity)}"
+  "bundle-#{cache_type}-v#{version}-#{digest(identity)}"
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
-  image_prefix = "bundle-matrix-v#{version}-#{digest(identity)}-"
+  image_prefix = "bundle-#{cache_type}-v#{version}-#{digest(identity)}-"
   logic_prefix = "#{image_prefix}#{digest(recipe)}-"
   "#{logic_prefix}#{digest(dependencies)}"
 else
