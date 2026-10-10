@@ -35,9 +35,6 @@ identity = {
 }
 core_dependencies = dependency_content(ENV.fetch("BUNDLE_GEMFILE", "Gemfile"))
 
-image_prefix = "bundle-matrix-v#{version}-#{digest(identity)}-"
-logic_prefix = "#{image_prefix}#{digest(recipe)}-"
-
 cache_key = case ARGV.shift
 when "core"
   identity = {
@@ -50,13 +47,17 @@ when "core"
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
   dependencies = (dependencies + [core_dependencies]).uniq.sort
+  image_prefix = "bundle-matrix-v#{version}-#{digest(identity)}-"
+  logic_prefix = "#{image_prefix}#{digest(recipe)}-"
   "#{logic_prefix}#{digest(dependencies)}"
 else
   abort "Expected core or matrix"
 end
 
 puts "cache-key=#{cache_key}"
-puts "restore-keys<<EOF"
-puts logic_prefix
-puts image_prefix
-puts "EOF"
+if logic_prefix
+  puts "restore-keys<<EOF"
+  puts logic_prefix
+  puts image_prefix
+  puts "EOF"
+end
