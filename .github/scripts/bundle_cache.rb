@@ -27,7 +27,7 @@ version = ENV["CACHE_VERSION"]
 version = "0" if version.empty?
 
 settings = Bundler.settings.all.sort.map { |key| [key, Bundler.settings[key]] }.to_h
-recipe = digest(CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] })
+logic = digest(CACHE_LOGIC_FILES.map { |path| [path, Digest::MD5.file(path).hexdigest] })
 image = ENV.fetch("IMAGE")
 identity = {
   "bundler_settings" => settings,
@@ -43,7 +43,7 @@ when "core"
     "bundler_settings" => settings,
     "dependencies" => core_dependencies,
     "image" => image,
-    "recipe" => recipe,
+    "logic" => logic,
   }
 when "matrix"
   dependencies = JSON.parse(ENV["GEMFILES"]).map { |gemfile| dependency_content(gemfile) }
@@ -55,7 +55,7 @@ end
 cache_key = "bundle-#{type}-v#{version}-#{digest(identity)}"
 if dependencies
   image_prefix = "#{cache_key}-"
-  logic_prefix = "#{image_prefix}#{recipe}-"
+  logic_prefix = "#{image_prefix}#{logic}-"
   cache_key = "#{logic_prefix}#{digest(dependencies)}"
 end
 
