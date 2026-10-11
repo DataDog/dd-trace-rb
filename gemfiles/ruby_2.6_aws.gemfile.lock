@@ -1489,7 +1489,7 @@ GEM
       reline (>= 0.6.0)
     public_suffix (5.1.1)
     rake (13.4.2)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     reline (0.7.0)
       io-console (~> 0.5)
@@ -1526,7 +1526,7 @@ GEM
     strscan (3.1.2)
     thor (1.5.0)
     warning (1.6.0)
-    webmock (3.26.4)
+    webmock (3.28.0)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)

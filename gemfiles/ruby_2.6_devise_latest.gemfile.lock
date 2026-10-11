@@ -124,7 +124,7 @@ GEM
       rake (>= 12.2)
       thor (~> 1.0)
     rake (13.4.2)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     reline (0.7.0)
       io-console (~> 0.5)
@@ -164,7 +164,7 @@ GEM
     warden (1.2.9)
       rack (>= 2.0.9)
     warning (1.6.0)
-    webmock (3.26.4)
+    webmock (3.28.0)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
