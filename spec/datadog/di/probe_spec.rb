@@ -481,7 +481,7 @@ RSpec.describe Datadog::DI::Probe do
   describe "metric probes" do
     let(:metric_probe_args) do
       {id: "42", type: :metric, type_name: "Foo", method_name: "bar",
-       metric_kind: :count, metric_name: "probe.metric",}
+       metric_kind: :count, metric_name: "probe.metric"}
     end
 
     context "with each kind" do
