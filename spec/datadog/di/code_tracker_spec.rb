@@ -972,11 +972,11 @@ RSpec.describe Datadog::DI::CodeTracker do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) do
-        instance_double(Logger).tap do |logger|
-          # The DI component's metric emitter logs its construction at debug.
-          allow(logger).to receive(:debug)
-        end
+      instance_double(Logger).tap do |logger|
+        # The DI component's metric emitter logs its construction at debug.
+        allow(logger).to receive(:debug)
       end
+    end
 
     let(:component) do
       Datadog::DI::Component.build(settings, agent_settings, logger).tap do |c|
