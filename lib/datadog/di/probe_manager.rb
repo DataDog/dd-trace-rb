@@ -293,38 +293,65 @@ module Datadog
       # This method is responsible for queueing probe status to be sent to the
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
-      def probe_executed_callback(context)
-        probe = context.probe
-        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+      # Sends the EMITTING status for the probe once per probe lifetime,
+      # using the probe's emitting_notified flag. Java re-sends EMITTING on
+      # every diagnostics interval; the Ruby diagnostics path emits statuses
+      # on transition only, and the probe tracker's "last captured" for
+      # metric probes is driven by the metric query rather than repeated
+      # statuses.
+      #
+      # @param probe [Probe] the probe that is emitting
+      # @return [void]
+      private def notify_emitting(probe)
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload, probe: probe)
           probe.emitting_notified = true
         end
+      end
+
+      def probe_executed_callback(context)
+        probe = context.probe
+        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+        notify_emitting(probe)
 
         payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload)
       end
 
-      # Callback invoked when a probe's condition expression fails to evaluate.
+      # Callback invoked when a metric probe successfully submits a metric
+      # to the agent's dogstatsd listener.
+      #
+      # Sends the EMITTING status once per the probe's lifetime, after the
+      # first successful submission; submission failures do not reach this
+      # callback.
+      #
+      # @param probe [Probe] the probe whose metric was submitted
+      # @return [void]
+      def probe_metric_emitted_callback(probe)
+        notify_emitting(probe)
+      end
+
+      # Callback invoked when a probe's condition or metric value
+      # expression fails to evaluate.
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
       # Rate-limited to 1 notification per second per probe, and subject to
       # the process-wide global snapshot rate limit, to avoid flooding the
-      # backend when conditions fail repeatedly.
+      # backend when expressions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
-      # @param expr [EL::Expression] The condition expression that failed
-      # @param exc [Exception] The exception raised during condition evaluation
-      def probe_condition_evaluation_failed_callback(context, expr, exc)
+      # @param expr [EL::Expression] The condition or metric value expression that failed
+      # @param exc [Exception] The exception raised during expression evaluation
+      def probe_expression_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        if probe.condition_evaluation_failed_rate_limiter&.allow?
+        if probe.expression_evaluation_failed_rate_limiter&.allow?
           if instrumenter.global_snapshot_rate_limiter.allow?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload)
           else
-            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" }
+            logger.trace { "di: #{probe.type} probe #{probe.id}: skipping expression error snapshot due to global rate limit" }
           end
         end
       end

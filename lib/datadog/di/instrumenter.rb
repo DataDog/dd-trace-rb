@@ -78,11 +78,12 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, metric_emitter:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @metric_emitter = metric_emitter
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
@@ -95,6 +96,7 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+      attr_reader :metric_emitter
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -427,6 +429,20 @@ module Datadog
       end
 
       def hook(probe, responder)
+        # Unlike Java, .NET, and Python, which bundle a statsd client, the
+        # Ruby tracer does not depend on dogstatsd-ruby; when the customer's
+        # application does not carry a compatible one, metric probes fail at
+        # installation with an ERROR status naming the dependency instead of
+        # installing probes that can never emit.
+        if probe.type == :metric && !metric_emitter.available?
+          exc = Error::MetricEmissionUnavailable.new(
+            "metric probes are unavailable: dogstatsd-ruby >= 3.3.0 (excluding 5.0.x, 5.1.x, 5.2.x) is required; " \
+            "install or upgrade the gem in the application",
+          )
+          logger.debug { "di: cannot install :metric probe at #{probe.location} (#{probe.id}): #{exc.message}" }
+          raise exc
+        end
+
         if probe.method?
           hook_method(probe, responder)
         elsif probe.line?
@@ -494,7 +510,7 @@ module Datadog
       # @param target_block [Proc, nil] block argument passed to the probed method
       # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
-      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param responder [#probe_executed_callback, #probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @yield invokes the original method via super and returns its value
@@ -506,6 +522,10 @@ module Datadog
         # work to guard, and any nested probed methods invoked by the
         # original method should fire normally without short-circuit.
         return yield unless probe.enabled?
+
+        if probe.type == :metric
+          return run_metric_probe(args, kwargs, target_self, probe, responder) { yield }
+        end
 
         DI.enter_probe
         begin
@@ -538,13 +558,13 @@ module Datadog
                 # the context, we won't be able to report anything as
                 # the probe notifier builder requires a context.
                 begin
-                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                  responder.probe_expression_evaluation_failed_callback(context, condition, exc)
                 rescue Exception => nested_exc # standard:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                  logger.debug { "di: error in probe expression evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe expression evaluation failed callback")
                 end
               else
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -715,6 +735,97 @@ module Datadog
       # method directly avoids `Object#send` dispatch entirely.
       public :run_method_probe
 
+      # Metric probe counterpart of #run_method_probe: evaluates the probe's
+      # condition and value expression against the firing scope, submits the
+      # metric, notifies EMITTING on the first successful submission, and
+      # runs the CPU circuit breaker. The method itself runs with the
+      # re-entrancy guard released, as for log probes, and the method's return
+      # value and exceptions pass through unchanged. Metric emission is not
+      # gated by the per-probe or global rate limiters, matching the other
+      # tracers; the CPU circuit breaker still applies because the risk it
+      # guards against, expensive expression evaluation, is shared with log
+      # probes.
+      #
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_self [any] the receiver of the probed method invocation
+      # @param probe [Datadog::DI::Probe] the metric probe whose callback this invocation runs
+      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target for evaluation errors and the EMITTING status
+      # @yield invokes the original method via super and returns its value
+      # @return [Object] the original method's return value, or re-raises its exception
+      def run_metric_probe(args, kwargs, target_self, probe, responder)
+        DI.enter_probe
+        begin
+          di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+          if probe.evaluate_at_entry?
+            # Entry timing: the metric work completes before the method body
+            # and the method then runs with no further DI processing.
+            begin
+              emit_metric_if_admitted(
+                probe,
+                build_metric_context(args, kwargs, target_self, probe),
+                responder,
+              )
+              check_and_disable_if_exceeded(probe, responder, di_start_time)
+            rescue Exception => di_exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(di_exc)
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              logger.debug { "di: unhandled exception in metric method probe: #{di_exc.class}: #{di_exc.message}" }
+              telemetry&.report(di_exc, description: "Unhandled exception in metric method probe")
+            end
+
+            DI.leave_probe
+            yield
+          else
+            # Exit timing: the method runs first, then the condition and
+            # value evaluate against the exit scope, which adds the return
+            # value, duration, and exception to the entry scope.
+            di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
+
+            DI.leave_probe
+            start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            rv = nil
+            exc = nil
+            begin
+              rv = yield
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+            end
+
+            # Re-acquire re-entrancy guard for post-processing, as for log
+            # probes.
+            DI.enter_probe
+            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+            duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+            begin
+              emit_metric_if_admitted(
+                probe,
+                build_metric_context(args, kwargs, target_self, probe,
+                  return_value: rv, duration: duration, exception: exc,),
+                responder,
+              )
+              check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
+            rescue Exception => di_exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(di_exc)
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              logger.debug { "di: unhandled exception in metric method probe: #{di_exc.class}: #{di_exc.message}" }
+              telemetry&.report(di_exc, description: "Unhandled exception in metric method probe")
+            end
+
+            if exc
+              raise exc
+            else
+              rv
+            end
+          end
+        ensure
+          DI.leave_probe
+        end
+      end
+
       # Splits a Ruby < 3 splat-captured argument list into positional
       # arguments and the trailing keyword-argument hash, for argument
       # serialization only. Returns `[positional_args, kwargs]`. Forwarding
@@ -785,6 +896,20 @@ module Datadog
           end
         end
 
+        if probe.type == :metric
+          # Metric probes submit a metric per admitted hit and build no
+          # snapshot payload; emission is ungated by the per-probe and
+          # global rate limiters, matching the other tracers, while the
+          # CPU circuit breaker still applies.
+          emit_metric_if_admitted(
+            probe,
+            build_metric_line_context(probe, tp),
+            responder,
+          )
+          check_and_disable_if_exceeded(probe, responder, di_start_time)
+          return
+        end
+
         if condition = probe.condition
           begin
             context = build_trace_point_context(probe, tp)
@@ -803,13 +928,13 @@ module Datadog
               # the context, we won't be able to report anything as
               # the probe notifier builder requires a context.
               begin
-                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                responder.probe_expression_evaluation_failed_callback(context, condition, exc)
               rescue Exception => nested_exc # standard:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(nested_exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                logger.debug { "di: error in probe expression evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                telemetry&.report(nested_exc, description: "Error in probe expression evaluation failed callback")
               end
 
               return
@@ -867,6 +992,165 @@ module Datadog
           path: tp.path,
           caller_locations: stack,
         )
+      end
+
+      # Builds the evaluation context for a method metric probe firing, or
+      # nil when the probe has no condition and no value expression and
+      # therefore nothing to evaluate. The exit scope adds the return value,
+      # the duration in seconds, and the exception to the entry scope.
+      #
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_self [any] the receiver of the probed method invocation
+      # @param probe [Probe] the metric probe being evaluated
+      # @param return_value [Object, nil] the method's return value, for exit timing
+      # @param duration [Float, nil] the method's execution duration in seconds, for exit timing
+      # @param exception [Exception, nil] the exception the method raised, for exit timing
+      # @return [Context, nil] the evaluation context
+      def build_metric_context(args, kwargs, target_self, probe,
+        return_value: nil, duration: nil, exception: nil)
+        return nil unless probe.condition || probe.metric_value
+
+        Context.new(
+          locals: serializer.combine_args(args, kwargs, target_self),
+          target_self: target_self,
+          probe: probe, settings: settings, serializer: serializer,
+          return_value: return_value, duration: duration, exception: exception,
+        )
+      end
+
+      # Builds the evaluation context for a line metric probe firing, or nil
+      # when the probe has no condition and no value expression. Unlike
+      # #build_trace_point_context, no stack is captured: the metric path
+      # builds no snapshot payload, so no stack frames are ever read.
+      #
+      # @param probe [Probe] the metric probe being evaluated
+      # @param tp [TracePoint] the line trace point that fired
+      # @return [Context, nil] the evaluation context
+      def build_metric_line_context(probe, tp)
+        return nil unless probe.condition || probe.metric_value
+
+        Context.new(
+          locals: Instrumenter.get_local_variables(tp),
+          target_self: tp.self,
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          path: tp.path,
+        )
+      end
+
+      # Evaluates the probe's condition and metric value expression and
+      # submits the metric for one admitted firing. Condition first, then
+      # value, then the packet, then the EMITTING callback, so a false
+      # condition suppresses emission and an evaluation error reports
+      # without emitting. COUNT with no value expression submits 1 per
+      # admitted hit; the other kinds emit nothing without a value
+      # expression, matching Java and .NET.
+      #
+      # @param probe [Probe] the metric probe being fired
+      # @param context [Context, nil] evaluation context, present when the
+      #   probe has a condition or a value expression
+      # @param responder [#probe_expression_evaluation_failed_callback, #probe_metric_emitted_callback] callback target
+      # @return [void]
+      def emit_metric_if_admitted(probe, context, responder)
+        if probe.condition || probe.metric_value
+          raise DI::Error::InternalError, "metric probe expressions without evaluation context" unless context
+
+          if condition = probe.condition
+            begin
+              return unless condition.satisfied?(context)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              report_probe_expression_error(probe, context, condition, exc, responder)
+              return
+            end
+          end
+
+          if expr = probe.metric_value
+            begin
+              value = coerce_metric_value(expr.evaluate(context))
+              emit_metric_value(probe, value, responder)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              report_probe_expression_error(probe, context, expr, exc, responder)
+            end
+            return
+          end
+        end
+
+        # COUNT with no value expression increments by one per admitted
+        # hit; GAUGE, HISTOGRAM, and DISTRIBUTION emit nothing without a
+        # value expression, matching Java and .NET.
+        return unless probe.metric_kind == :count
+
+        emit_metric_value(probe, 1, responder)
+      end
+
+      # Submits the metric and notifies EMITTING on the first successful
+      # submission; a failed submission does not notify.
+      #
+      # @param probe [Probe] the metric probe being fired
+      # @param value [Integer, Float] the metric value
+      # @param responder [#probe_metric_emitted_callback] callback target
+      # @return [void]
+      def emit_metric_value(probe, value, responder)
+        if metric_emitter.emit(probe, value)
+          responder.probe_metric_emitted_callback(probe)
+        end
+      end
+
+      # Coerces the evaluated metric value expression result to a numeric
+      # dogstatsd value. Integer and Float pass through unchanged (unlike
+      # Python, which truncates floats for counters, and Java, which
+      # rejects them at instrumentation; dogstatsd count deltas accept
+      # non-integers), true and false coerce to 1 and 0, and any other
+      # value, including nil, is an evaluation error.
+      #
+      # @param value [Object] the evaluated expression result
+      # @return [Integer, Float] the metric value
+      # @raise [Error::ExpressionEvaluationError] when the result is not
+      #   numeric or boolean
+      def coerce_metric_value(value)
+        case value
+        when Integer, Float
+          value
+        when true
+          1
+        when false
+          0
+        else
+          raise DI::Error::ExpressionEvaluationError,
+            "Metric value expression evaluated to non-numeric value: #{value.class}"
+        end
+      end
+
+      # Reports a failed condition or metric value expression evaluation
+      # through the expression evaluation error diagnostics path: a debug
+      # log, a telemetry report, and the rate-limited evaluation error
+      # payload through the responder callback.
+      #
+      # @param probe [Probe] the probe being fired
+      # @param context [Context] the evaluation context
+      # @param expr [EL::Expression] the expression that failed
+      # @param exc [Exception] the exception raised during evaluation
+      # @param responder [#probe_expression_evaluation_failed_callback] callback target
+      # @return [void]
+      def report_probe_expression_error(probe, context, expr, exc, responder)
+        Datadog::DI.reraise_if_fatal(exc)
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+          !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+        logger.debug { "di: error evaluating probe expression: #{exc.class}: #{exc.message}" }
+        telemetry&.report(exc, description: "Error evaluating probe expression")
+
+        begin
+          responder.probe_expression_evaluation_failed_callback(context, expr, exc)
+        rescue Exception => nested_exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(nested_exc)
+          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+          logger.debug { "di: error in probe expression evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+          telemetry&.report(nested_exc, description: "Error in probe expression evaluation failed callback")
+        end
       end
 
       # Circuit breaker: disables the probe if total CPU time consumed by

@@ -157,7 +157,8 @@ class DIInstrumentBenchmark
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
-      code_tracker: Datadog::DI.code_tracker)
+      code_tracker: Datadog::DI.code_tracker,
+      metric_emitter: Datadog::DI::MetricEmitter.new(di_logger))
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

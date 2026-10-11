@@ -1,0 +1,31 @@
+module Datadog
+  class Statsd
+    VERSION: String
+
+    def initialize: (
+      ?String? host,
+      ?Integer? port,
+      ?socket_path: String?,
+      ?namespace: String?,
+      ?tags: Array[String] | Hash[String, String]?,
+      ?sample_rate: Float?,
+      ?single_thread: boolish,
+    ) -> void
+
+    def count: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def gauge: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def histogram: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def distribution: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def increment: (String stat, ?Hash[Symbol, untyped] opts) -> void
+
+    def host: () -> String?
+
+    def port: () -> Integer?
+
+    def close: (?flush: boolish) -> void
+  end
+end

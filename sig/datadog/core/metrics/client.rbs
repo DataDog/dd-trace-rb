@@ -15,15 +15,15 @@ module Datadog
 
         def initialize: (telemetry: Core::Telemetry::Component, ?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
 
-        def supported?: () -> untyped
+        def supported?: () -> bool
 
         def enabled?: () -> untyped
 
         def enabled=: (untyped enabled) -> untyped
 
-        def default_hostname: () -> untyped
+        def default_hostname: () -> String
 
-        def default_port: () -> untyped
+        def default_port: () -> Integer
 
         def default_statsd_client: () -> untyped
 
@@ -47,7 +47,7 @@ module Datadog
 
         private
 
-        def dogstatsd_version: () -> untyped
+        def dogstatsd_version: () -> Gem::Version?
 
         IGNORED_STATSD_ONLY_ONCE: untyped
 
