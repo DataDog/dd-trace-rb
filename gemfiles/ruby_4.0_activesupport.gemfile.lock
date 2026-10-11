@@ -98,7 +98,7 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.21.2)
-    json-schema (6.2.0)
+    json-schema (6.2.1)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
     jsonapi-renderer (0.2.2)
@@ -186,7 +186,7 @@ GEM
       tsort (>= 0.2)
       zeitwerk (~> 2.6)
     rake (13.4.2)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     rdkafka (0.29.0)
       ffi (~> 1.17.1)
@@ -353,7 +353,7 @@ CHECKSUMS
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
   irb (1.15.2) sha256=222f32952e278da34b58ffe45e8634bf4afc2dc7aa9da23fed67e581aa50fdba
   json (2.21.2) sha256=1f1d3b7cf2b3ba1a69beca0bb6db13d5438b80bff3cd54cdaaa620b9b07c1c6a
-  json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
+  json-schema (6.2.1) sha256=c0bf6113d772348bfd159fb096950beeb1e1e25aaeea50b676bd45191d8dbdf3
   jsonapi-renderer (0.2.2) sha256=b5c44b033d61b4abdb6500fa4ab84807ca0b36ea0e59e47a2c3ca7095a6e447b
   king_konf (1.0.1) sha256=28d7eb9dcbd42b26214f5364188f68a8052fadb387ed15f38c5079d7f04744c0
   libdatadog (45.0.0.1.0) sha256=b468571d5f24a4faa998a419e290d528bd8ac94a1a3ed87ff2cf1e6bc52e5436
@@ -396,7 +396,7 @@ CHECKSUMS
   rails-html-sanitizer (1.7.1) sha256=e797a7c9b01e567307e317c576b49ab4168017e63eea4dba9ce3cb587e2f22c2
   railties (7.2.3.2) sha256=f626c6dfcc00a9f85b139619cfac4a648934c93e36fe5b9242184b9f45ffc29e
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
-  rake-compiler (1.3.1) sha256=6b351612b6e2d73ddd5563ee799bb58685176e05363db6758504bd11573d670a
+  rake-compiler (1.3.2) sha256=12fed13fa07f9caee829599935e0332ba76e2047a617f8f7918a222d68427760
   rdkafka (0.29.0) sha256=217e6d59e2ccf6520d0f82315c1927a506953068993f515d6b7064d29d11a393
   rdkafka (0.29.0-aarch64-linux-gnu) sha256=099db18ab0fcfd1f13ac15ed32bc0855f8ca7a6f8cc48be35f91290dd88b6190
   rdkafka (0.29.0-arm64-darwin) sha256=42612df6eda0b1413d91d105658e9e05899b8219d00b8a8f8a56a50025344900

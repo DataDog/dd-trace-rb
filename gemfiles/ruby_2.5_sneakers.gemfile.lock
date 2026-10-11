@@ -63,7 +63,7 @@ GEM
       method_source (~> 1.0)
     public_suffix (4.0.7)
     rake (12.3.3)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     rbtree (0.4.6)
     rexml (3.4.4)
