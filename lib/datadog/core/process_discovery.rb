@@ -54,6 +54,7 @@ module Datadog
             # Follows Java: https://github.com/DataDog/dd-trace-java/blob/2ebc964340ac530342cc389ba68ff0f5070d5f9f/dd-trace-core/src/main/java/datadog/trace/core/servicediscovery/ServiceDiscovery.java#L37-L38
             process_tags: settings.experimental_propagate_process_tags_enabled ? Core::Environment::Process.serialized : "",
             container_id: Core::Environment::Container.container_id || "",
+            otel_thread_context_enabled: settings.tracing.otel_thread_context_enabled,
           }
         end
       end

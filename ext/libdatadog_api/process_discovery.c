@@ -4,7 +4,6 @@
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
-#include "otel_thread_context.h"
 #include "helpers.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
@@ -53,6 +52,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE service_version = rb_hash_fetch(options, ID2SYM(rb_intern("service_version")));
   VALUE process_tags = rb_hash_fetch(options, ID2SYM(rb_intern("process_tags")));
   VALUE container_id = rb_hash_fetch(options, ID2SYM(rb_intern("container_id")));
+  VALUE otel_thread_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_thread_context_enabled")));
 
   ENFORCE_TYPE(runtime_id, T_STRING);
   ENFORCE_TYPE(tracer_language, T_STRING);
@@ -63,6 +63,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_version, T_STRING);
   ENFORCE_TYPE(process_tags, T_STRING);
   ENFORCE_TYPE(container_id, T_STRING);
+  ENFORCE_BOOLEAN(otel_thread_context_enabled);
 
   void* builder = ddog_tracer_metadata_new();
 
@@ -76,7 +77,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_PROCESS_TAGS, StringValueCStr(process_tags));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_CONTAINER_ID, StringValueCStr(container_id));
 
-  if (otel_thread_context_was_enabled()) {
+  if (RTEST(otel_thread_context_enabled)) {
     ddog_VoidResult include_result = ddog_tracer_metadata_include_otel_thread_context(builder);
 
     if (include_result.tag == DDOG_VOID_RESULT_ERR) {

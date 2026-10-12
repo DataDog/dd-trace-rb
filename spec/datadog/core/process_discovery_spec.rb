@@ -62,7 +62,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             service: "test-service",
             env: "test-env",
             version: "1.0.0",
-            experimental_propagate_process_tags_enabled: propagate_process_tags
+            experimental_propagate_process_tags_enabled: propagate_process_tags,
+            tracing: Datadog.configuration.tracing
           )
         end
 
@@ -117,7 +118,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             service: nil,
             env: nil,
             version: nil,
-            experimental_propagate_process_tags_enabled: true
+            experimental_propagate_process_tags_enabled: true,
+            tracing: Datadog.configuration.tracing
           )
         end
 
@@ -259,9 +261,18 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
     it "publishes threadlocal discovery metadata", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
       Datadog.configuration.tracing.otel_thread_context_enabled = true
+      described_class.publish(Datadog.configuration)
 
       expect(extra_attributes).to have_key("threadlocal.schema_version")
       expect(extra_attributes).to have_key("threadlocal.attribute_key_map")
+    end
+
+    it "omits threadlocal discovery metadata when disabled after initialization", if: PlatformHelpers.linux? && PlatformHelpers.mri? do
+      Datadog.configuration.tracing.otel_thread_context_enabled = false
+      described_class.publish(Datadog.configuration)
+
+      expect(extra_attributes).not_to have_key("threadlocal.schema_version")
+      expect(extra_attributes).not_to have_key("threadlocal.attribute_key_map")
     end
 
     context "when app uses fork" do

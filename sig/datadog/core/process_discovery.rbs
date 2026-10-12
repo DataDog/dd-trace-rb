@@ -13,7 +13,8 @@ module Datadog
         service_env: String,
         service_version: String,
         process_tags: String,
-        container_id: String
+        container_id: String,
+        otel_thread_context_enabled: bool,
       ) -> TracerMemfd?
 
       def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd, Datadog::Core::Logger logger) -> void
@@ -35,7 +36,8 @@ module Datadog
         service_env: String,
         service_version: String,
         process_tags: String,
-        container_id: String
+        container_id: String,
+        otel_thread_context_enabled: bool,
       }
 
       def self.apply_at_fork_patch: () -> void
