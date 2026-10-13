@@ -1,2 +1,5 @@
+# Required for `matching(pat=...)`.
+min_version = "2026.7.6"
+
 [env]
 BUNDLE_GEMFILE = { value = '''{{ config_root }}/gemfiles/ruby-{% if tools.ruby.version is matching(pat="^[0-9]") %}{{ tools.ruby.version | truncate(length=3, end='') }}{% else %}{{ exec(command=`ruby --disable-gems -e 'print RUBY_VERSION.split(".").take(2).join(".")'`) }}{% endif %}.gemfile''', tools = true }

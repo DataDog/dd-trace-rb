@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6377",
+  "message": "Fix a sampling race condition during profile serialization."
+}

@@ -96,6 +96,8 @@ module Datadog
         # Recreates the remote configuration client after a fork.
         # This ensures each forked process has a unique client ID and fresh state.
         def after_fork
+          @worker.after_fork
+          @barrier = Barrier.new(@settings.remote.boot_timeout_seconds)
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
           @healthy = false
           logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }

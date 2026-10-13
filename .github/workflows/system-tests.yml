@@ -78,7 +78,7 @@ jobs:
     with:
       library: ruby
       binaries_artifact: dd-trace-rb
-      desired_execution_time: 300 # 5 minutes
+      desired_execution_time: 600
       scenarios_groups: tracer_release
       ref: 52cecf6f2c74f3d41e57e4352cf41daf0f7a51b5 # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}

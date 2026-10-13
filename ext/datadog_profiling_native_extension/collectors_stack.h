@@ -13,7 +13,7 @@ typedef struct {
   uint16_t max_frames;
   frame_info *stack_buffer;
   bool pending_sample;
-  bool is_marking; // Used to avoid recording a sample when marking
+  bool is_marking; // Used to avoid recording a sample when marking (marking can happen outside of GC as well)
   int pending_sample_result;
 } sampling_buffer;
 
