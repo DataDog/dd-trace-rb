@@ -6,32 +6,29 @@ require_relative "telemetry_namespace"
 
 module Datadog
   module DI
-    # Telemetry reporter for the DI guardrails: the canonical reason codes
-    # and the emitters for the +debugger.events.skipped+,
-    # +debugger.events.dropped+ and +debugger.capture.incomplete+ count
-    # metrics of the Debugger Guardrails and Observability for GA RFC,
-    # plus the +guardrails.queue.dropped_bytes+ count metric of the
-    # circuit-breakers RFC. A skip is a decision taken before expensive
-    # work; a drop discards an event after it has been produced; an
-    # incomplete capture enforces a capture limit on a snapshot that is
-    # still sent. Each emitter tags its metric with the canonical reason
-    # so operators can attribute reduced or partial DI output to a
-    # specific cause.
+    # Telemetry reporter for the DI guardrails: the reason codes and the
+    # emitters for the +debugger.events.skipped+,
+    # +debugger.events.dropped+, +debugger.capture.incomplete+ and
+    # +guardrails.queue.dropped_bytes+ count metrics. A skip is a decision
+    # taken before expensive work; a drop discards an event after it has
+    # been produced; an incomplete capture enforces a capture limit on a
+    # snapshot that is still sent. Each emitter tags its metric with the
+    # canonical reason so operators can attribute reduced or partial DI
+    # output to a specific cause.
     class GuardrailsTelemetry
-      # Telemetry namespace the GA RFC fixes as the metric prefix for its
-      # three metrics. The telemetry wire name is
+      # Telemetry namespace the skip, drop and capture-incomplete metrics
+      # are emitted under. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
       DEBUGGER_NAMESPACE = "debugger"
 
-      # GA RFC +events.skipped+ metric name, emitted under DEBUGGER_NAMESPACE.
+      # Skip count metric name, emitted under DEBUGGER_NAMESPACE.
       EVENTS_SKIPPED = "events.skipped"
-      # GA RFC +events.dropped+ metric name, emitted under DEBUGGER_NAMESPACE.
+      # Drop count metric name, emitted under DEBUGGER_NAMESPACE.
       EVENTS_DROPPED = "events.dropped"
-      # GA RFC +capture.incomplete+ metric name, emitted under DEBUGGER_NAMESPACE.
+      # Incomplete-capture count metric name, emitted under DEBUGGER_NAMESPACE.
       CAPTURE_INCOMPLETE = "capture.incomplete"
 
-      # Circuit-breakers RFC queue byte metric, emitted under
-      # +DI::TELEMETRY_NAMESPACE+.
+      # Queue byte-count metric, emitted under +DI::TELEMETRY_NAMESPACE+.
       QUEUE_DROPPED_BYTES = "guardrails.queue.dropped_bytes"
 
       # Tag value for probes that capture a full snapshot.
@@ -42,7 +39,7 @@ module Datadog
       # Initializes the reporter with the settings, the logger and the
       # telemetry component the guardrails metrics are emitted through.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from
       # @param logger [DI::Logger] logger contained emission failures are logged at debug through
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
       def initialize(settings:, logger:, telemetry:)
@@ -54,7 +51,7 @@ module Datadog
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings the propagation escape hatch is read from.
+      # The tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
       # The logger contained emission failures are logged at debug through.
@@ -90,8 +87,7 @@ module Datadog
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the skip cause
       # @param probe [Probe] the probe whose firing was rejected
-      # @param probe_id [String, nil] the rejected probe's id, passed by the probe-scoped
-      #   skip sites the GA RFC requires the +probe_id+ tag on
+      # @param probe_id [String, nil] the rejected probe's id, tagging probe-scoped skips
       # @return [void]
       def skipped(reason:, probe:, probe_id: nil)
         inc_metric(
@@ -132,7 +128,7 @@ module Datadog
 
       private
 
-      # Emits one guardrails count metric. A fatal telemetry failure is
+      # Emits a guardrails count metric. A fatal telemetry failure is
       # re-raised, and so is any other failure while
       # +settings.dynamic_instrumentation.internal.propagate_all_exceptions+
       # is set; every other failure is logged at debug and reported
@@ -180,10 +176,9 @@ module Datadog
 
       # Returns the frozen tags for a skip emission. Emissions without
       # +probe_id+ are memoized; probe-scoped emissions allocate one
-      # frozen hash per emission rather than per (reason, event_type,
-      # probe_id) pair: probes churn through remote configuration, and
-      # a per-probe-id memo would grow without bound over the process
-      # lifetime.
+      # frozen hash per emission: remote configuration adds and removes
+      # probes frequently, and a per-probe-id memo would grow without
+      # bound over the process lifetime.
       #
       # @param reason [String] the skip reason
       # @param event_type [String] the canonical event_type tag value

@@ -144,8 +144,7 @@ module Datadog
       end
 
       # Logs the rate-limit skip at trace level and emits the canonical
-      # rate-limit skip metric for a probe. The emission stays contained
-      # within the emitter on the method-probe path.
+      # rate-limit skip metric for a probe.
       #
       # @param probe [Probe] the probe being skipped
       # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit

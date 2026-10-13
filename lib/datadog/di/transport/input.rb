@@ -120,7 +120,7 @@ module Datadog
             # per-snapshot rescue treats every exception it catches as a
             # serialization failure for that snapshot and disables the probe,
             # so with internal.propagate_all_exceptions a re-raised telemetry
-            # failure must reach the worker's send containment instead.
+            # failure must reach the worker's send containment.
             dropped_snapshot_sizes.each do |bytes|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,

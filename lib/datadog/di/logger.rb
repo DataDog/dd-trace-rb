@@ -40,8 +40,7 @@ module Datadog
 
       # Writes the block's message to the target logger at debug level when
       # the trace-logging gate resolved at construction is enabled; a
-      # disabled gate skips the block. The facade returns nil on every
-      # path, matching its void signature.
+      # disabled gate skips the block.
       #
       # @return [void]
       def trace

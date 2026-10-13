@@ -42,8 +42,7 @@ module Datadog
       # Evaluates each of the probe's capture expressions against the given
       # context and serializes the captured values, enforcing the capture
       # time budget between expressions. An expression that fails to evaluate
-      # or serialize contributes an entry to the returned errors instead of
-      # the output.
+      # or serialize contributes an entry to the returned errors.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against

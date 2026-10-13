@@ -6,7 +6,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
 
   # Each child process starts with no Datadog code loaded, reproducing the
   # direct-require chains through which the emitter files are reached; this
-  # process already has the gem loaded, so a constant missing from those
+  # process already has Datadog loaded, so a constant missing from those
   # chains would stay hidden in an in-process example.
   def run_direct_require_script(script)
     out, status = Open3.capture2e("ruby", stdin_data: script)

@@ -373,8 +373,7 @@ module Datadog
       end
 
       # Emits the canonical skip metric for a condition evaluation failure
-      # notification rejected by a rate limiter. The emission stays
-      # contained within the emitter.
+      # notification rejected by a rate limiter.
       #
       # @param probe [Probe] the probe whose condition evaluation failed
       # @param reason [String] the GuardrailsTelemetry::Reason constant for the rejecting limit
