@@ -2616,11 +2616,15 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         hook_method(probe) { |payload| observed_calls << payload }
 
-        expect(DIGuardrailsTestClass.new.deep_arg_method({a: {b: {c: 1}}})).to eq 42
+        # The Ruby 2.x method wrapper moves a trailing Hash argument into
+        # keyword arguments (Instrumenter#kwargs_from_splat); wrapping the
+        # hash in an array keeps it a positional argument on every
+        # supported Ruby version.
+        expect(DIGuardrailsTestClass.new.deep_arg_method([{a: {b: {c: 1}}}])).to eq 42
 
         expect(observed_calls.length).to eq 1
         inner = observed_calls.first.serialized_entry_args[:arg1]
-        expect(inner[:entries][0][1][:entries][0][1][:notCapturedReason]).to eq "depth"
+        expect(inner[:elements][0][:entries][0][1][:notCapturedReason]).to eq "depth"
       end
     end
 

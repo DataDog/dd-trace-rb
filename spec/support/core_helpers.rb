@@ -157,7 +157,8 @@ module CoreHelpers
         snapshot = at_fork.snapshot_at_fork_blocks
         at_fork.send(
           :replace_at_fork_blocks,
-          snapshot.merge(child: [].freeze).freeze
+          # Native callback groups must keep the child stage that unlocks their mutexes.
+          snapshot.merge(child: snapshot.fetch(:child).select(&:group).freeze).freeze
         )
       end
     end
