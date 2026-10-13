@@ -4,7 +4,7 @@ module Datadog
       class Dispatcher
         @receivers: Array[Receiver]
 
-        @receivers_mutex: Thread::Mutex
+        @mutex: Thread::Mutex
 
         def initialize: (::Array[Receiver]) -> void
 

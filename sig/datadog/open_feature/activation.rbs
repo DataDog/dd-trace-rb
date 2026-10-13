@@ -45,6 +45,8 @@ module Datadog
 
       def activate: (Provider provider) -> Component?
 
+      def startup!: () -> void
+
       def start!: () -> Component?
 
       def activated?: () -> bool
@@ -58,6 +60,8 @@ module Datadog
       def shutdown!: () -> void
 
       private
+
+      def report_failure: (StandardError error, String description) -> void
 
       def open_feature_available?: () -> bool
 

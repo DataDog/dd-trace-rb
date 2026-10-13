@@ -7,15 +7,15 @@ module Datadog
       class Dispatcher
         def initialize(receivers)
           @receivers = receivers.dup
-          @receivers_mutex = Mutex.new
+          @mutex = Mutex.new
         end
 
         def receivers
-          @receivers_mutex.synchronize { @receivers.dup }
+          @mutex.synchronize { @receivers.dup }
         end
 
         def add_receivers(*receivers)
-          @receivers_mutex.synchronize do
+          @mutex.synchronize do
             receivers.each { |receiver| @receivers << receiver unless @receivers.include?(receiver) }
           end
           nil

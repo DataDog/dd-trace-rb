@@ -273,6 +273,64 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
   end
 
+  describe "#startup!" do
+    before do
+      allow(Datadog::OpenFeature).to receive(:reattach).with(activation)
+    end
+
+    it "reattaches providers after starting eager delivery" do
+      settings.feature_flags.configuration_source = "remote_config"
+      expect(remote).to receive(:start).ordered
+      expect(Datadog::OpenFeature).to receive(:reattach).with(activation).ordered
+
+      activation.startup!
+    end
+
+    it "reattaches providers when agentless delivery is deferred" do
+      activation.startup!
+
+      expect(Datadog::OpenFeature).to have_received(:reattach).with(activation).once
+      expect(configuration_source).not_to have_received(:start)
+    end
+
+    context "when eager delivery raises" do
+      let(:error) { RuntimeError.new("startup failed") }
+
+      before do
+        settings.feature_flags.configuration_source = "remote_config"
+        allow(remote).to receive(:start).and_raise(error)
+      end
+
+      it "reports the failure without interrupting library startup" do
+        expect(logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: startup failed")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+        expect(Datadog::OpenFeature).not_to receive(:reattach)
+
+        expect { activation.startup! }.not_to raise_error
+        expect(activation).not_to be_activated
+      end
+    end
+
+    context "when provider reattachment raises" do
+      let(:error) { RuntimeError.new("reattachment failed") }
+
+      before do
+        allow(Datadog::OpenFeature).to receive(:reattach).with(activation).and_raise(error)
+      end
+
+      it "reports the failure without interrupting library startup" do
+        expect(logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: reattachment failed")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+
+        expect { activation.startup! }.not_to raise_error
+      end
+    end
+  end
+
   describe "#after_fork" do
     it "re-enters agentless delivery start" do
       activation.activate(provider)
@@ -295,6 +353,24 @@ RSpec.describe Datadog::OpenFeature::Activation do
       activation.after_fork
 
       expect(configuration_source).to have_received(:start).once
+    end
+
+    context "when delivery restart raises" do
+      let(:error) { RuntimeError.new("restart failed") }
+
+      before do
+        activation.activate(provider)
+        allow(configuration_source).to receive(:start).and_raise(error)
+      end
+
+      it "reports the failure without interrupting post-fork handling" do
+        expect(logger).to receive(:error)
+          .with("Feature Flags delivery failed to restart after fork: RuntimeError: restart failed")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to restart after fork")
+
+        expect { activation.after_fork }.not_to raise_error
+      end
     end
   end
 

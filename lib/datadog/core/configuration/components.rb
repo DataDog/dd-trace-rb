@@ -260,14 +260,7 @@ module Datadog
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
           data_streams&.restart_flush_thread
-          begin
-            @open_feature_activation.after_fork
-          rescue => e
-            # Feature Flags is optional and must never interrupt other post-fork handlers.
-            description = "Feature Flags delivery failed to restart after fork"
-            logger.error("#{description}: #{e.class}: #{e.message}")
-            telemetry.report(e, description: description)
-          end
+          @open_feature_activation.after_fork
         end
 
         # Hot-swaps with a new sampler.
@@ -282,15 +275,7 @@ module Datadog
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
 
-          begin
-            @open_feature_activation.start!
-            Datadog::OpenFeature.reattach(@open_feature_activation)
-          rescue => e
-            # Feature Flags is optional and must never interrupt library startup.
-            description = "Feature Flags delivery failed to start"
-            logger.error("#{description}: #{e.class}: #{e.message}")
-            telemetry.report(e, description: description)
-          end
+          @open_feature_activation.startup!
 
           if settings.profiling.enabled
             if profiler

@@ -44,6 +44,14 @@ module Datadog
         end
       end
 
+      def startup!
+        start!
+        OpenFeature.reattach(self)
+      rescue => e
+        # Feature Flags is optional and must never interrupt library startup.
+        report_failure(e, "Feature Flags delivery failed to start")
+      end
+
       def start!
         @mutex.synchronize do
           return if @shutdown || @activated
@@ -76,6 +84,9 @@ module Datadog
 
         configuration_source&.start
         nil
+      rescue => e
+        # Feature Flags is optional and must never interrupt other post-fork handlers.
+        report_failure(e, "Feature Flags delivery failed to restart after fork")
       end
 
       def deactivate(provider)
@@ -120,6 +131,11 @@ module Datadog
       end
 
       private
+
+      def report_failure(error, description)
+        @logger.error("#{description}: #{error.class}: #{error.message}")
+        @telemetry.report(error, description: description)
+      end
 
       def open_feature_available?
         @settings.respond_to?(:open_feature) && @settings.respond_to?(:feature_flags)

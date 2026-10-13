@@ -629,11 +629,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
-    it "starts eager OpenFeature delivery" do
-      activation = instance_double(Datadog::OpenFeature::Activation, start!: nil)
+    it "starts OpenFeature activation" do
+      activation = instance_double(Datadog::OpenFeature::Activation, startup!: nil)
       allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
 
-      expect(activation).to receive(:start!)
+      expect(activation).to receive(:startup!)
 
       startup!
     end
@@ -641,7 +641,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context "when eager OpenFeature delivery raises" do
       let(:error) { RuntimeError.new("test failure") }
       let(:activation) do
-        instance_double(Datadog::OpenFeature::Activation, start!: nil)
+        Datadog::OpenFeature::Activation.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)
       end
 
       before do
@@ -650,7 +650,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it "reports the failure and continues library startup" do
-        expect(components.logger).to receive(:error)
+        expect(logger).to receive(:error)
           .with("Feature Flags delivery failed to start: RuntimeError: test failure")
         expect(telemetry).to receive(:report)
           .with(error, description: "Feature Flags delivery failed to start")
@@ -792,44 +792,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
         startup!
       end
     end
-
-    context "when reattaching adopted OpenFeature providers" do
-      let(:activation) do
-        instance_double(Datadog::OpenFeature::Activation, start!: nil, activate: nil)
-      end
-
-      before do
-        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
-        allow(Datadog::OpenFeature).to receive(:reattach).with(activation)
-        allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
-        allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
-      end
-
-      it "delegates provider reattachment to OpenFeature" do
-        components.startup!(settings)
-
-        expect(Datadog::OpenFeature).to have_received(:reattach).with(activation).once
-      end
-
-      context "when provider reactivation raises" do
-        let(:error) { RuntimeError.new("test failure") }
-
-        before do
-          allow(Datadog::OpenFeature).to receive(:reattach).with(activation).and_raise(error)
-        end
-
-        it "reports the failure and continues library startup" do
-          expect(components.logger).to receive(:error)
-            .with("Feature Flags delivery failed to start: RuntimeError: test failure")
-          expect(telemetry).to receive(:report)
-            .with(error, description: "Feature Flags delivery failed to start")
-          expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
-          expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
-
-          expect { components.startup!(settings) }.not_to raise_error
-        end
-      end
-    end
   end
 
   describe "#after_fork" do
@@ -858,24 +820,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       after_fork
 
       expect(open_feature_activation).to have_received(:after_fork).once
-    end
-
-    context "when OpenFeature after_fork raises" do
-      let(:error) { RuntimeError.new("test failure") }
-
-      before do
-        allow(open_feature_activation).to receive(:after_fork).and_raise(error)
-      end
-
-      it "reports the failure and continues post-fork handling" do
-        expect(components.logger).to receive(:error)
-          .with("Feature Flags delivery failed to restart after fork: RuntimeError: test failure")
-        expect(telemetry).to receive(:report)
-          .with(error, description: "Feature Flags delivery failed to restart after fork")
-        expect(remote).to receive(:after_fork)
-
-        expect { after_fork }.not_to raise_error
-      end
     end
 
     it "dispatches after_fork to the tracer when supported" do
