@@ -1805,9 +1805,9 @@ RSpec.describe "Instrumentation integration" do
         captured_snapshot = nil
         json_encoded = nil
 
-        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args|
+        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args, **kwargs|
           captured_snapshot = args[0]
-          m.call(*args)
+          m.call(*args, **kwargs)
         end
 
         allow(input_transport).to receive(:send_input) do |snapshots, tags|

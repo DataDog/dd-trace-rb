@@ -2536,7 +2536,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "emits the condition error snapshot through the probe manager" do
-          expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
+          expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
           instrumenter.hook_method(probe, manager)
 

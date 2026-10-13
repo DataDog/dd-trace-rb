@@ -531,7 +531,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         snapshot = double("snapshot")
         expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
           .with(context, expr, exc).and_return(snapshot)
-        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot)
+        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
       end

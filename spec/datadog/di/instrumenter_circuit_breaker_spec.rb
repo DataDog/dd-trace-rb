@@ -378,7 +378,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
           @status_payloads << payload
         end
 
-        def add_snapshot(payload)
+        def add_snapshot(payload, probe: nil)
           # Not used in this test
         end
       end.new(status_payloads)
