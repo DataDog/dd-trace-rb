@@ -27,7 +27,7 @@ module Datadog
 
         class Transport < Core::Transport::Transport
           attr_reader :telemetry
-          # The guardrails drop-metric emitter.
+          # The guardrails metric emitter.
           # @return [GuardrailsTelemetry]
           attr_reader :guardrails_telemetry
 

@@ -31,7 +31,7 @@ module Datadog
 
       attr_reader :logger
 
-      # The guardrails skip-metric emitter.
+      # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
 

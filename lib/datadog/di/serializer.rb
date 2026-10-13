@@ -126,7 +126,7 @@ module Datadog
       # The logger contained serialization failures are logged at debug through.
       # @return [DI::Logger]
       attr_reader :logger
-      # The guardrails capture-incomplete metric emitter.
+      # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       attr_reader :telemetry

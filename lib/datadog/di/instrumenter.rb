@@ -107,7 +107,7 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
-      # The guardrails skip-metric emitter.
+      # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       # The capture expression evaluator, constructed by the component

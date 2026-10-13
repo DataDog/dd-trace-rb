@@ -118,7 +118,7 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
-      # The guardrails skip/drop-metric emitter.
+      # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       # The capture expression evaluator, built once here and injected

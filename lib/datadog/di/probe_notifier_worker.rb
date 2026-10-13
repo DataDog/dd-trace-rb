@@ -63,7 +63,7 @@ module Datadog
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
-      # The guardrails drop-metric emitter.
+      # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
       # The memoized transport for status events, built on first send.
