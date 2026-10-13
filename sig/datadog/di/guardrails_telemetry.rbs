@@ -45,7 +45,7 @@ module Datadog
 
       def self.probe_event_type_tag: (Probe probe) -> String
 
-      def skipped: (reason: String, probe: Probe, ?probe_id: String?) -> void
+      def skipped: (reason: String, probe: Probe) -> void
 
       def dropped: (reason: String, event_type: String, ?bytes: Integer?) -> void
 

@@ -78,13 +78,15 @@ module Datadog
       end
 
       # Emits the canonical +debugger.events.skipped+ count metric for a
-      # probe firing a guardrail rejected.
+      # probe firing a guardrail rejected. The metric carries the probe's
+      # id as a tag when the reason is probe-scoped
+      # (+Reason::PROBE_SCOPED_REASONS+).
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the skip cause
       # @param probe [Probe] the probe whose firing was rejected
-      # @param probe_id [String, nil] the rejected probe's id, tagging probe-scoped skips
       # @return [void]
-      def skipped(reason:, probe:, probe_id: nil)
+      def skipped(reason:, probe:)
+        probe_id = probe.id if Reason::PROBE_SCOPED_REASONS.include?(reason)
         inc_metric(
           DEBUGGER_NAMESPACE, EVENTS_SKIPPED, 1,
           tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id),

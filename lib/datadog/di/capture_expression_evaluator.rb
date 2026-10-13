@@ -64,7 +64,6 @@ module Datadog
             guardrails_telemetry.skipped(
               reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
               probe: probe,
-              probe_id: probe.id,
             )
             next
           end

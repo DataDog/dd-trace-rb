@@ -33,6 +33,8 @@ module Datadog
         STRING_LENGTH: String
 
         OTHER: String
+
+        PROBE_SCOPED_REASONS: Array[String]
       end
     end
   end

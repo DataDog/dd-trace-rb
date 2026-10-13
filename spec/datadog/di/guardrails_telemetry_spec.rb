@@ -69,31 +69,30 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
   end
 
   describe "#skipped" do
-    it "emits the canonical skipped metric with reason and event_type tags" do
-      expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-        tags: {reason: "rateLimitProbe", event_type: "snapshot"},)
-
-      guardrails_telemetry.skipped(
-        reason: described_class::Reason::RATE_LIMIT_PROBE,
-        probe: probe,
-      )
-    end
-
-    it "emits the probe_id tag for a probe-scoped skip" do
+    it "emits the canonical skipped metric with the probe id tag for a probe-scoped reason" do
       expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
         tags: {reason: "rateLimitProbe", event_type: "snapshot", probe_id: "p1"},)
 
       guardrails_telemetry.skipped(
         reason: described_class::Reason::RATE_LIMIT_PROBE,
         probe: probe,
-        probe_id: probe.id,
       )
     end
 
-    it "reuses a single frozen tag hash for a reason and event_type pair" do
+    it "omits the probe id tag for a process-scoped reason" do
+      expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+        tags: {reason: "rateLimitGlobal", event_type: "snapshot"},)
+
+      guardrails_telemetry.skipped(
+        reason: described_class::Reason::RATE_LIMIT_GLOBAL,
+        probe: probe,
+      )
+    end
+
+    it "reuses a single frozen tag hash for a process-scoped reason" do
       expect_reused_frozen_tags do
         guardrails_telemetry.skipped(
-          reason: described_class::Reason::RATE_LIMIT_PROBE,
+          reason: described_class::Reason::RATE_LIMIT_GLOBAL,
           probe: probe,
         )
       end
@@ -109,7 +108,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
         guardrails_telemetry.skipped(
           reason: described_class::Reason::RATE_LIMIT_PROBE,
           probe: probe,
-          probe_id: probe.id,
         )
       end
 
@@ -126,7 +124,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
         expect(guardrails_telemetry.skipped(
           reason: described_class::Reason::RATE_LIMIT_PROBE,
           probe: probe,
-          probe_id: probe.id,
         )).to be_nil
       end
     end

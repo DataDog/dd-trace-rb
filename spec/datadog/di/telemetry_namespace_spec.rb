@@ -32,6 +32,10 @@ RSpec.describe "DI telemetry namespace under direct requires" do
 
     probe = Object.new
 
+    def probe.id
+      "p1"
+    end
+
     def probe.capture_snapshot?
       true
     end

@@ -71,6 +71,11 @@ module Datadog
         # Capture-incomplete reason for an early-capture cause with no
         # more specific code.
         OTHER = "other"
+
+        # The skip reasons the events.skipped metric tags with the firing
+        # probe's id; every other skip reason names a process-wide
+        # decision and carries no probe id.
+        PROBE_SCOPED_REASONS = [RATE_LIMIT_PROBE, EVALUATION_TIMEOUT].freeze
       end
     end
   end
