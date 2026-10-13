@@ -52,8 +52,8 @@ module Datadog
         @sleep_remaining = nil
         @wake_scheduled = false
         @thread = nil
-        @status_transport_instance = nil
-        @snapshot_transport_instance = nil
+        @status_transport = nil
+        @snapshot_transport = nil
         @pid = nil
         @flush = 0
         @probe_repository = probe_repository
@@ -66,12 +66,6 @@ module Datadog
       # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
-      # The memoized transport for status events, built on first send.
-      # @return [DI::Transport::Diagnostics::Transport, nil]
-      attr_accessor :status_transport_instance
-      # The memoized transport for snapshot events, built on first send.
-      # @return [DI::Transport::Input::Transport, nil]
-      attr_accessor :snapshot_transport_instance
       attr_reader :agent_settings
       attr_reader :probe_repository
       attr_reader :probe_notification_builder
@@ -213,10 +207,7 @@ module Datadog
       #
       # @return [DI::Transport::Diagnostics::Transport]
       def status_transport
-        transport = status_transport_instance
-        return transport if transport
-
-        self.status_transport_instance = DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
       end
 
       def do_send_status(batch)
@@ -228,10 +219,7 @@ module Datadog
       #
       # @return [DI::Transport::Input::Transport]
       def snapshot_transport
-        transport = snapshot_transport_instance
-        return transport if transport
-
-        self.snapshot_transport_instance = DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
           telemetry: telemetry, guardrails_telemetry: guardrails_telemetry,)
       end
 

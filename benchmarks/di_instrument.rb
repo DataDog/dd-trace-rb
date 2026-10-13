@@ -153,9 +153,7 @@ class DIInstrumentBenchmark
   # metric. Telemetry is not sent to the agent because Component#start
   # is omitted.
   def telemetry
-    return telemetry_component if telemetry_component
-
-    self.telemetry_component = begin
+    @telemetry_component ||= begin
       settings = Datadog.configuration
       agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(
         settings, logger: logger,
@@ -163,10 +161,6 @@ class DIInstrumentBenchmark
       Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
     end
   end
-
-  # The memoized telemetry component.
-  # @return [Datadog::Core::Telemetry::Component, nil]
-  attr_accessor :telemetry_component
 
   def configure
     settings = Datadog.configuration

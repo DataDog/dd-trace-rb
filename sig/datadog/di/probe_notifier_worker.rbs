@@ -30,9 +30,9 @@ module Datadog
 
       @flush: Integer
 
-      @status_transport_instance: DI::Transport::Diagnostics::Transport?
+      @status_transport: DI::Transport::Diagnostics::Transport?
 
-      @snapshot_transport_instance: DI::Transport::Input::Transport?
+      @snapshot_transport: DI::Transport::Input::Transport?
 
       @logger: DI::Logger
 
@@ -64,10 +64,6 @@ module Datadog
 
       def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
       def add_snapshot: (Hash[Symbol, untyped] event) -> void
-
-      attr_accessor status_transport_instance: DI::Transport::Diagnostics::Transport?
-
-      attr_accessor snapshot_transport_instance: DI::Transport::Input::Transport?
 
       private
 
