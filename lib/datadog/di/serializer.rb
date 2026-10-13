@@ -109,7 +109,7 @@ module Datadog
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param redactor [Redactor] redactor gating captured values
-      # @param logger [DI::Logger] logger contained serialization failures are logged at debug through
+      # @param logger [DI::Logger] logger the contained serialization failures are logged at debug through
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-incomplete metric
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component serializer errors are reported through
       # @return [void]
@@ -123,7 +123,7 @@ module Datadog
 
       attr_reader :settings
       attr_reader :redactor
-      # The logger contained serialization failures are logged at debug through.
+      # The logger the contained serialization failures are logged at debug through.
       # @return [DI::Logger]
       attr_reader :logger
       # The guardrails metric emitter.

@@ -34,8 +34,8 @@ module Datadog
 
       # Initializes the reporter.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from
-      # @param logger [DI::Logger] logger contained emission failures are logged at debug through
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
+      # @param logger [DI::Logger] logger the contained emission failures are logged at debug through
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
       def initialize(settings:, logger:, telemetry:)
         @settings = settings
@@ -46,10 +46,10 @@ module Datadog
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from.
+      # The tracer settings the propagation escape hatch is read from.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
-      # The logger contained emission failures are logged at debug through.
+      # The logger the contained emission failures are logged at debug through.
       # @return [DI::Logger]
       attr_reader :logger
       # The component the guardrails metrics are emitted through.
