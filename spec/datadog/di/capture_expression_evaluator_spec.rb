@@ -92,8 +92,8 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         result = evaluator.evaluate(probe, context)
         expect(result.serialized_values).to eq({})
         expect(result.errors.size).to eq(1)
-        expect(result.errors.first[:expr]).to eq("bad_len")
-        expect(result.errors.first[:message]).to include("ExpressionEvaluationError")
+        expect(result.errors.first.expr).to eq("bad_len")
+        expect(result.errors.first.message).to include("ExpressionEvaluationError")
       end
 
       it "logs at debug and reports the exception to telemetry" do
@@ -128,8 +128,8 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         result = evaluator.evaluate(probe, context)
         expect(result.serialized_values).to eq({})
         expect(result.errors.size).to eq(1)
-        expect(result.errors.first[:expr]).to eq("boom")
-        expect(result.errors.first[:message]).to include("NotImplementedError")
+        expect(result.errors.first.expr).to eq("boom")
+        expect(result.errors.first.message).to include("NotImplementedError")
       end
     end
 
@@ -175,7 +175,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         result = evaluator.evaluate(probe, context)
         expect(result.serialized_values.keys).to eq(["ok"])
         expect(result.errors.size).to eq(1)
-        expect(result.errors.first[:expr]).to eq("fail")
+        expect(result.errors.first.expr).to eq("fail")
       end
     end
 

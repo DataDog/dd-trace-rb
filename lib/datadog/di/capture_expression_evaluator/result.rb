@@ -9,7 +9,7 @@ module Datadog
         # Initializes the result.
         #
         # @param serialized_values [Hash{String => untyped}] serialized values keyed by capture expression name
-        # @param errors [Array<Hash{Symbol => String}>] evaluation errors of the expressions that failed to evaluate or serialize
+        # @param errors [Array<EvaluationFailure>] evaluation errors of the expressions that failed to evaluate or serialize
         # @return [void]
         def initialize(serialized_values:, errors:)
           @serialized_values = serialized_values
@@ -22,10 +22,9 @@ module Datadog
         # @return [Hash{String => untyped}]
         attr_reader :serialized_values
 
-        # The evaluation errors; one +{expr: expression name, message: error
-        # description}+ entry per expression that failed to evaluate or
-        # serialize.
-        # @return [Array<Hash{Symbol => String}>]
+        # The evaluation errors; one entry per expression that failed to
+        # evaluate or serialize.
+        # @return [Array<EvaluationFailure>]
         attr_reader :errors
       end
     end

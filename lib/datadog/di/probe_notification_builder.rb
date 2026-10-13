@@ -2,6 +2,7 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 
 module Datadog
@@ -151,10 +152,7 @@ module Datadog
       end
 
       def build_condition_evaluation_failed(context, expression, exception)
-        error = {
-          message: "#{exception.class}: #{exception}",
-          expr: expression.dsl_expr,
-        }
+        error = EvaluationFailure.new(expr: expression.dsl_expr, message: "#{exception.class}: #{exception}")
         build_snapshot_base(context, evaluation_errors: [error])
       end
 
@@ -353,7 +351,7 @@ module Datadog
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,
-              evaluationErrors: evaluation_errors,
+              evaluationErrors: evaluation_errors.map { |failure| {expr: failure.expr, message: failure.message} },
               probe: {
                 id: probe.id,
                 version: 0,
@@ -415,10 +413,10 @@ module Datadog
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
-          evaluation_errors << {
-            message: "#{exc.class}: #{exc.message}",
+          evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
-          }
+            message: "#{exc.class}: #{exc.message}",
+          )
           "[evaluation error]"
         end.join
         [message, evaluation_errors]
