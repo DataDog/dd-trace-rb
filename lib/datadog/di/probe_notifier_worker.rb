@@ -3,6 +3,7 @@
 require_relative "../core/semaphore"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
+require_relative "snapshot_event"
 
 module Datadog
   module DI
@@ -228,7 +229,7 @@ module Datadog
       # serialization failures via callback. This allows healthy probes
       # to continue working even when one probe produces un-serializable data.
       #
-      # @param batch [Array<Hash>] Array of snapshot payload hashes
+      # @param batch [Array<SnapshotEvent>] the snapshot events queued for sending
       def do_send_snapshot(batch)
         snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
       end
@@ -283,7 +284,9 @@ module Datadog
         # event type.
         #
         # @param event [Hash] the status or snapshot payload to enqueue
-        # @param probe [Probe, nil] the probe the payload belongs to, for status log attribution and the queue-full drop event type
+        # @param probe [Probe, nil] the probe the payload belongs to, for status log
+        #   attribution, the queue-full drop event type, and the queued
+        #   snapshot event's guardrails event type
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
           # Enqueueing reads DI configuration and writes debug/trace logs, both
@@ -301,6 +304,9 @@ module Datadog
           begin
             @lock.synchronize do
               queue = send("#{event_type}_queue")
+              guardrails_event_type = if event_type == :snapshot
+                probe ? GuardrailsTelemetry.probe_event_type_tag(probe) : GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
+              end
               if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
@@ -316,14 +322,9 @@ module Datadog
                   end
                 end
                 if event_type == :snapshot
-                  drop_event_type = if probe
-                    GuardrailsTelemetry.probe_event_type_tag(probe)
-                  else
-                    GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
-                  end
                   guardrails_telemetry.dropped(
                     reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                    event_type: drop_event_type,
+                    event_type: guardrails_event_type,
                   )
                 end
               else
@@ -333,7 +334,11 @@ module Datadog
                 else
                   logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
                 end
-                queue << event
+                queue << if event_type == :snapshot
+                  SnapshotEvent.new(payload: event, event_type: guardrails_event_type)
+                else
+                  event
+                end
               end
             end
 

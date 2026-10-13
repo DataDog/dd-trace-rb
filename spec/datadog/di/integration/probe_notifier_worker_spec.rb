@@ -9,6 +9,8 @@ require "datadog/di/probe_notifier_worker"
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
 
+  let(:probe) { instance_double(Datadog::DI::Probe, capture_snapshot?: true) }
+
   let(:probe_repository) do
     Datadog::DI::ProbeRepository.new
   end
@@ -192,7 +194,7 @@ Content-Transfer-Encoding: binary
       end
 
       it "sends expected payload to v2 endpoint only" do
-        worker.add_snapshot(snapshot_payload)
+        worker.add_snapshot(snapshot_payload, probe: probe)
         worker.flush
         expect(worker.send(:thread)).to be_alive
 
@@ -213,7 +215,7 @@ Content-Transfer-Encoding: binary
         end
 
         it "includes SCM tags in payload" do
-          worker.add_snapshot(snapshot_payload)
+          worker.add_snapshot(snapshot_payload, probe: probe)
           worker.flush
           expect(worker.send(:thread)).to be_alive
 
@@ -242,7 +244,7 @@ Content-Transfer-Encoding: binary
       it "sends expected payload to v2 then v1 endpoint" do
         allow(logger).to receive(:debug)
 
-        worker.add_snapshot(snapshot_payload)
+        worker.add_snapshot(snapshot_payload, probe: probe)
         worker.flush
         expect(worker.send(:thread)).to be_alive
 

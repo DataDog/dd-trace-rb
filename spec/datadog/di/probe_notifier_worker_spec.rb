@@ -14,6 +14,8 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   let(:propagate_all_exceptions) { false }
 
+  let(:probe) { instance_double(Datadog::DI::Probe, capture_snapshot?: true) }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions)
@@ -118,6 +120,13 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         {hello: "world"}
       end
 
+      let(:snapshot_event) do
+        Datadog::DI::SnapshotEvent.new(
+          payload: snapshot,
+          event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT,
+        )
+      end
+
       it "adds snapshot to queue" do
         # Depending on scheduling, the worker thread may attempt to
         # invoke the transport to send the snapshot.
@@ -125,9 +134,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         expect(worker.send(:snapshot_queue)).to be_empty
 
-        worker.add_snapshot(snapshot)
+        worker.add_snapshot(snapshot, probe: probe)
 
-        expect(worker.send(:snapshot_queue)).to eq([snapshot])
+        expect(worker.send(:snapshot_queue)).to eq([snapshot_event])
       end
 
       context "when the snapshot queue is full" do
@@ -135,7 +144,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         let(:capacity) { settings.dynamic_instrumentation.internal.snapshot_queue_capacity }
 
         before do
-          fill_queue_beyond_capacity(:add_snapshot, snapshot, worker.send(:snapshot_queue))
+          fill_queue_beyond_capacity(:add_snapshot, snapshot, worker.send(:snapshot_queue), probe: probe)
         end
 
         it "drops the snapshot and emits the canonical queueFull drop metric" do
@@ -144,7 +153,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "queueFull", event_type: "snapshot"},)
 
-          worker.add_snapshot(snapshot)
+          worker.add_snapshot(snapshot, probe: probe)
 
           expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
         end
@@ -261,6 +270,13 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         {hello: "world"}.freeze
       end
 
+      let(:snapshot_event) do
+        Datadog::DI::SnapshotEvent.new(
+          payload: snapshot,
+          event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT,
+        )
+      end
+
       let(:expected_tags) do
         {
           "debugger_version" => String,
@@ -280,11 +296,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         expect(worker.send(:snapshot_queue)).to be_empty
 
         expect(input_transport).to receive(:send_input).once do |snapshots, tags, **_kwargs|
-          expect(snapshots).to eq([snapshot])
+          expect(snapshots).to eq([snapshot_event])
           expect(tags).to match(expected_tags)
         end
 
-        worker.add_snapshot(snapshot)
+        worker.add_snapshot(snapshot, probe: probe)
 
         worker.flush
 
@@ -299,25 +315,25 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           first_send_done = Queue.new
 
           expect(input_transport).to receive(:send_input).once do |snapshots, tags, **_kwargs|
-            expect(snapshots).to eq([snapshot])
+            expect(snapshots).to eq([snapshot_event])
             expect(tags).to match(expected_tags)
             first_send_done.push(:done)
           end
 
-          worker.add_snapshot(snapshot)
+          worker.add_snapshot(snapshot, probe: probe)
 
           # Wait for the first send to complete (deterministic)
           Timeout.timeout(2) { first_send_done.pop }
 
-          worker.add_snapshot(snapshot)
-          worker.add_snapshot(snapshot)
+          worker.add_snapshot(snapshot, probe: probe)
+          worker.add_snapshot(snapshot, probe: probe)
 
           # At this point the first snapshot should have been sent,
           # with the remaining two in the queue
-          expect(worker.send(:snapshot_queue)).to eq([snapshot, snapshot])
+          expect(worker.send(:snapshot_queue)).to eq([snapshot_event, snapshot_event])
 
           expect(input_transport).to receive(:send_input).once do |snapshots, tags, **_kwargs|
-            expect(snapshots).to eq([snapshot, snapshot])
+            expect(snapshots).to eq([snapshot_event, snapshot_event])
             expect(tags).to match(expected_tags)
           end
 
@@ -339,7 +355,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
             expect(description).to eq("Error sending snapshot")
           end
 
-          worker.add_snapshot(snapshot)
+          worker.add_snapshot(snapshot, probe: probe)
           worker.flush
 
           # Queue should be cleared even after error
@@ -548,7 +564,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it "disables the probe when its snapshot cannot be JSON-encoded" do
-        worker.add_snapshot(bad_snapshot)
+        worker.add_snapshot(bad_snapshot, probe: probe)
         worker.flush
 
         expect(probe.enabled?).to be false
@@ -557,7 +573,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       it "sends ERROR status for the affected probe" do
         expect(diagnostics_transport).to receive(:send_diagnostics).with([{status: "ERROR"}])
 
-        worker.add_snapshot(bad_snapshot)
+        worker.add_snapshot(bad_snapshot, probe: probe)
         worker.flush
       end
     end

@@ -75,24 +75,24 @@ module Datadog
           # Large snapshots (> 1MB) are dropped. Batches are split into chunks
           # of ~2MB each to avoid large network requests.
           #
-          # @param payload [Array<Hash>] Array of snapshot payloads
+          # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
           # @param on_serialization_error [Proc] Called with (probe_id, exception)
           #   when a snapshot fails to serialize.
-          # @return [Array<Hash>] the payloads that were sent
+          # @return [Array<SnapshotEvent>] the events that were sent
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
             # Serialize each snapshot individually to isolate failures
             encoded_snapshots = []
-            dropped_snapshot_sizes = []
-            payload.each do |snapshot|
-              encoded = encoder.encode(snapshot)
+            dropped_events = []
+            payload.each do |event|
+              encoded = encoder.encode(event.payload)
               if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
                 logger.debug do
                   "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                dropped_snapshot_sizes << encoded.bytesize
+                dropped_events << [event, encoded.bytesize]
                 next
               end
               encoded_snapshots << encoded
@@ -100,7 +100,7 @@ module Datadog
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
               # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
-              probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
+              probe_id = event.payload.dig(:debugger, :snapshot, :probe, :id)
               logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
@@ -115,10 +115,10 @@ module Datadog
               end
             end
 
-            dropped_snapshot_sizes.each do |bytes|
+            dropped_events.each do |event, bytes|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, bytes: bytes,
+                event_type: event.event_type, bytes: bytes,
               )
             end
 
