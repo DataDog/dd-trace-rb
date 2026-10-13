@@ -117,7 +117,9 @@ RSpec.describe Datadog::DI::Logger do
 
       allow(settings.dynamic_instrumentation.internal).to receive(:trace_logging).and_return(false)
 
-      expect(target).to receive(:debug)
+      expect(target).to receive(:debug) do |&block|
+        expect(block.call).to eq("di: hello")
+      end
       logger.trace { "di: hello" }
     end
   end
