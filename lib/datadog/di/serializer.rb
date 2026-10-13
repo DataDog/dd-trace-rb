@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "date"
 require_relative "redactor"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI

@@ -52,6 +52,50 @@ RSpec.describe "DI telemetry namespace under direct requires" do
 
     puts Datadog::DI::TELEMETRY_NAMESPACE
   SCRIPT
+
+  SERIALIZER_SCRIPT = <<~'SCRIPT'
+    require "datadog/di/serializer"
+
+    telemetry = Object.new
+
+    def telemetry.inc(namespace, metric_name, value, tags: {}, common: true)
+      raise "wrong telemetry namespace: #{namespace}" unless namespace == "debugger"
+      raise "wrong metric name: #{metric_name}" unless metric_name == "capture.incomplete"
+      raise "wrong reason: #{tags[:reason]}" unless tags[:reason] == "depth"
+      raise "wrong event type: #{tags[:event_type]}" unless tags[:event_type] == "snapshot"
+
+      nil
+    end
+
+    guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
+      settings: Object.new, logger: Object.new, telemetry: telemetry,
+    )
+
+    settings = Object.new
+
+    def settings.dynamic_instrumentation
+      di_settings = Object.new
+
+      def di_settings.max_capture_attribute_count
+        100
+      end
+
+      di_settings
+    end
+
+    redactor = Object.new
+
+    def redactor.redact_type?(value)
+      false
+    end
+
+    def redactor.redact_identifier?(name)
+      false
+    end
+
+    Datadog::DI::Serializer.new(settings, redactor,
+      guardrails_telemetry: guardrails_telemetry).serialize_value([1], depth: 0)
+  SCRIPT
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
   it "emits the guardrails skip metric under the debugger namespace when guardrails telemetry is required directly" do
@@ -64,5 +108,9 @@ RSpec.describe "DI telemetry namespace under direct requires" do
 
   it "resolves the namespace when datadog/di is required directly" do
     expect(run_direct_require_script(DI_ENTRY_SCRIPT)).to eq("dynamic_instrumentation\n")
+  end
+
+  it "emits the capture-incomplete metric when the serializer is required directly" do
+    expect(run_direct_require_script(SERIALIZER_SCRIPT)).to be_empty
   end
 end
