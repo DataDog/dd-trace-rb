@@ -63,7 +63,7 @@ module Datadog
       def flush: () -> void
 
       def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
-      def add_snapshot: (Hash[Symbol, untyped] event) -> void
+      def add_snapshot: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
 
       private
 

@@ -319,7 +319,7 @@ module Datadog
         end
 
         payload = probe_notification_builder.build_executed(context)
-        probe_notifier_worker.add_snapshot(payload)
+        probe_notifier_worker.add_snapshot(payload, probe: probe)
       end
 
       # Callback invoked when a probe's condition expression fails to evaluate.
@@ -340,7 +340,7 @@ module Datadog
         if rate_limiter&.allow?
           if instrumenter.global_snapshot_rate_limiter.allow?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
-            probe_notifier_worker.add_snapshot(payload)
+            probe_notifier_worker.add_snapshot(payload, probe: probe)
           else
             logger.trace do
               "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \

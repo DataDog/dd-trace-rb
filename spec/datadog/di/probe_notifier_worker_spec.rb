@@ -149,6 +149,20 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
         end
 
+        it "drops a log probe event and tags the queueFull drop metric log" do
+          log_probe = Datadog::DI::Probe.new(id: "p2", type: :log, type_name: "C",
+            method_name: "m", capture_snapshot: false,)
+
+          expect_lazy_log(logger, :debug,
+            "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
+          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
+            tags: {reason: "queueFull", event_type: "log"},)
+
+          worker.add_snapshot(snapshot, probe: log_probe)
+
+          expect(worker.send(:snapshot_queue).length).to eq(capacity + 1)
+        end
+
         context "when emitting the queueFull drop metric raises" do
           let(:telemetry) { telemetry_double_raising_on_inc }
 

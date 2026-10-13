@@ -283,7 +283,7 @@ module Datadog
         # event type.
         #
         # @param event [Hash] the status or snapshot payload to enqueue
-        # @param probe [Probe, nil] the probe the payload belongs to, for status log attribution
+        # @param probe [Probe, nil] the probe the payload belongs to, for status log attribution and the queue-full drop event type
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
           # Enqueueing reads DI configuration and writes debug/trace logs, both
@@ -316,9 +316,14 @@ module Datadog
                   end
                 end
                 if event_type == :snapshot
+                  drop_event_type = if probe
+                    GuardrailsTelemetry.probe_event_type_tag(probe)
+                  else
+                    GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
+                  end
                   guardrails_telemetry.dropped(
                     reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                    event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT,
+                    event_type: drop_event_type,
                   )
                 end
               else
