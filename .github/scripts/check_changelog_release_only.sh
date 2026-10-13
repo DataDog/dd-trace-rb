@@ -8,12 +8,17 @@ if [[ -z "${HEAD_REF:-}" ]]; then
     exit 1
 fi
 
-if [[ -z "${BASE_SHA:-}" ]]; then
-    echo "Error: BASE_SHA environment variable is not set"
+if [[ -z "${BASE_REF:-}" ]]; then
+    echo "Error: BASE_REF environment variable is not set"
     exit 1
 fi
 
-changed_files=$(git diff --no-renames --name-only "${BASE_SHA}"...HEAD)
+if [[ -z "${PR_HEAD_SHA:-}" ]]; then
+    echo "Error: PR_HEAD_SHA environment variable is not set"
+    exit 1
+fi
+
+changed_files=$(git diff --no-renames --name-only "origin/${BASE_REF}...${PR_HEAD_SHA}")
 
 touches_changelog=false
 if grep -qx 'CHANGELOG.md' <<< "${changed_files}"; then

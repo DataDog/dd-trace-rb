@@ -9,13 +9,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
-  let(:recorder) do
-    Datadog::Profiling::StackRecorder.for_testing(
-      alloc_samples_enabled: true,
-      heap_samples_enabled: heap_profiling_enabled,
-      heap_size_enabled: heap_profiling_enabled,
-      **stack_recorder_options,
-    )
+  # Not a let because prepare_serialize should run before every call to serialize
+  def recorder
+    cpu_and_wall_time_worker.prepare_serialize
   end
   let(:no_signals_workaround_enabled) { false }
   let(:options) { {} }
@@ -26,7 +22,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:cpu_sampling_interval_ms) { 10 }
   let(:one_second_in_ns) { 1_000_000_000 }
   let(:waiting_for_gvl_threshold_ns) { 10_000_000 }
-  let(:thread_context_collector) { build_thread_context_collector(recorder) }
+  let(:thread_context_collector) { build_thread_context_collector }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -75,6 +71,46 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           /cpu_sampling_interval_ms must be a positive integer/
         )
       end
+    end
+  end
+
+  describe "#prepare_serialize" do
+    let(:stack_recorder) { Datadog::Profiling::StackRecorder.for_testing }
+    let(:thread_context_collector) { build_thread_context_collector(recorder: stack_recorder) }
+
+    it "collects profiler-internal thread samples before serialization", :memcheck_valgrind_skip do
+      ready = Queue.new
+      internal_thread = Thread.new do
+        ready << true
+        sleep
+      end
+      ready.pop
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_mark_thread_as_profiler_internal(internal_thread)
+
+      cpu_and_wall_time_worker.start
+      cpu_and_wall_time_worker.wait_until_running
+
+      samples = loop_until do
+        profile_samples = samples_from_pprof(stack_recorder.serialize!)
+        current_thread_samples = samples_for_thread(profile_samples, Thread.current)
+        profile_samples if current_thread_samples.sum { |sample| sample.values.fetch(:"wall-time") } > 0
+      end
+
+      cpu_and_wall_time_worker.stop
+
+      # No samples for internal threads
+      expect(samples_for_thread(samples, internal_thread)).to be_empty
+      # Flush recorder, still nothing there
+      expect(samples_for_thread(samples_from_pprof(stack_recorder.serialize!), internal_thread)).to be_empty
+
+      profile_with_internal_thread = cpu_and_wall_time_worker.prepare_serialize.serialize!
+
+      thread_samples = samples_for_thread(samples_from_pprof(profile_with_internal_thread), internal_thread)
+      expect(thread_samples.sum { |sample| sample.values.fetch(:"wall-time") }).to be > 0
+    ensure
+      cpu_and_wall_time_worker.stop
+      internal_thread&.kill
+      internal_thread&.join
     end
   end
 
@@ -952,7 +988,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect(total_samples).to eq test_num_allocated_object
 
-        expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
+        # Each of the test_num_allocated_object structs is 40 bytes before Ruby 4.1 and 32 bytes on Ruby 4.1+.
+        # Keep these values hardcoded so we notice size changes.
+        expected_size_of_object = RubyVersion.is?(">= 4.1") ? 32 : 40
 
         expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
@@ -1144,24 +1182,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    describe "crash-safety during nested signal handler (such as during GC compaction)", :memcheck_valgrind_skip do
-      # See `is_running_on_alternate_signal_stack` for details. Note that our little experiment here works on all Rubies,
-      # but GC compaction in particular is only for 2.7+
-      it "skips sampling in the signal handler" do
-        start
-
-        # Simulate signals arriving on the altstack
-        described_class::Testing._native_install_sigprof_handler_on_altstack
-
-        loop_until(check_condition_every_seconds: 0.01) do
-          cpu_and_wall_time_worker.stats.fetch(:signal_handler_skipped_sample_on_altstack) > 0
-        end
-
-        # NOTE: We don't need to explicitly "uninstall" the altstack change, see comment on
-        # `_native_install_sigprof_handler_on_altstack` for mode details.
-      end
-    end
-
     context "Process::Waiter crash regression tests" do
       # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
@@ -1273,7 +1293,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         # Roll back the clock to make it really obvious if this is not cleaned up
         Datadog::Profiling::Collectors::ThreadContext::Testing
-          ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
+          ._native_apply_delta_to_time_at_previous_sample_ns(Thread.current, cpu_time: -(60 * 60 * one_second_in_ns))
 
         before_restart_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
         cpu_and_wall_time_worker.start
@@ -1301,7 +1321,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         skip "Test requires the opentelemetry-sdk and opentelemetry-exporter-otlp gems"
       end
 
-      let(:thread_context_collector) { build_thread_context_collector(recorder, otel_context_enabled: :only) }
+      let(:thread_context_collector) { build_thread_context_collector(otel_context_enabled: :only) }
       let(:otel_tracer) do
         OpenTelemetry::SDK.configure
         OpenTelemetry.tracer_provider.tracer("datadog-profiling-test")
@@ -1484,10 +1504,61 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "preparing a sample at GC exit" do
+    before do
+      cpu_and_wall_time_worker
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_global_reset_per_thread_context(thread_context_collector)
+      record_sample
+      gc_event(:enter)
+    end
+
+    def request_sample_at_gc_exit
+      described_class::Testing._native_request_prepare_on_gc_finish(cpu_and_wall_time_worker)
+    end
+
+    def gc_event(event, during_sample: false)
+      described_class::Testing._native_on_gc_event(cpu_and_wall_time_worker, event, during_sample)
+    end
+
+    def record_sample
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+      samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).first
+    end
+
+    it "prepares a requested stack at GC exit" do
+      request_sample_at_gc_exit
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_on_gc_event")
+    end
+
+    it "does not prepare a stack without a request" do
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "does not prepare a stack when already processing a sample" do
+      request_sample_at_gc_exit
+      gc_event(:exit, during_sample: true)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+
+    it "discards a late request from the previous GC step" do
+      gc_event(:exit)
+      request_sample_at_gc_exit
+      gc_event(:enter)
+      gc_event(:exit)
+
+      expect(record_sample.locations.first.label).to eq("_native_sample")
+    end
+  end
+
   describe "#reset_after_fork" do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
-    let(:thread_context_collector) { build_thread_context_collector(recorder) }
+    let(:thread_context_collector) { build_thread_context_collector }
     let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
@@ -1543,7 +1614,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_prepared_sample: 0,
-          signal_handler_skipped_sample_on_altstack: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
@@ -1858,9 +1928,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     described_class.new(**worker_settings)
   end
 
-  def build_thread_context_collector(recorder, **options)
+  def build_thread_context_collector(**options)
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
-      recorder: recorder,
+      recorder: Datadog::Profiling::StackRecorder.for_testing(
+        alloc_samples_enabled: true,
+        heap_samples_enabled: heap_profiling_enabled,
+        heap_size_enabled: heap_profiling_enabled,
+        **stack_recorder_options,
+      ),
       endpoint_collection_enabled: endpoint_collection_enabled,
       # The worker triggers the global reset itself when it starts, so we don't want `for_testing` to also do it here
       # (it would interfere with the state these tests carefully set up).
