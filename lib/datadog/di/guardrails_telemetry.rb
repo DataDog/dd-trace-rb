@@ -7,12 +7,9 @@ require_relative "telemetry_namespace"
 module Datadog
   module DI
     # Telemetry reporter for the DI guardrails: the reason codes and the
-    # emitters for the +debugger.events.skipped+,
-    # +debugger.events.dropped+, +debugger.capture.incomplete+ and
-    # +guardrails.queue.dropped_bytes+ count metrics.
+    # metric emitters.
     class GuardrailsTelemetry
-      # Telemetry namespace the skip, drop and capture-incomplete metrics
-      # are emitted under. The telemetry wire name is
+      # Telemetry namespace. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
       DEBUGGER_NAMESPACE = "debugger"
 

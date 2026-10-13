@@ -3,7 +3,7 @@
 module Datadog
   module DI
     class GuardrailsTelemetry
-      # Canonical skip, drop and capture-incomplete reason codes. Codes
+      # Canonical guardrails reason codes. Codes
       # shared with the other Datadog tracers keep the exact shared
       # spelling; codes with no shared counterpart use the Ruby tracer's
       # own name for the same decision.
