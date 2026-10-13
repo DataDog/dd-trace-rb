@@ -8,6 +8,7 @@ module Datadog
       def initialize: (Datadog::Core::Configuration::Settings settings, ::Logger target) -> void
 
       attr_reader trace_logging: bool
+      attr_reader target: ::Logger
 
       attr_reader target: ::Logger
 
