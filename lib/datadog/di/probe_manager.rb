@@ -348,7 +348,7 @@ module Datadog
               "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \
                 " (#{GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL})"
             end
-            record_condition_error_skip(probe, GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL)
+            record_condition_error_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
           end
         elsif rate_limiter
           logger.trace do
@@ -378,7 +378,7 @@ module Datadog
       # @param probe [Probe] the probe whose condition evaluation failed
       # @param reason [String] the GuardrailsTelemetry::Reason constant for the rejecting limit
       # @return [void]
-      def record_condition_error_skip(probe, reason)
+      def record_condition_error_skip(reason, probe)
         guardrails_telemetry.skipped(
           reason: reason,
           probe: probe,
