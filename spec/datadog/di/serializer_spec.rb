@@ -106,13 +106,14 @@ RSpec.describe Datadog::DI::Serializer do
     Datadog::DI::Redactor.new(settings)
   end
 
+  let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings,
-      logger: instance_double(Datadog::Core::Logger).as_null_object, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
   end
 
   let(:serializer) do
-    described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
+    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   describe "#serialize_value" do
@@ -179,7 +180,7 @@ RSpec.describe Datadog::DI::Serializer do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:serializer) do
-      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     # Asserts the capture-incomplete metric emission for the given reason.
@@ -660,7 +661,7 @@ RSpec.describe Datadog::DI::Serializer do
     context "when condition raises an exception" do
       let(:telemetry) { double("telemetry") }
       let(:serializer) do
-        described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
       end
 
       it "skips the custom serializer and uses default serialization" do
@@ -1239,7 +1240,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
@@ -1346,7 +1347,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do

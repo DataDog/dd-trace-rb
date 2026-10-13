@@ -12,15 +12,19 @@ module Datadog
 
       @redactor: Redactor
 
+      @logger: DI::Logger
+
       @guardrails_telemetry: DI::GuardrailsTelemetry
 
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, logger: DI::Logger, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
+
+      attr_reader logger: DI::Logger
 
       attr_reader guardrails_telemetry: DI::GuardrailsTelemetry
 

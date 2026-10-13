@@ -86,7 +86,8 @@ module Datadog
         @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
-        @serializer = Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        @serializer = Serializer.new(settings, redactor, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
         @capture_expression_evaluator = CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger,
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,

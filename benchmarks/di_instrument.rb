@@ -185,7 +185,7 @@ class DIInstrumentBenchmark
     guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
       settings: settings, logger: di_logger, telemetry: telemetry,
     )
-    serializer = Datadog::DI::Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
+    serializer = Datadog::DI::Serializer.new(settings, redactor, logger: di_logger, guardrails_telemetry: guardrails_telemetry)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,
