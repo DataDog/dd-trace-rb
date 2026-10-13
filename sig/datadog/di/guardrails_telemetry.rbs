@@ -1,7 +1,7 @@
 module Datadog
   module DI
     class GuardrailsTelemetry
-      NAMESPACE: String
+      DEBUGGER_NAMESPACE: String
 
       EVENTS_SKIPPED: String
 

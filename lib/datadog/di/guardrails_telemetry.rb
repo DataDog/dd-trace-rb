@@ -21,13 +21,13 @@ module Datadog
       # Telemetry namespace the GA RFC fixes as the metric prefix for its
       # three metrics. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
-      NAMESPACE = "debugger"
+      DEBUGGER_NAMESPACE = "debugger"
 
-      # GA RFC +events.skipped+ metric name, emitted under NAMESPACE.
+      # GA RFC +events.skipped+ metric name, emitted under DEBUGGER_NAMESPACE.
       EVENTS_SKIPPED = "events.skipped"
-      # GA RFC +events.dropped+ metric name, emitted under NAMESPACE.
+      # GA RFC +events.dropped+ metric name, emitted under DEBUGGER_NAMESPACE.
       EVENTS_DROPPED = "events.dropped"
-      # GA RFC +capture.incomplete+ metric name, emitted under NAMESPACE.
+      # GA RFC +capture.incomplete+ metric name, emitted under DEBUGGER_NAMESPACE.
       CAPTURE_INCOMPLETE = "capture.incomplete"
 
       # Circuit-breakers RFC queue byte metric, emitted under
@@ -95,7 +95,7 @@ module Datadog
       # @return [void]
       def skipped(reason:, probe:, probe_id: nil)
         inc_metric(
-          NAMESPACE, EVENTS_SKIPPED, 1,
+          DEBUGGER_NAMESPACE, EVENTS_SKIPPED, 1,
           tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id),
         )
         nil
@@ -111,7 +111,7 @@ module Datadog
       # @return [void]
       def dropped(reason:, event_type:, bytes: nil)
         tags = dropped_tags(reason, event_type)
-        inc_metric(NAMESPACE, EVENTS_DROPPED, 1, tags: tags)
+        inc_metric(DEBUGGER_NAMESPACE, EVENTS_DROPPED, 1, tags: tags)
         inc_metric(DI::TELEMETRY_NAMESPACE, QUEUE_DROPPED_BYTES, bytes, tags: tags) if bytes
         nil
       end
@@ -124,7 +124,7 @@ module Datadog
       # @return [void]
       def capture_incomplete(reason:, event_type:)
         inc_metric(
-          NAMESPACE, CAPTURE_INCOMPLETE, 1,
+          DEBUGGER_NAMESPACE, CAPTURE_INCOMPLETE, 1,
           tags: capture_incomplete_tags(reason, event_type),
         )
         nil
