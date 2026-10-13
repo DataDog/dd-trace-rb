@@ -40,8 +40,6 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     expect(emitted_tags.first).to be_frozen
   end
 
-  # Asserts a guardrails metric emission failure is contained: logged at
-  # debug, reported through the telemetry error channel, returning nil.
   def expect_contained_emission_failure(metric_name, &emission)
     expect_lazy_log(logger, :debug,
       /error emitting debugger\.#{metric_name} metric.*StandardError.*telemetry down/)
