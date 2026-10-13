@@ -2559,12 +2559,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
         end
 
-        it "does not emit the condition error snapshot and emits the evaluationErrorThrottled skip metric" do
+        it "does not emit the condition error snapshot and emits no events.skipped metric" do
           expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
           expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
           expect(probe_notifier_worker).not_to receive(:add_snapshot)
-          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-            tags: {reason: "evaluationErrorThrottled", event_type: "log"},)
+          expect(telemetry).not_to receive(:inc)
 
           instrumenter.hook_method(probe, manager)
 

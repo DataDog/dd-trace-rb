@@ -356,7 +356,6 @@ module Datadog
               " notification due to per-probe rate limit" \
               " (#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
           end
-          record_condition_error_skip(probe, GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED)
         end
         nil
       end
