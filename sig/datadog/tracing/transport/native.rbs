@@ -21,9 +21,7 @@ module Datadog
           ) -> TraceExporter
           def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) ?{ (Hash[Symbol, Integer]) -> void } -> Array[Response]
 
-          def _native_take_stats_observations: () -> Array[Integer]
-
-          def _native_close: () -> Array[Integer]
+          def _native_close: () -> void
 
           def _native_before_fork: () -> void
           def _native_after_fork_in_parent: () -> void

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "metrics_collection"
-require "weakref"
 
 module Datadog
   module Core
@@ -19,7 +18,6 @@ module Datadog
           @mutex = Mutex.new
 
           @collections = {}
-          @collectors = {}
         end
 
         def inc(namespace, metric_name, value, tags: {}, common: true)
@@ -63,34 +61,10 @@ module Datadog
         end
 
         def flush!
-          collect
           return [] unless @enabled
 
           collections = @mutex.synchronize { @collections.values }
           collections.reduce([]) { |events, collection| events + collection.flush! }
-        end
-
-        def register_collector(collector)
-          @mutex.synchronize { @collectors[collector.object_id] = WeakRef.new(collector) }
-          nil
-        end
-
-        def unregister_collector(collector)
-          @mutex.synchronize { @collectors.delete(collector.object_id) }
-          nil
-        end
-
-        def collect
-          collectors = @mutex.synchronize do
-            @collectors.delete_if { |_, ref| !ref.weakref_alive? }
-            @collectors.values
-          end
-          collectors.each do |ref|
-            ref.__getobj__.collect
-          rescue
-            nil
-          end
-          nil
         end
 
         def disable!

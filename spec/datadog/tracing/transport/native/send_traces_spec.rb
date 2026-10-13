@@ -156,7 +156,6 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     it "keeps trace success when observation processing raises", :native_transport_memcheck do
       responses = exporter._native_send_traces([[make_span]], false) { raise "telemetry failed" }
       expect(responses.first.ok?).to be true
-      expect(exporter._native_take_stats_observations).to eq(Array.new(16, 0))
     end
 
     it "returns a success response" do

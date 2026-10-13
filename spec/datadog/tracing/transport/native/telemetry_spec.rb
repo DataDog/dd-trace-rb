@@ -27,13 +27,9 @@ RSpec.describe Datadog::Tracing::Transport::Native::Telemetry do
     reporter.record(bytes_sent: 456)
   end
 
-  it "does not add a source tag to span drops or collapse observations" do
+  it "does not add a source tag to span drops" do
     expect(client).to receive(:inc).with("tracers", "spans_dropped", 5, tags: ["reason:api_error"])
-    expect(client).to receive(:inc).with("tracers", "stats_collapsed_spans", 2, tags: ["collapsed:whole_key"])
-    expect(client).to receive(:inc).with("tracers", "stats_collapsed_spans", 3,
-      tags: ["collapsed:resource", "collapsed:http_endpoint"],)
     reporter.record(spans_dropped_api_error: 5)
-    reporter.record_stats([2, 0, 0, 3])
   end
 
   it "preserves each native failure classification" do
@@ -60,33 +56,19 @@ RSpec.describe Datadog::Tracing::Transport::Native::Telemetry do
     reporter.record(bytes_sent: 0, requests_count: 0)
     allow(client).to receive(:enabled?).and_return(false)
     reporter.record(bytes_sent: 123, requests_count: 1)
-    reporter.record_stats([1])
   end
 
   it "isolates telemetry failures" do
     allow(client).to receive(:inc).and_raise("telemetry unavailable")
     expect { reporter.record(requests_count: 1) }.not_to raise_error
-    expect { reporter.record_stats([1]) }.not_to raise_error
   end
 
-  context "with a native exporter" do
-    let(:exporter) { double("exporter") }
-    subject(:reporter) { described_class.new(client, exporter) }
+  it "forwards observations to a replacement component" do
+    replacement = instance_double(Datadog::Core::Telemetry::Component, enabled?: true)
+    expect(client).not_to receive(:inc)
+    expect(replacement).to receive(:inc).with("tracers", "trace_chunks_sent", 2, tags: ["src_library:libdatadog"])
 
-    it "rebinds collection to a replacement component" do
-      replacement = instance_double(Datadog::Core::Telemetry::Component, enabled?: true)
-      allow(client).to receive(:register_metrics_collector)
-      reporter
-      expect(client).to have_received(:register_metrics_collector).with(reporter)
-      expect(client).to receive(:unregister_metrics_collector).with(reporter)
-      expect(replacement).to receive(:register_metrics_collector).with(reporter)
-      reporter.client = replacement
-      expect(exporter).to receive(:_native_take_stats_observations).and_return([2])
-      expect(replacement).to receive(:inc).with("tracers", "stats_collapsed_spans", 2, tags: ["collapsed:whole_key"])
-      reporter.collect
-      expect(replacement).to receive(:unregister_metrics_collector).with(reporter)
-      reporter.close
-      reporter.collect
-    end
+    reporter.client = replacement
+    reporter.record(chunks_sent: 2)
   end
 end

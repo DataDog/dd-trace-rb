@@ -55,7 +55,7 @@ module Datadog
               if (reporter = @telemetry)
                 reporter.client = client
               elsif @exporter
-                @telemetry = Telemetry.new(client, @exporter)
+                @telemetry = Telemetry.new(client)
               end
             end
           end
@@ -235,12 +235,9 @@ module Datadog
               fork_hooks = @fork_hooks
               @fork_hooks = nil
               begin
-                if (exporter = @exporter)
-                  counts = exporter._native_close
-                  @telemetry&.record_stats(counts)
-                end
+                @exporter&._native_close
               ensure
-                @telemetry&.close
+                @telemetry = nil
                 @exporter = nil
               end
             end
@@ -302,11 +299,9 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              result = exporter._native_send_traces(chunks, native_events_supported) do |observations|
+              exporter._native_send_traces(chunks, native_events_supported) do |observations|
                 @telemetry&.record(observations)
               end
-              @telemetry&.collect
-              result
             end
 
             # Update statistics from the response

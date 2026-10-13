@@ -1544,18 +1544,8 @@ static VALUE _native_after_fork_in_child(VALUE self) {
   if (wrapper == NULL || wrapper->runtime == NULL) {
     raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
   }
-  ddog_TraceExporterStatsObservations discarded = {0};
-  ddog_TraceExporterError *discard_err = NULL;
-  if (wrapper->exporter != NULL) {
-    discard_err = ddog_trace_exporter_take_stats_observations(wrapper->exporter, &discarded);
-  }
-  /* A failed discard must not leave the child's runtime quiesced. */
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
-  if (err != NULL && discard_err != NULL) {
-    ddog_trace_exporter_error_free(discard_err);
-  }
   check_shared_runtime_error("Failed to restore after fork in child", err);
-  check_exporter_error("Failed to discard inherited observations", discard_err);
   return Qnil;
 }
 
@@ -1868,33 +1858,14 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
       free_send_resources, (VALUE)&ctx);
 }
 
-static VALUE stats_observations_to_ruby(ddog_TraceExporterStatsObservations *report) {
-  VALUE counts = rb_ary_new_capa(16);
-  for (size_t i = 0; i < 16; i++) rb_ary_push(counts, ULL2NUM(report->collapsed_spans[i]));
-  return counts;
-}
-
-static VALUE _native_take_stats_observations(VALUE self) {
-  trace_exporter_t *wrapper;
-  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  ddog_TraceExporterStatsObservations report = {0};
-  if (wrapper != NULL && wrapper->exporter != NULL) {
-    check_exporter_error("Failed to drain stats observations",
-        ddog_trace_exporter_take_stats_observations(wrapper->exporter, &report));
-  }
-  return stats_observations_to_ruby(&report);
-}
-
 typedef struct {
   ddog_TraceExporter *exporter;
-  ddog_TraceExporterStatsObservations report;
   bool ran;
 } close_exporter_args;
 
 static void *close_exporter_without_gvl(void *arg) {
   close_exporter_args *args = (close_exporter_args *)arg;
-  ddog_TraceExporterError *error = ddog_trace_exporter_shutdown_observed(args->exporter, &args->report);
-  if (error != NULL) ddog_trace_exporter_error_free(error);
+  ddog_trace_exporter_free(args->exporter);
   args->ran = true;
   return NULL;
 }
@@ -1914,7 +1885,7 @@ static VALUE _native_close(VALUE self) {
     if (!args.ran) wrapper->exporter = args.exporter;
     if (pending) rb_jump_tag(pending);
   }
-  return stats_observations_to_ruby(&args.report);
+  return Qnil;
 }
 
 /* ========================================================================
@@ -1952,7 +1923,6 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Instance: _native_send_traces(traces, native_events_supported) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
                     _native_send_traces, 2);
-  rb_define_method(trace_exporter_class, "_native_take_stats_observations", _native_take_stats_observations, 0);
   rb_define_method(trace_exporter_class, "_native_close", _native_close, 0);
 
   /* Instance: fork safety hooks */

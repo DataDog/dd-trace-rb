@@ -5,6 +5,7 @@ require "datadog/tracing/span"
 require "datadog/tracing/trace_segment"
 require "datadog/core/utils/at_fork_monkey_patch"
 require "socket"
+require "json"
 require "timeout"
 
 # Integration tests for the native trace exporter's fork-safety and
@@ -369,6 +370,39 @@ RSpec.describe "Native transport fork safety and cancellation" do
       expect(transport.send_traces([build_trace(name: "after-failed-fork.op")]).first.ok?).to be(true)
     ensure
       AtForkRegistryHelpers.restore(saved_at_fork) if saved_at_fork
+    end
+
+    it "keeps send observations local across a fork" do
+      send_report = lambda do
+        report = nil
+        responses = exporter._native_send_traces([build_trace.spans], false) { |value| report = value }
+        raise "native send failed" unless responses.first.ok?
+        report
+      end
+      before_fork = send_report.call
+      reader, writer = IO.pipe
+      pid = fork do
+        reader.close
+        writer.write(JSON.generate(send_report.call))
+        writer.close
+        transport.close
+        exit! 0
+      end
+      writer.close
+      child_report = Timeout.timeout(15) { JSON.parse(reader.read, symbolize_names: true) }
+      status = Timeout.timeout(15) { Process.wait2(pid).last }
+      pid = nil
+      expect(status).to be_success
+
+      [before_fork, child_report, send_report.call].each do |report|
+        expect(report).to include(requests_count: 1, responses_count: 1, status_code: 200,
+          chunks_sent: 1, spans_enqueued_for_serialization: 1,)
+        expect(report.fetch(:bytes_sent)).to be > 0
+      end
+    ensure
+      reader&.close unless reader&.closed?
+      writer&.close unless writer&.closed?
+      NativeTransportForkIsolation.reap_process(pid)
     end
 
     it "restores the parent when a later global before-fork hook raises" do
