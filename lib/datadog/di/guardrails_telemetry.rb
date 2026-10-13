@@ -7,7 +7,11 @@ require_relative "telemetry_namespace"
 module Datadog
   module DI
     # Telemetry reporter for the DI guardrails: the reason codes and the
-    # metric emitters.
+    # metric emitters. The tag hashes for a given reason and event type
+    # are built once, frozen, and memoized per metric family, so repeated
+    # emissions allocate no tags. Probe-scoped skip tags are not
+    # memoized, because remote configuration churns probe ids and a
+    # per-probe memo would grow without bound.
     class GuardrailsTelemetry
       # Telemetry namespace. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
