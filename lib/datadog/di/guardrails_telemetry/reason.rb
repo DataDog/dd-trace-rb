@@ -20,7 +20,7 @@ module Datadog
         # the capture time budget.
         EVALUATION_TIMEOUT = "evaluationTimeout"
 
-        # Skip reason the +di: debug log names when a condition-evaluation
+        # Skip reason named in the +di: debug log when a condition-evaluation
         # failure notification is rejected by the per-probe limiter.
         EVALUATION_ERROR_THROTTLED = "evaluationErrorThrottled"
 
