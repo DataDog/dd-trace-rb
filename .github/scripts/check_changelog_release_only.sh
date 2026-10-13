@@ -8,12 +8,22 @@ if [[ -z "${HEAD_REF:-}" ]]; then
     exit 1
 fi
 
-if [[ -z "${BASE_SHA:-}" ]]; then
-    echo "Error: BASE_SHA environment variable is not set"
+if [[ -z "${BASE_REF:-}" ]]; then
+    echo "Error: BASE_REF environment variable is not set"
     exit 1
 fi
 
-changed_files=$(git diff --no-renames --name-only "${BASE_SHA}"...HEAD)
+# github.event.pull_request.base.sha is the merge base recorded at the pull request's last
+# sync, so it goes stale once the base branch moves; diffing HEAD (the pull request's merge
+# ref) from it sweeps the base branch's own CHANGELOG.md changes into the file list. The
+# three-dot diff from the fetched base branch tip yields the pull request's own changes.
+base_tip="origin/${BASE_REF}"
+if ! git rev-parse --verify --quiet "${base_tip}" > /dev/null; then
+    echo "Error: base branch ref ${base_tip} is not present in this checkout"
+    exit 1
+fi
+
+changed_files=$(git diff --no-renames --name-only "${base_tip}"...HEAD)
 
 touches_changelog=false
 if grep -qx 'CHANGELOG.md' <<< "${changed_files}"; then
