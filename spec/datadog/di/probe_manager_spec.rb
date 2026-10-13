@@ -546,6 +546,8 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationErrorThrottled", event_type: "log"},)
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
