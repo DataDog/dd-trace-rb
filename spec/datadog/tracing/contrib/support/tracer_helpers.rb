@@ -1,5 +1,6 @@
 require "support/faux_writer"
 require "support/network_helpers"
+require "uri"
 
 require "datadog/tracing/tracer"
 require "datadog/tracing/span"
@@ -94,6 +95,20 @@ module Contrib
       events_module.subscribe!
     end
 
+    def trace_transport_hostname
+      return unless tracer.respond_to?(:writer)
+
+      transport = tracer.writer.transport
+      if transport.respond_to?(:url)
+        url = URI.parse(transport.url)
+        return url.is_a?(URI::HTTP) ? url.hostname : nil
+      end
+      return unless transport.respond_to?(:client)
+
+      adapter = transport.client.instance.adapter
+      adapter.hostname if adapter.respond_to?(:hostname)
+    end
+
     RSpec.configure do |config|
       # Capture spans from the global tracer
       config.before do
@@ -131,13 +146,15 @@ module Contrib
       config.after do
         traces = fetch_traces(tracer)
         unless traces.empty?
-          if tracer.respond_to?(:writer) && tracer.writer.transport.client.instance.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
-              tracer.writer.transport.client.instance.adapter.hostname == agent_host
+          hostname = trace_transport_hostname
+          if hostname && hostname == agent_host
             traces.each do |trace|
               # write traces after the test to the agent in order to not mess up assertions
               # remake syncwriter instance for each flush to prevent headers from being overrwritten
-              sync_writer = Datadog::Tracing::SyncWriter.new(agent_settings: tracer.writer.agent_settings)
-              sync_writer.transport.client.instance.headers["X-Datadog-Trace-Env-Variables"] = parse_tracer_config
+              sync_writer = Datadog::Tracing::SyncWriter.new(
+                agent_settings: tracer.writer.agent_settings,
+                transport_options: {headers: {"X-Datadog-Trace-Env-Variables" => parse_tracer_config}}
+              )
               sync_writer.write(trace)
             end
           end

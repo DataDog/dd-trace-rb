@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6401",
+  "message": "Fix potential crash due to underflow when sampling."
+}
