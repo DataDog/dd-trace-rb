@@ -35,7 +35,7 @@ module Datadog
       # Initializes the reporter.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
-      # @param logger [DI::Logger] logger the contained emission failures are logged at debug through
+      # @param logger [DI::Logger] logger for contained emission failures
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
       def initialize(settings:, logger:, telemetry:)
         @settings = settings
@@ -49,7 +49,7 @@ module Datadog
       # The tracer settings the propagation escape hatch is read from.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
-      # The logger the contained emission failures are logged at debug through.
+      # The logger for contained emission failures.
       # @return [DI::Logger]
       attr_reader :logger
       # The component the guardrails metrics are emitted through.
