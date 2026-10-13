@@ -6,7 +6,6 @@ require_relative "capture_expression_evaluator/result"
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
-require_relative "telemetry_namespace"
 
 module Datadog
   module DI

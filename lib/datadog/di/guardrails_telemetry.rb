@@ -2,10 +2,13 @@
 
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry/reason"
-require_relative "telemetry_namespace"
 
 module Datadog
   module DI
+    # Telemetry namespace for DI-namespaced metrics. The telemetry wire
+    # name is +dd.instrumentation_telemetry_data.dynamic_instrumentation.*+.
+    TELEMETRY_NAMESPACE = "dynamic_instrumentation"
+
     # Telemetry reporter for the DI guardrails: the reason codes and the
     # metric emitters. The tag hashes for a given reason and event type
     # are built once, frozen, and memoized per metric family, so repeated

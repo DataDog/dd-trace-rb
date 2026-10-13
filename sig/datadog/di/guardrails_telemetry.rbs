@@ -1,5 +1,7 @@
 module Datadog
   module DI
+    TELEMETRY_NAMESPACE: String
+
     class GuardrailsTelemetry
       type tags_memo = Hash[String, Hash[String, Hash[Symbol, String]]]
 
