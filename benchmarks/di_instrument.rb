@@ -179,10 +179,15 @@ class DIInstrumentBenchmark
     # so the instrumenter's logger.trace calls on the global-rate-limit
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
+    guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
+      settings: settings, logger: di_logger, telemetry: telemetry,
+    )
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
-      guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
-        settings: settings, logger: di_logger, telemetry: telemetry,
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
+        settings: settings, serializer: serializer, logger: di_logger,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
       ),)
   end
 
