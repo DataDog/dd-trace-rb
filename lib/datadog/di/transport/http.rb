@@ -47,8 +47,7 @@ module Datadog
           end.to_transport(DI::Transport::Diagnostics::Transport)
         end
 
-        # Builds the snapshot input transport, wiring the telemetry and
-        # guardrails telemetry components into it. Pass a block to override
+        # Builds the snapshot input transport. Pass a block to override
         # any transport settings.
         #
         # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings

@@ -214,8 +214,7 @@ module Datadog
         status_transport.send_diagnostics(batch)
       end
 
-      # Builds and memoizes the snapshot input transport, wiring the
-      # telemetry and guardrails telemetry components into it.
+      # Builds and memoizes the snapshot input transport.
       #
       # @return [DI::Transport::Input::Transport]
       def snapshot_transport

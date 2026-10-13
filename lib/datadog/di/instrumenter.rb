@@ -140,8 +140,7 @@ module Datadog
         end
       end
 
-      # Logs the rate-limit skip at trace level and emits the canonical
-      # rate-limit skip metric for a probe.
+      # Emits the canonical rate-limit skip metric for a probe.
       #
       # @param probe [Probe] the probe being skipped
       # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
@@ -788,10 +787,7 @@ module Datadog
         public :kwargs_from_splat
       end
 
-      # Trace point callback for a line probe. Verifies the invocation is the
-      # probed line for untargeted trace points, evaluates the condition and
-      # the per-probe and global rate limiters, builds the snapshot context,
-      # and invokes the responder's executed callback.
+      # Trace point callback for a line probe.
       #
       # @param probe [Probe] the probe installed on this line
       # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
