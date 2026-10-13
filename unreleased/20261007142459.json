@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6441",
+  "message": "Security: Fixes a security vulnerability, as described in [GHSA-p7cx-x3jr-jj6w](https://github.com/DataDog/dd-trace-rb/security/advisories/GHSA-p7cx-x3jr-jj6w)."
+}

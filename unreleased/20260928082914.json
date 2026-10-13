@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "AI Guard",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6394",
-  "message": "Require `ruby_llm` 2.0 or later for the `RubyLLM` integration."
-}
