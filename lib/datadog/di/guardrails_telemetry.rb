@@ -9,12 +9,7 @@ module Datadog
     # Telemetry reporter for the DI guardrails: the reason codes and the
     # emitters for the +debugger.events.skipped+,
     # +debugger.events.dropped+, +debugger.capture.incomplete+ and
-    # +guardrails.queue.dropped_bytes+ count metrics. A skip is a decision
-    # taken before expensive work; a drop discards an event after it has
-    # been produced; an incomplete capture enforces a capture limit on a
-    # snapshot that is still sent. Each emitter tags its metric with the
-    # canonical reason so operators can attribute reduced or partial DI
-    # output to a specific cause.
+    # +guardrails.queue.dropped_bytes+ count metrics.
     class GuardrailsTelemetry
       # Telemetry namespace the skip, drop and capture-incomplete metrics
       # are emitted under. The telemetry wire name is

@@ -3,12 +3,10 @@
 module Datadog
   module DI
     class GuardrailsTelemetry
-      # Canonical skip, drop and capture-incomplete reason codes. The
-      # +di:+ debug logs and the guardrails metrics tag each guardrail
-      # decision with one of these strings. Codes shared with the other
-      # Datadog tracers keep the exact shared spelling; codes with no
-      # shared counterpart use the Ruby tracer's own name for the same
-      # decision.
+      # Canonical skip, drop and capture-incomplete reason codes. Codes
+      # shared with the other Datadog tracers keep the exact shared
+      # spelling; codes with no shared counterpart use the Ruby tracer's
+      # own name for the same decision.
       module Reason
         # Skip reason emitted when a probe firing is rejected by the
         # probe's own rate limiter.

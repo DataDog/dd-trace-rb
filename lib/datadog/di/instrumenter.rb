@@ -110,8 +110,7 @@ module Datadog
       # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
-      # The capture expression evaluator, constructed by the component
-      # and injected into its consumers.
+      # The capture expression evaluator.
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
