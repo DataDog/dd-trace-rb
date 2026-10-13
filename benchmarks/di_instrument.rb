@@ -151,9 +151,8 @@ class DIInstrumentBenchmark
   # Builds and memoizes the telemetry component with the same settings,
   # agent settings and logger the DI component wires in, so the skip
   # variants measure the production cost of emitting the
-  # debugger.events.skipped metric. The emitters work from construction,
-  # and the background upload thread runs only after Component#start,
-  # which the benchmark skips.
+  # debugger.events.skipped metric. Telemetry is not sent to the agent
+  # because Component#start is omitted.
   def telemetry
     return telemetry_component if telemetry_component
 
