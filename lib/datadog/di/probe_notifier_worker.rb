@@ -25,10 +25,7 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      # Initializes the background worker with its queues, diagnostics
-      # logger, the transports' agent settings, the probe repository and
-      # builder for status notifications, and the telemetry components
-      # worker errors and guardrails drop metrics are emitted through.
+      # Initializes the background worker.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param logger [DI::Logger] logger for worker diagnostics

@@ -10,8 +10,7 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      # Initializes the builder with its settings, serializer, logger and
-      # capture expression evaluator.
+      # Initializes the builder.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values

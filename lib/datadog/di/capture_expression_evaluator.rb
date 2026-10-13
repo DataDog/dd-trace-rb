@@ -9,9 +9,7 @@ require_relative "telemetry_namespace"
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      # Initializes the evaluator with the settings, serializer, logger
-      # and telemetry components the capture expressions are evaluated
-      # against.
+      # Initializes the evaluator.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured expression values

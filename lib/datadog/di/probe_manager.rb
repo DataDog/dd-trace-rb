@@ -19,9 +19,7 @@ module Datadog
     #
     # @api private
     class ProbeManager
-      # Initializes the probe manager with its settings, instrumenter,
-      # notification builder, worker, logger, repository and telemetry
-      # components, installing the class-definition trace point.
+      # Initializes the probe manager, installing the class-definition trace point.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param instrumenter [Instrumenter] instrumenter that executes installed probes

@@ -36,8 +36,7 @@ module Datadog
       # Tag value for probes that capture evaluated log output.
       EVENT_TYPE_LOG = "log"
 
-      # Initializes the reporter with the settings, the logger and the
-      # telemetry component the guardrails metrics are emitted through.
+      # Initializes the reporter.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from
       # @param logger [DI::Logger] logger contained emission failures are logged at debug through

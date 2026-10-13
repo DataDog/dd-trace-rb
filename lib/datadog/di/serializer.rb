@@ -105,8 +105,7 @@ module Datadog
         @@flat_registry << {condition: condition, proc: block}
       end
 
-      # Initializes the serializer with its settings, redactor, logger and
-      # telemetry components.
+      # Initializes the serializer.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param redactor [Redactor] redactor gating captured values

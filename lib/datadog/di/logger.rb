@@ -7,7 +7,7 @@ module Datadog
     # @api private
     class Logger
       # Initializes the logger facade with the trace-logging gate resolved
-      # once from settings and the target logger the facade delegates to.
+      # once.
       # Resolving the gate at construction keeps the per-call settings
       # traversal off the probe hot path. Components are rebuilt on
       # reconfiguration, so the cached value tracks configuration

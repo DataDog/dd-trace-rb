@@ -65,11 +65,7 @@ module Datadog
         end
       end
 
-      # Initializes the DI component with its settings, agent settings,
-      # logger, code tracker and telemetry component, building the
-      # serializer, guardrails telemetry emitter, capture expression
-      # evaluator, instrumenter, probe repository, notification builder,
-      # worker and probe manager.
+      # Initializes the DI component.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports

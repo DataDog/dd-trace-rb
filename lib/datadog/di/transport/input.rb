@@ -31,8 +31,7 @@ module Datadog
           # @return [GuardrailsTelemetry]
           attr_reader :guardrails_telemetry
 
-          # Initializes the transport with its API map, default API, logger
-          # and telemetry components.
+          # Initializes the transport.
           #
           # @param apis [Datadog::Core::Transport::HTTP::API::Map] API instances by name
           # @param default_api [String] name of the API requests are sent through when unspecified

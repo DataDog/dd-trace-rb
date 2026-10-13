@@ -78,9 +78,7 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      # Initializes the instrumenter with its settings, serializer,
-      # logger, capture expression evaluator, code tracker and telemetry
-      # components, building the process-wide rate limiters.
+      # Initializes the instrumenter, building the process-wide rate limiters.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
