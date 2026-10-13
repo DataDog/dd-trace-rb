@@ -156,7 +156,7 @@ module Datadog
         collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
-          length: length, collection_size: collection_size)
+          length: length, collection_size: collection_size,)
       end
 
       # Serializes variables captured by a line probe.
@@ -170,7 +170,7 @@ module Datadog
         collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
-            length: length, collection_size: collection_size)
+            length: length, collection_size: collection_size,)
         end
       end
 
@@ -326,7 +326,7 @@ module Datadog
                 end
                 cur += 1
                 entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
-                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)]
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),]
               end
               serialized.update(entries: entries)
             end

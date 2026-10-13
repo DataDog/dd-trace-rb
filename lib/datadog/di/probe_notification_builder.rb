@@ -55,7 +55,7 @@ module Datadog
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
           status: "ERROR",
-          exception: exc)
+          exception: exc,)
       end
 
       def build_disabled(probe, duration)
@@ -146,7 +146,7 @@ module Datadog
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
-          captures: captures)
+          captures: captures,)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)

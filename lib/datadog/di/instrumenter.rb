@@ -610,7 +610,7 @@ module Datadog
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
               serializer.serialize_args(args, kwargs, target_self,
-                **probe.snapshot_serializer_limits(settings))
+                **probe.snapshot_serializer_limits(settings),)
             end
 
             entry_capture_expressions = nil

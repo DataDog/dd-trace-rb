@@ -9,7 +9,7 @@ Datadog::DI::Serializer.register(
   # An alternative could have been to make DI specifically provide lookup
   # logic for "instances of classes derived from X", but a condition Proc
   # is more universal.
-  condition: lambda { |value| ActiveRecord::Base === value }
+  condition: lambda { |value| ActiveRecord::Base === value },
 ) do |serializer, value, name:, depth:|
   # +serializer+ is an instance of DI::Serializer.
   # Use it to perform the serialization to primitive values.
