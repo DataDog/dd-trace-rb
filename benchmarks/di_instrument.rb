@@ -169,9 +169,6 @@ class DIInstrumentBenchmark
   # @return [Datadog::Core::Telemetry::Component, nil]
   attr_accessor :telemetry_component
 
-  # Configures Datadog, then builds the benchmark instrumenter with the
-  # serializer, the DI logger facade, the code tracker, the telemetry
-  # component and the guardrails telemetry emitter wired in.
   def configure
     settings = Datadog.configuration
     yield settings if block_given?
