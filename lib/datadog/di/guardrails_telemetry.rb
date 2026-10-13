@@ -7,7 +7,11 @@ require_relative "telemetry_namespace"
 module Datadog
   module DI
     # Telemetry reporter for the DI guardrails: the reason codes and the
-    # metric emitters.
+    # metric emitters. The tag hashes for a given reason and event type
+    # are built once, frozen, and memoized per metric family, so repeated
+    # emissions allocate no tags. Probe-scoped skip tags are not
+    # memoized, because remote configuration churns probe ids and a
+    # per-probe memo would grow without bound.
     class GuardrailsTelemetry
       # Telemetry namespace. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
@@ -30,8 +34,8 @@ module Datadog
 
       # Initializes the reporter.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from
-      # @param logger [DI::Logger] logger contained emission failures are logged at debug through
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
+      # @param logger [DI::Logger] logger the contained emission failures are logged at debug through
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
       def initialize(settings:, logger:, telemetry:)
         @settings = settings
@@ -42,10 +46,10 @@ module Datadog
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings +settings.dynamic_instrumentation.internal.propagate_all_exceptions+ is read from.
+      # The tracer settings the propagation escape hatch is read from.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
-      # The logger contained emission failures are logged at debug through.
+      # The logger the contained emission failures are logged at debug through.
       # @return [DI::Logger]
       attr_reader :logger
       # The component the guardrails metrics are emitted through.
