@@ -224,9 +224,9 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
         clock_calls = 0
-        clock_returns = [0, 0, 200_000_000]
+        clock_returns = [0.0, 0.0, 0.2]
         allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+          if args == [::Process::CLOCK_MONOTONIC, :float_second]
             clock_returns[clock_calls].tap { clock_calls += 1 }
           else
             original.call(*args)
