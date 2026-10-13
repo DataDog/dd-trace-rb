@@ -179,14 +179,11 @@ module Datadog
       end
 
       # Returns the frozen tags for a skip emission. Emissions without
-      # +probe_id+ are memoized per (reason, event_type) pair so a
-      # rate-limit-rejected probe firing allocates no tag hash.
-      # Probe-scoped emissions allocate one frozen hash per emission
-      # rather than per (reason, event_type, probe_id) pair: probes churn
-      # through remote configuration, and a per-probe-id memo would grow
-      # without bound over the process lifetime. The memo is lock-free:
-      # writes happen only during the first emission for a pair, and a
-      # racy first write can only discard a duplicate frozen hash.
+      # +probe_id+ are memoized; probe-scoped emissions allocate one
+      # frozen hash per emission rather than per (reason, event_type,
+      # probe_id) pair: probes churn through remote configuration, and
+      # a per-probe-id memo would grow without bound over the process
+      # lifetime.
       #
       # @param reason [String] the skip reason
       # @param event_type [String] the canonical event_type tag value
@@ -195,35 +192,40 @@ module Datadog
       def skipped_tags(reason, event_type, probe_id)
         return {reason: reason, event_type: event_type, probe_id: probe_id}.freeze if probe_id
 
-        reason_memos = skipped_tags_memo[reason] ||= {}
-        reason_memos[event_type] ||= {reason: reason, event_type: event_type}.freeze
+        memoized_tags(skipped_tags_memo, reason, event_type)
       end
 
       # Returns the frozen tags for a drop emission, memoized per
-      # (reason, event_type) pair, so a queue-full drop allocates no tag
-      # hash. The memo is lock-free: writes happen only during the first
-      # emission for a pair, and a racy first write can only discard a
-      # duplicate frozen hash.
+      # (reason, event_type) pair.
       #
       # @param reason [String] the drop reason
       # @param event_type [String] the canonical event_type tag value
       # @return [Hash{Symbol => String}] the frozen drop-metric tags
       def dropped_tags(reason, event_type)
-        reason_memos = dropped_tags_memo[reason] ||= {}
-        reason_memos[event_type] ||= {reason: reason, event_type: event_type}.freeze
+        memoized_tags(dropped_tags_memo, reason, event_type)
       end
 
       # Returns the frozen tags for an incomplete-capture emission,
-      # memoized per (reason, event_type) pair, so an enforced capture
-      # limit allocates no tag hash. The memo is lock-free: writes happen
-      # only during the first emission for a pair, and a racy first write
-      # can only discard a duplicate frozen hash.
+      # memoized per (reason, event_type) pair.
       #
       # @param reason [String] the enforced capture limit
       # @param event_type [String] the canonical event_type tag value
       # @return [Hash{Symbol => String}] the frozen incomplete-capture metric tags
       def capture_incomplete_tags(reason, event_type)
-        reason_memos = capture_incomplete_tags_memo[reason] ||= {}
+        memoized_tags(capture_incomplete_tags_memo, reason, event_type)
+      end
+
+      # Returns the frozen tags memoized per (reason, event_type) pair,
+      # so a repeated emission allocates no tag hash. The memo is
+      # lock-free: a racy first write can only discard a duplicate
+      # frozen hash.
+      #
+      # @param memo [Hash{String => Hash{String => Hash{Symbol => String}}}] the emission-kind memo to index
+      # @param reason [String] the emission reason
+      # @param event_type [String] the canonical event_type tag value
+      # @return [Hash{Symbol => String}] the frozen metric tags
+      def memoized_tags(memo, reason, event_type)
+        reason_memos = memo[reason] ||= {}
         reason_memos[event_type] ||= {reason: reason, event_type: event_type}.freeze
       end
     end
