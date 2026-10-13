@@ -2,5 +2,5 @@
   "type": "Changed",
   "product": "SSI",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6469",
-  "message": "Single-step injection for Ruby now uses an init image that is about 8 MB smaller, reducing the download and disk footprint of installing the library into your applications."
+  "message": "Reduce the single-step injection init image by about 8 MB, lowering download size and disk use when installing the library."
 }
