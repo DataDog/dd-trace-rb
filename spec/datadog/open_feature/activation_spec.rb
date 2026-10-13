@@ -14,8 +14,8 @@ RSpec.describe Datadog::OpenFeature::Activation do
   let(:remote) { instance_double(Datadog::Core::Remote::Component, register: nil, start: nil) }
   let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
-  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider) }
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
+  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
   let(:component) do
     instance_double(
       Datadog::OpenFeature::Component,

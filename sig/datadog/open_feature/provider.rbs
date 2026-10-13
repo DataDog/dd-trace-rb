@@ -13,6 +13,10 @@ module Datadog
 
       @initializing: bool
 
+      @initialization_thread: Thread?
+
+      @awaiting_ready_after_fork: bool
+
       @initialization_failed: bool
 
       @provider_error_observed: bool
@@ -81,7 +85,11 @@ module Datadog
 
       private
 
+      def after_fork: (Component? component) -> void
+
       def fail_initialization: (Component? component, String message) -> bot
+
+      def prepare_initialization_failure: (Component? component) -> void
 
       def cancel_initialization_if_shutdown!: () -> void
 

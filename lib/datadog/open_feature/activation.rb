@@ -72,13 +72,17 @@ module Datadog
         @mutex.synchronize { @providers.keys }
       end
 
-      # Timer-driven delivery has no operation in the child that can restart its inherited worker.
       def after_fork
+        inherited_providers, component = @mutex.synchronize do
+          @shutdown ? [[], nil] : [@providers.keys, @component]
+        end
+        inherited_providers.each { |provider| provider.send(:after_fork, component) }
+
         configuration_source = @mutex.synchronize do
           if @shutdown || !@delivery_started
             nil
           else
-            @configuration_source
+            (@delivery_source == Configuration::Source::REMOTE_CONFIG) ? @remote : @configuration_source
           end
         end
 

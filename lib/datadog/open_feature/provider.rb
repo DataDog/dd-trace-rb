@@ -71,6 +71,8 @@ module Datadog
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
+        @initialization_thread = nil
+        @awaiting_ready_after_fork = false
         @initialization_failed = false
         @provider_error_observed = false
         @ready_pending = false
@@ -88,6 +90,8 @@ module Datadog
           raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
 
           @initializing = true
+          @initialization_thread = Thread.current
+          @awaiting_ready_after_fork = false
           @initialization_failed = false
           @provider_error_observed = false
           @ready_pending = false
@@ -120,8 +124,15 @@ module Datadog
         else
           fail_initialization(component, "Feature Flags provider initialization stopped before configuration arrived")
         end
+      rescue
+        prepare_initialization_failure(component) if @initialization_mutex.synchronize { @initializing }
+        raise
       ensure
-        @initialization_mutex.synchronize { @waiting_component = nil }
+        @initialization_mutex.synchronize do
+          @waiting_component = nil
+          # The SDK still owes READY after init returns; the initializing thread owns that dispatch.
+          @initialization_thread = nil unless @initializing
+        end
       end
 
       def shutdown
@@ -136,6 +147,7 @@ module Datadog
 
           @shutdown = true
           @initializing = false
+          @initialization_thread = nil
           error_handler = @error_handler
           initialization_ready_handler = @initialization_ready_handler
           waiting_component = @waiting_component
@@ -188,17 +200,43 @@ module Datadog
 
       private
 
+      def after_fork(component)
+        handler = @initialization_mutex.synchronize do
+          return if @shutdown || !@initializing || @initialization_thread&.alive?
+
+          @initializing = false
+          @initialization_thread = nil
+          @waiting_component = nil
+          @awaiting_ready_after_fork = true
+          @stale_pending = false
+          previous_handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          previous_handler
+        end
+        if handler
+          @configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler)
+        end
+        configuration_changed(Component::CONFIGURATION_READY) if component&.configuration_received?
+      end
+
       def fail_initialization(component, message)
+        prepare_initialization_failure(component)
+        cancel_initialization_if_shutdown!
+        raise message.to_s
+      end
+
+      def prepare_initialization_failure(component)
         cancelled, initialization_ready_handler = @initialization_mutex.synchronize do
           handler = @initialization_ready_handler
           @initialization_ready_handler = nil
           @stale_pending = false
           @initializing = false
+          @initialization_thread = nil
           if @shutdown
             [true, handler]
           else
             @initialization_failed = true
-            @ready_pending = !!component&.configuration_received?
+            @ready_pending ||= !!component&.configuration_received?
             [false, handler]
           end
         end
@@ -208,10 +246,9 @@ module Datadog
             initialization_ready_handler,
           )
         end
-        raise INITIALIZATION_CANCELLED_MESSAGE if cancelled
+        return if cancelled
 
         install_error_handler
-        raise message.to_s
       end
 
       def cancel_initialization_if_shutdown!
@@ -289,6 +326,7 @@ module Datadog
           handler = @initialization_ready_handler
           @initialization_ready_handler = nil
           @initializing = false
+          @initialization_thread = nil
           if @stale_pending && !@shutdown
             @stale_pending = false
             @stale_emitted = true
@@ -307,8 +345,13 @@ module Datadog
             nil
           elsif event == Component::CONFIGURATION_READY
             if @initializing
+              @ready_pending = true
               @stale_pending = false
               nil
+            elsif @awaiting_ready_after_fork
+              @awaiting_ready_after_fork = false
+              @stale_emitted = false
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
             elsif @initialization_failed && !@provider_error_observed
               @stale_emitted = false
               @ready_pending = true
