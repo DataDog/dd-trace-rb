@@ -78,7 +78,7 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      # Initializes the instrumenter, building the process-wide rate limiters.
+      # Initializes the instrumenter.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
@@ -155,7 +155,6 @@ module Datadog
         guardrails_telemetry.skipped(
           reason: reason,
           probe: probe,
-          probe_id: (reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? probe.id : nil,
         )
         nil
       end
