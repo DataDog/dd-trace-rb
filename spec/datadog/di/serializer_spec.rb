@@ -1,6 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/serializer"
 require_relative "serializer_helper"
+require_relative "di_serializer_spec_raising_each_hash"
 
 class DISerializerSpecSensitiveType
 end
@@ -59,12 +60,6 @@ end
 
 class DISerializerSpecBrokenHash < Hash
   def keys
-    raise "Arrgh!"
-  end
-end
-
-class DISerializerSpecRaisingEachHash < Hash
-  def each
     raise "Arrgh!"
   end
 end
