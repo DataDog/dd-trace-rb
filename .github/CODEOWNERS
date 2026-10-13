@@ -4,6 +4,7 @@
 .gitlab-ci.yml @DataDog/ruby-guild
 .claude/ @DataDog/ruby-guild
 .cursor/ @DataDog/ruby-guild
+.agents/ @DataDog/ruby-guild
 .vscode/ @DataDog/ruby-guild
 .bundler-audit.yml @DataDog/ruby-guild
 .customcops.yml @DataDog/ruby-guild
