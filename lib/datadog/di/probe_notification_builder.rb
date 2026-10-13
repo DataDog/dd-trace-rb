@@ -117,8 +117,9 @@ module Datadog
                 entry: {captureExpressions: captured_block},
               }
             else
-              captured_block, capture_expression_evaluation_errors =
-                capture_expression_evaluator.evaluate(probe, context)
+              capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+              captured_block = capture_evaluation_result.serialized_values
+              capture_expression_evaluation_errors = capture_evaluation_result.errors
               {
                 return: {
                   captureExpressions: captured_block,
@@ -127,8 +128,9 @@ module Datadog
               }
             end
           elsif probe.line?
-            captured_block, capture_expression_evaluation_errors =
-              capture_expression_evaluator.evaluate(probe, context)
+            capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+            captured_block = capture_evaluation_result.serialized_values
+            capture_expression_evaluation_errors = capture_evaluation_result.errors
             {
               lines: {
                 probe.line_no => {captureExpressions: captured_block},

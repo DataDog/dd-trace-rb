@@ -1,0 +1,17 @@
+module Datadog
+  module DI
+    class CaptureExpressionEvaluator
+      class Result
+        @serialized_values: Hash[String, untyped]
+
+        @errors: Array[Hash[Symbol, String]]
+
+        def initialize: (serialized_values: Hash[String, untyped], errors: Array[Hash[Symbol, String]]) -> void
+
+        attr_reader serialized_values: Hash[String, untyped]
+
+        attr_reader errors: Array[Hash[Symbol, String]]
+      end
+    end
+  end
+end

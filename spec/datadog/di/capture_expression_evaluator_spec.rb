@@ -67,10 +67,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "emits the serialized value under the name" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output.keys).to eq(["x"])
-        expect(output["x"]).to include(type: "Integer", value: "42")
-        expect(errors).to eq([])
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values.keys).to eq(["x"])
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.errors).to eq([])
       end
     end
 
@@ -89,11 +89,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "omits the key from output and appends to evaluation_errors" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output).to eq({})
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("bad_len")
-        expect(errors.first[:message]).to include("ExpressionEvaluationError")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first[:expr]).to eq("bad_len")
+        expect(result.errors.first[:message]).to include("ExpressionEvaluationError")
       end
 
       it "logs at debug and reports the exception to telemetry" do
@@ -125,11 +125,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "catches it, omits the key, and records an evaluation error" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output).to eq({})
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("boom")
-        expect(errors.first[:message]).to include("NotImplementedError")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first[:expr]).to eq("boom")
+        expect(result.errors.first[:message]).to include("NotImplementedError")
       end
     end
 
@@ -172,10 +172,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "succeeds for the good one, errors for the bad one" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output.keys).to eq(["ok"])
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("fail")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values.keys).to eq(["ok"])
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first[:expr]).to eq("fail")
       end
     end
 
@@ -199,10 +199,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "emits notCapturedReason:timeout stubs for all expressions" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output["x"]).to eq(notCapturedReason: "timeout")
-        expect(output["y"]).to eq(notCapturedReason: "timeout")
-        expect(errors).to eq([])
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to eq(notCapturedReason: "timeout")
+        expect(result.serialized_values["y"]).to eq(notCapturedReason: "timeout")
+        expect(result.errors).to eq([])
       end
 
       it "increments the timeout telemetry counter for each timed-out expression" do
@@ -249,10 +249,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "evaluates the first expression and times out the second" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output["x"]).to include(type: "Integer", value: "42")
-        expect(output["y"]).to eq(notCapturedReason: "timeout")
-        expect(errors).to eq([])
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.serialized_values["y"]).to eq(notCapturedReason: "timeout")
+        expect(result.errors).to eq([])
       end
 
       it "increments the timeout counter only for the timed-out expression" do

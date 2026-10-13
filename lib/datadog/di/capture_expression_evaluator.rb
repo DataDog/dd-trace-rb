@@ -2,6 +2,7 @@
 
 require_relative "capture_expression"
 require_relative "capture_limits"
+require_relative "capture_expression_evaluator/result"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
 require_relative "telemetry_namespace"
@@ -44,7 +45,9 @@ module Datadog
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
-      # @return [Array(Hash, Array)] the serialized values keyed by expression name and the evaluation errors
+      # @return [Result] the evaluation result: the serialized values keyed by
+      #   capture expression name and the errors of the expressions that failed
+      #   to evaluate or serialize
       def evaluate(probe, context)
         budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
         deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
@@ -90,7 +93,7 @@ module Datadog
           end
         end
 
-        [output, evaluation_errors]
+        Result.new(serialized_values: output, errors: evaluation_errors)
       end
     end
   end

@@ -619,8 +619,9 @@ module Datadog
                   target_self: target_self,
                   locals: serializer.combine_args(args, kwargs, target_self),
                 )
-                entry_capture_expressions, entry_capture_evaluation_errors =
-                  capture_expression_evaluator.evaluate(probe, entry_context)
+                entry_capture_result = capture_expression_evaluator.evaluate(probe, entry_context)
+                entry_capture_expressions = entry_capture_result.serialized_values
+                entry_capture_evaluation_errors = entry_capture_result.errors
               rescue Exception => exc # standard:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
