@@ -232,7 +232,7 @@ module Datadog
         return transport if transport
 
         self.snapshot_transport_instance = DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
-          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry)
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry,)
       end
 
       # Sends a batch of snapshot payloads to the agent.
