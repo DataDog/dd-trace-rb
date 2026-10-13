@@ -170,8 +170,10 @@ module Datadog
           telemetry&.report(exc, description: "Error emitting #{namespace}.#{metric_name} metric")
         rescue Exception => nested_exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(nested_exc)
-          logger.debug { "di: error reporting #{namespace}.#{metric_name} metric emission failure: " \
-            "#{nested_exc.class}: #{nested_exc.message}" }
+          logger.debug do
+            "di: error reporting #{namespace}.#{metric_name} metric emission failure: " \
+              "#{nested_exc.class}: #{nested_exc.message}"
+          end
         end
         nil
       end
