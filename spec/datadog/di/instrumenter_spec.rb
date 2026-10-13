@@ -41,7 +41,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
   end
 
   di_logger_double

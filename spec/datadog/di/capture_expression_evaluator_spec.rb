@@ -23,7 +23,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }

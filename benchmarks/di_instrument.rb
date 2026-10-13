@@ -174,7 +174,6 @@ class DIInstrumentBenchmark
     yield settings if block_given?
 
     redactor = Datadog::DI::Redactor.new(settings)
-    serializer = Datadog::DI::Serializer.new(settings, redactor)
     # Wrap in the DI::Logger facade (as lib/datadog/di/component.rb does)
     # so the instrumenter's logger.trace calls on the global-rate-limit
     # skip path resolve; stdlib Logger has no trace method.
@@ -182,6 +181,7 @@ class DIInstrumentBenchmark
     guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
       settings: settings, logger: di_logger, telemetry: telemetry,
     )
+    serializer = Datadog::DI::Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
       code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,

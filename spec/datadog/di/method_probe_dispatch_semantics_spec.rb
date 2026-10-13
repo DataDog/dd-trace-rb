@@ -112,7 +112,7 @@ RSpec.describe "Method probe dispatch semantics" do
   end
 
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
-  let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
+  let(:serializer) { Datadog::DI::Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry) }
   let(:logger) { instance_double(Logger, debug: nil) }
   let(:guardrails_telemetry) { Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil) }
 

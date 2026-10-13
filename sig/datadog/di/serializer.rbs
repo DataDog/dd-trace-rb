@@ -12,17 +12,17 @@ module Datadog
 
       @redactor: Redactor
 
-      @guardrails_telemetry: DI::GuardrailsTelemetry?
+      @guardrails_telemetry: DI::GuardrailsTelemetry
 
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, ?guardrails_telemetry: DI::GuardrailsTelemetry?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
 
-      attr_reader guardrails_telemetry: DI::GuardrailsTelemetry?
+      attr_reader guardrails_telemetry: DI::GuardrailsTelemetry
 
       attr_reader telemetry: Core::Telemetry::Component?
 

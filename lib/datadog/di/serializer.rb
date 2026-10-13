@@ -105,7 +105,7 @@ module Datadog
         @@flat_registry << {condition: condition, proc: block}
       end
 
-      def initialize(settings, redactor, guardrails_telemetry: nil, telemetry: nil)
+      def initialize(settings, redactor, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @redactor = redactor
         @guardrails_telemetry = guardrails_telemetry
@@ -119,13 +119,12 @@ module Datadog
 
       # Emits the canonical capture-incomplete metric for a capture limit
       # enforced while serializing a snapshot, with the snapshot event
-      # type. A no-op when the serializer has no guardrails telemetry
-      # emitter.
+      # type.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the enforced limit
       # @return [void]
       def record_capture_incomplete(reason)
-        guardrails_telemetry&.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
+        guardrails_telemetry.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
       end
 
       def combine_args(args, kwargs, target_self)

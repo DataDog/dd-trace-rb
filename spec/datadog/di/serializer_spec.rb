@@ -106,8 +106,13 @@ RSpec.describe Datadog::DI::Serializer do
     Datadog::DI::Redactor.new(settings)
   end
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings,
+      logger: instance_double(Datadog::Core::Logger).as_null_object, telemetry: nil)
+  end
+
   let(:serializer) do
-    described_class.new(settings, redactor)
+    described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry)
   end
 
   describe "#serialize_value" do
@@ -208,11 +213,6 @@ RSpec.describe Datadog::DI::Serializer do
       expect_capture_incomplete("runtimeError")
       expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new))
         .to include(notSerializedReason: "Arrgh!")
-    end
-
-    it "emits no metric when the serializer has no guardrails telemetry emitter" do
-      bare_serializer = described_class.new(settings, redactor)
-      expect(bare_serializer.serialize_value([1], depth: 0)).to include(notCapturedReason: "depth")
     end
   end
 
@@ -659,7 +659,7 @@ RSpec.describe Datadog::DI::Serializer do
     context "when condition raises an exception" do
       let(:telemetry) { double("telemetry") }
       let(:serializer) do
-        described_class.new(settings, redactor, telemetry: telemetry)
+        described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
       end
 
       it "skips the custom serializer and uses default serialization" do
@@ -1238,7 +1238,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, telemetry: telemetry)
+      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
@@ -1345,7 +1345,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, telemetry: telemetry)
+      described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
