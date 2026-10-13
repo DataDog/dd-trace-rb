@@ -182,6 +182,7 @@ RSpec.describe Datadog::DI::Serializer do
       described_class.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
+    # Asserts the capture-incomplete metric emission for the given reason.
     def expect_capture_incomplete(reason)
       expect(guardrails_telemetry).to receive(:capture_incomplete).with(reason: reason, event_type: "snapshot")
     end

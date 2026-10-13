@@ -148,11 +148,12 @@ class DIInstrumentBenchmark
     @logger ||= Logger.new($stderr)
   end
 
-  # The telemetry component, built with the same settings, agent settings
-  # and logger the DI component wires in, so the skip variants measure the
-  # production cost of emitting the debugger.events.skipped metric. The
-  # emitters work from construction, and the background upload thread runs
-  # only after Component#start, which the benchmark skips.
+  # Builds and memoizes the telemetry component with the same settings,
+  # agent settings and logger the DI component wires in, so the skip
+  # variants measure the production cost of emitting the
+  # debugger.events.skipped metric. The emitters work from construction,
+  # and the background upload thread runs only after Component#start,
+  # which the benchmark skips.
   def telemetry
     return telemetry_component if telemetry_component
 
@@ -169,6 +170,9 @@ class DIInstrumentBenchmark
   # @return [Datadog::Core::Telemetry::Component, nil]
   attr_accessor :telemetry_component
 
+  # Configures Datadog, then builds the benchmark instrumenter with the
+  # serializer, the DI logger facade, the code tracker, the telemetry
+  # component and the guardrails telemetry emitter wired in.
   def configure
     settings = Datadog.configuration
     yield settings if block_given?

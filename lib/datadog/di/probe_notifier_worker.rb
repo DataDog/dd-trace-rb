@@ -212,6 +212,9 @@ module Datadog
 
       attr_reader :last_sent
 
+      # Builds and memoizes the diagnostics transport for status events.
+      #
+      # @return [DI::Transport::Diagnostics::Transport]
       def status_transport
         transport = status_transport_instance
         return transport if transport

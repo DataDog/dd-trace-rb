@@ -22,8 +22,8 @@ module Datadog
         # the capture time budget.
         EVALUATION_TIMEOUT = "evaluationTimeout"
 
-        # Skip reason emitted when a condition-evaluation failure
-        # notification is rejected by the per-probe limiter.
+        # Skip reason the +di: debug log names when a condition-evaluation
+        # failure notification is rejected by the per-probe limiter.
         EVALUATION_ERROR_THROTTLED = "evaluationErrorThrottled"
 
         # Skip reason naming the per-invocation DI time budget guardrail
@@ -53,10 +53,6 @@ module Datadog
         # serialization runtime exception ends the capture of a value
         # early.
         RUNTIME_ERROR = "runtimeError"
-
-        # Capture-incomplete reason emitted when the capture time budget
-        # ends the capture of a value early.
-        TIMEOUT = "timeout"
 
         # Capture-incomplete reason emitted when a value at the maximum
         # capture depth is not captured.
