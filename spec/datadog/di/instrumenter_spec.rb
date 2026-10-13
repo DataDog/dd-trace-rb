@@ -1202,6 +1202,18 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples "reports the call"
+
+          it "consults per-probe rate limiting" do
+            expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+
+            hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+          end
         end
 
         context "when condition is not met" do
