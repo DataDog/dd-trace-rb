@@ -48,7 +48,7 @@ cp ../tmp/version sources
 
 mkdir -p sources/ruby/common/gems
 
-for package in libdatadog libddwaf; do
+for package in libdatadog libddwaf datadog-ruby_core_source logger; do
     echo ".. scanning for ${package}"
 
     ls -1d sources/ruby/*/gems/${package}-* | while read -r orig; do
