@@ -1654,8 +1654,6 @@ static VALUE yield_observations(VALUE arg) {
   ADD_OBSERVATION(chunks_sent);
   ADD_OBSERVATION(chunks_dropped_serialization_error);
   ADD_OBSERVATION(chunks_dropped_send_failure);
-  ADD_OBSERVATION(chunks_dropped_p0);
-  ADD_OBSERVATION(chunks_dropped_by_trace_filter);
   ADD_OBSERVATION(spans_enqueued_for_serialization);
   ADD_OBSERVATION(spans_dropped_serialization_error);
   ADD_OBSERVATION(spans_dropped_api_error);

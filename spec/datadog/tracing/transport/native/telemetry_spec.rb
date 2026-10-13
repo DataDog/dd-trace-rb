@@ -41,8 +41,6 @@ RSpec.describe Datadog::Tracing::Transport::Native::Telemetry do
     {
       serialization_error: "serialization_error",
       send_failure: "send_failure",
-      p0: "p0_drop",
-      by_trace_filter: "trace_filters",
     }.each do |field, reason|
       expect(client).to receive(:inc).with("tracers", "trace_chunks_dropped", 2,
         tags: ["src_library:libdatadog", "reason:#{reason}"],)

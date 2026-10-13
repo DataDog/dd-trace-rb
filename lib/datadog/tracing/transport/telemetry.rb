@@ -12,8 +12,6 @@ module Datadog
           chunks_sent: ["trace_chunks_sent", []],
           chunks_dropped_serialization_error: ["trace_chunks_dropped", ["reason:serialization_error"]],
           chunks_dropped_send_failure: ["trace_chunks_dropped", ["reason:send_failure"]],
-          chunks_dropped_p0: ["trace_chunks_dropped", ["reason:p0_drop"]],
-          chunks_dropped_by_trace_filter: ["trace_chunks_dropped", ["reason:trace_filters"]],
           chunks_dropped_payload_too_large: ["trace_chunks_dropped", ["reason:payload_too_large"]],
           spans_enqueued_for_serialization: ["spans_enqueued_for_serialization", []],
           spans_dropped_serialization_error: ["spans_dropped", ["reason:serialization_error"]],
