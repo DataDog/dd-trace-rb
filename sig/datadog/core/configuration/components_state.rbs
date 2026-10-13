@@ -8,7 +8,11 @@ module Datadog
 
         @di_implicitly_enabled: bool
 
-        def initialize: (telemetry_enabled: bool, remote_started: bool?, ?di_implicitly_enabled: bool) -> void
+        def initialize: (
+          telemetry_enabled: bool,
+          remote_started: bool?,
+          ?di_implicitly_enabled: bool
+        ) -> void
 
         def telemetry_enabled?: () -> bool
 
