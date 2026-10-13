@@ -791,8 +791,7 @@ module Datadog
       # Trace point callback for a line probe. Verifies the invocation is the
       # probed line for untargeted trace points, evaluates the condition and
       # the per-probe and global rate limiters, builds the snapshot context,
-      # and invokes the responder's executed callback. A rejected or failed
-      # invocation is logged and contained here.
+      # and invokes the responder's executed callback.
       #
       # @param probe [Probe] the probe installed on this line
       # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
