@@ -13,6 +13,8 @@ module Datadog
           end
 
           def batch(traces)
+            return unless @client.enabled? && @client.metrics_manager.enabled
+
             Batch.new(self, traces)
           rescue
             nil
