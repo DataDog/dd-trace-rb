@@ -64,7 +64,7 @@ class DISerializerSpecBrokenHash < Hash
 end
 
 class DISerializerSpecRaisingEachHash < Hash
-  def each(*, &)
+  def each
     raise "Arrgh!"
   end
 end
