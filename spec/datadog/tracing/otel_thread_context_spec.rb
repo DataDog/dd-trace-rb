@@ -74,10 +74,15 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
       Queue.new.pop
     end
 
-    attached_context = Timeout.timeout(5) { signal_queue.pop }
-    expect(attached_context).not_to be_nil
-    killed.kill
-    expect(killed.join(5)).to be(killed)
+    begin
+      attached_context = Timeout.timeout(5) { signal_queue.pop }
+      expect(attached_context).not_to be_nil
+      killed.kill
+      expect(killed.join(5)).to be(killed)
+    ensure
+      killed.kill
+      killed.join(5)
+    end
   end
 
   describe "#set" do
