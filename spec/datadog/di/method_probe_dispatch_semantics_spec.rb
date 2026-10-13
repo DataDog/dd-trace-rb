@@ -1,6 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/instrumenter"
 require "datadog/di/code_tracker"
+require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/proc_responder"
@@ -114,9 +115,16 @@ RSpec.describe "Method probe dispatch semantics" do
   let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
   let(:logger) { instance_double(Logger, debug: nil) }
   let(:guardrails_telemetry) { Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil) }
+
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+  end
+
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
-      guardrails_telemetry: guardrails_telemetry)
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator)
   end
 
   def install_probe(type_name, method_name, &on_fire)

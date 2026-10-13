@@ -1,6 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/instrumenter"
 require "datadog/di/code_tracker"
+require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/capture_expression"
@@ -49,9 +50,15 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
   end
 
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+  end
+
   let(:instrumenter) do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-      guardrails_telemetry: guardrails_telemetry)
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1959,7 +1966,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry)
+        guardrails_telemetry: guardrails_telemetry,
+        capture_expression_evaluator: capture_expression_evaluator)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
@@ -2137,7 +2145,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry,)
+        guardrails_telemetry: guardrails_telemetry,
+        capture_expression_evaluator: capture_expression_evaluator,)
     end
 
     # Asserts the guardrails skip metric emission for a rejected probe

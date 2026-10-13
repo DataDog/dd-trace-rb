@@ -4,7 +4,6 @@ require_relative "../core/rate_limiter"
 require_relative "../core/utils/time"
 require_relative "../ruby_version"
 require_relative "fatal_exceptions"
-require_relative "capture_expression_evaluator"
 require_relative "guardrails_telemetry"
 
 # rubocop:disable Lint/AssignmentInCondition
@@ -80,22 +79,25 @@ module Datadog
       GLOBAL_LOG_RATE_LIMIT = 5000
 
       # Initializes the instrumenter with its settings, serializer,
-      # logger, code tracker and telemetry components, building the
-      # process-wide rate limiters.
+      # logger, capture expression evaluator, code tracker and telemetry
+      # components, building the process-wide rate limiters.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for instrumenter diagnostics
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
       # @return [void]
-      def initialize(settings, serializer, logger, guardrails_telemetry:, code_tracker: nil, telemetry: nil)
+      def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
+        code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
         @guardrails_telemetry = guardrails_telemetry
+        @capture_expression_evaluator = capture_expression_evaluator
         @code_tracker = code_tracker
         @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
@@ -110,6 +112,10 @@ module Datadog
       # The guardrails skip-metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
+      # The capture expression evaluator, constructed by the component
+      # and injected into its consumers.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
 
       # The code tracker is a global singleton created lazily by
@@ -124,13 +130,6 @@ module Datadog
       # Process-wide log rate limiter.
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
-
-      def capture_expression_evaluator
-        @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger, guardrails_telemetry: guardrails_telemetry,
-          telemetry: telemetry,
-        )
-      end
 
       # Returns the process-wide rate limiter for the probe.
       #

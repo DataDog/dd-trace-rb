@@ -3,7 +3,6 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "fatal_exceptions"
-require_relative "capture_expression_evaluator"
 
 module Datadog
   module DI
@@ -12,23 +11,18 @@ module Datadog
     # @api private
     class ProbeNotificationBuilder
       # Initializes the builder with its settings, serializer, logger and
-      # telemetry components, building the capture expression evaluator.
+      # capture expression evaluator.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for builder diagnostics
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component builder errors are reported through
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
       # @return [void]
-      def initialize(settings, serializer, logger, guardrails_telemetry:, telemetry: nil)
+      def initialize(settings, serializer, logger, capture_expression_evaluator:)
         @settings = settings
         @serializer = serializer
         @logger = logger
-        @telemetry = telemetry
-        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger,
-          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
-        )
+        @capture_expression_evaluator = capture_expression_evaluator
       end
 
       attr_reader :settings
@@ -36,8 +30,6 @@ module Datadog
       attr_reader :serializer
 
       attr_reader :logger
-
-      attr_reader :telemetry
 
       attr_reader :capture_expression_evaluator
 

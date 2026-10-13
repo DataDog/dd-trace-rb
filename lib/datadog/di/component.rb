@@ -67,8 +67,9 @@ module Datadog
 
       # Initializes the DI component with its settings, agent settings,
       # logger, code tracker and telemetry component, building the
-      # serializer, guardrails telemetry emitter, instrumenter, probe
-      # repository, notification builder, worker and probe manager.
+      # serializer, guardrails telemetry emitter, capture expression
+      # evaluator, instrumenter, probe repository, notification builder,
+      # worker and probe manager.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports
@@ -86,11 +87,16 @@ module Datadog
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+        )
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-          guardrails_telemetry: guardrails_telemetry,)
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: capture_expression_evaluator,)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
-          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,)
+          capture_expression_evaluator: capture_expression_evaluator,)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
@@ -118,6 +124,10 @@ module Datadog
       # The guardrails skip/drop-metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
+      # The capture expression evaluator, built once here and injected
+      # into the instrumenter and the probe notification builder.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
       attr_reader :instrumenter
       attr_reader :probe_repository

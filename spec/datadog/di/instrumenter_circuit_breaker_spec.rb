@@ -38,9 +38,15 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
   end
 
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+  end
+
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
-      guardrails_telemetry: guardrails_telemetry)
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator)
   end
 
   let(:responder) do
@@ -357,8 +363,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     let(:probe_notification_builder) do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
-        guardrails_telemetry: guardrails_telemetry,
-        telemetry: instance_double(Datadog::Core::Telemetry::Component).as_null_object,
+        capture_expression_evaluator: capture_expression_evaluator,
       )
     end
 

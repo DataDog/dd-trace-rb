@@ -40,6 +40,15 @@ RSpec.describe Datadog::DI::Component do
           .to equal(component.guardrails_telemetry)
         component.shutdown!
       end
+
+      it "builds one capture expression evaluator shared by its consumers" do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component.capture_expression_evaluator)
+          .to be_a(Datadog::DI::CaptureExpressionEvaluator)
+        expect(component.instrumenter.capture_expression_evaluator)
+          .to equal(component.probe_notification_builder.capture_expression_evaluator)
+        component.shutdown!
+      end
     end
 
     # Log level on build-time precondition failures follows the customer's

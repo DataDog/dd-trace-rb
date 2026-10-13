@@ -1,4 +1,5 @@
 require "datadog/di/spec_helper"
+require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/probe_notification_builder"
@@ -13,15 +14,18 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
-    let(:builder) do
-      described_class.new(settings, serializer, logger,
-        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
-          settings: settings, logger: logger, telemetry: telemetry,
-        ), telemetry: telemetry)
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
     end
 
-    let(:instrumenter) do
-      Datadog::DI::Instrumenter.new(settings)
+    let(:capture_expression_evaluator) do
+      Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,)
+    end
+
+    let(:builder) do
+      described_class.new(settings, serializer, logger,
+        capture_expression_evaluator: capture_expression_evaluator)
     end
 
     let(:settings) do
