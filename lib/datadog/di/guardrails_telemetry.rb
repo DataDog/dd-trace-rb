@@ -125,13 +125,7 @@ module Datadog
 
       private
 
-      # Emits a guardrails count metric. A fatal telemetry failure is
-      # re-raised, and so is any other failure while
-      # +settings.dynamic_instrumentation.internal.propagate_all_exceptions+
-      # is set; every other failure is logged at debug and reported
-      # through the telemetry component's error channel, with the report
-      # attempt itself contained so a second failure from the same
-      # component stays inside this class.
+      # Emits a guardrails count metric.
       #
       # @param namespace [String] telemetry namespace the metric is emitted under
       # @param metric_name [String] guardrails metric name
@@ -147,16 +141,6 @@ module Datadog
         nil
       end
 
-      # Logs a contained metric-emission failure at debug level and reports
-      # it through the telemetry component's error channel. The report
-      # attempt is itself contained: routing the report through the
-      # failing component can raise again, and that second failure stays
-      # logged here.
-      #
-      # @param namespace [String] telemetry namespace of the failed emission
-      # @param metric_name [String] guardrails metric whose emission failed
-      # @param exc [Exception] the emission failure
-      # @return [void]
       def report_emission_failure(namespace, metric_name, exc)
         logger.debug { "di: error emitting #{namespace}.#{metric_name} metric: #{exc.class}: #{exc.message}" }
         begin
