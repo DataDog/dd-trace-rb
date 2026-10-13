@@ -11,7 +11,7 @@ module Datadog
 
       attr_reader target: ::Logger
 
-      def debug: (*untyped args) ?{ () -> untyped } -> void
+      def debug: (?String? message) ?{ () -> String } -> void
       def trace: () { () -> String } -> void
     end
   end

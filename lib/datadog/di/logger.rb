@@ -31,10 +31,10 @@ module Datadog
       # logger at debug level. The facade returns nil on every path,
       # matching its void signature.
       #
-      # @param args [Array] message or arguments forwarded to the target logger
+      # @param message [String, nil] message written when no block is given
       # @return [void]
-      def debug(*args, &block)
-        target.debug(*args, &block) # steep:ignore UnexpectedPositionalArgument
+      def debug(message = nil, &block)
+        target.debug(message, &block)
         nil
       end
 
