@@ -392,9 +392,13 @@ module Datadog
       # Note that this method does not (currently) utilize the custom
       # serializers that the "normal" serialization logic uses.
       #
-      # Long strings are truncated by omitting the middle; arrays, hashes
-      # and objects are truncated by omitting inner entries. Hashes, objects
-      # and symbols are rendered in Ruby-like syntax.
+      # This serializer differs from the RFC in two ways:
+      # 1. We omit the middle of long strings rather than the end,
+      #    and also the inner entries in arrays/hashes/objects.
+      # 2. We use Ruby-ish syntax for hashes and objects.
+      #
+      # We also use the Ruby-like syntax for symbols, which don't exist
+      # in other languages.
       #
       # +name+, when given, is the identifier the template expression
       # references at its top level; a redacted identifier yields the
