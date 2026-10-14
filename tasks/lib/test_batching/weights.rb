@@ -1,25 +1,57 @@
 # frozen_string_literal: true
 
-require_relative "batch_timing"
-require_relative "samples"
+require "json"
+require_relative "timings"
 
-# The aggregated weights: what CI knows about how long tasks and Gemfiles
-# take, per Ruby. Built from batch timings. Answers cost queries. ManifestStore
-# writes it to and reads it from the weights manifest.
+# The Weights stage: what history taught. Samples computes the percentiles,
+# Weights answers cost queries per Ruby, and ManifestStore is the filesystem
+# adapter for the aggregated manifest the scheduled workflow publishes and
+# the batch job consumes.
 module TestBatching
+  # An observed set of durations for one task or Gemfile. Knows its own
+  # percentiles, which become the weight entries in the manifest.
+  class Samples
+    def initialize(values)
+      @sorted = values.sort
+    end
+
+    def to_h
+      {"p50_seconds" => p50.round(3), "p90_seconds" => p90.round(3), "samples" => size}
+    end
+
+    private
+
+    def size
+      @sorted.length
+    end
+
+    def p50
+      middle = size / 2
+      return @sorted[middle] if size.odd?
+
+      (@sorted[middle - 1] + @sorted[middle]) / 2.0
+    end
+
+    def p90
+      @sorted.fetch(((size - 1) * 0.9).ceil)
+    end
+  end
+
+  # The aggregated weights: what CI knows about how long tasks and Gemfiles
+  # take, per Ruby. Built from runs' timings. Answers cost queries.
   class Weights
     def initialize(manifest)
       @manifest = manifest
     end
 
-    def self.from(batch_timings)
+    def self.from(runs)
       task_samples = {}
       gemfile_samples = {}
 
-      batch_timings.each do |batch_timing|
-        ruby_version = batch_timing.ruby_version
+      runs.each do |run_timings|
+        ruby_version = run_timings.ruby_version
 
-        batch_timing.timings.each do |timing|
+        run_timings.timings.each do |timing|
           unless timing.test_seconds
             raise KeyError, "timing without test_seconds: #{timing.task.name} (#{timing.task.group})"
           end
@@ -28,7 +60,7 @@ module TestBatching
           (task_samples[key] ||= []) << timing.test_seconds
         end
 
-        batch_timing.timings.group_by { |timing| timing.task.gemfile_name }.each do |gemfile, timings|
+        run_timings.timings.group_by { |timing| timing.task.gemfile_name }.each do |gemfile, timings|
           timings.each do |timing|
             unless timing.build_seconds
               raise KeyError, "timing without build_seconds: #{timing.task.name} (#{timing.task.group})"
@@ -122,5 +154,37 @@ module TestBatching
     end
 
     private_class_method :manifest_from
+  end
+
+  # Filesystem adapter for the Weights stage.
+  module ManifestStore
+    MANIFEST_PATH = "tmp/ci_task_timings.json"
+
+    module_function
+
+    # Aggregates every timing document in a directory into the manifest at
+    # MANIFEST_PATH. Raises when the directory holds no timing files so the
+    # scheduled workflow fails loudly instead of publishing empty weights.
+    def update_from(directory)
+      runs = TimingFiles.read_all(directory)
+      raise "no timing files found in #{directory}" if runs.empty?
+
+      write(Weights.from(runs))
+    end
+
+    def write(weights, path: MANIFEST_PATH)
+      File.write(path, JSON.pretty_generate(weights.to_h) + "\n")
+    end
+    private_class_method :write
+
+    # Returns Weights::Missing when no readable manifest exists, so callers
+    # can keep batching statically until the cache bootstraps.
+    def load(path: MANIFEST_PATH)
+      Weights.new(JSON.parse(File.read(path)))
+    rescue Errno::ENOENT, JSON::ParserError => e
+      warn "Could not read the weights manifest at #{path} (#{e.class}: #{e.message}); continuing without one"
+
+      Weights::Missing.new
+    end
   end
 end

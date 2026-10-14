@@ -34,7 +34,7 @@ jobs:
         run: .github/scripts/download_timing_artifacts.sh timings
 
       - name: Aggregate task weights
-        run: rake -f tasks/github.rake "github:update_task_timings[$PWD/timings]"
+        run: rake -f tasks/github.rake "github:aggregate_timings[$PWD/timings]"
 
       - name: Save weights cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

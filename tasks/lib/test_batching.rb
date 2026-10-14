@@ -1,30 +1,29 @@
 # frozen_string_literal: true
 
-# Duration-weighted unit test batching, modeled as the objects it works
-# with:
+# A data pipeline over the unit test matrix. Four data nouns name the
+# stages, and each stage lives in the file of the same name:
 #
-#   Task, TaskMatrix            the work: which tasks run under which Ruby
-#   TaskTiming, BatchTiming     one batch run's measured durations (T1)
-#   Samples, Weights            the learned durations per task and Gemfile
-#                               (T2 manifest, T3 costs)
-#   Batch, BatchPlan            a scheduled shard and the whole plan
-#   Static, Weighted            the two scheduling strategies; rake picks
-#                               one based on whether weights exist
+#   Matrix    the work that exists: one task per suite and Gemfile, read
+#             from the Matrixfile (matrix.rb)
+#   Timings   what one run measured: setup and test durations per task,
+#             written as the timings-*.json artifacts (timings.rb)
+#   Weights   what history taught: the learned durations, aggregated from
+#             many runs' timings into the manifest (weights.rb)
+#   Plan      the decision: which tasks run in which batch, emitted as the
+#             workflow matrix JSON (plan.rb)
 #
-# TimingFiles and ManifestStore are the filesystem adapters; Runner is the
-# process edge. The domain objects never touch File, ENV, or stdout.
+# Runner (runner.rb) executes a plan and produces the next run's Timings.
+# The verbs between the nouns: execute (Plan to Timings), aggregate
+# (Timings to Weights), and schedule (Matrix plus Weights to Plan).
+#
+# The data objects never touch File, ENV, or stdout. TimingFiles and
+# ManifestStore, inside their stage files, are the filesystem adapters,
+# and Runner is the process edge.
 module TestBatching
 end
 
-require_relative "test_batching/batch"
-require_relative "test_batching/batch_plan"
-require_relative "test_batching/batch_timing"
-require_relative "test_batching/manifest_store"
-require_relative "test_batching/runner"
-require_relative "test_batching/samples"
-require_relative "test_batching/static"
-require_relative "test_batching/task"
-require_relative "test_batching/task_matrix"
-require_relative "test_batching/timing_files"
+require_relative "test_batching/matrix"
+require_relative "test_batching/timings"
 require_relative "test_batching/weights"
-require_relative "test_batching/weighted"
+require_relative "test_batching/plan"
+require_relative "test_batching/runner"

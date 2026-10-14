@@ -1,20 +1,19 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "batch_timing"
-require_relative "task"
-require_relative "timing_files"
+require_relative "matrix"
+require_relative "timings"
 
-# The process edge: runs the batch jobs' build and test steps, records their
-# durations into BatchTiming documents, and reports results to the CI job
-# (annotations + step summaries). The only module that runs commands, reads
-# ENV, and prints.
+# The execution edge: runs the batch jobs' build and test steps, records
+# their durations into RunTimings documents, and reports results to the CI
+# job (annotations + step summaries). The only module that runs commands,
+# reads ENV, and prints.
 module TestBatching
   module Runner
     module_function
 
     def build(tasks)
-      batch_timing = BatchTiming.new(ruby_version: RUBY_VERSION[0..2], timings: [])
+      run_timings = RunTimings.new(ruby_version: RUBY_VERSION[0..2], timings: [])
 
       tasks.map { |hash| Task.from_h(hash) }.each do |task|
         env = {"BUNDLE_GEMFILE" => task.gemfile}
@@ -27,17 +26,17 @@ module TestBatching
           end
         end
 
-        batch_timing = batch_timing.with_timing(TaskTiming.new(task: task, build_seconds: duration))
+        run_timings = run_timings.with_timing(TaskTiming.new(task: task, build_seconds: duration))
       end
 
-      TimingFiles.write(batch_timing)
+      TimingFiles.write(run_timings)
     end
 
     def tests(tasks)
       rng = Random.new(ENV["CI_TEST_SEED"].to_i)
       tasks = tasks.map { |hash| Task.from_h(hash) }
 
-      batch_timing = TimingFiles.read(tasks)
+      run_timings = TimingFiles.read(tasks)
 
       durations = tasks.map do |task|
         env = {"BUNDLE_GEMFILE" => task.gemfile}
@@ -54,8 +53,8 @@ module TestBatching
         junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
         junit_seconds = junit_files_after.sum { |file| junit_suite_time(file) }
 
-        prior = batch_timing.find(task)
-        batch_timing = batch_timing.with_timing(TaskTiming.new(
+        prior = run_timings.find(task)
+        run_timings = run_timings.with_timing(TaskTiming.new(
           task: task,
           build_seconds: prior&.build_seconds,
           test_seconds: test_seconds,
@@ -65,7 +64,7 @@ module TestBatching
         [task.name, junit_seconds]
       end
 
-      TimingFiles.write(batch_timing)
+      TimingFiles.write(run_timings)
       report_task_durations(durations)
     end
 

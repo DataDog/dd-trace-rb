@@ -1,11 +1,18 @@
 # frozen_string_literal: true
 
-require_relative "task"
+require "digest"
+require "fileutils"
+require "json"
+require_relative "matrix"
 
-# One task's measured durations inside a batch run. Absent measurements stay
-# nil and are omitted when serialized, so a build-phase file carries only
-# build_seconds and a completed run carries all three.
+# The Timings stage: what one run measured. TaskTiming is one task's
+# durations, RunTimings is the whole run's document, and TimingFiles reads
+# and writes the per-batch "timings-*.json" artifacts the Unit Tests jobs
+# upload.
 module TestBatching
+  # One task's measured durations inside a run. Absent measurements stay
+  # nil and are omitted when serialized, so a build-phase file carries only
+  # build_seconds and a completed run carries all three.
   class TaskTiming
     attr_reader :task, :build_seconds, :test_seconds, :junit_seconds
 
@@ -47,7 +54,7 @@ module TestBatching
   # The timings-*.json artifact one batch job uploads: its Ruby version and
   # the measured durations of its tasks. The T1 format both TimingFiles and
   # Weights read and write.
-  class BatchTiming
+  class RunTimings
     attr_reader :ruby_version, :timings
 
     def initialize(ruby_version:, timings:)
@@ -60,7 +67,7 @@ module TestBatching
     end
 
     def ==(other)
-      other.is_a?(BatchTiming) && ruby_version == other.ruby_version && timings == other.timings
+      other.is_a?(RunTimings) && ruby_version == other.ruby_version && timings == other.timings
     end
     alias_method :eql?, :==
 
@@ -69,7 +76,7 @@ module TestBatching
     end
 
     # Returns a copy with the timing for that task replaced, or appended when
-    # the batch has no prior measurement for it.
+    # the run has no prior measurement for it.
     def with_timing(timing)
       index = timings.index { |entry| entry.matches?(timing.task) }
       replaced = timings.dup
@@ -89,5 +96,43 @@ module TestBatching
     def self.from_h(hash)
       new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks").map { |entry| TaskTiming.from_h(entry) })
     end
+  end
+
+  # Filesystem adapter for the Timings stage.
+  module TimingFiles
+    DEFAULT_DIRECTORY = "tmp/ci-task-timings"
+
+    module_function
+
+    def write(run_timings, directory: DEFAULT_DIRECTORY)
+      path = file_path(run_timings.tasks, directory)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, JSON.pretty_generate(run_timings.to_h))
+    end
+
+    # Reads the timing document for a batch. Returns an empty RunTimings
+    # when the batch has never recorded one.
+    def read(tasks, directory: DEFAULT_DIRECTORY)
+      path = file_path(tasks, directory)
+      return RunTimings.new(ruby_version: RUBY_VERSION[0..2], timings: []) unless File.exist?(path)
+
+      RunTimings.from_h(JSON.parse(File.read(path)))
+    end
+
+    # Reads every timing document in a directory tree, newest structure
+    # first: the downloaded artifact layout of one subdirectory per run.
+    def read_all(directory)
+      Dir[File.join(directory, "**", "*.json")].map { |path| RunTimings.from_h(JSON.parse(File.read(path))) }
+    end
+
+    # Keyed by the current Ruby and the batch task identity so one job's
+    # timings never collide with another's across runs.
+    def file_path(tasks, directory)
+      identity = tasks.flat_map { |task| [task.name, task.group, task.gemfile] }.join("\0")
+      digest = Digest::SHA256.hexdigest(identity)[0, 12]
+      File.join(directory, "#{RUBY_VERSION[0..2]}-#{digest}.json")
+    end
+
+    private_class_method :file_path
   end
 end

@@ -86,7 +86,7 @@ jobs:
       - id: set-batches
         name: Distribute tasks into batches
         run: |
-          data=$(bundle exec rake github:generate_batches)
+          data=$(bundle exec rake github:schedule_batches)
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
           # Extract each key and set it as a separate output

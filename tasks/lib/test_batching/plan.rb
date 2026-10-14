@@ -1,13 +1,77 @@
 # frozen_string_literal: true
 
-require_relative "batch"
-require_relative "batch_plan"
-require_relative "task_matrix"
-
-# The weighted strategy: schedules tasks across batches by their learned
-# durations. Gemfile groups stay together when splitting them makes the
-# slowest batch slower, and split when the duplicated setup pays off.
+# The Plan stage: the decision. Batch is one shard, Plan is the whole
+# schedule in the workflow matrix JSON shape, and Static and Weighted are
+# the two ways to compute it. Static is master's original even-split, kept
+# until the weights cache bootstraps. Weighted schedules by learned
+# durations.
 module TestBatching
+  # One shard of the plan: its tasks and, when the plan is weighted, its
+  # estimated total seconds.
+  class Batch
+    attr_reader :number, :tasks, :seconds
+
+    def initialize(number:, tasks:, seconds: nil)
+      @number = number
+      @tasks = tasks
+      @seconds = seconds
+    end
+  end
+
+  # The plan `github:schedule_batches` emits: the batch shards plus the misc
+  # service tasks, in the matrix JSON shape the Unit Tests workflow consumes.
+  class Plan
+    attr_reader :batches, :misc_tasks
+
+    def initialize(batches:, misc_tasks:)
+      @batches = batches
+      @misc_tasks = misc_tasks
+    end
+
+    def to_matrix
+      {
+        "batches" => {"include" => batches.map { |batch| batch_entry(batch) }},
+        "misc" => {"include" => [{"batch" => "0", "tasks" => misc_tasks.map(&:to_h)}]},
+      }
+    end
+
+    def to_json
+      JSON.dump(to_matrix)
+    end
+
+    private
+
+    def batch_entry(batch)
+      entry = {"batch" => batch.number.to_s, "tasks" => batch.tasks.map(&:to_h)}
+      entry["estimated_seconds"] = batch.seconds.round(1) if batch.seconds
+      entry
+    end
+  end
+
+  # The default strategy: master's original even-split batching, kept
+  # verbatim until the weights cache bootstraps. `github:schedule_batches`
+  # switches to Weighted once a weights manifest is available. Delete this
+  # class after the switch soaks.
+  class Static
+    BATCH_COUNT = 7
+    private_constant :BATCH_COUNT
+
+    def plan(matrix, ruby_version)
+      tasks = matrix.batchable_tasks(ruby_version)
+
+      tasks_per_job = (tasks.size.to_f / BATCH_COUNT).ceil
+
+      batches = tasks.each_slice(tasks_per_job).with_index.map do |task_group, index|
+        Batch.new(number: index, tasks: task_group)
+      end
+
+      Plan.new(batches: batches, misc_tasks: matrix.misc_tasks(ruby_version))
+    end
+  end
+
+  # The weighted strategy: schedules tasks across batches by their learned
+  # durations. Gemfile groups stay together when splitting them makes the
+  # slowest batch slower, and split when the duplicated setup pays off.
   class Weighted
     BATCH_COUNT = 7
 
@@ -42,7 +106,7 @@ module TestBatching
         )
       end
 
-      BatchPlan.new(batches: batches_from(entries), misc_tasks: matrix.misc_tasks(ruby_version))
+      Plan.new(batches: batches_from(entries), misc_tasks: matrix.misc_tasks(ruby_version))
     end
 
     private

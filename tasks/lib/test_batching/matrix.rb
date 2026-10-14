@@ -1,11 +1,45 @@
 # frozen_string_literal: true
 
 require_relative "../../appraisal_conversion"
-require_relative "task"
 
-# The Matrixfile as task objects: which tasks run under which Ruby, and which
-# of them need dedicated service containers instead of batching.
+# The Matrix stage: the work that exists. A Task is one unit of it, and
+# TaskMatrix is the Matrixfile as task objects, which also knows which tasks
+# need dedicated service containers instead of batching.
 module TestBatching
+  # A unit of test work in the batch matrix, identified by name and group.
+  # Equality ignores the Gemfile: the same task under a different Appraisal
+  # still reports as one task.
+  class Task
+    attr_reader :name, :group, :gemfile
+
+    def initialize(name:, group:, gemfile:)
+      @name = name
+      @group = group
+      @gemfile = gemfile
+    end
+
+    def gemfile_name
+      File.basename(gemfile)
+    end
+
+    def ==(other)
+      other.is_a?(Task) && name == other.name && group == other.group
+    end
+
+    def hash
+      [name, group].hash
+    end
+    alias_method :eql?, :==
+
+    def to_h
+      {"task" => name, "group" => group, "gemfile" => gemfile}
+    end
+
+    def self.from_h(hash)
+      new(name: hash.fetch("task"), group: hash.fetch("group"), gemfile: hash.fetch("gemfile"))
+    end
+  end
+
   class TaskMatrix
     def initialize(matrix)
       @matrix = matrix

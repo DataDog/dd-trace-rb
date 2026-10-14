@@ -8,7 +8,7 @@ require_relative "lib/test_batching"
 
 namespace :github do
   desc "Emit the batched task matrix as JSON (Unit Tests batch job)"
-  task :generate_batches do
+  task :schedule_batches do
     matrix = TestBatching::TaskMatrix.new(eval(File.read("Matrixfile")).freeze) # rubocop:disable Security/Eval
     ruby_version = RUBY_VERSION[0..2]
 
@@ -32,7 +32,7 @@ namespace :github do
   end
 
   desc "Aggregate a directory of downloaded timing artifacts into the weights manifest"
-  task :update_task_timings, [:directory] do |_, args|
+  task :aggregate_timings, [:directory] do |_, args|
     directory = args[:directory]
     raise "timings directory not provided" if directory.to_s.empty?
 

@@ -4,17 +4,17 @@ require "spec_helper"
 require "tmpdir"
 require_relative "../../tasks/lib/test_batching"
 
-# Contracts between the timing data formats:
+# Contracts between the pipeline's data formats:
 #
-#   T1 batch job -> timings-*.json artifacts (BatchTiming / TimingFiles)
+#   T1 batch job -> timings-*.json artifacts (RunTimings / TimingFiles)
 #   T2 artifacts -> ci_task_timings.json manifest (Weights.from)
 #   T3 manifest -> duration costs and a batch plan (Weights::Ruby, Weighted)
 #
 # Each boundary must keep parsing when the neighbouring side changes.
 RSpec.describe TestBatching do
-  it "loads every domain object from the umbrella require" do
+  it "loads every pipeline object from the umbrella require" do
     expect(TestBatching.constants.map(&:to_s)).to include(
-      "Task", "TaskMatrix", "BatchTiming", "TaskTiming", "Samples", "Weights", "Batch", "BatchPlan",
+      "Task", "TaskMatrix", "RunTimings", "TaskTiming", "Samples", "Weights", "Batch", "Plan",
       "Static", "Weighted", "TimingFiles", "ManifestStore", "Runner"
     )
   end
@@ -23,14 +23,14 @@ RSpec.describe TestBatching do
     allow(AppraisalConversion).to receive(:parent_gemfile) { "gemfiles/foo.gemfile" }
   end
 
-  it "carries written batch timings through weights into a scheduled plan" do
+  it "carries written run timings through weights into a scheduled plan" do
     ruby = RUBY_VERSION[0..2]
 
     tasks = [
       TestBatching::Task.new(name: "main", group: "", gemfile: "gemfiles/foo.gemfile"),
       TestBatching::Task.new(name: "profiling", group: "", gemfile: "gemfiles/bar.gemfile"),
     ]
-    batch_timing = TestBatching::BatchTiming.new(
+    run_timings = TestBatching::RunTimings.new(
       ruby_version: ruby,
       timings: [
         TestBatching::TaskTiming.new(task: tasks.first, build_seconds: 10.0, test_seconds: 30.0),
@@ -39,7 +39,7 @@ RSpec.describe TestBatching do
     )
 
     Dir.mktmpdir do |directory|
-      TestBatching::TimingFiles.write(batch_timing, directory: directory)
+      TestBatching::TimingFiles.write(run_timings, directory: directory)
 
       weights = TestBatching::Weights.from(TestBatching::TimingFiles.read_all(directory))
       ruby_weights = weights.for_ruby(ruby)
