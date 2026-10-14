@@ -327,8 +327,14 @@ module Datadog
                 # https://github.com/soutaro/steep/issues/1219
                 value = value[0...max] || []
               end
-              entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+              entries = []
+              value.each do |elt|
+                entry = serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entries << entry
+                if entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(elements: entries)
             end
@@ -348,10 +354,17 @@ module Datadog
                   break
                 end
                 cur += 1
-                entries << [
-                  serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline),
-                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline),
-                ]
+                key_entry = serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                if key_entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
+                value_entry = serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entries << [key_entry, value_entry]
+                if value_entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(entries: entries)
             end
@@ -390,7 +403,12 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entry = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                fields[ivar] = entry
+                if entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(fields: fields)
             end

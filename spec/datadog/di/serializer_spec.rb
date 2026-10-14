@@ -591,18 +591,26 @@ RSpec.describe Datadog::DI::Serializer do
       first_elt = 0.0
       second_elt = 0.0
       third_elt = 0.2  # 100ms budget crossed here
-      fourth_elt = 0.2
-      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt, fourth_elt])
+      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt])
 
-      it "captures earlier elements and times out later ones" do
+      it "captures earlier elements, stops at the first timed-out one, and marks the collection" do
         result = serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
-        expect(result[:type]).to eq("Array")
-        expect(result[:elements]).to eq([
-          {type: "Integer", value: "10"},
-          {type: "Integer", value: "20"},
-          {type: "Integer", notCapturedReason: "timeout"},
-          {type: "Integer", notCapturedReason: "timeout"},
-        ])
+        expect(result).to include(
+          type: "Array",
+          notCapturedReason: "timeout",
+          elements: [
+            {type: "Integer", value: "10"},
+            {type: "Integer", value: "20"},
+            {type: "Integer", notCapturedReason: "timeout"},
+          ],
+        )
+      end
+
+      it "increments the timeout telemetry counter once for the stopped element" do
+        expect(telemetry).to receive(:inc).with(
+          "dynamic_instrumentation", "serialized_values_skipped_by_timeout", 1,
+        ).once
+        serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
       end
     end
 
@@ -637,22 +645,93 @@ RSpec.describe Datadog::DI::Serializer do
       first_elt = 0.0
       second_elt = 0.0
       third_elt = 0.2  # 100ms budget crossed inside the custom subtree
-      fourth_elt = 0.2
-      stub_monotonic_clock([deadline_calc, outer_value_check, inner_top_check, first_elt, second_elt, third_elt,
-        fourth_elt])
+      stub_monotonic_clock([deadline_calc, outer_value_check, inner_top_check, first_elt, second_elt, third_elt])
 
       it "times out the custom-serialized values once the shared deadline passes" do
         Datadog::DI::Serializer.register(condition: lambda { |value| value == :subtree }) do |serializer, value, name:, depth:, deadline:|
           serializer.serialize_value([1, 2, 3, 4], deadline: deadline)
         end
         result = serializer.serialize_value(:subtree, name: :x, deadline: serializer.serialization_deadline)
-        expect(result[:type]).to eq("Array")
-        expect(result[:elements]).to eq([
-          {type: "Integer", value: "1"},
-          {type: "Integer", value: "2"},
-          {type: "Integer", notCapturedReason: "timeout"},
-          {type: "Integer", notCapturedReason: "timeout"},
-        ])
+        expect(result).to include(
+          type: "Array",
+          notCapturedReason: "timeout",
+          elements: [
+            {type: "Integer", value: "1"},
+            {type: "Integer", value: "2"},
+            {type: "Integer", notCapturedReason: "timeout"},
+          ],
+        )
+      end
+    end
+
+    context "budget exhausted midway through a hash" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_key = 0.0
+      first_value = 0.0
+      second_key = 0.0
+      second_value = 0.2  # 100ms budget crossed at the second value
+      stub_monotonic_clock([deadline_calc, top_level_check, first_key, first_value, second_key, second_value])
+
+      it "captures earlier pairs, stops at the first timed-out value, and marks the hash" do
+        result = serializer.serialize_value({a: 1, b: 2}, name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Hash",
+          notCapturedReason: "timeout",
+          entries: [
+            [{type: "Symbol", value: "a"}, {type: "Integer", value: "1"}],
+            [{type: "Symbol", value: "b"}, {type: "Integer", notCapturedReason: "timeout"}],
+          ],
+        )
+      end
+    end
+
+    context "budget exhausted at a hash key" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      key_read = 0.2  # 100ms budget crossed at the key
+      stub_monotonic_clock([deadline_calc, top_level_check, key_read])
+
+      it "stops without the pair and marks the hash" do
+        result = serializer.serialize_value({"k" => 1}, name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Hash",
+          notCapturedReason: "timeout",
+          entries: [],
+        )
+      end
+    end
+
+    context "budget exhausted midway through an object's fields" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_ivar = 0.0
+      second_ivar = 0.2  # 100ms budget crossed here
+      stub_monotonic_clock([deadline_calc, top_level_check, first_ivar, second_ivar])
+
+      it "captures earlier fields, stops at the first timed-out one, and marks the object" do
+        result = serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"), name: :x,
+          deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "DISerializerSpecFields",
+          notCapturedReason: "timeout",
+          fields: {
+            "@name": {type: "String", value: "a"},
+            "@other": {type: "String", notCapturedReason: "timeout"},
+          },
+        )
       end
     end
   end
