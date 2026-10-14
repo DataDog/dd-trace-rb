@@ -16,9 +16,8 @@
 # The verbs between the nouns: execute (Plan to Timings), aggregate
 # (Timings to Weights), and schedule (Matrix plus Weights to Plan).
 #
-# The data objects never touch File, ENV, or stdout. TimingFiles and
-# ManifestStore, inside their stage files, are the filesystem adapters,
-# and Runner is the process edge.
+# RunTimings and Weights know their own artifact files. Runner is the
+# process edge: the only module that runs commands, reads ENV, and prints.
 module TestBatching
 end
 

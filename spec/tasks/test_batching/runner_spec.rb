@@ -10,7 +10,7 @@ RSpec.describe TestBatching::Runner do
 
   before do
     @written = nil
-    allow(TestBatching::TimingFiles).to receive(:write) { |run_timings| @written = run_timings }
+    allow(TestBatching::RunTimings).to receive(:write) { |run_timings| @written = run_timings }
     allow(described_class).to receive(:measure_duration) do |&block|
       block.call
       10.0

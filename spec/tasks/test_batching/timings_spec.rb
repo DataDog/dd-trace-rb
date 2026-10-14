@@ -45,12 +45,6 @@ RSpec.describe TestBatching::RunTimings do
     expect(updated.timings.map { |entry| entry.task.name }).to eq(["main", "contrib"])
     expect(prior.timings.map(&:test_seconds)).to eq([nil, nil])
   end
-end
-
-RSpec.describe TestBatching::TimingFiles do
-  def task(name)
-    TestBatching::Task.new(name: name, group: "", gemfile: "gemfiles/#{name}.gemfile")
-  end
 
   def run_timings(tasks:, build_seconds:, test_seconds: nil)
     TestBatching::RunTimings.new(

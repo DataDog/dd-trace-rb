@@ -15,7 +15,7 @@ namespace :github do
     # Weighted batching turns itself on once the scheduled Update Task Weights
     # workflow has saved a manifest into the cache. Until then keep master's
     # static even-split batching, byte-identical to today.
-    weights = TestBatching::ManifestStore.load
+    weights = TestBatching::Weights.load
     strategy =
       if weights.empty?
         TestBatching::Static.new
@@ -36,7 +36,7 @@ namespace :github do
     directory = args[:directory]
     raise "timings directory not provided" if directory.to_s.empty?
 
-    TestBatching::ManifestStore.update_from(directory)
+    TestBatching::Weights.aggregate(directory)
   end
 
   desc "Run one batch end to end and record the run's durations"

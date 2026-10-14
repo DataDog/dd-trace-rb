@@ -40,10 +40,16 @@ RSpec.describe TestBatching::Weighted do
   end
 
   def weights(task_seconds, gemfile_seconds)
-    TestBatching::Weights::Ruby.new({
-      "tasks" => task_seconds.map { |(name, group), seconds| {"task" => name, "group" => group, "p90_seconds" => seconds} },
-      "gemfiles" => gemfile_seconds.map { |gemfile, seconds| {"gemfile" => gemfile, "p90_seconds" => seconds} },
-    })
+    manifest = {
+      "ruby_versions" => {
+        "3.4" => {
+          "tasks" => task_seconds.map { |(name, group), seconds| {"task" => name, "group" => group, "p90_seconds" => seconds} },
+          "gemfiles" => gemfile_seconds.map { |gemfile, seconds| {"gemfile" => gemfile, "p90_seconds" => seconds} },
+        },
+      },
+    }
+
+    TestBatching::Weights.new(manifest).for_ruby("3.4")
   end
 
   # tasks: [[name, group], ...] -- the group decides the Gemfile, as in the

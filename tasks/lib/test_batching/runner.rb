@@ -37,7 +37,7 @@ module TestBatching
 
       report_task_durations(durations)
     ensure
-      TimingFiles.write(run_timings) unless run_timings.nil? || run_timings.timings.empty?
+      RunTimings.write(run_timings) unless run_timings.nil? || run_timings.timings.empty?
     end
 
     # Installs one task's Gemfile and returns how long it took.

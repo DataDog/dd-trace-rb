@@ -6,16 +6,16 @@ require_relative "../../tasks/lib/test_batching"
 
 # Contracts between the pipeline's data formats:
 #
-#   T1 batch job -> timings-*.json artifacts (RunTimings / TimingFiles)
-#   T2 artifacts -> ci_task_timings.json manifest (Weights.from)
-#   T3 manifest -> duration costs and a batch plan (Weights::Ruby, Weighted)
+#   T1 batch job -> timings-*.json artifacts (RunTimings writes its own file)
+#   T2 artifacts -> ci_task_timings.json manifest (Weights.aggregate)
+#   T3 manifest -> duration costs and a batch plan (Weights#for_ruby, Weighted)
 #
 # Each boundary must keep parsing when the neighbouring side changes.
 RSpec.describe TestBatching do
   it "loads every pipeline object from the umbrella require" do
     expect(TestBatching.constants.map(&:to_s)).to include(
-      "Task", "TaskMatrix", "RunTimings", "TaskTiming", "Samples", "Weights", "Batch", "Plan",
-      "Static", "Weighted", "TimingFiles", "ManifestStore", "Runner"
+      "Task", "TaskMatrix", "TaskTiming", "RunTimings", "Weights", "Batch", "Plan",
+      "Static", "Weighted", "Runner"
     )
   end
 
@@ -39,9 +39,9 @@ RSpec.describe TestBatching do
     )
 
     Dir.mktmpdir do |directory|
-      TestBatching::TimingFiles.write(run_timings, directory: directory)
+      TestBatching::RunTimings.write(run_timings, directory: directory)
 
-      weights = TestBatching::Weights.from(TestBatching::TimingFiles.read_all(directory))
+      weights = TestBatching::Weights.from(TestBatching::RunTimings.read_all(directory))
       ruby_weights = weights.for_ruby(ruby)
 
       expect(ruby_weights.test_cost(tasks.first)).to eq(30.0)

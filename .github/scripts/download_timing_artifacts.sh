@@ -6,7 +6,7 @@
 #           $1 target directory
 #           $2 branch carrying successful Unit Tests runs (default: master)
 #   Output: $1 populated with one subdirectory per run, each holding the
-#           "timings-*.json" files written by TestBatching::TimingFiles
+#           "timings-*.json" files written by TestBatching::RunTimings
 #           and uploaded by .github/actions/build-test.
 #   Failure: nonzero exit when gh fails; a partial directory is left behind.
 

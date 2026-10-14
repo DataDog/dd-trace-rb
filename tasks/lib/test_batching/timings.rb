@@ -6,8 +6,8 @@ require "json"
 require_relative "matrix"
 
 # The Timings stage: what one run measured. TaskTiming is one task's
-# durations, RunTimings is the whole run's document, and TimingFiles reads
-# and writes the per-batch "timings-*.json" artifacts the Unit Tests jobs
+# durations, and RunTimings is the whole run's document, which also owns
+# its artifact file: the per-batch "timings-*.json" the Unit Tests jobs
 # upload.
 module TestBatching
   # One task's measured durations inside a run. Absent measurements stay
@@ -51,10 +51,11 @@ module TestBatching
     end
   end
 
-  # The timings-*.json artifact one batch job uploads: its Ruby version and
-  # the measured durations of its tasks. The T1 format both TimingFiles and
-  # Weights read and write.
+  # One run's timings: its Ruby version and the measured durations of its
+  # tasks. The T1 format both Weights and Runner read and write.
   class RunTimings
+    DEFAULT_DIRECTORY = "tmp/ci-task-timings"
+
     attr_reader :ruby_version, :timings
 
     def initialize(ruby_version:, timings:)
@@ -92,43 +93,35 @@ module TestBatching
     def self.from_h(hash)
       new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks").map { |entry| TaskTiming.from_h(entry) })
     end
-  end
 
-  # Filesystem adapter for the Timings stage.
-  module TimingFiles
-    DEFAULT_DIRECTORY = "tmp/ci-task-timings"
-
-    module_function
-
-    def write(run_timings, directory: DEFAULT_DIRECTORY)
+    def self.write(run_timings, directory: DEFAULT_DIRECTORY)
       path = file_path(run_timings.tasks, directory)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, JSON.pretty_generate(run_timings.to_h))
     end
 
-    # Reads the timing document for a batch. Returns an empty RunTimings
+    # Reads the timing document for a batch. Returns an empty document
     # when the batch has never recorded one.
-    def read(tasks, directory: DEFAULT_DIRECTORY)
+    def self.read(tasks, directory: DEFAULT_DIRECTORY)
       path = file_path(tasks, directory)
-      return RunTimings.new(ruby_version: RUBY_VERSION[0..2], timings: []) unless File.exist?(path)
+      return new(ruby_version: RUBY_VERSION[0..2], timings: []) unless File.exist?(path)
 
-      RunTimings.from_h(JSON.parse(File.read(path)))
+      from_h(JSON.parse(File.read(path)))
     end
 
     # Reads every timing document in a directory tree, newest structure
     # first: the downloaded artifact layout of one subdirectory per run.
-    def read_all(directory)
-      Dir[File.join(directory, "**", "*.json")].map { |path| RunTimings.from_h(JSON.parse(File.read(path))) }
+    def self.read_all(directory)
+      Dir[File.join(directory, "**", "*.json")].map { |path| from_h(JSON.parse(File.read(path))) }
     end
 
     # Keyed by the current Ruby and the batch task identity so one job's
     # timings never collide with another's across runs.
-    def file_path(tasks, directory)
+    def self.file_path(tasks, directory)
       identity = tasks.flat_map { |task| [task.name, task.group, task.gemfile] }.join("\0")
       digest = Digest::SHA256.hexdigest(identity)[0, 12]
       File.join(directory, "#{RUBY_VERSION[0..2]}-#{digest}.json")
     end
-
     private_class_method :file_path
   end
 end

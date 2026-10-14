@@ -5,26 +5,6 @@ require "spec_helper"
 require "tmpdir"
 require_relative "../../../tasks/lib/test_batching/weights"
 
-RSpec.describe TestBatching::Samples do
-  it "reports the median and 90th percentile of odd-sized values" do
-    samples = described_class.new([30, 10, 20])
-
-    expect(samples.to_h).to eq({"p50_seconds" => 20, "p90_seconds" => 30, "samples" => 3})
-  end
-
-  it "averages the middle pair for an even count" do
-    samples = described_class.new([10, 20, 30, 40])
-
-    expect(samples.to_h).to eq({"p50_seconds" => 25.0, "p90_seconds" => 40, "samples" => 4})
-  end
-
-  it "rounds to milliseconds when serializing" do
-    samples = described_class.new([10.12345, 20.0, 30.5])
-
-    expect(samples.to_h).to eq({"p50_seconds" => 20.0, "p90_seconds" => 30.5, "samples" => 3})
-  end
-end
-
 RSpec.describe TestBatching::Weights do
   def task(name, gemfile: "gemfiles/foo.gemfile")
     TestBatching::Task.new(name: name, group: "", gemfile: gemfile)
@@ -57,6 +37,19 @@ RSpec.describe TestBatching::Weights do
         },
       },
     })
+  end
+
+  it "averages the middle pair for an even sample count and rounds to milliseconds" do
+    runs = [10.12345, 20.0, 30.5, 40.0].map do |test_seconds|
+      TestBatching::RunTimings.new(
+        ruby_version: "3.1",
+        timings: [TestBatching::TaskTiming.new(task: task("main"), build_seconds: 1, test_seconds: test_seconds)]
+      )
+    end
+
+    entry = described_class.from(runs).to_h.fetch("ruby_versions").fetch("3.1").fetch("tasks").first
+
+    expect(entry).to include("p50_seconds" => 25.25, "p90_seconds" => 40.0, "samples" => 4)
   end
 
   it "answers costs per Ruby, falling back for tasks without history" do
@@ -96,12 +89,8 @@ RSpec.describe TestBatching::Weights do
 
   it "knows when it carries no weights at all" do
     expect(described_class.new({}).empty?).to be(true)
-    expect(described_class::Missing.new.empty?).to be(true)
-    expect(described_class::Missing.new).to be_a(described_class)
   end
-end
 
-RSpec.describe TestBatching::ManifestStore do
   it "loads weights from a manifest file" do
     manifest = {"ruby_versions" => {"3.1" => {"tasks" => [], "gemfiles" => []}}}
 
@@ -112,31 +101,31 @@ RSpec.describe TestBatching::ManifestStore do
       loaded = described_class.load(path: path)
 
       expect(loaded.to_h).to eq(manifest)
-      expect(loaded).to be_a(TestBatching::Weights)
+      expect(loaded).to be_a(described_class)
     end
   end
 
-  it "loads missing weights when the file is absent so batching stays static" do
+  it "loads empty weights when the file is absent so batching stays static" do
     Dir.mktmpdir do |directory|
       loaded = described_class.load(path: File.join(directory, "missing.json"))
 
-      expect(loaded).to be_a(TestBatching::Weights::Missing)
+      expect(loaded).to be_a(described_class)
       expect(loaded).to be_empty
     end
   end
 
-  it "loads missing weights when the file is invalid" do
+  it "loads empty weights when the file is invalid" do
     Dir.mktmpdir do |directory|
       path = File.join(directory, "manifest.json")
       File.write(path, "not json")
 
-      expect(described_class.load(path: path)).to be_a(TestBatching::Weights::Missing)
+      expect(described_class.load(path: path)).to be_empty
     end
   end
 
   it "raises when aggregating a directory without timing files" do
     Dir.mktmpdir do |directory|
-      expect { described_class.update_from(directory) }.to raise_error("no timing files found in #{directory}")
+      expect { described_class.aggregate(directory) }.to raise_error("no timing files found in #{directory}")
     end
   end
 
@@ -148,9 +137,9 @@ RSpec.describe TestBatching::ManifestStore do
     )
 
     Dir.mktmpdir do |directory|
-      TestBatching::TimingFiles.write(run_timings, directory: directory)
+      TestBatching::RunTimings.write(run_timings, directory: directory)
 
-      described_class.update_from(directory)
+      described_class.aggregate(directory)
 
       loaded = described_class.load
 
