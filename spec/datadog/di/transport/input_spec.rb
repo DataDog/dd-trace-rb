@@ -186,7 +186,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
           tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
         expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
-          expect(namespace).to eq("dynamic_instrumentation")
+          expect(namespace).to eq("debugger")
           expect(name).to eq("guardrails.queue.dropped_bytes")
           expect(value).to be > 2_000
           expect(tags).to eq(reason: "payloadTooLarge", event_type: "snapshot")
@@ -204,7 +204,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "log"},)
           expect(telemetry).to receive(:inc) do |namespace, name, value, tags:, **|
-            expect(namespace).to eq("dynamic_instrumentation")
+            expect(namespace).to eq("debugger")
             expect(name).to eq("guardrails.queue.dropped_bytes")
             expect(value).to be > 2_000
             expect(tags).to eq(reason: "payloadTooLarge", event_type: "log")
@@ -260,7 +260,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect_lazy_log_many(logger, :debug,
             "di: dropping too big snapshot (payloadTooLarge)",
             /error emitting debugger.events.dropped metric.*StandardError.*telemetry down/,
-            /error emitting dynamic_instrumentation.guardrails.queue.dropped_bytes metric.*StandardError.*telemetry down/)
+            /error emitting debugger.guardrails.queue.dropped_bytes metric.*StandardError.*telemetry down/)
           expect(transport).to receive(:send_input_chunk).once
 
           transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
