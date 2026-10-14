@@ -222,7 +222,7 @@ module Datadog
         begin
           if deadline_exceeded?(deadline)
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "serialized_values_skipped_by_timeout", 1)
-            record_capture_incomplete(GuardrailsTelemetry::Reason::TIMEOUT)
+            record_capture_incomplete(GuardrailsTelemetry::Reason::CAPTURE_TIMEOUT)
             return {type: class_name(cls), notCapturedReason: "timeout"}
           end
 

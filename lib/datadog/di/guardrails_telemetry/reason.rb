@@ -55,7 +55,7 @@ module Datadog
         # Capture-incomplete reason emitted when a value is not captured
         # because the capture time budget expired while it was being
         # serialized.
-        TIMEOUT = "timeout"
+        CAPTURE_TIMEOUT = "captureTimeout"
 
         # Capture-incomplete reason emitted when a value at the maximum
         # capture depth is not captured.
