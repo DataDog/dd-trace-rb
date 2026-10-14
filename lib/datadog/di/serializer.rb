@@ -6,12 +6,10 @@ require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
-    # Serializes captured snapshot to primitive types, which are subsequently
+    # Serializes captured snapshots to primitive types, which are subsequently
     # serialized to JSON and sent to the backend.
     #
-    # This class performs actual removal of sensitive values from the
-    # snapshots. It uses Redactor to determine which values are sensitive
-    # and need to be removed.
+    # Sensitive values are removed from the snapshots.
     #
     # Serializer normally ought not to invoke user (application) code,
     # to guarantee predictable performance. However, objects like ActiveRecord
@@ -21,7 +19,7 @@ module Datadog
     # thus they won't be captured at all). To accommodate complex objects,
     # there is an extension mechanism implemented permitting registration
     # of serializer callbacks for arbitrary types. Applications and libraries
-    # definining such serializer callbacks should be very careful to
+    # defining such serializer callbacks should be very careful to
     # have predictable performance and avoid exceptions and infinite loops
     # and other such issues.
     #
@@ -38,25 +36,21 @@ module Datadog
     # efficient but there would be additional overhead from passing this
     # parameter all the time and the API would get more complex.
     #
-    # Note: "self" cannot be used as a parameter name in Ruby, therefore
-    # there should never be a conflict between instance variable
-    # serialization and method parameters.
-    #
     # @api private
     class Serializer
-      # Exception classes that should never be caught during serialization.
-      # These represent fatal conditions (signals, interrupts, system exit)
-      # that must propagate to the caller. NoMemoryError is deliberately
-      # excluded (unlike DI::FATAL_EXCEPTION_CLASSES): serialization of large
-      # or deeply recursive objects can exhaust memory, and the serializer must
-      # return a safe stub rather than tear the process down.
+      # Exception classes that must propagate to the caller during
+      # serialization: fatal conditions (signals, interrupts, system exit).
+      # NoMemoryError is deliberately excluded (unlike
+      # DI::FATAL_EXCEPTION_CLASSES): serialization of large or deeply
+      # recursive objects can exhaust memory, and the serializer must return
+      # a safe stub rather than terminate the process.
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
       # Placeholder emitted by #serialize_value_for_message in place of a value
-      # whose identifier or type matches the redaction configuration. This
-      # mirrors, for the human-readable log-probe message path, the
-      # notCapturedReason: "redactedIdent"/"redactedType" gating that
-      # #serialize_value applies on the snapshot path.
+      # whose identifier or type matches the redaction configuration. The
+      # message-path counterpart of the +notCapturedReason+
+      # "redactedIdent"/"redactedType" markers that #serialize_value produces
+      # on the snapshot path.
       REDACTED_VALUE_FOR_MESSAGE = "[redacted]"
 
       # Third-party library integration / custom serializers.
@@ -123,7 +117,7 @@ module Datadog
 
       attr_reader :settings
       attr_reader :redactor
-      # The logger for contained serialization failures.
+      # The logger.
       # @return [DI::Logger]
       attr_reader :logger
       # The guardrails metric emitter.
@@ -160,10 +154,6 @@ module Datadog
       # between positional and keyword arguments. We convert positional
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
-      #
-      # Instance variables are technically a hash just like kwargs,
-      # we take them as a separate parameter to avoid a hash merge
-      # in upstream code.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -255,8 +245,6 @@ module Datadog
           when Integer, Float, TrueClass, FalseClass
             serialized.update(value: value.to_s)
           when Time
-            # This path also handles DateTime values although they do not need
-            # to be explicitly added to the case statement.
             serialized.update(value: value.iso8601)
           when Date
             serialized.update(value: value.to_s)
@@ -274,15 +262,12 @@ module Datadog
             end
 
             # Handle binary strings and invalid UTF-8 by escaping to JSON-safe format.
-            # See escape_binary_string for details on the escaping format.
-            #
-            # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence.
             # For regular strings, the limit is applied to string length in characters.
             length ||= settings.dynamic_instrumentation.max_capture_string_length
             max = length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
-              # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
+              # Truncate binary data before escaping to avoid cutting mid-escape-sequence
               # For invalid encodings, use bytesize instead of length to avoid encoding errors
               original_size = value.bytesize
               if original_size > max
@@ -291,9 +276,7 @@ module Datadog
                 value = value.byteslice(0...max)
               end
               value = escape_binary_string(value) # steep:ignore ArgumentTypeMismatch
-              false # Already converted to a new string
             else
-              # Truncate non-binary strings
               if value.length > max
                 serialized.update(truncated: true, size: value.length)
                 record_capture_incomplete(GuardrailsTelemetry::Reason::STRING_LENGTH)
@@ -371,10 +354,8 @@ module Datadog
               #
               # For consistency, we should have some kind of stable order of
               # instance variables on all supported Ruby runtimes, so that the UI
-              # stays consistent. Given that initial implementation of Ruby DI
-              # does not support JRuby, we don't handle JRuby's lack of ordering
-              # of #instance_variables here, but if JRuby is supported in the
-              # future this may need to be addressed.
+              # stays consistent. Ruby DI does not support JRuby, so JRuby's lack
+              # of ordering of #instance_variables is not handled here.
               ivars = value.instance_variables
 
               ivars.each do |ivar|
@@ -391,15 +372,11 @@ module Datadog
           end
           serialized
         rescue Exception => exc # standard:disable Lint/RescueException
-          # Re-raise fatal exceptions that should not be caught
-          # (signals, interrupts, system exit)
           raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
-          # Catch all other exceptions including SystemStackError and NoMemoryError.
-          # These inherit from Exception (not StandardError) but can occur during
-          # serialization (e.g., infinite recursion in custom serializers, memory
-          # exhaustion from large objects) and should return a safe structure
-          # rather than propagating to the transport layer.
+          # Catch all remaining exceptions: SystemStackError and NoMemoryError can
+          # occur during serialization (e.g. a custom serializer recursing
+          # infinitely) and produce the safe stub.
           record_capture_incomplete(GuardrailsTelemetry::Reason::RUNTIME_ERROR)
           logger.debug { "di: error serializing value of #{class_name(cls)}: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Error serializing")
@@ -407,7 +384,7 @@ module Datadog
         end
       end
 
-      # This method is used for serializing arbitrary values into log messages.
+      # Serializes a value for interpolation into a log-probe message.
       # Because the output is meant to be human-readable, we cannot use
       # the "normal" serialization format which is meant to be machine-readable.
       # Serialize objects with depth of 1 and include the class name.
@@ -425,7 +402,7 @@ module Datadog
       #
       # +name+, when given, is the identifier the template expression
       # references at its top level; a redacted identifier yields the
-      # redaction placeholder, mirroring #serialize_value on the snapshot path.
+      # redaction placeholder.
       def serialize_value_for_message(value, depth: 1, name: nil)
         # This method is more verbose than "normal" Ruby code to avoid
         # array allocations.
@@ -515,8 +492,7 @@ module Datadog
         raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
         telemetry&.report(exc, description: "Error serializing for message")
-        # TODO class_name(foo) can also fail, which we don't handle here.
-        # Telemetry reporting could potentially also fail?
+        # TODO handle class_name raising here as well.
         "#<#{class_name(value.class)}: serialization error>"
       end
 

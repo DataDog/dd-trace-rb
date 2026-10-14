@@ -10,11 +10,7 @@ module Datadog
     TELEMETRY_NAMESPACE = "dynamic_instrumentation"
 
     # Telemetry reporter for the DI guardrails: the reason codes and the
-    # metric emitters. The tag hashes for a given reason and event type
-    # are built once, frozen, and memoized per metric family, so repeated
-    # emissions allocate no tags. Probe-scoped skip tags are not
-    # memoized, because remote configuration churns probe ids and a
-    # per-probe memo would grow without bound.
+    # metric emitters.
     class GuardrailsTelemetry
       # Telemetry namespace. The telemetry wire name is
       # +dd.instrumentation_telemetry_data.debugger.*+.
@@ -49,10 +45,10 @@ module Datadog
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings the propagation escape hatch is read from.
+      # The tracer settings.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
-      # The logger for contained emission failures.
+      # The logger.
       # @return [DI::Logger]
       attr_reader :logger
       # The component the guardrails metrics are emitted through.
@@ -81,9 +77,7 @@ module Datadog
       end
 
       # Emits the canonical +debugger.events.skipped+ count metric for a
-      # probe firing a guardrail rejected. The metric carries the probe's
-      # id as a tag when the reason is probe-scoped
-      # (+Reason::PROBE_SCOPED_REASONS+).
+      # probe firing a guardrail rejected.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the skip cause
       # @param probe [Probe] the probe whose firing was rejected
