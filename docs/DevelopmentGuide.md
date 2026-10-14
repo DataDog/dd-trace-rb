@@ -108,7 +108,13 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 }
 ```
 
-If the dependency groups are prepared (with up-to-date gemfile and lockfile), the test task will install them before running the test.
+##### What dependency versions to test
+
+At minimum, we run our tests with the oldest supported version (`min`) of a gem and the `latest`, which become the official support range. The `min` and `latest` selection is per-Ruby runtime and version.
+`min` should match each integration's runtime enforcement of the minimum version, `Contrib::{GEM}::Integration::MINIMUM_VERSION`.
+
+We add additional test versions if those versions diverge from `min` or `latest` in: exercised code paths, having unique *and* valuable observability data, or creating different test results.
+If you add a version besides `min` or `latest`, add a comment on why that version is necessary.
 
 **Working with different dependencies**
 
@@ -200,7 +206,7 @@ Two rake namespaces, with different intents:
 
 Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
 
-- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see the `dependencies` group in `.github/path-filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
 - `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
 - `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
 
@@ -368,17 +374,36 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-The library uses [standard](https://github.com/standardrb/standard) to enforce code style and quality.
-Custom cops (under the `CustomCops/` namespace) run as part of the same check. To check, run:
+[RuboCop](https://github.com/rubocop/rubocop) is both a linting and autocorrection engine and a
+collection of default rules (called cops). [StandardRB](https://github.com/standardrb/standard)
+uses the RuboCop engine with an opinionated ruleset and exposes it through the `standardrb` program.
+
+This repository uses the Standard ruleset as its baseline, then configures RuboCop with project-specific
+overrides and custom cops under the `CustomCops/` namespace. The programs and rulesets are therefore:
+
+| Rake task | Program | Ruleset | Coverage |
+| --- | --- | --- | --- |
+| `standard` | `standardrb` | Standard minus project overrides | Baseline subset |
+| `rubocop` | `rubocop` | Standard with project overrides and custom cops | Full repository ruleset (strict superset) |
+
+Both CI checks must pass, but local tools should favour RuboCop because it checks the full ruleset. Run it directly or through Rake:
 
 ```
-bundle exec rake standard
+bundle exec rubocop
+bundle exec rake rubocop
 ```
 
-To change your code to the version that standard wants, run:
+To mirror both CI checks, run:
 
 ```
-bundle exec rake standard:fix
+bundle exec rake standard rubocop
+```
+
+To apply automatic fixes using the full ruleset, run:
+
+```
+bundle exec rubocop --autocorrect
+bundle exec rake rubocop:fix
 ```
 
 For non-Ruby code, follow the instructions below to debug locally, if CI failed with the respective linter.
@@ -400,24 +425,7 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth tok
 
 #### Dependency audit (bundler-audit)
 
-The `bundler-audit` CI job scans appraisal lockfiles eligible for audit
-(Ruby 3.1+) for gems with
-high/critical CVE advisories, plus any advisory the pinned scanner can't
-score (e.g. CVSS-v4-only advisories come back with a `nil` criticality and
-are treated as failing too). To reproduce locally, run:
-
-```bash
-BUNDLE_GEMFILE=gemfiles/ruby-4.0.gemfile bundle exec rake dependency:audit
-```
-
-If it fails:
-
-1. Preferred fix: `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to upgrade the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
-2. If no patched version exists for the Ruby/framework constraint in that appraisal, document the exception in `.bundler-audit.yml`:
-   - Prefer `ignore_gem_versions` (scoped to the exact pinned gem+version, so bumping the gem later makes the finding reappear instead of staying silently hidden).
-   - Use the top-level `ignore` list (by advisory id) only as a last resort, since it suppresses the advisory for any gem/version.
-   - Every entry must include a reason explaining what pins the gem and why it can't be upgraded.
-3. The job log only prints the finding count; run the command above locally to see the actual advisory id(s), gem(s), and affected lockfile(s), or inspect `tmp/dependency_audit_findings.json` after a local run.
+See [Dependency Audit](./DependencyAudit.md).
 
 ## Accessing Environment Variables
 

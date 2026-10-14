@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6010",
+  "message": "Deprecate `time_now_provider` for removal; it no longer does anything. Please remove it from your `Datadog.configure` block. The gem always uses the real non-mocked time, even when the timecop gem monkey-patches `Time`."
+}

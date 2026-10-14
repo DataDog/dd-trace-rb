@@ -50,7 +50,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         @observed_calls << context
       end
 
-      def probe_condition_evaluation_failed_callback(context, exc)
+      def probe_condition_evaluation_failed_callback(context, _expr, exc)
         raise "Unexpected condition failure: #{exc}"
       end
 

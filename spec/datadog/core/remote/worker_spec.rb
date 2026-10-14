@@ -87,4 +87,64 @@ RSpec.describe Datadog::Core::Remote::Worker do
       worker.stop
     end
   end
+
+  describe "#after_fork" do
+    forking_platform_only
+
+    let(:queue) { Queue.new }
+    let(:task) { proc { queue << Process.pid } }
+    subject(:worker) { described_class.new(interval: 60, logger: logger, &task) }
+
+    after { worker.stop }
+
+    it "allows an inherited running worker to start on demand without changing the parent" do
+      worker.start
+      expect(queue.pop).to eq(Process.pid)
+
+      expect_in_fork do
+        RSpec::Mocks.with_temporary_scope do
+          expect(Thread).not_to receive(:new)
+          worker.after_fork
+          expect(worker).not_to be_started
+        end
+
+        worker.start
+        expect(queue.pop).to eq(Process.pid)
+        expect(worker).to be_started
+      ensure
+        worker.stop
+      end
+
+      expect(worker).to be_started
+    end
+
+    it "leaves an unstarted worker idle until explicitly started" do
+      worker
+
+      expect_in_fork do
+        worker.after_fork
+        expect(worker).not_to be_started
+        expect(queue).to be_empty
+
+        worker.start
+        expect(queue.pop).to eq(Process.pid)
+      ensure
+        worker.stop
+      end
+    end
+
+    it "preserves an explicit stop in the child" do
+      worker.start
+      queue.pop
+      worker.stop
+
+      expect_in_fork do
+        expect(Thread).not_to receive(:new)
+        worker.after_fork
+        worker.start
+        expect(worker).not_to be_started
+        expect(queue).to be_empty
+      end
+    end
+  end
 end

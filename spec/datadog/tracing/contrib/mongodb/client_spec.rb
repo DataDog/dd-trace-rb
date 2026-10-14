@@ -551,7 +551,9 @@ RSpec.describe "Mongo::Client instrumentation" do
 
           expect(auth_span).to have_error
           expect(auth_span).to have_error_type("Mongo::Monitoring::Event::CommandFailed")
-          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
+          # MongoDB <= 4.2 replies "Unsupported mechanism 'PLAIN'";
+          # MongoDB >= 4.4 replies "Received authentication for mechanism PLAIN which is unknown or not enabled".
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'|mechanism PLAIN which is unknown or not enabled/)
         end
       end
     end

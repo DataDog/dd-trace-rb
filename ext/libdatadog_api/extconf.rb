@@ -24,7 +24,7 @@ end
 if ENV["DD_NO_EXTENSION"].to_s.strip.downcase == "true"
   skip_building_extension!("the `DD_NO_EXTENSION` environment variable is/was set to `true` during installation")
 end
-skip_building_extension!("current Ruby VM is not supported") if RUBY_ENGINE != "ruby"
+skip_building_extension!("current Ruby VM is not supported") unless %w[ruby truffleruby].include?(RUBY_ENGINE)
 skip_building_extension!("Microsoft Windows is not supported") if Gem.win_platform?
 
 libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issue

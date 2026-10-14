@@ -3,6 +3,7 @@
 require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
+require_relative "span_events_negotiation"
 
 module Datadog
   module Tracing
@@ -44,11 +45,12 @@ module Datadog
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
           include Statistics
+          include SpanEventsNegotiation
 
-          attr_reader :logger
+          attr_reader :logger, :url
 
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
-          #   Agent connection settings (provides +#url+).
+          #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
           def initialize(agent_settings:, logger:)
             unless Native.supported?
@@ -56,10 +58,6 @@ module Datadog
             end
 
             @logger = logger
-
-            # Guards the one-shot warning about span fields the native exporter
-            # does not yet convert (see #warn_unsupported_fields!).
-            @unsupported_fields_warned = false
 
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
@@ -69,7 +67,7 @@ module Datadog
             # this is held across the fork through the matching completion hook.
             @fork_mutex = Mutex.new
 
-            url = agent_settings.url
+            @url = agent_settings.url
             tracer_version = tracer_version_string
             language = Core::Environment::Ext::LANG
             language_version = Core::Environment::Ext::LANG_VERSION
@@ -85,6 +83,7 @@ module Datadog
 
             exporter = Native::TraceExporter._native_new(
               url: url,
+              timeout_milliseconds: agent_settings.timeout_seconds * 1000,
               tracer_version: tracer_version,
               language: language,
               language_version: language_version,
@@ -92,7 +91,8 @@ module Datadog
               hostname: hostname,
               env: env,
               service: service,
-              version: version
+              version: version,
+              client_computed_stats: !Datadog.configuration.apm.tracing.enabled
             )
             @exporter = exporter
 
@@ -217,24 +217,23 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_hooks = @send_mutex.synchronize do
-              hooks = @fork_hooks
-              return if hooks.nil?
+            @fork_mutex.synchronize do
+              @send_mutex.synchronize do
+                hooks = @fork_hooks
+                return if hooks.nil?
 
-              @fork_hooks = nil
-              @exporter = nil
-              hooks
+                begin
+                  @exporter&._native_close
+                ensure
+                  @fork_hooks = nil
+                  @exporter = nil
+                  hooks.each do |stage, block|
+                    Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                  end
+                  ObjectSpace.undefine_finalizer(self)
+                end
+              end
             end
-
-            fork_hooks.each do |stage, block|
-              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-            end
-
-            # The finalizer only exists to deregister the hooks for a transport
-            # dropped without #close. We have just done that, so remove it;
-            # otherwise its closed-over hook blocks keep the exporter alive until
-            # this transport is itself collected.
-            ObjectSpace.undefine_finalizer(self)
 
             nil
           end
@@ -266,15 +265,14 @@ module Datadog
             return [] if traces.empty?
 
             # Apply trace-level tags to root spans (same as the HTTP transport)
-            traces.each { |trace| TraceFormatter.format!(trace) }
+            traces.each { |trace| TraceFormatter.format!(trace, transport: "native") }
 
             # Build the Array<Array<Span>> structure expected by the C extension.
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            # Span events and span links are not yet converted and would be
-            # dropped. Warn (once) so the loss is visible.
-            warn_unsupported_fields!(chunks)
+            native_events_supported = native_events_supported?
+            apply_legacy_span_events!(chunks, native_events_supported)
 
             # Serialize the native send and hold the mutex across it so a
             # concurrent fork's :before hook blocks until this send drains
@@ -287,7 +285,7 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks)
+              exporter._native_send_traces(chunks, native_events_supported)
             end
 
             # Update statistics from the response
@@ -302,29 +300,24 @@ module Datadog
 
           private
 
-          # Warn, at most once per transport, when a batch contains span fields
-          # the native exporter does not yet convert (span events and span
-          # links). These are silently dropped by the native path; full support
-          # is tracked separately. The check is cheap: the fields are already-
-          # materialized collections on each Span.
-          def warn_unsupported_fields!(chunks)
-            return if @unsupported_fields_warned
+          # Writes each span's events into the legacy JSON +events+ meta tag
+          # when the agent lacks typed-event support, mutating spans in place.
+          #
+          # @param chunks [Array<Array<Datadog::Tracing::Span>>] trace chunks to serialize
+          # @param native_events_supported [Boolean] whether the agent accepts typed events
+          # @return [void]
+          def apply_legacy_span_events!(chunks, native_events_supported)
+            return if native_events_supported
 
-            unsupported = []
             chunks.each do |spans|
               spans.each do |span|
-                unsupported << "span events" if span.events.any?
-                unsupported << "span links" if span.links.any?
+                next if span.events.empty?
+
+                span.set_tag("events", span.events.map(&:to_hash).to_json)
               end
             end
-            return if unsupported.empty?
 
-            @unsupported_fields_warned = true
-            fields = unsupported.uniq.join(", ")
-            logger.warn do
-              "Native transport does not yet support: #{fields}. This data will not be sent to Datadog. " \
-                "Unset DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED to use the default transport if you rely on these."
-            end
+            nil
           end
 
           def tracer_version_string

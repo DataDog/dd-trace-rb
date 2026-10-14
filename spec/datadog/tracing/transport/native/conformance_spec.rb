@@ -2,12 +2,15 @@
 
 require "datadog/tracing/transport/native"
 require "datadog/tracing/span"
+require "datadog/tracing/span_link"
+require "datadog/tracing/trace_digest"
 require "datadog/tracing/trace_segment"
 require "datadog/tracing/transport/trace_formatter"
 require "datadog/appsec"
 require "datadog/appsec/actions_handler/serializable_backtrace"
 require "socket"
 require "msgpack"
+require_relative "../provenance_shared_examples"
 
 # Verifies that span data put into traces arrives on the wire (at the
 # mock agent) with the correct field values after going through the
@@ -53,10 +56,13 @@ RSpec.describe "Native transport wire-level conformance" do
 
             # Read headers
             content_length = 0
+            headers = {}
             path = request_line.split(" ")[1]
             while (line = c.gets) && line != "\r\n"
-              content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
+              key, value = line.split(":", 2)
+              headers[key.downcase] = value.strip
             end
+            content_length = headers.fetch("content-length", "0").to_i
 
             # Read body
             request_body = (content_length > 0) ? c.read(content_length) : ""
@@ -64,7 +70,7 @@ RSpec.describe "Native transport wire-level conformance" do
 
             # Write captured trace payloads (skip /info requests)
             if path&.include?("/traces") && !request_body.empty?
-              payload = Marshal.dump(request_body)
+              payload = Marshal.dump(body: request_body, headers: headers)
               pipe_mutex.synchronize do
                 @write_io.write([payload.bytesize].pack("N"))
                 @write_io.write(payload)
@@ -86,9 +92,7 @@ RSpec.describe "Native transport wire-level conformance" do
       @write_io.close
     end
 
-    # Read one captured trace payload (blocking, with timeout).
-    # Returns the raw msgpack bytes.
-    def read_payload(timeout: 5)
+    def read_request(timeout: 5)
       ready = IO.select([@read_io], nil, nil, timeout)
       raise "Timeout waiting for agent to receive a trace payload" unless ready
 
@@ -97,6 +101,10 @@ RSpec.describe "Native transport wire-level conformance" do
 
       len = len_bytes.unpack1("N")
       Marshal.load(@read_io.read(len)) # rubocop:disable Security/MarshalLoad
+    end
+
+    def read_payload(timeout: 5)
+      read_request(timeout: timeout).fetch(:body)
     end
 
     def stop
@@ -115,8 +123,9 @@ RSpec.describe "Native transport wire-level conformance" do
   # ---------------------------------------------------------------------------
 
   around do |example|
+    Datadog.configuration.apm.tracing.enabled = apm_tracing_enabled
     @mock_agent = CapturingMockAgent.new
-    agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    agent_settings = Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", 30)
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
       logger: Logger.new(File::NULL)
@@ -143,6 +152,26 @@ RSpec.describe "Native transport wire-level conformance" do
   let(:mock_agent) { @mock_agent }
   let(:native_module) { Datadog::Tracing::Transport::Native }
   let(:transport) { @transport }
+  let(:apm_tracing_enabled) { true }
+
+  describe "client-computed stats header" do
+    [true, false].each do |enabled|
+      context "with APM tracing #{enabled ? "enabled" : "disabled"}" do
+        let(:apm_tracing_enabled) { enabled }
+
+        it "disables Agent stats only when APM tracing is disabled" do
+          expect(transport.send_traces([make_trace([{name: "request"}])])).to all(be_ok)
+          headers = mock_agent.read_request.fetch(:headers)
+
+          if enabled
+            expect(headers).not_to have_key("datadog-client-computed-stats")
+          else
+            expect(headers.fetch("datadog-client-computed-stats")).to match(/\A(?:true|yes)\z/)
+          end
+        end
+      end
+    end
+  end
 
   def make_trace(spans_attrs)
     trace_id = rand(1 << 62)
@@ -159,6 +188,7 @@ RSpec.describe "Native transport wire-level conformance" do
       ).tap do |span|
         (attrs[:meta] || {}).each { |k, v| span.set_tag(k, v) }
         (attrs[:metrics] || {}).each { |k, v| span.set_metric(k, v) }
+        span.links.concat(attrs[:links] || [])
         (attrs[:metastruct] || {}).each { |k, v| span.set_metastruct_tag(k, v) }
       end
     end
@@ -176,6 +206,10 @@ RSpec.describe "Native transport wire-level conformance" do
   # ---------------------------------------------------------------------------
   # Tests
   # ---------------------------------------------------------------------------
+
+  describe "transport provenance" do
+    it_behaves_like "transport provenance on the wire", "native"
+  end
 
   describe "single span" do
     it "preserves scalar fields on the wire" do
@@ -356,6 +390,147 @@ RSpec.describe "Native transport wire-level conformance" do
       # The wire format trace_id field is 64-bit (low half only);
       # high bits go into meta as _dd.p.tid
       expect(decoded.first.first["trace_id"]).to eq(low)
+    end
+  end
+
+  describe "span links" do
+    # dropped_attributes_count remains deferred until the Agent protocol
+    # allocates a span-link field for it.
+    it "preserves supported canonical values and link order on the wire" do
+      first = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: (0x1234 << 64) | 0x5678,
+          span_id: 0x9abc,
+          trace_sampling_priority: 1,
+          trace_state: "vendor=value"
+        ),
+        attributes: {"operation" => "receive", "batch" => [1, true]}
+      )
+      second = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 22,
+          span_id: 33,
+          trace_sampling_priority: 0
+        )
+      )
+      trace = make_trace([{name: "consumer", links: [first, second]}])
+
+      links = send_and_decode([trace]).first.first["span_links"]
+
+      expect(links).to eq(
+        [
+          {
+            "trace_id" => 0x5678,
+            "trace_id_high" => 0x1234,
+            "span_id" => 0x9abc,
+            "attributes" => {
+              "operation" => "receive",
+              "batch.0" => "1",
+              "batch.1" => "true",
+            },
+            "tracestate" => "vendor=value",
+            "flags" => 0x8000_0001,
+          },
+          {
+            "trace_id" => 22,
+            "trace_id_high" => 0,
+            "span_id" => 33,
+            "flags" => 0x8000_0000,
+          },
+        ]
+      )
+    end
+
+    it "snapshots stateful canonical hashes exactly once" do
+      calls = []
+      attributes = {"operation" => +"receive"}
+      canonical = {
+        trace_id: 1,
+        span_id: 2,
+        flags: 0,
+      }
+      canonical.default_proc = proc do |hash, key|
+        calls << key
+        case key
+        when :trace_id_high
+          hash[:trace_id] = 10
+          3
+        when :attributes
+          hash[:span_id] = 20
+          attributes
+        when :tracestate
+          attributes["operation"].replace("mutated")
+          hash[:flags] = 0x8000_0001
+          "vendor=value"
+        else
+          raise "unexpected default key: #{key}"
+        end
+      end
+      stateful_link = instance_double(Datadog::Tracing::SpanLink, to_hash: canonical)
+      trace = make_trace([{name: "consumer", links: [stateful_link]}])
+
+      link = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(calls).to eq([:trace_id_high, :attributes, :tracestate])
+      expect(link).to eq(
+        "trace_id" => 1,
+        "trace_id_high" => 3,
+        "span_id" => 2,
+        "attributes" => {"operation" => "receive"},
+        "tracestate" => "vendor=value",
+        "flags" => 0x8000_0001
+      )
+    end
+
+    it "normalizes links before borrowing scalar string pointers" do
+      trace = nil
+      stateful_link = instance_double(Datadog::Tracing::SpanLink)
+      allow(stateful_link).to receive(:to_hash) do
+        span = trace.spans.first
+        span.name.replace("n" * 512)
+        span.service.replace("s" * 512)
+        span.resource.replace("r" * 512)
+        span.type.replace("t" * 512)
+        {trace_id: 1, span_id: 2, flags: 0}
+      end
+      trace = make_trace([{
+        name: +"name",
+        service: +"service",
+        resource: +"resource",
+        type: +"type",
+        links: [stateful_link],
+      }])
+
+      span = send_and_decode([trace]).first.first
+
+      expect(span).to include(
+        "name" => "n" * 512,
+        "service" => "s" * 512,
+        "resource" => "r" * 512,
+        "type" => "t" * 512
+      )
+    end
+
+    it "preserves empty attribute values on the wire" do
+      link = Datadog::Tracing::SpanLink.new(
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 5,
+          span_id: 6,
+          trace_sampling_priority: 0
+        ),
+        attributes: {"empty" => ""}
+      )
+      trace = make_trace([{name: "consumer", links: [link]}])
+
+      decoded = send_and_decode([trace]).first.first["span_links"].first
+
+      expect(decoded).to eq(
+        "trace_id" => 5,
+        "trace_id_high" => 0,
+        "span_id" => 6,
+        "attributes" => {"empty" => ""},
+        "flags" => 0x8000_0000
+      )
     end
   end
 

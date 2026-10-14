@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6219",
+  "message": "Ignore `SignalException` from crashtracker as unhandled exception errors."
+}

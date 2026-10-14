@@ -629,6 +629,38 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
+    it "starts OpenFeature activation" do
+      activation = instance_double(Datadog::OpenFeature::Activation, startup!: nil)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+
+      expect(activation).to receive(:startup!)
+
+      startup!
+    end
+
+    context "when eager OpenFeature delivery raises" do
+      let(:error) { RuntimeError.new("test failure") }
+      let(:activation) do
+        Datadog::OpenFeature::Activation.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)
+      end
+
+      before do
+        allow(activation).to receive(:start!).and_raise(error)
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      end
+
+      it "reports the failure and continues library startup" do
+        expect(logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+        expect { startup! }.not_to raise_error
+      end
+    end
+
     context "when profiling" do
       context "is unsupported" do
         before do
@@ -765,15 +797,40 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, after_fork: nil)
+    end
+    let(:symbol_database) do
+      instance_double(Datadog::SymbolDatabase::Component, after_fork!: nil)
+    end
+    let(:data_streams) do
+      instance_double(Datadog::DataStreams::Processor, restart_flush_thread: nil)
+    end
+
     before do
       allow(telemetry).to receive(:after_fork)
       allow(remote).to receive(:after_fork)
       allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+      allow(components).to receive(:symbol_database).and_return(symbol_database)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+    end
+
+    it "dispatches after_fork to OpenFeature activation" do
+      after_fork
+
+      expect(open_feature_activation).to have_received(:after_fork).once
+    end
+
+    it "dispatches after_fork to the tracer when supported" do
+      tracer = instance_double(Datadog::Tracing::Tracer)
+      allow(components).to receive(:tracer).and_return(tracer)
+      expect(tracer).to receive(:after_fork)
+
+      after_fork
     end
 
     it "dispatches after_fork! to the symbol_database when present" do
-      symbol_database = instance_double(Datadog::SymbolDatabase::Component)
-      allow(components).to receive(:symbol_database).and_return(symbol_database)
       expect(symbol_database).to receive(:after_fork!)
 
       after_fork
@@ -786,8 +843,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     it "dispatches restart_flush_thread to the data_streams processor when present" do
-      data_streams = instance_double(Datadog::DataStreams::Processor)
-      allow(components).to receive(:data_streams).and_return(data_streams)
       expect(data_streams).to receive(:restart_flush_thread)
 
       after_fork
@@ -1040,6 +1095,39 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.telemetry).to receive(:shutdown!)
 
         shutdown!
+      end
+
+      context "when OpenFeature shutdown raises" do
+        let(:error) { RuntimeError.new("test failure") }
+        let(:activation) do
+          instance_double(Datadog::OpenFeature::Activation, shutdown!: nil)
+        end
+
+        before do
+          allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+          allow(activation).to receive(:shutdown!).and_raise(error)
+        end
+
+        it "reports the failure and continues library shutdown" do
+          expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
+          expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
+          expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
+          expect(components.logger).to receive(:error)
+            .with("Feature Flags delivery failed to shut down: RuntimeError: test failure")
+          expect(telemetry).to receive(:report)
+            .with(error, description: "Feature Flags delivery failed to shut down")
+          expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
+          expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+          expect(components.runtime_metrics).to receive(:stop)
+            .with(true, close_metrics: false)
+          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
+          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.telemetry).to receive(:emit_closing!)
+          expect(components.telemetry).to receive(:shutdown!)
+
+          expect { shutdown! }.not_to raise_error
+        end
       end
     end
 

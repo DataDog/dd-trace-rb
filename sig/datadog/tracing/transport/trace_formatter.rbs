@@ -15,10 +15,11 @@ module Datadog
 
         attr_reader trace: untyped
 
-        def self.format!: (untyped trace) -> untyped
+        def self.format!: (TraceSegment trace, ?transport: String?) -> TraceSegment?
 
         def initialize: (untyped trace) -> void
-        def format!: () -> (nil | untyped)
+
+        def format!: (?transport: String?) -> TraceSegment?
 
         def set_resource!: () -> (nil | untyped)
 
@@ -53,6 +54,8 @@ module Datadog
         def tag_git_repository_url!: () -> (nil | untyped)
 
         def tag_git_commit_sha!: () -> (nil | untyped)
+
+        def tag_sdk_otlp_export!: () -> void
 
         private
 

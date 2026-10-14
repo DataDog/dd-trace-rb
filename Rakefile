@@ -3,6 +3,7 @@ require "datadog/version"
 require "standard/rake" if Gem.loaded_specs.key? "standard"
 require "rspec/core/rake_task"
 require "rake/extensiontask"
+require_relative "tasks/lib/compatibility"
 require "os"
 if Gem.loaded_specs.key? "ruby_memcheck"
   require "ruby_memcheck"
@@ -169,6 +170,10 @@ namespace :spec do
     t.pattern = "spec/datadog/open_feature/**/*_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
   end
+  # Some open_feature specs drive the libdatadog_api C extension directly
+  # (Core::FeatureFlags::Configuration#get_assignment), so the extension must be
+  # compiled before this task runs.
+  Rake::Task["spec:open_feature"].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
@@ -299,6 +304,20 @@ namespace :spec do
   # run in their own process (see NATIVE_TRANSPORT_SPECS) to avoid sharing with
   # the fork-heavy ProcessDiscovery specs.
   Rake::Task["spec:native_transport"].enhance([:compile])
+
+  desc "Run native transport cleanup specs with memory leak checking"
+  if Gem.loaded_specs.key?("ruby_memcheck")
+    RubyMemcheck::RSpec::RakeTask.new(:native_transport_memcheck) do |t, args|
+      t.pattern = NATIVE_TRANSPORT_SPECS.join(", ")
+      t.rspec_opts = [*args.to_a, "--tag native_transport_memcheck"].join(" ")
+    end
+    Rake::Task["spec:native_transport_memcheck"].enhance([:compile])
+    Rake::Task["spec:core_with_libdatadog_api_memcheck"].enhance(["spec:native_transport_memcheck"])
+  else
+    task :native_transport_memcheck do
+      raise "Memcheck requires the ruby_memcheck gem to be installed"
+    end
+  end
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
@@ -529,13 +548,8 @@ namespace :spec do
   namespace :profiling do
     task all: [:main, :ractors]
 
-    task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on CRuby
-      if RUBY_ENGINE == "ruby"
-        Rake::Task[:clean].invoke
-        Rake::Task[:compile].invoke
-      end
-    end
+    # Clean before compilation prerequisites run: Rake only creates staging directories once.
+    task compile_native_extensions: ((RUBY_ENGINE == "ruby") ? [:clean, :compile] : [])
 
     # Datadog Profiling main specs without Ractor creation
     # NOTE: Ractor creation will transition the entire Ruby VM into multi-ractor mode. This cannot be undone
@@ -630,11 +644,22 @@ NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = "ext/libdatadog_api"
   end,
+  (
+    if RUBY_ENGINE == "ruby"
+      Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+        ext.ext_dir = "ext/datadog_profiling_native_extension"
+      end
+    end
+  ),
+].compact.freeze
 
-  Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = "ext/datadog_profiling_native_extension"
-  end,
-].freeze
+if RUBY_ENGINE == "ruby"
+  spec_tasks = Rake::Task.tasks.map(&:name).grep(/\Aspec:/)
+  spec_tasks |= TEST_METADATA.keys.map { |key| "spec:#{key}" }
+  spec_tasks.each do |name|
+    task name => ["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"]
+  end
+end
 
 NATIVE_CLEAN = ::Rake::FileList[]
 # DEV: Should we suggest this Rake task for native development onboarding?

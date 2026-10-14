@@ -1,0 +1,27 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class MessageBuilder
+        @content: Array[Message::content_part]
+
+        @tool_calls: Array[ToolCall]
+
+        attr_reader content: Array[Message::content_part]
+
+        attr_reader tool_calls: Array[ToolCall]
+
+        def initialize: () -> void
+
+        def text: (String text) -> void
+
+        def image_url: (String url) -> void
+
+        def tool_call: (
+          name: String,
+          id: String | Integer,
+          arguments: ToolCall::input_arguments
+        ) -> void
+      end
+    end
+  end
+end

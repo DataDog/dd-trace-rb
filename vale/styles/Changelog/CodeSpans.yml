@@ -1,0 +1,12 @@
+# Naked identifier shapes in prose: these are code in any context, so their
+# appearance outside code spans is a formatting floor, not a style call.
+# CamelCase is deliberately absent -- class names like "InApp-WAF" are
+# indistinguishable from prose and stay a judgment call.
+# NOTE: raw must stay a single value; vale only applies regex to a lone
+# entry and treats a list as literal strings.
+extends: existence
+message: "Wrap '%s' in code spans -- it names code, not prose."
+level: error
+scope: text
+raw:
+  - '\b(?:DD_[A-Z0-9_]+|[A-Z]{2,}(?:_[A-Z0-9]+)+|[a-z]+(?:_[a-z0-9]+)+|[A-Z][A-Za-z0-9]*(?:\.[a-z_][A-Za-z0-9_]*)+)\b'

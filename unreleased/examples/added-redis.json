@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6142",
+  "message": "Add support for `redis-rb` 6.0/RESP3: connection handshakes (`HELLO`, `CLIENT SETINFO`, `CLIENT SETNAME`) no longer show up in pipeline span names or lengths, and credentials sent in the `HELLO` handshake are redacted."
+}

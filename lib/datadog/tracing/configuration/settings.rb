@@ -2,6 +2,7 @@
 
 require_relative "../../tracing/configuration/ext"
 require_relative "../../core/environment/variable_helpers"
+require_relative "../../ruby_version"
 require_relative "../contrib/status_range_matcher"
 require_relative "../contrib/status_range_env_parser"
 require_relative "http"
@@ -255,6 +256,12 @@ module Datadog
                 o.type :bool
               end
 
+              option :otel_thread_context_enabled do |o|
+                o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
+                o.default true
+                o.type :bool
+              end
+
               # Configures an alternative trace transport behavior, where
               # traces can be sent to the agent and backend before all spans
               # have finished.
@@ -490,11 +497,11 @@ module Datadog
               #
               # This option is recommended for internal use only.
               #
-              # @default `false`
+              # @default `true` on CRuby 4.0.0 and later, otherwise `false`
               # @return [Boolean]
               option :native_transport do |o|
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
-                o.default false
+                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.0") }
                 o.type :bool
               end
 

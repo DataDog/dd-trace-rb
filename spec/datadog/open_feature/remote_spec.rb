@@ -6,9 +6,11 @@ require "datadog/core/remote/configuration/repository"
 
 RSpec.describe Datadog::OpenFeature::Remote do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:receivers) { described_class.receivers(telemetry) }
+  let(:component_provider) { -> { component } }
+  let(:receivers) { described_class.receivers(telemetry, component_provider: component_provider) }
   let(:receiver) { receivers[0] }
   let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:component) { instance_double(Datadog::OpenFeature::Component) }
 
   describe ".capabilities" do
     it { expect(described_class.capabilities).to eq([70368744177664]) }
@@ -34,11 +36,8 @@ RSpec.describe Datadog::OpenFeature::Remote do
   describe "receiver logic" do
     before do
       allow(telemetry).to receive(:error)
-      allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
     end
 
-    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
-    let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
     let(:target) do
       Datadog::Core::Remote::Configuration::Target.parse(
@@ -89,8 +88,9 @@ RSpec.describe Datadog::OpenFeature::Remote do
         repository.transaction { |_, t| t.insert(content.path, target, content) }
       end
 
-      it "reconfigures engine and acknowledges applied change" do
-        expect(engine).to receive(:reconfigure!).with(content_data)
+      it "reconfigures the component and acknowledges the applied change" do
+        expect(component_provider).to receive(:call).and_call_original
+        expect(component).to receive(:reconfigure!).with(content_data)
 
         receiver.call(repository, transaction)
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
     end
 
     context "when change type is insert and reconfigure fails" do
-      before { allow(engine).to receive(:reconfigure!).and_raise(error) }
+      before { allow(component).to receive(:reconfigure!).and_raise(error) }
 
       let(:error) { Datadog::OpenFeature::EvaluationEngine::ReconfigurationError.new("Ooops") }
       let(:transaction) do
@@ -115,6 +115,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
     context "when change type is update" do
       before do
+        allow(component).to receive(:reconfigure!)
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
           .and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
 
@@ -147,12 +148,12 @@ RSpec.describe Datadog::OpenFeature::Remote do
         JSON
       end
 
-      it "reconfigures engine and acknowledges applied change" do
-        expect(engine).to receive(:reconfigure!).with(new_content_data)
+      it "reconfigures the component and acknowledges the applied change" do
+        expect(component).to receive(:reconfigure!).with(new_content_data)
 
         receiver.call(repository, transaction)
 
-        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        expect(new_content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
 
@@ -166,7 +167,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it "performs no-op on delete but reconfigures" do
-        expect(engine).to receive(:reconfigure!)
+        expect(component).to receive(:reconfigure!)
         expect { receiver.call(repository, transaction) }.not_to raise_error
       end
     end
@@ -185,16 +186,16 @@ RSpec.describe Datadog::OpenFeature::Remote do
         Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/other/config")
       end
 
-      it "logs error when content is missing and does not reconfigure the engine" do
+      it "logs error when content is missing and does not reconfigure the component" do
         expect(telemetry).to receive(:error).with(/Remote Configuration change is not present/)
-        expect(engine).not_to receive(:reconfigure!)
+        expect(component).not_to receive(:reconfigure!)
 
         receiver.call(repository, changes)
       end
     end
 
-    context "when engine is unavailable" do
-      let(:engine) { nil }
+    context "when component is unavailable" do
+      let(:component) { nil }
 
       it { expect { receiver.call(repository, []) }.not_to raise_error }
     end
