@@ -2,5 +2,5 @@
   "type": "Changed",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
-  "message": "Apply the `max_time_to_serialize_ms` budget to snapshot serialization (arguments, locals, self); values that exceed the budget report `notCapturedReason: timeout`."
+  "message": "Bound snapshot captures by the `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` budget (default `150`, replacing `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE`); values that exceed it report `notCapturedReason: timeout`."
 }
