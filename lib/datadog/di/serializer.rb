@@ -418,7 +418,7 @@ module Datadog
       # Note that this method does not (currently) utilize the custom
       # serializers that the "normal" serialization logic uses.
       #
-      # This serializer differs from the snapshot serializer in two ways:
+      # This serializer differs from the RFC in two ways:
       # 1. We omit the middle of long strings rather than the end,
       #    and also the inner entries in arrays/hashes/objects.
       # 2. We use Ruby-ish syntax for hashes and objects.
