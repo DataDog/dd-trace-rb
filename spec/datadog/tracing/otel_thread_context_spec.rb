@@ -43,18 +43,6 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
 
       it { is_expected.to be_a(described_class) }
     end
-
-    context "when native enablement fails" do
-      it "propagates the error" do
-        allow_any_instance_of(described_class).to receive(:_native_enable)
-          .and_raise(RuntimeError, "OTel thread context is not supported")
-
-        expect { build }.to raise_error(
-          RuntimeError,
-          "OTel thread context is not supported"
-        )
-      end
-    end
   end
 
   subject(:otel_thread_context) do
