@@ -11,6 +11,8 @@ module Datadog
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
+      KERNEL_CLASS: ::UnboundMethod
+
       def redact_identifier?: (Symbol | String name) -> bool
 
       def redact_type?: (any value) -> bool
