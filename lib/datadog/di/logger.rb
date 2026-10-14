@@ -20,10 +20,10 @@ module Datadog
         @target = target
       end
 
-      # Whether trace logging was enabled in settings at construction.
+      # Whether trace logging is enabled.
       # @return [Boolean]
       attr_reader :trace_logging
-      # The target logger the facade writes to.
+      # The target logger.
       # @return [::Logger]
       attr_reader :target
 
