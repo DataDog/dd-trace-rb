@@ -142,8 +142,7 @@ module Datadog
                   if legacy
                     Datadog::Core.log_deprecation(key: :di_legacy_max_time_to_serialize) do
                       "The DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE environment variable is deprecated " \
-                      "and will be removed in a future release; " \
-                      "its value is read as DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS until then. " \
+                      "and will be removed in a future release. " \
                       "Please use DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead."
                     end
 
