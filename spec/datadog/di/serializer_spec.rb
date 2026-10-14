@@ -212,9 +212,9 @@ RSpec.describe Datadog::DI::Serializer do
         .to include(notSerializedReason: "Arrgh!")
     end
 
-    it "emits the captureTimeout reason when the capture budget is exhausted" do
+    it "emits the timeout reason when the capture budget is exhausted" do
       allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
-      expect_capture_incomplete("captureTimeout")
+      expect_capture_incomplete("timeout")
       expect(serializer.serialize_value([1], name: :x)).to include(notCapturedReason: "timeout")
     end
   end
