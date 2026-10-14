@@ -97,7 +97,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
     end
 
     Datadog::DI::Serializer.new(settings, redactor, logger: Object.new,
-      guardrails_telemetry: guardrails_telemetry).serialize_value([1], depth: 0)
+      guardrails_telemetry: guardrails_telemetry).serialize_value([1], depth: 0, deadline: Float::INFINITY)
   SCRIPT
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
