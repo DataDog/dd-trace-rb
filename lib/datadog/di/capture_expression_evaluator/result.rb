@@ -20,7 +20,8 @@ module Datadog
         # @return [Hash{String => untyped}]
         attr_reader :serialized_values
 
-        # The evaluation errors.
+        # The evaluation errors; one entry per expression that failed to
+        # evaluate or serialize.
         # @return [Array<EvaluationFailure>]
         attr_reader :errors
       end
