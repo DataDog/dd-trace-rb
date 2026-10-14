@@ -2,5 +2,5 @@
   "type": "Changed",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6205",
-  "message": "Bound snapshot captures by the `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` budget (default `150`); values that exceed it report `notCapturedReason: timeout`. The deprecated `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` still applies when the new variable is unset and logs a deprecation warning."
+  "message": "Bound snapshot captures by the `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` budget (default `150`). `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is deprecated."
 }
