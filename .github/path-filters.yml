@@ -3,6 +3,7 @@
 system_tests:
   - '.github/forced-tests-list.cfg'
   - '.github/workflows/system-tests.yml'
+  - '.github/path-filters.yml'
   - 'bin/**'
   - 'datadog.gemspec'
   - 'ext/**'
