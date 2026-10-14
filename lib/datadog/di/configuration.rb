@@ -134,8 +134,6 @@ module Datadog
                 o.default 20
               end
 
-              # Capture-timeout budget, clamped to
-              # Serializer::CAPTURE_TIMEOUT_CEILING_SECONDS.
               option :max_time_to_serialize_ms do |o|
                 o.type :int
                 o.default 150

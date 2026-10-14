@@ -38,11 +38,6 @@ module Datadog
     #
     # @api private
     class Serializer
-      # Hard ceiling (DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS) for snapshot
-      # capture wall-time, in seconds. max_time_to_serialize_ms is clamped to this
-      # value, bounding the effective capture budget from above.
-      CAPTURE_TIMEOUT_CEILING_SECONDS = 0.15
-
       # Exception classes that must propagate to the caller during
       # serialization: fatal conditions (signals, interrupts, system exit).
       # NoMemoryError is deliberately excluded (unlike
@@ -530,23 +525,17 @@ module Datadog
       end
 
       # Computes the absolute monotonic deadline (in seconds) for a capture
-      # point from max_time_to_serialize_ms, clamped to
-      # CAPTURE_TIMEOUT_CEILING_SECONDS. Resolve once per capture point and
+      # point from max_time_to_serialize_ms. Resolve once per capture point and
       # share across all values serialized on the built-in paths so the
       # budget is not exceeded; custom serializer procs re-enter
       # serialize_value without the deadline and each custom-serialized
-      # subtree draws a fresh, independently clamped budget.
+      # subtree draws a fresh budget.
       #
       # @return [Float] absolute CLOCK_MONOTONIC reading, in seconds, at
       #   which the capture budget is exhausted
       def serialization_deadline
         budget_seconds = settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
-        budget = if budget_seconds > CAPTURE_TIMEOUT_CEILING_SECONDS
-          CAPTURE_TIMEOUT_CEILING_SECONDS
-        else
-          budget_seconds
-        end
-        monotonic_now + budget
+        monotonic_now + budget_seconds
       end
 
       # Returns the current monotonic clock reading, in seconds.

@@ -60,7 +60,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         end
       end
 
-      it "defaults max_time_to_serialize_ms to the 150 ms hard ceiling" do
+      it "defaults max_time_to_serialize_ms to 150" do
         expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq(150)
       end
     end
