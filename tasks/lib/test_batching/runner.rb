@@ -159,7 +159,7 @@ module TestBatching
       end
     end
 
-    def with_retry(&block)
+    def with_retry
       retries = 0
       begin
         yield

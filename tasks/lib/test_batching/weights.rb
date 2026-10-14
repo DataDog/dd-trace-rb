@@ -27,19 +27,11 @@ module TestBatching
           task_name = entry.fetch("task")
           group = entry.fetch("group")
 
-          test_seconds = entry["test_seconds"]
-          raise KeyError, "timing without test_seconds: #{task_name} (#{group})" unless test_seconds
-
+          test_seconds = entry.fetch("test_seconds")
           (task_samples[[ruby_version, task_name, group]] ||= []) << test_seconds
         end
 
         run_timings.timings.group_by { |entry| File.basename(entry.fetch("gemfile")) }.each do |gemfile, entries|
-          entries.each do |entry|
-            unless entry["build_seconds"]
-              raise KeyError, "timing without build_seconds: #{entry.fetch("task")} (#{entry.fetch("group")})"
-            end
-          end
-
           (gemfile_samples[[ruby_version, gemfile]] ||= []) << entries.sum { |entry| entry.fetch("build_seconds") }
         end
       end
