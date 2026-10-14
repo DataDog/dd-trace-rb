@@ -103,7 +103,7 @@ module Datadog
           capture_expression_evaluator: capture_expression_evaluator)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
-          capture_expression_evaluator: capture_expression_evaluator)
+          capture_expression_evaluator: capture_expression_evaluator, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
