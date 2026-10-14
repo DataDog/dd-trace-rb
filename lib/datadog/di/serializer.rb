@@ -113,35 +113,70 @@ module Datadog
       attr_reader :redactor
       attr_reader :telemetry
 
-      def combine_args(args, kwargs, target_self)
-        counter = 0
-        combined = args.each_with_object({}) do |value, c|
-          counter += 1
-          # Conversion to symbol is needed here to put args ahead of
-          # kwargs when they are merged below.
-          c[:"arg#{counter}"] = value
-        end.update(kwargs)
+      # Combines positional arguments, keyword arguments, and the receiver into
+      # a single name-keyed hash for serialization.
+      #
+      # Positional arguments are keyed by their real parameter name when
+      # +positional_param_names+ provides one, otherwise by the positional
+      # label arg1, arg2, ... . Keyword arguments keep their own names; the
+      # receiver is added under :self. Symbol keys keep positional arguments
+      # ahead of the symbol-keyed keyword arguments merged after them.
+      #
+      # @param args [Array<Object>] positional argument values, in call order
+      # @param kwargs [Hash{Symbol=>Object}] keyword arguments by name
+      # @param target_self [Object] the receiver of the probed method
+      # @param positional_param_names [Array<Symbol, nil>, nil] real names of
+      #   the leading fixed positional parameters; a nil entry (generated
+      #   methods, splat overflow, virtual/C methods), or a name that collides
+      #   with a keyword argument key or with the synthetic arg-N label of
+      #   another position, falls back to the arg-N label. nil means no names
+      #   are available and every position uses arg-N.
+      # @return [Hash{Symbol=>Object}] argument values keyed by name, plus :self
+      def combine_args(args, kwargs, target_self, positional_param_names: nil)
+        combined = {}
+        args.each_with_index do |value, index|
+          name = positional_param_names && positional_param_names[index]
+          # A real parameter name can coincide with a keyword argument key, or
+          # be shaped like the synthetic arg-N label of a later splat-absorbed
+          # position; either would silently drop a value in the assignment
+          # below. Fall back to the arg-N label in both cases so every position
+          # keeps a distinct key. Symbol keys put positional args ahead of the
+          # symbol-keyed kwargs merged below.
+          name = nil if name && (kwargs.key?(name) || name.to_s.match?(/\Aarg\d+\z/))
+          combined[name || :"arg#{index + 1}"] = value
+        end
+        combined.update(kwargs)
         combined[:self] = target_self
         combined
       end
 
-      # Serializes positional and keyword arguments to a method,
-      # as obtained by a method probe.
+      # Serializes positional and keyword arguments to a method, as obtained by
+      # a method probe.
       #
-      # UI supports a single argument list only and does not distinguish
-      # between positional and keyword arguments. We convert positional
-      # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
-      # the positional arguments are listed first.
+      # UI supports a single argument list only and does not distinguish between
+      # positional and keyword arguments. Positional arguments are keyed by their
+      # real parameter names when available (see #combine_args), falling back to
+      # arg1, arg2, ...; positional arguments are listed first. The receiver is
+      # serialized under :self so its instance variables are captured without an
+      # extra hash merge in the caller.
       #
-      # Instance variables are technically a hash just like kwargs,
-      # we take them as a separate parameter to avoid a hash merge
-      # in upstream code.
-      def serialize_args(args, kwargs, target_self,
+      # @param args [Array<Object>] positional argument values, in call order
+      # @param kwargs [Hash{Symbol=>Object}] keyword arguments by name
+      # @param target_self [Object] the receiver of the probed method
+      # @param positional_param_names [Array<Symbol, nil>, nil] real names of
+      #   the leading fixed positional parameters (see #combine_args), or nil
+      #   for arg-N labels
+      # @param depth [Integer] maximum object graph depth to serialize
+      # @param attribute_count [Integer, nil] maximum attributes per object
+      # @param length [Integer, nil] maximum string length before truncation
+      # @param collection_size [Integer, nil] maximum collection entries
+      # @return [Hash{Symbol=>Hash}] serialized argument values keyed by name
+      def serialize_args(args, kwargs, target_self, positional_param_names: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
         length: nil,
         collection_size: nil)
-        combined = combine_args(args, kwargs, target_self)
+        combined = combine_args(args, kwargs, target_self, positional_param_names: positional_param_names)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
           length: length, collection_size: collection_size)
       end

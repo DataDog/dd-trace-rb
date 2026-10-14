@@ -435,6 +435,62 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
+    context "with positional parameter names" do
+      let(:target_self) { Object.new }
+
+      it "labels positional args with their real names" do
+        expect(serializer.serialize_args([1, "x"], {}, target_self, positional_param_names: [:count, :label])).to eq(
+          count: {type: "Integer", value: "1"},
+          label: {type: "String", value: "x"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "falls back to arg-N labels for positions without a name" do
+        expect(serializer.serialize_args([1, "x", 2], {}, target_self, positional_param_names: [:count, nil])).to eq(
+          count: {type: "Integer", value: "1"},
+          arg2: {type: "String", value: "x"},
+          arg3: {type: "Integer", value: "2"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "keeps arg-N labels when no names are given" do
+        expect(serializer.serialize_args([1, "x"], {}, target_self, positional_param_names: nil)).to eq(
+          arg1: {type: "Integer", value: "1"},
+          arg2: {type: "String", value: "x"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "falls back to arg-N when a positional name collides with a keyword key" do
+        expect(serializer.serialize_args(["/a"], {path: "override"}, target_self, positional_param_names: [:path])).to eq(
+          arg1: {type: "String", value: "/a"},
+          path: {type: "String", value: "override"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "falls back to arg-N when a positional name is shaped like the arg-N label" do
+        expect(serializer.serialize_args([10, 20, 30], {}, target_self, positional_param_names: [:arg3])).to eq(
+          arg1: {type: "Integer", value: "10"},
+          arg2: {type: "Integer", value: "20"},
+          arg3: {type: "Integer", value: "30"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+
+      it "redacts a positional arg whose real name is a redacted identifier" do
+        # Keying by real name routes positional args through identifier
+        # redaction; a positional named e.g. password is now redacted where
+        # the arg-N label previously captured it in the clear.
+        expect(serializer.serialize_args(["secret"], {}, target_self, positional_param_names: [:password])).to eq(
+          password: {type: "String", notCapturedReason: "redactedIdent"},
+          self: {type: "Object", fields: {}},
+        )
+      end
+    end
+
     context "when positional arg is frozen" do
       let(:frozen_string) { "hello".freeze }
 
