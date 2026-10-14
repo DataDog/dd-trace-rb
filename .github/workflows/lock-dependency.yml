@@ -23,7 +23,7 @@ jobs:
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
-          filters: .github/dependency_filters.yml
+          filters: .github/path-filters.yml
 
   lock:
     runs-on: ubuntu-24.04
