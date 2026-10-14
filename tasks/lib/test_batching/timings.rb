@@ -5,54 +5,17 @@ require "fileutils"
 require "json"
 require_relative "matrix"
 
-# The Timings stage: what one run measured. TaskTiming is one task's
-# durations, and RunTimings is the whole run's document, which also owns
-# its artifact file: the per-batch "timings-*.json" the Unit Tests jobs
-# upload.
+# The Timings stage: what one run measured. RunTimings is the run's
+# document, and it owns its artifact file: the per-batch
+# "timings-*.json" the Unit Tests jobs upload.
 module TestBatching
-  # One task's measured durations inside a run. Absent measurements stay
-  # nil and are omitted when serialized, so a build-phase file carries only
-  # build_seconds and a completed run carries all three.
-  class TaskTiming
-    attr_reader :task, :build_seconds, :test_seconds, :junit_seconds
-
-    def initialize(task:, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
-      @task = task
-      @build_seconds = build_seconds
-      @test_seconds = test_seconds
-      @junit_seconds = junit_seconds
-    end
-
-    def matches?(task)
-      task.name == @task.name && task.group == @task.group && task.gemfile == @task.gemfile
-    end
-
-    def ==(other)
-      other.is_a?(TaskTiming) && task == other.task &&
-        build_seconds == other.build_seconds && test_seconds == other.test_seconds && junit_seconds == other.junit_seconds
-    end
-    alias_method :eql?, :==
-
-    def to_h
-      task.to_h.merge(
-        "build_seconds" => build_seconds,
-        "test_seconds" => test_seconds,
-        "junit_seconds" => junit_seconds
-      ).compact
-    end
-
-    def self.from_h(hash)
-      new(
-        task: Task.from_h(hash),
-        build_seconds: hash["build_seconds"],
-        test_seconds: hash["test_seconds"],
-        junit_seconds: hash["junit_seconds"]
-      )
-    end
-  end
-
   # One run's timings: its Ruby version and the measured durations of its
   # tasks. The T1 format both Weights and Runner read and write.
+  #
+  # Each timing entry is a hash in the artifact's own shape: task, group,
+  # gemfile, then the measurements the run made so far. Absent
+  # measurements are omitted, so a build-phase document carries only
+  # build_seconds and a completed run carries all three.
   class RunTimings
     DEFAULT_DIRECTORY = "tmp/ci-task-timings"
 
@@ -60,11 +23,11 @@ module TestBatching
 
     def initialize(ruby_version:, timings:)
       @ruby_version = ruby_version
-      @timings = timings
+      @timings = timings.map(&:freeze)
     end
 
     def tasks
-      timings.map(&:task)
+      timings.map { |entry| Task.new(name: entry.fetch("task"), group: entry.fetch("group"), gemfile: entry.fetch("gemfile")) }
     end
 
     def ==(other)
@@ -72,26 +35,32 @@ module TestBatching
     end
     alias_method :eql?, :==
 
-    # Returns a copy with the timing for that task replaced, or appended when
-    # the run has no prior measurement for it.
-    def with_timing(timing)
-      index = timings.index { |entry| entry.matches?(timing.task) }
+    # The one place a timing entry is born: replaces the entry for that
+    # task, or appends one when the run has no prior measurement for it.
+    def with_timing(task:, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
+      entry = task.to_h.merge(
+        "build_seconds" => build_seconds,
+        "test_seconds" => test_seconds,
+        "junit_seconds" => junit_seconds
+      ).compact.freeze
+
+      index = timings.index { |existing| entry_matches?(existing, task) }
       replaced = timings.dup
       if index
-        replaced[index] = timing
+        replaced[index] = entry
       else
-        replaced << timing
+        replaced << entry
       end
 
       self.class.new(ruby_version: ruby_version, timings: replaced)
     end
 
     def to_h
-      {"ruby_version" => ruby_version, "tasks" => timings.map(&:to_h)}
+      {"ruby_version" => ruby_version, "tasks" => timings.map(&:dup)}
     end
 
     def self.from_h(hash)
-      new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks").map { |entry| TaskTiming.from_h(entry) })
+      new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks"))
     end
 
     def self.write(run_timings, directory: DEFAULT_DIRECTORY)
@@ -122,6 +91,13 @@ module TestBatching
       digest = Digest::SHA256.hexdigest(identity)[0, 12]
       File.join(directory, "#{RUBY_VERSION[0..2]}-#{digest}.json")
     end
+
+    private
+
+    def entry_matches?(entry, task)
+      entry.fetch("task") == task.name && entry.fetch("group") == task.group && entry.fetch("gemfile") == task.gemfile
+    end
+
     private_class_method :file_path
   end
 end

@@ -16,8 +16,8 @@ RSpec.describe TestBatching::Weights do
       TestBatching::RunTimings.new(
         ruby_version: "3.1",
         timings: [
-          TestBatching::TaskTiming.new(task: task("main"), build_seconds: main_build, test_seconds: main_test),
-          TestBatching::TaskTiming.new(task: task("contrib"), build_seconds: 1, test_seconds: 5),
+          {"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => main_build, "test_seconds" => main_test},
+          {"task" => "contrib", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 1, "test_seconds" => 5},
         ]
       )
     end
@@ -43,7 +43,7 @@ RSpec.describe TestBatching::Weights do
     runs = [10.12345, 20.0, 30.5, 40.0].map do |test_seconds|
       TestBatching::RunTimings.new(
         ruby_version: "3.1",
-        timings: [TestBatching::TaskTiming.new(task: task("main"), build_seconds: 1, test_seconds: test_seconds)]
+        timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 1, "test_seconds" => test_seconds}]
       )
     end
 
@@ -130,10 +130,9 @@ RSpec.describe TestBatching::Weights do
   end
 
   it "aggregates a directory of timing files into the manifest" do
-    tasks = [TestBatching::Task.new(name: "main", group: "", gemfile: "gemfiles/foo.gemfile")]
     run_timings = TestBatching::RunTimings.new(
       ruby_version: RUBY_VERSION[0..2],
-      timings: [TestBatching::TaskTiming.new(task: tasks.first, build_seconds: 10.0, test_seconds: 30.0)]
+      timings: [{"task" => "main", "group" => "", "gemfile" => "gemfiles/foo.gemfile", "build_seconds" => 10.0, "test_seconds" => 30.0}]
     )
 
     Dir.mktmpdir do |directory|
@@ -141,9 +140,10 @@ RSpec.describe TestBatching::Weights do
 
       described_class.aggregate(directory)
 
+      main = TestBatching::Task.new(name: "main", group: "", gemfile: "gemfiles/foo.gemfile")
       loaded = described_class.load
 
-      expect(loaded.for_ruby(RUBY_VERSION[0..2]).test_cost(tasks.first)).to eq(30.0)
+      expect(loaded.for_ruby(RUBY_VERSION[0..2]).test_cost(main)).to eq(30.0)
     ensure
       File.delete(described_class::MANIFEST_PATH) if File.exist?(described_class::MANIFEST_PATH)
     end

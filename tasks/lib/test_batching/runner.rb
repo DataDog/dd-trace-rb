@@ -25,12 +25,12 @@ module TestBatching
         build_seconds = install(task)
         test_seconds, junit_seconds = execute(task, rng)
 
-        run_timings = run_timings.with_timing(TaskTiming.new(
+        run_timings = run_timings.with_timing(
           task: task,
           build_seconds: build_seconds,
           test_seconds: test_seconds,
           junit_seconds: junit_seconds
-        ))
+        )
 
         [task.name, junit_seconds]
       end

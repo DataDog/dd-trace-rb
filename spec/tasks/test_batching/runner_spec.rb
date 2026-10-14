@@ -25,9 +25,9 @@ RSpec.describe TestBatching::Runner do
     described_class.run([task_json("main"), task_json("contrib")])
 
     expect(@written.ruby_version).to eq(RUBY_VERSION[0..2])
-    expect(@written.timings.map { |timing| timing.task.name }).to eq(["main", "contrib"])
-    expect(@written.timings.map(&:build_seconds)).to eq([10.0, 10.0])
-    expect(@written.timings.map(&:test_seconds)).to eq([10.0, 10.0])
+    expect(@written.timings.map { |entry| entry.fetch("task") }).to eq(["main", "contrib"])
+    expect(@written.timings.map { |entry| entry["build_seconds"] }).to eq([10.0, 10.0])
+    expect(@written.timings.map { |entry| entry["test_seconds"] }).to eq([10.0, 10.0])
   end
 
   it "writes the durations completed before a failing task" do
@@ -38,7 +38,7 @@ RSpec.describe TestBatching::Runner do
 
     expect { described_class.run([task_json("main"), task_json("contrib")]) }.to raise_error(RuntimeError)
 
-    expect(@written.timings.map { |timing| timing.task.name }).to eq(["main"])
-    expect(@written.timings.map(&:test_seconds)).to eq([10.0])
+    expect(@written.timings.map { |entry| entry.fetch("task") }).to eq(["main"])
+    expect(@written.timings.map { |entry| entry["test_seconds"] }).to eq([10.0])
   end
 end

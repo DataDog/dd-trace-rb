@@ -9,16 +9,19 @@ RSpec.describe TestBatching::RunTimings do
     TestBatching::Task.new(name: name, group: group, gemfile: "gemfiles/#{name}.gemfile")
   end
 
-  def timing(task, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
-    TestBatching::TaskTiming.new(
-      task: task, build_seconds: build_seconds, test_seconds: test_seconds, junit_seconds: junit_seconds
-    )
+  # An entry in the artifact's own shape, the way from_h produces it.
+  def entry(task, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
+    task.to_h.merge(
+      "build_seconds" => build_seconds,
+      "test_seconds" => test_seconds,
+      "junit_seconds" => junit_seconds
+    ).compact
   end
 
   it "serializes to and from the timings artifact document" do
     run_timings = described_class.new(
       ruby_version: "3.4",
-      timings: [timing(task("main"), build_seconds: 10.0, test_seconds: 30.0, junit_seconds: 25.0)]
+      timings: [entry(task("main"), build_seconds: 10.0, test_seconds: 30.0, junit_seconds: 25.0)]
     )
 
     expect(described_class.from_h(run_timings.to_h)).to eq(run_timings)
@@ -27,7 +30,7 @@ RSpec.describe TestBatching::RunTimings do
   it "omits measurements the run has not made yet" do
     run_timings = described_class.new(
       ruby_version: "3.4",
-      timings: [timing(task("main"), build_seconds: 10.0)]
+      timings: [entry(task("main"), build_seconds: 10.0)]
     )
 
     expect(run_timings.to_h.fetch("tasks").first.keys).to eq(["task", "group", "gemfile", "build_seconds"])
@@ -36,22 +39,20 @@ RSpec.describe TestBatching::RunTimings do
   it "replaces the timing for a measured task and appends a new one" do
     prior = described_class.new(
       ruby_version: "3.4",
-      timings: [timing(task("main"), build_seconds: 10.0), timing(task("contrib"), build_seconds: 5.0)]
+      timings: [entry(task("main"), build_seconds: 10.0), entry(task("contrib"), build_seconds: 5.0)]
     )
 
-    updated = prior.with_timing(timing(task("main"), build_seconds: 10.0, test_seconds: 30.0))
+    updated = prior.with_timing(task: task("main"), build_seconds: 10.0, test_seconds: 30.0)
 
-    expect(updated.timings.map(&:test_seconds)).to eq([30.0, nil])
-    expect(updated.timings.map { |entry| entry.task.name }).to eq(["main", "contrib"])
-    expect(prior.timings.map(&:test_seconds)).to eq([nil, nil])
+    expect(updated.timings.map { |e| e["test_seconds"] }).to eq([30.0, nil])
+    expect(updated.timings.map { |e| e.fetch("task") }).to eq(["main", "contrib"])
+    expect(prior.timings.map { |e| e["test_seconds"] }).to eq([nil, nil])
   end
 
   def run_timings(tasks:, build_seconds:, test_seconds: nil)
-    TestBatching::RunTimings.new(
+    described_class.new(
       ruby_version: RUBY_VERSION[0..2],
-      timings: tasks.map do |task|
-        TestBatching::TaskTiming.new(task: task, build_seconds: build_seconds, test_seconds: test_seconds)
-      end
+      timings: tasks.map { |task| entry(task, build_seconds: build_seconds, test_seconds: test_seconds) }
     )
   end
 
@@ -63,7 +64,7 @@ RSpec.describe TestBatching::RunTimings do
       described_class.write(run_timings(tasks: tasks, build_seconds: 10.0, test_seconds: 30.0), directory: directory)
 
       expect(described_class.read(other, directory: directory).timings).to eq([])
-      expect(described_class.read(tasks, directory: directory).timings.map(&:test_seconds)).to eq([30.0])
+      expect(described_class.read(tasks, directory: directory).timings.map { |e| e["test_seconds"] }).to eq([30.0])
     end
   end
 

@@ -22,24 +22,24 @@ module TestBatching
       runs.each do |run_timings|
         ruby_version = run_timings.ruby_version
 
-        run_timings.timings.each do |timing|
-          unless timing.test_seconds
-            raise KeyError, "timing without test_seconds: #{timing.task.name} (#{timing.task.group})"
-          end
+        run_timings.timings.each do |entry|
+          task_name = entry.fetch("task")
+          group = entry.fetch("group")
 
-          key = [ruby_version, timing.task.name, timing.task.group]
-          (task_samples[key] ||= []) << timing.test_seconds
+          test_seconds = entry["test_seconds"]
+          raise KeyError, "timing without test_seconds: #{task_name} (#{group})" unless test_seconds
+
+          (task_samples[[ruby_version, task_name, group]] ||= []) << test_seconds
         end
 
-        run_timings.timings.group_by { |timing| timing.task.gemfile_name }.each do |gemfile, timings|
-          timings.each do |timing|
-            unless timing.build_seconds
-              raise KeyError, "timing without build_seconds: #{timing.task.name} (#{timing.task.group})"
+        run_timings.timings.group_by { |entry| File.basename(entry.fetch("gemfile")) }.each do |gemfile, entries|
+          entries.each do |entry|
+            unless entry["build_seconds"]
+              raise KeyError, "timing without build_seconds: #{entry.fetch("task")} (#{entry.fetch("group")})"
             end
           end
 
-          key = [ruby_version, gemfile]
-          (gemfile_samples[key] ||= []) << timings.sum(&:build_seconds)
+          (gemfile_samples[[ruby_version, gemfile]] ||= []) << entries.sum { |entry| entry.fetch("build_seconds") }
         end
       end
 

@@ -14,7 +14,7 @@ require_relative "../../tasks/lib/test_batching"
 RSpec.describe TestBatching do
   it "loads every pipeline object from the umbrella require" do
     expect(TestBatching.constants.map(&:to_s)).to include(
-      "Task", "TaskMatrix", "TaskTiming", "RunTimings", "Weights", "Batch", "Plan",
+      "Task", "TaskMatrix", "RunTimings", "Weights", "Batch", "Plan",
       "Static", "Weighted", "Runner"
     )
   end
@@ -30,13 +30,9 @@ RSpec.describe TestBatching do
       TestBatching::Task.new(name: "main", group: "", gemfile: "gemfiles/foo.gemfile"),
       TestBatching::Task.new(name: "profiling", group: "", gemfile: "gemfiles/bar.gemfile"),
     ]
-    run_timings = TestBatching::RunTimings.new(
-      ruby_version: ruby,
-      timings: [
-        TestBatching::TaskTiming.new(task: tasks.first, build_seconds: 10.0, test_seconds: 30.0),
-        TestBatching::TaskTiming.new(task: tasks.last, build_seconds: 20.0, test_seconds: 60.0),
-      ]
-    )
+    run_timings = TestBatching::RunTimings.new(ruby_version: ruby, timings: [])
+    run_timings = run_timings.with_timing(task: tasks.first, build_seconds: 10.0, test_seconds: 30.0)
+    run_timings = run_timings.with_timing(task: tasks.last, build_seconds: 20.0, test_seconds: 60.0)
 
     Dir.mktmpdir do |directory|
       TestBatching::RunTimings.write(run_timings, directory: directory)
