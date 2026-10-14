@@ -30,14 +30,14 @@ jobs:
           filters: |
             src:
               - '.github/forced-tests-list.cfg'
-              - '.github/workflows/**'
-              - 'lib/**'
+              - '.github/workflows/system-tests.yml'
+              - 'bin/**'
+              - 'datadog.gemspec'
               - 'ext/**'
-              - '*.gemspec'
               - 'Gemfile'
               - '*.gemfile'
+              - 'lib/**'
               - 'lib-injection/**'
-              - 'tasks/**'
 
   build:
     needs:
