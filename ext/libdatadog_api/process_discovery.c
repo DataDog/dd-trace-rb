@@ -39,8 +39,9 @@ void process_discovery_init(VALUE core_module) {
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE logger;
+  VALUE otel_thread_context_enabled;
   VALUE options;
-  rb_scan_args(argc, argv, "1:", &logger, &options);
+  rb_scan_args(argc, argv, "2:", &logger, &otel_thread_context_enabled, &options);
   if (options == Qnil) options = rb_hash_new();
 
   VALUE runtime_id = rb_hash_fetch(options, ID2SYM(rb_intern("runtime_id")));
@@ -52,7 +53,6 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE service_version = rb_hash_fetch(options, ID2SYM(rb_intern("service_version")));
   VALUE process_tags = rb_hash_fetch(options, ID2SYM(rb_intern("process_tags")));
   VALUE container_id = rb_hash_fetch(options, ID2SYM(rb_intern("container_id")));
-  VALUE otel_thread_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_thread_context_enabled")));
 
   ENFORCE_TYPE(runtime_id, T_STRING);
   ENFORCE_TYPE(tracer_language, T_STRING);
