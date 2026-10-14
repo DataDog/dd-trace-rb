@@ -55,19 +55,35 @@ module Datadog
 
       # Third-party library integration / custom serializers.
       #
-      # Captured payloads have limited size and capture depth, so complex
-      # objects like ActiveRecord model instances may need custom serializers
-      # to be captured usefully.
+      # Dynamic instrumentation has limited payload sizes, and for efficiency
+      # reasons it is not desirable to transmit data to Datadog that will
+      # never contain useful information. Additionally, due to depth limits,
+      # desired data may not even be included in payloads when serialized
+      # with the default, naive serializer. Therefore, custom objects like
+      # ActiveRecord model instances may need custom serializers.
       #
-      # CUSTOMER NOTE: The custom serializer API is subject to change.
-      # Please create an issue at
+      # CUSTOMER NOTE: The API for defining custom serializers is not yet
+      # finalized. Please create an issue at
       # https://github.com/datadog/dd-trace-rb/issues describing the
-      # object(s) you wish to serialize.
+      # object(s) you wish to serialize so that we can ensure your use case
+      # will be supported as the library evolves.
       #
-      # Serializers register by condition, matching arbitrary values; a
-      # registration for a specific class would leave ActiveRecord models,
-      # which share a base class but differ per model, and Mongoid models,
-      # which only share a module, uncovered.
+      # Note that the current implementation does not permit defining a
+      # serializer for a particular class, which is the simplest use case.
+      # This is because the library itself does not need this functionality
+      # yet, and it won't help for ActiveRecord models (that derive from
+      # a common base class but are all of different classes) or for Mongoid
+      # models (that do not have a common base class at all but include a
+      # standard Mongoid module).
+      #
+      # Important: these serializers are NOT used in log messages.
+      # They are only used for variables that are captured in the snapshots.
+      #
+      # Exception handling: If a custom serializer's condition lambda raises
+      # an exception (e.g., regex match against invalid UTF-8 strings), the
+      # exception will be logged at WARN level, then the serializer will be
+      # skipped and the next serializer will be tried. This prevents custom
+      # serializers from breaking the entire serialization process.
       #
       # IMPORTANT: Custom serializers MUST produce data that can be JSON-encoded.
       # Specifically, custom serializers MUST NOT produce strings with binary
