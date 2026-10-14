@@ -138,6 +138,15 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         end.to change { described_class::Testing._native_read }.to(nil)
       end
 
+      it "updates an existing thread context" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+
+        expect(decode_context(described_class::Testing._native_read)).to include(
+          trace_id: 11, span_id: 12, local_root_span_id: 13, valid: true
+        )
+      end
+
       it "updates the thread context on fiber switch" do
         otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
