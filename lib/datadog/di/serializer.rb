@@ -123,7 +123,7 @@ module Datadog
 
       attr_reader :settings
       attr_reader :redactor
-      # The logger for contained serialization failures.
+      # The logger.
       # @return [DI::Logger]
       attr_reader :logger
       # The guardrails metric emitter.
