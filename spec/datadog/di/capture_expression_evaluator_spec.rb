@@ -153,11 +153,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "omits the key from output and reports the timeout as an evaluation error" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output).to eq({})
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("filtered")
-        expect(errors.first[:message]).to include("EvaluationTimeout")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("filtered")
+        expect(result.errors.first.message).to include("EvaluationTimeout")
       end
     end
 

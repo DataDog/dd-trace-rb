@@ -17,12 +17,14 @@ module Datadog
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for builder diagnostics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
       # @return [void]
-      def initialize(settings, serializer, logger, capture_expression_evaluator:)
+      def initialize(settings, serializer, logger, capture_expression_evaluator:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @capture_expression_evaluator = capture_expression_evaluator
+        @telemetry = telemetry
       end
 
       attr_reader :settings
@@ -32,6 +34,10 @@ module Datadog
       attr_reader :logger
 
       attr_reader :capture_expression_evaluator
+
+      # The telemetry component evaluation timeouts are counted through.
+      # @return [Datadog::Core::Telemetry::Component, nil]
+      attr_reader :telemetry
 
       def build_received(probe)
         build_status(probe,

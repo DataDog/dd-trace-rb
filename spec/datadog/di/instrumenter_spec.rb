@@ -2211,7 +2211,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context "method probe snapshot through the probe manager" do
         let(:probe_notification_builder) do
-          Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
+          Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
+            capture_expression_evaluator: capture_expression_evaluator, telemetry: telemetry)
         end
 
         let(:snapshot_payloads) { [] }
@@ -2226,7 +2227,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               # Status notifications are not recorded by this test.
             end
 
-            def add_snapshot(payload)
+            def add_snapshot(payload, probe: nil)
               @snapshot_payloads << payload
             end
           end.new(snapshot_payloads)
@@ -2238,7 +2239,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         let(:probe_manager) do
           Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
-            probe_notifier_worker, logger, probe_repository, telemetry: telemetry)
+            probe_notifier_worker, logger, probe_repository,
+            guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
         end
 
         before do
