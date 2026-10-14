@@ -17,7 +17,7 @@ jobs:
     name: Changes
     runs-on: ubuntu-24.04
     outputs:
-      changes: ${{ steps.changes.outputs.src }}
+      changes: ${{ steps.changes.outputs.system_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,17 +27,7 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
-          filters: |
-            src:
-              - '.github/forced-tests-list.cfg'
-              - '.github/workflows/**'
-              - 'lib/**'
-              - 'ext/**'
-              - '*.gemspec'
-              - 'Gemfile'
-              - '*.gemfile'
-              - 'lib-injection/**'
-              - 'tasks/**'
+          filters: .github/path-filters.yml
 
   build:
     needs:

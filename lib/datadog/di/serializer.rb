@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "date"
 require_relative "redactor"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -103,15 +105,41 @@ module Datadog
         @@flat_registry << {condition: condition, proc: block}
       end
 
-      def initialize(settings, redactor, telemetry: nil)
+      # Initializes the serializer.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param redactor [Redactor] redactor gating captured values
+      # @param logger [DI::Logger] logger for contained serialization failures
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-incomplete metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component serializer errors are reported through
+      # @return [void]
+      def initialize(settings, redactor, logger:, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @redactor = redactor
+        @logger = logger
+        @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
       end
 
       attr_reader :settings
       attr_reader :redactor
+      # The logger for contained serialization failures.
+      # @return [DI::Logger]
+      attr_reader :logger
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
       attr_reader :telemetry
+
+      # Emits the canonical capture-incomplete metric for a capture limit
+      # enforced while serializing a snapshot, with the snapshot event
+      # type.
+      #
+      # @param reason [String] a GuardrailsTelemetry::Reason constant naming the enforced limit
+      # @return [void]
+      def record_capture_incomplete(reason)
+        guardrails_telemetry.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
+      end
 
       def combine_args(args, kwargs, target_self)
         counter = 0
@@ -143,7 +171,7 @@ module Datadog
         collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
-          length: length, collection_size: collection_size)
+          length: length, collection_size: collection_size,)
       end
 
       # Serializes variables captured by a line probe.
@@ -157,7 +185,7 @@ module Datadog
         collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
-            length: length, collection_size: collection_size)
+            length: length, collection_size: collection_size,)
         end
       end
 
@@ -259,6 +287,7 @@ module Datadog
               original_size = value.bytesize
               if original_size > max
                 serialized.update(truncated: true, size: original_size)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::STRING_LENGTH)
                 value = value.byteslice(0...max)
               end
               value = escape_binary_string(value) # steep:ignore ArgumentTypeMismatch
@@ -267,6 +296,7 @@ module Datadog
               # Truncate non-binary strings
               if value.length > max
                 serialized.update(truncated: true, size: value.length)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::STRING_LENGTH)
                 value = value[0...max]
                 need_dup = false
               end
@@ -278,11 +308,13 @@ module Datadog
           when Array
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
               collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
               max = collection_size
               if max != 0 && value.length > max
                 serialized.update(notCapturedReason: "collectionSize", size: value.length)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::COLLECTION_SIZE)
                 # same steep failure with array slices.
                 # https://github.com/soutaro/steep/issues/1219
                 value = value[0...max] || []
@@ -295,6 +327,7 @@ module Datadog
           when Hash
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
               collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
               max = collection_size
@@ -303,17 +336,21 @@ module Datadog
               value.each do |k, v|
                 if max != 0 && cur >= max
                   serialized.update(notCapturedReason: "collectionSize", size: value.length)
+                  record_capture_incomplete(GuardrailsTelemetry::Reason::COLLECTION_SIZE)
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
-                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)]
+                entries << [
+                  serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
+                ]
               end
               serialized.update(entries: entries)
             end
           else
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
               fields = {}
               cur = 0
@@ -343,6 +380,7 @@ module Datadog
               ivars.each do |ivar|
                 if cur >= attribute_count
                   serialized.update(notCapturedReason: "fieldCount", fields: fields)
+                  record_capture_incomplete(GuardrailsTelemetry::Reason::FIELD_COUNT)
                   break
                 end
                 cur += 1
@@ -362,6 +400,8 @@ module Datadog
           # serialization (e.g., infinite recursion in custom serializers, memory
           # exhaustion from large objects) and should return a safe structure
           # rather than propagating to the transport layer.
+          record_capture_incomplete(GuardrailsTelemetry::Reason::RUNTIME_ERROR)
+          logger.debug { "di: error serializing value of #{class_name(cls)}: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Error serializing")
           {type: class_name(cls), notSerializedReason: exc.to_s}
         end

@@ -8,7 +8,7 @@ module Datadog
 
       @status_queue: Array[Hash[Symbol, untyped]]
 
-      @snapshot_queue: Array[Hash[Symbol, untyped]]
+      @snapshot_queue: Array[SnapshotEvent]
 
       @agent_settings: Datadog::Core::Configuration::AgentSettings
 
@@ -22,21 +22,37 @@ module Datadog
 
       @stop_requested: bool
 
+      @sleep_remaining: Numeric?
+
+      @wake_scheduled: bool
+
+      @pid: Integer?
+
+      @flush: Integer
+
+      @status_transport: DI::Transport::Diagnostics::Transport?
+
+      @snapshot_transport: DI::Transport::Input::Transport?
+
       @logger: DI::Logger
 
       @telemetry: Core::Telemetry::Component?
+
+      @guardrails_telemetry: GuardrailsTelemetry
 
       @probe_repository: ProbeRepository
 
       @probe_notification_builder: ProbeNotificationBuilder
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, DI::Logger logger, agent_settings: Datadog::Core::Configuration::AgentSettings, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, guardrails_telemetry: GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
+
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
 
       attr_reader probe_repository: ProbeRepository
 
@@ -47,10 +63,7 @@ module Datadog
       def flush: () -> void
 
       def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
-      def add_snapshot: (Hash[Symbol, untyped] event) -> void
-
-      def status_transport: () -> DI::Transport::Diagnostics::Transport
-      def snapshot_transport: () -> DI::Transport::Input::Transport
+      def add_snapshot: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
 
       private
 
@@ -60,13 +73,25 @@ module Datadog
 
       def status_queue: () -> Array[Hash[Symbol, untyped]]
 
-      def snapshot_queue: () -> Array[Hash[Symbol, untyped]]
+      def snapshot_queue: () -> Array[SnapshotEvent]
 
       attr_reader agent_settings: Datadog::Core::Configuration::AgentSettings
 
       attr_reader wake: Core::Semaphore
 
       attr_reader thread: Thread?
+
+      def status_transport: () -> DI::Transport::Diagnostics::Transport
+
+      def snapshot_transport: () -> DI::Transport::Input::Transport
+
+      def do_send_status: (Array[Hash[Symbol, untyped]] batch) -> void
+
+      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+
+      def handle_serialization_error: (String probe_id, Exception exception) -> void
+
+      def tags: () -> Hash[String, String]
 
       def io_in_progress?: () -> bool
 
@@ -77,10 +102,6 @@ module Datadog
       def maybe_send_snapshot: () -> bool
 
       def min_send_interval: () -> Float
-
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
-
-      def handle_serialization_error: (String probe_id, Exception exception) -> void
     end
   end
 end
