@@ -1017,9 +1017,6 @@ RSpec.describe "Instrumentation integration" do
               # Actual execution time varies greatly in CI.
               # We had a test run where the method was reported to take
               # exactly zero seconds, and also 26 and 40 seconds.
-              # The current version calls Process.clock_gettime directly
-              # instead of using our helper which could invoke customer code
-              # and also be mocked.
               # The reported duration in local test runs is about 0.03 seconds.
               expect(value).to be > 0
               # Set upper bound at 1000 seconds... should be safe given the

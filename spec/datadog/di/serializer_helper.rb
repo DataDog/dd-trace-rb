@@ -71,17 +71,12 @@ module SerializerHelper
     end
   end
 
-  # Stubs `Process.clock_gettime(CLOCK_MONOTONIC, :float_second)` to return `values` in
-  # order; other clock reads fall through to the original.
+  # Stubs `Core::Utils::Time.get_time` to return `values` in order.
   def stub_monotonic_clock(values)
     before do
       calls = 0
-      allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-        if args == [::Process::CLOCK_MONOTONIC, :float_second]
-          values[calls].tap { calls += 1 }
-        else
-          original.call(*args)
-        end
+      allow(Datadog::Core::Utils::Time).to receive(:get_time) do
+        values[calls].tap { calls += 1 }
       end
     end
   end

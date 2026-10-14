@@ -37,7 +37,6 @@ module Datadog
       def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?deadline: Float?) -> Hash[Symbol, untyped]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?, ?deadline: Float?) -> Hash[Symbol, untyped]
       def serialization_deadline: () -> Float
-      def monotonic_now: () -> Float
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
       def self.register: (?condition: Proc?) {

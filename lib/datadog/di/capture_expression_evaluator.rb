@@ -6,6 +6,7 @@ require_relative "capture_expression_evaluator/result"
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
+require_relative "../core/utils/time"
 
 module Datadog
   module DI
@@ -58,7 +59,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if serializer.monotonic_now >= deadline
+          if Core::Utils::Time.get_time >= deadline
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             guardrails_telemetry.skipped(

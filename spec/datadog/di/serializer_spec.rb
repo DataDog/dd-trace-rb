@@ -546,13 +546,13 @@ RSpec.describe Datadog::DI::Serializer do
     context "configured budget" do
       it "resolves a configured budget above the default unchanged" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
-        allow(serializer).to receive(:monotonic_now).and_return(1.0)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
         expect(serializer.serialization_deadline).to eq(1.0 + 500 / 1000.0)
       end
 
       it "resolves a configured budget below the default unchanged" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        allow(serializer).to receive(:monotonic_now).and_return(1.0)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
         expect(serializer.serialization_deadline).to eq(1.0 + 100 / 1000.0)
       end
     end
