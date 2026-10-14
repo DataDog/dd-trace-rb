@@ -23,9 +23,8 @@ module TestBatching
 
       durations = tasks.map { |hash| Task.from_h(hash) }.map do |task|
         build_seconds = install(task)
-        run_timings = run_timings.with_timing(TaskTiming.new(task: task, build_seconds: build_seconds))
-
         test_seconds, junit_seconds = execute(task, rng)
+
         run_timings = run_timings.with_timing(TaskTiming.new(
           task: task,
           build_seconds: build_seconds,
