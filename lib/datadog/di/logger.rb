@@ -28,8 +28,7 @@ module Datadog
       attr_reader :target
 
       # Writes the given message or the block's message to the target
-      # logger. The facade returns nil on every path,
-      # matching its void signature.
+      # logger.
       #
       # @param message [String, nil] message written when no block is given
       # @return [void]
@@ -39,8 +38,7 @@ module Datadog
       end
 
       # Writes the block's message to the target logger at debug level when
-      # the trace-logging gate resolved at construction is enabled; a
-      # disabled gate skips the block.
+      # the trace-logging gate resolved at construction is enabled.
       #
       # @return [void]
       def trace
