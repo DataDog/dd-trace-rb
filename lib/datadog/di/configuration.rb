@@ -136,8 +136,36 @@ module Datadog
 
               option :max_time_to_serialize_ms do |o|
                 o.type :int
-                o.default 150
                 o.env "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS"
+                # The central Configuration Registry, the only sanctioned
+                # env-var alias mechanism, rejects changes for these records,
+                # so the pre-rename DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE
+                # name is honored as a deprecated fallback here, in the only
+                # layer allowed to read environment variables. Resolving it at
+                # default precedence makes every other configuration source
+                # (code configuration, stable config, the canonical variable)
+                # override it.
+                o.default do
+                  legacy = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"]
+                  if legacy
+                    Datadog::Core.log_deprecation(key: :di_legacy_max_time_to_serialize) do
+                      "The DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE environment variable is deprecated " \
+                      "and will be removed in a future release; " \
+                      "its value is read as DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS until then. " \
+                      "Please use DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead."
+                    end
+
+                    begin
+                      Integer(legacy, 10)
+                    rescue ArgumentError
+                      raise ArgumentError,
+                        "Expected environment variable DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE " \
+                        "to be an int, but '#{legacy}' was provided."
+                    end
+                  else
+                    150
+                  end
+                end
                 o.setter do |value, _old|
                   if value < 0
                     raise ArgumentError,

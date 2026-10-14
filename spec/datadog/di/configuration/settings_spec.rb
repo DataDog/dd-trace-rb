@@ -55,7 +55,10 @@ RSpec.describe Datadog::DI::Configuration::Settings do
 
     context "default values" do
       around do |example|
-        ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil) do
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => nil,
+        ) do
           example.run
         end
       end
@@ -132,8 +135,85 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         end
       end
 
-      it "does not resolve DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" do
-        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 150
+      it "resolves the legacy name as the deprecated budget fallback" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 250
+      end
+
+      it "logs a deprecation pointing at the canonical name" do
+        deprecation = nil
+        allow(Datadog::Core).to receive(:log_deprecation) do |**_kwargs, &message|
+          deprecation = message&.call
+        end
+
+        settings.dynamic_instrumentation.max_time_to_serialize_ms
+
+        expect(deprecation).to include("DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE environment variable is deprecated")
+        expect(deprecation).to include("use DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead")
+      end
+    end
+
+    context "when both capture-timeout names are set" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "300",
+        ) do
+          example.run
+        end
+      end
+
+      it "prefers the canonical name over the legacy name" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+      end
+    end
+
+    context "when the legacy name and code configuration are both present" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "prefers the configured value over the legacy name" do
+        settings.dynamic_instrumentation.max_time_to_serialize_ms = 400
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 400
+      end
+    end
+
+    context "when the legacy name is not an integer" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "abc",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "raises ArgumentError naming the legacy variable" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms
+        end.to raise_error(ArgumentError, /DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE/)
+      end
+    end
+
+    context "when the legacy name is negative" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "-5",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "raises ArgumentError for the negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_serialize_ms
+        end.to raise_error(ArgumentError, /must not be negative/)
       end
     end
   end

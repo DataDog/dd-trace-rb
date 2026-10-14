@@ -53,14 +53,6 @@ module Datadog
             return
           end
 
-          # DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE was replaced by
-          # DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS; a customer who
-          # still sets the old name gets a warn here pointing at the new one.
-          if (legacy_timeout = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"])
-            logger.warn("di: DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE is no longer read; " \
-              "set DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS instead (found value: #{legacy_timeout})")
-          end
-
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
           end
