@@ -627,6 +627,9 @@ module Datadog
                 telemetry&.report(exc, description: "Error evaluating entry-time capture expressions")
               end
             end
+            # We intentionally do not use Core::Utils::Time.get_time
+            # here because the time provider may be overridden by the
+            # customer, and DI is not allowed to invoke customer code.
             start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
             di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
