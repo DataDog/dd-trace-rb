@@ -250,9 +250,9 @@ RSpec.describe "DI integration from remote config" do
     end
     allow(input_transport).to receive(:send_input) do |notify_payload|
       expect(notify_payload).to be_a(Array)
-      notify_payload.each do |payload|
+      notify_payload.each do |event|
         # Quick hack to deep stringify keys
-        payload = JSON.parse(payload.to_json)
+        payload = JSON.parse(event.payload.to_json)
         payloads << payload.merge(path: "/debugger/v1/input")
       end
     end
