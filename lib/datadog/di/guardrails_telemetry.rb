@@ -55,7 +55,7 @@ module Datadog
       # The logger.
       # @return [DI::Logger]
       attr_reader :logger
-      # The component.
+      # The component the guardrails metrics are emitted through.
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
       # The memo of frozen tag hashes, keyed by reason and event type.
