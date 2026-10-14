@@ -17,11 +17,11 @@ module Datadog
         @event_type = event_type
       end
 
-      # The snapshot payload to send to the agent.
+      # The snapshot payload.
       # @return [Hash]
       attr_reader :payload
 
-      # The guardrails event type of the probe that produced the payload.
+      # The guardrails event type.
       # @return [String] one of GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT and EVENT_TYPE_LOG
       attr_reader :event_type
 
