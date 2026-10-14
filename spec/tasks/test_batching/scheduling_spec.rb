@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require_relative "../../../tasks/lib/test_batching/plan"
+require_relative "../../../tasks/lib/test_batching/scheduling"
 require_relative "../../../tasks/lib/test_batching/matrix"
 require_relative "../../../tasks/lib/test_batching/weights"
 

@@ -13,11 +13,13 @@
 #             workflow matrix JSON (plan.rb)
 #
 # Runner (runner.rb) executes a plan and produces the next run's Timings.
-# The verbs between the nouns: execute (Plan to Timings), aggregate
-# (Timings to Weights), and schedule (Matrix plus Weights to Plan).
+# The verbs between the nouns: execute (Plan to Timings, runner.rb),
+# aggregate (Timings to Weights), and schedule (Matrix plus Weights to
+# Plan) in scheduling.rb.
 #
 # RunTimings and Weights know their own artifact files. Runner is the
-# process edge: the only module that runs commands, reads ENV, and prints.
+# process edge: the only module that runs commands, reads ENV, and
+# prints.
 module TestBatching
 end
 
@@ -25,4 +27,5 @@ require_relative "test_batching/matrix"
 require_relative "test_batching/timings"
 require_relative "test_batching/weights"
 require_relative "test_batching/plan"
+require_relative "test_batching/scheduling"
 require_relative "test_batching/runner"
