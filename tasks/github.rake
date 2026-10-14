@@ -39,13 +39,8 @@ namespace :github do
     TestBatching::ManifestStore.update_from(directory)
   end
 
-  desc "Run the build steps of one batch and record the Gemfile setup durations"
-  task :run_batch_build do
-    TestBatching::Runner.build(JSON.parse(ENV["BATCHED_TASKS"] || {}))
-  end
-
-  desc "Run the test steps of one batch and record the task durations"
-  task :run_batch_tests do
-    TestBatching::Runner.tests(JSON.parse(ENV["BATCHED_TASKS"] || {}))
+  desc "Run one batch end to end and record the run's durations"
+  task :run_batch do
+    TestBatching::Runner.run(JSON.parse(ENV["BATCHED_TASKS"] || {}))
   end
 end

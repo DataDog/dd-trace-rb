@@ -12,51 +12,23 @@ module TestBatching
   module Runner
     module_function
 
-    def build(tasks)
+    # Runs one batch end to end: installs each task's Gemfile, runs its
+    # specs, and folds both durations into one run document. The write
+    # happens even when a task fails, so the completed durations survive
+    # for the weights to aggregate: the upload step runs on any outcome
+    # and publishes them.
+    def run(tasks)
+      rng = Random.new(ENV["CI_TEST_SEED"].to_i)
       run_timings = RunTimings.new(ruby_version: RUBY_VERSION[0..2], timings: [])
 
-      tasks.map { |hash| Task.from_h(hash) }.each do |task|
-        env = {"BUNDLE_GEMFILE" => task.gemfile}
-        cmd = "bundle check || bundle install"
-        # Retry mechanism to improve reliability in Github Actions,
-        # since network issues can cause `bundle install` to fail.
-        duration = measure_duration do
-          with_retry do
-            Bundler.with_unbundled_env { run_command(env, cmd) }
-          end
-        end
+      durations = tasks.map { |hash| Task.from_h(hash) }.map do |task|
+        build_seconds = install(task)
+        run_timings = run_timings.with_timing(TaskTiming.new(task: task, build_seconds: build_seconds))
 
-        run_timings = run_timings.with_timing(TaskTiming.new(task: task, build_seconds: duration))
-      end
-
-      TimingFiles.write(run_timings)
-    end
-
-    def tests(tasks)
-      rng = Random.new(ENV["CI_TEST_SEED"].to_i)
-      tasks = tasks.map { |hash| Task.from_h(hash) }
-
-      run_timings = TimingFiles.read(tasks)
-
-      durations = tasks.map do |task|
-        env = {"BUNDLE_GEMFILE" => task.gemfile}
-        cmd = "bundle exec rake spec:#{task.name}'[--seed #{rng.rand(0xFFFF)}]'"
-
-        junit_files_before = Dir["tmp/rspec/*.xml"]
-
-        test_seconds = measure_duration do
-          Bundler.with_unbundled_env { run_command(env, cmd) }
-        rescue RuntimeError
-          raise annotate_test_failures(env, cmd)
-        end
-
-        junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
-        junit_seconds = junit_files_after.sum { |file| junit_suite_time(file) }
-
-        prior = run_timings.find(task)
+        test_seconds, junit_seconds = execute(task, rng)
         run_timings = run_timings.with_timing(TaskTiming.new(
           task: task,
-          build_seconds: prior&.build_seconds,
+          build_seconds: build_seconds,
           test_seconds: test_seconds,
           junit_seconds: junit_seconds
         ))
@@ -64,8 +36,42 @@ module TestBatching
         [task.name, junit_seconds]
       end
 
-      TimingFiles.write(run_timings)
       report_task_durations(durations)
+    ensure
+      TimingFiles.write(run_timings) unless run_timings.nil? || run_timings.timings.empty?
+    end
+
+    # Installs one task's Gemfile and returns how long it took.
+    def install(task)
+      env = {"BUNDLE_GEMFILE" => task.gemfile}
+      cmd = "bundle check || bundle install"
+      # Retry mechanism to improve reliability in Github Actions,
+      # since network issues can cause `bundle install` to fail.
+      measure_duration do
+        with_retry do
+          Bundler.with_unbundled_env { run_command(env, cmd) }
+        end
+      end
+    end
+
+    # Runs one task's specs and returns its test duration and the junit
+    # suite time. Raises the annotated failure when the specs fail.
+    def execute(task, rng)
+      env = {"BUNDLE_GEMFILE" => task.gemfile}
+      cmd = "bundle exec rake spec:#{task.name}'[--seed #{rng.rand(0xFFFF)}]'"
+
+      junit_files_before = Dir["tmp/rspec/*.xml"]
+
+      test_seconds = measure_duration do
+        Bundler.with_unbundled_env { run_command(env, cmd) }
+      rescue RuntimeError
+        raise annotate_test_failures(env, cmd)
+      end
+
+      junit_files_after = Dir["tmp/rspec/*.xml"] - junit_files_before
+      junit_seconds = junit_files_after.sum { |file| junit_suite_time(file) }
+
+      [test_seconds, junit_seconds]
     end
 
     def write_batch_summary(batches_json)
@@ -182,7 +188,7 @@ module TestBatching
       raise "Command failed: #{cmd}"
     end
 
-    private_class_method :annotate_test_failures, :escape_annotation, :junit_suite_time, :measure_duration,
+    private_class_method :annotate_test_failures, :escape_annotation, :execute, :install, :junit_suite_time, :measure_duration,
       :report_task_durations, :run_command, :with_retry
   end
 end

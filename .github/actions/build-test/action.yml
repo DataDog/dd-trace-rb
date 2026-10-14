@@ -18,14 +18,11 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - run: bundle exec rake github:run_batch_build
-    shell: bash
-
   - name: Configure RSpec
     run: ln -s .rspec-local.example .rspec-local
     shell: bash
 
-  - run: bundle exec rake github:run_batch_tests
+  - run: bundle exec rake github:run_batch
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
@@ -42,9 +39,9 @@ runs:
     uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
     with:
       limit-access-to-actor: true
-      # This mode will wait at the end of the job for a user to connect and then to terminate the tmate session.
-      # If no user has connected within 10 minutes after the post-job step started,
-      # it will terminate the tmate session and quit gracefully.
+      # This mode waits at the end of the job for a user to connect, then
+      # terminates the tmate session. It terminates the session after 10
+      # minutes when no user connects.
       detached: true
 
   - name: Validate test agent data

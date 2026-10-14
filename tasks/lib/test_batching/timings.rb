@@ -71,10 +71,6 @@ module TestBatching
     end
     alias_method :eql?, :==
 
-    def find(task)
-      timings.find { |timing| timing.matches?(task) }
-    end
-
     # Returns a copy with the timing for that task replaced, or appended when
     # the run has no prior measurement for it.
     def with_timing(timing)
