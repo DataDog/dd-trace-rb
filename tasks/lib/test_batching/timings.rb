@@ -27,7 +27,20 @@ module TestBatching
     end
 
     def tasks
-      timings.map { |entry| Task.new(name: entry.fetch("task"), group: entry.fetch("group"), gemfile: entry.fetch("gemfile")) }
+      timings.map { |entry| Task.from_h(entry) }
+    end
+
+    # The run's test durations: one [Task, test_seconds] pair per timing
+    # entry, in run order.
+    def task_test_samples
+      timings.map { |entry| [Task.from_h(entry), entry.fetch("test_seconds")] }
+    end
+
+    # The run's setup cost per Gemfile: each Gemfile's build times summed,
+    # since a batch installs each Gemfile once.
+    def gemfile_build_samples
+      timings.group_by { |entry| File.basename(entry.fetch("gemfile")) }
+        .map { |gemfile, entries| [gemfile, entries.sum { |entry| entry.fetch("build_seconds") }] }
     end
 
     def ==(other)

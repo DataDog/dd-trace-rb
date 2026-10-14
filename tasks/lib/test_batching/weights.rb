@@ -17,22 +17,17 @@ module TestBatching
     end
 
     def self.from(runs)
-      task_samples = {}
-      gemfile_samples = {}
+      task_samples = Hash.new { |hash, key| hash[key] = [] }
+      gemfile_samples = Hash.new { |hash, key| hash[key] = [] }
 
       runs.each do |run_timings|
         ruby_version = run_timings.ruby_version
 
-        run_timings.timings.each do |entry|
-          task_name = entry.fetch("task")
-          group = entry.fetch("group")
-
-          test_seconds = entry.fetch("test_seconds")
-          (task_samples[[ruby_version, task_name, group]] ||= []) << test_seconds
+        run_timings.task_test_samples.each do |task, seconds|
+          task_samples[[ruby_version, task.name, task.group]] << seconds
         end
-
-        run_timings.timings.group_by { |entry| File.basename(entry.fetch("gemfile")) }.each do |gemfile, entries|
-          (gemfile_samples[[ruby_version, gemfile]] ||= []) << entries.sum { |entry| entry.fetch("build_seconds") }
+        run_timings.gemfile_build_samples.each do |gemfile, seconds|
+          gemfile_samples[[ruby_version, gemfile]] << seconds
         end
       end
 

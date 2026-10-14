@@ -8,15 +8,7 @@ require "json"
 module TestBatching
   # One shard of the plan: its tasks and, when the plan is weighted, its
   # estimated total seconds.
-  class Batch
-    attr_reader :number, :tasks, :seconds
-
-    def initialize(number:, tasks:, seconds: nil)
-      @number = number
-      @tasks = tasks
-      @seconds = seconds
-    end
-  end
+  Batch = Struct.new(:number, :tasks, :seconds, keyword_init: true)
 
   # The plan `github:schedule_batches` emits: the batch shards plus the misc
   # service tasks, in the matrix JSON shape the Unit Tests workflow consumes.
