@@ -1,0 +1,24 @@
+# Named path filters consumed by dorny/paths-filter. Each gated workflow
+# points its `filters:` input here and reads its own group's output.
+system_tests:
+  - '.github/forced-tests-list.cfg'
+  - '.github/workflows/system-tests.yml'
+  - 'bin/**'
+  - 'datadog.gemspec'
+  - 'ext/**'
+  - 'Gemfile'
+  - '*.gemfile'
+  - 'lib/**'
+  - 'lib-injection/**'
+dependencies:
+  - Gemfile
+  - '*.gemfile'
+  - datadog.gemspec
+  - tasks/dependency.rake
+  - tasks/prelock.rb
+  - tasks/security_capabilities.rb
+  - tasks/appraisal_conversion.rb
+  - .github/workflows/lock-dependency.yml
+  - lib/datadog/version.rb
+  - appraisal/**
+  - gemfiles/**

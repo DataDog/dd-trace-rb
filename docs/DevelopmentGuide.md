@@ -206,7 +206,7 @@ Two rake namespaces, with different intents:
 
 Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
 
-- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see the `dependencies` group in `.github/path-filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
 - `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
 - `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
 
