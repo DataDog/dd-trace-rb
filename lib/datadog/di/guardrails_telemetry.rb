@@ -49,25 +49,22 @@ module Datadog
         @capture_incomplete_tags_memo = {}
       end
 
-      # The tracer settings the propagation escape hatch is read from.
+      # The tracer settings.
       # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
-      # The logger for contained emission failures.
+      # The logger.
       # @return [DI::Logger]
       attr_reader :logger
-      # The component the guardrails metrics are emitted through.
+      # The component.
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
-      # The memo of frozen tag hashes for emitted skip metrics without
-      # +probe_id+, keyed by reason and event type.
+      # The memo of frozen tag hashes, keyed by reason and event type.
       # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
       attr_reader :skipped_tags_memo
-      # The memo of frozen tag hashes for emitted drop metrics, keyed by
-      # reason and event type.
+      # The memo of frozen tag hashes, keyed by reason and event type.
       # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
       attr_reader :dropped_tags_memo
-      # The memo of frozen tag hashes for emitted incomplete-capture
-      # metrics, keyed by reason and event type.
+      # The memo of frozen tag hashes, keyed by reason and event type.
       # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
       attr_reader :capture_incomplete_tags_memo
 
