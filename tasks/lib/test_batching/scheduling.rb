@@ -7,6 +7,7 @@ require_relative "plan"
 # weights cache bootstraps. Weighted schedules by learned durations.
 module TestBatching
   class Static
+    # Delete this class once the weighted switch soaks.
     BATCH_COUNT = 7
     private_constant :BATCH_COUNT
 

@@ -4,19 +4,17 @@ require "json"
 require_relative "matrix"
 require_relative "timings"
 
-# The execution edge: runs the batch jobs' build and test steps, records
-# their durations into RunTimings documents, and reports results to the CI
-# job (annotations + step summaries). The only module that runs commands,
-# reads ENV, and prints.
+# The execution edge: runs one batch end to end, installs each Gemfile,
+# runs the specs, records the durations into a RunTimings document, and
+# reports results to the CI job (annotations + step summaries). The only
+# module that runs commands, reads ENV, and prints.
 module TestBatching
   module Runner
     module_function
 
-    # Runs one batch end to end: installs each task's Gemfile, runs its
-    # specs, and folds both durations into one run document. The write
-    # happens even when a task fails, so the completed durations survive
-    # for the weights to aggregate: the upload step runs on any outcome
-    # and publishes them.
+    # The write happens even when a task fails: the durations completed
+    # before the failure survive for the weights to aggregate, and the
+    # upload step publishes them on any outcome.
     def run(tasks)
       rng = Random.new(ENV["CI_TEST_SEED"].to_i)
       run_timings = RunTimings.new(ruby_version: RUBY_VERSION[0..2], timings: [])
@@ -40,7 +38,6 @@ module TestBatching
       RunTimings.write(run_timings) unless run_timings.nil? || run_timings.timings.empty?
     end
 
-    # Installs one task's Gemfile and returns how long it took.
     def install(task)
       env = {"BUNDLE_GEMFILE" => task.gemfile}
       cmd = "bundle check || bundle install"
@@ -53,8 +50,8 @@ module TestBatching
       end
     end
 
-    # Runs one task's specs and returns its test duration and the junit
-    # suite time. Raises the annotated failure when the specs fail.
+    # Returns the test duration and the junit suite time. Raises the
+    # annotated failure when the specs fail.
     def execute(task, rng)
       env = {"BUNDLE_GEMFILE" => task.gemfile}
       cmd = "bundle exec rake spec:#{task.name}'[--seed #{rng.rand(0xFFFF)}]'"

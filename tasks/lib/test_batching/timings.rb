@@ -35,8 +35,7 @@ module TestBatching
     end
     alias_method :eql?, :==
 
-    # The one place a timing entry is born: replaces the entry for that
-    # task, or appends one when the run has no prior measurement for it.
+    # The only place a timing entry is born.
     def with_timing(task:, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
       entry = task.to_h.merge(
         "build_seconds" => build_seconds,
@@ -69,8 +68,7 @@ module TestBatching
       File.write(path, JSON.pretty_generate(run_timings.to_h))
     end
 
-    # Reads the timing document for a batch. Returns an empty document
-    # when the batch has never recorded one.
+    # Returns an empty document when the batch has never recorded one.
     def self.read(tasks, directory: DEFAULT_DIRECTORY)
       path = file_path(tasks, directory)
       return new(ruby_version: RUBY_VERSION[0..2], timings: []) unless File.exist?(path)
@@ -78,8 +76,8 @@ module TestBatching
       from_h(JSON.parse(File.read(path)))
     end
 
-    # Reads every timing document in a directory tree, newest structure
-    # first: the downloaded artifact layout of one subdirectory per run.
+    # The artifact layout is one subdirectory per run, and each batch job
+    # contributes one timings-*.json.
     def self.read_all(directory)
       Dir[File.join(directory, "**", "*.json")].map { |path| from_h(JSON.parse(File.read(path))) }
     end
