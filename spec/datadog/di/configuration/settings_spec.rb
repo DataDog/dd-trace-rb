@@ -216,5 +216,77 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         end.to raise_error(ArgumentError, /must not be negative/)
       end
     end
+
+    context "when the canonical name is set alongside an invalid legacy name" do
+      ["abc", "-5"].each do |legacy_value|
+        around do |example|
+          ClimateControl.modify(
+            "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => legacy_value,
+            "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "300",
+          ) do
+            example.run
+          end
+        end
+
+        it "resolves the canonical value without raising for the legacy value #{legacy_value}" do
+          expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+        end
+      end
+    end
+
+    context "when the canonical alias is set alongside an invalid legacy name" do
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "abc",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT" => "300",
+        ) do
+          example.run
+        end
+      end
+
+      it "resolves the alias value without raising for the legacy value" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+      end
+    end
+
+    context "when the legacy name is set only in local stable configuration" do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration)
+          .and_return(local: {config: {"DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "250"}})
+      end
+
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => nil,
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "applies the legacy value from stable configuration" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 250
+      end
+    end
+
+    context "when the canonical name is set in fleet stable configuration alongside an invalid legacy name" do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration)
+          .and_return(fleet: {config: {"DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "300"}})
+      end
+
+      around do |example|
+        ClimateControl.modify(
+          "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => "abc",
+          "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => nil,
+        ) do
+          example.run
+        end
+      end
+
+      it "resolves the fleet value without raising for the legacy value" do
+        expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+      end
+    end
   end
 end

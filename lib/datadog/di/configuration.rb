@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/configuration/stable_config"
+
 module Datadog
   module DI
     # Configuration for DI
@@ -138,7 +140,7 @@ module Datadog
                 o.type :int
                 o.env "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS"
                 o.default do
-                  legacy = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"]
+                  legacy = Settings.legacy_capture_timeout_value
                   if legacy
                     Datadog::Core.log_deprecation(key: :di_legacy_max_time_to_serialize) do
                       "The DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE environment variable is deprecated " \
@@ -270,6 +272,28 @@ module Datadog
               end
             end
           end
+        end
+
+        # Resolves the deprecated capture-timeout name for the setting's
+        # default. The legacy value applies only when the canonical variable
+        # is configured nowhere (environment with its registry alias, local or
+        # fleet stable configuration), and the legacy itself resolves in the
+        # option machinery's precedence order: fleet stable configuration,
+        # environment, local stable configuration.
+        def self.legacy_capture_timeout_value
+          canonical_name = "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS"
+          legacy_name = "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"
+
+          stable = Datadog::Core::Configuration::StableConfig.configuration
+          local = stable && stable.dig(:local, :config)
+          fleet = stable && stable.dig(:fleet, :config)
+
+          canonical = (fleet && DATADOG_ENV.get_environment_variable(canonical_name, source_env: fleet)) ||
+            DATADOG_ENV[canonical_name] ||
+            (local && DATADOG_ENV.get_environment_variable(canonical_name, source_env: local))
+          return nil if canonical
+
+          (fleet && fleet[legacy_name]) || DATADOG_ENV[legacy_name] || (local && local[legacy_name])
         end
       end
     end
