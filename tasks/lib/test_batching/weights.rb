@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "json"
 require_relative "timings"
 
@@ -65,6 +66,7 @@ module TestBatching
       runs = RunTimings.read_all(directory)
       raise "no timing files found in #{directory}" if runs.empty?
 
+      FileUtils.mkdir_p(File.dirname(MANIFEST_PATH))
       File.write(MANIFEST_PATH, JSON.pretty_generate(from(runs).to_h) + "\n")
     end
 
