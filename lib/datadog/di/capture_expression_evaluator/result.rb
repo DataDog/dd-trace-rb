@@ -16,14 +16,11 @@ module Datadog
           @errors = errors
         end
 
-        # The serialized values keyed by capture expression name. Entries for
-        # expressions skipped by the capture time budget hold
-        # +{notCapturedReason: "timeout"}+.
+        # The serialized values keyed by capture expression name.
         # @return [Hash{String => untyped}]
         attr_reader :serialized_values
 
-        # The evaluation errors; one entry per expression that failed to
-        # evaluate or serialize.
+        # The evaluation errors.
         # @return [Array<EvaluationFailure>]
         attr_reader :errors
       end
