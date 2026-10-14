@@ -300,10 +300,7 @@ per-probe in the probe definition.
 
 Custom serializers allow you to define how specific objects are serialized
 in Dynamic Instrumentation snapshots. The API is internal and
-subject to change. Custom serializer procs receive the capture time
-budget's deadline for the capture point being serialized (`deadline:`
-keyword argument); values that cannot be captured within the budget are
-reported with `notCapturedReason: timeout`.
+subject to change.
 
 **Exception Handling:** If a custom serializer's condition lambda raises
 an exception (for example, a regex match against a string with invalid
