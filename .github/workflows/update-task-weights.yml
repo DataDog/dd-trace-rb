@@ -19,16 +19,23 @@ jobs:
       actions: read
     env:
       GH_TOKEN: ${{ github.token }}
+    # Same image as the Unit Tests `batch` jobs: actions/cache derives the cache
+    # version from the runner's compression tool, and this image has no zstd.
+    # Saving from a plain runner (zstd) made the weights cache invisible to the
+    # gzip-side restore in these containers.
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
-        with:
-          ruby-version: '3.4'
+      - name: Install gh CLI
+        run: |
+          curl -fsSL "https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
+          tar -xzf /tmp/gh.tar.gz -C /tmp
+          install -m 755 /tmp/gh_2.102.0_linux_amd64/bin/gh /usr/local/bin/gh
 
       - name: Download timing artifacts
         run: .github/scripts/download_timing_artifacts.sh timings
