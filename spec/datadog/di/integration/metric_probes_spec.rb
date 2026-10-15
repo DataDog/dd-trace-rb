@@ -74,7 +74,14 @@ RSpec.describe "Metric probes integration" do
     instance_double_agent_settings
   end
 
-  let(:logger) { logger_allowing_debug }
+  let(:logger) do
+    instance_double(Datadog::Core::Logger).tap do |logger|
+      # The DI component's metric emitter logs its construction at debug
+      # and its unavailability at warn.
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:warn)
+    end
+  end
 
   let(:component) do
     Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
