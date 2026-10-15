@@ -79,8 +79,15 @@ jobs:
         run: |
           if [ ! -f tmp/ci_task_timings.json ]; then
             mkdir -p tmp
-            curl -fsSL "$WEIGHTS_URL" -o tmp/ci_task_timings.json
-            ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'
+            if curl -fsSL "$WEIGHTS_URL" -o tmp/ci_task_timings.json \
+               && ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'; then
+              echo "Fetched task weights"
+            else
+              # The weights are optional: leave no file behind and let the
+              # scheduler fall back to the static split.
+              rm -f tmp/ci_task_timings.json
+              echo "Fetch of task weights failed; continuing with static scheduling"
+            fi
           fi
 
       - id: set-batches
