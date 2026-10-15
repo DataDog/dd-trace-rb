@@ -151,6 +151,13 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
 
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1e-8)
+        # Serializing the deep hash takes longer than the default 200 ms
+        # capture budget on slower machines, which would truncate the
+        # snapshot; this example verifies the circuit breaker, so the
+        # monotonic clock is frozen to keep the capture budget from
+        # expiring. The breaker measures processing time on the thread
+        # CPU-time clock, a different clock from the one stubbed here.
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
       end
 
       after do
