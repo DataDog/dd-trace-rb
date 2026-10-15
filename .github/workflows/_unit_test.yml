@@ -13,13 +13,6 @@ on: # yamllint disable-line rule:truthy
       alias:
         required: true
         type: string
-    outputs:
-      lockfile:
-        description: "The lockfile artifact"
-        value: ${{ jobs.batch.outputs.lockfile }}
-      cache-key:
-        description: "The cache key for bundle"
-        value: ${{ jobs.batch.outputs.cache-key }}
 
   workflow_dispatch:
     inputs:
@@ -38,44 +31,47 @@ on: # yamllint disable-line rule:truthy
 
 permissions: {}
 
+env:
+  CACHE_VERSION: ${{ vars.CACHE_VERSION }}
+
 jobs:
   batch:
     runs-on: ubuntu-24.04
     name: batch
     outputs:
-      batches: "${{ steps.set-batches.outputs.batches }}"
-      misc: "${{ steps.set-batches.outputs.misc }}"
-      cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
-      lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
+      data: "${{ steps.set-batches.outputs.data }}"
+      cache-key: "${{ steps.bundle-matrix-cache.outputs.cache-key }}"
+      cache-match: "${{ steps.bundle-matrix-cache.outputs.cache-match }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: &engine-image ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Prepare bundle cache
-        id: bundle-cache
-        uses: ./.github/actions/bundle-cache
 
       - id: set-batches
         name: Distribute tasks into batches
         run: |
-          data=$(bundle exec rake github:generate_batches)
+          data=$(rake -f tasks/github.rake github:generate_batches)
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
-          # Extract each key and set it as a separate output
-          batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
-          misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
+          echo "data=$data" >> "$GITHUB_OUTPUT"
 
-          { echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
       - name: Generate batch summary
         env:
-          batches_json: "${{ steps.set-batches.outputs.batches }}"
-        run: bundle exec rake github:generate_batch_summary
+          batches_json: "${{ toJSON(fromJSON(steps.set-batches.outputs.data).batches) }}"
+        run: rake -f tasks/github.rake github:generate_batch_summary
+
+      - name: Prepare matrix bundle
+        id: bundle-matrix-cache
+        uses: ./.github/actions/bundle-matrix-cache
+        with:
+          image: *engine-image
+          gemfiles: ${{ toJSON(fromJSON(steps.set-batches.outputs.data).gemfiles) }}
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -109,10 +105,9 @@ jobs:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.batch.outputs.batches).include }}"
+      matrix: ${{ fromJSON(needs.batch.outputs.data).batches }}
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: *engine-image
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -174,19 +169,33 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
+      - *checkout
+      - &restore-bundle
+        name: Restore bundle cache
+        id: restore-bundle
         uses: ./.github/actions/bundle-restore
         with:
-          lockfile: ${{ needs.batch.outputs.lockfile }}
-          cache-key: ${{ needs.batch.outputs.cache-key }}
-      - name: Build & Test
+          key: ${{ needs.batch.outputs.cache-key }}
+      - &ensure-matrix-cache
+        name: Ensure matrix cache
+        id: ensure-matrix-cache
+        if: needs.batch.outputs.cache-match == 'matrix' && steps.restore-bundle.outputs.cache-outcome != 'exact'
+        run: |
+          echo "::warning::Exact cache existed at \`batch\` time, but it's gone! GitHub Cache is likely acting up."
+          # Passing `core` to `build-test` tells it that we only have core gems intalled.
+          # `build-test` then knows to install missing dependency matrix.
+          echo "cache-match=core" >> "$GITHUB_OUTPUT"
+      - &install-core-dependencies
+        name: Install core dependencies
+        if: needs.batch.outputs.cache-match != 'matrix' || steps.restore-bundle.outputs.cache-outcome != 'exact'
+        run: bundle check || bundle install
+      - &build-test
+        name: Build & Test
         uses: ./.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
-          container-id: "standard-${{ matrix.batch }}"
+          container-id: ${{ matrix.container-id }}
+          cache-match: ${{ steps.ensure-matrix-cache.outputs.cache-match || needs.batch.outputs.cache-match }}
 
   build-test-misc:
     needs:
@@ -198,10 +207,9 @@ jobs:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.batch.outputs.misc).include }}"
+      matrix: ${{ fromJSON(needs.batch.outputs.data).misc }}
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: *engine-image
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -262,16 +270,8 @@ jobs:
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.batch.outputs.lockfile }}
-          cache-key: ${{ needs.batch.outputs.cache-key }}
-      - name: Build & Test
-        uses: ./.github/actions/build-test
-        with:
-          alias: ${{ inputs.alias }}
-          container-id: "misc-${{ matrix.batch }}"
+      - *checkout
+      - *restore-bundle
+      - *ensure-matrix-cache
+      - *install-core-dependencies
+      - *build-test

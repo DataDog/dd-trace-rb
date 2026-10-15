@@ -10,6 +10,9 @@ inputs:
   container-id:
     description: 'Container Identifier'
     required: true
+  cache-match:
+    description: 'Selected cache match: core, partial, or matrix'
+    required: true
 
 runs:
   using: "composite"
@@ -18,7 +21,9 @@ runs:
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     shell: bash
 
-  - run: bundle exec rake github:run_batch_build
+  - name: Install this worker's matrix dependencies
+    if: inputs.cache-match != 'matrix'
+    run: bundle exec rake github:run_batch_build
     shell: bash
 
   - name: Configure RSpec
