@@ -13,6 +13,7 @@
 #endif
 
 #include "extconf.h"
+#include "miteruby/event.h"
 
 // Contains the current gvl owner, and a flag to indicate if it is valid
 typedef struct {
@@ -55,6 +56,8 @@ VALUE thread_name_for(VALUE thread);
 void self_test_thread_struct(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
+
+uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_stack_sample_view_t *stack_buffer);
 
 size_t sizeof_rb_iseq_t(void);
 size_t sizeof_rb_callable_method_entry_t(void);
