@@ -285,8 +285,8 @@ RSpec.describe "Metric probes integration" do
 
       component.probe_notifier_worker.flush
 
-      evaluation_errors = input_batches.flatten.map { |payload|
-        payload.dig(:debugger, :snapshot, :evaluationErrors)
+      evaluation_errors = input_batches.flatten.map { |event|
+        event.payload.dig(:debugger, :snapshot, :evaluationErrors)
       }.compact.flatten
       expect(evaluation_errors.length).to eq 1
       expect(evaluation_errors.first.fetch(:expr)).to eq "len(@return)"
