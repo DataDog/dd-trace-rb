@@ -6,38 +6,38 @@ In-memory format for individual events captured from a signal handler.
 
 Structs use natural alignment; sizes below assume 64-bit pointers, `size_t`, and `VALUE`, with 8-byte pointer alignment.
 
-### ValueThread
+### value_thread_t
 
 ```c
 typedef struct {
   VALUE value;
-} ValueThread; // 8 bytes
+} value_thread_t; // 8 bytes
 ```
 
 - `value`: wrapped Ruby thread `VALUE`, visible to GC marking.
 
-### MiterubyEventType
+### miteruby_event_type_t
 
 ```c
 typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
   MITERUBY_EVENT_STACK_SAMPLE = 1,
   MITERUBY_EVENT_OVERFLOW = 2,
-} MiterubyEventType; // 1 byte
+} miteruby_event_type_t; // 1 byte
 ```
 
 - Enforce the one-byte size with a compile-time assertion when implementing.
 
-### MiterubyEventHeader
+### miteruby_event_header_t
 
 ```c
 typedef struct {
   uint16_t size_bytes;
   uint16_t frame_count;
-  MiterubyEventType type;
+  miteruby_event_type_t type;
   uint8_t flags;
   uint64_t timestamp_ns;
-} MiterubyEventHeader; // 16 bytes
+} miteruby_event_header_t; // 16 bytes
 ```
 
 - `size_bytes`: entire record including padding, a multiple of 8 from 16 to 65,528 bytes.
@@ -47,24 +47,24 @@ typedef struct {
 - `flags`: proposed low two bits: `0` = complete, `1` = truncated, `2` = unavailable. Other bits reserved.
 - `timestamp_ns`: monotonic observation time, before stack capture.
 
-### MiterubyFrameRefs
+### miteruby_event_frame_refs_t
 
 ```c
 typedef struct {
   const rb_callable_method_entry_t *cme;
   const rb_iseq_t *iseq;
-} MiterubyFrameRefs; // 16 bytes
+} miteruby_event_frame_refs_t; // 16 bytes
 ```
 
 - `cme`: callable method entry, where available; identifies C-method frames.
 - `iseq == NULL`: C-method frame. Capture must explicitly clear `iseq` for C frames.
 
-### MiterubyFramePosition
+### miteruby_event_frame_position_t
 
 ```c
 typedef struct {
   uint16_t value;
-} MiterubyFramePosition; // 2 bytes
+} miteruby_event_frame_position_t; // 2 bytes
 ```
 
 - `value`: adjusted index into the ISEQ's encoded `VALUE` slots, including operands. Use
@@ -73,14 +73,14 @@ typedef struct {
   never truncate or wrap. Skip line lookup for this sentinel, retaining method/file identity with an unknown line.
   C frames use zero. Resolve usable Ruby positions later with `rb_iseq_line_no(iseq, value)`.
 
-### MiterubyStackSampleEvent
+### miteruby_event_stack_sample_t
 
 ```c
 typedef struct {
-  MiterubyEventHeader header;
-  ValueThread thread;
-  MiterubyFrameRefs refs[];
-} MiterubyStackSampleEvent; // 24 bytes + 18 * frame_count bytes + 0–6 padding bytes
+  miteruby_event_header_t header;
+  value_thread_t thread;
+  miteruby_event_frame_refs_t refs[];
+} miteruby_event_stack_sample_t; // 24 bytes + 18 * frame_count bytes + 0–6 padding bytes
 ```
 
 ```text
@@ -97,28 +97,28 @@ header | thread | refs[N] | positions[N] | padding
   Truncation retains the oldest frames and omits the newest ones.
 - Require `size_bytes == round_up_to_8(24 + 18 * frame_count)` before accessing the arrays.
 
-### MiterubyStackSampleView
+### miteruby_event_stack_sample_view_t
 
 ```c
 typedef struct {
-  MiterubyFrameRefs *refs;
-  MiterubyFramePosition *positions;
-  size_t frame_count;
-} MiterubyStackSampleView; // 24 bytes; local only
+  miteruby_event_frame_refs_t *refs;
+  miteruby_event_frame_position_t *positions;
+  uint16_t frame_count;
+} miteruby_event_stack_sample_view_t; // 24 bytes; local only
 ```
 
 - Typed access: `view.refs[i].iseq`, `view.refs[i].cme`, and `view.positions[i].value`; require `i < frame_count`.
 - One helper constructs the view: `refs` points to `event->refs`; `positions` starts at byte offset
-  `offsetof(MiterubyStackSampleEvent, refs) + frame_count * sizeof(MiterubyFrameRefs)` from the event.
+  `offsetof(miteruby_event_stack_sample_t, refs) + frame_count * sizeof(miteruby_event_frame_refs_t)` from the event.
   Producers supply the captured count; readers use `header.frame_count` after validating `size_bytes`.
 - Borrows the event storage; invalid after storage is reused. No allocation or extra buffer bytes.
 
-### MiterubyOverflowEvent
+### miteruby_event_overflow_t
 
 ```c
 typedef struct {
-  MiterubyEventHeader header;
-} MiterubyOverflowEvent; // 16 bytes
+  miteruby_event_header_t header;
+} miteruby_event_overflow_t; // 16 bytes
 ```
 
 - Header-only candidate.
