@@ -35,7 +35,7 @@ RSpec.describe TestBatching do
     run_timings = run_timings.with_timing(task: tasks.last, build_seconds: 20.0, test_seconds: 60.0)
 
     Dir.mktmpdir do |directory|
-      TestBatching::RunTimings.write(run_timings, directory: directory)
+      run_timings.write(directory: directory)
 
       weights = TestBatching::Weights.from(TestBatching::RunTimings.read_all(directory))
       ruby_weights = weights.for_ruby(ruby)
