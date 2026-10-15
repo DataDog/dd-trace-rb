@@ -29,13 +29,24 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:logger) { logger_allowing_debug }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+  end
+
   let(:instrumenter) do
-    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil)
+    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator)
   end
 
   let(:responder) do
@@ -352,7 +363,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     let(:probe_notification_builder) do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
-        telemetry: instance_double(Datadog::Core::Telemetry::Component).as_null_object,
+        capture_expression_evaluator: capture_expression_evaluator,
       )
     end
 
@@ -367,7 +378,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
           @status_payloads << payload
         end
 
-        def add_snapshot(payload)
+        def add_snapshot(payload, probe: nil)
           # Not used in this test
         end
       end.new(status_payloads)
@@ -385,6 +396,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         probe_notifier_worker,
         logger,
         probe_repository,
+        guardrails_telemetry: guardrails_telemetry,
       )
     end
 

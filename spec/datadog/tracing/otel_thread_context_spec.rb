@@ -66,6 +66,25 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     end.join
   end
 
+  def kill_thread_holding_context
+    signal_queue = Queue.new
+    killed = Thread.new do
+      otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+      signal_queue << described_class::Testing._native_read
+      Queue.new.pop
+    end
+
+    begin
+      attached_context = Timeout.timeout(5) { signal_queue.pop }
+      expect(attached_context).not_to be_nil
+      killed.kill
+      expect(killed.join(5)).to be(killed)
+    ensure
+      killed.kill
+      killed.join(5)
+    end
+  end
+
   describe "#set" do
     def decode_context(raw)
       return unless raw
@@ -138,6 +157,15 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         end.to change { described_class::Testing._native_read }.to(nil)
       end
 
+      it "updates an existing thread context" do
+        otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
+        otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
+
+        expect(decode_context(described_class::Testing._native_read)).to include(
+          trace_id: 11, span_id: 12, local_root_span_id: 13, valid: true
+        )
+      end
+
       it "updates the thread context on fiber switch" do
         otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
 
@@ -188,16 +216,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
           otel_thread_context.set(trace_id: 1, span_id: 2, local_root_span_id: 3)
         end.join
 
-        signal_queue = Queue.new
-        killed = Thread.new do
-          otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
-          signal_queue << true
-          Queue.new.pop
-        end
-
-        signal_queue.pop # ensure we set the thread context before we kill the thread
-        killed.kill
-        killed.join
+        kill_thread_holding_context
 
         failed = Thread.new do
           Thread.current.report_on_exception = false
@@ -216,6 +235,19 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     context "when enabled" do
       it "returns false when no context record was attached" do
         expect(otel_thread_context.clear).to eq(false)
+      end
+
+      # CRuby recycles a killed thread's native thread nondeterministically;
+      # many kill/spawn cycles make the leak reliably observable.
+      it "returns false on fresh threads recycling killed context-holding threads' native threads" do
+        fresh_thread_clear_results = Array.new(100) do
+          kill_thread_holding_context
+          fresh_thread = Thread.new { otel_thread_context.clear }
+          expect(fresh_thread.join(5)).to be(fresh_thread)
+          fresh_thread.value
+        end
+
+        expect(fresh_thread_clear_results).to all(eq(false))
       end
 
       it "returns true when a context record was attached" do

@@ -100,6 +100,19 @@ void otel_thread_context_init(VALUE tracing_module) {
     ) {
       ddog_otel_thread_ctx_detach();
     }
+
+    // CRuby fires RUBY_EVENT_THREAD_END only after the thread body returns,
+    // and Thread#kill unwinds the body via EC_JUMP_TAG(TAG_FATAL):
+    // https://github.com/ruby/ruby/blob/v3_1_4/thread.c#L744-L775
+    static void on_thread_begin(
+      DDTRACE_UNUSED rb_event_flag_t evflag,
+      DDTRACE_UNUSED VALUE data,
+      DDTRACE_UNUSED VALUE self,
+      DDTRACE_UNUSED ID mid,
+      DDTRACE_UNUSED VALUE klass
+    ) {
+      ddog_otel_thread_ctx_detach();
+    }
   #endif
 
   #ifdef HAVE_RUBY_THREAD_STORAGE_API
@@ -166,6 +179,11 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
       rb_internal_thread_add_event_hook(on_thread_exited, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
     #else
       rb_add_event_hook(on_thread_end, RUBY_EVENT_THREAD_END, Qnil);
+      // RUBY_EVENT_THREAD_END does not fire for threads terminated via Thread#kill
+      // on Ruby < 3.2, so a killed thread's otel_thread_ctx_v1 TLS stays attached
+      // on a native thread CRuby may recycle for a later Ruby thread. Detach on
+      // thread begin to drop that stale record before the new thread runs.
+      rb_add_event_hook(on_thread_begin, RUBY_EVENT_THREAD_BEGIN, Qnil);
     #endif
 
     // These hooks only matter under the M:N thread scheduler (Ruby 3.3+),
@@ -216,9 +234,7 @@ static VALUE native_set(
       store_current_fiber_handle(handle);
       ddog_otel_thread_ctx_attach(handle);
     } else {
-      // FIXME: add a method to libdatadog to update the context record before attaching it
-      ddog_otel_thread_ctx_attach(handle);
-      ddog_otel_thread_ctx_update(&trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
+      ddog_otel_thread_ctx_update_and_attach(handle, &trace_id_bytes, &span_id_bytes, 0, &local_root_span_id_bytes);
     }
 
     return Qtrue;

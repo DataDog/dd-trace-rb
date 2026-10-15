@@ -48,7 +48,7 @@ cp ../tmp/version sources
 
 mkdir -p sources/ruby/common/gems
 
-for package in libdatadog libddwaf; do
+for package in libdatadog libddwaf datadog-ruby_core_source logger; do
     echo ".. scanning for ${package}"
 
     ls -1d sources/ruby/*/gems/${package}-* | while read -r orig; do
@@ -61,4 +61,50 @@ for package in libdatadog libddwaf; do
         fi
         ln -srvf "${dest}" "${orig}"
     done
+done
+
+## Prune the `libdatadog` vendored binaries to the package arch:
+## `Libdatadog.current_platform` only ever selects the running CPU's
+## `-linux` dir, or its `-linux-musl` variant through the musl fallback
+## for Alpine, so every other vendored platform dir is unreachable in
+## this package.
+
+case "${ARCH}" in
+  amd64)
+    libdatadog_cpu="x86_64"
+    ;;
+  arm64)
+    libdatadog_cpu="aarch64"
+    ;;
+  *)
+    echo "Unknown ARCH '${ARCH}' when pruning the libdatadog vendor dirs. Exiting"
+    exit 1
+    ;;
+esac
+
+for vendor_dir in sources/ruby/common/gems/libdatadog-*/vendor/libdatadog-*/; do
+  if [[ ! -d "${vendor_dir}" ]]; then
+    echo "No libdatadog vendor dir under sources/ruby/common/gems/. Exiting"
+    exit 1
+  fi
+
+  for platform_dir in "${vendor_dir}"*/; do
+    platform="${platform_dir%/}"
+    platform="${platform##*/}"
+    case "${platform}" in
+      "${libdatadog_cpu}-linux"|"${libdatadog_cpu}-linux-musl")
+        ;;
+      *)
+        echo "pruning ${platform_dir}"
+        rm -rf "${platform_dir}"
+        ;;
+    esac
+  done
+
+  for platform in "${libdatadog_cpu}-linux" "${libdatadog_cpu}-linux-musl"; do
+    if [[ ! -d "${vendor_dir}${platform}" ]]; then
+      echo "Missing ${platform} binaries under ${vendor_dir}. Exiting"
+      exit 1
+    fi
+  done
 done

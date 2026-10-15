@@ -2,17 +2,27 @@
 
 require_relative "capture_expression"
 require_relative "capture_limits"
+require_relative "capture_expression_evaluator/result"
+require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
     class CaptureExpressionEvaluator
-      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
-
-      def initialize(settings:, serializer:, logger:, telemetry: nil)
+      # Initializes the evaluator.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured expression values
+      # @param logger [DI::Logger] logger for evaluation failure diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation failures are reported through
+      # @return [void]
+      def initialize(settings:, serializer:, logger:, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
+        @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
       end
 
@@ -22,11 +32,25 @@ module Datadog
 
       attr_reader :logger
 
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+
       attr_reader :telemetry
 
+      # Evaluates each of the probe's capture expressions against the given
+      # context and serializes the captured values, enforcing the capture
+      # time budget between expressions. An expression that fails to evaluate
+      # or serialize contributes an entry to the returned errors.
+      #
+      # @param probe [Probe] the probe whose capture expressions are evaluated
+      # @param context [Context] evaluation context the expressions are evaluated against
+      # @return [Result] the evaluation result: the serialized values keyed by
+      #   capture expression name and the errors of the expressions that failed
+      #   to evaluate or serialize
       def evaluate(probe, context)
-        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
-        deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
+        deadline = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) +
+          settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
 
         output = {}
         evaluation_errors = []
@@ -34,9 +58,13 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
+          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
             output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
+            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
+            guardrails_telemetry.skipped(
+              reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+              probe: probe,
+            )
             next
           end
 
@@ -56,7 +84,7 @@ module Datadog
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
-            evaluation_errors << {expr: name, message: "#{exc.class}: #{exc.message}"}
+            evaluation_errors << EvaluationFailure.new(expr: name, message: "#{exc.class}: #{exc.message}")
             logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"
             end
@@ -64,7 +92,7 @@ module Datadog
           end
         end
 
-        [output, evaluation_errors]
+        Result.new(serialized_values: output, errors: evaluation_errors)
       end
     end
   end
