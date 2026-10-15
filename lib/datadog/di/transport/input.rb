@@ -8,6 +8,7 @@ require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
+require_relative "../guardrails_telemetry"
 require_relative "http/input"
 
 module Datadog
@@ -26,10 +27,22 @@ module Datadog
 
         class Transport < Core::Transport::Transport
           attr_reader :telemetry
+          # The guardrails metric emitter.
+          # @return [GuardrailsTelemetry]
+          attr_reader :guardrails_telemetry
 
-          def initialize(apis, default_api, logger:, telemetry: nil)
+          # Initializes the transport.
+          #
+          # @param apis [Datadog::Core::Transport::HTTP::API::Map] API instances by name
+          # @param default_api [String] name of the API requests are sent through when unspecified
+          # @param logger [Datadog::Core::Logger] logger for transport diagnostics
+          # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical payload-drop metric
+          # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
+          # @return [void]
+          def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
             super(apis, default_api, logger: logger)
             @telemetry = telemetry
+            @guardrails_telemetry = guardrails_telemetry
           end
 
           # The limit on an individual snapshot payload, aka "log line",
@@ -62,19 +75,24 @@ module Datadog
           # Large snapshots (> 1MB) are dropped. Batches are split into chunks
           # of ~2MB each to avoid large network requests.
           #
-          # @param payload [Array<Hash>] Array of snapshot payloads
+          # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
           # @param on_serialization_error [Proc] Called with (probe_id, exception)
           #   when a snapshot fails to serialize.
+          # @return [Array<SnapshotEvent>] the events that were sent
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
             # Serialize each snapshot individually to isolate failures
             encoded_snapshots = []
-            payload.each do |snapshot|
-              encoded = encoder.encode(snapshot)
-              if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
-                logger.debug { "di: dropping too big snapshot" }
+            dropped_events = []
+            payload.each do |event|
+              encoded = encoder.encode(event.payload)
+              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+                logger.debug do
+                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
+                end
+                dropped_events << [event, encoded.bytesize]
                 next
               end
               encoded_snapshots << encoded
@@ -82,7 +100,7 @@ module Datadog
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
               # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
-              probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
+              probe_id = event.payload.dig(:debugger, :snapshot, :probe, :id)
               logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
@@ -95,6 +113,13 @@ module Datadog
                   telemetry&.report(callback_exc, description: "Error in serialization error callback")
                 end
               end
+            end
+
+            dropped_events.each do |event, bytes|
+              guardrails_telemetry.dropped(
+                reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                event_type: event.event_type, bytes: bytes,
+              )
             end
 
             return payload if encoded_snapshots.empty?

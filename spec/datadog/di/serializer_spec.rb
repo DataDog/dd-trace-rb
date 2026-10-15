@@ -1,6 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/serializer"
 require_relative "serializer_helper"
+require_relative "di_serializer_spec_raising_each_hash"
 
 class DISerializerSpecSensitiveType
 end
@@ -100,8 +101,14 @@ RSpec.describe Datadog::DI::Serializer do
     Datadog::DI::Redactor.new(settings)
   end
 
+  let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
   let(:serializer) do
-    described_class.new(settings, redactor)
+    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   describe "#serialize_value" do
@@ -160,6 +167,50 @@ RSpec.describe Datadog::DI::Serializer do
     ]
 
     define_serialize_value_cases(cases)
+  end
+
+  describe "capture.incomplete emission" do
+    let(:guardrails_telemetry) { instance_double(Datadog::DI::GuardrailsTelemetry).as_null_object }
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:serializer) do
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    # Asserts the capture-incomplete metric emission for the given reason.
+    def expect_capture_incomplete(reason)
+      expect(guardrails_telemetry).to receive(:capture_incomplete).with(reason: reason, event_type: "snapshot")
+    end
+
+    it "emits the depth reason for a value at the capture depth limit" do
+      expect_capture_incomplete("depth")
+      expect(serializer.serialize_value([1], depth: 0)).to include(notCapturedReason: "depth")
+    end
+
+    it "emits the collectionSize reason for an oversized collection" do
+      expect_capture_incomplete("collectionSize")
+      expect(serializer.serialize_value([1, 2, 3], collection_size: 1))
+        .to include(notCapturedReason: "collectionSize")
+    end
+
+    it "emits the fieldCount reason for an object over the field limit" do
+      expect_capture_incomplete("fieldCount")
+      expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"),
+        attribute_count: 1)).to include(notCapturedReason: "fieldCount")
+    end
+
+    it "emits the stringLength reason for a trimmed string" do
+      allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(3)
+      expect_capture_incomplete("stringLength")
+      expect(serializer.serialize_value("abcdef")).to include(truncated: true)
+    end
+
+    it "emits the runtimeError reason when serialization raises" do
+      expect_capture_incomplete("runtimeError")
+      expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new))
+        .to include(notSerializedReason: "Arrgh!")
+    end
   end
 
   describe "#serialize_vars" do
@@ -605,7 +656,7 @@ RSpec.describe Datadog::DI::Serializer do
     context "when condition raises an exception" do
       let(:telemetry) { double("telemetry") }
       let(:serializer) do
-        described_class.new(settings, redactor, telemetry: telemetry)
+        described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
       end
 
       it "skips the custom serializer and uses default serialization" do
@@ -1184,7 +1235,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
@@ -1291,7 +1342,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
