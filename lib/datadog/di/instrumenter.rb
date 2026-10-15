@@ -107,8 +107,6 @@ module Datadog
         @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
-
-        nil # standard:disable Lint/Void
       end
 
       attr_reader :settings

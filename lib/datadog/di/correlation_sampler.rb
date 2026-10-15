@@ -58,8 +58,6 @@ module Datadog
         @trace_budgets = TraceBudgetLedger.new(max_entries)
         @top_limiter = Core::TokenBucket.new(top_rate)
         @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
-
-        nil # standard:disable Lint/Void
       end
 
       # Decides whether this capturing probe hit emits a snapshot.

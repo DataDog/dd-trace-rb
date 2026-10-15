@@ -24,8 +24,6 @@ module Datadog
         @max_tokens = max_tokens
         @tokens = max_tokens
         @last_refill = Core::Utils::Time.get_time
-
-        nil # standard:disable Lint/Void
       end
 
       # @return [Numeric] refill rate, in tokens per second

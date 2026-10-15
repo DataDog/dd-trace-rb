@@ -27,8 +27,6 @@ module Datadog
           @all_remaining = all_budget
           @per_probe_budget = per_probe_budget
           @per_probe = {}
-
-          nil # standard:disable Lint/Void
         end
 
         # Remaining all-probe counter.

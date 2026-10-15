@@ -15,8 +15,6 @@ module Datadog
         def initialize(max_entries)
           @max_entries = max_entries
           @entries = {}
-
-          nil # standard:disable Lint/Void
         end
 
         # Upper bound on retained entries.

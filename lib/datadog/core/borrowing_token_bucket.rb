@@ -23,8 +23,6 @@ module Datadog
 
         raise ArgumentError, "rate must not be negative: #{rate}" if rate < 0
         raise ArgumentError, "max_tokens must not be negative: #{max_tokens}" if max_tokens < 0
-
-        nil # standard:disable Lint/Void
       end
 
       # @return [Boolean] whether the balance is currently positive

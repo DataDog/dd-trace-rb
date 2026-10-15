@@ -115,8 +115,6 @@ module Datadog
         # cannot race a foreground start! with a background stop!.
         @lifecycle_mutex = Mutex.new
         @started = false
-
-        nil # standard:disable Lint/Void
       end
 
       attr_reader :settings
