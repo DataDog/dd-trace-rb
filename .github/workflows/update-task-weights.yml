@@ -13,35 +13,53 @@ concurrency:
 permissions: {}
 
 jobs:
-  update:
+  aggregate:
     runs-on: ubuntu-24.04
     permissions:
       actions: read
     env:
       GH_TOKEN: ${{ github.token }}
-    # Same image as the Unit Tests `batch` jobs: actions/cache derives the cache
-    # version from the runner's compression tool, and this image has no zstd.
-    # Saving from a plain runner (zstd) made the weights cache invisible to the
-    # gzip-side restore in these containers.
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install gh CLI
-        run: |
-          curl -fsSL "https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
-          tar -xzf /tmp/gh.tar.gz -C /tmp
-          install -m 755 /tmp/gh_2.102.0_linux_amd64/bin/gh /usr/local/bin/gh
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '3.4'
 
       - name: Download timing artifacts
         run: .github/scripts/download_timing_artifacts.sh timings
 
       - name: Aggregate task weights
         run: rake -f tasks/github.rake "github:aggregate_timings[$PWD/timings]"
+
+      - name: Upload task weights
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: task-weights
+          path: tmp/ci_task_timings.json
+
+  save-cache:
+    needs: aggregate
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+    # actions/cache versions cache entries by the compression tool available
+    # to the runner, and this image has no zstd, so both sides use gzip. The
+    # save must happen in the same image the Unit Tests `batch` jobs restore
+    # from. Saving from a plain runner (zstd) makes the cache invisible to
+    # every gzip-side restore.
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+    steps:
+      - name: Download task weights
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: task-weights
+          path: tmp
 
       - name: Save weights cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
