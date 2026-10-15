@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.46.0.dev)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.5)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.6)
       libdatadog (~> 45.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -44,7 +44,7 @@ GEM
     crack (1.0.1)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.5.5)
+    datadog-ruby_core_source (3.5.6)
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
@@ -85,7 +85,7 @@ GEM
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     io-console (0.9.4)
-    json (3.0.2)
+    json (3.1.0)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -231,7 +231,7 @@ CHECKSUMS
   connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
   crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
   datadog (2.46.0.dev)
-  datadog-ruby_core_source (3.5.5) sha256=5df55ea06feda22e5d4b7db62a70f19a86660bd06d3a3ff739d2f549eaff45e6
+  datadog-ruby_core_source (3.5.6) sha256=07d8909b9314af709da80966cf7e160da19ca1c396a8f45d175615f675a89569
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   dogstatsd-ruby (5.7.1) sha256=d2e211f9635d6bbe773e152e00fd4cb9f165d26e10356dbef8f917f7a9e5d58c
@@ -252,7 +252,7 @@ CHECKSUMS
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
-  json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
+  json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   libdatadog (45.0.0.1.0) sha256=b468571d5f24a4faa998a419e290d528bd8ac94a1a3ed87ff2cf1e6bc52e5436
   libdatadog (45.0.0.1.0-aarch64-linux) sha256=0983439da1792cf37730b0f96630a54d19a3918d3998eae703e23b7e37f0ef05
