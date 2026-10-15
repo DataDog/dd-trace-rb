@@ -708,6 +708,99 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   return i;
 }
 
+static uint16_t miteruby_frame_position(const rb_iseq_t *iseq, const VALUE *pc) {
+  if (iseq == NULL || pc == NULL) return UINT16_MAX;
+
+  ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
+  if (n < 0 || (size_t) n > ISEQ_BODY(iseq)->iseq_size) return UINT16_MAX;
+
+  size_t position = n > 0 ? n - 1 : 0;
+  return position < UINT16_MAX ? (uint16_t) position : UINT16_MAX;
+}
+
+// Same frame selection and oldest-first traversal as ddtrace_rb_profile_frames, with these differences:
+// - No start offset; always captures from the root, with a uint16_t frame limit.
+// - Writes CME/ISEQ pairs and positions into separate event arrays, without same_frame caching or a saved PC.
+// - Stores adjusted bytecode positions instead of resolving source lines; UINT16_MAX denotes unknown,
+//   unreliable JIT, or unrepresentable positions.
+// - Identifies C frames by explicitly setting iseq to NULL, with position zero, instead of an is_ruby_frame flag.
+// - Writes the captured count to stack_buffer->frame_count and returns complete/truncated/unavailable flags.
+//   Truncation requires finding another eligible frame beyond the limit; the oldest frames are retained.
+// - Reports unavailable for both empty stacks and cases that previously returned PLACEHOLDER_STACK_IN_NATIVE_CODE.
+uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_stack_sample_view_t *stack_buffer) {
+  stack_buffer->frame_count = 0;
+  rb_thread_t *th = thread_struct_from_object(thread);
+  const rb_execution_context_t *ec = th->ec;
+  if (ec == NULL || th->status == THREAD_KILLED) return MITERUBY_EVENT_STACK_UNAVAILABLE;
+
+  const rb_control_frame_t *cfp = ec->cfp;
+  if (cfp == NULL || ec->vm_stack == NULL || ec->vm_stack_size == 0) return MITERUBY_EVENT_STACK_UNAVAILABLE;
+
+  const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+  #ifndef NO_JIT_RETURN
+    const rb_control_frame_t *top = cfp;
+  #endif
+  if (end_cfp == NULL) return MITERUBY_EVENT_STACK_UNAVAILABLE;
+
+  // Skip the dummy frames at the root, as in ddtrace_rb_profile_frames.
+  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  if (end_cfp <= cfp) return MITERUBY_EVENT_STACK_UNAVAILABLE;
+  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
+  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+  for (; cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    const VALUE *pc = cfp->pc;
+    #ifdef HAVE_ZJIT_FRAME
+      const rb_iseq_t *iseq = cfp->_iseq;
+    #else
+      const rb_iseq_t *iseq = cfp->iseq;
+    #endif
+
+    #if defined(HAVE_ZJIT_FRAME) && USE_ZJIT
+      if (CFP_ZJIT_FRAME_P(cfp)) {
+        if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
+          // ZJIT leaves these slots stale for C method frames.
+          iseq = NULL;
+          pc = NULL;
+        } else {
+          const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
+          iseq = jit_frame->iseq;
+          pc = jit_frame->pc;
+        }
+      }
+    #endif
+
+    #ifndef NO_T_MOVED
+      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) continue;
+    #endif
+    if ((iseq && !pc) || cfp->ep == NULL) continue;
+
+    const rb_callable_method_entry_t *cme;
+    uint16_t position;
+    if (VM_FRAME_RUBYFRAME_P(cfp)) {
+      cme = safe_vm_frame_method_entry(cfp);
+      #ifndef NO_JIT_RETURN
+        // The JIT may not have updated the top frame's PC.
+        position = cfp == top && cfp->jit_return ? UINT16_MAX : miteruby_frame_position(iseq, pc);
+      #else
+        position = miteruby_frame_position(iseq, pc);
+      #endif
+    } else {
+      cme = get_cfunc_method_entry(cfp);
+      if (cme == NULL || cme->def->type != VM_METHOD_TYPE_CFUNC) continue;
+      iseq = NULL;
+      position = 0;
+    }
+
+    if (stack_buffer->frame_count == limit) return MITERUBY_EVENT_STACK_TRUNCATED;
+    uint16_t i = stack_buffer->frame_count++;
+    stack_buffer->refs[i] = (miteruby_event_frame_refs_t) {.cme = cme, .iseq = iseq};
+    stack_buffer->positions[i].value = position;
+  }
+
+  return stack_buffer->frame_count > 0 ? MITERUBY_EVENT_STACK_COMPLETE : MITERUBY_EVENT_STACK_UNAVAILABLE;
+}
+
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
 // to support our custom rb_profile_frames (see above)
