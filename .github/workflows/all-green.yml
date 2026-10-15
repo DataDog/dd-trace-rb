@@ -40,5 +40,5 @@ jobs:
           # Excluded check names/status contexts; each pattern is a regular expression that must fully match.
           # Mergegate checks non-CI merge requirements (e.g. code review); DDCI Status is optional.
           ignored-name-patterns: |
-            devflow/*
+            devflow/.*
             DDCI Status
