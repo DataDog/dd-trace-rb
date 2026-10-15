@@ -3,9 +3,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// For rb_callable_method_entry_t and rb_iseq_t.
-#include "../private_vm_api_access.h"
-
 // See design/EventDesign.md for field semantics and storage requirements.
 typedef struct {
   VALUE value;
@@ -16,6 +13,12 @@ typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_STACK_SAMPLE = 1,
   MITERUBY_EVENT_OVERFLOW = 2,
 } miteruby_event_type_t;
+
+enum {
+  MITERUBY_EVENT_STACK_COMPLETE = 0,
+  MITERUBY_EVENT_STACK_TRUNCATED = 1,
+  MITERUBY_EVENT_STACK_UNAVAILABLE = 2,
+};
 
 typedef struct {
   uint16_t size_bytes;
