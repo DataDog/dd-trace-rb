@@ -18,6 +18,7 @@
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
 #include "miteruby/buffer.h"
+#include "miteruby/event.h"
 
 #ifdef __APPLE__
   #include "macos_sampler_thread.h"
