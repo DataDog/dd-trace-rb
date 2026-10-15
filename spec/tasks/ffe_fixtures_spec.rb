@@ -3,6 +3,8 @@
 require "spec_helper"
 require_relative "../../tasks/ffe_fixtures"
 
+# These updater tests use temporary fixture trees and stub every Git operation,
+# so they never contact upstream or modify the developer's checkout.
 RSpec.describe FfeFixtures do
   around do |example|
     Dir.mktmpdir("ffe-fixtures-spec-") do |temporary|
@@ -118,6 +120,59 @@ RSpec.describe FfeFixtures do
       expect(File.read(output_file)).to end_with("changed=false\n")
     end
 
+    it "preserves the existing pin when a newer upstream commit has identical fixtures" do
+      File.write(File.join(destination, "SOURCE.md"), described_class.source_metadata("b" * 40))
+      before = snapshot_state
+
+      described_class.update(repository)
+
+      expect(snapshot_state).to eq(before)
+      expect(File.read(output_file)).to end_with("changed=false\n")
+    end
+
+    ["missing", "malformed", "inconsistent"].each do |state|
+      it "repairs #{state} provenance explicitly without rewriting matching fixtures" do
+        metadata_path = File.join(destination, "SOURCE.md")
+        case state
+        when "missing" then File.delete(metadata_path)
+        when "malformed" then File.write(metadata_path, "Source commit: main\n")
+        when "inconsistent" then File.write(metadata_path, described_class.source_metadata("b" * 40))
+        end
+        fixtures_before = snapshot_state.reject { |name, _contents, _mtime| name == "SOURCE.md" }
+
+        described_class.update(repository, ref: commit, repair_source: true)
+
+        expect(snapshot_state.reject { |name, _contents, _mtime| name == "SOURCE.md" }).to eq(fixtures_before)
+        expect(File.read(metadata_path)).to eq(described_class.source_metadata(commit))
+        expect(File.read(output_file)).to end_with("changed=true\n")
+        expect { described_class.update(repository, check: true) }.not_to raise_error
+      end
+    end
+
+    it "preserves an already repaired snapshot" do
+      before = snapshot_state
+
+      described_class.update(repository, ref: commit, repair_source: true)
+
+      expect(snapshot_state).to eq(before)
+      expect(File.read(output_file)).to end_with("changed=false\n")
+    end
+
+    it "refuses provenance repair when fixtures differ from the requested ref" do
+      File.write(File.join(upstream, "ufc-config.json"), '{"flags":{"new":{}}}')
+      before = snapshot_state
+
+      expect { described_class.update(repository, ref: commit, repair_source: true) }.to raise_error(/Cannot repair SOURCE.md/)
+      expect(snapshot_state).to eq(before)
+      expect(File.exist?(output_file)).to be(false)
+    end
+
+    it "rejects provenance repair in check mode before fetching" do
+      expect(described_class).not_to receive(:git)
+
+      expect { described_class.update(repository, check: true, repair_source: true) }.to raise_error(ArgumentError)
+    end
+
     ["ufc-config.json", "evaluation-cases", "evaluation-cases/cases.json"].each do |entry|
       it "rejects upstream symlinks at #{entry} without changing the snapshot" do
         path = File.join(upstream, entry)
@@ -158,15 +213,31 @@ RSpec.describe FfeFixtures do
       expect { described_class.main(["--check", "--ref", "main"]) }.to raise_error(OptionParser::InvalidOption)
     end
 
-    [[], ["--ref", "reviewed-ref"], ["--check"]].each do |arguments|
-      it "selects the mode for #{arguments.inspect}" do
+    [["--repair-source"], ["--check", "--repair-source"]].each do |arguments|
+      it "rejects invalid repair options #{arguments.inspect}" do
+        expect(described_class).not_to receive(:update)
+
+        expect { described_class.main(arguments) }.to raise_error(OptionParser::InvalidOption)
+      end
+    end
+
+    it "rejects unexpected positional arguments without mutating the caller's arguments" do
+      arguments = ["--ref", "main", "unexpected"].freeze
+      expect(described_class).not_to receive(:update)
+
+      expect { described_class.main(arguments) }.to raise_error(OptionParser::InvalidArgument, /unexpected/)
+    end
+
+    [[], ["--ref", "reviewed-ref"], ["--check"], ["--ref", "reviewed-ref", "--repair-source"]].each do |arguments|
+      it "selects the mode for #{arguments.inspect} without mutating the caller's arguments" do
         expect(described_class).to receive(:update).with(
           File.expand_path("../..", __dir__),
           ref: arguments.include?("--ref") ? "reviewed-ref" : "main",
           check: arguments.include?("--check"),
+          repair_source: arguments.include?("--repair-source"),
         )
 
-        described_class.main(arguments.dup)
+        described_class.main(arguments.freeze)
       end
     end
   end

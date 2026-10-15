@@ -64,6 +64,12 @@ the full source commit in `spec/datadog/open_feature/ffe-system-test-data/SOURCE
 Run `ruby tasks/ffe_fixtures.rb --check` to compare filenames and bytes against that
 commit without modifying the snapshot. Pull request CI also checks this provenance.
 
+To repair missing or incorrect `SOURCE.md` metadata, run
+`ruby tasks/ffe_fixtures.rb --ref <upstream-commit> --repair-source`.
+This regenerates only the metadata and requires the existing fixtures to match
+that commit exactly. Ordinary updates preserve the existing pin when fixture
+contents have not changed.
+
 The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
 opens a signed draft PR only when fixture contents change. It leaves an existing
 update PR untouched, so evaluator fixes can be added there. New cases may expose
