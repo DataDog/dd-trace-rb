@@ -92,6 +92,9 @@ header | thread | refs[N] | positions[N] | padding
 - Complete captured stack, inline: `N = header.frame_count` reference pairs followed by `N` positions.
   Matching indices form a frame; no `same_frame` dependency on earlier events.
   C declares only the first array; use the view below for both.
+- Frames are ordered oldest/root first, newest last. For a nonempty,
+  untruncated stack, index `N - 1` is the currently active frame.
+  Truncation retains the oldest frames and omits the newest ones.
 - Require `size_bytes == round_up_to_8(24 + 18 * frame_count)` before accessing the arrays.
 
 ### MiterubyStackSampleView
