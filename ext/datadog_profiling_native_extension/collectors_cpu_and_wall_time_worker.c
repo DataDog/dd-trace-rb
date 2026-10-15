@@ -17,6 +17,7 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
+#include "miteruby/buffer.h"
 
 #ifdef __APPLE__
   #include "macos_sampler_thread.h"
@@ -327,6 +328,8 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
+static miteruby_buffer_t miteruby_buffer;
+
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
   static void *gc_finalize_deferred_workaround;
@@ -341,6 +344,8 @@ __thread uint64_t allocation_count = 0;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
+
+  if (miteruby_buffer_init(&miteruby_buffer) != 0) raise_syserr(errno, "Failed to initialize miteruby buffer");
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
