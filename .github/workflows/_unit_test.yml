@@ -69,24 +69,27 @@ jobs:
           restore-keys: |
             spec-task-weights-
 
-      # TEMPORARY: source weights from the old repository until the daily
-      # weights job saves the first Actions cache. The file guard keeps the
-      # cache authoritative once it exists. Remove this step once the cache
-      # holds real timings.
+      # Task weights, in priority order: the Actions cache, then the
+      # fallback manifest at WEIGHTS_FALLBACK_URL (a repository variable)
+      # when the cache misses, then static batching when neither exists.
       - name: Fetch task weights
         env:
-          WEIGHTS_URL: https://raw.githubusercontent.com/TonyCTHsu/dd-test-weights/main/ci_task_timings.json
+          WEIGHTS_FALLBACK_URL: ${{ vars.WEIGHTS_FALLBACK_URL || '' }}
         run: |
-          if [ ! -f tmp/ci_task_timings.json ]; then
+          if [ -f tmp/ci_task_timings.json ]; then
+            echo "Using cached task weights"
+          elif [ -z "$WEIGHTS_FALLBACK_URL" ]; then
+            echo "No cached task weights. No fallback URL. Scheduling statically"
+          else
             mkdir -p tmp
-            if curl -fsSL "$WEIGHTS_URL" -o tmp/ci_task_timings.json \
+            if curl -fsSL "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
                && ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'; then
-              echo "Fetched task weights"
+              echo "Using fallback task weights from $WEIGHTS_FALLBACK_URL"
             else
               # The weights are optional: leave no file behind and let the
               # scheduler fall back to the static split.
               rm -f tmp/ci_task_timings.json
-              echo "Fetch of task weights failed; continuing with static scheduling"
+              echo "Fetch of task weights failed. Scheduling statically"
             fi
           fi
 
