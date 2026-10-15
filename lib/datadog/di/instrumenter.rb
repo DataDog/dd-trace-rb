@@ -521,9 +521,9 @@ module Datadog
       def emit?(probe)
         if probe.capturing?
           begin
-            trace_id = current_trace_id
-            emit = correlation_sampler.emit?(probe, trace_id)
-            return emit if trace_id
+            trace = current_trace
+            emit = correlation_sampler.emit?(probe, trace)
+            return emit if trace
 
             # Uncorrelated hit: the sampler already consulted the probe's own
             # rate limiter, so only the hard limiter remains.
@@ -547,11 +547,11 @@ module Datadog
         global_rate_limit_allows?(probe)
       end
 
-      # Trace id of the active APM trace, or nil when no trace is active.
+      # The active APM trace, or nil when no trace is active.
       #
-      # @return [Integer, nil]
-      def current_trace_id
-        Datadog::DI.active_trace&.id
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def current_trace
+        Datadog::DI.active_trace
       end
 
       # Consults the process-wide hard rate limiter for the probe's category.

@@ -5,12 +5,12 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   di_test
 
   subject(:correlation) do
-    described_class.new(max_entries: max_entries, top_rate: top_rate,
+    described_class.new(sweep_threshold: sweep_threshold, top_rate: top_rate,
       global_rate: global_rate, per_probe_budget: per_probe_budget,
       all_budget: all_budget,)
   end
 
-  let(:max_entries) { 4096 }
+  let(:sweep_threshold) { 4096 }
   let(:top_rate) { 10 }
   let(:global_rate) { 20 }
   let(:per_probe_budget) { 5 }
@@ -27,14 +27,20 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       own_rate_limit_allows?: own_rate_limit_allows,)
   end
 
+  # A distinct trace object per call, mirroring the tracer's one trace object
+  # per trace.
+  def trace
+    Object.new
+  end
+
   describe "#initialize" do
-    it "rejects a max_entries that is not a positive Integer" do
-      expect { described_class.new(max_entries: 0) }
-        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
-      expect { described_class.new(max_entries: -1) }
-        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
-      expect { described_class.new(max_entries: 4096.0) }
-        .to raise_error(ArgumentError, /max_entries must be a positive Integer/)
+    it "rejects a sweep_threshold that is not a positive Integer" do
+      expect { described_class.new(sweep_threshold: 0) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
+      expect { described_class.new(sweep_threshold: -1) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
+      expect { described_class.new(sweep_threshold: 4096.0) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
     end
 
     it "rejects a per_probe_budget that is not a non-negative Integer" do
@@ -82,16 +88,18 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
     context "top probe (first capturing probe in a trace)" do
       it "emits when GLOBAL and TOP admit" do
-        expect(correlation.emit?(probe("a"), 1)).to be(true)
+        expect(correlation.emit?(probe("a"), trace)).to be(true)
       end
 
       context "when TOP is exhausted" do
         let(:top_rate) { 1 }
 
         it "starves the trace: the top probe and every correlated probe drop" do
-          expect(correlation.emit?(probe("a"), 1)).to be(true)
-          expect(correlation.emit?(probe("a"), 2)).to be(false)
-          expect(correlation.emit?(probe("b"), 2)).to be(false)
+          expect(correlation.emit?(probe("a"), trace)).to be(true)
+
+          second = trace
+          expect(correlation.emit?(probe("a"), second)).to be(false)
+          expect(correlation.emit?(probe("b"), second)).to be(false)
         end
       end
 
@@ -99,8 +107,9 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         let(:global_rate) { 0 }
 
         it "starves the trace" do
-          expect(correlation.emit?(probe("a"), 1)).to be(false)
-          expect(correlation.emit?(probe("b"), 1)).to be(false)
+          first = trace
+          expect(correlation.emit?(probe("a"), first)).to be(false)
+          expect(correlation.emit?(probe("b"), first)).to be(false)
         end
       end
 
@@ -108,8 +117,9 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         let(:all_budget) { 0 }
 
         it "drops the top probe and starves the trace" do
-          expect(correlation.emit?(probe("a"), 1)).to be(false)
-          expect(correlation.emit?(probe("b"), 1)).to be(false)
+          first = trace
+          expect(correlation.emit?(probe("a"), first)).to be(false)
+          expect(correlation.emit?(probe("b"), first)).to be(false)
         end
       end
     end
@@ -119,16 +129,18 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       let(:all_budget) { 100 }
 
       it "lets one probe emit exactly per_probe_budget times in a trace" do
+        first = trace
         p = probe("a")
-        emitted = 6.times.count { correlation.emit?(p, 1) }
+        emitted = 6.times.count { correlation.emit?(p, first) }
         expect(emitted).to eq(3)
       end
 
       it "gives each distinct probe its own per-probe counter" do
+        first = trace
         a = probe("a")
-        3.times { correlation.emit?(a, 1) }
-        expect(correlation.emit?(a, 1)).to be(false)
-        expect(correlation.emit?(probe("b"), 1)).to be(true)
+        3.times { correlation.emit?(a, first) }
+        expect(correlation.emit?(a, first)).to be(false)
+        expect(correlation.emit?(probe("b"), first)).to be(true)
       end
     end
 
@@ -137,7 +149,8 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       let(:all_budget) { 4 }
 
       it "lets a trace emit exactly all_budget snapshots across probes" do
-        emitted = %w[a b c d e f].count { |id| correlation.emit?(probe(id), 1) }
+        first = trace
+        emitted = %w[a b c d e f].count { |id| correlation.emit?(probe(id), first) }
         expect(emitted).to eq(4)
       end
     end
@@ -148,30 +161,110 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       let(:all_budget) { 100 }
 
       it "consumes GLOBAL past zero for correlated probes, then starves new traces" do
-        emitted = %w[a b c d e f g h].count { |id| correlation.emit?(probe(id), 1) }
+        first = trace
+        emitted = %w[a b c d e f g h].count { |id| correlation.emit?(probe(id), first) }
         expect(emitted).to eq(8)
 
-        expect(correlation.emit?(probe("a"), 2)).to be(false)
+        expect(correlation.emit?(probe("a"), trace)).to be(false)
       end
     end
 
-    context "when the per-trace ledger exceeds max_entries" do
-      let(:max_entries) { 2 }
+    context "trace lifetime" do
       let(:per_probe_budget) { 1 }
       let(:all_budget) { 100 }
       let(:top_rate) { 100 }
       let(:global_rate) { 100 }
 
-      it "evicts the oldest trace, resetting its counters" do
+      it "keeps a trace's counters across newer traces" do
+        first = trace
         p = probe("a")
-        expect(correlation.emit?(p, 1)).to be(true)
-        expect(correlation.emit?(p, 1)).to be(false)
+        expect(correlation.emit?(p, first)).to be(true)
+        expect(correlation.emit?(p, first)).to be(false)
 
-        correlation.emit?(probe("b"), 2)
-        correlation.emit?(probe("c"), 3)
+        5000.times { correlation.emit?(probe("b"), trace) }
 
-        expect(correlation.emit?(p, 1)).to be(true)
+        expect(correlation.emit?(p, first)).to be(false)
       end
+
+      it "gives a distinct trace object its own unit" do
+        first = trace
+        expect(correlation.emit?(probe("a"), first)).to be(true)
+        expect(correlation.emit?(probe("a"), trace)).to be(true)
+        expect(correlation.emit?(probe("a"), first)).to be(false)
+      end
+    end
+
+    context "starvation persistence" do
+      let(:top_rate) { 1 }
+
+      it "keeps a starved trace starved once TOP refills" do
+        expect(correlation.emit?(probe("a"), trace)).to be(true)
+
+        starved = trace
+        expect(correlation.emit?(probe("a"), starved)).to be(false)
+
+        # TOP refills, so a fresh trace establishes a unit again...
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1000)
+        expect(correlation.emit?(probe("b"), trace)).to be(true)
+
+        # ...while the starved trace keeps dropping without re-querying the
+        # gates.
+        expect(correlation.emit?(probe("b"), starved)).to be(false)
+      end
+    end
+  end
+
+  describe Datadog::DI::CorrelationSampler::TraceBudgetLedger do
+    subject(:ledger) { described_class.new(sweep_threshold) }
+
+    let(:sweep_threshold) { 2 }
+
+    def budget
+      Datadog::DI::CorrelationSampler::TraceBudget.new(per_probe_budget: 1, all_budget: 1)
+    end
+
+    it "returns the budget stored for the same trace object" do
+      first = Object.new
+      b = budget
+      ledger.store(first, b)
+      expect(ledger.fetch(first)).to equal(b)
+    end
+
+    it "returns nil for an unknown trace" do
+      expect(ledger.fetch(Object.new)).to be_nil
+    end
+
+    it "rejects a sweep_threshold that is not a positive Integer" do
+      expect { described_class.new(0) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
+      expect { described_class.new(-1) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
+      expect { described_class.new(2.0) }
+        .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
+    end
+
+    it "keeps live entries beyond any count" do
+      10.times { ledger.store(Object.new, budget) }
+      expect(ledger.entries.size).to eq(10)
+    end
+
+    it "sweeps entries whose trace is gone" do
+      retained = Array.new(2) { Object.new }
+      retained.each { |trace| ledger.store(trace, budget) }
+
+      # The thread's stack is freed on join, so the traces allocated inside
+      # become unreachable and GC.start collects them.
+      Thread.new do
+        Array.new(2) { Object.new }.each { |trace| ledger.store(trace, budget) }
+        nil
+      end.join
+      GC.start
+
+      5.times { ledger.store(Object.new, budget) }
+
+      # Nine stores minus the two dead entries: seven retained.
+      expect(ledger.entries.size).to eq(7)
+      expect(retained.all? { |trace| ledger.fetch(trace) }).to be(true)
     end
   end
 

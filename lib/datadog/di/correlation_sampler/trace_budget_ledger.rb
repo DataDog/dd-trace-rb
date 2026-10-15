@@ -1,53 +1,117 @@
 # frozen_string_literal: true
 
+require "weakref"
+
 module Datadog
   module DI
     class CorrelationSampler
-      # Bounded store of per-trace budgets. Discard policy: when an entry is
-      # stored beyond +max_entries+, the least recently used entry (insertion
-      # order, recency refreshed on lookup) is evicted.
+      # Store of per-trace budgets, keyed by the trace object and bound to its
+      # lifetime: an entry dies with its trace, so a live trace's budgets are
+      # never evicted. Dead entries are dropped by a lazy sweep once the entry
+      # count passes the sweep high-water mark.
       #
       # @api private
       class TraceBudgetLedger
-        # Initializes the ledger with +max_entries+ as its retention bound.
+        # One retained budget and the weak reference to its trace.
         #
-        # @param max_entries [Integer] upper bound on retained entries
-        def initialize(max_entries)
-          @max_entries = max_entries
-          @entries = {}
+        # @api private
+        class Entry
+          # Weak reference to the trace the budget belongs to.
+          #
+          # @return [WeakRef]
+          attr_reader :trace_ref
+
+          # The trace's budget.
+          #
+          # @return [TraceBudget]
+          attr_reader :budget
+
+          # Initializes the entry.
+          #
+          # @param trace_ref [WeakRef] weak reference to the entry's trace
+          # @param budget [TraceBudget] the trace's budget
+          def initialize(trace_ref:, budget:)
+            @trace_ref = trace_ref
+            @budget = budget
+          end
         end
 
-        # Upper bound on retained entries.
+        # Initializes the ledger with +sweep_threshold+ as the floor of the
+        # sweep high-water mark.
+        #
+        # @param sweep_threshold [Integer] lower bound on the entry count that
+        #   triggers a sweep of dead entries
+        # @raise [ArgumentError] when sweep_threshold is not a positive Integer
+        def initialize(sweep_threshold)
+          unless sweep_threshold.is_a?(Integer) && sweep_threshold.positive?
+            raise ArgumentError, "sweep_threshold must be a positive Integer: #{sweep_threshold}"
+          end
+
+          @sweep_threshold = sweep_threshold
+          @entries = {}
+          @live_count = 0
+        end
+
+        # Floor of the sweep high-water mark.
         #
         # @return [Integer]
-        attr_reader :max_entries
+        attr_reader :sweep_threshold
 
-        # Retained trace budgets keyed by trace id, least recently used first.
+        # Retained budget entries keyed by trace object id.
         #
-        # @return [Hash[Integer, TraceBudget]]
+        # @return [Hash[Integer, Entry]]
         attr_reader :entries
 
-        # Returns the budget stored for +key+, refreshing its LRU recency, or
-        # nil when the trace has no stored budget.
+        # Returns the budget stored for +trace+, or nil when the trace has no
+        # stored budget. A dead weak reference is discarded as a miss.
         #
-        # @param key [Integer] trace id
+        # @param trace [Datadog::Tracing::TraceOperation] the active trace
         # @return [TraceBudget, nil]
-        def fetch(key)
-          entry = entries.delete(key)
-          entries[key] = entry if entry
+        def fetch(trace)
+          entry = entries[trace.object_id]
+          return nil unless entry
 
-          entry
+          if entry.trace_ref.weakref_alive? && entry.trace_ref.__getobj__.equal?(trace)
+            entry.budget
+          else
+            entries.delete(trace.object_id)
+            nil
+          end
         end
 
-        # Stores +entry+ for +key+, evicting the least recently used entry
-        # once the store exceeds its bound.
+        # Stores +budget+ for +trace+.
         #
-        # @param key [Integer] trace id
-        # @param entry [TraceBudget] the trace's budget
+        # @param trace [Datadog::Tracing::TraceOperation] the active trace
+        # @param budget [TraceBudget] the trace's budget
         # @return [void]
-        def store(key, entry)
-          entries[key] = entry
-          entries.shift if entries.size > max_entries
+        def store(trace, budget)
+          sweep if entries.size >= sweep_bound
+          entries[trace.object_id] = Entry.new(trace_ref: WeakRef.new(trace), budget: budget)
+          nil
+        end
+
+        private
+
+        # Live entry count after the last sweep.
+        #
+        # @return [Integer]
+        attr_reader :live_count
+
+        # Entry count that triggers the next sweep: at least +sweep_threshold+,
+        # and at least twice the live count, so an all-live store is swept once
+        # per doubling.
+        #
+        # @return [Integer]
+        def sweep_bound
+          [sweep_threshold, live_count * 2].max
+        end
+
+        # Drops entries whose trace is gone.
+        #
+        # @return [void]
+        def sweep
+          entries.delete_if { |_id, entry| !entry.trace_ref.weakref_alive? }
+          @live_count = entries.size
           nil
         end
       end

@@ -142,7 +142,7 @@ module Datadog
       # the constructive default would build the whole tree from the
       # customer's call stack.
       #
-      # @return [Datadog::Tracing::TraceSegment, nil]
+      # @return [Datadog::Tracing::TraceOperation, nil]
       def active_trace
         if defined?(Datadog::Tracing)
           components = Datadog.send(:components, allow_initialization: false)

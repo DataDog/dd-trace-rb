@@ -96,7 +96,7 @@ module Datadog
 
       def emit?: (Probe probe) -> bool
 
-      def current_trace_id: () -> ::Integer?
+      def current_trace: () -> Datadog::Tracing::TraceOperation?
 
       def global_rate_limit_allows?: (Probe probe) -> bool
 

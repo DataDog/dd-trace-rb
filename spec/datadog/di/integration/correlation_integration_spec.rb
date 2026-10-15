@@ -150,6 +150,25 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET)
     end
 
+    it "keeps an early trace's per-probe cap across a burst of newer traces" do
+      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+
+      first_trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+      allow(Datadog::DI).to receive(:active_trace).and_return(first_trace)
+      CorrelationIntegrationTestClass.new.inner
+
+      4100.times do |index|
+        stub_active_trace(index + 2, span_id: span_id)
+        CorrelationIntegrationTestClass.new.inner
+      end
+
+      allow(Datadog::DI).to receive(:active_trace).and_return(first_trace)
+      CorrelationIntegrationTestClass.new.inner
+      flush
+
+      expect(snapshots.count { |s| s[:"dd.trace_id"] == "1" }).to eq(1)
+    end
+
     it "emits a correlated hit with the probe's own rate limit at zero" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 0))
 

@@ -2,19 +2,42 @@ module Datadog
   module DI
     class CorrelationSampler
       class TraceBudgetLedger
-        @max_entries: ::Integer
+        @sweep_threshold: ::Integer
 
-        @entries: ::Hash[::Integer, TraceBudget]
+        @entries: ::Hash[::Integer, Entry]
 
-        def initialize: (::Integer max_entries) -> void
+        @live_count: ::Integer
 
-        attr_reader max_entries: ::Integer
+        def initialize: (::Integer sweep_threshold) -> void
 
-        attr_reader entries: ::Hash[::Integer, TraceBudget]
+        attr_reader sweep_threshold: ::Integer
 
-        def fetch: (::Integer key) -> TraceBudget?
+        attr_reader entries: ::Hash[::Integer, Entry]
 
-        def store: (::Integer key, TraceBudget entry) -> void
+        def fetch: (Datadog::Tracing::TraceOperation trace) -> TraceBudget?
+
+        def store: (Datadog::Tracing::TraceOperation trace, TraceBudget budget) -> void
+
+        private
+
+        attr_reader live_count: ::Integer
+
+        def sweep_bound: () -> ::Integer
+
+        def sweep: () -> void
+
+        # One retained budget and the weak reference to its trace.
+        class Entry
+          @trace_ref: WeakRef[Datadog::Tracing::TraceOperation]
+
+          @budget: TraceBudget
+
+          def initialize: (trace_ref: WeakRef[Datadog::Tracing::TraceOperation], budget: TraceBudget) -> void
+
+          attr_reader trace_ref: WeakRef[Datadog::Tracing::TraceOperation]
+
+          attr_reader budget: TraceBudget
+        end
       end
     end
   end
