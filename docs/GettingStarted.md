@@ -2895,6 +2895,34 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
+#### Evaluation telemetry opt-out
+
+Enable per-subject evaluation telemetry opt-out when you construct the provider:
+
+```ruby
+provider = Datadog::OpenFeature::Provider.new(
+  enable_evaluation_telemetry_opt_out_parameter: true,
+)
+OpenFeature::SDK.set_provider_and_wait(provider)
+
+context = OpenFeature::SDK::EvaluationContext.new(
+  targeting_key: "subject-id",
+  dd_evaluation_telemetry_opt_out: true,
+)
+OpenFeature::SDK.build_client.fetch_string_value(
+  flag_key: "banner", default_value: "Welcome", evaluation_context: context,
+)
+```
+
+The provider option defaults to `false`. When enabled, the `dd_evaluation_telemetry_opt_out` parameter must contain boolean `true` to suppress new evaluation telemetry.
+This suppresses evaluation events, evaluation metrics, and automatic flag span annotations.
+Missing values, `false`, `nil`, strings, and numbers preserve existing reporting.
+The provider uses the merged evaluation context, including application before hooks.
+
+Flag values, variants, reasons, defaults, experiment assignment, and exposure logging remain unchanged.
+Application hooks, unrelated telemetry, and data captured before the opt-out remain unchanged.
+Your application owns the decision to set this parameter.
+
 ### Profiling
 
 `datadog` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
