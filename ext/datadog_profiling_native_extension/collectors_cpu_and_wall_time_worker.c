@@ -117,6 +117,7 @@ typedef struct {
   bool gvl_profiling_enabled;
   bool skip_idle_samples_for_testing;
   bool sighandler_sampling_enabled;
+  bool miteruby_enabled;
   uint32_t cpu_sampling_interval_ms;
   // Minimum duration of a "Waiting for GVL" period to trigger a sample
   uint32_t waiting_for_gvl_threshold_ns;
@@ -433,6 +434,7 @@ static VALUE _native_new(VALUE klass) {
   state->gvl_profiling_enabled = false;
   state->skip_idle_samples_for_testing = false;
   state->sighandler_sampling_enabled = false;
+  state->miteruby_enabled = false;
   state->cpu_sampling_interval_ms = 10;
   state->waiting_for_gvl_threshold_ns = 10 * 1000 * 1000;
   state->thread_context_collector_instance = Qnil;
@@ -480,6 +482,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE gvl_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gvl_profiling_enabled")));
   VALUE skip_idle_samples_for_testing = rb_hash_fetch(options, ID2SYM(rb_intern("skip_idle_samples_for_testing")));
   VALUE sighandler_sampling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("sighandler_sampling_enabled")));
+  VALUE miteruby_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("miteruby_enabled")));
   VALUE cpu_sampling_interval_ms = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_sampling_interval_ms")));
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
 
@@ -492,6 +495,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_BOOLEAN(gvl_profiling_enabled);
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
   ENFORCE_BOOLEAN(sighandler_sampling_enabled)
+  ENFORCE_BOOLEAN(miteruby_enabled);
   ENFORCE_TYPE(cpu_sampling_interval_ms, T_FIXNUM);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
 
@@ -506,6 +510,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->gvl_profiling_enabled = (gvl_profiling_enabled == Qtrue);
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
   state->sighandler_sampling_enabled = (sighandler_sampling_enabled == Qtrue);
+  state->miteruby_enabled = (miteruby_enabled == Qtrue);
   state->cpu_sampling_interval_ms = NUM2INT(cpu_sampling_interval_ms);
   state->waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 

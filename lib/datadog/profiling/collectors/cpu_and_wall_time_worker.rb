@@ -33,6 +33,7 @@ module Datadog
         # @rbs allocation_counting_enabled: bool
         # @rbs gvl_profiling_enabled: bool
         # @rbs sighandler_sampling_enabled: bool
+        # @rbs miteruby_enabled: bool
         # @rbs waiting_for_gvl_threshold_ns: ::Integer
         # @rbs skip_idle_samples_for_testing: false
         # @rbs return: void
@@ -47,6 +48,7 @@ module Datadog
           sighandler_sampling_enabled:,
           cpu_sampling_interval_ms:,
           waiting_for_gvl_threshold_ns:,
+          miteruby_enabled: false,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -78,6 +80,7 @@ module Datadog
             allocation_counting_enabled: allocation_counting_enabled,
             gvl_profiling_enabled: gvl_profiling_enabled,
             sighandler_sampling_enabled: sighandler_sampling_enabled,
+            miteruby_enabled: miteruby_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
             cpu_sampling_interval_ms: cpu_sampling_interval_ms,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
