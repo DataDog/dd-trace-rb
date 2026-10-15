@@ -440,7 +440,7 @@ module Datadog
       # Returns the active APM trace supplying the snapshot's trace id,
       # or nil when no trace is active.
       #
-      # @return [Datadog::Tracing::TraceSegment, nil]
+      # @return [Datadog::Tracing::TraceOperation, nil]
       def active_trace
         Datadog::DI.active_trace
       end
