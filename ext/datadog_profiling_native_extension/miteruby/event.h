@@ -1,0 +1,62 @@
+#pragma once
+
+#include <stddef.h>
+#include <stdint.h>
+
+// For rb_callable_method_entry_t and rb_iseq_t.
+#include "../private_vm_api_access.h"
+
+// See design/EventDesign.md for field semantics and storage requirements.
+typedef struct {
+  VALUE value;
+} value_thread_t;
+
+typedef enum __attribute__((packed)) {
+  MITERUBY_EVENT_INVALID = 0,
+  MITERUBY_EVENT_STACK_SAMPLE = 1,
+  MITERUBY_EVENT_OVERFLOW = 2,
+} miteruby_event_type_t;
+
+typedef struct {
+  uint16_t size_bytes;
+  uint16_t frame_count;
+  miteruby_event_type_t type;
+  uint8_t flags;
+  uint64_t timestamp_ns;
+} miteruby_event_header_t;
+
+typedef struct {
+  const rb_callable_method_entry_t *cme;
+  const rb_iseq_t *iseq;
+} miteruby_event_frame_refs_t;
+
+typedef struct {
+  uint16_t value;
+} miteruby_event_frame_position_t;
+
+typedef struct {
+  miteruby_event_header_t header;
+  value_thread_t thread;
+  miteruby_event_frame_refs_t refs[];
+} miteruby_event_stack_sample_t;
+
+typedef struct {
+  miteruby_event_frame_refs_t *refs;
+  miteruby_event_frame_position_t *positions;
+  uint16_t frame_count;
+} miteruby_event_stack_sample_view_t;
+
+typedef struct {
+  miteruby_event_header_t header;
+} miteruby_event_overflow_t;
+
+_Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
+_Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
+_Static_assert(sizeof(miteruby_event_header_t) == 16, "miteruby_event_header_t must be 16 bytes");
+_Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
+_Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_frame_position_t must be 2 bytes");
+_Static_assert(
+  sizeof(miteruby_event_stack_sample_t) == 24 && offsetof(miteruby_event_stack_sample_t, refs) == 24,
+  "miteruby_event_stack_sample_t frames must start after a 24-byte prefix"
+);
+_Static_assert(sizeof(miteruby_event_overflow_t) == 16, "miteruby_event_overflow_t must be 16 bytes");
