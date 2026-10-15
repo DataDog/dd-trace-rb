@@ -1,0 +1,6607 @@
+{
+  "ruby_versions": {
+    "2.5": [
+      {
+        "task": "action_cable",
+        "group": "rails5-mysql2",
+        "seconds": 6.837
+      },
+      {
+        "task": "action_cable",
+        "group": "rails6-mysql2",
+        "seconds": 6.348
+      },
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 13.653
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails5-mysql2",
+        "seconds": 3.644
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails6-mysql2",
+        "seconds": 6.707
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 4.199
+      },
+      {
+        "task": "action_pack",
+        "group": "rails5-mysql2",
+        "seconds": 10.539
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 50.52
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 48.892
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 13.945
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 48.485
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 3.058
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 4.677
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 10.218
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 5.869
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-min",
+        "seconds": 6.263
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 5.301
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 7.784
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-min",
+        "seconds": 6.922
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 8.399
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 5.982
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 55.029
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 50.928
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 53.836
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails4-mysql2",
+        "seconds": 65.106
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails5-mysql2",
+        "seconds": 56.83
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails6-mysql2",
+        "seconds": 56.79
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 74.346
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 8.069
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 17.478
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 3.449
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 20.336
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 6.372
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.135
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 19.579
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.308
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 13.788
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 5.441
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 6.446
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 6.906
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 101.375
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 4.47
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 4.579
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-min",
+        "seconds": 3.569
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 9.544
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 7.562
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 7.688
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 10.009
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 10.134
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 14.286
+      },
+      {
+        "task": "hanami",
+        "group": "hanami-1",
+        "seconds": 5.676
+      },
+      {
+        "task": "hanami_autoinstrument",
+        "group": "hanami-1",
+        "seconds": 4.394
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 5.499
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 53.404
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 4.27
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 5.838
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 2.207
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 128.538
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 155.393
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 38.716
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 35.155
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 4.389
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 14.718
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 12.136
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 14.429
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 37.006
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 17.359
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 27.247
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 6.743
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 50.088
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 33.619
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 34.378
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 32.812
+      },
+      {
+        "task": "rails",
+        "group": "rails4-mysql2",
+        "seconds": 47.132
+      },
+      {
+        "task": "rails",
+        "group": "rails4-postgres",
+        "seconds": 69.189
+      },
+      {
+        "task": "rails",
+        "group": "rails5-mysql2",
+        "seconds": 24.302
+      },
+      {
+        "task": "rails",
+        "group": "rails5-postgres",
+        "seconds": 48.799
+      },
+      {
+        "task": "rails",
+        "group": "rails6-mysql2",
+        "seconds": 52.487
+      },
+      {
+        "task": "rails",
+        "group": "rails6-postgres",
+        "seconds": 68.369
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 47.929
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 37.975
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 19.914
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails4-postgres-sidekiq",
+        "seconds": 5.853
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails5-postgres-sidekiq",
+        "seconds": 5.141
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails6-postgres-sidekiq",
+        "seconds": 5.653
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 4.441
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails4-postgres",
+        "seconds": 4.666
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails5-postgres",
+        "seconds": 12.277
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails6-postgres",
+        "seconds": 7.521
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails4-postgres",
+        "seconds": 31.36
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails5-postgres",
+        "seconds": 6.28
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails6-postgres",
+        "seconds": 16.966
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 3.513
+      },
+      {
+        "task": "railsredis",
+        "group": "rails5-postgres-redis",
+        "seconds": 7.559
+      },
+      {
+        "task": "railsredis",
+        "group": "rails6-postgres-redis",
+        "seconds": 7.776
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 6.139
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails4-postgres-redis",
+        "seconds": 6.8
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails5-postgres-redis-activesupport",
+        "seconds": 5.66
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails6-postgres-redis-activesupport",
+        "seconds": 7.998
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails4-semantic-logger",
+        "seconds": 6.325
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails5-semantic-logger",
+        "seconds": 4.863
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails6-semantic-logger",
+        "seconds": 6.585
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 11.794
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 12.434
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 22.703
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 26.012
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 23.733
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 9.178
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 3.595
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 5.447
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 5.112
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 9.473
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 7.667
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 9.288
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 16.324
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 2.216
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 8.167
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 6.289
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 3.416
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 4.541
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 3.564
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 2.923
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.204
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 1.43
+      }
+    ],
+    "2.6": [
+      {
+        "task": "action_cable",
+        "group": "rails5-mysql2",
+        "seconds": 5.86
+      },
+      {
+        "task": "action_cable",
+        "group": "rails6-mysql2",
+        "seconds": 6.164
+      },
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 6.501
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails5-mysql2",
+        "seconds": 4.785
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails6-mysql2",
+        "seconds": 13.029
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 5.098
+      },
+      {
+        "task": "action_pack",
+        "group": "rails5-mysql2",
+        "seconds": 12.298
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 63.67
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 62.056
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 15.399
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 60.135
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.862
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 5.309
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 6.491
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 6.667
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-min",
+        "seconds": 6.806
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 7.407
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 8.407
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-min",
+        "seconds": 8.134
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 5.169
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 7.925
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 6.87
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 55.666
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 54.175
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 53.674
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails5-mysql2",
+        "seconds": 57.607
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails6-mysql2",
+        "seconds": 80.059
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 77.528
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 8.545
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 14.34
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 17.746
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 4.381
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 20.273
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 3.93
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.327
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 19.537
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 3.328
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.073
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 15.263
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 5.316
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 35.008
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 4.531
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 5.311
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 5.884
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 4.375
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 99.841
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 5.226
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 5.325
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-min",
+        "seconds": 5.248
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 10.167
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 14.793
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 10.426
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 11.947
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 11.408
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.301
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 11.662
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 12.277
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 13.148
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 16.556
+      },
+      {
+        "task": "hanami",
+        "group": "hanami-1",
+        "seconds": 6.19
+      },
+      {
+        "task": "hanami_autoinstrument",
+        "group": "hanami-1",
+        "seconds": 5.523
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 7.529
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 53.927
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 5.819
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 65.65
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 62.079
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 120.834
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 118.463
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 36.666
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 34.625
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 10.446
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 17.324
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 12.666
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 14.115
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 5.526
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 31.325
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 17.805
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 39.185
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 41.632
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 48.201
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 5.094
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 64.893
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 34.93
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 34.47
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 34.118
+      },
+      {
+        "task": "rails",
+        "group": "rails5-mysql2",
+        "seconds": 44.441
+      },
+      {
+        "task": "rails",
+        "group": "rails5-postgres",
+        "seconds": 55.287
+      },
+      {
+        "task": "rails",
+        "group": "rails6-mysql2",
+        "seconds": 62.295
+      },
+      {
+        "task": "rails",
+        "group": "rails6-postgres",
+        "seconds": 68.308
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 56.951
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 44.718
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 16.743
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails5-postgres-sidekiq",
+        "seconds": 5.951
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails6-postgres-sidekiq",
+        "seconds": 6.416
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 15.711
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails5-postgres",
+        "seconds": 21.212
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails6-postgres",
+        "seconds": 18.718
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails5-postgres",
+        "seconds": 4.509
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails6-postgres",
+        "seconds": 17.533
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 13.957
+      },
+      {
+        "task": "railsredis",
+        "group": "rails5-postgres-redis",
+        "seconds": 4.623
+      },
+      {
+        "task": "railsredis",
+        "group": "rails6-postgres-redis",
+        "seconds": 9.134
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 15.71
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails5-postgres-redis-activesupport",
+        "seconds": 20.327
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails6-postgres-redis-activesupport",
+        "seconds": 17.036
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails5-semantic-logger",
+        "seconds": 7.071
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails6-semantic-logger",
+        "seconds": 7.141
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 14.413
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 4.317
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 25.31
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 22.291
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 18.859
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 6.703
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 5.449
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 6.217
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 6.464
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 5.893
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 5.1
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 9.391
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 22.232
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 3.644
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 6.806
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 8.084
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 6.98
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 8.756
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 5.288
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 4.535
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 2.451
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.978
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.279
+      }
+    ],
+    "2.7": [
+      {
+        "task": "action_cable",
+        "group": "rails6-mysql2",
+        "seconds": 10.963
+      },
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 7.636
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails6-mysql2",
+        "seconds": 10.303
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 7.688
+      },
+      {
+        "task": "action_pack",
+        "group": "rails5-mysql2",
+        "seconds": 14.726
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 49.022
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 65.502
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 9.597
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 61.89
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.581
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 3.331
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 6.94
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 14.676
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 6.883
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 7.247
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-min",
+        "seconds": 8.105
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 4.469
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 10.728
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 7.111
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 9.849
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 7.678
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 9.215
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 5.524
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 56.056
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 51.19
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 54.439
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails5-mysql2",
+        "seconds": 62.534
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails6-mysql2",
+        "seconds": 71.458
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 55.429
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 9.135
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 15.417
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 20.588
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 4.05
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 17.433
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 5.214
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 2.882
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 15.224
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 2.48
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 3.098
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 10.708
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 3.816
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 31.769
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 7.962
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 4.085
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 4.528
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 4.927
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.077
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 103.33
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 3.262
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 5.364
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-min",
+        "seconds": 4.539
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 9.647
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 8.177
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 10.686
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 12.097
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 13.278
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 9.34
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 14.783
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 10.203
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.055
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 3.668
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.642
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 4.318
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 11.503
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 9.038
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 3.818
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.796
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 4.434
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.453
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 4.438
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 10.431
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.341
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 6.406
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 4.272
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 6.395
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 9.882
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 12.283
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 17.331
+      },
+      {
+        "task": "hanami",
+        "group": "hanami-1",
+        "seconds": 6.33
+      },
+      {
+        "task": "hanami_autoinstrument",
+        "group": "hanami-1",
+        "seconds": 5.574
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 8.036
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 52.88
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 6.236
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 7.013
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 3.158
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 165.138
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 151.274
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 27.765
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 26.15
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 3.114
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 15.849
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 9.72
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 11.271
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 4.183
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 44.553
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 13.149
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 42.903
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 51.685
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 39.37
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 4.4
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 49.981
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 35.351
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 33.667
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 34.652
+      },
+      {
+        "task": "rails",
+        "group": "rails5-mysql2",
+        "seconds": 35.084
+      },
+      {
+        "task": "rails",
+        "group": "rails5-postgres",
+        "seconds": 36.695
+      },
+      {
+        "task": "rails",
+        "group": "rails6-mysql2",
+        "seconds": 49.566
+      },
+      {
+        "task": "rails",
+        "group": "rails6-postgres",
+        "seconds": 49.229
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 51.652
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 36.3
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 14.931
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails5-postgres-sidekiq",
+        "seconds": 5.824
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails6-postgres-sidekiq",
+        "seconds": 5.493
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 11.965
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails5-postgres",
+        "seconds": 17.598
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails6-postgres",
+        "seconds": 14.857
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails5-postgres",
+        "seconds": 3.768
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails6-postgres",
+        "seconds": 16.168
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 10.75
+      },
+      {
+        "task": "railsredis",
+        "group": "rails5-postgres-redis",
+        "seconds": 7.079
+      },
+      {
+        "task": "railsredis",
+        "group": "rails6-postgres-redis",
+        "seconds": 10.176
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 5.184
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails5-postgres-redis-activesupport",
+        "seconds": 18.432
+      },
+      {
+        "task": "railsredis_activesupport",
+        "group": "rails6-postgres-redis-activesupport",
+        "seconds": 13.099
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails5-semantic-logger",
+        "seconds": 6.73
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails6-semantic-logger",
+        "seconds": 6.0
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 14.071
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 5.325
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 18.259
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 27.934
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 19.68
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 6.745
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 4.855
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 4.627
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 6.613
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 5.0
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 5.897
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 6.405
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 18.372
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 3.031
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 6.62
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 8.079
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 5.041
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 7.951
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 4.314
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 5.007
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 2.361
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.891
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.245
+      }
+    ],
+    "3.0": [
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 5.614
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 5.09
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 9.975
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 14.534
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 43.883
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 60.605
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 18.704
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 64.53
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.969
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 5.234
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 18.445
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 14.796
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 5.282
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 13.64
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 5.288
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 9.415
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 8.763
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 6.752
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 7.734
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 6.134
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 4.532
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 54.417
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 47.498
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 51.692
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 57.117
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 7.329
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 13.38
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 17.832
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 18.861
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 3.78
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 13.069
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 4.55
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.63
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 17.626
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 4.42
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.709
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 12.556
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 10.354
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 37.177
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 4.608
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 6.59
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 15.119
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 6.129
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.069
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 102.056
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 5.175
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 14.182
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 9.836
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 6.732
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 8.658
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 6.301
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 13.723
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 16.806
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 15.253
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 14.254
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 10.035
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.753
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.437
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.249
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 3.581
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 5.541
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 8.57
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.65
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.143
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 3.648
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 4.717
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 4.014
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 11.111
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.684
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 7.188
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 6.698
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.847
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 9.762
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 12.511
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 17.145
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 7.739
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 52.424
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 5.904
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 4.059
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 75.014
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 72.91
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 3.434
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 197.49
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 167.113
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 39.666
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 38.76
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 15.095
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 19.561
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 14.065
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 16.012
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 4.88
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 26.669
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 19.385
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 56.687
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 54.092
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 52.539
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 13.681
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 2.702
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 2.935
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 35.64
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 35.371
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 34.679
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 55.781
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 60.678
+      },
+      {
+        "task": "rails",
+        "group": "rails61-trilogy",
+        "seconds": 55.298
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 16.64
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 12.699
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 15.166
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 19.889
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 16.111
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 7.024
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 29.137
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 25.387
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 18.335
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 4.482
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 4.956
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 4.153
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 6.786
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 6.308
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 5.792
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 9.649
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 3.535
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 3.106
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 6.308
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 5.285
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 7.515
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 5.026
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 7.045
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 11.558
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 5.598
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 4.349
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 2.533
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.19
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.248
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 3.37
+      }
+    ],
+    "3.1": [
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 6.8
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 15.764
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 11.467
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 11.694
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 74.69
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 72.148
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 13.172
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 72.021
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.679
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 2.598
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-latest",
+        "seconds": 15.981
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-min",
+        "seconds": 16.924
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 19.877
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 7.025
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 9.05
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 18.456
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 4.945
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 8.865
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 9.237
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 6.185
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 8.693
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 9.576
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 7.286
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 56.061
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 55.999
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 55.864
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 67.793
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 8.288
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 12.654
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 18.878
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 18.632
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 4.699
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 18.554
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 5.117
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 4.054
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 25.376
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 4.404
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.619
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 20.662
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 7.372
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 39.714
+      },
+      {
+        "task": "di:ractors",
+        "group": "",
+        "seconds": 8.356
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 5.544
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 6.454
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 17.45
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 4.931
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.689
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 102.257
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 3.559
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 16.264
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 10.318
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 10.883
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 11.033
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 8.015
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 13.705
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 13.563
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 7.864
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 11.36
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 11.343
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 6.01
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 3.58
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.22
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.754
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 5.267
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 9.516
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 3.767
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.284
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.815
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.121
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 5.72
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 9.994
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.898
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 7.023
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 4.256
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.86
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 10.604
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 10.133
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 16.198
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 9.244
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 54.419
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 6.387
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 6.785
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 16.484
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 52.454
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 72.71
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 176.842
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 214.84
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 38.339
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 36.069
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 19.07
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 21.99
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-latest",
+        "seconds": 13.699
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-min",
+        "seconds": 8.862
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 13.531
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 15.506
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 7.105
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 39.688
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 18.599
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 80.227
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 85.145
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 83.041
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp_1_5",
+        "seconds": 92.833
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 10.389
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 5.198
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 46.912
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 35.826
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 33.97
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 35.509
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 51.407
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 55.762
+      },
+      {
+        "task": "rails",
+        "group": "rails61-trilogy",
+        "seconds": 52.202
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 16.68
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 19.804
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 17.331
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 19.606
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 17.609
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 5.96
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 25.127
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 24.726
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 16.862
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 7.433
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 5.755
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 4.116
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 7.553
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 6.731
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 5.597
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 9.608
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 14.794
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 3.633
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 8.47
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 9.728
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 8.37
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 5.279
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 7.935
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 10.971
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 5.476
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 4.807
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 3.676
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.749
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.805
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 3.514
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-latest",
+        "seconds": 6.327
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-min",
+        "seconds": 16.485
+      }
+    ],
+    "3.2": [
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 3.628
+      },
+      {
+        "task": "action_cable",
+        "group": "rails8-mysql2",
+        "seconds": 25.73
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 13.135
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails8-mysql2",
+        "seconds": 5.554
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 14.327
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 8.773
+      },
+      {
+        "task": "action_pack",
+        "group": "rails8",
+        "seconds": 17.749
+      },
+      {
+        "task": "action_pack",
+        "group": "rails81",
+        "seconds": 21.629
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 48.393
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 48.899
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 15.906
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 42.839
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 5.347
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 2.339
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-latest",
+        "seconds": 17.102
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-min",
+        "seconds": 14.618
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 5.445
+      },
+      {
+        "task": "appsec:aws_lambda",
+        "group": "",
+        "seconds": 4.184
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 5.462
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 7.623
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 5.003
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 4.569
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 7.549
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 9.593
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 9.359
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 7.522
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 8.386
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 5.865
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-1",
+        "seconds": 54.329
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 46.308
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 52.77
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 67.675
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails8-mysql2",
+        "seconds": 118.723
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 7.551
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 15.52
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 18.517
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 19.255
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 2.489
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 17.872
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 4.679
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.345
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 23.88
+      },
+      {
+        "task": "core_with_rails",
+        "group": "rails8",
+        "seconds": 22.047
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 3.821
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.356
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 18.237
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 5.068
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails8-mysql2",
+        "seconds": 13.854
+      },
+      {
+        "task": "di:bootsnap",
+        "group": "rails8-mysql2",
+        "seconds": 14.765
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 31.114
+      },
+      {
+        "task": "di:ractors",
+        "group": "",
+        "seconds": 8.069
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 2.968
+      },
+      {
+        "task": "di:rails",
+        "group": "rails8-mysql2",
+        "seconds": 4.846
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 5.754
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 17.641
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 6.012
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.018
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 101.878
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 4.469
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 16.715
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 18.341
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 20.459
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 12.483
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 10.593
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 6.334
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 10.35
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 12.277
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 14.181
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 13.592
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.107
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 4.768
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.865
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 9.259
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 7.706
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 8.75
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.858
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.539
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.848
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 7.709
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 8.748
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 5.399
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 3.221
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 6.159
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.604
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 9.64
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 10.169
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 5.832
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 15.223
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 5.321
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 54.155
+      },
+      {
+        "task": "httprb",
+        "group": "httprb",
+        "seconds": 6.991
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 6.901
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 11.716
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 14.48
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 45.444
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 37.875
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 155.793
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 168.579
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 33.119
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 30.948
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 5.147
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 21.452
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-latest",
+        "seconds": 7.838
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-min",
+        "seconds": 9.143
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 12.822
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 14.36
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 5.975
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 45.905
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 17.972
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 47.741
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 69.54
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 52.044
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp_1_5",
+        "seconds": 67.091
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 16.253
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 4.486
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 3.976
+      },
+      {
+        "task": "rack",
+        "group": "rack-1",
+        "seconds": 34.292
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 34.859
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 31.332
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 29.045
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 50.519
+      },
+      {
+        "task": "rails",
+        "group": "rails61-trilogy",
+        "seconds": 36.775
+      },
+      {
+        "task": "rails",
+        "group": "rails8-mysql2",
+        "seconds": 153.165
+      },
+      {
+        "task": "rails",
+        "group": "rails8-postgres",
+        "seconds": 171.796
+      },
+      {
+        "task": "rails",
+        "group": "rails8-trilogy",
+        "seconds": 140.804
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 12.778
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 13.744
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails8-postgres-sidekiq",
+        "seconds": 28.453
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails8-postgres",
+        "seconds": 17.447
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 9.073
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails8-postgres",
+        "seconds": 16.48
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 9.012
+      },
+      {
+        "task": "railsredis",
+        "group": "rails8-postgres-redis",
+        "seconds": 14.87
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 15.82
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails8-semantic-logger",
+        "seconds": 16.336
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 8.895
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 28.12
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 25.295
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 22.116
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 6.707
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 4.922
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 5.932
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 4.14
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 6.219
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 2.915
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 10.257
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 15.802
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 3.13
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 8.234
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 4.962
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 7.994
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 19.724
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 3.983
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 10.614
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 4.766
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 5.358
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 3.601
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.395
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.343
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 17.742
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-latest",
+        "seconds": 3.261
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-min",
+        "seconds": 5.308
+      }
+    ],
+    "3.3": [
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 5.254
+      },
+      {
+        "task": "action_cable",
+        "group": "rails8-mysql2",
+        "seconds": 22.147
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 10.107
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails8-mysql2",
+        "seconds": 4.624
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 14.811
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 13.524
+      },
+      {
+        "task": "action_pack",
+        "group": "rails8",
+        "seconds": 14.164
+      },
+      {
+        "task": "action_pack",
+        "group": "rails81",
+        "seconds": 15.646
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 38.493
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 37.347
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 18.661
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 45.036
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.346
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 3.43
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-latest",
+        "seconds": 17.557
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-min",
+        "seconds": 17.558
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 6.328
+      },
+      {
+        "task": "appsec:aws_lambda",
+        "group": "",
+        "seconds": 3.555
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 17.486
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 6.81
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 7.834
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 4.955
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 9.007
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 8.096
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 7.575
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 6.322
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 7.718
+      },
+      {
+        "task": "appsec:integration",
+        "group": "rails-app",
+        "seconds": 30.632
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 6.884
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 54.445
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 54.194
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 72.279
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails8-mysql2",
+        "seconds": 166.34
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 5.798
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 10.879
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 15.089
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 16.829
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 3.942
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 16.201
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 3.473
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 2.885
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 30.79
+      },
+      {
+        "task": "core_with_rails",
+        "group": "rails8",
+        "seconds": 16.037
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 3.765
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.648
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 15.322
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 4.552
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails8-mysql2",
+        "seconds": 16.171
+      },
+      {
+        "task": "di:bootsnap",
+        "group": "rails8-mysql2",
+        "seconds": 15.363
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 36.247
+      },
+      {
+        "task": "di:ractors",
+        "group": "",
+        "seconds": 6.263
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 4.249
+      },
+      {
+        "task": "di:rails",
+        "group": "rails8-mysql2",
+        "seconds": 4.555
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 6.572
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 16.972
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 5.081
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 2.647
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 101.616
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 5.432
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 17.287
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 18.0
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 12.933
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 16.025
+      },
+      {
+        "task": "grape",
+        "group": "grape-latest",
+        "seconds": 18.898
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 6.874
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 8.073
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 6.717
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 7.601
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 14.922
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 11.523
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.76
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.531
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.768
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 4.671
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 7.562
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 3.644
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.677
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.727
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 4.808
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 4.761
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 3.656
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 6.687
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.152
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.901
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 6.458
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 6.286
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 8.512
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 10.727
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 14.927
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 7.746
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 52.334
+      },
+      {
+        "task": "httprb",
+        "group": "httprb",
+        "seconds": 6.944
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 5.961
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 47.019
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 6.011
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 42.229
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 2.841
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 136.781
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 152.614
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 55.744
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 45.992
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 16.187
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 22.114
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-latest",
+        "seconds": 6.658
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-min",
+        "seconds": 7.97
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 18.713
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 20.089
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 6.791
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 32.77
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 15.31
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 38.386
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 60.551
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 55.03
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp_1_5",
+        "seconds": 58.725
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 13.368
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 5.372
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 40.066
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 32.681
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 33.96
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 44.33
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 37.894
+      },
+      {
+        "task": "rails",
+        "group": "rails61-trilogy",
+        "seconds": 28.374
+      },
+      {
+        "task": "rails",
+        "group": "rails8-mysql2",
+        "seconds": 144.51
+      },
+      {
+        "task": "rails",
+        "group": "rails8-postgres",
+        "seconds": 152.755
+      },
+      {
+        "task": "rails",
+        "group": "rails8-trilogy",
+        "seconds": 172.491
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 13.589
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 10.454
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails8-postgres-sidekiq",
+        "seconds": 23.572
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails8-postgres",
+        "seconds": 18.028
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 13.039
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails8-postgres",
+        "seconds": 13.221
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 7.486
+      },
+      {
+        "task": "railsredis",
+        "group": "rails8-postgres-redis",
+        "seconds": 19.96
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 13.5
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails8-semantic-logger",
+        "seconds": 18.7
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 6.931
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 23.349
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 20.313
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 16.353
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 5.805
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 6.158
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 4.231
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 7.149
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 5.463
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 2.217
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 9.917
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 14.435
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 6.019
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 8.916
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 7.656
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 7.378
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 20.248
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 5.98
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 8.645
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 3.62
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 4.232
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 3.031
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.896
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.086
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 18.652
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-latest",
+        "seconds": 4.404
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-min",
+        "seconds": 3.613
+      }
+    ],
+    "3.4": [
+      {
+        "task": "action_cable",
+        "group": "rails61-mysql2",
+        "seconds": 6.959
+      },
+      {
+        "task": "action_cable",
+        "group": "rails8-mysql2",
+        "seconds": 30.584
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails61-mysql2",
+        "seconds": 17.218
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails8-mysql2",
+        "seconds": 5.869
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 14.72
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 13.527
+      },
+      {
+        "task": "action_pack",
+        "group": "rails8",
+        "seconds": 18.996
+      },
+      {
+        "task": "action_pack",
+        "group": "rails81",
+        "seconds": 23.781
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 48.26
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 48.611
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 63.645
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 49.577
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 5.489
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 3.897
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-latest",
+        "seconds": 6.323
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-min",
+        "seconds": 5.958
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 6.38
+      },
+      {
+        "task": "appsec:aws_lambda",
+        "group": "",
+        "seconds": 3.872
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 17.531
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 7.274
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 6.64
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 7.019
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 11.268
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 12.102
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 12.038
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 11.38
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 15.08
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 7.564
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 54.193
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 55.062
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails61-mysql2",
+        "seconds": 66.268
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails8-mysql2",
+        "seconds": 175.358
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 8.571
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 17.979
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 17.278
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 17.992
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 3.851
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 22.041
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 6.181
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.203
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 31.106
+      },
+      {
+        "task": "core_with_rails",
+        "group": "rails8",
+        "seconds": 23.01
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 4.533
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 5.606
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 64.208
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails61-mysql2",
+        "seconds": 5.124
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails8-mysql2",
+        "seconds": 7.943
+      },
+      {
+        "task": "di:bootsnap",
+        "group": "rails8-mysql2",
+        "seconds": 7.956
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 36.825
+      },
+      {
+        "task": "di:ractors",
+        "group": "",
+        "seconds": 8.603
+      },
+      {
+        "task": "di:rails",
+        "group": "rails61-mysql2",
+        "seconds": 4.663
+      },
+      {
+        "task": "di:rails",
+        "group": "rails8-mysql2",
+        "seconds": 9.599
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 7.801
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 20.192
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 6.156
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.051
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 101.413
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 5.943
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 18.851
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 24.627
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 25.31
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 23.751
+      },
+      {
+        "task": "grape",
+        "group": "grape-latest",
+        "seconds": 24.761
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 10.147
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 10.991
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 6.618
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 7.824
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 13.913
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 12.972
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 4.517
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.59
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.652
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.322
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 9.834
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 5.686
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 6.026
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.653
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.326
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 6.137
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 5.597
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 9.309
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.325
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 9.069
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 7.957
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 6.703
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 10.003
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 13.773
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 28.771
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 9.958
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 54.097
+      },
+      {
+        "task": "httprb",
+        "group": "httprb",
+        "seconds": 9.221
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 6.854
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 53.596
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 6.37
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 43.681
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 3.483
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 167.295
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 173.326
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 54.207
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 52.128
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 61.903
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 22.238
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-latest",
+        "seconds": 8.549
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-min",
+        "seconds": 8.34
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 15.31
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 17.439
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 7.451
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 47.307
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 21.496
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 58.901
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 75.543
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 69.324
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp_1_5",
+        "seconds": 74.162
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 16.801
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 17.755
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 46.144
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 38.392
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 36.147
+      },
+      {
+        "task": "rails",
+        "group": "rails61-mysql2",
+        "seconds": 50.155
+      },
+      {
+        "task": "rails",
+        "group": "rails61-postgres",
+        "seconds": 53.817
+      },
+      {
+        "task": "rails",
+        "group": "rails61-trilogy",
+        "seconds": 48.3
+      },
+      {
+        "task": "rails",
+        "group": "rails8-mysql2",
+        "seconds": 158.894
+      },
+      {
+        "task": "rails",
+        "group": "rails8-postgres",
+        "seconds": 160.606
+      },
+      {
+        "task": "rails",
+        "group": "rails8-trilogy",
+        "seconds": 161.244
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 13.777
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails61-postgres-sidekiq",
+        "seconds": 16.018
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails8-postgres-sidekiq",
+        "seconds": 20.889
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails8-postgres",
+        "seconds": 12.047
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails61-postgres",
+        "seconds": 13.569
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails8-postgres",
+        "seconds": 17.864
+      },
+      {
+        "task": "railsredis",
+        "group": "rails61-postgres-redis",
+        "seconds": 8.331
+      },
+      {
+        "task": "railsredis",
+        "group": "rails8-postgres-redis",
+        "seconds": 21.315
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails61-semantic-logger",
+        "seconds": 15.026
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails8-semantic-logger",
+        "seconds": 9.528
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 22.218
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 33.129
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 36.914
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 73.429
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 19.092
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 6.679
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 7.188
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 10.616
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 19.131
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 3.323
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 11.402
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 16.17
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 18.011
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 10.196
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 11.054
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 9.51
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 24.378
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 6.646
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 11.826
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 5.476
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 5.23
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 3.303
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.932
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.285
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 64.635
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-latest",
+        "seconds": 5.404
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-min",
+        "seconds": 5.318
+      }
+    ],
+    "4.0": [
+      {
+        "task": "action_cable",
+        "group": "rails8-mysql2",
+        "seconds": 33.234
+      },
+      {
+        "task": "action_mailer",
+        "group": "rails8-mysql2",
+        "seconds": 14.43
+      },
+      {
+        "task": "action_pack",
+        "group": "rails7",
+        "seconds": 13.969
+      },
+      {
+        "task": "action_pack",
+        "group": "rails71",
+        "seconds": 15.167
+      },
+      {
+        "task": "action_pack",
+        "group": "rails8",
+        "seconds": 25.009
+      },
+      {
+        "task": "action_pack",
+        "group": "rails81",
+        "seconds": 14.528
+      },
+      {
+        "task": "action_view",
+        "group": "activesupport",
+        "seconds": 22.068
+      },
+      {
+        "task": "active_model_serializers",
+        "group": "activesupport",
+        "seconds": 25.255
+      },
+      {
+        "task": "active_record",
+        "group": "relational_db",
+        "seconds": 57.316
+      },
+      {
+        "task": "active_support",
+        "group": "activesupport",
+        "seconds": 24.024
+      },
+      {
+        "task": "ai_guard:main",
+        "group": "",
+        "seconds": 4.998
+      },
+      {
+        "task": "ai_guard:rack",
+        "group": "rack-latest",
+        "seconds": 4.012
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-latest",
+        "seconds": 6.092
+      },
+      {
+        "task": "ai_guard:ruby_llm",
+        "group": "ruby-llm-min",
+        "seconds": 5.654
+      },
+      {
+        "task": "appsec:active_record",
+        "group": "relational_db",
+        "seconds": 5.315
+      },
+      {
+        "task": "appsec:aws_lambda",
+        "group": "",
+        "seconds": 3.412
+      },
+      {
+        "task": "appsec:devise",
+        "group": "devise-latest",
+        "seconds": 5.019
+      },
+      {
+        "task": "appsec:excon",
+        "group": "excon-latest",
+        "seconds": 7.336
+      },
+      {
+        "task": "appsec:faraday",
+        "group": "faraday-latest",
+        "seconds": 7.093
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-1.13",
+        "seconds": 3.194
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.0",
+        "seconds": 10.047
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.1",
+        "seconds": 9.801
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.2",
+        "seconds": 8.469
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-2.3",
+        "seconds": 8.145
+      },
+      {
+        "task": "appsec:graphql",
+        "group": "graphql-latest",
+        "seconds": 8.191
+      },
+      {
+        "task": "appsec:main",
+        "group": "",
+        "seconds": 6.511
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-2",
+        "seconds": 53.072
+      },
+      {
+        "task": "appsec:rack",
+        "group": "rack-latest",
+        "seconds": 54.017
+      },
+      {
+        "task": "appsec:rails",
+        "group": "rails8-mysql2",
+        "seconds": 170.329
+      },
+      {
+        "task": "appsec:rest_client",
+        "group": "rest-client-latest",
+        "seconds": 7.076
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-2",
+        "seconds": 17.397
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-3",
+        "seconds": 18.121
+      },
+      {
+        "task": "appsec:sinatra",
+        "group": "sinatra-4",
+        "seconds": 18.558
+      },
+      {
+        "task": "autoinstrument",
+        "group": "sinatra-2",
+        "seconds": 4.578
+      },
+      {
+        "task": "aws",
+        "group": "aws",
+        "seconds": 22.765
+      },
+      {
+        "task": "concurrent_ruby",
+        "group": "contrib",
+        "seconds": 4.426
+      },
+      {
+        "task": "contrib",
+        "group": "",
+        "seconds": 3.33
+      },
+      {
+        "task": "core_with_libdatadog_api",
+        "group": "",
+        "seconds": 27.559
+      },
+      {
+        "task": "core_with_rails",
+        "group": "rails8",
+        "seconds": 19.876
+      },
+      {
+        "task": "custom_cop",
+        "group": "",
+        "seconds": 2.499
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-2",
+        "seconds": 3.818
+      },
+      {
+        "task": "dalli",
+        "group": "dalli-latest",
+        "seconds": 4.667
+      },
+      {
+        "task": "delayed_job",
+        "group": "relational_db",
+        "seconds": 57.476
+      },
+      {
+        "task": "di:active_record",
+        "group": "rails8-mysql2",
+        "seconds": 4.816
+      },
+      {
+        "task": "di:bootsnap",
+        "group": "rails8-mysql2",
+        "seconds": 4.507
+      },
+      {
+        "task": "di:di_with_ext",
+        "group": "",
+        "seconds": 39.324
+      },
+      {
+        "task": "di:ractors",
+        "group": "",
+        "seconds": 9.085
+      },
+      {
+        "task": "di:rails",
+        "group": "rails8-mysql2",
+        "seconds": 3.328
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-7",
+        "seconds": 7.537
+      },
+      {
+        "task": "elasticsearch",
+        "group": "elasticsearch-latest",
+        "seconds": 18.845
+      },
+      {
+        "task": "environment",
+        "group": "environment",
+        "seconds": 5.566
+      },
+      {
+        "task": "error_tracking",
+        "group": "",
+        "seconds": 3.119
+      },
+      {
+        "task": "ethon",
+        "group": "http",
+        "seconds": 101.273
+      },
+      {
+        "task": "excon",
+        "group": "excon-latest",
+        "seconds": 6.136
+      },
+      {
+        "task": "faraday",
+        "group": "faraday-latest",
+        "seconds": 18.991
+      },
+      {
+        "task": "github",
+        "group": "",
+        "seconds": 16.656
+      },
+      {
+        "task": "grape",
+        "group": "grape-1",
+        "seconds": 23.638
+      },
+      {
+        "task": "grape",
+        "group": "grape-2",
+        "seconds": 20.081
+      },
+      {
+        "task": "grape",
+        "group": "grape-3",
+        "seconds": 25.571
+      },
+      {
+        "task": "grape",
+        "group": "grape-latest",
+        "seconds": 24.998
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-1.13",
+        "seconds": 5.461
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.0",
+        "seconds": 8.029
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.1",
+        "seconds": 11.113
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.2",
+        "seconds": 7.21
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-2.3",
+        "seconds": 12.359
+      },
+      {
+        "task": "graphql",
+        "group": "graphql-latest",
+        "seconds": 12.859
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.288
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 5.317
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 4.705
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 5.039
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 8.362
+      },
+      {
+        "task": "graphql_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 4.122
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.41
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.0",
+        "seconds": 4.681
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.1",
+        "seconds": 5.278
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.2",
+        "seconds": 4.85
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-2.3",
+        "seconds": 4.235
+      },
+      {
+        "task": "graphql_tracing_patcher",
+        "group": "graphql-latest",
+        "seconds": 9.629
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-1.13",
+        "seconds": 5.568
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.0",
+        "seconds": 7.746
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.1",
+        "seconds": 7.243
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.2",
+        "seconds": 6.592
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-2.3",
+        "seconds": 9.979
+      },
+      {
+        "task": "graphql_unified_trace_patcher",
+        "group": "graphql-latest",
+        "seconds": 12.704
+      },
+      {
+        "task": "grpc",
+        "group": "grpc",
+        "seconds": 22.462
+      },
+      {
+        "task": "http",
+        "group": "http",
+        "seconds": 10.696
+      },
+      {
+        "task": "httpclient",
+        "group": "http",
+        "seconds": 52.533
+      },
+      {
+        "task": "httprb",
+        "group": "httprb",
+        "seconds": 8.57
+      },
+      {
+        "task": "httprb",
+        "group": "httprb-5",
+        "seconds": 6.603
+      },
+      {
+        "task": "kafka",
+        "group": "activesupport",
+        "seconds": 27.336
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-latest",
+        "seconds": 5.873
+      },
+      {
+        "task": "karafka",
+        "group": "karafka-min",
+        "seconds": 44.897
+      },
+      {
+        "task": "lograge",
+        "group": "activesupport",
+        "seconds": 2.595
+      },
+      {
+        "task": "main",
+        "group": "",
+        "seconds": 181.282
+      },
+      {
+        "task": "main",
+        "group": "dogstatsd-ruby4",
+        "seconds": 184.288
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-latest",
+        "seconds": 65.726
+      },
+      {
+        "task": "mongodb",
+        "group": "mongo-min",
+        "seconds": 64.241
+      },
+      {
+        "task": "mysql2",
+        "group": "relational_db",
+        "seconds": 62.571
+      },
+      {
+        "task": "native_transport",
+        "group": "",
+        "seconds": 22.091
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-latest",
+        "seconds": 7.278
+      },
+      {
+        "task": "open_feature",
+        "group": "openfeature-min",
+        "seconds": 13.622
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-2",
+        "seconds": 21.587
+      },
+      {
+        "task": "opensearch",
+        "group": "opensearch-latest",
+        "seconds": 23.625
+      },
+      {
+        "task": "opentelemetry",
+        "group": "opentelemetry",
+        "seconds": 7.85
+      },
+      {
+        "task": "pg",
+        "group": "relational_db",
+        "seconds": 63.383
+      },
+      {
+        "task": "presto",
+        "group": "presto-client",
+        "seconds": 18.573
+      },
+      {
+        "task": "profiling:main",
+        "group": "",
+        "seconds": 57.509
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry",
+        "seconds": 75.82
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp",
+        "seconds": 70.425
+      },
+      {
+        "task": "profiling:main",
+        "group": "opentelemetry_otlp_1_5",
+        "seconds": 69.457
+      },
+      {
+        "task": "profiling:ractors",
+        "group": "",
+        "seconds": 15.349
+      },
+      {
+        "task": "que",
+        "group": "contrib",
+        "seconds": 5.167
+      },
+      {
+        "task": "racecar",
+        "group": "activesupport",
+        "seconds": 26.405
+      },
+      {
+        "task": "rack",
+        "group": "rack-2",
+        "seconds": 36.166
+      },
+      {
+        "task": "rack",
+        "group": "rack-latest",
+        "seconds": 37.133
+      },
+      {
+        "task": "rails",
+        "group": "rails8-mysql2",
+        "seconds": 176.206
+      },
+      {
+        "task": "rails",
+        "group": "rails8-postgres",
+        "seconds": 182.893
+      },
+      {
+        "task": "rails",
+        "group": "rails8-trilogy",
+        "seconds": 138.183
+      },
+      {
+        "task": "rails_old_redis",
+        "group": "rails-old-redis",
+        "seconds": 20.884
+      },
+      {
+        "task": "railsactivejob",
+        "group": "rails8-postgres-sidekiq",
+        "seconds": 17.678
+      },
+      {
+        "task": "railsautoinstrument",
+        "group": "rails8-postgres",
+        "seconds": 7.654
+      },
+      {
+        "task": "railsdisableenv",
+        "group": "rails8-postgres",
+        "seconds": 8.331
+      },
+      {
+        "task": "railsredis",
+        "group": "rails8-postgres-redis",
+        "seconds": 19.423
+      },
+      {
+        "task": "railssemanticlogger",
+        "group": "rails8-semantic-logger",
+        "seconds": 9.667
+      },
+      {
+        "task": "rake",
+        "group": "contrib",
+        "seconds": 9.253
+      },
+      {
+        "task": "redis",
+        "group": "redis-3",
+        "seconds": 47.377
+      },
+      {
+        "task": "redis",
+        "group": "redis-4",
+        "seconds": 38.223
+      },
+      {
+        "task": "redis",
+        "group": "redis-latest",
+        "seconds": 43.817
+      },
+      {
+        "task": "resque",
+        "group": "contrib",
+        "seconds": 7.066
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis3",
+        "seconds": 6.627
+      },
+      {
+        "task": "resque",
+        "group": "resque2-redis4",
+        "seconds": 5.252
+      },
+      {
+        "task": "rest_client",
+        "group": "rest-client-latest",
+        "seconds": 9.127
+      },
+      {
+        "task": "roda",
+        "group": "contrib",
+        "seconds": 7.357
+      },
+      {
+        "task": "semantic_logger",
+        "group": "contrib",
+        "seconds": 2.196
+      },
+      {
+        "task": "sequel",
+        "group": "relational_db",
+        "seconds": 11.097
+      },
+      {
+        "task": "shoryuken",
+        "group": "aws",
+        "seconds": 15.936
+      },
+      {
+        "task": "sidekiq",
+        "group": "contrib",
+        "seconds": 5.08
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-2",
+        "seconds": 8.668
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-3",
+        "seconds": 10.093
+      },
+      {
+        "task": "sinatra",
+        "group": "sinatra-4",
+        "seconds": 9.015
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-latest",
+        "seconds": 21.198
+      },
+      {
+        "task": "sneakers",
+        "group": "kicks-min",
+        "seconds": 7.038
+      },
+      {
+        "task": "sneakers",
+        "group": "sneakers",
+        "seconds": 12.491
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-latest",
+        "seconds": 3.908
+      },
+      {
+        "task": "stripe",
+        "group": "stripe-min",
+        "seconds": 4.119
+      },
+      {
+        "task": "sucker_punch",
+        "group": "contrib",
+        "seconds": 3.21
+      },
+      {
+        "task": "suite",
+        "group": "contrib",
+        "seconds": 3.114
+      },
+      {
+        "task": "tasks",
+        "group": "",
+        "seconds": 2.384
+      },
+      {
+        "task": "trilogy",
+        "group": "relational_db",
+        "seconds": 62.375
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-latest",
+        "seconds": 5.856
+      },
+      {
+        "task": "waterdrop",
+        "group": "waterdrop-min",
+        "seconds": 4.003
+      }
+    ]
+  }
+}
