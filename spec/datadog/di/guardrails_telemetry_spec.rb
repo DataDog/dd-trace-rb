@@ -223,7 +223,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     it "emits the dropped and dropped_bytes metrics when bytes is provided" do
       expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
         tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
-      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.queue.dropped_bytes", 2048,
+      expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes", 2048,
         tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
 
       guardrails_telemetry.dropped(

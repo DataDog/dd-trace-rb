@@ -2015,7 +2015,7 @@ RSpec.describe "Instrumentation integration" do
         it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.queue.dropped_bytes",
+          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
             be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
 
           probe_manager.add_probe(probe)

@@ -5,8 +5,6 @@ module Datadog
     class GuardrailsTelemetry
       type tags_memo = Hash[String, Hash[String, Hash[Symbol, String]]]
 
-      DEBUGGER_NAMESPACE: String
-
       EVENTS_SKIPPED: String
 
       EVENTS_DROPPED: String

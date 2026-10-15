@@ -102,7 +102,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
   end
 
   it "resolves the namespace when the capture expression evaluator is required directly" do
-    expect(run_direct_require_script(EVALUATOR_SCRIPT)).to eq("dynamic_instrumentation\n")
+    expect(run_direct_require_script(EVALUATOR_SCRIPT)).to eq("debugger\n")
   end
 
   it "emits the capture-incomplete metric when the serializer is required directly" do
