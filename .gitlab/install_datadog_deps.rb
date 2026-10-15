@@ -183,6 +183,15 @@ FileUtils.rm_r(
   verbose: true
 )
 
+# RubyGems compiles native extensions in place in the installed gem dirs on
+# some Rubies, leaving the object files, the duplicate compiled libraries and
+# the `.sitearchdir` install timestamps behind; RubyGems 3.5+ runs a final
+# `make clean`. Strip the leftovers from every gem home; on Rubies whose
+# RubyGems already cleans up, the globs match nothing.
+%w[*.o *.so .sitearchdir*].flat_map do |build_product|
+  Dir.glob(versioned_path.join("gems/*/ext/**/#{build_product}"))
+end.each { |path| FileUtils.rm(path, verbose: true) }
+
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries
   FileUtils.ln_sf Gem.extension_api_version, ruby_api_version
