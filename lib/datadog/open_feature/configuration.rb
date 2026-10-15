@@ -72,6 +72,12 @@ module Datadog
             end
 
             settings :feature_flags do
+              option :evaluation_telemetry_per_subject_opt_out_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED"
+                o.default false
+              end
+
               option :enabled do |o|
                 o.type :bool
                 o.env "DD_FEATURE_FLAGS_ENABLED"

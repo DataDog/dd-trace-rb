@@ -2,5 +2,5 @@
   "type": "Added",
   "product": "Open Feature",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6486",
-  "message": "Add per-subject evaluation telemetry opt-out with `Provider.new(enable_evaluation_telemetry_opt_out_parameter: true)` and boolean context parameter `dd_evaluation_telemetry_opt_out`, while preserving experiment exposures."
+  "message": "Add per-subject evaluation telemetry opt-out with `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED=true` and boolean context parameter `dd_evaluation_telemetry_opt_out`, while preserving experiment exposures."
 }

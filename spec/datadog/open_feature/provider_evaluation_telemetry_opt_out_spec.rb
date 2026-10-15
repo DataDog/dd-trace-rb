@@ -8,6 +8,8 @@ require "datadog/open_feature/provider"
 require "datadog/open_feature/component"
 
 RSpec.describe "OpenFeature evaluation telemetry opt-out" do
+  with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => nil
+
   subject(:provider) do
     Datadog::OpenFeature::Provider.new(enable_evaluation_telemetry_opt_out_parameter: opt_out_enabled)
   end
@@ -183,6 +185,82 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       trace.measure("root") { evaluate("subject", true) }
 
       expect_signals(evaluations: 1, exposures: 1)
+    end
+  end
+
+  context "with environment activation" do
+    subject(:provider) { Datadog::OpenFeature::Provider.new }
+
+    with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => "true"
+
+    it "suppresses evaluation signals through environment activation and preserves the assignment and exposure" do
+      trace.measure("root") do
+        details = evaluate("subject", true)
+        expect(details.value).to eq("enabled")
+        expect(details.variant).to eq("on")
+        expect(details.reason).to eq("STATIC")
+      end
+
+      expect_signals(evaluations: 0, exposures: 1)
+    end
+
+    it "still requires each subject to opt out with boolean true" do
+      trace.measure("root") do
+        evaluate("allowed", false)
+        evaluate("invalid", "true")
+        client.fetch_string_value(
+          flag_key: "flag", default_value: "fallback",
+          evaluation_context: OpenFeature::SDK::EvaluationContext.new(targeting_key: "missing"),
+        )
+      end
+
+      expect_signals(evaluations: 3, exposures: 3)
+    end
+
+    it "retains its activation snapshot after environment and settings changes" do
+      provider
+      ClimateControl.modify("DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => "false") do
+        Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled = false
+        trace.measure("root") { evaluate("subject", true) }
+      end
+
+      expect_signals(evaluations: 0, exposures: 1)
+    end
+
+    context "with an explicit false provider option" do
+      subject(:provider) do
+        Datadog::OpenFeature::Provider.new(enable_evaluation_telemetry_opt_out_parameter: false)
+      end
+
+      it "overrides the enabled environment setting" do
+        trace.measure("root") { evaluate("subject", true) }
+
+        expect_signals(evaluations: 1, exposures: 1)
+      end
+    end
+  end
+
+  [nil, "false", "invalid"].each do |environment_value|
+    context "with environment activation set to #{environment_value.inspect}" do
+      subject(:provider) { Datadog::OpenFeature::Provider.new }
+
+      with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => environment_value
+
+      it "retains evaluation signals" do
+        trace.measure("root") { evaluate("subject", true) }
+
+        expect_signals(evaluations: 1, exposures: 1)
+      end
+    end
+  end
+
+  context "with disabled environment activation and an explicit true provider option" do
+    with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => "false"
+
+    it "uses the explicit provider option" do
+      trace.measure("root") { evaluate("subject", true) }
+
+      expect_signals(evaluations: 0, exposures: 1)
     end
   end
 

@@ -68,8 +68,12 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize(enable_evaluation_telemetry_opt_out_parameter: false)
-        @enable_evaluation_telemetry_opt_out_parameter = enable_evaluation_telemetry_opt_out_parameter
+      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+        @enable_evaluation_telemetry_opt_out_parameter = if enable_evaluation_telemetry_opt_out_parameter.nil?
+          Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
+        else
+          enable_evaluation_telemetry_opt_out_parameter
+        end
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false

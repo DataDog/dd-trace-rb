@@ -12,6 +12,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL" => nil,
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => nil,
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS" => nil,
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => nil,
     "DD_FEATURE_FLAGS_ENABLED" => nil
 
   describe "open_feature" do
@@ -53,6 +54,28 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
   end
 
   describe "feature_flags" do
+    describe "#evaluation_telemetry_per_subject_opt_out_enabled" do
+      subject(:enabled) { settings.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled }
+
+      {nil => false, "true" => true, "false" => false, "invalid" => false}.each do |value, expected|
+        context "when the environment value is #{value.inspect}" do
+          with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => value
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      [true, false].each do |value|
+        context "when explicit configuration is #{value}" do
+          with_env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => (!value).to_s
+
+          before { settings.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled = value }
+
+          it { is_expected.to be(value) }
+        end
+      end
+    end
+
     describe "#enabled" do
       subject(:enabled) { settings.feature_flags.enabled }
 

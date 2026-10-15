@@ -41,7 +41,7 @@ module Datadog
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
-      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool) -> void
+      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?) -> void
 
       def init: () -> void
 
