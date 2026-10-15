@@ -54,7 +54,7 @@ module TestBatching
     # annotated failure when the specs fail.
     def execute(task, rng)
       env = {"BUNDLE_GEMFILE" => task.gemfile}
-      cmd = "bundle exec rake spec:#{task.name}'[--seed #{rng.rand(0xFFFF)}]'"
+      cmd = "bundle exec rake 'spec:#{task.name}[--seed #{rng.rand(0xFFFF)}]'"
 
       junit_files_before = Dir["tmp/rspec/*.xml"]
 
