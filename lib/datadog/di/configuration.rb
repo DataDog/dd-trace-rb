@@ -285,8 +285,8 @@ module Datadog
           legacy_name = "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE"
 
           stable = Datadog::Core::Configuration::StableConfig.configuration
-          local = stable && stable.dig(:local, :config)
-          fleet = stable && stable.dig(:fleet, :config)
+          local = stable&.dig(:local, :config)
+          fleet = stable&.dig(:fleet, :config)
 
           canonical = (fleet && DATADOG_ENV.get_environment_variable(canonical_name, source_env: fleet)) ||
             DATADOG_ENV[canonical_name] ||
