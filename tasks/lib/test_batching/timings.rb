@@ -75,10 +75,12 @@ module TestBatching
       new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks"))
     end
 
-    def self.write(run_timings, directory: DEFAULT_DIRECTORY)
-      path = file_path(run_timings.tasks, directory)
+    # Writes the run's document as one timings-*.json under the directory,
+    # creating the directory first.
+    def write(directory: DEFAULT_DIRECTORY)
+      path = self.class.file_path(tasks, directory)
       FileUtils.mkdir_p(File.dirname(path))
-      File.write(path, JSON.pretty_generate(run_timings.to_h))
+      File.write(path, JSON.pretty_generate(to_h))
     end
 
     # Returns an empty document when the batch has never recorded one.
@@ -108,7 +110,5 @@ module TestBatching
     def entry_matches?(entry, task)
       entry.fetch("task") == task.name && entry.fetch("group") == task.group && entry.fetch("gemfile") == task.gemfile
     end
-
-    private_class_method :file_path
   end
 end

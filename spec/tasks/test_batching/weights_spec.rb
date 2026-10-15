@@ -136,7 +136,7 @@ RSpec.describe TestBatching::Weights do
     )
 
     Dir.mktmpdir do |directory|
-      TestBatching::RunTimings.write(run_timings, directory: directory)
+      run_timings.write(directory: directory)
 
       described_class.aggregate(directory)
 

@@ -61,7 +61,7 @@ RSpec.describe TestBatching::RunTimings do
     other = [task("other")]
 
     Dir.mktmpdir do |directory|
-      described_class.write(run_timings(tasks: tasks, build_seconds: 10.0, test_seconds: 30.0), directory: directory)
+      run_timings(tasks: tasks, build_seconds: 10.0, test_seconds: 30.0).write(directory: directory)
 
       expect(described_class.read(other, directory: directory).timings).to eq([])
       expect(described_class.read(tasks, directory: directory).timings.map { |e| e["test_seconds"] }).to eq([30.0])
@@ -72,7 +72,7 @@ RSpec.describe TestBatching::RunTimings do
     tasks = [task("main")]
 
     Dir.mktmpdir do |directory|
-      described_class.write(run_timings(tasks: tasks, build_seconds: 10.0, test_seconds: 30.0), directory: directory)
+      run_timings(tasks: tasks, build_seconds: 10.0, test_seconds: 30.0).write(directory: directory)
 
       expect(described_class.read_all(directory).map(&:ruby_version)).to eq([RUBY_VERSION[0..2]])
     end

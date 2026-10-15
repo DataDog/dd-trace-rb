@@ -35,7 +35,7 @@ module TestBatching
 
       report_task_durations(durations)
     ensure
-      RunTimings.write(run_timings) unless run_timings.nil? || run_timings.timings.empty?
+      run_timings.write unless run_timings.nil? || run_timings.timings.empty?
     end
 
     def install(task)
