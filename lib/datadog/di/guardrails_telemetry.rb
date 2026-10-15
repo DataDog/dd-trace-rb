@@ -5,22 +5,19 @@ require_relative "guardrails_telemetry/reason"
 
 module Datadog
   module DI
-    # Telemetry namespace for DI-namespaced metrics. The telemetry wire
-    # name is +dd.instrumentation_telemetry_data.dynamic_instrumentation.*+.
-    TELEMETRY_NAMESPACE = "dynamic_instrumentation"
+    # Telemetry namespace for DI metrics, shared with the other tracers.
+    # The telemetry wire name is
+    # +dd.instrumentation_telemetry_data.debugger.*+.
+    TELEMETRY_NAMESPACE = "debugger"
 
     # Telemetry reporter for the DI guardrails: the reason codes and the
     # metric emitters.
     class GuardrailsTelemetry
-      # Telemetry namespace. The telemetry wire name is
-      # +dd.instrumentation_telemetry_data.debugger.*+.
-      DEBUGGER_NAMESPACE = "debugger"
-
-      # Skip count metric name, emitted under DEBUGGER_NAMESPACE.
+      # Skip count metric name, emitted under +DI::TELEMETRY_NAMESPACE+.
       EVENTS_SKIPPED = "events.skipped"
-      # Drop count metric name, emitted under DEBUGGER_NAMESPACE.
+      # Drop count metric name, emitted under +DI::TELEMETRY_NAMESPACE+.
       EVENTS_DROPPED = "events.dropped"
-      # Incomplete-capture count metric name, emitted under DEBUGGER_NAMESPACE.
+      # Incomplete-capture count metric name, emitted under +DI::TELEMETRY_NAMESPACE+.
       CAPTURE_INCOMPLETE = "capture.incomplete"
 
       # Queue byte-count metric, emitted under +DI::TELEMETRY_NAMESPACE+.
@@ -85,7 +82,7 @@ module Datadog
       def skipped(reason:, probe:)
         probe_id = probe.id if Reason::PROBE_SCOPED_REASONS.include?(reason)
         inc_metric(
-          DEBUGGER_NAMESPACE, EVENTS_SKIPPED, 1,
+          DI::TELEMETRY_NAMESPACE, EVENTS_SKIPPED, 1,
           tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id),
         )
         nil
@@ -101,7 +98,7 @@ module Datadog
       # @return [void]
       def dropped(reason:, event_type:, bytes: nil)
         tags = dropped_tags(reason, event_type)
-        inc_metric(DEBUGGER_NAMESPACE, EVENTS_DROPPED, 1, tags: tags)
+        inc_metric(DI::TELEMETRY_NAMESPACE, EVENTS_DROPPED, 1, tags: tags)
         inc_metric(DI::TELEMETRY_NAMESPACE, QUEUE_DROPPED_BYTES, bytes, tags: tags) if bytes
         nil
       end
@@ -114,7 +111,7 @@ module Datadog
       # @return [void]
       def capture_incomplete(reason:, event_type:)
         inc_metric(
-          DEBUGGER_NAMESPACE, CAPTURE_INCOMPLETE, 1,
+          DI::TELEMETRY_NAMESPACE, CAPTURE_INCOMPLETE, 1,
           tags: capture_incomplete_tags(reason, event_type),
         )
         nil
