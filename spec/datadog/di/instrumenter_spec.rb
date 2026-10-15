@@ -2622,7 +2622,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
         guardrails_telemetry: guardrails_telemetry,
-        capture_expression_evaluator: capture_expression_evaluator,)
+        capture_expression_evaluator: capture_expression_evaluator,
+        metric_emitter: metric_emitter)
     end
 
     # Asserts the guardrails skip metric emission for a rejected probe
