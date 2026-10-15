@@ -49,25 +49,25 @@ GEM
     karafka-core (2.6.4)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.30.0)
+    karafka-rdkafka (0.31.0)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-aarch64-linux-gnu)
+    karafka-rdkafka (0.31.0-aarch64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-arm64-darwin)
+    karafka-rdkafka (0.31.0-arm64-darwin)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-x86_64-linux-gnu)
+    karafka-rdkafka (0.31.0-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
@@ -214,10 +214,10 @@ CHECKSUMS
   json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   karafka-core (2.6.4) sha256=e08166ca7ef12fadf0500f2a3aba63b5ba918a98533c3feaac9f43c90f159363
-  karafka-rdkafka (0.30.0) sha256=e491744d47eddf1b04953b10961ad7f8ddbbc3a760ae23f53a103cf887a84377
-  karafka-rdkafka (0.30.0-aarch64-linux-gnu) sha256=fd5b29c76897df538e9f081fe7298629bdca5bc8ce8f9598ec541bf41e6844ea
-  karafka-rdkafka (0.30.0-arm64-darwin) sha256=c292798ac07de4aa4f37e62bc73a6288453ea6b708f94fd1fb395db1f2d8ef99
-  karafka-rdkafka (0.30.0-x86_64-linux-gnu) sha256=0c122df13168196ac5a1eecb034d40c18e3bc4094e43c31e1ed71ccf094f0a4f
+  karafka-rdkafka (0.31.0) sha256=7d21274122d66ee8d08b8e56a0d06084933deb2306cf2a6e4bd0d073c14e7f9f
+  karafka-rdkafka (0.31.0-aarch64-linux-gnu) sha256=a243f1252d0e9ffa86318f79a0a978d9b77bf0a36380d1740a34e14562f54cd0
+  karafka-rdkafka (0.31.0-arm64-darwin) sha256=238ccb90dd5fe0261b11fe1dfdcf4250b9d1bb817b81d75deac4055b348393ac
+  karafka-rdkafka (0.31.0-x86_64-linux-gnu) sha256=7a4a6038d81aaf0f68c9ee12a97d9843afaa87611506ffa254bcc5dacdca08c2
   libdatadog (46.0.0.1.0) sha256=038ac540874ba8085c5fca0dc95303f6fa9e65faf2e3f888ba54e538902d7ab8
   libdatadog (46.0.0.1.0-aarch64-linux) sha256=81f22bb7c485a0c89aae3973970e311a2ea32d23c2e272eb0f48d32b9dac0a31
   libdatadog (46.0.0.1.0-arm64-darwin) sha256=92406627b174641bacc7661e2a6b770b7718c383f4509f8b2738f721a48e42c8
