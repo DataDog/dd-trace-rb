@@ -95,6 +95,19 @@ module Datadog
                 Datadog::Core::Telemetry::Logger.report(e)
               end
 
+              # A callable namespace is only known once ActiveSupport has normalized the key, which
+              # for most operations happens after the event has started.
+              def on_finish(span, event, id, payload)
+                super
+
+                if Datadog.configuration.tracing[:active_support][:cache_key].enabled
+                  ActiveSupport::Cache::Instrumentation.set_cache_namespace_tag(span, payload[:namespace])
+                end
+              rescue => e
+                Datadog.logger.error("#{e.class}: #{e.message}")
+                Datadog::Core::Telemetry::Logger.report(e)
+              end
+
               def set_cache_key(span, key, multi_key)
                 if multi_key
                   keys = key.is_a?(Hash) ? key.keys : key # `write`s use Hashes, while `read`s use Arrays

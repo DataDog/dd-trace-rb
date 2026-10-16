@@ -21,6 +21,8 @@ module Datadog
 
               def self?.on_start: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
 
+              def self?.on_finish: (untyped span, untyped event, untyped id, untyped payload) -> void
+
               def self?.set_cache_key: (untyped span, untyped key, untyped multi_key) -> untyped
               def self?.cache_backend: (untyped store) -> untyped
             end
