@@ -4,6 +4,7 @@ require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
 require "open_feature/sdk"
+require_relative "hooks/evaluation_telemetry_opt_out_hook"
 
 module Datadog
   module OpenFeature
@@ -67,7 +68,12 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize
+      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+        @enable_evaluation_telemetry_opt_out_parameter = if enable_evaluation_telemetry_opt_out_parameter.nil?
+          Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
+        else
+          enable_evaluation_telemetry_opt_out_parameter
+        end
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -168,10 +174,13 @@ module Datadog
 
       def hooks
         component = Datadog.send(:components).open_feature
-        [
+        hooks = [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
         ].compact
+        return hooks unless @enable_evaluation_telemetry_opt_out_parameter
+
+        hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -390,6 +399,7 @@ module Datadog
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
         flag_meta = nil
+        telemetry_opted_out = evaluation_telemetry_opted_out?(evaluation_context)
 
         engine = OpenFeature.engine
         return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
@@ -406,7 +416,9 @@ module Datadog
         # Drive APM span enrichment directly from the evaluation path. This is the only reliable
         # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
         # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
-        enrich_span(flag_key, result, evaluation_context)
+        unless telemetry_opted_out || evaluation_telemetry_opted_out?(evaluation_context)
+          enrich_span(flag_key, result, evaluation_context)
+        end
 
         sdk_success_details(result, flag_meta)
       rescue => e
@@ -493,6 +505,11 @@ module Datadog
 
       def span_enrichment_hook
         Datadog.send(:components).open_feature&.span_enrichment_hook
+      end
+
+      def evaluation_telemetry_opted_out?(evaluation_context)
+        @enable_evaluation_telemetry_opt_out_parameter &&
+          Hooks::EvaluationTelemetryOptOutHook.opted_out?(evaluation_context)
       end
 
       def component_not_configured_default(value, eval_time_ms)

@@ -2885,6 +2885,7 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | Setting | Environment variable | Type | Description | Default |
 |---|---|---|---|---|
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
+| `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
 | `c.feature_flags.agentless.base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless endpoint. Origin URLs receive the standard configuration path; URLs with a non-root path are used verbatim. | `nil` |
 | `c.feature_flags.agentless.poll_interval_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS` | `Integer` | Sets the agentless polling interval in seconds. Must be greater than `0`. | `30` |
@@ -2894,6 +2895,38 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 `DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED` and `c.open_feature.enabled` are deprecated. When neither stable setting is explicitly configured, the legacy value `true` selects `remote_config` and `false` disables Feature Flags.
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
+
+#### Evaluation telemetry opt-out
+
+Enable per-subject evaluation telemetry opt-out when you construct the provider:
+
+```ruby
+provider = Datadog::OpenFeature::Provider.new(
+  enable_evaluation_telemetry_opt_out_parameter: true,
+)
+OpenFeature::SDK.set_provider_and_wait(provider)
+
+context = OpenFeature::SDK::EvaluationContext.new(
+  targeting_key: "subject-id",
+  dd_evaluation_telemetry_opt_out: true,
+)
+OpenFeature::SDK.build_client.fetch_string_value(
+  flag_key: "banner", default_value: "Welcome", evaluation_context: context,
+)
+```
+
+Alternatively, set `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED=true` and construct the provider without that keyword.
+An omitted or `nil` keyword uses `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled`, which defaults to `false`.
+An explicit provider `true` or `false` overrides that setting and its environment variable.
+The provider snapshots this setting when constructed. Later configuration changes do not affect an existing provider.
+When enabled, the `dd_evaluation_telemetry_opt_out` parameter must contain boolean `true` to suppress new evaluation telemetry.
+This suppresses evaluation events, evaluation metrics, and automatic flag span annotations.
+Missing values, `false`, `nil`, strings, and numbers preserve existing reporting.
+The provider uses the merged evaluation context, including application before hooks.
+
+Flag values, variants, reasons, defaults, experiment assignment, and exposure logging remain unchanged.
+Application hooks, unrelated telemetry, and data captured before the opt-out remain unchanged.
+Your application owns the decision to set this parameter.
 
 ### Profiling
 

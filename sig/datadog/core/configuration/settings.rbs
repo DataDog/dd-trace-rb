@@ -215,6 +215,10 @@ module Datadog
         end
 
         interface _FeatureFlags
+          def evaluation_telemetry_per_subject_opt_out_enabled: () -> bool
+
+          def evaluation_telemetry_per_subject_opt_out_enabled=: (bool) -> void
+
           def using_default?: (Symbol name) -> bool
 
           def enabled: () -> bool
