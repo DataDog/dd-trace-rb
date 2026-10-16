@@ -44,22 +44,24 @@ cp -r "../tmp/${ARCH}"/* sources
 
 cp ../tmp/version sources
 
-## Some packages we know are Ruby version-independent; let's store them once
-## only. The `datadog` gem is not: every gem home's copy carries the
-## `libdatadog_api` extension compiled for its own Ruby. The `.so` name
-## embeds the Ruby version, so all homes' `.so` files coexist in one shared
-## copy, and the profiling extension a customer-side reinstall compiles is
-## named per version too, so a shared copy cannot collide across Rubies. The
-## mkmf Makefile under ext/libdatadog_api also differs per home; the shared
-## copy keeps the first home's, and in-place rebuilds regenerate it.
+## Some packages are Ruby version-independent, so we store them once and
+## share them across all gem homes. The `datadog` gem is version-dependent
+## but can still be shared: each gem home's copy holds a `libdatadog_api`
+## extension compiled for its own Ruby, and the `.so` filename embeds the
+## Ruby version, so the `.so` files from all gem homes can be kept in a
+## single shared copy without overwriting one another. A profiling extension
+## that a customer-side reinstall recompiles is also named per Ruby version,
+## so it cannot overwrite the shared copy either. The mkmf Makefile under
+## ext/libdatadog_api also differs per gem home; the shared copy keeps the
+## first gem home's Makefile, and an in-place rebuild regenerates it.
 
 mkdir -p sources/ruby/common/gems
 
 for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
     echo ".. scanning for ${package}"
 
-    # The version anchor keeps the `datadog` entry from matching the
-    # `datadog-ruby_core_source` symlinks.
+    # The `[0-9]` after the package name keeps the `datadog` pattern from
+    # also matching the `datadog-ruby_core_source` entries.
     ls -1d sources/ruby/*/gems/${package}-[0-9]* | while read -r orig; do
         dest="sources/ruby/common/gems/${orig##*/}"
         if [[ -e "${dest}" ]]; then
