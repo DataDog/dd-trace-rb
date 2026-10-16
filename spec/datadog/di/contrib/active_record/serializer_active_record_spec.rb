@@ -76,7 +76,7 @@ RSpec.describe Datadog::DI::Serializer do
 
   describe "#serialize_value" do
     let(:serialized) do
-      serializer.serialize_value(value, **options)
+      serializer.serialize_value(value, **options, deadline: Float::INFINITY)
     end
 
     cases = [

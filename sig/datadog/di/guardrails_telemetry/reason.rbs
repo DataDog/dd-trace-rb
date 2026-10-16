@@ -24,6 +24,8 @@ module Datadog
 
         RUNTIME_ERROR: String
 
+        CAPTURE_TIMEOUT: String
+
         DEPTH: String
 
         FIELD_COUNT: String
