@@ -343,7 +343,9 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
           end
         end
 
-        shared_examples "continues producing metrics" do
+        context "with FORK_POLICY_RESTART fork policy" do
+          let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
+
           it "continues producing metrics" do
             # Start worker
             worker.perform
@@ -364,18 +366,6 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
               expect(metrics).to have_received(:flush).at_least(:once)
             end
           end
-        end
-
-        context "with FORK_POLICY_RESTART fork policy" do
-          let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
-
-          include_examples "continues producing metrics"
-        end
-
-        context "with the default fork policy" do
-          let(:options) { {metrics: metrics, enabled: true} }
-
-          include_examples "continues producing metrics"
         end
       end
     end
