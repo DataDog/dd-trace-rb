@@ -27,7 +27,7 @@ module Datadog
       attr_reader :last_flush_finish_at #: ::Time?
       attr_reader :created_at #: ::Time
       attr_reader :internal_metadata #: ::Hash[::Symbol, untyped]
-      attr_reader :info_json #: ::String
+      attr_reader :info_collector #: Datadog::Profiling::Collectors::Info
       attr_reader :sequence_tracker #: singleton(Datadog::Profiling::SequenceTracker)
 
       public
@@ -56,9 +56,7 @@ module Datadog
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
         @internal_metadata = internal_metadata
-        # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
-        #       it on startup to prevent serializing the same info on every flush.
-        @info_json = JSON.generate(info_collector.info).freeze
+        @info_collector = info_collector
         @sequence_tracker = sequence_tracker
       end
 
@@ -111,7 +109,7 @@ module Datadog
               gc: gc_stats,
             }
           ),
-          info_json: info_json,
+          info_json: info_collector.info_json,
         )
       end
 
