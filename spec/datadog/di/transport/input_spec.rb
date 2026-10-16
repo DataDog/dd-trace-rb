@@ -355,7 +355,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
     it "prunes the snapshot instead of dropping it and counts the prune" do
-      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+      expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
 
       chunks = []
       expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
@@ -377,7 +377,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     end
 
     it "prunes an oversized capture expression instead of dropping the snapshot" do
-      expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "snapshots_pruned_by_payload_size", 1)
+      expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
 
       chunks = []
       expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
