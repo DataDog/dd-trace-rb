@@ -17,6 +17,10 @@ module Datadog
 
           def metrics_enabled: () -> bool
 
+          def native_exporter_enabled: () -> bool
+
+          def native_exporter_enabled=: (bool) -> void
+
           def agentless_enabled: () -> bool
 
           def heartbeat_interval_seconds: () -> Float

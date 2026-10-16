@@ -6,6 +6,9 @@ module Datadog
         ENV_ENABLED: ::String
         ENV_LOG_COLLECTION: ::String
         ENV_METRICS_ENABLED: ::String
+
+        ENV_NATIVE_EXPORTER_ENABLED: String
+
         ENV_EXTENDED_HEARTBEAT_INTERVAL: ::String
         ENV_HEARTBEAT_INTERVAL: ::String
         ENV_METRICS_AGGREGATION_INTERVAL: ::String
