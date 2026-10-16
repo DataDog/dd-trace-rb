@@ -42,10 +42,15 @@ The `images/` folders hosts some images for Ruby applications.
 
 Ruby base images include `Datadog::DemoEnv` and other helpers.
 
+When using a local tracer, each app pins `libdatadog` to the version in the
+matching `gemfiles/ruby-X.Y.gemfile.lock` from that checkout. App constraints
+must be compatible with that version; other dependencies retain their app
+constraints and sources.
+
 The native extension build helper installs the application's bundle, then builds
-the local tracer's extensions with RubyGems inside that bundle. Compilation and
-runtime must resolve the same `libdatadog` version; compiling with the tracer's
-development bundle can select a different version from the application.
+the local tracer's extensions with RubyGems inside that bundle. Repository tests,
+app compilation, and app runtime therefore use the same `libdatadog` version
+without adding the tracer's development-only dependencies to the app bundle.
 
 ### Running Integration Tests
 
