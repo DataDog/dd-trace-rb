@@ -344,9 +344,15 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
     context "when a slot value cannot be JSON-encoded" do
       it "raises the encoding error" do
+        # The json gem bundled with Ruby 3.1 and newer raises
+        # JSON::GeneratorError when a string cannot be converted to
+        # UTF-8; older bundled versions (json < 2.6) propagate the raw
+        # Encoding::UndefinedConversionError from JSON.dump.
         expect do
           described_class.encode(snapshot(line_captures(raw: "\x80".b)), cap)
-        end.to raise_error(JSON::GeneratorError)
+        end.to raise_error do |exc|
+          expect([JSON::GeneratorError, Encoding::UndefinedConversionError]).to include(exc.class)
+        end
       end
     end
 

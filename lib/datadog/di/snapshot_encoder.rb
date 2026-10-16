@@ -94,8 +94,8 @@ module Datadog
       #   +max_size+ bytes, or nil when the snapshot cannot fit within
       #   +max_size+ even after pruning. +pruned+ is true when any
       #   captured-value slot was replaced with the pruned marker.
-      # @raise [JSON::GeneratorError] when a captured value cannot be
-      #   JSON-encoded
+      # @raise [JSON::GeneratorError, Encoding::UndefinedConversionError]
+      #   when a captured value cannot be JSON-encoded
       def self.encode(snapshot, max_size)
         out = +""
         budget = Budget.new(max_size)
