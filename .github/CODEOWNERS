@@ -170,6 +170,11 @@ spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 spec/datadog/core/feature_flags_spec.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/open_feature_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
+tasks/ffe_fixtures.rb @DataDog/feature-flagging-and-experimentation-sdk
+spec/tasks/ffe_fixtures_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
+.github/workflows/check-ffe-fixtures.yml @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
+.github/workflows/update-ffe-fixtures.yml @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
+.github/chainguard/self.update-ffe-fixtures.sts.yaml @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
 spec/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
 spec/datadog/di_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 spec/datadog/symbol_database/ @DataDog/debugger-ruby @DataDog/ruby-guild
