@@ -92,7 +92,7 @@ for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
           fi
         done
 
-      cp -an "${orig}/." "${dest}/"
+      cp -anv "${orig}/." "${dest}/"
       rm -rf "${orig}"
     else
       mv -vf "${orig}" "${dest}"
