@@ -225,7 +225,7 @@ module Datadog
             end
             first = false
             key = k.to_s
-            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || JSON.dump(key))
+            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
             return false unless emit_json_fragment(out, budget, ":")
             case key
             when "value"
@@ -333,7 +333,7 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_json_fragment(out, budget, JSON.dump(name.to_s))
+            return false unless emit_json_fragment(out, budget, json_dump(name.to_s))
             return false unless emit_json_fragment(out, budget, ":")
             return false unless encode_slot(slot, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
           end
@@ -360,7 +360,7 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_json_fragment(out, budget, JSON.dump(name.to_s))
+            return false unless emit_json_fragment(out, budget, json_dump(name.to_s))
             return false unless emit_json_fragment(out, budget, ":")
             return false unless encode_slot(slot, out, budget, item_cap: nil, &on_prune)
           end
@@ -387,7 +387,7 @@ module Datadog
             end
             first = false
             key = k.to_s
-            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || JSON.dump(key))
+            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
             return false unless emit_json_fragment(out, budget, ":")
             case key
             when "locals", "arguments", "captureExpressions"
@@ -426,6 +426,25 @@ module Datadog
           emit_json_fragment(out, budget, "]")
         end
 
+        # Dumps +value+ to JSON for emission, normalizing the encoding
+        # failure class across the supported range: the json gem below
+        # 2.6 (bundled with Ruby 2.5 through 3.0) converts a non-UTF-8
+        # string to UTF-8 before generating and raises
+        # Encoding::UndefinedConversionError for bytes invalid in UTF-8,
+        # while json 2.6 and later raise JSON::GeneratorError. The rescue
+        # raises JSON::GeneratorError on every supported version so the
+        # caller sees one failure class.
+        #
+        # @param value [Object] value to dump
+        # @return [String] JSON encoding of +value+
+        # @raise [JSON::GeneratorError] when +value+ cannot be
+        #   JSON-encoded
+        def json_dump(value)
+          JSON.dump(value)
+        rescue Encoding::UndefinedConversionError => exc
+          raise JSON::GeneratorError, exc.message
+        end
+
         # Encodes a scalar value to JSON once and emits it when it fits
         # the budget.
         #
@@ -434,7 +453,7 @@ module Datadog
         # @param budget [Budget] byte budget charged for the emission
         # @return [Boolean] true when the value was emitted
         def encode_scalar(scalar, out, budget)
-          emit_json_fragment(out, budget, JSON.dump(scalar))
+          emit_json_fragment(out, budget, json_dump(scalar))
         end
 
         # Appends an already-encoded JSON fragment when it fits the

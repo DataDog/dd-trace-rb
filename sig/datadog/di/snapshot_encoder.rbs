@@ -59,6 +59,8 @@ module Datadog
 
       def self.encode_scalar: (snapshot_value scalar, String out, Budget budget) -> bool
 
+      def self.json_dump: (snapshot_value value) -> String
+
       def self.emit_json_fragment: (String out, Budget budget, String fragment) -> bool
 
       def self.emit_pruned: (String out, Budget budget) ?{ () -> void } -> bool
