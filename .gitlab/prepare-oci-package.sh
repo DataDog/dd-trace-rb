@@ -51,13 +51,18 @@ cp ../tmp/version sources
 ## Ruby version, so the `.so` files from all gem homes coexist in one
 ## shared copy. A profiling extension that a customer-side reinstall
 ## recompiles is also named per Ruby version, so it cannot overwrite the
-## shared copy. Every other file of a duplicate copy must match the shared
-## copy byte for byte; the conflict check below fails the package build
-## when it does not. The mkmf Makefiles differ per gem home, so
-## install_datadog_deps.rb strips them with the other extension build
-## products before this script runs.
+## shared copy. Every other entry of a duplicate copy must match the
+## shared copy: regular files byte for byte, symlinks by target. The
+## conflict check below fails the package build when it does not. The mkmf
+## Makefiles differ per gem home, so install_datadog_deps.rb strips them
+## with the other extension build products before this script runs.
 
 mkdir -p sources/ruby/common/gems
+
+fail_conflict() {
+  printf 'conflict: %s\n' "$1" >&2
+  exit 1
+}
 
 for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
   echo ".. scanning for ${package}"
@@ -70,15 +75,20 @@ for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
       echo "found ${dest}; merging ${orig} into it"
 
       # The gem paths are build-generated and contain no newlines.
-      find "${orig}/" -type f |
+      find "${orig}/" \( -type f -o -type l \) |
         while IFS= read -r file; do
           relative="${file#"${orig}/"}"
           other="${dest}/${relative}"
 
-          if { [ -e "${other}" ] || [ -L "${other}" ]; } &&
-            ! cmp -s -- "${file}" "${other}"; then
-            printf 'conflict: %s\n' "${relative}" >&2
-            exit 1
+          if [ -e "${other}" ] || [ -L "${other}" ]; then
+            if [ -L "${file}" ] && [ -L "${other}" ]; then
+              [ "$(readlink -- "${file}")" = "$(readlink -- "${other}")" ] ||
+                fail_conflict "${relative}"
+            elif [ -L "${file}" ] || [ -L "${other}" ]; then
+              fail_conflict "${relative}"
+            elif ! cmp -s -- "${file}" "${other}"; then
+              fail_conflict "${relative}"
+            fi
           fi
         done
 
