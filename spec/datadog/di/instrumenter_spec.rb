@@ -5,6 +5,7 @@ require "datadog/di/capture_expression_evaluator"
 require "datadog/di/serializer"
 require "datadog/di/probe"
 require "datadog/di/capture_expression"
+require "datadog/di/correlation_sampler"
 require "datadog/di/proc_responder"
 require "datadog/di/logger"
 require "datadog/di/probe_manager"
@@ -53,7 +54,8 @@ RSpec.describe Datadog::DI::Instrumenter do
   let(:instrumenter) do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker,
       guardrails_telemetry: guardrails_telemetry,
-      capture_expression_evaluator: capture_expression_evaluator)
+      capture_expression_evaluator: capture_expression_evaluator,
+      correlation_sampler: Datadog::DI::CorrelationSampler.new,)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1974,7 +1976,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
         guardrails_telemetry: guardrails_telemetry,
-        capture_expression_evaluator: capture_expression_evaluator)
+        capture_expression_evaluator: capture_expression_evaluator,
+        correlation_sampler: Datadog::DI::CorrelationSampler.new)
     end
 
     describe "method probe condition evaluation failed callback exceptions" do
@@ -2153,7 +2156,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:instrumenter) do
       described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
         guardrails_telemetry: guardrails_telemetry,
-        capture_expression_evaluator: capture_expression_evaluator,)
+        capture_expression_evaluator: capture_expression_evaluator,
+        correlation_sampler: Datadog::DI::CorrelationSampler.new,)
     end
 
     # Asserts the guardrails skip metric emission for a rejected probe
@@ -2204,6 +2208,109 @@ RSpec.describe Datadog::DI::Instrumenter do
       it "returns the log limiter for non-capturing probes" do
         expect(instrumenter.probe_global_rate_limiter(log_probe))
           .to be(instrumenter.global_log_rate_limiter)
+      end
+    end
+
+    describe "#emit? with a correlation sampler" do
+      let(:probe) do
+        Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
+          id: 1, type: :log, capture_snapshot: true, rate_limit: 5000)
+      end
+
+      let(:instrumenter) do
+        described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: capture_expression_evaluator,
+          correlation_sampler: Datadog::DI::CorrelationSampler.new,)
+      end
+
+      context "with an active trace" do
+        before do
+          stub_active_trace(123)
+
+          # Freeze the rate limiter clock so the drain below is deterministic.
+          frozen_time = Datadog::Core::Utils::Time.get_time
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+          Datadog::DI::Instrumenter::GLOBAL_SNAPSHOT_RATE_LIMIT.times do
+            instrumenter.global_snapshot_rate_limiter.allow?
+          end
+          expect(instrumenter.global_snapshot_rate_limiter.allow?).to be(false)
+        end
+
+        it "admits a correlated hit past an exhausted hard snapshot limit" do
+          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "applies the sampler's drop to a correlated hit" do
+          # The first hit establishes the trace's unit and admits; the second
+          # is dropped once PER_PROBE_BUDGET is spent.
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+      end
+
+      context "without an active trace" do
+        before do
+          stub_no_trace
+        end
+
+        it "applies the hard snapshot limit to an uncorrelated capturing hit" do
+          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+          expect(logger).to have_received(:trace) do |&block|
+            expect(block.call).to match(/global rate limit/)
+          end
+        end
+      end
+
+      context "when the correlation gate raises" do
+        let(:propagate_all_exceptions) { false }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        let(:instrumenter) do
+          described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+            guardrails_telemetry: guardrails_telemetry,
+            capture_expression_evaluator: capture_expression_evaluator,
+            correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry,)
+        end
+
+        before do
+          stub_active_trace(123)
+        end
+
+        it "fails open through the probe's own rate limit and reports telemetry" do
+          allow(logger).to receive(:debug)
+          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+
+          expect(probe.rate_limiter).to receive(:allow?).and_return(true)
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("gate boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "re-raises fatal exceptions" do
+          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(SystemExit)
+
+          expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
+        end
+
+        it "fails open when resolving the active trace raises" do
+          allow(logger).to receive(:debug)
+          expect(Datadog::DI).to receive(:active_trace).and_raise(StandardError, "trace boom")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("trace boom")
+            expect(description).to eq("Error in DI correlation gate")
+          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
       end
     end
 

@@ -297,6 +297,32 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
+    describe "#own_rate_limit_allows?" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          rate_limit: 1)
+      end
+
+      it "admits while the probe's own rate limiter allows" do
+        expect(probe.own_rate_limit_allows?).to be true
+      end
+
+      it "denies once the probe's own rate limiter is exhausted" do
+        probe.own_rate_limit_allows?
+        expect(probe.own_rate_limit_allows?).to be false
+      end
+
+      context "without a rate limiter" do
+        before do
+          allow(probe).to receive(:rate_limiter).and_return(nil)
+        end
+
+        it "admits" do
+          expect(probe.own_rate_limit_allows?).to be true
+        end
+      end
+    end
+
     describe "#capture_entry_expressions?" do
       it "is true with entry-evaluated capture expressions and no snapshot" do
         expect(build_probe(capture_expressions: [capture_expression], evaluate_at: :entry, capture_snapshot: false).capture_entry_expressions?).to be true

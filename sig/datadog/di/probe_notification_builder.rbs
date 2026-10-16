@@ -48,7 +48,7 @@ module Datadog
 
       def timestamp_now: () -> Integer
 
-      def active_trace: () -> Datadog::Tracing::TraceSegment?
+      def active_trace: () -> Datadog::Tracing::TraceOperation?
       def active_span: () -> Datadog::Tracing::SpanOperation?
     end
   end

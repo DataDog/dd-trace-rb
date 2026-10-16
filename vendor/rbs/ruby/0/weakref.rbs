@@ -1,0 +1,18 @@
+# The rbs bundled with our Steep does not declare the stdlib `WeakRef`,
+# which `Datadog::DI::CorrelationSampler::TraceBudgetLedger` uses to bind
+# per-trace budgets to the trace lifetime. This minimal shim types only the
+# methods the ledger calls; the generic parameter relates the constructor
+# argument to `__getobj__`'s return. `__getobj__` raises `WeakRef::RefError`
+# on a recycled referent rather than returning nil, which is why the ledger
+# guards it with `weakref_alive?`.
+#
+# Lives under `vendor/rbs/ruby/` (auto-loaded by the Steepfile's `vendor/rbs`
+# repo loop, same mechanism as `vendor/rbs/jruby`) because it augments a
+# stdlib type rather than mirroring a `lib/` file.
+class WeakRef[T]
+  def initialize: (T orig) -> void
+
+  def __getobj__: () -> T
+
+  def weakref_alive?: () -> bool
+end

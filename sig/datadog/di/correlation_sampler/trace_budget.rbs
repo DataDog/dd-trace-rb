@@ -1,0 +1,23 @@
+module Datadog
+  module DI
+    class CorrelationSampler
+      class TraceBudget
+        @all_remaining: ::Integer
+
+        @per_probe_budget: ::Integer
+
+        @per_probe: ::Hash[::String, ::Integer]
+
+        def initialize: (per_probe_budget: ::Integer, all_budget: ::Integer) -> void
+
+        attr_reader all_remaining: ::Integer
+
+        attr_reader per_probe_budget: ::Integer
+
+        attr_reader per_probe: ::Hash[::String, ::Integer]
+
+        def admit: (::String probe_id) -> bool
+      end
+    end
+  end
+end

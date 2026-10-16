@@ -31,11 +31,13 @@ module Datadog
 
       @global_log_rate_limiter: Datadog::Core::TokenBucket
 
-      @lock: Mutex
+      @correlation_sampler: CorrelationSampler
+
+      @lock: Thread::Mutex
 
       @capture_expression_evaluator: CaptureExpressionEvaluator
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, guardrails_telemetry: GuardrailsTelemetry, capture_expression_evaluator: CaptureExpressionEvaluator, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, guardrails_telemetry: GuardrailsTelemetry, capture_expression_evaluator: CaptureExpressionEvaluator, correlation_sampler: CorrelationSampler, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -56,6 +58,8 @@ module Datadog
       attr_reader global_log_rate_limiter: Datadog::Core::TokenBucket
 
       attr_reader capture_expression_evaluator: CaptureExpressionEvaluator
+
+      attr_reader correlation_sampler: CorrelationSampler
 
       def probe_global_rate_limiter: (Probe probe) -> Datadog::Core::TokenBucket
 
@@ -88,7 +92,13 @@ module Datadog
 
       private
 
-      attr_reader lock: Mutex
+      attr_reader lock: Thread::Mutex
+
+      def emit?: (Probe probe) -> bool
+
+      def current_trace: () -> Datadog::Tracing::TraceOperation?
+
+      def global_rate_limit_allows?: (Probe probe) -> bool
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 

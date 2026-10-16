@@ -86,6 +86,7 @@ require "datadog"
 # currently integrated into the Ruby tracer due to being under development.
 require "datadog/di"
 require "datadog/di/logger"
+require "datadog/di/correlation_sampler"
 require "datadog/di/proc_responder"
 require "datadog/core/configuration/agent_settings_resolver"
 require "datadog/core/telemetry/component"
@@ -181,7 +182,8 @@ class DIInstrumentBenchmark
       capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
         settings: settings, serializer: serializer, logger: di_logger,
         guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
-      ),)
+      ),
+      correlation_sampler: Datadog::DI::CorrelationSampler.new,)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target
