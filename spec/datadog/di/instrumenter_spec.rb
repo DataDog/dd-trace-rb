@@ -2190,7 +2190,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "invokes the condition evaluation failed callback with the timeout instead of the executed callback" do
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "evaluation_timeouts", 1)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
           expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
 
           expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
@@ -2308,7 +2308,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "invokes the condition evaluation failed callback with the timeout instead of the executed callback" do
           allow(logger).to receive(:debug)
 
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "evaluation_timeouts", 1)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
 
           expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
             expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
