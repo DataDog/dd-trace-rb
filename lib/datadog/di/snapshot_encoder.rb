@@ -160,12 +160,12 @@ module Datadog
           end
         end
 
-        # Encodes one captured-value slot. A collection slot whose
-        # constant-time bound exceeds the byte budget is pruned without
-        # being walked; a scalar slot whose minimum possible encoded size
-        # exceeds the byte budget is pruned without being encoded. A slot
-        # whose encoding exceeds the budget midway is pruned together
-        # with its partial emission.
+        # Encodes one captured-value slot. A collection slot gated against
+        # the whole remaining budget is pruned without being walked when
+        # its constant-time bound exceeds the budget; a slot capped at
+        # +item_cap+ is pre-pruned only when its minimum possible encoded
+        # size exceeds the cap, and a slot whose encoding exceeds the
+        # budget midway is pruned together with its partial emission.
         #
         # @param slot [Object] captured-value slot
         # @param out [String] output buffer
@@ -178,8 +178,15 @@ module Datadog
         #   content or as the pruned marker
         def encode_slot(slot, out, budget, item_cap:, &on_prune)
           cap = item_cap ? [budget.remaining, item_cap].min : budget.remaining
+          # A collection's upper bound counts every nested member at the
+          # full MAX_ITEM_BYTES allowance, so it exceeds any item cap for
+          # every non-empty collection; gating collection members on it
+          # would prune every nested captured collection regardless of
+          # content. The item cap is enforced during the emission below,
+          # so a retained member never exceeds MAX_ITEM_BYTES and the
+          # enclosing collection's pre-walk bound stays valid.
           oversized = if Hash === slot
-            if slot_collection?(slot)
+            if slot_collection?(slot) && !item_cap
               slot_upper_bound(slot) > cap
             else
               slot_lower_bound(slot) > cap

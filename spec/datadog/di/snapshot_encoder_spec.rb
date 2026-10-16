@@ -236,14 +236,49 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when a captured collection holds a nested collection" do
       let(:nested) { {type: "Array", elements: [{type: "Integer", value: "1"}]} }
 
-      it "prunes the nested collection member and keeps the enclosing collection" do
+      it "keeps a nested collection member that fits the member cap" do
         slot = {type: "Array", elements: [nested, {type: "Integer", value: "2"}]}
+        result = described_class.encode(snapshot(line_captures(a: slot)), cap)
+        expect(result.pruned).to be(false)
+        expect(result.encoded.bytesize).to be <= cap
+        elements = locals_of(result)["a"]["elements"]
+        expect(elements.first).to eq(
+          "type" => "Array",
+          "elements" => [{"type" => "Integer", "value" => "1"}],
+        )
+        expect(elements.last).to eq("type" => "Integer", "value" => "2")
+      end
+
+      it "prunes a nested collection member whose content exceeds the member cap" do
+        big_nested = {type: "Array", elements: Array.new(300) { {type: "Integer", value: "9"} }}
+        slot = {type: "Array", elements: [big_nested, {type: "Integer", value: "2"}]}
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
         elements = locals_of(result)["a"]["elements"]
         expect(elements.first).to eq("pruned" => true)
         expect(elements.last).to eq("type" => "Integer", "value" => "2")
+      end
+    end
+
+    context "when a captured object holds nested objects" do
+      it "keeps the chain of nested objects within the capture depth" do
+        slot = {type: "L1", fields: {nested: {type: "L2", fields: {
+          nested: {type: "L3", fields: {leaf: {type: "Integer", value: "1"}}},
+        }}}}
+        result = described_class.encode(snapshot(line_captures(a: slot)), cap)
+        expect(result.pruned).to be(false)
+        expect(result.encoded.bytesize).to be <= cap
+        expect(locals_of(result)["a"]).to eq(
+          "type" => "L1",
+          "fields" => {"nested" => {
+            "type" => "L2",
+            "fields" => {"nested" => {
+              "type" => "L3",
+              "fields" => {"leaf" => {"type" => "Integer", "value" => "1"}},
+            }},
+          }},
+        )
       end
     end
 
