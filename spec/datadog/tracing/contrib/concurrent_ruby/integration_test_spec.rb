@@ -147,6 +147,19 @@ RSpec.describe "ConcurrentRuby integration tests" do
 
           expect(inner_span).to be_root_span
         end
+
+        it "keeps sequential root spans in separate traces" do
+          future = Concurrent::Promises.future do
+            tracer.trace("first_span") {}
+            tracer.trace("second_span") {}
+          end
+
+          future.wait
+
+          first_span = spans.find { |span| span.name == "first_span" }
+          second_span = spans.find { |span| span.name == "second_span" }
+          expect(first_span.trace_id).to_not eq(second_span.trace_id)
+        end
       end
     end
   end
@@ -208,6 +221,23 @@ RSpec.describe "ConcurrentRuby integration tests" do
       it "inner span parent should be included in outer span" do
         deferred_execution
         expect(inner_span.parent_id).to eq(outer_span.id)
+      end
+
+      it "clears the propagated context after execution" do
+        executor = Concurrent::SingleThreadExecutor.new
+        outer_span = tracer.trace("outer_span")
+        future = Concurrent::Future.new(executor: executor) {}
+        future.execute.wait
+        outer_span.finish
+
+        active_trace = :unset
+        executor.post { active_trace = Datadog::Tracing.active_trace }
+        executor.shutdown
+        executor.wait_for_termination(1)
+
+        expect(active_trace).to be_nil
+      ensure
+        executor&.kill
       end
     end
   end
