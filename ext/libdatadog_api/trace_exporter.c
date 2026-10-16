@@ -104,6 +104,8 @@ static VALUE serializable_backtrace_class = Qnil;
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
 static ID id_new;
+static ID id_handle_interrupt;
+static VALUE observation_interrupt_mask = Qnil;
 
 /* Response keyword-argument IDs, cached to avoid re-interning per send */
 static ID kw_ok;
@@ -1464,6 +1466,11 @@ static VALUE _native_exporter_new(
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
+  ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
+  if (observation_error != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("Failed to select exporter observations", observation_error);
+  }
 
   set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
   set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
@@ -1621,6 +1628,7 @@ typedef struct {
   const ddog_TraceExporter       *exporter;
   ddog_TracerTraceChunks         *chunks;
   ddog_TraceExporterResponse     *response;
+  ddog_TraceExporterObservations  observations;
   ddog_TraceExporterCancelToken  *cancel_token;  /* borrowed, not owned */
   ddog_TraceExporterErrorCode     error_code;
   bool                            failed;
@@ -1629,8 +1637,8 @@ typedef struct {
 
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
-  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks(
-      args->exporter, args->chunks, &args->response, args->cancel_token);
+  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks_observed(
+      args->exporter, args->chunks, &args->response, &args->observations, args->cancel_token);
   if (err != NULL) {
     args->error_code = err->code;
     args->failed = true;
@@ -1698,7 +1706,72 @@ typedef struct {
   long                      trace_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
+  ddog_TraceExporterResponse *response;
 } send_traces_ctx;
+
+typedef struct {
+  const ddog_TraceExporterObservations *report;
+  VALUE block;
+} observations_callback_args;
+
+static VALUE yield_observations(VALUE arg) {
+  observations_callback_args *callback = (observations_callback_args *)arg;
+  const ddog_TraceExporterObservations *report = callback->report;
+  VALUE values = rb_hash_new();
+#define ADD_OBSERVATION(field) if (report->field > 0) rb_hash_aset(values, ID2SYM(rb_intern_const(#field)), ULL2NUM(report->field))
+  ADD_OBSERVATION(requests_count);
+  ADD_OBSERVATION(errors_network);
+  ADD_OBSERVATION(errors_timeout);
+  ADD_OBSERVATION(errors_status_code);
+  ADD_OBSERVATION(bytes_sent);
+  ADD_OBSERVATION(chunks_sent);
+  ADD_OBSERVATION(chunks_dropped_serialization_error);
+  ADD_OBSERVATION(chunks_dropped_send_failure);
+  ADD_OBSERVATION(spans_enqueued_for_serialization);
+  ADD_OBSERVATION(spans_dropped_serialization_error);
+  ADD_OBSERVATION(spans_dropped_api_error);
+  ADD_OBSERVATION(responses_count);
+  ADD_OBSERVATION(status_code);
+#undef ADD_OBSERVATION
+  return rb_proc_call_with_block(callback->block, 1, &values, Qnil);
+}
+
+static VALUE ignore_observation_error(DDTRACE_UNUSED VALUE arg, DDTRACE_UNUSED VALUE error) {
+  return Qnil;
+}
+
+static VALUE protected_observations(RB_BLOCK_CALL_FUNC_ARGLIST(yielded, arg)) {
+  (void)yielded;
+  (void)argc;
+  (void)argv;
+  (void)blockarg;
+  return rb_rescue2(yield_observations, arg, ignore_observation_error, Qnil,
+      rb_eStandardError, (VALUE)0);
+}
+
+static VALUE forward_observations(VALUE arg) {
+  observations_callback_args callback = {
+    .report = (const ddog_TraceExporterObservations *)arg,
+    .block = rb_block_proc(),
+  };
+  /* Deliver fresh interrupts after the callback's StandardError rescue has ended. */
+  VALUE result = rb_block_call(rb_cThread, id_handle_interrupt, 1, &observation_interrupt_mask,
+      protected_observations, (VALUE)&callback);
+  RB_GC_GUARD(callback.block);
+  return result;
+}
+
+static VALUE ensure_observations(VALUE arg) {
+  int ignored_state = 0;
+  /* The original interruption wins over any callback failure or non-local exit. */
+  rb_protect(forward_observations, arg, &ignored_state);
+  return Qnil;
+}
+
+static VALUE rethrow_interrupt(VALUE tag) {
+  rb_jump_tag(FIX2INT(tag));
+  return Qnil;
+}
 
 /*
  * Body: build trace chunks from Ruby spans, then send them.
@@ -1777,38 +1850,35 @@ static VALUE build_and_send_traces(VALUE arg) {
   if (args.send_ran) {
     ctx->chunks = NULL;
   }
+  ctx->response = args.response;
+
+  /* A completed send can race with cancellation; retain its report while unwinding. */
+  if (!pending_exception) {
+    pending_exception = check_if_pending_exception();
+  }
+  if (args.send_ran && rb_block_given_p()) {
+    if (pending_exception) {
+      /* rb_ensure preserves Thread#kill's fatal sentinel, which rb_set_errinfo cannot restore. */
+      rb_ensure(rethrow_interrupt, INT2FIX(pending_exception),
+          ensure_observations, (VALUE)&args.observations);
+    } else {
+      forward_observations((VALUE)&args.observations);
+    }
+  }
+  if (pending_exception) {
+    rb_jump_tag(pending_exception);
+  }
 
   /* Extract the response body as a Ruby string before freeing. */
   VALUE payload = Qnil;
   if (args.response != NULL) {
-    ddog_ByteSlice body =
-        ddog_trace_exporter_response_get_body(args.response);
+    ddog_ByteSlice body = ddog_trace_exporter_response_get_body(args.response);
     if (body.len > 0) {
       payload = rb_str_new((const char *)body.ptr, (long)body.len);
     }
     ddog_trace_exporter_response_free(args.response);
+    ctx->response = NULL;
     args.response = NULL;
-  }
-
-  /*
-   * Re-check for a pending interrupt unconditionally before deciding the
-   * outcome.  In a race, the unblock function (interrupt_exporter_call) can
-   * fire -- cancelling the token -- while the send still completes, so
-   * rb_thread_call_without_gvl2 returns with args.send_ran == true.  In that
-   * case the loop above exits without ever calling check_if_pending_exception(),
-   * leaving the interrupt pending.  If we did not check here, the cancelled
-   * send would fall through and be reported as an ordinary transport error
-   * response, swallowing the interrupt (e.g. Thread#kill / shutdown).
-   *
-   * This runs after the response has already been extracted and freed and
-   * after chunks have been handed off to the ensure handler, so re-raising
-   * here leaks nothing.
-   */
-  if (!pending_exception) {
-    pending_exception = check_if_pending_exception();
-  }
-  if (pending_exception) {
-    rb_jump_tag(pending_exception);
   }
 
   if (args.failed) {
@@ -1827,6 +1897,10 @@ static VALUE build_and_send_traces(VALUE arg) {
 static VALUE free_send_resources(VALUE arg) {
   send_traces_ctx *ctx = (send_traces_ctx *)arg;
   free_raw_span((VALUE)&ctx->span_owner);
+  if (ctx->response != NULL) {
+    ddog_trace_exporter_response_free(ctx->response);
+    ctx->response = NULL;
+  }
   if (ctx->chunks != NULL) {
     ddog_tracer_trace_chunks_free(ctx->chunks);
     ctx->chunks = NULL;
@@ -1883,6 +1957,12 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
  * ======================================================================== */
 
 void trace_exporter_init(VALUE tracing_module) {
+  id_handle_interrupt = rb_intern("handle_interrupt");
+  observation_interrupt_mask = rb_hash_new();
+  rb_hash_aset(observation_interrupt_mask, rb_cObject, ID2SYM(rb_intern("never")));
+  rb_obj_freeze(observation_interrupt_mask);
+  rb_global_variable(&observation_interrupt_mask);
+
   /* -- Module hierarchy -- */
   VALUE transport_module = rb_define_module_under(tracing_module, "Transport");
   VALUE native_module =
