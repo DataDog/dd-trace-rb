@@ -34,6 +34,7 @@ static VALUE _native_from_span(VALUE klass, VALUE span);
 
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
+static VALUE _native_close(VALUE self);
 static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported);
 static VALUE _native_before_fork(VALUE self);
 static VALUE _native_after_fork_in_parent(VALUE self);
@@ -1410,9 +1411,10 @@ static VALUE create_ok_response(long trace_count, VALUE payload) {
  *   TraceExporter._native_new(
  *     url:, tracer_version: nil, language: nil, language_version: nil,
  *     language_interpreter: nil, hostname: nil, env: nil,
- *     service: nil, version: nil) -> TraceExporter
+ *     service: nil, version: nil, client_computed_stats: false,
+ *     timeout_milliseconds: nil) -> TraceExporter
  *
- * +url+ is required (String).  All other arguments may be nil.
+ * +url+ is required (String). Metadata arguments may be nil.
  * ======================================================================== */
 
 static VALUE _native_exporter_new(
@@ -1431,6 +1433,8 @@ static VALUE _native_exporter_new(
   VALUE rb_env                  = rb_hash_fetch(options, ID2SYM(rb_intern("env")));
   VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
   VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
+  VALUE rb_client_computed_stats = rb_hash_lookup2(options, ID2SYM(rb_intern("client_computed_stats")), Qfalse);
+  VALUE rb_timeout_milliseconds = rb_hash_lookup2(options, ID2SYM(rb_intern("timeout_milliseconds")), Qnil);
 
   /* Phase 1: validate types (may raise, no Rust resources yet) */
   ENFORCE_TYPE(rb_url, T_STRING);
@@ -1442,6 +1446,20 @@ static VALUE _native_exporter_new(
   if (rb_env                  != Qnil) ENFORCE_TYPE(rb_env,                  T_STRING);
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
+  if (rb_client_computed_stats != Qtrue && rb_client_computed_stats != Qfalse) {
+    rb_raise(rb_eTypeError, "client_computed_stats must be true or false");
+  }
+
+  long long timeout_milliseconds = 0;
+  if (rb_timeout_milliseconds != Qnil) {
+    if (!RB_TYPE_P(rb_timeout_milliseconds, T_FIXNUM) && !RB_TYPE_P(rb_timeout_milliseconds, T_BIGNUM)) {
+      rb_raise(rb_eTypeError, "timeout_milliseconds must be an Integer or nil");
+    }
+    timeout_milliseconds = NUM2LL(rb_timeout_milliseconds);
+    if (timeout_milliseconds < 0) {
+      rb_raise(rb_eRangeError, "timeout_milliseconds must be non-negative");
+    }
+  }
 
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
@@ -1456,6 +1474,22 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
   set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
+
+  if (rb_timeout_milliseconds != Qnil) {
+    ddog_TraceExporterError *timeout_err = ddog_trace_exporter_config_set_connection_timeout(
+        config, (uint64_t)timeout_milliseconds);
+    if (timeout_err != NULL) {
+      ddog_trace_exporter_config_free(config);
+      check_exporter_error("Failed to configure native transport timeout", timeout_err);
+    }
+  }
+
+  ddog_TraceExporterError *stats_err = ddog_trace_exporter_config_set_client_computed_stats(
+      config, rb_client_computed_stats == Qtrue);
+  if (stats_err != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error("Failed to configure client-computed stats", stats_err);
+  }
 
   /*
    * Create a SharedRuntime and attach it to the config before building the
@@ -1511,12 +1545,47 @@ static VALUE _native_exporter_new(
  * (Puma, Unicorn, Passenger).
  * ======================================================================== */
 
+static void *close_exporter_without_gvl(void *ptr) {
+  trace_exporter_t *resources = ptr;
+  if (resources->exporter != NULL) {
+    ddog_trace_exporter_free(resources->exporter);
+    resources->exporter = NULL;
+  }
+  if (resources->runtime != NULL) {
+    ddog_shared_runtime_free(resources->runtime);
+    resources->runtime = NULL;
+  }
+  return NULL;
+}
+
+static VALUE close_exporter_body(VALUE ptr) {
+  rb_thread_call_without_gvl(close_exporter_without_gvl, (void *)ptr, NULL, NULL);
+  return Qnil;
+}
+
+static VALUE close_exporter_ensure(VALUE ptr) {
+  /* An interrupt may arrive before the no-GVL call starts. */
+  close_exporter_without_gvl((void *)ptr);
+  return Qnil;
+}
+
+static VALUE _native_close(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  if (wrapper == NULL) return Qnil;
+
+  trace_exporter_t resources = *wrapper;
+  wrapper->exporter = NULL;
+  wrapper->runtime = NULL;
+  rb_ensure(close_exporter_body, (VALUE)&resources, close_exporter_ensure, (VALUE)&resources);
+  RB_GC_GUARD(self);
+  return Qnil;
+}
+
 static VALUE _native_before_fork(VALUE self) {
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) {
-    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
-  }
+  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_before_fork(wrapper->runtime);
   check_shared_runtime_error("Failed to prepare for fork", err);
   return Qnil;
@@ -1525,9 +1594,7 @@ static VALUE _native_before_fork(VALUE self) {
 static VALUE _native_after_fork_in_parent(VALUE self) {
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) {
-    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
-  }
+  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_parent(wrapper->runtime);
   check_shared_runtime_error("Failed to restore after fork in parent", err);
   return Qnil;
@@ -1536,9 +1603,7 @@ static VALUE _native_after_fork_in_parent(VALUE self) {
 static VALUE _native_after_fork_in_child(VALUE self) {
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) {
-    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
-  }
+  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
   check_shared_runtime_error("Failed to restore after fork in child", err);
   return Qnil;
@@ -1848,6 +1913,7 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Instance: _native_send_traces(traces, native_events_supported) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
                    _native_send_traces, 2);
+  rb_define_method(trace_exporter_class, "_native_close", _native_close, 0);
 
   /* Instance: fork safety hooks */
   rb_define_method(trace_exporter_class, "_native_before_fork",

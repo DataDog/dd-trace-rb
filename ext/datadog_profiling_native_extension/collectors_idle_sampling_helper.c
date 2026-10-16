@@ -22,12 +22,12 @@
 typedef enum { ACTION_WAIT, ACTION_RUN, ACTION_STOP } action;
 
 // Contains state for a single CpuAndWallTimeWorker instance
-typedef struct {
+struct idle_sampling_loop_state {
   pthread_mutex_t wakeup_mutex;
   pthread_cond_t wakeup;
   action requested_action;
   void (*run_action_function)(void);
-} idle_sampling_loop_state;
+};
 
 static VALUE _native_new(VALUE klass);
 static void reset_state(idle_sampling_loop_state *state);
@@ -39,7 +39,7 @@ static void *run_idle_sampling_loop(void *state_ptr);
 static void interrupt_idle_sampling_loop(void *state_ptr);
 static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_idle_sampling_helper_request_action(DDTRACE_UNUSED VALUE self, VALUE self_instance);
-static void *request_testing_action(void *self_instance_ptr);
+static void *request_testing_action(void *state_ptr);
 static void grab_gvl_and_run_testing_action(void);
 static void *run_testing_action(DDTRACE_UNUSED void *unused);
 
@@ -215,15 +215,14 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
   return Qtrue;
 }
 
-// Assumption: Function gets called without the global VM lock
-void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_function)(void)) {
+idle_sampling_loop_state *idle_sampling_helper_get_state(VALUE self_instance) {
   idle_sampling_loop_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &idle_sampling_helper_typed_data)) {
-    grab_gvl_and_raise(rb_eTypeError, "Wrong argument for idle_sampling_helper_request_action");
-  }
-  // This should never fail when the above check passes
   TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+  return state;
+}
 
+// Called without the GVL, so we access native state directly: touching the Ruby self_instance is unsafe during GC compaction.
+void idle_sampling_helper_request_action(idle_sampling_loop_state *state, void (*run_action_function)(void)) {
   ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(&state->wakeup_mutex));
   if (state->requested_action == ACTION_WAIT) {
     state->requested_action = ACTION_RUN;
@@ -238,13 +237,14 @@ void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_
 // Because the idle_sampling_helper_request_action is built to be called without the global VM lock, here we release it
 // to be able to call that API.
 static VALUE _native_idle_sampling_helper_request_action(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
-  rb_thread_call_without_gvl(request_testing_action, (void *) self_instance, NULL, NULL);
+  idle_sampling_loop_state *state = idle_sampling_helper_get_state(self_instance);
+  rb_thread_call_without_gvl(request_testing_action, state, NULL, NULL);
+  RB_GC_GUARD(self_instance);
   return Qtrue;
 }
 
-static void *request_testing_action(void *self_instance_ptr) {
-  VALUE self_instance = (VALUE) self_instance_ptr;
-  idle_sampling_helper_request_action(self_instance, grab_gvl_and_run_testing_action);
+static void *request_testing_action(void *state_ptr) {
+  idle_sampling_helper_request_action(state_ptr, grab_gvl_and_run_testing_action);
   return NULL;
 }
 

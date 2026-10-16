@@ -23,14 +23,19 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+  end
+
   let(:evaluator) do
-    described_class.new(settings: settings, serializer: serializer, logger: logger, telemetry: telemetry)
+    described_class.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   def compile_expression(dsl_string, json)
@@ -49,23 +54,35 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   describe "#evaluate" do
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "p1", type: :log, type_name: "F", method_name: "m",
+        capture_expressions: [
+          Datadog::DI::CaptureExpression.new(
+            name: "x", expr: compile_expression("x", {"ref" => "x"}),
+          ),
+        ],
+      )
+    end
+
     context "with a single successful expression" do
-      let(:probe) do
-        Datadog::DI::Probe.new(
-          id: "p1", type: :log, type_name: "F", method_name: "m",
-          capture_expressions: [
-            Datadog::DI::CaptureExpression.new(
-              name: "x", expr: compile_expression("x", {"ref" => "x"}),
-            ),
-          ],
-        )
+      it "emits the serialized value under the name" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values.keys).to eq(["x"])
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.errors).to eq([])
+      end
+    end
+
+    context "when the serializer resolves a deadline in the past" do
+      before do
+        expect(serializer).to receive(:serialization_deadline).and_return(-Float::INFINITY)
       end
 
-      it "emits the serialized value under the name" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output.keys).to eq(["x"])
-        expect(output["x"]).to include(type: "Integer", value: "42")
-        expect(errors).to eq([])
+      it "reports a timeout stub for every expression" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq("x" => {notCapturedReason: "timeout"})
+        expect(result.errors).to eq([])
       end
     end
 
@@ -84,11 +101,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "omits the key from output and appends to evaluation_errors" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output).to eq({})
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("bad_len")
-        expect(errors.first[:message]).to include("ExpressionEvaluationError")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("bad_len")
+        expect(result.errors.first.message).to include("ExpressionEvaluationError")
       end
 
       it "logs at debug and reports the exception to telemetry" do
@@ -120,11 +137,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "catches it, omits the key, and records an evaluation error" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output).to eq({})
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("boom")
-        expect(errors.first[:message]).to include("NotImplementedError")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("boom")
+        expect(result.errors.first.message).to include("NotImplementedError")
       end
     end
 
@@ -167,10 +184,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "succeeds for the good one, errors for the bad one" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output.keys).to eq(["ok"])
-        expect(errors.size).to eq(1)
-        expect(errors.first[:expr]).to eq("fail")
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values.keys).to eq(["ok"])
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("fail")
       end
     end
 
@@ -194,16 +211,23 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "emits notCapturedReason:timeout stubs for all expressions" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output["x"]).to eq(notCapturedReason: "timeout")
-        expect(output["y"]).to eq(notCapturedReason: "timeout")
-        expect(errors).to eq([])
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to eq(notCapturedReason: "timeout")
+        expect(result.serialized_values["y"]).to eq(notCapturedReason: "timeout")
+        expect(result.errors).to eq([])
       end
 
       it "increments the timeout telemetry counter for each timed-out expression" do
         expect(telemetry).to receive(:inc).with(
-          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
+          "debugger", "capture_expressions_skipped_by_timeout", 1,
         ).twice
+        evaluator.evaluate(probe, context)
+      end
+
+      it "emits the canonical evaluationTimeout skip metric for each timed-out expression" do
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"},).twice
+
         evaluator.evaluate(probe, context)
       end
     end
@@ -211,16 +235,15 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     context "time budget exhausted mid-loop after some expressions have evaluated" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        clock_calls = 0
-        clock_returns = [0, 0, 200_000_000]
-        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
-          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
-            clock_returns[clock_calls].tap { clock_calls += 1 }
-          else
-            original.call(*args)
-          end
-        end
       end
+
+      # Probe.new's rate limiter reads the clock once during construction.
+      probe_rate_limiter_init = 0.0
+      deadline_calc = 0.0
+      first_expr_check = 0.0
+      first_result_serialize = 0.0
+      second_expr_check = 0.2  # past the deadline
+      stub_monotonic_clock([probe_rate_limiter_init, deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(
@@ -237,15 +260,15 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
 
       it "evaluates the first expression and times out the second" do
-        output, errors = evaluator.evaluate(probe, context)
-        expect(output["x"]).to include(type: "Integer", value: "42")
-        expect(output["y"]).to eq(notCapturedReason: "timeout")
-        expect(errors).to eq([])
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.serialized_values["y"]).to eq(notCapturedReason: "timeout")
+        expect(result.errors).to eq([])
       end
 
       it "increments the timeout counter only for the timed-out expression" do
         expect(telemetry).to receive(:inc).with(
-          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
+          "debugger", "capture_expressions_skipped_by_timeout", 1,
         ).once
         evaluator.evaluate(probe, context)
       end

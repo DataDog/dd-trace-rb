@@ -1,0 +1,17 @@
+module Datadog
+  module DI
+    class SnapshotEvent
+      @payload: Hash[Symbol, untyped]
+
+      @event_type: String
+
+      def initialize: (payload: Hash[Symbol, untyped], event_type: String) -> void
+
+      attr_reader payload: Hash[Symbol, untyped]
+
+      attr_reader event_type: String
+
+      def ==: (untyped other) -> bool
+    end
+  end
+end

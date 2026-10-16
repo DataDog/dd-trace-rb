@@ -109,6 +109,8 @@ RSpec.describe "Instrumentation integration" do
 
   let(:logger) { logger_allowing_debug }
 
+  let(:telemetry) { nil }
+
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
     # the code tracker in that case.
@@ -116,7 +118,7 @@ RSpec.describe "Instrumentation integration" do
     # Call start! so probe installation actually proceeds — the
     # definition trace point is disabled until start!, and the probe
     # notifier worker isn't running until start!.
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
@@ -749,7 +751,7 @@ RSpec.describe "Instrumentation integration" do
 
       context "with capture expressions and an exhausted per-fire time budget" do
         before do
-          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
         end
 
         let(:probe) do
@@ -783,6 +785,45 @@ RSpec.describe "Instrumentation integration" do
             "arg1" => {notCapturedReason: "timeout"},
           )
           expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context "with snapshot capture and an exhausted per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureSnapshot: true,
+          }
+        end
+
+        it "emits notCapturedReason:timeout stubs for @return and self in the return block" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          return_arguments = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures).fetch(:return).fetch(:arguments)
+          expect(return_arguments[:@return]).to eq(
+            type: "Integer", notCapturedReason: "timeout",
+          )
+          expect(return_arguments[:self]).to eq(
+            type: "InstrumentationSpecTestClass", notCapturedReason: "timeout",
+          )
         end
       end
 
@@ -1803,9 +1844,9 @@ RSpec.describe "Instrumentation integration" do
         captured_snapshot = nil
         json_encoded = nil
 
-        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args|
+        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args, **kwargs|
           captured_snapshot = args[0]
-          m.call(*args)
+          m.call(*args, **kwargs)
         end
 
         allow(input_transport).to receive(:send_input) do |snapshots, tags|
@@ -1923,6 +1964,119 @@ RSpec.describe "Instrumentation integration" do
         expect {
           JSON.dump(captured_snapshot)
         }.not_to raise_error
+      end
+    end
+  end
+
+  describe "guardrails emission through the full probe lifecycle" do
+    before do
+      allow(Datadog::DI).to receive(:current_component).and_return(component)
+    end
+
+    context "when the snapshot queue is full" do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:snapshot_queue_capacity).and_return(0)
+        # Quiesce the worker thread and keep it stopped, so the background
+        # drain cannot race the enqueue assertions; the start stub keeps
+        # add_snapshot's auto-restart inert.
+        component.probe_notifier_worker.stop
+        allow(component.probe_notifier_worker).to receive(:start)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "queue-full-test",
+          type: :log,
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "test_method",
+          capture_snapshot: true,
+          # The default per-probe rate limit for capturing probes is one
+          # snapshot per second; the test fires twice in quick succession.
+          rate_limit: 5000,
+        )
+      end
+
+      it "drops the overflowing snapshot and emits the canonical queueFull drop metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
+          tags: {reason: "queueFull", event_type: "snapshot"},)
+        expect(input_transport).not_to receive(:send_input)
+
+        probe_manager.add_probe(probe)
+
+        InstrumentationSpecTestClass.new.test_method
+        InstrumentationSpecTestClass.new.test_method
+
+        # With capacity 0 the first snapshot is enqueued and the second
+        # overflows the queue.
+        expect(component.probe_notifier_worker.send(:snapshot_queue).length).to eq 1
+        expect(probe.enabled?).to be true
+      end
+    end
+
+    context "when a serialized snapshot exceeds the payload size limit" do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+      let(:input_requests) { [] }
+
+      before do
+        allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
+        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        settings.dynamic_instrumentation.max_capture_string_length = 10_000
+      end
+
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Core::Configuration::AgentSettings,
+          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false
+        )
+      end
+
+      http_server do |http_server|
+        http_server.mount_proc("/debugger/v2/input") do |req, res|
+          expect(req.content_type).to eq("application/json")
+          input_requests << req.body
+        end
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "payload-too-large-test",
+          type: :log,
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "test_method",
+          capture_snapshot: true,
+        )
+      end
+
+      shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics" do
+        it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
+          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
+            be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+
+          probe_manager.add_probe(probe)
+
+          InstrumentationSpecTestClass.new.test_method(captured_value)
+          component.probe_notifier_worker.flush
+
+          expect(input_requests).to be_empty
+          expect(probe.enabled?).to be true
+        end
+      end
+
+      context "with a single-byte snapshot over the byte limit" do
+        let(:captured_value) { "A" * 3_000 }
+
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+      end
+
+      context "with a multibyte snapshot within the character limit but over the byte limit" do
+        let(:captured_value) { "あ" * 700 }
+
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
       end
     end
   end
