@@ -60,34 +60,34 @@ cp ../tmp/version sources
 mkdir -p sources/ruby/common/gems
 
 for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
-    echo ".. scanning for ${package}"
+  echo ".. scanning for ${package}"
 
-    # The `[0-9]` after the package name keeps the `datadog` pattern from
-    # also matching the `datadog-ruby_core_source` entries.
-    ls -1d sources/ruby/*/gems/${package}-[0-9]* | while read -r orig; do
-        dest="sources/ruby/common/gems/${orig##*/}"
-        if [[ -e "${dest}" ]]; then
-            echo "found ${dest}; merging ${orig} into it"
+  # The `[0-9]` after the package name keeps the `datadog` pattern from
+  # also matching the `datadog-ruby_core_source` entries.
+  ls -1d sources/ruby/*/gems/${package}-[0-9]* | while read -r orig; do
+    dest="sources/ruby/common/gems/${orig##*/}"
+    if [[ -e "${dest}" ]]; then
+      echo "found ${dest}; merging ${orig} into it"
 
-            find "${orig}/" -type f -print0 |
-                while IFS= read -r -d '' file; do
-                    relative="${file#"${orig}/"}"
-                    other="${dest}/${relative}"
+      find "${orig}/" -type f -print0 |
+        while IFS= read -r -d '' file; do
+          relative="${file#"${orig}/"}"
+          other="${dest}/${relative}"
 
-                    if [[ -e "${other}" || -L "${other}" ]] &&
-                        ! cmp -s -- "${file}" "${other}"; then
-                        printf 'conflict: %s\n' "${relative}" >&2
-                        exit 1
-                    fi
-                done
+          if [[ -e "${other}" || -L "${other}" ]] &&
+            ! cmp -s -- "${file}" "${other}"; then
+            printf 'conflict: %s\n' "${relative}" >&2
+            exit 1
+          fi
+        done
 
-            cp -an "${orig}/." "${dest}/"
-            rm -rf "${orig}"
-        else
-            mv -vf "${orig}" "${dest}"
-        fi
-        ln -srvf "${dest}" "${orig}"
-    done
+      cp -an "${orig}/." "${dest}/"
+      rm -rf "${orig}"
+    else
+      mv -vf "${orig}" "${dest}"
+    fi
+    ln -srvf "${dest}" "${orig}"
+  done
 done
 
 ## Prune the `libdatadog` and `libddwaf` vendored binaries to the package
