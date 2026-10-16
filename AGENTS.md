@@ -210,6 +210,17 @@ yamllint --strict .github/workflows/your-workflow.yml
 actionlint .github/workflows/your-workflow.yml
 ```
 
+# CI scripts
+
+Every `curl` that runs in CI (GitHub Actions, `.gitlab-ci.yml`, the scripts they call, and the Dockerfiles they build, such as `integration/images/`) must:
+
+- Fail on HTTP errors: pass `-f`/`--fail`, otherwise a 4xx/5xx exits 0 and the error page is used as the real response.
+- Retry transient errors: pass `--retry 5 --retry-delay 2 --retry-connrefused` (omit `--retry-connrefused` in images with old curl, such as `integration/images/ruby/2.1`).
+- Propagate the failure: use `set -o pipefail` for `curl | tar`; in a Dockerfile `RUN`, download to a file first instead of piping into another command.
+- Exceptions: polling loops that check the HTTP status themselves (e.g. `integration/images/include/http-health-check`) may skip `-f` and `--retry`.
+
+Example: `curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o out.tar.gz "$url"`
+
 # Style
 
 StandardRB enforces style: `bundle exec rake standard:fix`.

@@ -12,7 +12,7 @@ if [[ -z "${VALE_SHA256:-}" ]]; then
 fi
 
 archive="/tmp/vale.tar.gz"
-curl -sSL -o "${archive}" \
+curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o "${archive}" \
     "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
 echo "${VALE_SHA256}  ${archive}" | sha256sum -c -
 tar -xzf "${archive}" -C /tmp vale
