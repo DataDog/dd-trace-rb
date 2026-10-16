@@ -44,23 +44,61 @@ cp -r "../tmp/${ARCH}"/* sources
 
 cp ../tmp/version sources
 
-## Some packages we know are Ruby version-independent; let's store them once only
+## Some packages are Ruby version-independent, so we store them once and
+## share them across all gem homes. The `datadog` gem is version-dependent
+## but can still be shared: each gem home's copy holds a `libdatadog_api`
+## extension compiled for its own Ruby, and the `.so` filename embeds the
+## Ruby version, so the `.so` files from all gem homes coexist in one
+## shared copy. A profiling extension that a customer-side reinstall
+## recompiles is also named per Ruby version, so it cannot overwrite the
+## shared copy. Every other entry of a duplicate copy must match the
+## shared copy: regular files byte for byte, symlinks by target. The
+## conflict check below fails the package build when it does not. The mkmf
+## Makefiles differ per gem home, so install_datadog_deps.rb strips them
+## with the other extension build products before this script runs.
 
 mkdir -p sources/ruby/common/gems
 
-for package in libdatadog libddwaf datadog-ruby_core_source logger; do
-    echo ".. scanning for ${package}"
+fail_conflict() {
+  printf 'conflict: %s\n' "$1" >&2
+  exit 1
+}
 
-    ls -1d sources/ruby/*/gems/${package}-* | while read -r orig; do
-        dest="sources/ruby/common/gems/${orig##*/}"
-        if [[ -e "${dest}" ]]; then
-            echo "found ${dest}; removing ${orig}"
-            rm -rf "${orig}"
-        else
-            mv -vf "${orig}" "${dest}"
-        fi
-        ln -srvf "${dest}" "${orig}"
-    done
+for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
+  echo ".. scanning for ${package}"
+
+  # The `[0-9]` after the package name keeps the `datadog` pattern from
+  # also matching the `datadog-ruby_core_source` entries.
+  ls -1d sources/ruby/*/gems/${package}-[0-9]* | while read -r orig; do
+    dest="sources/ruby/common/gems/${orig##*/}"
+    if [[ -e "${dest}" ]]; then
+      echo "found ${dest}; merging ${orig} into it"
+
+      # The gem paths are build-generated and contain no newlines.
+      find "${orig}/" \( -type f -o -type l \) |
+        while IFS= read -r file; do
+          relative="${file#"${orig}/"}"
+          other="${dest}/${relative}"
+
+          if [ -e "${other}" ] || [ -L "${other}" ]; then
+            if [ -L "${file}" ] && [ -L "${other}" ]; then
+              [ "$(readlink -- "${file}")" = "$(readlink -- "${other}")" ] ||
+                fail_conflict "${relative}"
+            elif [ -L "${file}" ] || [ -L "${other}" ]; then
+              fail_conflict "${relative}"
+            elif ! cmp -s -- "${file}" "${other}"; then
+              fail_conflict "${relative}"
+            fi
+          fi
+        done
+
+      cp -anv "${orig}/." "${dest}/"
+      rm -rf "${orig}"
+    else
+      mv -vf "${orig}" "${dest}"
+    fi
+    ln -srvf "${dest}" "${orig}"
+  done
 done
 
 ## Prune the `libdatadog` and `libddwaf` vendored binaries to the package
