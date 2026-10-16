@@ -16,6 +16,16 @@ module Datadog
     # resources and installed tracepoints upon shutdown.
     class Component
       class << self
+        # Builds and registers the DI component, or returns nil without
+        # building one when the settings have no dynamic_instrumentation
+        # section, DI is explicitly disabled, the runtime is unsupported,
+        # or Remote Configuration is disabled.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
+        # @param logger [Core::Logger]
+        # @param telemetry [Core::Telemetry::Component, nil]
+        # @return [Component, nil] the built component, or nil when no component was built
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
@@ -65,28 +75,47 @@ module Datadog
         end
       end
 
+      # Initializes the DI component.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports
+      # @param logger [Datadog::Core::Logger] diagnostics logger, wrapped in the DI logger facade
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component DI errors and guardrails metrics are emitted through
+      # @return [void]
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
-        @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+        @serializer = Serializer.new(settings, redactor, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+        )
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: capture_expression_evaluator,)
         @probe_repository = ProbeRepository.new
-        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
+        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
+          capture_expression_evaluator: capture_expression_evaluator,)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
         )
         # @started transitions are serialized by @lifecycle_mutex so that
         # concurrent RC callbacks (which run on the remote-config thread)
@@ -99,6 +128,12 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+      # The capture expression evaluator.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
       attr_reader :instrumenter
       attr_reader :probe_repository

@@ -171,9 +171,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
-  describe "is_current_thread_holding_the_gvl" do
-    subject(:is_current_thread_holding_the_gvl) do
-      Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_holding_the_gvl
+  describe "is_current_thread_in_main_ractor_and_holding_the_gvl" do
+    subject(:is_current_thread_in_main_ractor_and_holding_the_gvl) do
+      Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_in_main_ractor_and_holding_the_gvl
     end
 
     context "when current thread is holding the global VM lock" do
@@ -181,8 +181,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when current thread is not holding the global VM lock" do
-      subject(:is_current_thread_holding_the_gvl) do
-        Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_holding_the_gvl
+      subject(:is_current_thread_in_main_ractor_and_holding_the_gvl) do
+        Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_in_main_ractor_and_holding_the_gvl
       end
 
       it { is_expected.to be false }
@@ -205,12 +205,12 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       # ruby_thread_has_gvl_p() can return true even when the thread is not holding the global VM lock. See the comments
-      # on is_current_thread_holding_the_gvl() for more details. Here we test that our function is accurate in the same
+      # on is_current_thread_in_main_ractor_and_holding_the_gvl() for more details. Here we test that our function is accurate in the same
       # situation.
       #
       # Here's how this works:
       # * background_thread installs a signal handler that will call both ruby_thread_has_gvl_p() and
-      #   is_current_thread_holding_the_gvl() and return their results
+      #   is_current_thread_in_main_ractor_and_holding_the_gvl() and return their results
       # * the main testing thread waits until the background thread is executing the dummy infinite loop and then
       #   triggers the signal. Because the main testing thread keeps holding the GVL while it sends the signal to
       #   the background thread, we are guaranteed that the background thread does not have the GVL.
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
         result = Datadog::Profiling::NativeExtension::Testing
           ._native_trigger_holding_the_gvl_signal_handler_on(background_thread)
-        expect(result).to eq(ruby_thread_has_gvl_p: true, is_current_thread_holding_the_gvl: false)
+        expect(result).to eq(ruby_thread_has_gvl_p: true, is_current_thread_in_main_ractor_and_holding_the_gvl: false)
       end
     end
   end

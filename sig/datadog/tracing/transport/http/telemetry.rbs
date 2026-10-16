@@ -7,13 +7,13 @@ module Datadog::Tracing::Transport::HTTP
     class Batch
       @reporter: Telemetry
 
-      @chunks: Integer
+      @remaining_chunks: Integer
 
-      @spans: Integer
+      @remaining_spans: Integer
 
       def initialize: (Telemetry reporter, Array[Datadog::Tracing::TraceSegment] traces) -> void
 
-      def drop_large: (Integer spans) -> void
+      def record_oversized_drop: (Integer span_count) -> void
 
       def serialization_failed: () -> void
 

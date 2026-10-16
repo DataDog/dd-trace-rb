@@ -66,7 +66,9 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
   args.format_string = format_string;
   va_start(args.va_args, format_string);
 
-  if (is_current_thread_holding_the_gvl()) {
+  // Callers run with the GVL or inside an explicit no-GVL region, so Ruby's blocking-region check is sufficient.
+  // We don't run in signal handlers or scheduler hooks, so we don't need is_current_thread_in_main_ractor_and_holding_the_gvl().
+  if (ruby_thread_has_gvl_p()) {
     VALUE detailed_message = rb_vsprintf(format_string, args.va_args);
     va_end(args.va_args);
 
