@@ -113,7 +113,7 @@ RSpec.describe Datadog::DI::Serializer do
 
   describe "#serialize_value" do
     let(:serialized) do
-      serializer.serialize_value(value, **options)
+      serializer.serialize_value(value, **options, deadline: Float::INFINITY)
     end
 
     cases = [
@@ -185,37 +185,45 @@ RSpec.describe Datadog::DI::Serializer do
 
     it "emits the depth reason for a value at the capture depth limit" do
       expect_capture_incomplete("depth")
-      expect(serializer.serialize_value([1], depth: 0)).to include(notCapturedReason: "depth")
+      expect(serializer.serialize_value([1], depth: 0, deadline: Float::INFINITY)).to include(notCapturedReason: "depth")
     end
 
     it "emits the collectionSize reason for an oversized collection" do
       expect_capture_incomplete("collectionSize")
-      expect(serializer.serialize_value([1, 2, 3], collection_size: 1))
+      expect(serializer.serialize_value([1, 2, 3], collection_size: 1, deadline: Float::INFINITY))
         .to include(notCapturedReason: "collectionSize")
     end
 
     it "emits the fieldCount reason for an object over the field limit" do
       expect_capture_incomplete("fieldCount")
       expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"),
-        attribute_count: 1)).to include(notCapturedReason: "fieldCount")
+        attribute_count: 1, deadline: Float::INFINITY)).to include(notCapturedReason: "fieldCount")
     end
 
     it "emits the stringLength reason for a trimmed string" do
       allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(3)
       expect_capture_incomplete("stringLength")
-      expect(serializer.serialize_value("abcdef")).to include(truncated: true)
+      expect(serializer.serialize_value("abcdef", deadline: Float::INFINITY)).to include(truncated: true)
     end
 
     it "emits the runtimeError reason when serialization raises" do
       expect_capture_incomplete("runtimeError")
-      expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new))
+      expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new, deadline: Float::INFINITY))
         .to include(notSerializedReason: "Arrgh!")
+    end
+
+    it "emits the timeout reason when the capture budget is exhausted" do
+      allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0, 2.0)
+      expect_capture_incomplete("timeout")
+      expect(serializer.serialize_value([1], name: :x,
+        deadline: serializer.serialization_deadline)).to include(notCapturedReason: "timeout")
     end
   end
 
   describe "#serialize_vars" do
     let(:serialized) do
-      serializer.serialize_vars(vars)
+      serializer.serialize_vars(vars, deadline: Float::INFINITY)
     end
 
     def self.define_cases(cases)
@@ -390,7 +398,7 @@ RSpec.describe Datadog::DI::Serializer do
 
   describe "#serialize_args" do
     let(:serialized) do
-      serializer.serialize_args(args, kwargs, target_self)
+      serializer.serialize_args(args, kwargs, target_self, deadline: Float::INFINITY)
     end
 
     cases = [
@@ -526,6 +534,208 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  describe "capture time budget" do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:serializer) do
+      described_class.new(settings, redactor, logger: logger,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    before do
+      allow(telemetry).to receive(:inc)
+    end
+
+    context "configured budget" do
+      it "resolves a configured budget above the default unchanged" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
+        expect(serializer.serialization_deadline).to eq(1.0 + 500 / 1000.0)
+      end
+
+      it "resolves a configured budget below the default unchanged" do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
+        expect(serializer.serialization_deadline).to eq(1.0 + 100 / 1000.0)
+      end
+    end
+
+    context "budget already exhausted before serialization starts" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0, 2.0)
+      end
+
+      it "returns a timeout stub for the top-level value and stops there" do
+        expect(
+          serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
+        ).to eq(
+          type: "Array", notCapturedReason: "timeout",
+        )
+      end
+
+      it "increments the timeout telemetry counter" do
+        expect(telemetry).to receive(:inc).with(
+          "debugger", "serialized_values_skipped_by_timeout", 1,
+        ).at_least(:once)
+        serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
+      end
+    end
+
+    context "budget exhausted midway through a collection" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_elt = 0.0
+      second_elt = 0.0
+      third_elt = 0.2  # 100ms budget crossed here
+      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt])
+
+      it "captures earlier elements, stops at the first timed-out one, and marks the collection" do
+        result = serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Array",
+          notCapturedReason: "timeout",
+          elements: [
+            {type: "Integer", value: "10"},
+            {type: "Integer", value: "20"},
+            {type: "Integer", notCapturedReason: "timeout"},
+          ],
+        )
+      end
+
+      it "increments the timeout telemetry counter once for the stopped element" do
+        expect(telemetry).to receive(:inc).with(
+          "debugger", "serialized_values_skipped_by_timeout", 1,
+        ).once
+        serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
+      end
+    end
+
+    context "budget shared across all variables of a single capture point" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      first_var = 0.0
+      second_var = 0.2  # past the deadline
+      stub_monotonic_clock([deadline_calc, first_var, second_var])
+
+      it "times out later variables once the shared deadline passes" do
+        expect(serializer.serialize_vars({a: 1, b: 2}, deadline: serializer.serialization_deadline)).to eq(
+          a: {type: "Integer", value: "1"},
+          b: {type: "Integer", notCapturedReason: "timeout"},
+        )
+      end
+    end
+
+    context "custom serializer subtree sharing the capture-point budget" do
+      with_di_registry_change
+
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      outer_value_check = 0.0
+      inner_top_check = 0.0
+      first_elt = 0.0
+      second_elt = 0.0
+      third_elt = 0.2  # 100ms budget crossed inside the custom subtree
+      stub_monotonic_clock([deadline_calc, outer_value_check, inner_top_check, first_elt, second_elt, third_elt])
+
+      it "times out the custom-serialized values once the shared deadline passes" do
+        Datadog::DI::Serializer.register(condition: lambda { |value| value == :subtree }) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value([1, 2, 3, 4], deadline: deadline)
+        end
+        result = serializer.serialize_value(:subtree, name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Array",
+          notCapturedReason: "timeout",
+          elements: [
+            {type: "Integer", value: "1"},
+            {type: "Integer", value: "2"},
+            {type: "Integer", notCapturedReason: "timeout"},
+          ],
+        )
+      end
+    end
+
+    context "budget exhausted midway through a hash" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_key = 0.0
+      first_value = 0.0
+      second_key = 0.0
+      second_value = 0.2  # 100ms budget crossed at the second value
+      stub_monotonic_clock([deadline_calc, top_level_check, first_key, first_value, second_key, second_value])
+
+      it "captures earlier pairs, stops at the first timed-out value, and marks the hash" do
+        result = serializer.serialize_value({a: 1, b: 2}, name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Hash",
+          notCapturedReason: "timeout",
+          entries: [
+            [{type: "Symbol", value: "a"}, {type: "Integer", value: "1"}],
+            [{type: "Symbol", value: "b"}, {type: "Integer", notCapturedReason: "timeout"}],
+          ],
+        )
+      end
+    end
+
+    context "budget exhausted at a hash key" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      key_read = 0.2  # 100ms budget crossed at the key
+      stub_monotonic_clock([deadline_calc, top_level_check, key_read])
+
+      it "stops without the pair and marks the hash" do
+        result = serializer.serialize_value({"k" => 1}, name: :x, deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "Hash",
+          notCapturedReason: "timeout",
+          entries: [],
+        )
+      end
+    end
+
+    context "budget exhausted midway through an object's fields" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+      end
+
+      deadline_calc = 0.0
+      top_level_check = 0.0
+      first_ivar = 0.0
+      second_ivar = 0.2  # 100ms budget crossed here
+      stub_monotonic_clock([deadline_calc, top_level_check, first_ivar, second_ivar])
+
+      it "captures earlier fields, stops at the first timed-out one, and marks the object" do
+        result = serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"), name: :x,
+          deadline: serializer.serialization_deadline)
+        expect(result).to include(
+          type: "DISerializerSpecFields",
+          notCapturedReason: "timeout",
+          fields: {
+            "@name": {type: "String", value: "a"},
+            "@other": {type: "String", notCapturedReason: "timeout"},
+          },
+        )
+      end
+    end
+  end
+
   describe "#serialize_string_or_symbol_for_message" do
     [
       [100, "short", "short"],
@@ -638,8 +848,8 @@ RSpec.describe Datadog::DI::Serializer do
 
     context "with condition" do
       before do
-        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value("replacement value")
+        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value("replacement value", deadline: deadline)
         end
       end
 
@@ -648,7 +858,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "invokes custom serializer" do
-        serialized = serializer.serialize_value("serializer spec hello world")
+        serialized = serializer.serialize_value("serializer spec hello world", deadline: Float::INFINITY)
         expect(serialized).to eq(expected)
       end
     end
@@ -662,8 +872,8 @@ RSpec.describe Datadog::DI::Serializer do
       it "skips the custom serializer and uses default serialization" do
         # Register a custom serializer with a condition that raises an exception
         # This simulates a regex match against invalid UTF-8 strings
-        described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value("should not be called")
+        described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value("should not be called", deadline: deadline)
         end
 
         # Invalid UTF-8 string that will cause regex match to raise
@@ -677,7 +887,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Custom serializer condition failed"
         )
 
-        serialized = serializer.serialize_value(invalid_utf8)
+        serialized = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
 
         # Should fall back to default serialization (binary escaping)
         expect(serialized[:type]).to eq("String")
@@ -686,12 +896,12 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "continues checking other custom serializers after exception" do
         # Register a custom serializer with a condition that raises an exception
-        described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:|
-          serializer.serialize_value("first serializer")
+        described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value("first serializer", deadline: deadline)
         end
 
         # Register another custom serializer that should work
-        described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:|
+        described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:, deadline:|
           {type: "String", value: "second serializer"}
         end
 
@@ -704,7 +914,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Custom serializer condition failed"
         )
 
-        serialized = serializer.serialize_value(invalid_utf8)
+        serialized = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
 
         # Should skip the first (failing) serializer and use the second one
         expect(serialized[:type]).to eq("String")
@@ -718,8 +928,8 @@ RSpec.describe Datadog::DI::Serializer do
           raise NotImplementedError, "boom" if value == "trigger non-standard"
           false
         end
-        described_class.register(condition: condition) do |serializer, value, name:, depth:|
-          serializer.serialize_value("should not be called")
+        described_class.register(condition: condition) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value("should not be called", deadline: deadline)
         end
 
         expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: NotImplementedError/)
@@ -728,7 +938,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Custom serializer condition failed"
         )
 
-        serialized = serializer.serialize_value("trigger non-standard")
+        serialized = serializer.serialize_value("trigger non-standard", deadline: Float::INFINITY)
 
         expect(serialized[:type]).to eq("String")
         expect(serialized[:value]).to eq("trigger non-standard")
@@ -739,11 +949,46 @@ RSpec.describe Datadog::DI::Serializer do
           raise SystemExit if value == "trigger fatal"
           false
         end
-        described_class.register(condition: condition) do |serializer, value, name:, depth:|
-          serializer.serialize_value("should not be called")
+        described_class.register(condition: condition) do |serializer, value, name:, depth:, deadline:|
+          serializer.serialize_value("should not be called", deadline: deadline)
         end
 
-        expect { serializer.serialize_value("trigger fatal") }.to raise_error(SystemExit)
+        expect { serializer.serialize_value("trigger fatal", deadline: Float::INFINITY) }.to raise_error(SystemExit)
+      end
+    end
+
+    context "with the capture deadline" do
+      with_di_registry_change
+
+      it "passes the capture-point deadline into the custom serializer block" do
+        seen_deadline = nil
+        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec deadline/ }) do |serializer, value, name:, depth:, deadline:|
+          seen_deadline = deadline
+          serializer.serialize_value("replacement value", deadline: deadline)
+        end
+
+        deadline = serializer.serialization_deadline
+        serializer.serialize_value("serializer spec deadline probe", deadline: deadline)
+        expect(seen_deadline).to eq(deadline)
+      end
+    end
+
+    context "with a block registered under the previous signature" do
+      with_di_registry_change
+
+      let(:guardrails_telemetry) { instance_double(Datadog::DI::GuardrailsTelemetry).as_null_object }
+
+      it "reports a serialization error for the value the block handles" do
+        expect(guardrails_telemetry).to receive(:capture_incomplete).with(
+          reason: "runtimeError", event_type: "snapshot"
+        )
+        described_class.register(condition: lambda { |value| String === value }) do |serializer, value, name:, depth:|
+          {type: "String", value: "old signature"}
+        end
+
+        serialized = serializer.serialize_value("serializer spec old signature", deadline: Float::INFINITY)
+        expect(serialized).to include(type: "String")
+        expect(serialized[:notSerializedReason]).to include("unknown keyword")
       end
     end
   end
@@ -760,7 +1005,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     describe "#serialize_value" do
       let(:serialized) do
-        serializer.serialize_value(value, **options)
+        serializer.serialize_value(value, **options, deadline: Float::INFINITY)
       end
 
       cases = [
@@ -785,7 +1030,7 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     it "propagates the fatal exception instead of returning a safe stub" do
-      expect { serializer.serialize_value(DISerializerCustomExceptionTestClass.new) }.to raise_error(SystemExit)
+      expect { serializer.serialize_value(DISerializerCustomExceptionTestClass.new, deadline: Float::INFINITY) }.to raise_error(SystemExit)
     end
   end
 
@@ -798,7 +1043,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "escapes binary data to JSON-safe format" do
         # Serialize the binary string
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         # The serializer produces an escaped string in b'...' format
         expect(serialized[:type]).to eq("String")
@@ -813,7 +1058,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "escapes binary strings in vars" do
         # Simulate a more realistic snapshot with binary data in locals
         vars = {binary_data: binary_string, normal_string: "hello"}
-        serialized = serializer.serialize_vars(vars)
+        serialized = serializer.serialize_vars(vars, deadline: Float::INFINITY)
 
         # Binary data is escaped
         expect(serialized[:binary_data][:type]).to eq("String")
@@ -836,7 +1081,7 @@ RSpec.describe Datadog::DI::Serializer do
         kwargs = {data: binary_string}
         target_self = Object.new
 
-        serialized = serializer.serialize_args(args, kwargs, target_self)
+        serialized = serializer.serialize_args(args, kwargs, target_self, deadline: Float::INFINITY)
 
         # Binary data is escaped
         expect(serialized[:arg1][:type]).to eq("String")
@@ -854,7 +1099,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:binary_string) { "Hello\x00World\xFF".b }
 
       it "escapes non-printable bytes while preserving printable ASCII" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         expect(serialized[:value]).to eq("b'Hello\\x00World\\xff'")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
@@ -865,7 +1110,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:binary_string) { "Line1\nLine2\tTab\rReturn".b }
 
       it "uses standard escape sequences" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         expect(serialized[:value]).to eq("b'Line1\\nLine2\\tTab\\rReturn'")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
@@ -876,7 +1121,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:binary_string) { "It's a\\test".b }
 
       it "escapes quotes and backslashes" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         expect(serialized[:value]).to eq("b'It\\'s a\\\\test'")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
@@ -898,7 +1143,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         it "does not truncate and escapes all bytes" do
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # 5 bytes < 10 limit, no truncation
           # Escaped: b'\xff\xff\xff\xff\xff' = 2 + 5*4 + 1 = 23 chars
@@ -916,7 +1161,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         it "does not truncate and escapes all bytes" do
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # 10 bytes == 10 limit, no truncation
           # Escaped: b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' = 2 + 10*4 + 1 = 43 chars
@@ -934,7 +1179,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         it "truncates original binary to limit then escapes" do
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # 20 bytes > 10 limit, truncate to first 10 bytes
           # Escaped: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff' = 2 + 10*4 + 1 = 43 chars
@@ -952,7 +1197,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         it "efficiently truncates before escaping" do
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # 1000 bytes > 10 limit, truncate to first 10 bytes then escape
           # This is efficient: we escape 10 bytes, not 1000 bytes
@@ -971,7 +1216,7 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         it "truncates to byte limit before escaping" do
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # 14 bytes > 8 limit, truncate to first 8 bytes: "Hello\x00\x01\x02"
           # Escaped: b'Hello\x00\x01\x02' = 2 + 5 + 4 + 4 + 4 + 1 = 20 chars
@@ -986,7 +1231,7 @@ RSpec.describe Datadog::DI::Serializer do
           binary_string = "\xFF".b * 50
           allow(di_settings).to receive(:max_capture_string_length).and_return(10)
 
-          serialized = serializer.serialize_value(binary_string)
+          serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
           # Original: 50 bytes
           # Truncated to: 10 bytes
@@ -1007,7 +1252,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "truncates to byte limit before escaping" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         # Original: 28 bytes
         # Truncate to first 20 bytes: "Hello World! This is"
@@ -1025,7 +1270,7 @@ RSpec.describe Datadog::DI::Serializer do
         utf8_string = "Hello, World!!!"
         allow(di_settings).to receive(:max_capture_string_length).and_return(10)
 
-        serialized = serializer.serialize_value(utf8_string)
+        serialized = serializer.serialize_value(utf8_string, deadline: Float::INFINITY)
 
         # Should truncate at 10 characters (not bytes)
         expect(serialized[:value]).to eq("Hello, Wor")
@@ -1038,7 +1283,7 @@ RSpec.describe Datadog::DI::Serializer do
         utf8_string = "Hello 👋 World"
         allow(di_settings).to receive(:max_capture_string_length).and_return(8)
 
-        serialized = serializer.serialize_value(utf8_string)
+        serialized = serializer.serialize_value(utf8_string, deadline: Float::INFINITY)
 
         # Should truncate at 8 characters: "Hello 👋 " (includes the space)
         expect(serialized[:value]).to eq("Hello 👋 ")
@@ -1050,7 +1295,7 @@ RSpec.describe Datadog::DI::Serializer do
         utf8_string = "Hello"
         allow(di_settings).to receive(:max_capture_string_length).and_return(100)
 
-        serialized = serializer.serialize_value(utf8_string)
+        serialized = serializer.serialize_value(utf8_string, deadline: Float::INFINITY)
 
         # Should not have b'...' wrapping
         expect(serialized[:value]).to eq("Hello")
@@ -1065,7 +1310,7 @@ RSpec.describe Datadog::DI::Serializer do
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
-        result = serializer.serialize_value(invalid_utf8)
+        result = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
 
         # Should escape like binary data
         expect(result[:type]).to eq("String")
@@ -1083,7 +1328,7 @@ RSpec.describe Datadog::DI::Serializer do
         invalid_utf8 = "Hello\x80World\xFF".force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
-        result = serializer.serialize_value(invalid_utf8)
+        result = serializer.serialize_value(invalid_utf8, deadline: Float::INFINITY)
 
         expect(result[:type]).to eq("String")
         expect(result[:value]).to eq("b'Hello\\x80World\\xff'")
@@ -1098,7 +1343,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
         expect(latin1.valid_encoding?).to be true # Valid Latin1
 
-        result = serializer.serialize_value(latin1)
+        result = serializer.serialize_value(latin1, deadline: Float::INFINITY)
 
         # Should NOT escape (it's a valid encoding, not binary)
         # JSON.dump will transcode Latin1 to UTF-8 automatically
@@ -1118,7 +1363,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
         expect(latin1.valid_encoding?).to be true
 
-        result = serializer.serialize_value(latin1)
+        result = serializer.serialize_value(latin1, deadline: Float::INFINITY)
 
         # Should NOT escape - it's a valid encoding
         expect(result[:type]).to eq("String")
@@ -1139,7 +1384,7 @@ RSpec.describe Datadog::DI::Serializer do
         windows1252 = "\x80".force_encoding(Encoding::Windows_1252)
         expect(windows1252.valid_encoding?).to be true
 
-        result = serializer.serialize_value(windows1252)
+        result = serializer.serialize_value(windows1252, deadline: Float::INFINITY)
 
         # Should NOT escape - it's a valid encoding
         expect(result[:type]).to eq("String")
@@ -1158,7 +1403,7 @@ RSpec.describe Datadog::DI::Serializer do
         latin1 = latin1.force_encoding(Encoding::ISO_8859_1)
         allow(di_settings).to receive(:max_capture_string_length).and_return(10)
 
-        result = serializer.serialize_value(latin1)
+        result = serializer.serialize_value(latin1, deadline: Float::INFINITY)
 
         # Should truncate at 10 characters (not bytes, not escape)
         expect(result[:value].length).to eq(10)
@@ -1172,7 +1417,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:binary_string) { "".b }
 
       it "produces empty escaped string" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         expect(serialized[:type]).to eq("String")
         expect(serialized[:value]).to eq("b''")
@@ -1186,7 +1431,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "truncates to max_capture_string_length" do
         # Default max is 100 in the test helper
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         # Truncate to first 100 bytes of binary, then escape
         # Escaped result: b' + 100*\xff + ' = 2 + 400 + 1 = 403 chars
@@ -1200,7 +1445,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "is JSON-serializable despite large size" do
-        serialized = serializer.serialize_value(binary_string)
+        serialized = serializer.serialize_value(binary_string, deadline: Float::INFINITY)
 
         expect {
           JSON.dump(serialized)
@@ -1244,7 +1489,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "returns safe structure with notSerializedReason when SystemStackError is raised" do
         allow(telemetry).to receive(:report)
 
-        serialized = serializer.serialize_value(value)
+        serialized = serializer.serialize_value(value, deadline: Float::INFINITY)
 
         expect(serialized[:type]).to eq("DISerializerStackOverflowTestClass")
         expect(serialized[:notSerializedReason]).to match(/stack level too deep/)
@@ -1255,7 +1500,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "returns JSON-serializable output despite SystemStackError" do
         allow(telemetry).to receive(:report)
 
-        serialized = serializer.serialize_value(value)
+        serialized = serializer.serialize_value(value, deadline: Float::INFINITY)
 
         # The key test: can we JSON encode the result?
         # This should NOT raise because the serializer converts the error to a safe structure
@@ -1273,7 +1518,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Error serializing",
         )
 
-        serializer.serialize_value(value)
+        serializer.serialize_value(value, deadline: Float::INFINITY)
       end
     end
 
@@ -1293,7 +1538,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Error serializing",
         )
 
-        serialized = serializer.serialize_vars(vars)
+        serialized = serializer.serialize_vars(vars, deadline: Float::INFINITY)
 
         expect(serialized[:normal_value][:type]).to eq("String")
         expect(serialized[:normal_value][:value]).to eq("hello")
@@ -1351,7 +1596,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "returns safe structure with notSerializedReason when NoMemoryError is raised" do
         allow(telemetry).to receive(:report)
 
-        serialized = serializer.serialize_value(value)
+        serialized = serializer.serialize_value(value, deadline: Float::INFINITY)
 
         expect(serialized[:type]).to eq("DISerializerOutOfMemoryTestClass")
         expect(serialized[:notSerializedReason]).to match(/failed to allocate memory/)
@@ -1362,7 +1607,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "returns JSON-serializable output despite NoMemoryError" do
         allow(telemetry).to receive(:report)
 
-        serialized = serializer.serialize_value(value)
+        serialized = serializer.serialize_value(value, deadline: Float::INFINITY)
 
         # The key test: can we JSON encode the result?
         # This should NOT raise because the serializer converts the error to a safe structure
@@ -1380,7 +1625,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Error serializing",
         )
 
-        serializer.serialize_value(value)
+        serializer.serialize_value(value, deadline: Float::INFINITY)
       end
     end
 
@@ -1399,7 +1644,7 @@ RSpec.describe Datadog::DI::Serializer do
           description: "Error serializing",
         )
 
-        serialized = serializer.serialize_vars(vars)
+        serialized = serializer.serialize_vars(vars, deadline: Float::INFINITY)
 
         expect(serialized[:small_value][:type]).to eq("String")
         expect(serialized[:small_value][:value]).to eq("tiny")

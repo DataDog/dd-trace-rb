@@ -52,6 +52,11 @@ module Datadog
         # early.
         RUNTIME_ERROR = "runtimeError"
 
+        # Capture-incomplete reason emitted when a value is not captured
+        # because the capture time budget expired while it was being
+        # serialized.
+        CAPTURE_TIMEOUT = "timeout"
+
         # Capture-incomplete reason emitted when a value at the maximum
         # capture depth is not captured.
         DEPTH = "depth"
