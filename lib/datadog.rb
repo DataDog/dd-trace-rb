@@ -23,4 +23,5 @@ require_relative "datadog/open_feature"
 require_relative "datadog/di/boot" if Datadog::RubyVersion.is?(">= 2.6") && RUBY_ENGINE != "jruby"
 
 require_relative "datadog/error_tracking"
+
 require_relative "datadog/kit"
