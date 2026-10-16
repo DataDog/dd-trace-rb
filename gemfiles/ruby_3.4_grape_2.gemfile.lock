@@ -94,10 +94,10 @@ GEM
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
-    libdatadog (46.0.0.1.0)
-    libdatadog (46.0.0.1.0-aarch64-linux)
-    libdatadog (46.0.0.1.0-arm64-darwin)
-    libdatadog (46.0.0.1.0-x86_64-linux)
+    libdatadog (46.0.0.1.1)
+    libdatadog (46.0.0.1.1-aarch64-linux)
+    libdatadog (46.0.0.1.1-arm64-darwin)
+    libdatadog (46.0.0.1.1-x86_64-linux)
     libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-aarch64-linux)
@@ -268,10 +268,10 @@ CHECKSUMS
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
-  libdatadog (46.0.0.1.0) sha256=038ac540874ba8085c5fca0dc95303f6fa9e65faf2e3f888ba54e538902d7ab8
-  libdatadog (46.0.0.1.0-aarch64-linux) sha256=81f22bb7c485a0c89aae3973970e311a2ea32d23c2e272eb0f48d32b9dac0a31
-  libdatadog (46.0.0.1.0-arm64-darwin) sha256=92406627b174641bacc7661e2a6b770b7718c383f4509f8b2738f721a48e42c8
-  libdatadog (46.0.0.1.0-x86_64-linux) sha256=1bd59f911922582114dbd1ea163dfe0feb28bf284ecb66345d8eb978eb1bdeff
+  libdatadog (46.0.0.1.1) sha256=f22ee4da91046bc32a6bb62de30381f0c50595c32909abe709dabdb3e4a1452d
+  libdatadog (46.0.0.1.1-aarch64-linux) sha256=77db04cdf7c3875984756ab178ac89ed8f41c0fcba0085d2723552824b5c50ab
+  libdatadog (46.0.0.1.1-arm64-darwin) sha256=dc8c648d0123cba0d8432ccb7fa2f80b66c6cf1028ccd0ed42a5ddc04ee595c7
+  libdatadog (46.0.0.1.1-x86_64-linux) sha256=426d9ddc5993b5f6d41713f50f617f236fb987c45d6b143ac5ef6d23461eacdc
   libddwaf (1.30.0.0.2) sha256=f6dd8d70f1925acce795ad0e974b12cb532c958056ac14e497f13d8c1af143d2
   libddwaf (1.30.0.0.2-aarch64-linux) sha256=f4d8498cce66cb30d81f46bb046b11c3a2202e21ca73c9edb80c3a37939a3dc2
   libddwaf (1.30.0.0.2-arm64-darwin) sha256=cbbec7eee8fe7dbdc6c11bf1429fcfc217fad84e822fc6f252cb1c45daf663cc
