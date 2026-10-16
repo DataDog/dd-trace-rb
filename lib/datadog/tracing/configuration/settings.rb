@@ -258,7 +258,9 @@ module Datadog
 
               option :otel_thread_context_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
-                o.default true
+                o.default do
+                  RUBY_ENGINE == "ruby" && RUBY_PLATFORM.include?("linux")
+                end
                 o.type :bool
               end
 
