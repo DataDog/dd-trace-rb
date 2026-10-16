@@ -101,6 +101,14 @@ module Datadog
           suggested: CONTACT_SUPPORT,
         )
 
+        COMPILER_GNU17_MISSING = explain_issue(
+          "your C compiler is missing support for -std=gnu17.",
+          "GCC 8+, Clang 6+, or an equivalent modern C compiler is required.",
+          "This issue can usually be fixed by upgrading to a later version of your",
+          "operating system image or compiler.",
+          suggested: CONTACT_SUPPORT,
+        )
+
         private_class_method def self.disabled_via_env?
           report_disabled = [
             "If you needed to use this, please tell us why on",
