@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Instrumentation
+          module Consumer
+            def self.set_consume_checkpoint: (Rdkafka::Consumer::Message message) -> void
+
+            # `headers` is typed defensively: rdkafka < 0.13 returned Symbol keys.
+            def self.header_value: (::Hash[(::String | ::Symbol), ::String]? headers, ::String key) -> ::String?
+
+            def self.prepended: (Module base) -> void
+
+            module InstanceMethods
+              def process: (Rdkafka::Consumer::Message message) -> void
+
+              def process_batch: (::Array[Rdkafka::Consumer::Message] messages) -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end
