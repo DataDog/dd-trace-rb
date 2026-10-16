@@ -275,9 +275,9 @@ generated.
   so the remaining captured data is still delivered. A snapshot is dropped
   entirely only when pruning cannot bring it under the limit.
 - A collection captured inside another captured collection (for example,
-  an array inside an array) is itself replaced with the pruned marker,
-  because its size is checked against the per-member cap before it is
-  walked.
+  an array inside an array) is kept when it fits within the remaining
+  snapshot size; it is replaced with the pruned marker only when it does
+  not fit.
 - Consider reducing capture depth or collection sizes if you encounter
   this limit
 

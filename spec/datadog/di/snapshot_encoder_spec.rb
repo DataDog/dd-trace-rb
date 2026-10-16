@@ -236,22 +236,41 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when a captured collection holds a nested collection" do
       let(:nested) { {type: "Array", elements: [{type: "Integer", value: "1"}]} }
 
-      it "keeps a nested collection member that fits the member cap" do
+      it "keeps the nested collection member when the budget fits it" do
         slot = {type: "Array", elements: [nested, {type: "Integer", value: "2"}]}
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
         elements = locals_of(result)["a"]["elements"]
-        expect(elements.first).to eq(
-          "type" => "Array",
-          "elements" => [{"type" => "Integer", "value" => "1"}],
-        )
+        expect(elements.first).to eq("type" => "Array", "elements" => [{"type" => "Integer", "value" => "1"}])
         expect(elements.last).to eq("type" => "Integer", "value" => "2")
       end
 
-      it "prunes a nested collection member whose content exceeds the member cap" do
-        big_nested = {type: "Array", elements: Array.new(300) { {type: "Integer", value: "9"} }}
-        slot = {type: "Array", elements: [big_nested, {type: "Integer", value: "2"}]}
+      it "keeps nested collections to the default capture depth" do
+        level3 = {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "3"},
+          "@nested": {type: "NestedObject", notCapturedReason: "depth"},
+        }}
+        level2 = {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "2"},
+          "@nested": level3,
+        }}
+        deep = {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "1"},
+          "@nested": level2,
+        }}
+        result = described_class.encode(snapshot(line_captures(deepObject: deep)), cap)
+        expect(result.pruned).to be(false)
+        expect(result.encoded.bytesize).to be <= cap
+        expect(locals_of(result)["deepObject"].dig("fields", "@nested", "fields", "@nested", "fields", "@nested")).to eq(
+          "type" => "NestedObject",
+          "notCapturedReason" => "depth",
+        )
+      end
+
+      it "prunes the nested collection member when the budget cannot fit it" do
+        deep = {type: "Array", elements: Array.new(2_000) { {type: "Integer", value: "1"} }}
+        slot = {type: "Array", elements: [deep, {type: "Integer", value: "2"}]}
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
@@ -379,15 +398,9 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
     context "when a slot value cannot be JSON-encoded" do
       it "raises the encoding error" do
-        # The json gem bundled with Ruby 3.1 and newer raises
-        # JSON::GeneratorError when a string cannot be converted to
-        # UTF-8; older bundled versions (json < 2.6) propagate the raw
-        # Encoding::UndefinedConversionError from JSON.dump.
         expect do
           described_class.encode(snapshot(line_captures(raw: "\x80".b)), cap)
-        end.to raise_error do |exc|
-          expect([JSON::GeneratorError, Encoding::UndefinedConversionError]).to include(exc.class)
-        end
+        end.to raise_error(JSON::GeneratorError)
       end
     end
 
