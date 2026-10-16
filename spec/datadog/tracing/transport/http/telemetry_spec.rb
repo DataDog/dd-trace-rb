@@ -135,6 +135,68 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
     expect(count("spans_dropped", ["reason:api_error"])).to eq(0)
   end
 
+  context "with a custom adapter response" do
+    let(:adapter_response) do
+      double("adapter response", payload: "{}", ok?: true, not_found?: false,
+        unsupported?: false, client_error?: false, server_error?: false, internal_error?: false,)
+    end
+
+    before do
+      allow(transport.current_api.adapter).to receive(:call).and_return(adapter_response)
+    end
+
+    shared_examples "successful delivery without a status code" do
+      it "records successful delivery without inventing a response status" do
+        expect(transport.send_traces(traces).first.ok?).to be true
+        expect(count("trace_api.requests", ruby_tags)).to eq(1)
+        expect(count("trace_chunks_sent", ruby_tags)).to eq(2)
+        expect(metrics.find { |metric| metric[:metric] == "trace_api.bytes" }[:points].first).to be > 0
+        expect(metrics.map { |metric| metric[:metric] }).not_to include(
+          "trace_api.responses", "trace_api.errors", "trace_chunks_dropped", "spans_dropped"
+        )
+      end
+    end
+
+    context "without a code method" do
+      include_examples "successful delivery without a status code"
+    end
+
+    [nil, "200", 99, 1000].each do |code|
+      context "with code #{code.inspect}" do
+        before { allow(adapter_response).to receive(:code).and_return(code) }
+
+        include_examples "successful delivery without a status code"
+      end
+    end
+
+    it "does not invent an outcome when the response has none" do
+      allow(adapter_response).to receive(:ok?).and_return(nil)
+      expect(transport.send_traces(traces).first.ok?).to be_nil
+      expect(metrics.map { |metric| metric[:metric] }).to contain_exactly(
+        "spans_enqueued_for_serialization", "trace_api.requests"
+      )
+    end
+
+    it "preserves successful delivery when service-rate parsing fails without a status code" do
+      allow(adapter_response).to receive(:payload).and_return("invalid JSON")
+      expect(transport.send_traces(traces).first.internal_error?).to be true
+      expect(count("trace_chunks_sent", ruby_tags)).to eq(2)
+      expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(0)
+      expect(count("spans_dropped", ["reason:api_error"])).to eq(0)
+      expect(metrics.map { |metric| metric[:metric] }).not_to include("trace_api.responses", "trace_api.errors")
+    end
+
+    it "records an explicit failure without inventing its status or cause" do
+      allow(adapter_response).to receive(:ok?).and_return(false)
+      expect(transport.send_traces(traces).first.ok?).to be false
+      expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(2)
+      expect(count("spans_dropped", ["reason:api_error"])).to eq(traces.sum(&:length))
+      expect(metrics.map { |metric| metric[:metric] }).not_to include(
+        "trace_api.responses", "trace_api.errors", "trace_chunks_sent", "trace_api.bytes"
+      )
+    end
+  end
+
   it "distinguishes request-build failures from network failures" do
     stub_request(:post, v4).to_raise(ArgumentError.new("invalid header"))
     expect(transport.send_traces(traces).first.internal_error?).to be true
@@ -219,6 +281,22 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
       expect(transport.send_traces(traces)).to eq([])
       expect(count("trace_chunks_dropped", ruby_tags("reason:payload_too_large"))).to eq(2)
       expect(count("spans_dropped", ["reason:payload_too_large"])).to eq(traces.sum(&:length))
+      expect(count("trace_api.requests", ruby_tags)).to eq(0)
+    end
+
+    it "excludes oversized drops from a later serialization failure" do
+      calls = 0
+      allow(Datadog::Tracing::Transport::Traces::Encoder).to receive(:encode_trace) do
+        calls += 1
+        raise ArgumentError, "cannot encode" if calls == 2
+        "aaa"
+      end
+
+      expect { transport.send_traces(traces) }.to raise_error(ArgumentError, "cannot encode")
+      expect(count("trace_chunks_dropped", ruby_tags("reason:payload_too_large"))).to eq(1)
+      expect(count("trace_chunks_dropped", ruby_tags("reason:serialization_error"))).to eq(1)
+      expect(count("spans_dropped", ["reason:payload_too_large"])).to eq(traces.first.length)
+      expect(count("spans_dropped", ["reason:serialization_error"])).to eq(traces.last.length)
       expect(count("trace_api.requests", ruby_tags)).to eq(0)
     end
 

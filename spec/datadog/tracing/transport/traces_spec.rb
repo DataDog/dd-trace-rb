@@ -19,6 +19,18 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   end
 end
 
+RSpec.describe Datadog::Tracing::Transport::Traces::Request do
+  it "isolates status inspection errors from trace delivery" do
+    request = described_class.new
+    request.capture_telemetry = true
+    response = double("HTTP response")
+    allow(response).to receive(:code).and_raise("status unavailable")
+
+    expect { request.capture_status(response) }.not_to raise_error
+    expect(request.http_status).to be_nil
+  end
+end
+
 RSpec.describe Datadog::Tracing::Transport::Traces::Response do
   context "when implemented by a class" do
     subject(:response) { response_class.new }
