@@ -42,6 +42,11 @@ The `images/` folders hosts some images for Ruby applications.
 
 Ruby base images include `Datadog::DemoEnv` and other helpers.
 
+The native extension build helper installs the application's bundle, then builds
+the local tracer's extensions with RubyGems inside that bundle. Compilation and
+runtime must resolve the same `libdatadog` version; compiling with the tracer's
+development bundle can select a different version from the application.
+
 ### Running Integration Tests
 
 1. Pick an application to run the tests against:
