@@ -1952,36 +1952,6 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
       free_send_resources, (VALUE)&ctx);
 }
 
-typedef struct {
-  ddog_TraceExporter *exporter;
-  bool ran;
-} close_exporter_args;
-
-static void *close_exporter_without_gvl(void *arg) {
-  close_exporter_args *args = (close_exporter_args *)arg;
-  ddog_trace_exporter_free(args->exporter);
-  args->ran = true;
-  return NULL;
-}
-
-static VALUE _native_close(VALUE self) {
-  trace_exporter_t *wrapper;
-  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  close_exporter_args args = {0};
-  if (wrapper != NULL && wrapper->exporter != NULL) {
-    args.exporter = wrapper->exporter;
-    wrapper->exporter = NULL;
-    int pending = 0;
-    while (!args.ran && !pending) {
-      rb_thread_call_without_gvl2(close_exporter_without_gvl, &args, NULL, NULL);
-      pending = check_if_pending_exception();
-    }
-    if (!args.ran) wrapper->exporter = args.exporter;
-    if (pending) rb_jump_tag(pending);
-  }
-  return Qnil;
-}
-
 /* ========================================================================
  * Initialization
  * ======================================================================== */
@@ -2022,7 +1992,7 @@ void trace_exporter_init(VALUE tracing_module) {
 
   /* Instance: _native_send_traces(traces, native_events_supported) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
-                    _native_send_traces, 2);
+                   _native_send_traces, 2);
   rb_define_method(trace_exporter_class, "_native_close", _native_close, 0);
 
   /* Instance: fork safety hooks */
