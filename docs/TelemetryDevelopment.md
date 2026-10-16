@@ -73,10 +73,10 @@ dependencies, and unrelated metrics. Native exporter series keep
 `src_library:libdatadog`.
 
 Enablement requires tracing, telemetry, and metrics to be enabled, Agent-based
-telemetry, and native headers and symbols supporting mutable identity and bounded shutdown.
-The pinned libdatadog 44.0.1 package lacks these APIs; development requires a
-matching `LIBDATADOG_VENDOR_OVERRIDE` build. Agentless telemetry, including its
-URL override, does not enable the native worker.
+telemetry, and native headers and symbols supporting mutable identity and bounded
+worker flushing. The pinned libdatadog gem, 46.0.0.1.1, supplies these APIs;
+`LIBDATADOG_VENDOR_OVERRIDE` is only needed when testing a custom native build.
+Agentless telemetry, including its URL override, does not enable the native worker.
 
 Native delivery uses Ruby's heartbeat interval, converted to milliseconds. Its
 aggregation interval is the smaller of that interval and ten seconds; Ruby's
@@ -86,10 +86,11 @@ disablement.
 
 Fork preparation pauses native workers and drains active sends. The child
 publishes Ruby's runtime and session ancestry before resetting and restarting
-workers; pending parent observations are discarded. Parent and failed-fork
+workers; pending parent observations are discarded and the child sequence starts
+at one. Parent and failed-fork
 paths retain identity, pending observations, and sequence state. Native sequence
 counters remain independent of Ruby's emitter; backend acceptance of this
-arrangement must be confirmed before package uptake.
+arrangement must be confirmed before releasing this integration.
 
 Explicit close bounds worker flushing by Ruby's telemetry shutdown timeout,
 outside the GVL. Disabling telemetry before close discards pending native data. Garbage
