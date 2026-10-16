@@ -53,7 +53,7 @@ jobs:
     # from. Saving from a plain runner (zstd) makes the cache invisible to
     # every gzip-side restore.
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
     steps:
       - name: Download task weights
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
