@@ -48,12 +48,12 @@ cp ../tmp/version sources
 ## share them across all gem homes. The `datadog` gem is version-dependent
 ## but can still be shared: each gem home's copy holds a `libdatadog_api`
 ## extension compiled for its own Ruby, and the `.so` filename embeds the
-## Ruby version, so the `.so` files from all gem homes can be kept in a
-## single shared copy without overwriting one another. A profiling extension
-## that a customer-side reinstall recompiles is also named per Ruby version,
-## so it cannot overwrite the shared copy either. The mkmf Makefile under
-## ext/libdatadog_api also differs per gem home; the shared copy keeps the
-## first gem home's Makefile, and an in-place rebuild regenerates it.
+## Ruby version, so the `.so` files from all gem homes coexist in one
+## shared copy. A profiling extension that a customer-side reinstall
+## recompiles is also named per Ruby version, so it cannot overwrite the
+## shared copy. The mkmf Makefile under ext/libdatadog_api also differs
+## per gem home; the shared copy keeps the first gem home's Makefile, and
+## an in-place rebuild regenerates it.
 
 mkdir -p sources/ruby/common/gems
 
