@@ -21,6 +21,26 @@
         collection: []
       result: true
 
+- name: "all with @key"
+  ast:
+    all:
+      - ref: collection
+      - isEmpty:
+          ref: '@key'
+
+  compiled: "all(ref('collection')) { |current_item, current_key, current_value| is_empty(current_key, '@key') }"
+
+  eval:
+    - locals:
+        collection:
+          "": 42
+      result: true
+
+    - locals:
+        collection:
+          foo: 42
+      result: false
+
 - name: any
   ast:
     any:

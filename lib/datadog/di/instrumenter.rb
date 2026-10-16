@@ -554,7 +554,8 @@ module Datadog
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
-              continue = condition.satisfied?(context)
+              continue = condition.satisfied?(context,
+                deadline: EL::Evaluator.evaluation_deadline(settings),)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
@@ -562,6 +563,10 @@ module Datadog
               # these exceptions are propagated.
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              if exc.is_a?(DI::Error::EvaluationTimeout)
+                report_condition_evaluation_timeout(probe, exc)
+              end
 
               if context
                 # We want to report evaluation errors for conditions
@@ -788,12 +793,19 @@ module Datadog
         public :kwargs_from_splat
       end
 
-      # Trace point callback for a line probe.
+      # Trace point callback for a line probe hit. Gates the hit through
+      # the probe's condition, the per-probe rate limiter, and the global
+      # rate limiter, then invokes the responder with the built context. A
+      # condition evaluation timeout is routed to the responder's
+      # condition-evaluation-failed callback like any other condition
+      # evaluation error, after being counted and logged.
       #
-      # @param probe [Probe] the probe installed on this line
-      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
-      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
-      # @param tp [TracePoint] the firing trace point
+      # @param probe [Probe] the probe the trace point was installed for.
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
+      #   the probe's target file, when the trace point is targeted.
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback, #probe_disabled_callback]
+      #   callback target for the probe hit.
+      # @param tp [TracePoint] the trace point event that fired.
       # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
@@ -832,7 +844,8 @@ module Datadog
         if condition = probe.condition
           begin
             context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
+            return unless condition.satisfied?(context,
+              deadline: EL::Evaluator.evaluation_deadline(settings),)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
@@ -840,6 +853,10 @@ module Datadog
             # these exceptions are propagated.
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            if exc.is_a?(DI::Error::EvaluationTimeout)
+              report_condition_evaluation_timeout(probe, exc)
+            end
 
             if context
               # We want to report evaluation errors for conditions
@@ -898,6 +915,18 @@ module Datadog
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
         nil
+      end
+
+      # Reports a condition evaluation timeout for +probe+: increments the
+      # evaluation_timeouts telemetry counter and logs the timeout at debug
+      # with the probe id and the exception.
+      #
+      # @param probe [Probe] the probe whose condition evaluation timed out.
+      # @param exc [Exception] the timeout exception that was raised.
+      # @return [void]
+      def report_condition_evaluation_timeout(probe, exc)
+        telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+        logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc.message}" }
       end
 
       def build_trace_point_context(probe, tp)

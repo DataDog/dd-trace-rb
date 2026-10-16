@@ -2141,6 +2141,186 @@ RSpec.describe Datadog::DI::Instrumenter do
         end.not_to raise_error
       end
     end
+
+    describe "condition evaluation timeout" do
+      before do
+        Object.const_set(:DITimeoutClass, Class.new do
+          def test_method(arg1)
+            arg1.length
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITimeoutClass)
+      end
+
+      before do
+        expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      # `arg1.filter(@it >= 0).length > 0` — a collection filter over the
+      # first positional argument. With a zero evaluation budget the
+      # cooperative deadline inside #filter fires immediately, aborting
+      # condition evaluation before any capture happens.
+      let(:probe) do
+        src, regexps = Datadog::DI::EL::Compiler.new.compile(
+          "gt" => [
+            {
+              "len" => {
+                "filter" => [
+                  {"ref" => "arg1"},
+                  {"ge" => [{"ref" => "@it"}, 0]},
+                ],
+              },
+            },
+            0,
+          ],
+        )
+        condition = Datadog::DI::EL::Expression.new("arg1.filter(@it >= 0).length > 0", src, regexps: regexps)
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: "DITimeoutClass", method_name: "test_method",
+          condition: condition,
+        )
+      end
+
+      context "method probe callback" do
+        let(:responder) do
+          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+        end
+
+        it "invokes the condition evaluation failed callback with the timeout instead of the executed callback" do
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            # The condition timeout is contained by DI; the customer method
+            # runs normally.
+            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
+      context "method probe snapshot through the probe manager" do
+        let(:probe_notification_builder) do
+          Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
+            capture_expression_evaluator: capture_expression_evaluator, telemetry: telemetry)
+        end
+
+        let(:snapshot_payloads) { [] }
+
+        let(:probe_notifier_worker) do
+          Class.new do
+            def initialize(snapshot_payloads)
+              @snapshot_payloads = snapshot_payloads
+            end
+
+            def add_status(payload, probe: nil)
+              # Status notifications are not recorded by this test.
+            end
+
+            def add_snapshot(payload, probe: nil)
+              @snapshot_payloads << payload
+            end
+          end.new(snapshot_payloads)
+        end
+
+        let(:probe_repository) do
+          Datadog::DI::ProbeRepository.new
+        end
+
+        let(:probe_manager) do
+          Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+            probe_notifier_worker, logger, probe_repository,
+            guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        end
+
+        before do
+          allow(settings).to receive(:service).and_return("rspec")
+          allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+        end
+
+        it "emits an evaluation error snapshot with no captured data" do
+          allow(telemetry).to receive(:inc)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:captures]).to eq({})
+          evaluation_errors = snapshot[:evaluationErrors]
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+        end
+      end
+
+      context "line probe callback" do
+        include_context "with code tracking"
+
+        before do
+          load File.join(File.dirname(__FILE__), "hook_line_load.rb")
+        end
+
+        after do
+          instrumenter.unhook(probe)
+        end
+
+        let(:probe) do
+          src, regexps = Datadog::DI::EL::Compiler.new.compile(
+            "gt" => [
+              {
+                "len" => {
+                  "filter" => [
+                    {"ref" => "arg"},
+                    {"ge" => [{"ref" => "@it"}, 0]},
+                  ],
+                },
+              },
+              0,
+            ],
+          )
+          condition = Datadog::DI::EL::Expression.new("arg.filter(@it >= 0).length > 0", src, regexps: regexps)
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, file: "hook_line_load.rb", line_no: 34,
+            condition: condition,
+          )
+        end
+
+        let(:responder) do
+          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+        end
+
+        it "invokes the condition evaluation failed callback with the timeout instead of the executed callback" do
+          allow(logger).to receive(:debug)
+
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          instrumenter.hook_line(probe, responder)
+
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
+        end
+      end
+    end
   end
 
   describe "global rate limiting" do

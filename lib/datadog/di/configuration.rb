@@ -169,6 +169,34 @@ module Datadog
                 end
               end
 
+              # Maximum wall-clock time, in milliseconds, allowed for
+              # evaluating a probe condition (`when`), capture expression,
+              # or template segment. A condition whose evaluation exceeds
+              # this budget is aborted and reported as an evaluation error
+              # snapshot with no captured user data; an over-budget capture
+              # expression or template segment is aborted and reported as an
+              # evaluation error alongside the data captured before the
+              # abort.
+              #
+              # The bound is cooperative: the collection operators
+              # (filter/all/any) and template-segment starts check the
+              # budget, so other evaluation paths are unbounded. The
+              # `matches` operator is separately bounded by the per-match
+              # Regexp timeout (Evaluator::MATCHES_TIMEOUT_SECONDS).
+              option :max_time_to_evaluate_ms do |o|
+                o.type :int
+                o.default 50
+                o.env "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS"
+                o.setter do |value, _old|
+                  if value < 0
+                    raise ArgumentError,
+                      "The setting `dynamic_instrumentation.max_time_to_evaluate_ms` must not be negative, " \
+                        "but `#{value.inspect}` was provided."
+                  end
+                  value
+                end
+              end
+
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.

@@ -7,6 +7,7 @@ require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
 require_relative "../core/utils/time"
+require_relative "el"
 
 module Datadog
   module DI
@@ -45,6 +46,13 @@ module Datadog
       # An expression that fails to evaluate or serialize contributes an entry
       # to the returned errors.
       #
+      # A fresh evaluation deadline is resolved once for the whole
+      # capture-expression phase and threaded into every expression, so
+      # capture-expression evaluation is bounded identically for line and
+      # method probes. An expression whose evaluation exceeds the deadline
+      # is reported as an evaluation error, like any other evaluation
+      # failure.
+      #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
       # @return [Result] the evaluation result: the serialized values keyed by
@@ -52,6 +60,7 @@ module Datadog
       #   to evaluate or serialize
       def evaluate(probe, context)
         deadline = serializer.serialization_deadline
+        evaluation_deadline = EL::Evaluator.evaluation_deadline(settings)
 
         output = {}
         evaluation_errors = []
@@ -70,7 +79,7 @@ module Datadog
           end
 
           begin
-            value = capture_expression.expr.evaluate(context)
+            value = capture_expression.expr.evaluate(context, deadline: evaluation_deadline)
             limits = CaptureLimits.resolve(
               expr_limits: capture_expression.limits,
               probe: probe,
