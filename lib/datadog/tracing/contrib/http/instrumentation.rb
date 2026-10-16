@@ -34,7 +34,12 @@ module Datadog
                 span.service = service_name(host, request_options, client_config)
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
-                span.resource = req.method
+                quantize_resource = Datadog.configuration.tracing.http_client_resource_name_quantize
+                span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                  req.method,
+                  quantize_resource ? request_uri_path(req) : nil,
+                  enabled: quantize_resource
+                )
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   pin_config: client_config,
@@ -115,6 +120,13 @@ module Datadog
             end
 
             private
+
+            def request_uri_path(request)
+              uri = request.uri if request.respond_to?(:uri)
+              uri ? uri.path : URI.parse(request.path).path
+            rescue URI::InvalidURIError
+              nil
+            end
 
             def host_and_port(request)
               if request.respond_to?(:uri) && request.uri

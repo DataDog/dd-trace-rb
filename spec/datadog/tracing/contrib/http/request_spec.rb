@@ -153,6 +153,25 @@ RSpec.describe "net/http requests" do
     end
   end
 
+  context "when HTTP client resource-name quantization is enabled" do
+    subject(:response) { client.request(request) }
+
+    let(:path) { "/files/readme%2Emd?download=1" }
+    let(:request) { Net::HTTP::Get.new(path) }
+
+    before do
+      Datadog.configuration.tracing.http_client_resource_name_quantize = true
+      stub_request(:get, "#{uri}#{path}").to_return(status: 200)
+      response
+    end
+
+    it "uses decoded path quantization without changing request or URL tag" do
+      expect(span.resource).to eq("GET /files/*")
+      expect(span.get_tag("http.url")).to eq("/files/readme%2Emd")
+      expect(request.path).to eq(path)
+    end
+  end
+
   describe "#post" do
     subject(:response) { client.post(path, payload) }
 
