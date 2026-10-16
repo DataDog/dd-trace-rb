@@ -69,12 +69,13 @@ for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
     if [[ -e "${dest}" ]]; then
       echo "found ${dest}; merging ${orig} into it"
 
-      find "${orig}/" -type f -print0 |
-        while IFS= read -r -d '' file; do
+      # The gem paths are build-generated and contain no newlines.
+      find "${orig}/" -type f |
+        while IFS= read -r file; do
           relative="${file#"${orig}/"}"
           other="${dest}/${relative}"
 
-          if [[ -e "${other}" || -L "${other}" ]] &&
+          if { [ -e "${other}" ] || [ -L "${other}" ]; } &&
             ! cmp -s -- "${file}" "${other}"; then
             printf 'conflict: %s\n' "${relative}" >&2
             exit 1
