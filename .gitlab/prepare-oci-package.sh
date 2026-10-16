@@ -51,9 +51,11 @@ cp ../tmp/version sources
 ## Ruby version, so the `.so` files from all gem homes coexist in one
 ## shared copy. A profiling extension that a customer-side reinstall
 ## recompiles is also named per Ruby version, so it cannot overwrite the
-## shared copy. The mkmf Makefile under ext/libdatadog_api also differs
-## per gem home; the shared copy keeps the first gem home's Makefile, and
-## an in-place rebuild regenerates it.
+## shared copy. Every other file of a duplicate copy must match the shared
+## copy byte for byte; the conflict check below fails the package build
+## when it does not. The mkmf Makefiles differ per gem home, so
+## install_datadog_deps.rb strips them with the other extension build
+## products before this script runs.
 
 mkdir -p sources/ruby/common/gems
 
@@ -65,10 +67,21 @@ for package in libdatadog libddwaf datadog-ruby_core_source logger datadog; do
     ls -1d sources/ruby/*/gems/${package}-[0-9]* | while read -r orig; do
         dest="sources/ruby/common/gems/${orig##*/}"
         if [[ -e "${dest}" ]]; then
-            echo "found ${dest}; removing ${orig}"
-            if [[ "${package}" == datadog ]]; then
-                mv -v "${orig}"/lib/libdatadog_api.*.so "${dest}/lib/"
-            fi
+            echo "found ${dest}; merging ${orig} into it"
+
+            find "${orig}/" -type f -print0 |
+                while IFS= read -r -d '' file; do
+                    relative="${file#"${orig}/"}"
+                    other="${dest}/${relative}"
+
+                    if [[ -e "${other}" || -L "${other}" ]] &&
+                        ! cmp -s -- "${file}" "${other}"; then
+                        printf 'conflict: %s\n' "${relative}" >&2
+                        exit 1
+                    fi
+                done
+
+            cp -an "${orig}/." "${dest}/"
             rm -rf "${orig}"
         else
             mv -vf "${orig}" "${dest}"
