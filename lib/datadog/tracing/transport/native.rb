@@ -47,10 +47,10 @@ module Datadog
           include Statistics
           include SpanEventsNegotiation
 
-          attr_reader :logger
+          attr_reader :logger, :url
 
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
-          #   Agent connection settings (provides +#url+).
+          #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
           def initialize(agent_settings:, logger:, settings: Datadog.configuration)
             unless Native.supported?
@@ -68,7 +68,7 @@ module Datadog
             # this is held across the fork through the matching completion hook.
             @fork_mutex = Mutex.new
 
-            url = agent_settings.url
+            @url = agent_settings.url
             tracer_version = tracer_version_string
             language = Core::Environment::Ext::LANG
             language_version = Core::Environment::Ext::LANG_VERSION
@@ -87,6 +87,7 @@ module Datadog
 
             exporter = Native::TraceExporter._native_new(
               url: url,
+              timeout_milliseconds: agent_settings.timeout_seconds * 1000,
               tracer_version: tracer_version,
               language: language,
               language_version: language_version,
@@ -101,6 +102,7 @@ module Datadog
               telemetry_interval: telemetry_enabled ? [(settings.telemetry.heartbeat_interval_seconds * 1000).to_i, 1].max : nil,
               telemetry_debug: settings.telemetry.debug,
               shutdown_timeout: [(settings.telemetry.shutdown_timeout_seconds * 1000).to_i, 1].max,
+              client_computed_stats: !settings.apm.tracing.enabled,
             )
             @exporter = exporter
 
@@ -232,7 +234,7 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_hooks = @fork_mutex.synchronize do
+            @fork_mutex.synchronize do
               @send_mutex.synchronize do
                 hooks = @fork_hooks
                 return if hooks.nil?
@@ -241,22 +243,16 @@ module Datadog
                   @exporter&._native_close(telemetry_enabled?)
                 rescue => e
                   logger.debug { "Native transport shutdown failed: #{e.class}: #{e.message}" }
+                ensure
+                  @fork_hooks = nil
+                  @exporter = nil
+                  hooks.each do |stage, block|
+                    Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                  end
+                  ObjectSpace.undefine_finalizer(self)
                 end
-                @fork_hooks = nil
-                @exporter = nil
-                hooks
               end
             end
-
-            fork_hooks.each do |stage, block|
-              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-            end
-
-            # The finalizer only exists to deregister the hooks for a transport
-            # dropped without #close. We have just done that, so remove it;
-            # otherwise its closed-over hook blocks keep the exporter alive until
-            # this transport is itself collected.
-            ObjectSpace.undefine_finalizer(self)
 
             nil
           end

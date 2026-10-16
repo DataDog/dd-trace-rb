@@ -48,7 +48,7 @@ cp ../tmp/version sources
 
 mkdir -p sources/ruby/common/gems
 
-for package in libdatadog libddwaf; do
+for package in libdatadog libddwaf datadog-ruby_core_source logger; do
     echo ".. scanning for ${package}"
 
     ls -1d sources/ruby/*/gems/${package}-* | while read -r orig; do
@@ -61,4 +61,85 @@ for package in libdatadog libddwaf; do
         fi
         ln -srvf "${dest}" "${orig}"
     done
+done
+
+## Prune the `libdatadog` and `libddwaf` vendored binaries to the package
+## arch: both gems select only the running platform's vendored binaries at
+## runtime, so every other vendored platform dir is unreachable in this
+## package.
+
+case "${ARCH}" in
+  amd64)
+    package_cpu="x86_64"
+    ;;
+  arm64)
+    package_cpu="aarch64"
+    ;;
+  *)
+    echo "Unknown ARCH '${ARCH}' when pruning the vendor dirs. Exiting"
+    exit 1
+    ;;
+esac
+
+## `Libdatadog.current_platform` only ever selects the running CPU's
+## `-linux` dir, or its `-linux-musl` variant through the musl fallback
+## for Alpine.
+
+for vendor_dir in sources/ruby/common/gems/libdatadog-*/vendor/libdatadog-*/; do
+  if [[ ! -d "${vendor_dir}" ]]; then
+    echo "No libdatadog vendor dir under sources/ruby/common/gems/. Exiting"
+    exit 1
+  fi
+
+  for platform_dir in "${vendor_dir}"*/; do
+    platform="${platform_dir%/}"
+    platform="${platform##*/}"
+    case "${platform}" in
+      "${package_cpu}-linux"|"${package_cpu}-linux-musl")
+        ;;
+      *)
+        echo "pruning ${platform_dir}"
+        rm -rf "${platform_dir}"
+        ;;
+    esac
+  done
+
+  for platform in "${package_cpu}-linux" "${package_cpu}-linux-musl"; do
+    if [[ ! -d "${vendor_dir}${platform}" ]]; then
+      echo "Missing ${platform} binaries under ${vendor_dir}. Exiting"
+      exit 1
+    fi
+  done
+done
+
+## `libddwaf`'s `shared_lib_path` loads `libddwaf-<version>-<os>-<cpu>`
+## for the running platform only (`ffi_lib` takes that single path).
+
+libddwaf_platform="linux-${package_cpu}"
+
+for vendor_dir in sources/ruby/common/gems/libddwaf-*/vendor/libddwaf/; do
+  if [[ ! -d "${vendor_dir}" ]]; then
+    echo "No libddwaf vendor dir under sources/ruby/common/gems/. Exiting"
+    exit 1
+  fi
+
+  found_libddwaf_platform=0
+  for platform_dir in "${vendor_dir}"libddwaf-*/; do
+    platform="${platform_dir%/}"
+    platform="${platform##*/}"
+    case "${platform}" in
+      libddwaf-*-"${libddwaf_platform}")
+        found_libddwaf_platform=1
+        ;;
+      *)
+        echo "pruning ${platform_dir}"
+        rm -rf "${platform_dir}"
+        ;;
+    esac
+  done
+
+  if [[ "${found_libddwaf_platform}" == 0 ]]; then
+    echo "Missing ${libddwaf_platform} binaries under ${vendor_dir}. Exiting"
+    exit 1
+  fi
 done

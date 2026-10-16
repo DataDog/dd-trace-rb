@@ -4,6 +4,14 @@ module Datadog
   module Tracing
     module Transport
       class Telemetry
+        # Observation schema: Symbol keys with non-negative Integer values.
+        # COUNTS maps per-send count deltas to [metric name, additional tags].
+        # :bytes_sent is one successful payload's byte-size distribution sample;
+        # record each payload separately rather than summing its samples.
+        # :responses_count requires :status_code; omit both when the code is unknown.
+        # Missing and zero measurements emit nothing. All metrics use namespace
+        # "tracers" and common: true; trace_* metrics gain src_library:<source>, while
+        # span metrics keep their source-free tags.
         COUNTS = {
           requests_count: ["trace_api.requests", []],
           errors_network: ["trace_api.errors", ["type:network"]],

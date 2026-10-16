@@ -13,6 +13,8 @@ module Datadog
           end
 
           def batch(traces)
+            return unless @client.enabled? && @client.metrics_manager.enabled
+
             Batch.new(self, traces)
           rescue
             nil
@@ -21,41 +23,43 @@ module Datadog
           class Batch
             def initialize(reporter, traces)
               @reporter = reporter
-              @chunks = traces.length
-              @spans = traces.sum(&:length)
-              @reporter.record(spans_enqueued_for_serialization: @spans)
+              @remaining_chunks = traces.length
+              @remaining_spans = traces.sum(&:length)
+              @reporter.record(spans_enqueued_for_serialization: @remaining_spans)
             end
 
-            def drop_large(spans)
-              @chunks -= 1
-              @spans -= spans
-              @reporter.record(chunks_dropped_payload_too_large: 1, spans_dropped_payload_too_large: spans)
+            def record_oversized_drop(span_count)
+              @remaining_chunks -= 1
+              @remaining_spans -= span_count
+              @reporter.record(chunks_dropped_payload_too_large: 1, spans_dropped_payload_too_large: span_count)
             end
 
             def serialization_failed
-              @reporter.record(chunks_dropped_serialization_error: @chunks, spans_dropped_serialization_error: @spans)
+              @reporter.record(chunks_dropped_serialization_error: @remaining_chunks,
+                spans_dropped_serialization_error: @remaining_spans,)
             end
 
             def sent(request, response, chunks, spans, bytes, fallback:)
               @reporter.record(requests_count: 1)
               return if fallback
 
-              @chunks -= chunks
-              @spans -= spans
+              @remaining_chunks -= chunks
+              @remaining_spans -= spans
               observations = {} #: Hash[Symbol, Integer]
               if (status = request.http_status)
                 observations[:responses_count] = 1
                 observations[:status_code] = status
-                if status.between?(200, 299)
-                  observations[:chunks_sent] = chunks
-                  observations[:bytes_sent] = bytes
-                else
-                  observations[:errors_status_code] = 1
-                  observations[:chunks_dropped_send_failure] = chunks
-                  observations[:spans_dropped_api_error] = spans
-                end
-              else
-                error = response.error if response.is_a?(Core::Transport::InternalErrorResponse)
+              end
+              success = status ? status.between?(200, 299) : request.http_success
+              if success
+                observations[:chunks_sent] = chunks
+                observations[:bytes_sent] = bytes
+              elsif status || success == false
+                observations[:errors_status_code] = 1 if status
+                observations[:chunks_dropped_send_failure] = chunks
+                observations[:spans_dropped_api_error] = spans
+              elsif response.is_a?(Core::Transport::InternalErrorResponse)
+                error = response.error
                 if error.is_a?(ArgumentError) || error.is_a?(TypeError)
                   observations[:chunks_dropped_serialization_error] = chunks
                   observations[:spans_dropped_serialization_error] = spans

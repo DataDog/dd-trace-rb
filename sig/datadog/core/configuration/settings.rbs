@@ -4,6 +4,14 @@ module Datadog
       class Settings
         include Base
 
+        interface _APM
+          def tracing: () -> _APMTracing
+        end
+
+        interface _APMTracing
+          def enabled: () -> bool
+        end
+
         interface _Telemetry
           def enabled: () -> bool
 
@@ -305,6 +313,8 @@ module Datadog
         def feature_flags: () -> _FeatureFlags
 
         def tracing: () -> untyped
+
+        def apm: () -> _APM
 
         def telemetry: () -> _Telemetry
 

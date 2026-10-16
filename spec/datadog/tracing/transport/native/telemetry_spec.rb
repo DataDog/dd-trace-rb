@@ -136,7 +136,7 @@ RSpec.describe "Native exporter telemetry" do
 
   def build_transport(config = settings)
     Datadog::Tracing::Transport::Native::Transport.new(
-      agent_settings: Struct.new(:url).new(agent.url),
+      agent_settings: Struct.new(:url, :timeout_seconds).new(agent.url, 30),
       logger: Logger.new(File::NULL),
       settings: config,
     ).tap { |transport| transports << transport }
