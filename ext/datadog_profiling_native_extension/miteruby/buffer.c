@@ -274,3 +274,29 @@ miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool bl
 #endif
     }
 }
+
+void miteruby_buffer_visit(miteruby_buffer_t *buffer, miteruby_buffer_visitor_t visit, const sigset_t *signal_mask)
+{
+    miteruby_buffer_producer_lock_mask(buffer, signal_mask);
+
+    uint32_t position = (uint32_t)atomic_load(&buffer->read_position);
+    uint32_t remaining = miteruby_buffer_unread_count(
+        miteruby_buffer_position_from_state(atomic_load(&buffer->write_state)), position);
+
+    while (remaining != 0) {
+        uint32_t offset = position % MITERUBY_BUFFER_CAPACITY_WORDS;
+        uint64_t record_length = buffer->data[offset];
+        if (record_length == 0) {
+            uint32_t skipped_words = MITERUBY_BUFFER_CAPACITY_WORDS - offset;
+            position = miteruby_buffer_advance_position(position, skipped_words);
+            remaining -= skipped_words;
+            continue;
+        }
+
+        visit(&buffer->data[offset + 1]);
+        position = miteruby_buffer_advance_position(position, (uint32_t)record_length);
+        remaining -= (uint32_t)record_length;
+    }
+
+    miteruby_buffer_producer_unlock(buffer);
+}

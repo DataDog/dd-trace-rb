@@ -92,3 +92,13 @@ void miteruby_buffer_close(miteruby_buffer_t *buffer, const sigset_t *signal_mas
 // return immediately. Other platforms use semaphore notifications.
 // EOF follows all items and rejection reports.
 miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool blocking);
+
+typedef void (*miteruby_buffer_visitor_t)(const uint64_t *data);
+
+// Visits a fixed snapshot, including the consumer's borrowed record, without consuming anything.
+// Holds the producer lock; consumers may advance, but released storage cannot be overwritten.
+// signal_mask must be non-NULL and include the producer signals.
+// Those signals are blocked before locking and unconditionally unblocked after unlocking.
+// Callbacks must not mutate records, reenter the producer/visitor, raise, or trigger GC.
+// Lock holders must not allocate Ruby objects or wait for the GVL: GC may be waiting for this lock.
+void miteruby_buffer_visit(miteruby_buffer_t *buffer, miteruby_buffer_visitor_t visit, const sigset_t *signal_mask);
