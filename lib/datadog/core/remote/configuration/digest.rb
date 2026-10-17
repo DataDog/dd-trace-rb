@@ -10,7 +10,13 @@ module Datadog
         class DigestList < Array
           class << self
             def parse(hash)
-              new.concat(hash.map { |type, hexdigest| Digest.new(type, hexdigest) })
+              new.concat(hash.map do |type, hexdigest|
+                unless hexdigest.is_a?(String)
+                  raise TypeError, Configuration.invalid_type_message("hexdigest", hexdigest, String)
+                end
+
+                Digest.new(type, hexdigest)
+              end)
             end
           end
 
@@ -36,7 +42,7 @@ module Datadog
                 # It still doesn't work in the present implementation.
                 # Flag the nil data now to get earlier diagnostics when
                 # developing tests for example.
-                raise ArgumentError, "Invalid type for data: #{data.class}: expected String"
+                raise ArgumentError, Configuration.invalid_type_message("data", data, String)
               end
 
               d = case type

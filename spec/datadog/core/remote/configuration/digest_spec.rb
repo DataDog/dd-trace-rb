@@ -54,6 +54,18 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
     let(:digests) { {sha256: Digest::SHA256.hexdigest(value)} }
     subject(:digest_list) { described_class.parse(digests) }
 
+    describe ".parse" do
+      context "with hexdigest that is not a String" do
+        let(:digests) { {"sha256" => 42} }
+
+        it "raises TypeError" do
+          expect { digest_list }.to raise_error(
+            TypeError, "Invalid type for hexdigest: expected String: 42"
+          )
+        end
+      end
+    end
+
     describe "#check" do
       context "valid content" do
         let(:value) { "Hello World" }

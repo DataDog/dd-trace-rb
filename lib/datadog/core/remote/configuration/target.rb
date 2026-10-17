@@ -12,14 +12,18 @@ module Datadog
           class << self
             def parse(hash)
               signed = hash.fetch("signed")
+              raise TypeError, Configuration.invalid_type_message("signed", signed, Hash) unless signed.is_a?(Hash)
+
               # Note that the +dig+ call permits +hash['signed']+ to be
               # missing the +custom+ subtree entirely.
               # Previously the subtree was required but +opaque_backend_state+
               # could still be missing (and obtained here as nil).
               opaque_backend_state = signed.dig("custom", "opaque_backend_state")
+              opaque_backend_state = opaque_backend_state.is_a?(String) ? opaque_backend_state : nil
               # The version appears to be optional to the rest of this class,
               # and we have tests that do not provide it.
               version = signed["version"]
+              version = version.is_a?(Integer) ? version : nil
 
               map = new
 
@@ -28,8 +32,12 @@ module Datadog
                 @version = version
               end
 
-              signed.fetch("targets").each_with_object(map) do |(p, t), m|
+              targets = signed.fetch("targets")
+              raise TypeError, Configuration.invalid_type_message("targets", targets, Hash) unless targets.is_a?(Hash)
+
+              targets.each_with_object(map) do |(p, t), m|
                 path = Configuration::Path.parse(p)
+                raise TypeError, Configuration.invalid_type_message("targets entry", t, Hash) unless t.is_a?(Hash)
                 target = Configuration::Target.parse(t)
 
                 m[path] = target
@@ -53,9 +61,15 @@ module Datadog
         class Target
           class << self
             def parse(hash)
-              length = Integer(hash.fetch("length"))
-              digests = Configuration::DigestList.parse(hash.fetch("hashes"))
-              version = Integer(hash.dig("custom", "v"))
+              length = hash.fetch("length")
+              raise TypeError, Configuration.invalid_type_message("length", length, Integer) unless length.is_a?(Integer)
+
+              hashes = hash.fetch("hashes")
+              raise TypeError, Configuration.invalid_type_message("hashes", hashes, Hash) unless hashes.is_a?(Hash)
+              digests = Configuration::DigestList.parse(hashes)
+
+              version = hash.dig("custom", "v")
+              raise TypeError, Configuration.invalid_type_message("custom.v", version, Integer) unless version.is_a?(Integer)
 
               new(digests: digests, length: length, version: version)
             end

@@ -441,4 +441,31 @@ RSpec.describe Datadog::DI::Remote do
       end
     end
   end
+
+  describe ".remove_probe" do
+    mock_settings_for_di do |settings|
+      allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+    end
+
+    let(:component) do
+      instance_double(Datadog::DI::Component).tap do |component|
+        allow(component).to receive(:settings).and_return(settings)
+      end
+    end
+
+    let(:content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash",
+          content: {"id" => 42}.to_json,
+        }
+      )
+    end
+
+    it "raises TypeError when probe id is not a String" do
+      expect do
+        described_class.send(:remove_probe, content, component)
+      end.to raise_error(TypeError, "Invalid type for probe id: expected String: 42")
+    end
+  end
 end

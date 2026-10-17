@@ -6,6 +6,7 @@ require_relative "probe"
 require_relative "capture_expression"
 require_relative "capture_limits"
 require_relative "el"
+require_relative "../core/remote/configuration"
 
 module Datadog
   module DI
@@ -85,12 +86,12 @@ module Datadog
       def build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
-          raise ArgumentError, "captureExpressions must be an array, got: #{raw.class}"
+          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("captureExpressions", raw, Array)
         end
         return [] if raw.empty?
         raw.map do |entry|
           unless Hash === entry
-            raise ArgumentError, "captureExpressions entry must be a hash, got: #{entry.class}"
+            raise ArgumentError, Core::Remote::Configuration.invalid_type_message("captureExpressions entry", entry, Hash)
           end
           name = entry["name"]
           unless String === name && CAPTURE_EXPRESSION_NAME_PATTERN.match?(name)
@@ -123,7 +124,7 @@ module Datadog
       def build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
-          raise ArgumentError, "capture-expression entry capture must be a hash, got: #{raw.class}"
+          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("capture", raw, Hash)
         end
         CaptureLimits.new(
           max_reference_depth: raw["maxReferenceDepth"],
