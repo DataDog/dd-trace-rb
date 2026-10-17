@@ -14,9 +14,11 @@ module Datadog
 
       def self.build(tracing_settings)
         return unless tracing_settings.otel_thread_context_enabled
+        return unless Datadog::Core::LIBDATADOG_API_FAILURE.nil?
 
         instance = new
-        instance if instance.supported? && instance._native_enable
+        instance._native_enable
+        instance
       end
 
       def initialize
@@ -63,10 +65,6 @@ module Datadog
         end
 
         false
-      end
-
-      def supported?
-        Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
       end
 
       def update_from_trace_op(trace_op)

@@ -21,7 +21,8 @@ module Datadog
             ?client_computed_stats: bool,
             ?timeout_milliseconds: Integer?
           ) -> TraceExporter
-          def _native_send_traces: (::Array[::Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) -> ::Array[Response]
+
+          def _native_send_traces: (Array[Array[Datadog::Tracing::Span]] chunks, bool native_events_supported) ?{ (Hash[Symbol, Integer]) -> void } -> Array[Response]
 
           def _native_close: () -> nil
 
@@ -39,8 +40,11 @@ module Datadog
           @send_mutex: ::Thread::Mutex
           @fork_mutex: ::Thread::Mutex
           @fork_hooks: ::Hash[::Symbol, ::Proc]?
+          @telemetry: Telemetry?
 
           attr_reader logger: Datadog::Core::Logger
+
+          def telemetry=: (Core::Telemetry::Component client) -> void
 
           attr_reader url: String
 
