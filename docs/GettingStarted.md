@@ -2895,6 +2895,20 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
+### AI Guard
+
+AI Guard evaluates application prompts and tool calls and applies the verdict to the traced messages.
+
+Configure AI Guard redaction with environment variables or inside a `Datadog.configure` block:
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_AI_GUARD_REDACTION_ENABLED` | `Boolean` | Values flagged by AI Guard are replaced before the messages are stored in the span or returned; disable to skip redaction. | `true` |
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.ai_guard.redaction_enabled` | `Boolean` | Values flagged by AI Guard are replaced before the messages are stored in the span or returned; disable to skip redaction. | `true` |
+
 ### Profiling
 
 `datadog` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
