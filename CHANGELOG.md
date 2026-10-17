@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [2.45.0] - 2026-10-13
+
+### Changed
+
+* Core: Begin the progressive rollout of the native trace exporter, enabling it by default on CRuby 4.0.0 and later. ([#6419][])
+
+### Fixed
+
+* Tracing: Fix missing Agent URLs in startup diagnostics when using the native trace exporter. ([#6433][])
+* Tracing: Fix child processes hanging during garbage collection after closing a native trace transport and then forking. ([#6433][])
+* Tracing: Security: Fixes a security vulnerability, as described in [GHSA-p7cx-x3jr-jj6w](https://github.com/DataDog/dd-trace-rb/security/advisories/GHSA-p7cx-x3jr-jj6w). ([#6441][])
+* Tracing: Fix ignored `c.agent.timeout_seconds` and `DD_TRACE_AGENT_TIMEOUT_SECONDS` settings when using the native trace exporter. ([#6433][])
+* Tracing: Fix custom trace transports being replaced when native transport is enabled, restoring compatibility with `datadog-ci`. ([#6433][])
+* Profiling: Fix a sampling race condition during profile serialization. ([#6377][])
+* Profiling: Fix potential crash due to underflow when sampling. ([#6401][])
+* Profiling: Fix additional crashes during garbage collection compaction when profiling is enabled. ([#6412][])
+* AppSec: Fix APM statistics to be properly excluded when using the native trace exporter with APM tracing disabled. ([#6433][])
+
 ## [2.44.0] - 2026-10-07
 
 ### Added
@@ -3820,7 +3838,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.44.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.45.0...master
+[2.45.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.44.0...v2.45.0
 [2.44.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.43.0...v2.44.0
 [2.43.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.42.0...v2.43.0
 [2.42.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.41.0...v2.42.0
@@ -5669,11 +5688,17 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#6364]: https://github.com/DataDog/dd-trace-rb/issues/6364
 [#6371]: https://github.com/DataDog/dd-trace-rb/issues/6371
 [#6375]: https://github.com/DataDog/dd-trace-rb/issues/6375
+[#6377]: https://github.com/DataDog/dd-trace-rb/issues/6377
 [#6394]: https://github.com/DataDog/dd-trace-rb/issues/6394
 [#6395]: https://github.com/DataDog/dd-trace-rb/issues/6395
 [#6398]: https://github.com/DataDog/dd-trace-rb/issues/6398
+[#6401]: https://github.com/DataDog/dd-trace-rb/issues/6401
 [#6407]: https://github.com/DataDog/dd-trace-rb/issues/6407
+[#6412]: https://github.com/DataDog/dd-trace-rb/issues/6412
+[#6419]: https://github.com/DataDog/dd-trace-rb/issues/6419
 [#6427]: https://github.com/DataDog/dd-trace-rb/issues/6427
+[#6433]: https://github.com/DataDog/dd-trace-rb/issues/6433
+[#6441]: https://github.com/DataDog/dd-trace-rb/issues/6441
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

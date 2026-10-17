@@ -2,8 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
-require_relative "capture_expression_evaluator"
 
 module Datadog
   module DI
@@ -11,14 +11,18 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer, logger, telemetry: nil)
+      # Initializes the builder.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for builder diagnostics
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @return [void]
+      def initialize(settings, serializer, logger, capture_expression_evaluator:)
         @settings = settings
         @serializer = serializer
         @logger = logger
-        @telemetry = telemetry
-        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
-        )
+        @capture_expression_evaluator = capture_expression_evaluator
       end
 
       attr_reader :settings
@@ -26,8 +30,6 @@ module Datadog
       attr_reader :serializer
 
       attr_reader :logger
-
-      attr_reader :telemetry
 
       attr_reader :capture_expression_evaluator
 
@@ -53,7 +55,7 @@ module Datadog
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
           status: "ERROR",
-          exception: exc)
+          exception: exc,)
       end
 
       def build_disabled(probe, duration)
@@ -83,10 +85,11 @@ module Datadog
         capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
           snapshot_limits = probe.snapshot_serializer_limits(settings)
+          serialization_deadline = serializer.serialization_deadline
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
-              self: serializer.serialize_value(context.target_self, **snapshot_limits),
+              "@return": serializer.serialize_value(context.return_value, deadline: serialization_deadline, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits),
             }
             {
               entry: {
@@ -99,10 +102,10 @@ module Datadog
             }
           elsif probe.line?
             {
-              lines: (locals = context.serialized_locals) && {
+              lines: (locals = context.serialized_locals(serialization_deadline: serialization_deadline)) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
+                  arguments: {self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits)},
                 },
               },
             }
@@ -116,8 +119,9 @@ module Datadog
                 entry: {captureExpressions: captured_block},
               }
             else
-              captured_block, capture_expression_evaluation_errors =
-                capture_expression_evaluator.evaluate(probe, context)
+              capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+              captured_block = capture_evaluation_result.serialized_values
+              capture_expression_evaluation_errors = capture_evaluation_result.errors
               {
                 return: {
                   captureExpressions: captured_block,
@@ -126,8 +130,9 @@ module Datadog
               }
             end
           elsif probe.line?
-            captured_block, capture_expression_evaluation_errors =
-              capture_expression_evaluator.evaluate(probe, context)
+            capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+            captured_block = capture_evaluation_result.serialized_values
+            capture_expression_evaluation_errors = capture_evaluation_result.errors
             {
               lines: {
                 probe.line_no => {captureExpressions: captured_block},
@@ -144,14 +149,11 @@ module Datadog
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
-          captures: captures)
+          captures: captures,)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)
-        error = {
-          message: "#{exception.class}: #{exception}",
-          expr: expression.dsl_expr,
-        }
+        error = EvaluationFailure.new(expr: expression.dsl_expr, message: "#{exception.class}: #{exception}")
         build_snapshot_base(context, evaluation_errors: [error])
       end
 
@@ -358,7 +360,7 @@ module Datadog
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,
-              evaluationErrors: evaluation_errors,
+              evaluationErrors: evaluation_errors.map { |failure| {expr: failure.expr, message: failure.message} },
               probe: {
                 id: probe.id,
                 version: 0,
@@ -421,10 +423,10 @@ module Datadog
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
-          evaluation_errors << {
-            message: "#{exc.class}: #{exc.message}",
+          evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
-          }
+            message: "#{exc.class}: #{exc.message}",
+          )
           "[evaluation error]"
         end.join
         [message, evaluation_errors]

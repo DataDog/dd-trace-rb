@@ -4,6 +4,7 @@
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
+#include "helpers.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
@@ -38,8 +39,9 @@ void process_discovery_init(VALUE core_module) {
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE logger;
+  VALUE otel_thread_context_enabled;
   VALUE options;
-  rb_scan_args(argc, argv, "1:", &logger, &options);
+  rb_scan_args(argc, argv, "2:", &logger, &otel_thread_context_enabled, &options);
   if (options == Qnil) options = rb_hash_new();
 
   VALUE runtime_id = rb_hash_fetch(options, ID2SYM(rb_intern("runtime_id")));
@@ -61,6 +63,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_version, T_STRING);
   ENFORCE_TYPE(process_tags, T_STRING);
   ENFORCE_TYPE(container_id, T_STRING);
+  ENFORCE_BOOLEAN(otel_thread_context_enabled);
 
   void* builder = ddog_tracer_metadata_new();
 
@@ -73,6 +76,16 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_VERSION, StringValueCStr(service_version));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_PROCESS_TAGS, StringValueCStr(process_tags));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_CONTAINER_ID, StringValueCStr(container_id));
+
+  if (RTEST(otel_thread_context_enabled)) {
+    ddog_VoidResult include_result = ddog_tracer_metadata_include_otel_thread_context(builder);
+
+    if (include_result.tag == DDOG_VOID_RESULT_ERR) {
+      ddog_tracer_metadata_free(builder);
+    }
+
+    CHECK_VOID_RESULT("Failed to include OTel thread context metadata", include_result);
+  }
 
   ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
   ddog_tracer_metadata_free(builder);
@@ -89,6 +102,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   *fd = result.ok.fd;
   VALUE tracer_memfd_class = rb_const_get(self, rb_intern("TracerMemfd"));
   VALUE tracer_memfd = TypedData_Wrap_Struct(tracer_memfd_class, &tracer_memfd_type, fd);
+
   return tracer_memfd;
 }
 

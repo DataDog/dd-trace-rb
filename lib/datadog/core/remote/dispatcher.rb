@@ -5,10 +5,20 @@ module Datadog
     module Remote
       # Repository update dispatcher
       class Dispatcher
-        attr_reader :receivers
-
         def initialize(receivers)
-          @receivers = receivers
+          @receivers = receivers.dup
+          @mutex = Mutex.new
+        end
+
+        def receivers
+          @mutex.synchronize { @receivers.dup }
+        end
+
+        def add_receivers(*receivers)
+          @mutex.synchronize do
+            receivers.each { |receiver| @receivers << receiver unless @receivers.include?(receiver) }
+          end
+          nil
         end
 
         def dispatch(changes, repository)

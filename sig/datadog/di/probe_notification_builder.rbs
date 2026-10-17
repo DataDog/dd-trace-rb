@@ -8,15 +8,13 @@ module Datadog
       @settings: Datadog::Core::Configuration::Settings
       @serializer: Serializer
       @logger: DI::Logger
-      @telemetry: Core::Telemetry::Component?
       @capture_expression_evaluator: CaptureExpressionEvaluator
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, capture_expression_evaluator: CaptureExpressionEvaluator) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader serializer: Serializer
       attr_reader logger: DI::Logger
-      attr_reader telemetry: Core::Telemetry::Component?
       attr_reader capture_expression_evaluator: CaptureExpressionEvaluator
 
       def build_received: (Probe probe) -> Hash[Symbol,untyped]
@@ -36,7 +34,7 @@ module Datadog
       def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
       def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
 
-      def build_snapshot_base: (Context context, ?evaluation_errors: Array[Hash[Symbol, String]]?, ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[EvaluationFailure], ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
 
       def build_condition_evaluation_failed: (Context context, EL::Expression expr, Exception exception) -> Hash[Symbol,untyped]
 
@@ -44,7 +42,7 @@ module Datadog
 
       def format_caller_locations: (Array[Thread::Backtrace::Location] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (Array[String | EL::Expression] template, Context context) -> [String, Array[Hash[Symbol, String]]]
+      def evaluate_template: (Array[String | EL::Expression] template, Context context) -> [String, Array[EvaluationFailure]]
 
       def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
 

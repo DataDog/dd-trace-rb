@@ -22,13 +22,9 @@ module Datadog
 
       def clear: () -> bool
 
-      def supported?: () -> bool
-
       def update_from_trace_op: (TraceOperation trace_op) -> void
 
-      def _native_supported?: () -> bool
-
-      def _native_enable: () -> bool
+      def _native_enable: () -> true
 
       def _native_set: (Integer trace_id, Integer span_id, Integer local_root_span_id) -> bool
 

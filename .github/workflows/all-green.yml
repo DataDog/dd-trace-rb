@@ -7,14 +7,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  checks: read
-  statuses: read
+permissions: {}
 
 jobs:
   all-jobs-are-green:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      checks: read
+      statuses: read
     steps:
       - name: Run Ensure CI Success
         uses: DataDog/ensure-ci-success@b0d931ac77c810490e61964c321103040eef888e # v2.3.0
@@ -37,4 +38,7 @@ jobs:
           # polling-interval-seconds: "60"
 
           # Excluded check names/status contexts; each pattern is a regular expression that must fully match.
-          ignored-name-patterns: devflow/mergegate # Reports merge readiness for conditions outside automated CI, such as code review.
+          # Mergegate checks non-CI merge requirements (e.g. code review); DDCI Status is optional.
+          ignored-name-patterns: |
+            devflow/.*
+            DDCI Status

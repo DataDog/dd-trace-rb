@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -73,12 +73,12 @@ jobs:
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake rubocop
 
-  steep:
-    name: steep/typecheck
+  steep-check:
+    name: steep/check
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -96,9 +96,28 @@ jobs:
       - name: Check for missing signature files
         run: bundle exec rake rbs:missing
       - name: Check types
-        run: bundle exec rake steep:check
+        run: bundle exec rake 'steep:check[--jobs=4]'
+
+  steep-stats:
+    name: steep/stats
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
       - name: Record stats
-        run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
+        run: bundle exec rake 'steep:stats[md,--jobs=4]' >> "$GITHUB_STEP_SUMMARY"
 
   bundler-audit:
     name: bundler-audit
@@ -113,7 +132,7 @@ jobs:
         (github.event_name == 'pull_request' && startsWith(github.head_ref, 'bump_to_version_'))
       )
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -125,7 +144,7 @@ jobs:
     name: document-lint
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -165,7 +184,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -174,7 +193,8 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           HEAD_REF: ${{ github.head_ref }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: .github/scripts/check_changelog_release_only.sh
 
       - name: Validate changelog fragment schema
@@ -207,7 +227,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -293,7 +313,8 @@ jobs:
   complete:
     name: Static Analysis (complete)
     needs:
-      - 'steep'
+      - 'steep-check'
+      - 'steep-stats'
       - 'standard'
       - 'rubocop'
       - 'semgrep'
