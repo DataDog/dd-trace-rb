@@ -657,6 +657,9 @@ RSpec.describe Datadog::AIGuard::Redaction do
       end
 
       it "leaves the failed message unchanged and applies the remaining replacement" do
+        debug_messages = []
+        allow(Datadog.logger).to receive(:debug) { |&block| debug_messages << block&.call }
+
         aggregate_failures "partial redaction after the first replacement fails" do
           expect(result.messages.map(&:to_h)).to eq([
             {role: :user, content: "Contact ops@example.com"},
@@ -665,6 +668,9 @@ RSpec.describe Datadog::AIGuard::Redaction do
           expect(result.messages[0]).to equal(messages[0])
           expect(result.applied_count).to eq(1)
           expect(result.failures_count).to eq(1)
+          expect(debug_messages).to include(
+            "AI Guard: failed to apply redaction replacement [0, :content]: StandardError: StandardError"
+          )
         end
       end
     end

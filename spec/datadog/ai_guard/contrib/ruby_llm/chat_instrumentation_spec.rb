@@ -45,6 +45,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
   let(:chat) { RubyLLM.chat }
   let(:ai_guard_span) { spans.find { |span| span.name == "ai_guard" } }
   let(:telemetry) { spy(Datadog::Core::Telemetry::Component) }
+  let(:logger) { logger_allowing_debug }
   let(:raw_response) do
     {
       "data" => {
@@ -436,6 +437,8 @@ RSpec.describe "RubyLLM chat instrumentation" do
       allow(chat).to receive(:messages).and_return([tool_call_message])
       allow(JSON).to receive(:generate).and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
       allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+      allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
     end
 
     let(:tool_call_message) do
@@ -453,7 +456,13 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
 
     it "counts the error and continues without evaluation" do
+      expect_lazy_log(logger, :debug,
+        "AI Guard: failed to convert RubyLLM messages: JSON::GeneratorError: Failed to generate JSON")
+
       expect { chat.generate }.not_to raise_error
+
+      expect(telemetry).to have_received(:report)
+        .with(an_instance_of(JSON::GeneratorError), description: "AI Guard: failed to convert RubyLLM messages")
       expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
       expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
     end
@@ -463,6 +472,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
     before do
       allow(chat).to receive(:messages).and_return([tool_call_message])
       allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
     end
 
     let(:tool_call_message) do
@@ -476,6 +486,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
 
     it "reports the error and continues without evaluation" do
+      expect_lazy_log(logger, :debug,
+        "AI Guard: failed to convert RubyLLM messages: ArgumentError: Tool call arguments must be a String or Hash")
+
       expect { chat.generate }.not_to raise_error
 
       expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
@@ -488,6 +501,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
     before do
       allow(chat).to receive(:messages).and_return([tool_call_message])
       allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
       allow_any_instance_of(RubyLLM::Protocols::Responses).to receive(:complete) do |_protocol, messages, **_options|
         provider_messages.replace(messages)
         RubyLLM::Message.new(role: :assistant, content: "Done")
@@ -526,6 +540,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
 
     it "reports the error and continues with the original messages" do
+      expect_lazy_log(logger, :debug,
+        /AI Guard: failed to apply RubyLLM redaction: JSON::ParserError: /)
+
       expect { chat.generate }.not_to raise_error
 
       expect(provider_messages[0].tool_calls.fetch("tool_call_1").arguments).to eq("command" => "ls /")
@@ -540,6 +557,8 @@ RSpec.describe "RubyLLM chat instrumentation" do
       allow(tool).to receive(:execute).and_return("done")
       allow(JSON).to receive(:generate).and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
       allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+      allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
       chat.messages << tool_call_response
     end
 
@@ -563,8 +582,13 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
 
     it "reports the error and executes the tool with the original arguments" do
+      expect_lazy_log(logger, :debug,
+        "AI Guard: failed to convert RubyLLM messages: JSON::GeneratorError: Failed to generate JSON")
+
       expect { chat.run_tools }.not_to raise_error
 
+      expect(telemetry).to have_received(:report)
+        .with(an_instance_of(JSON::GeneratorError), description: "AI Guard: failed to convert RubyLLM messages")
       expect(tool).to have_received(:execute).with(command: "ls /")
       expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
       expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
@@ -576,6 +600,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       allow(tool).to receive(:name).and_return("shell")
       allow(tool).to receive(:execute).and_return("done")
       allow(Datadog::AIGuard).to receive(:telemetry).and_return(telemetry)
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
       chat.messages << tool_call_response
     end
 
@@ -618,6 +643,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
 
     it "counts the error and executes the tool with the original arguments" do
+      expect_lazy_log(logger, :debug,
+        /AI Guard: failed to apply RubyLLM redaction: JSON::ParserError: /)
+
       expect { chat.run_tools }.not_to raise_error
 
       expect(tool).to have_received(:execute).with(command: "ls /")

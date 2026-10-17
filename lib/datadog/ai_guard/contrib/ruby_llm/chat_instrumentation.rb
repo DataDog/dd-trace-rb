@@ -24,10 +24,13 @@ module Datadog
 
             begin
               converted_messages = adapter.to_ai_guard
-            rescue JSON::JSONError
+            rescue JSON::JSONError => e
+              AIGuard.logger&.debug { "AI Guard: failed to convert RubyLLM messages: #{e.class}: #{e.message}" }
+              AIGuard.telemetry&.report(e, description: "AI Guard: failed to convert RubyLLM messages")
               Metrics::Telemetry.report_error
               return super
             rescue => e
+              AIGuard.logger&.debug { "AI Guard: failed to convert RubyLLM messages: #{e.class}: #{e.message}" }
               AIGuard.telemetry&.report(e, description: "AI Guard: Failed to convert RubyLLM messages")
               return super
             end
@@ -37,6 +40,7 @@ module Datadog
             begin
               redacted_messages = adapter.apply_redactions(evaluation.messages)
             rescue JSON::JSONError => e
+              AIGuard.logger&.debug { "AI Guard: failed to apply RubyLLM redaction: #{e.class}: #{e.message}" }
               AIGuard.telemetry&.report(e, description: "AI Guard: Failed to apply RubyLLM redaction")
               return super
             end
@@ -51,7 +55,9 @@ module Datadog
             adapter = MessageAdapter.new(messages)
             begin
               converted_messages = adapter.to_ai_guard
-            rescue JSON::JSONError
+            rescue JSON::JSONError => e
+              AIGuard.logger&.debug { "AI Guard: failed to convert RubyLLM messages: #{e.class}: #{e.message}" }
+              AIGuard.telemetry&.report(e, description: "AI Guard: failed to convert RubyLLM messages")
               Metrics::Telemetry.report_error
               return super
             end
@@ -60,6 +66,7 @@ module Datadog
             begin
               redacted_messages = adapter.apply_redactions(evaluation.messages)
             rescue JSON::JSONError => e
+              AIGuard.logger&.debug { "AI Guard: failed to apply RubyLLM redaction: #{e.class}: #{e.message}" }
               AIGuard.telemetry&.report(e, description: "AI Guard: Failed to apply RubyLLM redaction")
               return super
             end

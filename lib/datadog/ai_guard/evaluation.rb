@@ -44,7 +44,8 @@ module Datadog
             outcome =
               begin
                 Client.evaluate(messages)
-              rescue
+              rescue => e
+                AIGuard.logger&.debug { "AI Guard: failed to evaluate messages: #{e.class}: #{e.message}" }
                 Metrics::Telemetry.report_error
                 raise
               end
