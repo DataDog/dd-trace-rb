@@ -18,10 +18,10 @@ module Datadog
     # preserving its variable name as the JSON key.
     #
     # A nested collection (a collection member of a captured collection)
-    # is gated against the whole remaining budget, not the per-member cap
-    # MAX_ITEM_BYTES, so the captured depth structure is retained while
-    # the total stays within the cap; MAX_ITEM_BYTES caps each scalar
-    # member of a captured collection. Because a retained nested
+    # is gated against the whole remaining budget, so the captured depth
+    # structure is retained while the total stays within the cap;
+    # MAX_ITEM_BYTES caps each scalar member of a captured collection.
+    # Because a retained nested
     # collection can encode larger than the per-member allowance, the
     # enclosing collection's constant-time bound can underestimate, and
     # a member whose emission overruns the budget midway is pruned
@@ -48,10 +48,10 @@ module Datadog
     module SnapshotEncoder
       # Byte cap applied to every scalar member of a retained captured
       # collection (+elements+, +entries+, +fields+); a nested collection
-      # member is gated against the whole remaining budget instead. For
+      # member is gated against the whole remaining budget. For
       # a collection whose members are all scalar, the collection's
       # pre-walk bound computed from the member count and this constant
-      # is never lower than the collection's actual encoded size. A
+      # is an upper bound on the collection's actual encoded size. A
       # serializer captured string is at most max_capture_string_length
       # characters (255 by default), which is at most four bytes per
       # character in UTF-8 and at most four characters per byte in the
@@ -170,8 +170,8 @@ module Datadog
         # Encodes one captured-value slot. A collection slot whose
         # constant-time bound exceeds the remaining budget is pruned
         # without being walked; a nested collection member of a captured
-        # collection is gated against the whole remaining budget, not the
-        # per-member cap. A scalar slot whose minimum possible encoded
+        # collection is gated against the whole remaining budget. A
+        # scalar slot whose minimum possible encoded
         # size exceeds the byte budget is pruned without being encoded.
         # A slot whose encoding exceeds the budget midway is pruned
         # together with its partial emission.
@@ -204,7 +204,7 @@ module Datadog
           return emit_pruned(out, budget, &on_prune) if oversized
           # The slot's content is emitted into a scratch buffer first, so
           # a slot whose encoding exceeds the budget midway is discarded
-          # whole and the enclosing output never keeps a partial slot.
+          # whole; the enclosing output keeps whole slots only.
           scratch = String.new(encoding: Encoding::UTF_8)
           slot_budget = Budget.new(cap)
           emitted = if Hash === slot
@@ -381,7 +381,7 @@ module Datadog
         # Encodes a structural envelope Hash. The +locals+, +arguments+, and
         # +captureExpressions+ values are Hashes of {variable name: slot};
         # the +throwable+ value is a single slot. Other values are envelope
-        # data and are never pruned.
+        # data and are emitted as-is.
         #
         # @param hash [Hash] envelope Hash to encode
         # @param out [String] output buffer
