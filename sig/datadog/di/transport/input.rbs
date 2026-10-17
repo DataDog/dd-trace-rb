@@ -15,8 +15,6 @@ module Datadog
 
           @guardrails_telemetry: DI::GuardrailsTelemetry
 
-          attr_reader logger: DI::Logger
-
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
@@ -38,6 +36,8 @@ module Datadog
           def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 
           def encoder: () -> singleton(Core::Encoding::JSONEncoder)
+
+          def logger: () -> DI::Logger
         end
       end
     end
