@@ -12,7 +12,7 @@ module Datadog
           class << self
             def parse(hash)
               signed = hash.fetch("signed")
-              raise TypeError, "Invalid type for signed: #{signed.class}: expected Hash" unless signed.is_a?(Hash)
+              raise TypeError, "Invalid type for signed: expected Hash: #{signed.inspect}" unless signed.is_a?(Hash)
 
               # Note that the +dig+ call permits +hash['signed']+ to be
               # missing the +custom+ subtree entirely.
@@ -33,11 +33,11 @@ module Datadog
               end
 
               targets = signed.fetch("targets")
-              raise TypeError, "Invalid type for targets: #{targets.class}: expected Hash" unless targets.is_a?(Hash)
+              raise TypeError, "Invalid type for targets: expected Hash: #{targets.inspect}" unless targets.is_a?(Hash)
 
               targets.each_with_object(map) do |(p, t), m|
                 path = Configuration::Path.parse(p)
-                raise TypeError, "Invalid type for targets entry: #{t.class}: expected Hash" unless t.is_a?(Hash)
+                raise TypeError, "Invalid type for targets entry: expected Hash: #{t.inspect}" unless t.is_a?(Hash)
                 target = Configuration::Target.parse(t)
 
                 m[path] = target
@@ -62,14 +62,14 @@ module Datadog
           class << self
             def parse(hash)
               length = hash.fetch("length")
-              raise TypeError, "Invalid type for length: #{length.class}: expected Integer" unless length.is_a?(Integer)
+              raise TypeError, "Invalid type for length: expected Integer: #{length.inspect}" unless length.is_a?(Integer)
 
               hashes = hash.fetch("hashes")
-              raise TypeError, "Invalid type for hashes: #{hashes.class}: expected Hash" unless hashes.is_a?(Hash)
+              raise TypeError, "Invalid type for hashes: expected Hash: #{hashes.inspect}" unless hashes.is_a?(Hash)
               digests = Configuration::DigestList.parse(hashes)
 
               version = hash.dig("custom", "v")
-              raise TypeError, "Invalid type for custom.v: #{version.class}: expected Integer" unless version.is_a?(Integer)
+              raise TypeError, "Invalid type for custom.v: expected Integer: #{version.inspect}" unless version.is_a?(Integer)
 
               new(digests: digests, length: length, version: version)
             end

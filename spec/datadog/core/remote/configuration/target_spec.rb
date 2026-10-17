@@ -171,7 +171,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         invalid_data = raw_target_map.merge("signed" => "not a hash")
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          TypeError, "Invalid type for signed: String: expected Hash"
+          TypeError, 'Invalid type for signed: expected Hash: "not a hash"'
         )
       end
     end
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         )
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          TypeError, "Invalid type for targets: String: expected Hash"
+          TypeError, 'Invalid type for targets: expected Hash: "not a hash"'
         )
       end
     end
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         )
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          TypeError, "Invalid type for targets entry: String: expected Hash"
+          TypeError, 'Invalid type for targets entry: expected Hash: "not a hash"'
         )
       end
     end
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with hashes that is not a Hash" do
         it "raises TypeError" do
           expect { described_class.parse(raw_target.merge("hashes" => "not a hash")) }.to raise_error(
-            TypeError, "Invalid type for hashes: String: expected Hash"
+            TypeError, 'Invalid type for hashes: expected Hash: "not a hash"'
           )
         end
       end
@@ -234,7 +234,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with length that is not an Integer" do
         it "raises TypeError" do
           expect { described_class.parse(raw_target.merge("length" => "645")) }.to raise_error(
-            TypeError, "Invalid type for length: String: expected Integer"
+            TypeError, 'Invalid type for length: expected Integer: "645"'
           )
         end
       end
@@ -243,7 +243,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         it "raises TypeError" do
           expect do
             described_class.parse(raw_target.merge("custom" => {"v" => "21"}))
-          end.to raise_error(TypeError, "Invalid type for custom.v: String: expected Integer")
+          end.to raise_error(TypeError, 'Invalid type for custom.v: expected Integer: "21"')
         end
       end
     end

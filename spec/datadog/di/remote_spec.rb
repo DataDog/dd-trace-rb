@@ -465,7 +465,7 @@ RSpec.describe Datadog::DI::Remote do
     it "raises TypeError when probe id is not a String" do
       expect do
         described_class.send(:remove_probe, content, component)
-      end.to raise_error(TypeError, "Invalid type for probe id: Integer: expected String")
+      end.to raise_error(TypeError, "Invalid type for probe id: expected String: 42")
     end
   end
 end

@@ -292,7 +292,7 @@ module Datadog
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
           probe_id = probe_spec.fetch("id")
-          raise TypeError, "Invalid type for probe id: #{probe_id.class}: expected String" unless probe_id.is_a?(String)
+          raise TypeError, "Invalid type for probe id: expected String: #{probe_id.inspect}" unless probe_id.is_a?(String)
 
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException

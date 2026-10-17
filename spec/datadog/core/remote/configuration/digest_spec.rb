@@ -60,7 +60,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
 
         it "raises TypeError" do
           expect { digest_list }.to raise_error(
-            TypeError, "Invalid type for hexdigest: Integer: expected String"
+            TypeError, "Invalid type for hexdigest: expected String: 42"
           )
         end
       end
