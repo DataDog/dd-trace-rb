@@ -3,6 +3,7 @@ require "datadog/version"
 require "standard/rake" if Gem.loaded_specs.key? "standard"
 require "rspec/core/rake_task"
 require "rake/extensiontask"
+require_relative "tasks/lib/compatibility"
 require "os"
 if Gem.loaded_specs.key? "ruby_memcheck"
   require "ruby_memcheck"
@@ -547,13 +548,8 @@ namespace :spec do
   namespace :profiling do
     task all: [:main, :ractors]
 
-    task :compile_native_extensions do
-      # "bundle exec rake compile" currently only works on CRuby
-      if RUBY_ENGINE == "ruby"
-        Rake::Task[:clean].invoke
-        Rake::Task[:compile].invoke
-      end
-    end
+    # Clean before compilation prerequisites run: Rake only creates staging directories once.
+    task compile_native_extensions: ((RUBY_ENGINE == "ruby") ? [:clean, :compile] : [])
 
     # Datadog Profiling main specs without Ractor creation
     # NOTE: Ractor creation will transition the entire Ruby VM into multi-ractor mode. This cannot be undone
@@ -656,6 +652,14 @@ NATIVE_EXTS = [
     end
   ),
 ].compact.freeze
+
+if RUBY_ENGINE == "ruby"
+  spec_tasks = Rake::Task.tasks.map(&:name).grep(/\Aspec:/)
+  spec_tasks |= TEST_METADATA.keys.map { |key| "spec:#{key}" }
+  spec_tasks.each do |name|
+    task name => ["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"]
+  end
+end
 
 NATIVE_CLEAN = ::Rake::FileList[]
 # DEV: Should we suggest this Rake task for native development onboarding?

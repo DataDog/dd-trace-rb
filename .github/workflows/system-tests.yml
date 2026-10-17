@@ -17,7 +17,7 @@ jobs:
     name: Changes
     runs-on: ubuntu-24.04
     outputs:
-      changes: ${{ steps.changes.outputs.src }}
+      changes: ${{ steps.changes.outputs.system_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,17 +27,7 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
-          filters: |
-            src:
-              - '.github/forced-tests-list.cfg'
-              - '.github/workflows/**'
-              - 'lib/**'
-              - 'ext/**'
-              - '*.gemspec'
-              - 'Gemfile'
-              - '*.gemfile'
-              - 'lib-injection/**'
-              - 'tasks/**'
+          filters: .github/path-filters.yml
 
   build:
     needs:
@@ -58,7 +48,7 @@ jobs:
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dd-trace-rb # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
@@ -70,7 +60,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@7624ea2919a72738a2e923adbdf9c2d538bc4ae2  # Automated: Updated by .github/workflows/update-system-tests.yml.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@f8d0dfc8a20a303408f79f1de6af4df79e63dd8f  # Automated: Updated by .github/workflows/update-system-tests.yml.
     permissions:
       contents: read
       id-token: write
@@ -78,9 +68,9 @@ jobs:
     with:
       library: ruby
       binaries_artifact: dd-trace-rb
-      desired_execution_time: 300 # 5 minutes
+      desired_execution_time: 600
       scenarios_groups: tracer_release
-      ref: 7624ea2919a72738a2e923adbdf9c2d538bc4ae2 # Automated: Updated by .github/workflows/update-system-tests.yml.
+      ref: f8d0dfc8a20a303408f79f1de6af4df79e63dd8f # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true

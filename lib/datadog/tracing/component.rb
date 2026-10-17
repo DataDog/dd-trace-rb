@@ -62,6 +62,20 @@ module Datadog
         end
       end
 
+      def bind_transport_telemetry(tracer, telemetry)
+        return unless tracer.is_a?(Tracing::Tracer)
+
+        writer = tracer.writer
+        return unless writer.respond_to?(:transport)
+
+        transport = writer.transport
+        if transport.is_a?(Transport::Traces::Transport) ||
+            (defined?(Transport::Native::Transport) && transport.is_a?(Transport::Native::Transport))
+          transport.telemetry = telemetry
+        end
+        nil
+      end
+
       def build_sampler(settings)
         # A custom sampler is provided
         if (sampler = settings.tracing.sampler)
@@ -106,7 +120,7 @@ module Datadog
           return writer
         end
 
-        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+        if !options.key?(:transport) && settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
           options = options.merge(transport: transport)
         end
 

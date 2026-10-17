@@ -338,8 +338,17 @@ RSpec.describe Datadog::DI::Remote do
         instance_double(Datadog::DI::Serializer)
       end
 
+      let(:guardrails_telemetry) do
+        Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+      end
+
       let(:instrumenter) do
-        Datadog::DI::Instrumenter.new(settings, serializer, logger)
+        Datadog::DI::Instrumenter.new(settings, serializer, logger,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
+            settings: settings, serializer: serializer, logger: logger,
+            guardrails_telemetry: guardrails_telemetry, telemetry: nil,
+          ),)
       end
 
       let(:probe_notification_builder) do
@@ -355,7 +364,10 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:probe_manager) do
-        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository)
+        Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+          probe_repository, guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
+            settings: settings, logger: logger, telemetry: nil,
+          ))
       end
 
       let(:agent_settings) do

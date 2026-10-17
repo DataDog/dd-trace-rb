@@ -23,7 +23,11 @@ module Datadog
           metadata = get_metadata(settings)
 
           shutdown!
-          @file_descriptor = _native_store_tracer_metadata(Datadog.logger, **metadata)
+          @file_descriptor = _native_store_tracer_metadata(
+            Datadog.logger,
+            settings.tracing.otel_thread_context_enabled,
+            **metadata
+          )
         end
 
         def shutdown!
