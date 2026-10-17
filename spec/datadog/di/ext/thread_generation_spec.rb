@@ -7,6 +7,7 @@ require "datadog/di/spec_helper"
 # frozen before its first snapshot.
 
 RSpec.describe "Datadog::DI snapshot generation token" do
+  di_test
   describe ".current_thread_generation" do
     context "for the calling thread" do
       let(:token) { Datadog::DI.current_thread_generation }
