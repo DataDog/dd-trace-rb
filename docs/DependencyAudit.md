@@ -24,7 +24,7 @@ findings to `tmp/dependency_audit_findings.json`.
 
 ## If the audit fails
 
-1. If the error names lockfiles with no corresponding Gemfile, those are orphaned lockfiles: a Gemfile was deleted without its `.lock` companion. Delete each lockfile. `rake dependency:orphans` reports the same orphans in the Lock Dependencies workflow.
+1. If the error names lockfiles with no corresponding Gemfile, those are orphaned lockfiles. A Gemfile was deleted without its `.lock` companion. Delete each lockfile. `rake dependency:orphans` reports the same orphans in the Lock Dependencies workflow.
 
 2. Run `BUNDLE_GEMFILE=<affected gemfile> bundle update GEM_NAME` (or `bundle lock --update GEM_NAME`) to move the flagged gem to a patched version. Plain `bundle exec rake dependency:lock` will not move the version on its own.
 
