@@ -1,0 +1,17 @@
+module Datadog::Tracing::Transport
+  class Telemetry
+    COUNTS: Hash[Symbol, [String, Array[String]]]
+
+    @client: Datadog::Core::Telemetry::Component
+
+    @source_tags: Array[String]
+
+    @counts: Array[[Symbol, String, Array[String]]]
+
+    attr_writer client: Datadog::Core::Telemetry::Component
+
+    def initialize: (Datadog::Core::Telemetry::Component client, source: String) -> void
+
+    def record: (Hash[Symbol, Integer] observations) -> void
+  end
+end

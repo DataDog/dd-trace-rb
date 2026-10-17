@@ -4,74 +4,67 @@ module Datadog
   module AIGuard
     module Contrib
       module RubyLLM
-        # module that gets prepended to RubyLLM::Chat
+        # Protects tool calls before RubyLLM executes them locally
+        #
+        # @api private
         module ChatInstrumentation
-          class << self
-            def evaluate!(messages)
-              ai_guard_messages = messages.flat_map do |message|
-                if message.tool_call?
-                  message.tool_calls.map do |tool_call_id, tool_call|
-                    AIGuard.assistant(id: tool_call_id, tool_name: tool_call.name, arguments: tool_call.arguments.to_s)
-                  end
-                elsif message.tool_result?
-                  build_ai_guard_tool(message)
-                else
-                  build_ai_guard_message(message)
-                end
-              end
+          private
 
-              AIGuard.evaluate(*ai_guard_messages)
-            end
-
-            private
-
-            def build_ai_guard_message(message)
-              content = message.content
-
-              case content
-              when ::RubyLLM::Content
-                AIGuard.message(role: message.role) do |m|
-                  m.text(content.text.to_s) if content.text
-
-                  # Calling attachment.for_llm triggers lazy loading of file contents.
-                  # The result is memoized, so providers won't re-read.
-                  content.attachments.each do |attachment|
-                    case attachment.type
-                    when :image
-                      m.image_url(attachment.for_llm)
-                    when :text
-                      m.text(attachment.for_llm)
-                    end
-                    # Skip :pdf, :audio, :video, :unknown — not supported by AIGuard
-                  end
-                end
-              else
-                AIGuard.message(role: message.role, content: content)
-              end
-            end
-
-            def build_ai_guard_tool(message)
-              content = message.content
-              # Tools can return Content or Content::Raw objects (e.g. with attachments),
-              # but AIGuard.tool expects a String. Extract text when content is a Content object.
-              case content
-              when ::RubyLLM::Content
-                content = content.text.to_s
-              end
-              AIGuard.tool(tool_call_id: message.tool_call_id, content: content)
-            end
+          def provider_completion(usage_recorder:, stream_tracker: nil, &block)
+            @_datadog_ai_guard_evaluate = true
+            super
+          ensure
+            @_datadog_ai_guard_evaluate = false
           end
 
-          def complete(&block)
-            Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
+          def preprocessed_messages(list = messages)
+            return super unless @_datadog_ai_guard_evaluate
 
-            super
+            adapter = MessageAdapter.new(list)
+
+            begin
+              converted_messages = adapter.to_ai_guard
+            rescue JSON::JSONError
+              Metrics::Telemetry.report_error
+              return super
+            rescue => e
+              AIGuard.telemetry&.report(e, description: "AI Guard: Failed to convert RubyLLM messages")
+              return super
+            end
+
+            evaluation = AIGuard.evaluate(*converted_messages)
+
+            begin
+              redacted_messages = adapter.apply_redactions(evaluation.messages)
+            rescue JSON::JSONError => e
+              AIGuard.telemetry&.report(e, description: "AI Guard: Failed to apply RubyLLM redaction")
+              return super
+            end
+
+            super(redacted_messages)
           end
 
-          def handle_tool_calls(response, &block)
-            Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
+          def execute_pending_tool_calls(response)
+            response_index = messages.index { |message| message == response }
+            return super unless response_index
 
-            super
+            adapter = MessageAdapter.new(messages)
+            begin
+              converted_messages = adapter.to_ai_guard
+            rescue JSON::JSONError
+              Metrics::Telemetry.report_error
+              return super
+            end
+
+            evaluation = AIGuard.evaluate(*converted_messages)
+            begin
+              redacted_messages = adapter.apply_redactions(evaluation.messages)
+            rescue JSON::JSONError => e
+              AIGuard.telemetry&.report(e, description: "AI Guard: Failed to apply RubyLLM redaction")
+              return super
+            end
+
+            super(redacted_messages[response_index])
           end
         end
       end

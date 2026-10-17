@@ -549,6 +549,8 @@ target :datadog do
   library "ipaddr"
   library "uri"
   library "net-http"
+  library "socket"
+  library "openssl"
   library "securerandom"
   library "digest"
   library "base64"

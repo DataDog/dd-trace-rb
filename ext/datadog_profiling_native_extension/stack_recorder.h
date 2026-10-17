@@ -37,5 +37,4 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint);
 void recorder_commit_heap_recordings_may_lose_gvl(VALUE recorder_instance);
 void recorder_heap_update_may_lose_gvl(VALUE recorder_instance);
-void recorder_install_on_serialize(VALUE recorder_instance, VALUE thread_context_collector_instance);
 VALUE enforce_recorder_instance(VALUE object);

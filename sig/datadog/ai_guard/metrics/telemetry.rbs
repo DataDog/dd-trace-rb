@@ -1,0 +1,17 @@
+module Datadog
+  module AIGuard
+    module Metrics
+      module Telemetry
+        NAMESPACE: String
+
+        CLIENT_ERROR: String
+
+        REDACTION_ERROR: String
+
+        def self?.report_evaluation: (Evaluation::Outcome outcome, blocked: bool) -> void
+
+        def self?.report_error: () -> void
+      end
+    end
+  end
+end

@@ -39,12 +39,16 @@ typedef struct {
 } frame_info;
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
-bool is_current_thread_holding_the_gvl(void);
-current_gvl_owner gvl_owner(void);
+// Must be called from the main ractor while holding the GVL
+void private_vm_api_access_init(void);
+void private_vm_api_access_self_test(void);
+current_gvl_owner main_ractor_gvl_owner(void);
+bool is_current_thread_in_main_ractor_and_holding_the_gvl(void);
 uint64_t native_thread_id_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
+void self_test_thread_name_for(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 
@@ -70,6 +74,8 @@ void self_test_mn_enabled(void);
 
 // Provides more specific information on what kind an imemo is
 const char *imemo_kind(VALUE imemo);
+
+int imemo_mask(void);
 
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void);

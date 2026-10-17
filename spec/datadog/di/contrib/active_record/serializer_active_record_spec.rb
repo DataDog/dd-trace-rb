@@ -63,13 +63,20 @@ RSpec.describe Datadog::DI::Serializer do
 
   default_settings
 
+  let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings,
+      logger: instance_double(Datadog::Core::Logger).as_null_object, telemetry: nil)
+  end
+
   let(:serializer) do
-    described_class.new(settings, redactor)
+    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   describe "#serialize_value" do
     let(:serialized) do
-      serializer.serialize_value(value, **options)
+      serializer.serialize_value(value, **options, deadline: Float::INFINITY)
     end
 
     cases = [

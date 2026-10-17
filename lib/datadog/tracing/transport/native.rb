@@ -4,6 +4,7 @@ require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
 require_relative "span_events_negotiation"
+require_relative "native/telemetry"
 
 module Datadog
   module Tracing
@@ -47,10 +48,20 @@ module Datadog
           include Statistics
           include SpanEventsNegotiation
 
-          attr_reader :logger
+          attr_reader :logger, :url
+
+          def telemetry=(client)
+            @send_mutex.synchronize do
+              if (reporter = @telemetry)
+                reporter.client = client
+              elsif @exporter
+                @telemetry = Telemetry.new(client)
+              end
+            end
+          end
 
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
-          #   Agent connection settings (provides +#url+).
+          #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
           def initialize(agent_settings:, logger:)
             unless Native.supported?
@@ -58,6 +69,7 @@ module Datadog
             end
 
             @logger = logger
+            @telemetry = nil
 
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
@@ -67,7 +79,7 @@ module Datadog
             # this is held across the fork through the matching completion hook.
             @fork_mutex = Mutex.new
 
-            url = agent_settings.url
+            @url = agent_settings.url
             tracer_version = tracer_version_string
             language = Core::Environment::Ext::LANG
             language_version = Core::Environment::Ext::LANG_VERSION
@@ -83,6 +95,7 @@ module Datadog
 
             exporter = Native::TraceExporter._native_new(
               url: url,
+              timeout_milliseconds: agent_settings.timeout_seconds * 1000,
               tracer_version: tracer_version,
               language: language,
               language_version: language_version,
@@ -90,7 +103,8 @@ module Datadog
               hostname: hostname,
               env: env,
               service: service,
-              version: version
+              version: version,
+              client_computed_stats: !Datadog.configuration.apm.tracing.enabled
             )
             @exporter = exporter
 
@@ -215,24 +229,24 @@ module Datadog
           # native exporter so its runtime can shut down. Idempotent: safe to
           # call multiple times and safe to call after the finalizer has run.
           def close
-            fork_hooks = @send_mutex.synchronize do
-              hooks = @fork_hooks
-              return if hooks.nil?
+            @fork_mutex.synchronize do
+              @send_mutex.synchronize do
+                hooks = @fork_hooks
+                return if hooks.nil?
 
-              @fork_hooks = nil
-              @exporter = nil
-              hooks
+                begin
+                  @exporter&._native_close
+                ensure
+                  @fork_hooks = nil
+                  @telemetry = nil
+                  @exporter = nil
+                  hooks.each do |stage, block|
+                    Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+                  end
+                  ObjectSpace.undefine_finalizer(self)
+                end
+              end
             end
-
-            fork_hooks.each do |stage, block|
-              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
-            end
-
-            # The finalizer only exists to deregister the hooks for a transport
-            # dropped without #close. We have just done that, so remove it;
-            # otherwise its closed-over hook blocks keep the exporter alive until
-            # this transport is itself collected.
-            ObjectSpace.undefine_finalizer(self)
 
             nil
           end
@@ -264,7 +278,7 @@ module Datadog
             return [] if traces.empty?
 
             # Apply trace-level tags to root spans (same as the HTTP transport)
-            traces.each { |trace| TraceFormatter.format!(trace) }
+            traces.each { |trace| TraceFormatter.format!(trace, transport: "native") }
 
             # Build the Array<Array<Span>> structure expected by the C extension.
             # Each trace segment becomes one inner array (one trace chunk).
@@ -284,7 +298,9 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks, native_events_supported)
+              exporter._native_send_traces(chunks, native_events_supported) do |observations|
+                @telemetry&.record(observations)
+              end
             end
 
             # Update statistics from the response

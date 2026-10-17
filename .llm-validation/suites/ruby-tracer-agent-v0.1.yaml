@@ -1,0 +1,36 @@
+name: ruby-tracer-agent
+version: "0.1"
+
+# Every repo fact below was verified against this checkout (paths, rake tasks, utility modules).
+# The judge is text-only: keep criteria gradeable from answer text alone.
+
+cases:
+  # Content case — tests AGENTS.md's test-running discipline (the most load-bearing guidance in the file).
+  - id: ruby-tracer-test-selection-001
+    files: [AGENTS.md]
+    input: |
+      A PR changes files under lib/datadog/tracing/contrib/pg/.
+      Which specs do I need to run to be covered, and how do I find them?
+    expected_criteria:
+      - "Notes the change is an instrumentation change, not a change to the tracing core."
+      - "Mentions the `Matrixfile` for finding the impacted Ruby versions and gemsets (the pg entry uses the `relational_db` group, validated on Ruby 2.5 through 4.0)."
+      - "Recommends `bundle exec rake test:pg` as the covering task for the current Ruby version, discoverable via `bundle exec rake -T test`."
+    bad_signals:
+      - "Invents a task or gemfile name for verifying pg (anything other than the pg rake task and its relational_db gemfiles)."
+      - "Presents the covering command as self-sufficient — claims the pg specs run on the default Gemfile or any active gemfile, when the pg gem comes from the relational_db gemfile the task selects."
+      - Claims the pg integration specs are part of `test:main` (contrib specs are excluded from it).
+
+  # Content case — tests AGENTS.md's environment-variable access rule.
+  - id: ruby-tracer-env-access-002
+    files: [AGENTS.md]
+    input: |
+      I'm adding a new feature whose behavior depends on environment variables.
+      How should I expose it, and how should I access it in code?
+    expected_criteria:
+      - "Explains how to expose it: declare the new `DD_`-prefixed variable in `supported-configurations.json` first."
+      - Mentions regenerating the configuration map with `bundle exec rake local_config_map:generate` after declaring the variable.
+      - "Uses `DATADOG_ENV` (e.g. `DATADOG_ENV['DD_TRACE_XXX']`) in the example code, never `ENV` directly."
+    bad_signals:
+      - Uses `ENV` (e.g. `ENV['DD_TRACE_XXX']` or `ENV.fetch`) directly in the example code.
+      - Claims no environment-variable access rules or convention
+      - "Claims a new `DD_` variable is readable without an entry in `supported-configurations.json`."

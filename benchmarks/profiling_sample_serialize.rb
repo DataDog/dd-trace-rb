@@ -14,8 +14,7 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 
 class ProfilerSampleSerializeBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
   end
 
   def run_benchmark
@@ -31,7 +30,7 @@ class ProfilerSampleSerializeBenchmark
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
         end
 
-        @recorder.serialize
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
         nil
       end
 
@@ -39,7 +38,7 @@ class ProfilerSampleSerializeBenchmark
       x.compare!
     end
 
-    @recorder.serialize
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
   end
 end
 

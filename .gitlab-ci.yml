@@ -16,7 +16,20 @@ include:
   - local: ".gitlab/benchmarks.yml"
   - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
     file: ".gitlab/ci-ruby-acme-parallel.yml"
-    ref: "0ba66f8dd5e9e3ab1d25f5e28eb04f50c8e7848f" # apm-sdks-benchmarks#283 merge commit
+    ref: "e6d019540e3522c644914f175e5669fc18baee87" # apm-sdks-benchmarks#303 merge commit
+  # LLM validation gate (prompt/AGENTS.md regression testing) — see ci/README.md in that repo.
+  # Pin both refs identically; bump together to adopt a new release.
+  - project: "ddoghq/llm-validation-platform"
+    file: "/ci/llm-validation.gitlab-ci.yml"
+    ref: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+
+# Re-open the gate job to pin the ref that actually runs (must match the include ref above).
+"llm validation":
+  variables:
+    LLMVAL_PLATFORM_PROJECT: "ddoghq/llm-validation-platform"
+    LLMVAL_PLATFORM_REF: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+    LLMVAL_BASE_REF: "master"
+    LLMVAL_LEVEL: "minimum"
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -24,7 +37,7 @@ variables:
   BUILD_JOB_NAME: save_versions
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby-notifications"
   OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
-  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
+  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 40000000
 
 default:
   tags: ["arch:amd64"]
@@ -171,9 +184,36 @@ requirements_json_test:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
 
+# Rules for the SSI shared pipeline. configure_system_tests and system_tests
+# must always be included or excluded together: system_tests needs
+# configure_system_tests, and needing a job absent from the pipeline fails
+# pipeline creation.
+.ssi_pipeline_rules:
+  rules: &ssi_pipeline_rules
+    - if: $SKIP_SHARED_PIPELINE == "true"
+      when: never
+    - if: $DANGEROUSLY_SKIP_SHARED_PIPELINE_TESTS == "true"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: '$CI_COMMIT_TAG'
+    - changes:
+        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
+        paths:
+          - lib/**
+          - ext/**
+          - datadog.gemspec
+          - Gemfile.lock
+          - .gitlab-ci.yml
+          - .gitlab/install_datadog_deps.rb
+          - .gitlab/prepare-oci-package.sh
+          - .gitlab/one-pipeline.locked.yml
+          - lib-injection/requirements.json
+    - when: never
+
 configure_system_tests:
+  rules: *ssi_pipeline_rules
   variables:
-    SYSTEM_TESTS_REF: b12bdba4b544a612a3917e64f219406190846487 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: f8d0dfc8a20a303408f79f1de6af4df79e63dd8f # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
@@ -188,6 +228,9 @@ save_versions:
   artifacts:
     paths:
       - upstream.env
+
+system_tests:
+  rules: *ssi_pipeline_rules
 
 deploy_to_reliability_env:
   needs:

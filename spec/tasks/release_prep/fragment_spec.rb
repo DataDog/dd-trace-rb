@@ -90,6 +90,12 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to contain_exactly(/product "Redis" must be one of/)
     end
 
+    it "accepts SSI as a product" do
+      path = write_fragment("1.json", valid_entry("product" => "SSI"))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
     it "collects every violation at once" do
       path = write_fragment("1.json", valid_entry("type" => "Removed", "product" => "Redis"))
 

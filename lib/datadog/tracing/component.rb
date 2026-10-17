@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "otel_thread_context"
 require_relative "tracer"
 require_relative "flush"
 require_relative "sync_writer"
@@ -42,6 +43,7 @@ module Datadog
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
+          otel_thread_context: OTelThreadContext.build(settings.tracing),
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
@@ -58,6 +60,20 @@ module Datadog
         else
           Tracing::Flush::Finished.new
         end
+      end
+
+      def bind_transport_telemetry(tracer, telemetry)
+        return unless tracer.is_a?(Tracing::Tracer)
+
+        writer = tracer.writer
+        return unless writer.respond_to?(:transport)
+
+        transport = writer.transport
+        if transport.is_a?(Transport::Traces::Transport) ||
+            (defined?(Transport::Native::Transport) && transport.is_a?(Transport::Native::Transport))
+          transport.telemetry = telemetry
+        end
+        nil
       end
 
       def build_sampler(settings)
@@ -104,7 +120,7 @@ module Datadog
           return writer
         end
 
-        if settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+        if !options.key?(:transport) && settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
           options = options.merge(transport: transport)
         end
 
