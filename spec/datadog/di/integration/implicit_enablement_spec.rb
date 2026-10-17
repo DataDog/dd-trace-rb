@@ -527,4 +527,58 @@ RSpec.describe "DI implicit enablement integration" do
       expect(component.started?).to be true
     end
   end
+
+  describe "RC withdraws the dynamic_instrumentation_enabled signal (config deleted)" do
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
+    let(:rc_payload_without_di) { {"lib_config" => {"tracing_sampling_rate" => 0.5}} }
+
+    before do
+      allow(telemetry).to receive(:client_configuration_change!)
+      allow(Datadog::DI).to receive(:activate_tracking)
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    end
+
+    context "when DI was started solely from RC enablement" do
+      before { apply_rc_payload(rc_payload_enable) }
+
+      it "is started by the RC enable signal" do
+        expect(component.started?).to be true
+      end
+
+      it "stops the component and withdraws the DI products when the signal is withdrawn" do
+        expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+        apply_rc_payload(rc_payload_without_di)
+
+        expect(component.started?).to be false
+      end
+    end
+
+    context "when DI was started by an explicit customer opt-in" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.remote.enabled = true
+          s.dynamic_instrumentation.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+        end
+      end
+
+      before { component.start! }
+
+      it "is started by the explicit opt-in and is not implicitly enabled" do
+        expect(component.started?).to be true
+        expect(component.implicitly_enabled?).to be false
+      end
+
+      it "leaves the component started and does not withdraw products when the signal is withdrawn" do
+        expect(remote).not_to receive(:remove_products)
+        expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+
+        apply_rc_payload(rc_payload_without_di)
+
+        expect(component.started?).to be true
+      end
+    end
+  end
 end

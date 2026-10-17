@@ -221,6 +221,60 @@ RSpec.describe Datadog::Tracing::Remote do
             expect(content.apply_state).to eq(2)
           end
         end
+
+        context "when absent from the merged config (the RC enable signal is withdrawn)" do
+          let(:config) { {"lib_config" => {"tracing_sampling_rate" => 0.5}} }
+
+          context "and DI was started solely from RC enablement (implicitly_enabled?)" do
+            let(:di_component) do
+              instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: true)
+            end
+
+            it "treats the withdrawal as false: stops DI, withdraws products, stops Symbol Database" do
+              expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).with(false, repository)
+              expect(symbol_database).to receive(:stop_for_di_disable)
+              expect(symbol_database).not_to receive(:resume_pending_upload)
+              expect(remote_component).to receive(:remove_products)
+                .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+              apply_configs
+
+              expect(content.apply_state).to eq(2)
+            end
+          end
+
+          context "and DI was started by an explicit customer opt-in (not implicitly_enabled?)" do
+            let(:di_component) do
+              instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: false)
+            end
+
+            it "leaves DI running and does not touch products or Symbol Database" do
+              expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+              expect(symbol_database).not_to receive(:stop_for_di_disable)
+              expect(symbol_database).not_to receive(:resume_pending_upload)
+              expect(remote_component).not_to receive(:remove_products)
+              expect(remote_component).not_to receive(:add_products)
+
+              apply_configs
+
+              expect(content.apply_state).to eq(2)
+            end
+          end
+
+          context "and the DI component is nil (unsupported runtime)" do
+            let(:di_component) { nil }
+
+            it "is a no-op for DI and does not touch products" do
+              expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+              expect(remote_component).not_to receive(:remove_products)
+              expect(remote_component).not_to receive(:add_products)
+
+              apply_configs
+
+              expect(content.apply_state).to eq(2)
+            end
+          end
+        end
       end
     end
   end
