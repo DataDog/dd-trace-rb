@@ -15,6 +15,8 @@ module Datadog
 
           @guardrails_telemetry: DI::GuardrailsTelemetry
 
+          attr_reader logger: DI::Logger
+
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
@@ -26,7 +28,7 @@ module Datadog
           def initialize: (
             Datadog::Core::Transport::HTTP::API::Map apis,
             ::String default_api,
-            logger: Datadog::Core::Logger,
+            logger: DI::Logger,
             guardrails_telemetry: DI::GuardrailsTelemetry,
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void

@@ -25,13 +25,20 @@ RSpec.describe "Snapshot size pruning integration" do
   end
 
   let(:guardrails_telemetry) do
-    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: di_logger, telemetry: nil)
+  end
+
+  # The DI logger facade the input transport and the guardrails telemetry
+  # emit through; the transport logs prune diagnostics at the facade's
+  # trace level.
+  let(:di_logger) do
+    Datadog::DI::Logger.new(settings, logger)
   end
 
   # A real input transport, so the encoder runs. Chunk sending is stubbed,
   # so no request reaches the network.
   let(:input_transport) do
-    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: nil,
+    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: di_logger, telemetry: nil,
       guardrails_telemetry: guardrails_telemetry,)
   end
 

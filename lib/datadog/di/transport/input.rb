@@ -36,12 +36,18 @@ module Datadog
           #
           # @param apis [Datadog::Core::Transport::HTTP::API::Map] API instances by name
           # @param default_api [String] name of the API requests are sent through when unspecified
-          # @param logger [Datadog::Core::Logger] logger for transport diagnostics
+          # @param logger [DI::Logger] logger for transport diagnostics
           # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical payload-drop metric
           # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
           # @return [void]
           def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
-            super(apis, default_api, logger: logger)
+            # The base class stores the logger for the HTTP client's debug
+            # diagnostics and declares it a core logger; the DI facade
+            # provides those debug calls and adds the trace level the
+            # transport logs prunes at.
+            # @type var base_logger: untyped
+            base_logger = logger
+            super(apis, default_api, logger: base_logger)
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
           end
