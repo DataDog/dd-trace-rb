@@ -165,6 +165,42 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         )
       end
     end
+
+    context "with signed that is not a Hash" do
+      it "raises TypeError" do
+        invalid_data = raw_target_map.merge("signed" => "not a hash")
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          TypeError, "Invalid type for signed: String: expected Hash"
+        )
+      end
+    end
+
+    context "with targets that is not a Hash" do
+      it "raises TypeError" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("targets" => "not a hash")
+        )
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          TypeError, "Invalid type for targets: String: expected Hash"
+        )
+      end
+    end
+
+    context "with a targets entry that is not a Hash" do
+      it "raises TypeError" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge(
+            "targets" => {"datadog/603646/ASM/exclusion_filters/config" => "not a hash"}
+          )
+        )
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          TypeError, "Invalid type for targets entry: String: expected Hash"
+        )
+      end
+    end
   end
 
   describe Datadog::Core::Remote::Configuration::Target do
@@ -184,6 +220,30 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with valid target" do
         it "returns a Target instance" do
           expect(target).to be_a(described_class)
+        end
+      end
+
+      context "with hashes that is not a Hash" do
+        it "raises TypeError" do
+          expect { described_class.parse(raw_target.merge("hashes" => "not a hash")) }.to raise_error(
+            TypeError, "Invalid type for hashes: String: expected Hash"
+          )
+        end
+      end
+
+      context "with length that is not an Integer" do
+        it "raises TypeError" do
+          expect { described_class.parse(raw_target.merge("length" => "645")) }.to raise_error(
+            TypeError, "Invalid type for length: String: expected Integer"
+          )
+        end
+      end
+
+      context "with custom.v that is not an Integer" do
+        it "raises TypeError" do
+          expect do
+            described_class.parse(raw_target.merge("custom" => {"v" => "21"}))
+          end.to raise_error(TypeError, "Invalid type for custom.v: String: expected Integer")
         end
       end
     end

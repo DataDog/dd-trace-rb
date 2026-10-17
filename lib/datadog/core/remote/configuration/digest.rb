@@ -11,7 +11,7 @@ module Datadog
           class << self
             def parse(hash)
               new.concat(hash.map do |type, hexdigest|
-                raise TypeError, "hexdigest must be a String, got #{hexdigest.class}" unless hexdigest.is_a?(::String)
+                raise TypeError, "Invalid type for hexdigest: #{hexdigest.class}: expected String" unless hexdigest.is_a?(String)
 
                 Digest.new(type, hexdigest)
               end)
