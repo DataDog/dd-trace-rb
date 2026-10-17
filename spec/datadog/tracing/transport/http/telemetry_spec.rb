@@ -363,16 +363,43 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
   end
 
   it "isolates failures to initialise observations" do
+    debug_messages = []
+    allow(Datadog.logger).to receive(:debug) { |&block| debug_messages << block&.call }
     allow(described_class::Batch).to receive(:new).and_raise("telemetry unavailable")
     stub_request(:post, v4).to_return(status: 200, body: "{}")
     expect(transport.send_traces(traces).first.ok?).to be true
     expect(metrics).to eq([])
+    expect(debug_messages).to include("Error creating trace telemetry batch: RuntimeError: telemetry unavailable")
   end
 
   it "isolates telemetry client failures from trace delivery" do
     allow(client).to receive(:inc).and_raise("telemetry unavailable")
     stub_request(:post, v4).to_return(status: 200, body: "{}")
     expect(transport.send_traces(traces).first.ok?).to be true
+  end
+
+  it "contains and logs a post-send accounting failure" do
+    debug_messages = []
+    allow(Datadog.logger).to receive(:debug) { |&block| debug_messages << block&.call }
+    reporter = instance_double(Datadog::Tracing::Transport::Telemetry)
+    record_calls = 0
+    allow(reporter).to receive(:record) do
+      record_calls += 1
+      raise "telemetry down" if record_calls > 1
+
+      nil
+    end
+    batch = described_class::Batch.new(reporter, traces)
+    request = double("request", http_status: nil, http_success: nil)
+    response = double("response")
+
+    expect do
+      batch.sent(request, response, traces.length, traces.sum(&:length), 42, fallback: false)
+    end.not_to raise_error
+
+    expect(debug_messages).to include(
+      "Error recording trace telemetry after send: RuntimeError: telemetry down"
+    )
   end
 
   it "rebinds a retained Ruby transport through component construction" do

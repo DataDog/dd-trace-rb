@@ -53,7 +53,9 @@ module Datadog
               tags: @source_tags + ["status_code:#{observations.fetch(:status_code)}"],)
           end
           nil
-        rescue
+        rescue => e
+          # Telemetry accounting must not change trace delivery; failures are logged only.
+          Datadog.logger.debug { "Error recording transport telemetry: #{e.class}: #{e.message}" }
           nil
         end
       end
