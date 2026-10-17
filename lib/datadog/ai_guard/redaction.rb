@@ -30,7 +30,10 @@ module Datadog
 
             redacted_messages[index] = redacted_message
             applied_count += 1
-          rescue
+          rescue => e
+            Datadog.logger.debug do
+              "AI Guard: failed to apply redaction replacement #{path.inspect}: #{e.class}: #{e.message}"
+            end
             failures_count += 1
           end
 
