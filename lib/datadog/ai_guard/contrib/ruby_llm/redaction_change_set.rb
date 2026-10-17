@@ -23,7 +23,7 @@ module Datadog
             # NOTE: Preserve `raw_content` after provider-specific redaction is implemented.
             #       Unchanged raw content could bypass redaction
             if message.raw_content
-              Datadog.logger.warn("AI Guard omitted RubyLLM raw content because it may contain sensitive data")
+              Datadog.logger.debug { "AI Guard omitted RubyLLM raw content because it may contain sensitive data" }
             end
 
             content = build_content(message)
