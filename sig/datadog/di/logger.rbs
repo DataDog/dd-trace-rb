@@ -12,7 +12,6 @@ module Datadog
 
       def debug: (?String? message) ?{ () -> String } -> void
       def trace: () { () -> String } -> void
-      def warn: (String message) -> void
     end
   end
 end
