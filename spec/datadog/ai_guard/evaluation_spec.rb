@@ -168,6 +168,33 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       end
     end
 
+    context "when the evaluation request raises" do
+      let(:logger) { logger_allowing_debug }
+      let(:messages) do
+        [
+          Datadog::AIGuard::Evaluation::Message.new(
+            role: :user, content: "What is the capital of France?"
+          ),
+        ]
+      end
+
+      before do
+        allow(Datadog::AIGuard::Evaluation::Client).to receive(:evaluate)
+          .and_raise(Timeout::Error.new("connection reset"))
+        allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
+        allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
+      end
+
+      it "logs the failure, counts the error and re-raises" do
+        expect_lazy_log(logger, :debug,
+          "AI Guard: failed to evaluate messages: Timeout::Error: connection reset")
+
+        expect { described_class.perform(messages) }.to raise_error(Timeout::Error, "connection reset")
+
+        expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
+      end
+    end
+
     context "when response action is ALLOW" do
       let(:raw_response) do
         {
