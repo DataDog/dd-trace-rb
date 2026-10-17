@@ -1,0 +1,114 @@
+# frozen_string_literal: true
+
+require "digest"
+require "fileutils"
+require "json"
+require_relative "matrix"
+
+# The Timings stage: what one run measured. RunTimings is the run's
+# document, and it owns its artifact file: the per-batch
+# "timings-*.json" the Unit Tests jobs upload.
+module TestBatching
+  # One run's timings: its Ruby version and the measured durations of its
+  # tasks. The T1 format both Weights and Runner read and write.
+  #
+  # Each timing entry is a hash in the artifact's own shape: task, group,
+  # gemfile, then the measurements the run made so far. Absent
+  # measurements are omitted, so a build-phase document carries only
+  # build_seconds and a completed run carries all three.
+  class RunTimings
+    DEFAULT_DIRECTORY = "tmp/ci-task-timings"
+
+    attr_reader :ruby_version, :timings
+
+    def initialize(ruby_version:, timings:)
+      @ruby_version = ruby_version
+      @timings = timings.map(&:freeze)
+    end
+
+    def tasks
+      timings.map { |entry| Task.from_h(entry) }
+    end
+
+    # The run's test durations: one [Task, test_seconds] pair per timing
+    # entry, in run order.
+    def task_test_samples
+      timings.map { |entry| [Task.from_h(entry), entry.fetch("test_seconds")] }
+    end
+
+    # The run's setup cost per Gemfile: each Gemfile's build times summed,
+    # since a batch installs each Gemfile once.
+    def gemfile_build_samples
+      timings.group_by { |entry| File.basename(entry.fetch("gemfile")) }
+        .map { |gemfile, entries| [gemfile, entries.sum { |entry| entry.fetch("build_seconds") }] }
+    end
+
+    def ==(other)
+      other.is_a?(RunTimings) && ruby_version == other.ruby_version && timings == other.timings
+    end
+    alias_method :eql?, :==
+
+    # The only place a timing entry is born.
+    def with_timing(task:, build_seconds: nil, test_seconds: nil, junit_seconds: nil)
+      entry = task.to_h.merge(
+        "build_seconds" => build_seconds,
+        "test_seconds" => test_seconds,
+        "junit_seconds" => junit_seconds
+      ).compact.freeze
+
+      index = timings.index { |existing| entry_matches?(existing, task) }
+      replaced = timings.dup
+      if index
+        replaced[index] = entry
+      else
+        replaced << entry
+      end
+
+      self.class.new(ruby_version: ruby_version, timings: replaced)
+    end
+
+    def to_h
+      {"ruby_version" => ruby_version, "tasks" => timings.map(&:dup)}
+    end
+
+    def self.from_h(hash)
+      new(ruby_version: hash.fetch("ruby_version"), timings: hash.fetch("tasks"))
+    end
+
+    # Writes the run's document as one timings-*.json under the directory,
+    # creating the directory first.
+    def write(directory: DEFAULT_DIRECTORY)
+      path = self.class.file_path(tasks, directory)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, JSON.pretty_generate(to_h))
+    end
+
+    # Returns an empty document when the batch has never recorded one.
+    def self.read(tasks, directory: DEFAULT_DIRECTORY)
+      path = file_path(tasks, directory)
+      return new(ruby_version: RUBY_VERSION[0..2], timings: []) unless File.exist?(path)
+
+      from_h(JSON.parse(File.read(path)))
+    end
+
+    # The artifact layout is one subdirectory per run, and each batch job
+    # contributes one timings-*.json.
+    def self.read_all(directory)
+      Dir[File.join(directory, "**", "*.json")].map { |path| from_h(JSON.parse(File.read(path))) }
+    end
+
+    # Keyed by the current Ruby and the batch task identity so one job's
+    # timings never collide with another's across runs.
+    def self.file_path(tasks, directory)
+      identity = tasks.flat_map { |task| [task.name, task.group, task.gemfile] }.join("\0")
+      digest = Digest::SHA256.hexdigest(identity)[0, 12]
+      File.join(directory, "#{RUBY_VERSION[0..2]}-#{digest}.json")
+    end
+
+    private
+
+    def entry_matches?(entry, task)
+      entry.fetch("task") == task.name && entry.fetch("group") == task.group && entry.fetch("gemfile") == task.gemfile
+    end
+  end
+end

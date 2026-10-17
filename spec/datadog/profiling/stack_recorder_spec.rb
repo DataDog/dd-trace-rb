@@ -422,6 +422,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             @num_allocations += 1
             GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
           end
+          allocations.clear
           nil # to avoid Thread#value to hold onto allocations
         end.join
 

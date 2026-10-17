@@ -14,11 +14,11 @@ RSpec.describe Datadog::Tracing::OTelThreadContext do
       it { is_expected.to be_nil }
     end
 
-    context "when enabled but unsupported" do
+    context "when enabled but the native extension has a failure" do
       let(:enabled) { true }
 
       before do
-        allow_any_instance_of(described_class).to receive(:supported?).and_return(false)
+        stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "Native extension failure")
       end
 
       it { is_expected.to be_nil }
@@ -36,21 +36,12 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
 
     let(:tracing_settings) { double("tracing settings", otel_thread_context_enabled: true) }
 
-    before do
-      allow_any_instance_of(described_class).to receive(:supported?).and_return(true)
-      allow_any_instance_of(described_class).to receive(:_native_enable).and_return(native_enabled)
-    end
-
     context "when native enablement succeeds" do
-      let(:native_enabled) { true }
+      before do
+        allow_any_instance_of(described_class).to receive(:_native_enable).and_return(true)
+      end
 
       it { is_expected.to be_a(described_class) }
-    end
-
-    context "when native enablement fails" do
-      let(:native_enabled) { false }
-
-      it { is_expected.to be_nil }
     end
   end
 
@@ -113,10 +104,6 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
     end
 
     context "when enabled" do
-      before do
-        fail("libdatadog built without otel-thread-ctx") unless otel_thread_context.supported?
-      end
-
       it "sets the thread context" do
         trace_id = 0xf0e1_d2c3_b4a5_9687_7869_5a4b_3c2d_1e0f
         span_id = 0xfedc_ba98_7654_3210

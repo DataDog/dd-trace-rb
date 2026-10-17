@@ -751,7 +751,7 @@ RSpec.describe "Instrumentation integration" do
 
       context "with capture expressions and an exhausted per-fire time budget" do
         before do
-          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
         end
 
         let(:probe) do
@@ -785,6 +785,45 @@ RSpec.describe "Instrumentation integration" do
             "arg1" => {notCapturedReason: "timeout"},
           )
           expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context "with snapshot capture and an exhausted per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureSnapshot: true,
+          }
+        end
+
+        it "emits notCapturedReason:timeout stubs for @return and self in the return block" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          return_arguments = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures).fetch(:return).fetch(:arguments)
+          expect(return_arguments[:@return]).to eq(
+            type: "Integer", notCapturedReason: "timeout",
+          )
+          expect(return_arguments[:self]).to eq(
+            type: "InstrumentationSpecTestClass", notCapturedReason: "timeout",
+          )
         end
       end
 
@@ -2015,7 +2054,7 @@ RSpec.describe "Instrumentation integration" do
         it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
-          expect(telemetry).to receive(:inc).with("dynamic_instrumentation", "guardrails.queue.dropped_bytes",
+          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
             be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
 
           probe_manager.add_probe(probe)

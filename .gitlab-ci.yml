@@ -37,7 +37,7 @@ variables:
   BUILD_JOB_NAME: save_versions
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby-notifications"
   OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
-  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
+  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 40000000
 
 default:
   tags: ["arch:amd64"]
@@ -213,7 +213,7 @@ requirements_json_test:
 configure_system_tests:
   rules: *ssi_pipeline_rules
   variables:
-    SYSTEM_TESTS_REF: 52cecf6f2c74f3d41e57e4352cf41daf0f7a51b5 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: f8d0dfc8a20a303408f79f1de6af4df79e63dd8f # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

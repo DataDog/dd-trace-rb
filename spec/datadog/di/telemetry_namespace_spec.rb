@@ -79,6 +79,10 @@ RSpec.describe "DI telemetry namespace under direct requires" do
         100
       end
 
+      def di_settings.max_time_to_serialize_ms
+        150
+      end
+
       di_settings
     end
 
@@ -93,7 +97,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
     end
 
     Datadog::DI::Serializer.new(settings, redactor, logger: Object.new,
-      guardrails_telemetry: guardrails_telemetry).serialize_value([1], depth: 0)
+      guardrails_telemetry: guardrails_telemetry).serialize_value([1], depth: 0, deadline: Float::INFINITY)
   SCRIPT
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
@@ -102,7 +106,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
   end
 
   it "resolves the namespace when the capture expression evaluator is required directly" do
-    expect(run_direct_require_script(EVALUATOR_SCRIPT)).to eq("dynamic_instrumentation\n")
+    expect(run_direct_require_script(EVALUATOR_SCRIPT)).to eq("debugger\n")
   end
 
   it "emits the capture-incomplete metric when the serializer is required directly" do

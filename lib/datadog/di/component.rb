@@ -16,6 +16,16 @@ module Datadog
     # resources and installed tracepoints upon shutdown.
     class Component
       class << self
+        # Builds and registers the DI component, or returns nil without
+        # building one when the settings have no dynamic_instrumentation
+        # section, DI is explicitly disabled, the runtime is unsupported,
+        # or Remote Configuration is disabled.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
+        # @param logger [Core::Logger]
+        # @param telemetry [Core::Telemetry::Component, nil]
+        # @return [Component, nil] the built component, or nil when no component was built
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 

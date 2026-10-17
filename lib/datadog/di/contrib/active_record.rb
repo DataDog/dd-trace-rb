@@ -10,7 +10,7 @@ Datadog::DI::Serializer.register(
   # logic for "instances of classes derived from X", but a condition Proc
   # is more universal.
   condition: lambda { |value| ActiveRecord::Base === value }
-) do |serializer, value, name:, depth:|
+) do |serializer, value, name:, depth:, deadline:|
   # +serializer+ is an instance of DI::Serializer.
   # Use it to perform the serialization to primitive values.
   #
@@ -30,12 +30,18 @@ Datadog::DI::Serializer.register(
   # nesting levels in the output.
   # This serializer could also potentially do its own depth limiting.
   #
+  # +deadline+ is the absolute monotonic-clock deadline (in seconds) of the
+  # capture point that is being serialized. Pass it through to
+  # +serialize_value+ so the custom-serialized subtree draws down the same
+  # capture budget as the rest of the snapshot.
+  #
   # Steep: steep thinks all of the arguments are nil here
   # Looks like it cannot handle kwargs in lambdas
   # @type var depth: Integer
+  # @type var deadline: Float
   value_to_serialize = {
     attributes: value.attributes,
     new_record: value.new_record?,
   }
-  serializer.serialize_value(value_to_serialize, depth: depth, type: value.class)
+  serializer.serialize_value(value_to_serialize, depth: depth, type: value.class, deadline: deadline)
 end

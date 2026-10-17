@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6470",
+  "message": "Upgrade `datadog-ruby_core_source` to support Ruby 4.1.0-preview1."
+}
