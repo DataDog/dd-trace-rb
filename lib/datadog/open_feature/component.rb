@@ -30,7 +30,7 @@ module Datadog
         return unless resolution.enabled?
 
         unless ["ruby", "truffleruby"].include?(RUBY_ENGINE)
-          message = "OpenFeature could not be enabled as MRI is required, " \
+          message = "OpenFeature could not be enabled as CRuby or TruffleRuby is required, " \
             "but running on #{RUBY_ENGINE.inspect}"
 
           logger.warn(message)

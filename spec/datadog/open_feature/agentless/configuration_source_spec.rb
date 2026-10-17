@@ -107,9 +107,11 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     end
 
     it "retries transport errors three times" do
-      error_response = response(status: nil, error: Net::ReadTimeout.new)
+      error_response = response(status: nil, error: Net::ReadTimeout.new("read timed out"))
       expect(transport).to receive(:get).with(nil).exactly(3).times.and_return(error_response)
-      expect(logger).to receive(:warn).once.with(a_string_including("after 3 attempt(s): Net::ReadTimeout"))
+      expect(logger).to receive(:warn).once.with(
+        a_string_including('after 3 attempt(s): Net::ReadTimeout: Net::ReadTimeout with "read timed out"')
+      )
 
       source.poll
     end

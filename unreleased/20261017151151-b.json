@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6506",
+  "message": "The warning shown when OpenFeature cannot be enabled now names the supported runtimes, CRuby and TruffleRuby, instead of claiming that MRI is required."
+}

@@ -98,7 +98,7 @@ RSpec.describe Datadog::OpenFeature::Component do
           before { stub_const("RUBY_ENGINE", "jruby") }
 
           it "logs warning and returns nil" do
-            expect(logger).to receive(:warn).with(/MRI is required, but running on "jruby"/)
+            expect(logger).to receive(:warn).with(/CRuby or TruffleRuby is required, but running on "jruby"/)
 
             expect(component).to be_nil
           end
