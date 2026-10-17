@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6506",
+  "message": "Feature Flags agentless retry warnings now include the transport error's message; when the transport returns no error detail, the warning states that instead of reporting an invented error class."
+}
