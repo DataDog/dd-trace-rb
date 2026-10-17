@@ -993,6 +993,16 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  context "when registering a custom serializer without a condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
   context "when serialization raises an exception" do
     with_di_registry_change
 

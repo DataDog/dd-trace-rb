@@ -96,7 +96,7 @@ module Datadog
       # hex string, or UTF-8 with replacement characters) before returning
       # it from the custom serializer.
       @@flat_registry = []
-      def self.register(condition: nil, &block)
+      def self.register(condition:, &block)
         @@flat_registry << {condition: condition, proc: block}
       end
 
