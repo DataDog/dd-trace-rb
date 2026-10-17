@@ -228,8 +228,9 @@ module Datadog
             if status
               @logger.warn("Feature Flags agentless endpoint returned HTTP #{status} after #{attempts} attempt(s)")
             else
-              error_class = response.error ? response.error.class : StandardError
-              @logger.warn("Feature Flags agentless request failed after #{attempts} attempt(s): #{error_class}")
+              error = response.error
+              detail = error ? "#{error.class}: #{error.message}" : "transport returned no error detail"
+              @logger.warn("Feature Flags agentless request failed after #{attempts} attempt(s): #{detail}")
             end
           end
         end
