@@ -469,7 +469,63 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
   end
 
-  describe "#probe_condition_evaluation_failed_callback" do
+  describe "#probe_metric_emitted_callback" do
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "test-probe", type: :metric,
+        type_name: "ProbeManagerSpecTestClass", method_name: "bar",
+        metric_kind: :count, metric_name: "probe.metric",
+      )
+    end
+
+    before do
+      allow(probe_notification_builder).to receive(:build_emitting).and_return({status: "EMITTING"})
+      allow(probe_notifier_worker).to receive(:add_status)
+    end
+
+    it "queues the EMITTING status once" do
+      manager.probe_metric_emitted_callback(probe)
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe_notifier_worker).to have_received(:add_status).with({status: "EMITTING"}, probe: probe).once
+    end
+
+    it "flips the probe's emitting_notified flag" do
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe.emitting_notified?).to be true
+    end
+
+    it "does not queue an EMITTING status for an already notified probe" do
+      probe.emitting_notified = true
+
+      manager.probe_metric_emitted_callback(probe)
+
+      expect(probe_notifier_worker).to_not have_received(:add_status)
+    end
+
+    context "sharing the notification with the executed callback path" do
+      let(:context) do
+        instance_double(Datadog::DI::Context, probe: probe)
+      end
+
+      before do
+        allow(probe_notification_builder).to receive(:build_executed).and_return({snapshot: "data"})
+        allow(probe_notifier_worker).to receive(:add_snapshot)
+      end
+
+      it "does not re-send EMITTING for the executed snapshot after the first emission" do
+        manager.probe_metric_emitted_callback(probe)
+        manager.probe_executed_callback(context)
+
+        expect(probe.emitting_notified?).to be true
+        expect(probe_notifier_worker).to have_received(:add_status).once
+        expect(probe_notifier_worker).to have_received(:add_snapshot).once
+      end
+    end
+  end
+
+  describe "#probe_expression_evaluation_failed_callback" do
     let(:rate_limiter) do
       instance_double(Datadog::Core::TokenBucket, allow?: true)
     end
@@ -480,7 +536,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         id: "test-probe",
         type: "log",
         capture_snapshot?: false,
-        condition_evaluation_failed_rate_limiter: rate_limiter,
+        expression_evaluation_failed_rate_limiter: rate_limiter,
       )
     end
 
@@ -514,7 +570,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect_lazy_log(logger, :debug,
           /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
 
-        expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+        expect { manager.probe_expression_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
       end
     end
 
@@ -527,13 +583,13 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
       end
 
-      it "builds and enqueues the condition error snapshot" do
+      it "builds and enqueues the expression error snapshot" do
         snapshot = double("snapshot")
         expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
           .with(context, expr, exc).and_return(snapshot)
         expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
       end
     end
 
@@ -547,7 +603,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
 
         expect(rate_limiter).to have_received(:allow?)
         expect(logger).to have_received(:trace) do |&block|
@@ -562,7 +618,7 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(probe_notifier_worker).not_to receive(:add_snapshot)
           expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
 
-          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+          expect { manager.probe_expression_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
         end
       end
     end
@@ -582,7 +638,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
           tags: {reason: "rateLimitGlobal", event_type: "log"},)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
 
         expect(logger).to have_received(:trace) do |&block|
           expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
@@ -600,7 +656,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         let(:telemetry) { telemetry_double_raising_on_inc }
 
         it "raises the telemetry failure out of the callback" do
-          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+          expect { manager.probe_expression_evaluation_failed_callback(context, expr, exc) }
             .to raise_error(StandardError, "telemetry down")
         end
       end
@@ -609,7 +665,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
 
         it "re-raises the fatal exception out of the callback" do
-          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+          expect { manager.probe_expression_evaluation_failed_callback(context, expr, exc) }
             .to raise_error(SystemExit)
         end
       end

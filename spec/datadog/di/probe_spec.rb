@@ -477,4 +477,210 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
   end
+
+  describe "metric probes" do
+    let(:metric_probe_args) do
+      {id: "42", type: :metric, type_name: "Foo", method_name: "bar",
+       metric_kind: :count, metric_name: "probe.metric"}
+    end
+
+    context "with each kind" do
+      described_class::METRIC_KINDS.each do |kind|
+        context "kind #{kind}" do
+          let(:probe) do
+            described_class.new(**metric_probe_args, metric_kind: kind)
+          end
+
+          it "creates a metric probe carrying the kind" do
+            expect(probe.type).to be :metric
+            expect(probe.metric_kind).to be kind
+            expect(probe.metric_name).to eq "probe.metric"
+            expect(probe.metric_value).to be nil
+            expect(probe.tags).to eq []
+          end
+        end
+      end
+    end
+
+    context "with tags and a metric value expression" do
+      let(:metric_value_expression) do
+        compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
+        Datadog::DI::EL::Expression.new("foo", compiled)
+      end
+
+      let(:probe) do
+        described_class.new(**metric_probe_args,
+          tags: ["env:prod", "team:core"],
+          metric_value: metric_value_expression,)
+      end
+
+      it "carries the tags and the value expression" do
+        expect(probe.tags).to eq ["env:prod", "team:core"]
+        expect(probe.metric_value).to be metric_value_expression
+      end
+    end
+
+    context "with unknown metric kind" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, metric_kind: :percentile)
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Unknown metric kind: :percentile/)
+      end
+    end
+
+    context "without metric name" do
+      let(:probe) do
+        described_class.new(id: "42", type: :metric, type_name: "Foo", method_name: "bar",
+          metric_kind: :count)
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe must have a non-empty metricName/)
+      end
+    end
+
+    context "with empty metric name" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, metric_name: "")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe must have a non-empty metricName/)
+      end
+    end
+
+    context "with tags that are not an array" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, tags: "env:prod")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe tags must be an array of strings/)
+      end
+    end
+
+    context "with a non-string tag" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, tags: ["env:prod", 42])
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe tags must be an array of strings/)
+      end
+    end
+
+    context "with a metric value that is not a compiled expression" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, metric_value: "@return")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe value must be a compiled expression/)
+      end
+    end
+
+    context "with snapshot capture enabled" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, capture_snapshot: true)
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe must not specify log probe capture or template fields/)
+      end
+    end
+
+    context "with capture expressions" do
+      let(:probe) do
+        compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
+        expression = Datadog::DI::CaptureExpression.new(
+          name: "foo",
+          expr: Datadog::DI::EL::Expression.new("foo", compiled),
+        )
+        described_class.new(**metric_probe_args, capture_expressions: [expression])
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe must not specify log probe capture or template fields/)
+      end
+    end
+
+    context "with a message template" do
+      let(:probe) do
+        described_class.new(**metric_probe_args, template: "hello")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Metric probe must not specify log probe capture or template fields/)
+      end
+    end
+
+    context "log probe with metric fields" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          metric_name: "probe.metric")
+      end
+
+      it "raises ArgumentError" do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Log probe must not specify metric probe fields/)
+      end
+    end
+
+    describe "#expression_evaluation_failed_rate_limiter" do
+      context "metric probe with a condition" do
+        let(:probe) do
+          compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
+          described_class.new(**metric_probe_args,
+            condition: Datadog::DI::EL::Expression.new("foo", compiled),)
+        end
+
+        it "is created" do
+          expect(probe.expression_evaluation_failed_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+        end
+      end
+
+      context "metric probe with a value expression" do
+        let(:probe) do
+          compiled, = Datadog::DI::EL::Compiler.new.compile({"ref" => "foo"})
+          described_class.new(**metric_probe_args,
+            metric_value: Datadog::DI::EL::Expression.new("foo", compiled),)
+        end
+
+        it "is created" do
+          expect(probe.expression_evaluation_failed_rate_limiter).to be_a(Datadog::Core::TokenBucket)
+        end
+      end
+
+      context "metric probe with no expressions" do
+        let(:probe) do
+          described_class.new(**metric_probe_args)
+        end
+
+        it "is not created" do
+          expect(probe.expression_evaluation_failed_rate_limiter).to be nil
+        end
+      end
+    end
+  end
 end

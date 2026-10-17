@@ -44,7 +44,8 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
       guardrails_telemetry: guardrails_telemetry,
-      capture_expression_evaluator: capture_expression_evaluator)
+      capture_expression_evaluator: capture_expression_evaluator,
+      metric_emitter: instance_double(Datadog::DI::MetricEmitter, available?: true))
   end
 
   let(:responder) do
@@ -59,7 +60,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         @observed_calls << context
       end
 
-      def probe_condition_evaluation_failed_callback(context, _expr, exc)
+      def probe_expression_evaluation_failed_callback(context, _expr, exc)
         raise "Unexpected condition failure: #{exc}"
       end
 
