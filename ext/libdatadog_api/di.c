@@ -48,6 +48,16 @@ static ID id_datadog_di_thread_generation;
 // it, so the counter and the accompanying ivar write need no lock.
 static unsigned long long generation_counter;
 
+// Snapshot generation tokens for Thread objects frozen before their first
+// snapshot. rb_ivar_set raises FrozenError on a frozen Thread, so those
+// tokens are keyed by the Thread object here instead. The table is plain C
+// memory invisible to the GC and holds no reference to the Thread, so an
+// entry outlives its thread: a Thread allocated later at the same address
+// reuses the dead thread's token, and the table grows by one entry per
+// frozen thread that captured a snapshot. Guarded by the GVL like the
+// counter above.
+static st_table *frozen_thread_generations;
+
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
 // The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
 static inline int ddtrace_imemo_type(VALUE imemo) {
@@ -161,6 +171,21 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
 }
 
 /*
+ * Returns the snapshot generation token of a frozen Thread, assigning
+ * one from the process-wide counter on the first call for the thread.
+ * Only called for a Thread whose ivar write would raise FrozenError.
+ */
+static VALUE frozen_thread_generation(VALUE thread) {
+  st_data_t token;
+  if (st_lookup(frozen_thread_generations, (st_data_t)thread, &token)) {
+    return ULL2NUM((unsigned long long)token);
+  }
+  token = (st_data_t)++generation_counter;
+  st_insert(frozen_thread_generations, (st_data_t)thread, token);
+  return ULL2NUM((unsigned long long)token);
+}
+
+/*
  * call-seq:
  *   DI.current_thread_generation -> Integer
  *
@@ -176,7 +201,9 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
  * ivar on the Thread object. The ivar is read via rb_attr_get, which
  * returns nil for an unset ivar and, unlike rb_ivar_get, emits no
  * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
- * Both accesses bypass Thread#thread_variable_get and
+ * A Thread frozen before its first snapshot, where writing the ivar would
+ * raise FrozenError, keeps its token in a process-wide table keyed by the
+ * Thread object. Both accesses bypass Thread#thread_variable_get and
  * Thread#thread_variable_set method dispatch, so a user-installed method
  * probe on those methods cannot fire during DI snapshot building.
  *
@@ -187,6 +214,9 @@ static VALUE current_thread_generation(DDTRACE_UNUSED VALUE _self) {
   VALUE thread = rb_thread_current();
   VALUE generation = rb_attr_get(thread, id_datadog_di_thread_generation);
   if (NIL_P(generation)) {
+    if (OBJ_FROZEN(thread)) {
+      return frozen_thread_generation(thread);
+    }
     generation = ULL2NUM(++generation_counter);
     rb_ivar_set(thread, id_datadog_di_thread_generation, generation);
   }
@@ -267,6 +297,7 @@ void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
   id_datadog_di_thread_generation = rb_intern("@datadog_di_thread_generation");
+  frozen_thread_generations = st_init_numtable();
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);

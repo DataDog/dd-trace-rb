@@ -3,7 +3,8 @@ require "datadog/di/spec_helper"
 # Unit tests for the C-implemented snapshot generation token primitive:
 # Datadog::DI.current_thread_generation. These tests exercise the token's
 # semantics: a positive integer, stable for one thread, shared by all fibers
-# of a thread, and distinct across threads.
+# of a thread, distinct across threads, and still assigned to a Thread
+# frozen before its first snapshot.
 
 RSpec.describe "Datadog::DI snapshot generation token" do
   describe ".current_thread_generation" do
@@ -55,6 +56,58 @@ RSpec.describe "Datadog::DI snapshot generation token" do
         raise "thread wait timeout" unless thread.join(5)
 
         expect(tokens.first).to be_a(Integer)
+        expect(tokens.uniq).to eq([tokens.first])
+      end
+    end
+
+    context "for a thread frozen before its first token" do
+      it "returns a positive integer" do
+        token = nil
+        thread = Thread.new do
+          Thread.current.freeze
+          token = Datadog::DI.current_thread_generation
+        end
+        raise "thread wait timeout" unless thread.join(5)
+
+        expect(token).to be_a(Integer)
+        expect(token).to be > 0
+      end
+
+      it "returns the same token across calls within the thread" do
+        tokens = []
+        thread = Thread.new do
+          Thread.current.freeze
+          3.times { tokens << Datadog::DI.current_thread_generation }
+        end
+        raise "thread wait timeout" unless thread.join(5)
+
+        expect(tokens.first).to be_a(Integer)
+        expect(tokens.uniq).to eq([tokens.first])
+      end
+
+      it "returns a token distinct from the calling thread's token" do
+        frozen_thread_token = nil
+        thread = Thread.new do
+          Thread.current.freeze
+          frozen_thread_token = Datadog::DI.current_thread_generation
+        end
+        raise "thread wait timeout" unless thread.join(5)
+
+        expect(frozen_thread_token).to be_a(Integer)
+        expect(frozen_thread_token).not_to eq(Datadog::DI.current_thread_generation)
+      end
+    end
+
+    context "for a thread frozen after its first token" do
+      it "keeps returning the token assigned before the freeze" do
+        tokens = []
+        thread = Thread.new do
+          tokens << Datadog::DI.current_thread_generation
+          Thread.current.freeze
+          tokens << Datadog::DI.current_thread_generation
+        end
+        raise "thread wait timeout" unless thread.join(5)
+
         expect(tokens.uniq).to eq([tokens.first])
       end
     end
