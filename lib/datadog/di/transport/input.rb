@@ -69,14 +69,17 @@ module Datadog
           # Successfully serialized snapshots are still sent.
           #
           # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
-          # cannot bring them under the cap. Batches are split into chunks of
+          # leaves them above the cap. Batches are split into chunks of
           # ~2MB each to avoid large network requests.
           #
           # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
           # @param on_serialization_error [Proc] Called with (probe_id, exception)
           #   when a snapshot fails to serialize.
-          # @return [Array<SnapshotEvent>] the events that were sent
+          # @return [Array<SnapshotEvent>] the +payload+ argument, after
+          #   best-effort delivery of the encoded snapshots
+          # @raise [Exception] fatal exceptions (SystemExit, SignalException,
+          #   NoMemoryError) re-raised by Datadog::DI.reraise_if_fatal
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
