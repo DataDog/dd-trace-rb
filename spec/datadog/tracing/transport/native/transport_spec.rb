@@ -105,7 +105,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   let(:built_transports) { [] }
 
   let(:transport) do
-    transport_class.new(agent_settings: agent_settings, logger: logger).tap do |t|
+    transport_class.new(agent_settings: agent_settings, logger: logger, apm_tracing_enabled: true).tap do |t|
       built_transports << t
     end
   end
@@ -208,7 +208,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       stub_const("#{native_module}::UNSUPPORTED_REASON", "test failure")
 
       expect {
-        transport_class.new(agent_settings: agent_settings, logger: logger)
+        transport_class.new(agent_settings: agent_settings, logger: logger, apm_tracing_enabled: true)
       }.to raise_error(RuntimeError, /not supported/)
     end
   end

@@ -63,7 +63,10 @@ module Datadog
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
-          def initialize(agent_settings:, logger:)
+          # @param apm_tracing_enabled [Boolean] whether APM tracing is enabled,
+          #   resolved by the component builder; the exporter computes client
+          #   stats only when tracing is disabled
+          def initialize(agent_settings:, logger:, apm_tracing_enabled:)
             unless Native.supported?
               raise "Native transport is not supported: #{UNSUPPORTED_REASON}"
             end
@@ -104,7 +107,7 @@ module Datadog
               env: env,
               service: service,
               version: version,
-              client_computed_stats: !Datadog.configuration.apm.tracing.enabled
+              client_computed_stats: !apm_tracing_enabled
             )
             @exporter = exporter
 

@@ -104,6 +104,7 @@ class TracingTransportE2EBenchmark
       Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
         logger: Logger.new(File::NULL),
+        apm_tracing_enabled: true,
       )
     end
   end

@@ -253,6 +253,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
       logger: Logger.new(File::NULL),
+      apm_tracing_enabled: true
     )
 
     example.run
@@ -321,6 +322,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       retired = Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", timeout_seconds),
         logger: Logger.new(File::NULL),
+        apm_tracing_enabled: true
       )
       retired.close
       reader, writer = IO.pipe
