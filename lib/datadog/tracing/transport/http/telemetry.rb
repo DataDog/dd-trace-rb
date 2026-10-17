@@ -16,7 +16,9 @@ module Datadog
             return unless @client.enabled? && @client.metrics_manager.enabled
 
             Batch.new(self, traces)
-          rescue
+          rescue => e
+            # Batch accounting must not change trace delivery; failures are logged only.
+            Datadog.logger.debug { "Error creating trace telemetry batch: #{e.class}: #{e.message}" }
             nil
           end
 
@@ -74,7 +76,9 @@ module Datadog
                 end
               end
               @reporter.record(observations)
-            rescue
+            rescue => e
+              # Post-send accounting must not change trace delivery; failures are logged only.
+              Datadog.logger.debug { "Error recording trace telemetry after send: #{e.class}: #{e.message}" }
               nil
             end
 

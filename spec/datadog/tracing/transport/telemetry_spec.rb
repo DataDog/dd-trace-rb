@@ -19,4 +19,23 @@ RSpec.describe Datadog::Tracing::Transport::Telemetry do
       end
     end
   end
+
+  context "when the telemetry client fails" do
+    subject(:reporter) { described_class.new(client, source: "ruby") }
+
+    let(:client) do
+      instance_double(Datadog::Core::Telemetry::Component, enabled?: true).tap do |client|
+        allow(client).to receive(:inc).and_raise(RuntimeError.new("telemetry down"))
+      end
+    end
+
+    it "logs the accounting failure and returns nil" do
+      debug_messages = []
+      allow(Datadog.logger).to receive(:debug) { |&block| debug_messages << block&.call }
+
+      expect(reporter.record(requests_count: 2)).to be_nil
+
+      expect(debug_messages).to include("Error recording transport telemetry: RuntimeError: telemetry down")
+    end
+  end
 end
