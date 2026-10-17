@@ -6,6 +6,7 @@ require_relative "../../../transport/http/api/endpoint"
 require_relative "../../../transport/http/response"
 require_relative "../../../utils/base64_codec"
 require_relative "../../../utils/truncation"
+require_relative "../../configuration"
 
 module Datadog
   module Core
@@ -29,7 +30,7 @@ module Datadog
                   raise ParseError.new(:roots, e)
                 end
 
-                raise TypeError.new(Hash, payload) unless payload.is_a?(Hash)
+                raise TypeError.new("payload", payload, Hash) unless payload.is_a?(Hash)
 
                 @empty = true if payload.empty?
 
@@ -39,10 +40,10 @@ module Datadog
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 
-                raise TypeError.new(Array, roots) unless roots.is_a?(Array)
+                raise TypeError.new("roots", roots, Array) unless roots.is_a?(Array)
 
                 @roots = roots.map do |root|
-                  raise TypeError.new(String, root) unless root.is_a?(String)
+                  raise TypeError.new("roots entry", root, String) unless root.is_a?(String)
 
                   decoded = begin
                     Datadog::Core::Utils::Base64Codec.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
@@ -61,7 +62,7 @@ module Datadog
                   parsed
                 end
 
-                raise TypeError.new(String, targets) unless targets.is_a?(String)
+                raise TypeError.new("targets", targets, String) unless targets.is_a?(String)
 
                 @targets = begin
                   decoded = begin
@@ -81,16 +82,16 @@ module Datadog
                   parsed
                 end
 
-                raise TypeError.new(Array, target_files) unless target_files.is_a?(Array)
+                raise TypeError.new("target_files", target_files, Array) unless target_files.is_a?(Array)
 
                 @target_files = target_files.map do |h|
-                  raise TypeError.new(Hash, h) unless h.is_a?(Hash)
+                  raise TypeError.new("target_files entry", h, Hash) unless h.is_a?(Hash)
                   raise KeyError.new(:raw) unless h.key?(:raw) # rubocop:disable Style/RaiseArgs
                   raise KeyError.new(:path) unless h.key?(:path) # rubocop:disable Style/RaiseArgs
 
                   raw = h[:raw]
 
-                  raise TypeError.new(String, raw) unless raw.is_a?(String)
+                  raise TypeError.new("raw", raw, String) unless raw.is_a?(String)
 
                   content = begin
                     Datadog::Core::Utils::Base64Codec.strict_decode64(raw)
@@ -105,7 +106,7 @@ module Datadog
                 end.freeze
 
                 @client_configs = client_configs.map do |s|
-                  raise TypeError.new(String, s) unless s.is_a?(String)
+                  raise TypeError.new("client_configs entry", s, String) unless s.is_a?(String)
 
                   s.freeze
                 end.freeze
@@ -151,10 +152,8 @@ module Datadog
 
               # When an expected value type is incorrect
               class TypeError < ConfigError
-                def initialize(type, value)
-                  message = "not a #{type}: #{value.inspect}"
-
-                  super(message)
+                def initialize(field, value, expected_type)
+                  super(Configuration.invalid_type_message(field, value, expected_type))
                 end
               end
 

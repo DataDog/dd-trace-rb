@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../core/remote/dispatcher"
+require_relative "../core/remote/configuration"
 require_relative "configuration/dynamic"
 
 module Datadog
@@ -71,7 +72,9 @@ module Datadog
                 # A syntactically valid but non-object payload (null, [], 42)
                 # would later make config_matches? raise outside this per-content
                 # rescue and abort the whole merge, erroring valid configs too.
-                raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
+                raise TypeError, Core::Remote::Configuration.invalid_type_message(
+                  "APM_TRACING remote config", config, Hash
+                )
               end
               # A present but non-object lib_config (e.g. {"lib_config": []}) is a
               # schema violation the customer can fix. Acknowledging it as applied
@@ -82,7 +85,9 @@ module Datadog
               # carries no overrides and is left as a no-op.
               lib_config = config["lib_config"]
               if !lib_config.nil? && !lib_config.is_a?(Hash)
-                raise TypeError, "APM_TRACING lib_config must be a JSON object, got #{lib_config.class}"
+                raise TypeError, Core::Remote::Configuration.invalid_type_message(
+                  "APM_TRACING lib_config", lib_config, Hash
+                )
               end
               parsed << [content, config]
             rescue => e

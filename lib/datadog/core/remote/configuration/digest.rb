@@ -11,7 +11,9 @@ module Datadog
           class << self
             def parse(hash)
               new.concat(hash.map do |type, hexdigest|
-                raise TypeError, "Invalid type for hexdigest: expected String: #{hexdigest.inspect}" unless hexdigest.is_a?(String)
+                unless hexdigest.is_a?(String)
+                  raise TypeError, Configuration.invalid_type_message("hexdigest", hexdigest, String)
+                end
 
                 Digest.new(type, hexdigest)
               end)
@@ -40,7 +42,7 @@ module Datadog
                 # It still doesn't work in the present implementation.
                 # Flag the nil data now to get earlier diagnostics when
                 # developing tests for example.
-                raise ArgumentError, "Invalid type for data: expected String: #{data.inspect}"
+                raise ArgumentError, Configuration.invalid_type_message("data", data, String)
               end
 
               d = case type

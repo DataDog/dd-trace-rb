@@ -31,7 +31,7 @@ module Datadog
               raise ArgumentError, "data must not be nil"
             end
             unless String === data
-              raise ArgumentError, "Invalid type for data: expected String: #{data.inspect}"
+              raise ArgumentError, Configuration.invalid_type_message("data", data, String)
             end
 
             @path = path

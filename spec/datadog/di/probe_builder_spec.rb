@@ -291,8 +291,8 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           base_spec.merge("captureExpressions" => 5)
         end
 
-        it "raises ArgumentError with the offending type" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array, got: Integer/)
+        it "raises ArgumentError with the offending value" do
+          expect { probe }.to raise_error(ArgumentError, /Invalid type for captureExpressions: expected Array: 5/)
         end
       end
 
@@ -346,7 +346,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
 
         it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array/)
+          expect { probe }.to raise_error(ArgumentError, /Invalid type for captureExpressions: expected Array/)
         end
       end
 
@@ -356,7 +356,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
 
         it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /captureExpressions entry must be a hash/)
+          expect { probe }.to raise_error(ArgumentError, /Invalid type for captureExpressions entry: expected Hash/)
         end
       end
 
@@ -368,7 +368,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
 
         it "raises ArgumentError" do
-          expect { probe }.to raise_error(ArgumentError, /capture-expression entry capture must be a hash/)
+          expect { probe }.to raise_error(ArgumentError, /Invalid type for capture: expected Hash/)
         end
       end
     end

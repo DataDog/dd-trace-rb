@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "fatal_exceptions"
+require_relative "../core/remote/configuration"
 
 module Datadog
   module DI
@@ -292,7 +293,9 @@ module Datadog
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
           probe_id = probe_spec.fetch("id")
-          raise TypeError, "Invalid type for probe id: expected String: #{probe_id.inspect}" unless probe_id.is_a?(String)
+          unless probe_id.is_a?(String)
+            raise TypeError, Core::Remote::Configuration.invalid_type_message("probe id", probe_id, String)
+          end
 
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
