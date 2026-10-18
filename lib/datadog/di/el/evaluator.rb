@@ -320,6 +320,9 @@ module Datadog
           when Hash
             i = 0
             result = {}
+            # A compare_by_identity source hash can hold distinct-but-eql?
+            # keys; the result keeps the same key semantics.
+            result.compare_by_identity if collection.compare_by_identity?
             collection.each do |key, value|
               raise_if_evaluation_deadline_exceeded(i, deadline)
               i += 1

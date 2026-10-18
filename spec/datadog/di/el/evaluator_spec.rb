@@ -282,6 +282,22 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
     end
 
+    context "with a compare_by_identity Hash collection" do
+      let(:identity_collection) do
+        source = {}
+        source.compare_by_identity
+        source["key"] = 1
+        source[+"key"] = 2
+        source
+      end
+
+      it "#filter preserves the distinct keys and the identity mode" do
+        result = filter_hash_expr.evaluate(context_with(identity_collection), deadline: nil)
+        expect(result.length).to eq(2)
+        expect(result.compare_by_identity?).to be(true)
+      end
+    end
+
     context "with a nested evaluation of the same expression mid-iteration" do
       # The first collection item gates a nested evaluate call on the same
       # Expression: isUndefined invokes nil? on the item, and the gate's
