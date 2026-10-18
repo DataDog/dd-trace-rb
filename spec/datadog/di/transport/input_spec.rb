@@ -25,12 +25,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     Datadog::Core::Configuration::Settings.new
   end
 
-  let(:logger) do
-    instance_double(Datadog::DI::Logger).tap do |logger|
-      allow(logger).to receive(:debug)
-      allow(logger).to receive(:trace)
-    end
-  end
+  let(:logger) { instance_double(Datadog::DI::Logger, debug: nil, trace: nil) }
 
   let(:tags) { [] }
 
@@ -185,8 +180,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       let(:snapshots) do
         [snapshot_event(small_snapshot), snapshot_event(snapshot)]
       end
-
-      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
       it "drops snapshot that is too big" do
         expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|

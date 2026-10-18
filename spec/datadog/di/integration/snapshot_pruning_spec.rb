@@ -21,7 +21,7 @@ RSpec.describe "Snapshot size pruning integration" do
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:guardrails_telemetry) do
