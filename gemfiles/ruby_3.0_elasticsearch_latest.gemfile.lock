@@ -40,11 +40,11 @@ GEM
     elasticsearch-api (9.5.0)
       base64
       multi_json
-    faraday (2.14.4)
-      faraday-net_http (>= 2.0, < 3.5)
+    faraday (2.15.0)
+      faraday-net_http (>= 2.0, < 3.6)
       json
       logger
-    faraday-net_http (3.4.4)
+    faraday-net_http (3.5.0)
       net-http (~> 0.5)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-arm64-darwin)
@@ -77,8 +77,11 @@ GEM
     method_source (1.1.0)
     msgpack (1.8.5)
     multi_json (1.19.1)
-    net-http (0.9.1)
+    net-http (0.10.0)
+      net-protocol (>= 0.3.0)
       uri (>= 0.11.1)
+    net-protocol (0.4.0)
+      timeout
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -116,7 +119,8 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    uri (1.1.1)
+    timeout (0.6.1)
+    uri (1.1.2)
     warning (1.6.0)
     webmock (3.26.4)
       addressable (>= 2.8.0)

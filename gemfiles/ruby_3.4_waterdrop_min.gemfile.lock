@@ -51,32 +51,32 @@ GEM
       prism (>= 1.3.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (3.0.2)
+    json (3.1.0)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
     karafka-core (2.6.4)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.30.0)
+    karafka-rdkafka (0.31.0)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-aarch64-linux-gnu)
+    karafka-rdkafka (0.31.0-aarch64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-arm64-darwin)
+    karafka-rdkafka (0.31.0-arm64-darwin)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.30.0-x86_64-linux-gnu)
+    karafka-rdkafka (0.31.0-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
@@ -238,13 +238,13 @@ CHECKSUMS
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
-  json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
+  json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   karafka-core (2.6.4) sha256=e08166ca7ef12fadf0500f2a3aba63b5ba918a98533c3feaac9f43c90f159363
-  karafka-rdkafka (0.30.0) sha256=e491744d47eddf1b04953b10961ad7f8ddbbc3a760ae23f53a103cf887a84377
-  karafka-rdkafka (0.30.0-aarch64-linux-gnu) sha256=fd5b29c76897df538e9f081fe7298629bdca5bc8ce8f9598ec541bf41e6844ea
-  karafka-rdkafka (0.30.0-arm64-darwin) sha256=c292798ac07de4aa4f37e62bc73a6288453ea6b708f94fd1fb395db1f2d8ef99
-  karafka-rdkafka (0.30.0-x86_64-linux-gnu) sha256=0c122df13168196ac5a1eecb034d40c18e3bc4094e43c31e1ed71ccf094f0a4f
+  karafka-rdkafka (0.31.0) sha256=7d21274122d66ee8d08b8e56a0d06084933deb2306cf2a6e4bd0d073c14e7f9f
+  karafka-rdkafka (0.31.0-aarch64-linux-gnu) sha256=a243f1252d0e9ffa86318f79a0a978d9b77bf0a36380d1740a34e14562f54cd0
+  karafka-rdkafka (0.31.0-arm64-darwin) sha256=238ccb90dd5fe0261b11fe1dfdcf4250b9d1bb817b81d75deac4055b348393ac
+  karafka-rdkafka (0.31.0-x86_64-linux-gnu) sha256=7a4a6038d81aaf0f68c9ee12a97d9843afaa87611506ffa254bcc5dacdca08c2
   libdatadog (46.0.0.1.1) sha256=f22ee4da91046bc32a6bb62de30381f0c50595c32909abe709dabdb3e4a1452d
   libdatadog (46.0.0.1.1-aarch64-linux) sha256=77db04cdf7c3875984756ab178ac89ed8f41c0fcba0085d2723552824b5c50ab
   libdatadog (46.0.0.1.1-arm64-darwin) sha256=dc8c648d0123cba0d8432ccb7fa2f80b66c6cf1028ccd0ed42a5ddc04ee595c7
