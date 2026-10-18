@@ -16,7 +16,7 @@ module Datadog
         MATCHES_TIMEOUT_SECONDS = 0.5
 
         # Number of collection items processed between cooperative
-        # evaluation-deadline checks. Reading the monotonic clock
+        # evaluation-deadline checks. Reading the thread CPU clock
         # once per item would dominate the per-item block call work for
         # large collections; checking every N items keeps clock reads to
         # ~1/N of iterations while still bounding evaluation within one
@@ -41,7 +41,7 @@ module Datadog
         # progress. The deadline is supplied per invocation to the compiled
         # #evaluate method, which stores it in @deadline.
         #
-        # @return [Boolean] whether the monotonic clock has passed the
+        # @return [Boolean] whether the thread CPU clock has passed the
         #   deadline. False when no deadline is set, leaving evaluation
         #   unbounded.
         def evaluation_deadline_exceeded?
@@ -67,8 +67,8 @@ module Datadog
         end
         private :raise_if_evaluation_deadline_exceeded
 
-        # Resolves a per-invocation wall-time deadline (float seconds) for
-        # evaluating a probe condition, capture expression, or template
+        # Resolves a per-invocation thread-CPU-time deadline (float seconds)
+        # for evaluating a probe condition, capture expression, or template
         # segment, from the configured evaluation timeout setting. Returns
         # nil when no evaluation timeout is configured, leaving evaluation
         # unbounded.
@@ -79,16 +79,16 @@ module Datadog
         def self.evaluation_deadline(settings)
           budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
           return nil unless budget_ms
-          ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) + budget_ms / 1000.0
+          ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
         end
 
-        # Returns whether the monotonic clock has passed +deadline+.
+        # Returns whether the thread CPU clock has passed +deadline+.
         #
         # @param deadline [Float, nil] the deadline to check; nil means no
         #   deadline is set, leaving evaluation unbounded.
         # @return [Boolean] whether the deadline has been crossed.
         def self.evaluation_deadline_exceeded?(deadline)
-          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
+          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
         end
 
         def ref(var)

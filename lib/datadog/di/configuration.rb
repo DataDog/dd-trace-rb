@@ -169,7 +169,7 @@ module Datadog
                 end
               end
 
-              # Maximum wall-clock time, in milliseconds, allowed for
+              # Maximum thread CPU time, in milliseconds, allowed for
               # evaluating a probe condition (`when`), capture expression,
               # or template segment. A condition whose evaluation exceeds
               # this budget is aborted and reported as an evaluation error

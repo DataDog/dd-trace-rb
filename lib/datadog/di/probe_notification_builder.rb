@@ -409,11 +409,12 @@ module Datadog
 
       # Renders the probe's message template against +context+.
       #
-      # Templates evaluate after capture, at a different wall-clock instant
-      # than the condition, so a fresh evaluation deadline is resolved per
-      # template evaluation (the +deadline+ default) and shared across all
-      # segments. A timeout raised by the between-segment check below or by
-      # the in-segment collection operators surfaces as an evaluationErrors
+      # Templates evaluate after capture, at a different point in the
+      # thread's CPU time than the condition, so a fresh evaluation
+      # deadline is resolved per template evaluation (the +deadline+
+      # default) and shared across all segments. A timeout raised by the
+      # between-segment check below or by the in-segment collection
+      # operators surfaces as an evaluationErrors
       # entry, rendered as "[evaluation error]", and is counted in the
       # evaluation_timeouts telemetry counter.
       #
@@ -421,7 +422,7 @@ module Datadog
       #   template segments to render.
       # @param context [Context] evaluation context for expression segments.
       # @param deadline [Float, nil] cooperative evaluation deadline, as
-      #   CLOCK_MONOTONIC float seconds; nil leaves evaluation unbounded.
+      #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation unbounded.
       # @return [Array(String, Array<Hash>)] the rendered message and the
       #   evaluation errors.
       def evaluate_template(template_segments, context, deadline: EL::Evaluator.evaluation_deadline(settings))
