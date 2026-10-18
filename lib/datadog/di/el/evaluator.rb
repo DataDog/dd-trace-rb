@@ -23,7 +23,7 @@ module Datadog
         # interval's worth of items past the deadline.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
-        # Message carried by DI::Error::EvaluationTimeout, raised by the
+        # Message of DI::Error::EvaluationTimeout, raised by the
         # cooperative evaluation-deadline checks.
         EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
 
@@ -38,8 +38,7 @@ module Datadog
         attr_reader :regexps
 
         # Cooperative evaluation-deadline check for the evaluation in
-        # progress. The deadline is supplied per invocation to the compiled
-        # #evaluate method, which stores it in @deadline.
+        # progress.
         #
         # @return [Boolean] whether the thread CPU clock has passed the
         #   deadline. False when no deadline is set, leaving evaluation
@@ -51,10 +50,7 @@ module Datadog
 
         # Raises DI::Error::EvaluationTimeout when the evaluation deadline
         # has been crossed, aborting collection-operator iteration
-        # cooperatively. The deadline is only checked every
-        # EVALUATION_DEADLINE_CHECK_INTERVAL items (see the constant's
-        # comment), so +item_index+ is the zero-based index of the element
-        # being processed.
+        # cooperatively.
         #
         # @param item_index [Integer] zero-based index of the collection
         #   element being processed.
@@ -238,8 +234,7 @@ module Datadog
         end
 
         # Returns true when +block+ returns a truthy value for every element
-        # of +collection+. The evaluation deadline is checked at most once
-        # per EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
         # @return [Boolean] whether the block is satisfied by every element.
@@ -271,8 +266,7 @@ module Datadog
         end
 
         # Returns true when +block+ returns a truthy value for any element
-        # of +collection+. The evaluation deadline is checked at most once
-        # per EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
         # @return [Boolean] whether the block is satisfied by any element.
@@ -305,9 +299,7 @@ module Datadog
 
         # Returns the elements of +collection+ for which +block+ returns a
         # truthy value: the selected items of an Array collection, and a
-        # Hash of the selected key-value pairs of a Hash collection. The
-        # evaluation deadline is checked at most once per
-        # EVALUATION_DEADLINE_CHECK_INTERVAL elements.
+        # Hash of the selected key-value pairs of a Hash collection.
         #
         # @param collection [Array, Hash] collection to filter.
         # @return [Array, Hash] the selected elements.

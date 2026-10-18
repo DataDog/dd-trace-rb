@@ -795,10 +795,7 @@ module Datadog
 
       # Trace point callback for a line probe hit. Gates the hit through
       # the probe's condition, the per-probe rate limiter, and the global
-      # rate limiter, then invokes the responder with the built context. A
-      # condition evaluation timeout is routed to the responder's
-      # condition-evaluation-failed callback like any other condition
-      # evaluation error, after being counted and logged.
+      # rate limiter, then invokes the responder with the built context.
       #
       # @param probe [Probe] the probe the trace point was installed for.
       # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of

@@ -409,15 +409,6 @@ module Datadog
 
       # Renders the probe's message template against +context+.
       #
-      # Templates evaluate after capture, at a different point in the
-      # thread's CPU time than the condition, so a fresh evaluation
-      # deadline is resolved per template evaluation (the +deadline+
-      # default) and shared across all segments. A timeout raised by the
-      # between-segment check below or by the in-segment collection
-      # operators surfaces as an evaluationErrors
-      # entry, rendered as "[evaluation error]", and is counted in the
-      # evaluation_timeouts telemetry counter.
-      #
       # @param template_segments [Array<String, EL::Expression>] compiled
       #   template segments to render.
       # @param context [Context] evaluation context for expression segments.
