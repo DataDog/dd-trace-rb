@@ -273,14 +273,69 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           checks += 1
           (checks <= 1) ? deadline - 0.001 : deadline + 0.001
         end
-        # Going through #satisfied? stores the per-invocation deadline on
-        # the evaluator (the compiled evaluate method does this), so #filter
-        # can read it. The two-phase stub makes the first check pass and the
-        # second fail, so the raise is not immediate.
+        # The two-phase stub makes the first check pass and the second fail,
+        # so the raise happens mid-iteration rather than at the first item.
         expect do
           filter_expr.satisfied?(context_with(collection), deadline: deadline)
         end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
         expect(checks).to be >= 2
+      end
+    end
+
+    context "with a nested evaluation of the same expression mid-iteration" do
+      # The first collection item gates a nested evaluate call on the same
+      # Expression: isUndefined invokes nil? on the item, and the gate's
+      # nil? reenters evaluation. This reproduces on one thread the state
+      # sharing that occurs when two threads evaluate the same probe
+      # concurrently.
+
+      # `collection.filter(isUndefined(@it) != true && marker == 'outer')`
+      let(:filter_with_refs_expr) do
+        compile_expr("collection.filter(isUndefined(@it) != true && marker == 'outer')",
+          "filter" => [
+            {"ref" => "collection"},
+            {"and" => [
+              {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
+              {"eq" => [{"ref" => "marker"}, "outer"]},
+            ]},
+          ])
+      end
+
+      let(:gate) do
+        nested_expr = filter_with_refs_expr
+        nested_context = context_with_marker([1, 2, 3], "inner")
+        nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+        gate = Object.new
+        gate.define_singleton_method(:nil?) do
+          begin
+            nested_expr.evaluate(nested_context, deadline: nested_deadline)
+          rescue Datadog::DI::Error::EvaluationTimeout
+            nil
+          end
+          false
+        end
+        gate
+      end
+
+      def context_with_marker(collection, marker)
+        Datadog::DI::Context.new(
+          probe: nil, settings: settings, serializer: serializer,
+          locals: {collection: collection, marker: marker}
+        )
+      end
+
+      it "reads locals from the invoking evaluation's context" do
+        result = filter_with_refs_expr.evaluate(context_with_marker([gate, 2], "outer"), deadline: nil)
+        expect(result).to eq([gate, 2])
+      end
+
+      it "keeps the invoking evaluation's deadline" do
+        # More than EVALUATION_DEADLINE_CHECK_INTERVAL items, so a deadline
+        # check runs after the gate item at index 0.
+        collection = [gate] + Array.new(70) { |i| i + 1 }
+        deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+        result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
+        expect(result).to eq(collection)
       end
     end
   end
@@ -291,7 +346,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "precompiles a literal matches needle at compile time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, "hello[a-z]"]})
 
-      expect(code).to eq("matches_compiled(ref('var'), 0)")
+      expect(code).to eq("matches_compiled(ref(context, 'var'), 0)")
       expect(regexps.length).to eq(1)
       expect(regexps.first).to be_a(Regexp)
     end
@@ -299,7 +354,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "compiles a dynamically-computed matches needle at evaluation time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, {"ref" => "pat"}]})
 
-      expect(code).to eq("matches(ref('var'), (ref('pat')))")
+      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')))")
       expect(regexps).to be_empty
     end
 

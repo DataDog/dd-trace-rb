@@ -1192,7 +1192,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             Datadog::DI::EL::Expression.new(
               "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 41"
+              "ref(context, 'arg1') == 41"
             )
           end
 
@@ -1216,7 +1216,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             Datadog::DI::EL::Expression.new(
               "(expression)",
               # We use "arg1" here, actual variable name is not currently available
-              "ref('arg1') == 42"
+              "ref(context, 'arg1') == 42"
             )
           end
 
@@ -1241,7 +1241,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('kwarg') == 42"
+              "ref(context, 'kwarg') == 42"
             )
           end
 
@@ -1252,7 +1252,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('kwarg') == 41"
+              "ref(context, 'kwarg') == 41"
             )
           end
 
@@ -1868,7 +1868,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('local') == 42"
+              "ref(context, 'local') == 42"
             )
           end
 
@@ -1884,7 +1884,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "ref('local') == 43"
+              "ref(context, 'local') == 43"
             )
           end
 
@@ -1908,7 +1908,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "iref('@ivar') == 42"
+              "iref(context, '@ivar') == 42"
             )
           end
 
@@ -1924,7 +1924,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
               "(expression)",
-              "iref('@ivar') == 43"
+              "iref(context, '@ivar') == 43"
             )
           end
 

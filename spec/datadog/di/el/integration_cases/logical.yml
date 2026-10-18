@@ -3,7 +3,7 @@
     not:
       ref: var
 
-  compiled: "!(ref('var'))"
+  compiled: "!(ref(context, 'var'))"
 
   eval:
     - locals:
@@ -15,7 +15,7 @@
     and:
       - ref: var
 
-  compiled: "((ref('var')))"
+  compiled: "((ref(context, 'var')))"
 
   eval:
     - locals:
@@ -28,7 +28,7 @@
       - ref: var
       - ref: var2
 
-  compiled: "((ref('var')) && (ref('var2')))"
+  compiled: "((ref(context, 'var')) && (ref(context, 'var2')))"
 
   eval:
     - locals:
@@ -46,7 +46,7 @@
       - ref: var
       - ref: var2
 
-  compiled: "((ref('var')) || (ref('var2')))"
+  compiled: "((ref(context, 'var')) || (ref(context, 'var2')))"
 
   eval:
     - locals:

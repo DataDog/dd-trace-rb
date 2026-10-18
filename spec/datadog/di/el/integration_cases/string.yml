@@ -4,7 +4,7 @@
       - ref: var
       - hello
 
-  compiled: starts_with(ref('var'), ("hello"))
+  compiled: starts_with(ref(context, 'var'), ("hello"))
 
   eval:
     - locals:
@@ -21,7 +21,7 @@
       - ref: var
       - hello
 
-  compiled: ends_with(ref('var'), ("hello"))
+  compiled: ends_with(ref(context, 'var'), ("hello"))
 
   eval:
     - locals:
@@ -39,7 +39,7 @@
       - 4
       - 7
 
-  compiled: substring((ref('var')), (4), (7))
+  compiled: substring((ref(context, 'var')), (4), (7))
 
   eval:
     - locals:
@@ -52,7 +52,7 @@
       - ref: var
       - hello[a-z]
 
-  compiled: matches_compiled(ref('var'), 0)
+  compiled: matches_compiled(ref(context, 'var'), 0)
 
   # TODO check esscaping
 

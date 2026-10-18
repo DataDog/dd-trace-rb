@@ -133,7 +133,7 @@ module Datadog
                   raise DI::Error::BadVariableName, "Bad variable name: #{target}"
                 end
                 method_name = (($1 == "@") ? "iref" : "ref")
-                "#{method_name}('#{target}')"
+                "#{method_name}(context, '#{target}')"
               end
             when *SINGLE_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
@@ -185,7 +185,7 @@ module Datadog
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
-              "#{op}(#{compile_partial(target.first, regexps)}) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
+              "#{op}(#{compile_partial(target.first, regexps)}, deadline) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
             end

@@ -28,8 +28,6 @@ module Datadog
           cls.class_exec do
             eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
               def evaluate(context, deadline)
-                @context = context
-                @deadline = deadline
                 #{compiled_expr}
               end
             RUBY
