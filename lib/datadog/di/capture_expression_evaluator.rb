@@ -46,12 +46,8 @@ module Datadog
       # An expression that fails to evaluate or serialize contributes an entry
       # to the returned errors.
       #
-      # A fresh evaluation deadline is resolved once for the whole
-      # capture-expression phase and threaded into every expression, so
-      # capture-expression evaluation is bounded identically for line and
-      # method probes. An expression whose evaluation exceeds the deadline
-      # is reported as an evaluation error, like any other evaluation
-      # failure.
+      # An expression whose evaluation exceeds the deadline
+      # is reported as an evaluation error.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against

@@ -46,9 +46,8 @@ module Datadog
         # @param context [Context] evaluation context (locals, instance
         #   variables, and per-invocation special variables).
         # @param deadline [Float, nil] cooperative evaluation deadline, as
-        #   CLOCK_THREAD_CPUTIME_ID float seconds. Collection operators abort with
-        #   {Datadog::DI::Error::EvaluationTimeout} when the deadline is
-        #   crossed; nil leaves evaluation unbounded.
+        #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation
+        #   unbounded.
         # @return [Object] the value the expression evaluates to.
         def evaluate(context, deadline: nil)
           @evaluator.evaluate(context, deadline)

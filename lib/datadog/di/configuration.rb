@@ -171,18 +171,7 @@ module Datadog
 
               # Maximum thread CPU time, in milliseconds, allowed for
               # evaluating a probe condition (`when`), capture expression,
-              # or template segment. A condition whose evaluation exceeds
-              # this budget is aborted and reported as an evaluation error
-              # snapshot with no captured user data; an over-budget capture
-              # expression or template segment is aborted and reported as an
-              # evaluation error alongside the data captured before the
-              # abort.
-              #
-              # The bound is cooperative: the collection operators
-              # (filter/all/any) and template-segment starts check the
-              # budget, so other evaluation paths are unbounded. The
-              # `matches` operator is separately bounded by the per-match
-              # Regexp timeout (Evaluator::MATCHES_TIMEOUT_SECONDS).
+              # or template segment.
               option :max_time_to_evaluate_ms do |o|
                 o.type :int
                 o.default 50
