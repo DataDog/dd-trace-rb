@@ -192,7 +192,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
 
     context "with the deadline already in the past" do
-      let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) - 0.001 }
+      let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
 
       # The abort fires at i == 0, before the predicate block runs, so the
       # @it predicate is never invoked on the Hash branch.
@@ -252,7 +252,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
     context "with the deadline far in the future" do
       let(:collection) { Array.new(1000) { |i| i } }
-      let(:deadline) { Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) + 60.0 }
+      let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
 
       it "#filter completes without timing out" do
         expect(filter_expr.evaluate(context_with(collection), deadline: deadline)).to eq((500..999).to_a)
@@ -269,7 +269,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       it "#filter raises after the first interval's worth of items" do
         deadline = 1.0
         checks = 0
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, :float_second) do
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
           checks += 1
           (checks <= 1) ? deadline - 0.001 : deadline + 0.001
         end
