@@ -2,6 +2,6 @@
   "type": "Changed",
   "product": "Tracing",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6502",
-  "message": "Reduce `Net::HTTP` request overhead when tracing is disabled (`tracing.enabled = false`) or the `http` integration is set to `enabled: false` after it was instrumented: requests no longer build a span. An explicit `c.tracing.instrument :name, enabled: true` now re-enables any integration that was already instrumented and later disabled, not just `http`.",
+  "message": "Reduce `Net::HTTP` overhead when tracing or the `http` integration is disabled: requests no longer build a span. `instrument :name, enabled: true` now re-enables any integration that was disabled after it was instrumented.",
   "author": "@hippi345"
 }
