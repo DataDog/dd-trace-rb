@@ -1,0 +1,7 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6502",
+  "message": "Reduce `Net::HTTP` request overhead when tracing is disabled (`tracing.enabled = false`) or the `http` integration is set to `enabled: false` after it was instrumented: requests no longer build a span.",
+  "author": "@hippi345"
+}
