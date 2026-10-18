@@ -542,10 +542,7 @@ module Datadog
       end
 
       # Computes the absolute thread CPU time deadline (in seconds) for a
-      # capture point from max_time_to_serialize_ms. Only CPU time spent
-      # serializing on the instrumented thread consumes the budget; resolve
-      # once per capture point and share across all values serialized on the
-      # built-in paths so the budget is not exceeded.
+      # capture point from max_time_to_serialize_ms.
       #
       # @return [Float] absolute thread CPU clock reading, in seconds, at
       #   which the capture budget is exhausted
