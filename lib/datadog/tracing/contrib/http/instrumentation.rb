@@ -29,7 +29,7 @@ module Datadog
               client_config = Datadog.configuration_for(self)
 
               return super unless Tracing.enabled?
-              return super unless request_options[:enabled]
+              return super unless datadog_configuration[:enabled] && request_options[:enabled]
               return super if Contrib::HTTP.should_skip_tracing?(req)
 
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|

@@ -59,5 +59,17 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
 
       include_examples "does not build or trace a span"
     end
+
+    context "when the http integration is disabled after patching and the host has a describes override" do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :http, describes: /127\.0\.0\.1/, service_name: "override-service"
+          c.tracing.instrument :http, enabled: false
+        end
+      end
+
+      include_examples "does not build or trace a span"
+    end
+
   end
 end
