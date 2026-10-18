@@ -5,7 +5,7 @@
       - isEmpty:
           ref: '@it'
 
-  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
+  compiled: "filter(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
 
   eval:
     - locals:
@@ -19,7 +19,7 @@
       - isEmpty:
           ref: '@value'
 
-  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_value, '@value') }"
+  compiled: "filter(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_value, '@value') }"
 
   eval:
     - locals:

@@ -3,7 +3,7 @@
     eq:
       - ref: foo
       - 123
-  compiled: (ref('foo')) == (123)
+  compiled: (ref(context, 'foo')) == (123)
 
   eval:
     - locals:
@@ -19,7 +19,7 @@
     eq:
       - ref: foo
       -
-  compiled: (ref('foo')) == (nil)
+  compiled: (ref(context, 'foo')) == (nil)
 
   eval:
     - name: nil
@@ -37,32 +37,32 @@
     ne:
       - ref: foo
       - 123
-  compiled: (ref('foo')) != (123)
+  compiled: (ref(context, 'foo')) != (123)
 
 - name: ge
   ast:
     ge:
       - ref: foo
       - 123
-  compiled: (ref('foo')) >= (123)
+  compiled: (ref(context, 'foo')) >= (123)
 
 - name: gt
   ast:
     gt:
       - ref: foo
       - 123
-  compiled: (ref('foo')) > (123)
+  compiled: (ref(context, 'foo')) > (123)
 
 - name: le
   ast:
     le:
       - ref: foo
       - 123
-  compiled: (ref('foo')) <= (123)
+  compiled: (ref(context, 'foo')) <= (123)
 
 - name: lt
   ast:
     lt:
       - ref: foo
       - 123
-  compiled: (ref('foo')) < (123)
+  compiled: (ref(context, 'foo')) < (123)
