@@ -7,56 +7,10 @@ module Datadog
     # Encodes a snapshot Hash to a JSON string bounded by a per-event byte
     # cap, pruning captured values that do not fit.
     #
-    # The encoder walks the snapshot Hash once and emits JSON inline. The
-    # structural envelope (+service+, +debugger.snapshot.probe/stack+, and
-    # the +captures+ container) is emitted as-is. When the snapshot cannot
-    # fit within the cap even after pruning, +encode+ returns nil and the
-    # caller drops the snapshot. The direct children of every +locals+,
-    # +arguments+, and +captureExpressions+ Hash, and the +throwable+ value,
-    # are captured-value slots: a slot that does not fit the remaining byte
-    # budget is replaced in place with the +{"pruned":true}+ marker,
-    # preserving its variable name as the JSON key.
-    #
-    # A nested collection (a collection member of a captured collection)
-    # is gated against the whole remaining budget, so the captured depth
-    # structure is retained while the total stays within the cap;
-    # MAX_ITEM_BYTES caps each scalar member of a captured collection.
-    # Because a retained nested
-    # collection can encode larger than the per-member allowance, the
-    # enclosing collection's constant-time bound can underestimate, and
-    # a member whose emission overruns the budget midway is pruned
-    # together with its partial emission.
-    #
-    # Two invariants hold during the walk. Each captured collection is
-    # gated before being walked: a constant-time bound on its encoded
-    # size must fit the remaining budget, and a collection failing the
-    # gate is pruned without being walked; a scalar slot whose minimum
-    # possible encoded size exceeds the budget is pruned without being
-    # encoded. And each captured value is encoded to JSON at most
-    # once: a slot whose encoding turns out to exceed the budget midway
-    # is pruned together with its partial emission, and the values it
-    # already encoded are not encoded again.
-    #
-    # Collection member names, stack frames, and the output shapes of
-    # custom serializers have no constant-time size bound, so the gate
-    # counts them up to a fixed allowance (SLOT_OVERHEAD); when such
-    # content exceeds the budget midway, the walk aborts at the budget
-    # boundary and the whole slot is pruned. The returned string is
-    # therefore always valid JSON of at most the requested size.
-    #
     # @api private
     module SnapshotEncoder
       # Byte cap applied to every scalar member of a retained captured
-      # collection (+elements+, +entries+, +fields+); a nested collection
-      # member is gated against the whole remaining budget. For
-      # a collection whose members are all scalar, the collection's
-      # pre-walk bound computed from the member count and this constant
-      # is an upper bound on the collection's actual encoded size. A
-      # serializer captured string is at most max_capture_string_length
-      # characters (255 by default), which is at most four bytes per
-      # character in UTF-8 and at most four characters per byte in the
-      # binary escape form, so a length-bounded scalar slot always passes
-      # this cap.
+      # collection (+elements+, +entries+, +fields+).
       MAX_ITEM_BYTES = 2048
 
       # Byte allowance for a captured-value slot's framing: braces,
@@ -80,11 +34,7 @@ module Datadog
       PRUNED = marker.freeze
       PRUNED_ENCODED = JSON.dump(PRUNED)
 
-      # Encoded forms of the fixed snapshot keys, so the walk does not
-      # re-encode a key it has already encoded for a previous slot. Keys
-      # outside the table (collection member names, custom serializer
-      # output) fall back to encoding on demand, keeping the table
-      # bounded.
+      # Encoded forms of the fixed snapshot keys.
       KEY_JSON = %w[
         type value isNull truncated size message stacktrace
         elements entries fields notCapturedReason notSerializedReason
@@ -167,14 +117,7 @@ module Datadog
           end
         end
 
-        # Encodes one captured-value slot. A collection slot whose
-        # constant-time bound exceeds the remaining budget is pruned
-        # without being walked; a nested collection member of a captured
-        # collection is gated against the whole remaining budget. A
-        # scalar slot whose minimum possible encoded
-        # size exceeds the byte budget is pruned without being encoded.
-        # A slot whose encoding exceeds the budget midway is pruned
-        # together with its partial emission.
+        # Encodes one captured-value slot.
         #
         # @param slot [Object] captured-value slot
         # @param out [String] output buffer
@@ -254,10 +197,8 @@ module Datadog
         end
 
         # Encodes an +elements+ field: an Array whose members are
-        # captured-value slots; each scalar member is capped at
-        # MAX_ITEM_BYTES and each nested collection member is gated
-        # against the whole remaining budget. A value of another type
-        # (custom serializer output) is encoded as a generic JSON value.
+        # captured-value slots. A value of another type (custom serializer
+        # output) is encoded as a generic JSON value.
         #
         # @param elements [Object] value of the +elements+ field
         # @param out [String] output buffer
@@ -279,9 +220,7 @@ module Datadog
         end
 
         # Encodes an +entries+ field: an Array of [key, value] pairs of
-        # captured-value slots; each pair member is capped at
-        # MAX_ITEM_BYTES when scalar and gated against the whole remaining
-        # budget when a collection. Pairs of another shape and values of
+        # captured-value slots. Pairs of another shape and values of
         # another type are encoded as generic JSON values.
         #
         # @param entries [Object] value of the +entries+ field
@@ -325,10 +264,8 @@ module Datadog
         end
 
         # Encodes a +fields+ field: a Hash mapping member names to
-        # captured-value slots; each scalar member is capped at
-        # MAX_ITEM_BYTES and each nested collection member is gated
-        # against the whole remaining budget. A value of another type is
-        # encoded as a generic JSON value.
+        # captured-value slots. A value of another type is encoded as a
+        # generic JSON value.
         #
         # @param fields [Object] value of the +fields+ field
         # @param out [String] output buffer
@@ -352,9 +289,8 @@ module Datadog
         end
 
         # Encodes a +locals+, +arguments+, or +captureExpressions+ value: a
-        # Hash mapping variable names to captured-value slots, each gated
-        # against the whole remaining budget. A value of another type is
-        # encoded as a generic JSON value.
+        # Hash mapping variable names to captured-value slots. A value of
+        # another type is encoded as a generic JSON value.
         #
         # @param hash [Object] value of the +locals+, +arguments+, or
         #   +captureExpressions+ field
@@ -438,13 +374,7 @@ module Datadog
         end
 
         # Dumps +value+ to JSON for emission, normalizing the encoding
-        # failure class across the supported range: the json gem below
-        # 2.6 (bundled with Ruby 2.5 through 3.0) converts a non-UTF-8
-        # string to UTF-8 before generating and raises
-        # Encoding::UndefinedConversionError for bytes invalid in UTF-8,
-        # while json 2.6 and later raise JSON::GeneratorError. The rescue
-        # raises JSON::GeneratorError on every supported version so the
-        # caller sees one failure class.
+        # failure class across the supported range.
         #
         # @param value [Object] value to dump
         # @return [String] JSON encoding of +value+
@@ -506,13 +436,7 @@ module Datadog
             Array === field_value(slot, "stacktrace")
         end
 
-        # Constant-time upper bound on a collection slot's encoded size:
-        # the framing allowance, six bytes per byte of every string
-        # field, the member cap plus the name allowance per collection
-        # member, and the frame allowance per stack frame. The bound
-        # covers every slot shape the serializer produces; a custom
-        # serializer shape exceeding the bound aborts the walk and the
-        # slot is pruned.
+        # Constant-time upper bound on a collection slot's encoded size.
         #
         # @param slot [Hash] captured-value slot
         # @return [Integer] upper bound on the slot's encoded byte size
@@ -534,10 +458,7 @@ module Datadog
           v
         end
 
-        # Lower bound on a scalar slot's encoded size: every byte of a
-        # string field appears in the encoding (plus its quotes), so when
-        # this bound exceeds the budget, the slot cannot fit under any
-        # escaping and is pruned without being encoded.
+        # Lower bound on a scalar slot's encoded size.
         #
         # @param slot [Hash] captured-value slot
         # @return [Integer] lower bound on the slot's encoded byte size
@@ -545,13 +466,7 @@ module Datadog
           2 + slot_string_fields_bound(slot, bytes_per_byte: 1, bytes_per_field: 2)
         end
 
-        # Accumulates the slot's string fields into a size bound: each
-        # string byte contributes +bytes_per_byte+ bytes and each present
-        # string field contributes +bytes_per_field+ bytes. Callers pass
-        # the per-byte contribution matching the bound they compute: one
-        # for a lower bound (a byte survives any escaping) and
-        # MAX_ESCAPE_EXPANSION for an upper bound (the \uXXXX
-        # expansion).
+        # Accumulates the slot's string fields into a size bound.
         #
         # @param slot [Hash] captured-value slot
         # @param bytes_per_byte [Integer] bytes counted per string byte
