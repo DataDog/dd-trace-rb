@@ -71,5 +71,17 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
       include_examples "does not build or trace a span"
     end
 
+    context "when the http integration is re-enabled after being disabled" do
+      before do
+        Datadog.configure { |c| c.tracing.instrument :http, enabled: false }
+        Datadog.configure { |c| c.tracing.instrument :http, enabled: true }
+      end
+
+      it "traces the request" do
+        expect(response.code).to eq("200")
+        expect(spans).to have(1).item
+        expect(spans.first.name).to eq("http.request")
+      end
+    end
   end
 end
