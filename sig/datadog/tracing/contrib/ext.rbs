@@ -16,6 +16,28 @@ module Datadog
           TAG_ROW_COUNT: "db.row_count"
         end
 
+        module RDS
+          TAG_IDENTIFIER: "aws.rds.identifier"
+
+          TAG_ENDPOINT_TYPE: "aws.rds.endpoint_type"
+
+          TAG_REGION: "aws.region"
+
+          TAG_DB_INSTANCE_IDENTIFIER: "dbinstanceidentifier"
+
+          TAG_DB_CLUSTER_IDENTIFIER: "dbclusteridentifier"
+
+          ENDPOINT_TYPE_INSTANCE: "instance"
+
+          ENDPOINT_TYPE_CLUSTER: "cluster"
+
+          ENDPOINT_TYPE_CLUSTER_RO: "cluster-ro"
+
+          ENDPOINT_TYPE_CLUSTER_CUSTOM: "cluster-custom"
+
+          ENDPOINT_TYPE_PROXY: "proxy"
+        end
+
         module RPC
           PEER_SERVICE_SOURCES: Array[string]
           TAG_SYSTEM: "rpc.system"
