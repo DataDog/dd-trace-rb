@@ -168,6 +168,25 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect_signals(evaluations: 1, exposures: 1)
   end
 
+  it "retains the result and evaluation signals without an evaluation context" do
+    details = nil
+    trace.measure("root") { details = client.fetch_string_details(flag_key: "flag", default_value: "fallback") }
+
+    expect(details.value).to eq("enabled")
+    expect(details.error_code).to be_nil
+    expect_signals(evaluations: 1, exposures: 0, annotations: 1)
+  end
+
+  ["false", "true", 0, 1, [], {}].each do |value|
+    context "with a non-boolean provider option #{value.inspect}" do
+      let(:opt_out_enabled) { value }
+
+      it "rejects the option before evaluating flags" do
+        expect { provider }.to raise_error(ArgumentError, /enable_evaluation_telemetry_opt_out_parameter/)
+      end
+    end
+  end
+
   context "when activation is disabled" do
     let(:opt_out_enabled) { false }
 
@@ -185,6 +204,78 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       trace.measure("root") { evaluate("subject", true) }
 
       expect_signals(evaluations: 1, exposures: 1)
+    end
+  end
+
+  context "with ordinary opt-out attribute targeting" do
+    let(:configuration) do
+      data = JSON.parse(super())
+      flag = data.fetch("flags").fetch("flag")
+      flag.fetch("variations")["off"] = {"key" => "off", "value" => "disabled"}
+      flag.fetch("allocations").first["rules"] = [{"conditions" => [{
+        "attribute" => "dd_evaluation_telemetry_opt_out", "operator" => "ONE_OF", "value" => ["true"],
+      }]}]
+      flag.fetch("allocations") << {
+        "key" => "fallback",
+        "splits" => [{"variationKey" => "off", "shards" => [], "serialId" => 101}],
+        "doLog" => true,
+      }
+      JSON.generate(data)
+    end
+
+    [false, true].each do |activation|
+      context "with activation #{activation}" do
+        let(:opt_out_enabled) { activation }
+
+        [false, true].each do |full_data|
+          context "with full evaluation data #{full_data}" do
+            let(:observe_full_evaluation_data) { full_data }
+
+            [false, true, "true"].each do |value|
+              it "retains #{value.inspect} for native targeting and exposure attributes" do
+                trace.measure("root") do
+                  2.times do
+                    details = evaluate("subject", value)
+                    expect(details.value).to eq((value == false) ? "disabled" : "enabled")
+                    expect(details.variant).to eq((value == false) ? "off" : "on")
+                    expect(details.reason).to eq((value == false) ? "STATIC" : "TARGETING_MATCH")
+                    expect(details.error_code).to be_nil
+                  end
+                end
+
+                expect_signals(evaluations: (activation && value == true) ? 0 : 2, exposures: 1)
+                exposure = exposure_payloads.flat_map { |payload| payload[:exposures] }.first
+                expect(exposure[:subject]).to eq(
+                  id: "subject", attributes: {"dd_evaluation_telemetry_opt_out" => value},
+                )
+                evp_payloads.flat_map { |payload| payload["flagEvaluations"] }.each do |event|
+                  if full_data
+                    expect(event["context"]["evaluation"]).to eq("dd_evaluation_telemetry_opt_out" => value)
+                    expect(event["targeting_key"]).to eq("subject")
+                  else
+                    expect(event).not_to have_key("context")
+                    expect(event["targeting_key"]).to eq("sha256_#{Digest::SHA256.hexdigest("subject")}")
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        it "uses ordinary exposure deduplication when targeting changes the assignment" do
+          trace.measure("root") do
+            [false, true, false].each do |value|
+              expect(evaluate("same-subject", value).variant).to eq(value ? "on" : "off")
+            end
+          end
+
+          expect_signals(evaluations: activation ? 2 : 3, exposures: 3)
+          exposures = exposure_payloads.flat_map { |payload| payload[:exposures] }
+          expect(exposures.map { |exposure| exposure[:subject][:attributes] }).to eq(
+            [false, true, false].map { |value| {"dd_evaluation_telemetry_opt_out" => value} },
+          )
+        end
+      end
     end
   end
 
@@ -306,29 +397,8 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect(span_hook).to have_received(:capture).once
   end
 
-  it "keeps the captured decision when an application after hook removes the parameter" do
-    allow(application_hook).to receive(:after) do |hook_context:, **|
-      hook_context.evaluation_context.fields.delete("dd_evaluation_telemetry_opt_out")
-    end
-    trace.measure("root") { evaluate("subject", true, hooks: [application_hook]) }
-
-    expect_signals(evaluations: 0, exposures: 1)
-  end
-
-  it "rechecks before EVP and metrics without removing annotations already captured by the provider" do
-    allow(application_hook).to receive(:after) do |hook_context:, **|
-      hook_context.evaluation_context.fields["dd_evaluation_telemetry_opt_out"] = true
-    end
-    trace.measure("root") { evaluate("subject", false, hooks: [application_hook]) }
-
-    expect_signals(evaluations: 0, exposures: 1, annotations: 2)
-  end
-
-  it "captures a failed before hook decision before application error hooks can change it" do
+  it "suppresses evaluation signals when an application before hook fails" do
     allow(application_hook).to receive(:before).and_raise("application before failure")
-    allow(application_hook).to receive(:error) do |hook_context:, **|
-      hook_context.evaluation_context.fields["dd_evaluation_telemetry_opt_out"] = false
-    end
     details = nil
     trace.measure("root") { details = evaluate("subject", true, hooks: [application_hook]) }
 
@@ -388,19 +458,6 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect_signals(evaluations: 0, exposures: 1)
   end
 
-  [true, false].each do |initial_value|
-    it "preserves opt-out when the context changes from #{initial_value} during native evaluation" do
-      allow(engine).to receive(:fetch_value).and_wrap_original do |method, *arguments, **options|
-        result = method.call(*arguments, **options)
-        options[:evaluation_context].fields["dd_evaluation_telemetry_opt_out"] = !initial_value
-        result
-      end
-      trace.measure("root") { expect(evaluate("subject", initial_value).value).to eq("enabled") }
-
-      expect_signals(evaluations: 0, exposures: 1)
-    end
-  end
-
   if OpenFeature::SDK::Configuration.method_defined?(:provider_tracked?)
     it "suppresses SDK short-circuit error signals when the provider becomes fatal" do
       api_configuration.set_provider_and_wait(provider)
@@ -411,6 +468,45 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       expect(details.value).to eq("fallback")
       expect(details.error_code).to eq("PROVIDER_FATAL")
       expect_signals(evaluations: 0, exposures: 0)
+    end
+
+    it "cannot use opt-out from a before hook when the provider becomes fatal" do
+      api_configuration.set_provider_and_wait(provider)
+      provider.emit_event(OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_code: "PROVIDER_FATAL")
+      allow(application_hook).to receive(:before).and_return(context("subject", true))
+      details = nil
+      trace.measure("root") { details = evaluate("subject", false, hooks: [application_hook]) }
+
+      expect(details.value).to eq("fallback")
+      expect(details.error_code).to eq("PROVIDER_FATAL")
+      expect(application_hook).not_to have_received(:before)
+      expect_signals(evaluations: 1, exposures: 0, annotations: 0)
+    end
+
+    [false, true].each do |invocation_opt_out|
+      it "uses invocation opt-out #{invocation_opt_out} without before hooks during initialization" do
+        entered = Queue.new
+        resume = Queue.new
+        allow(Datadog.send(:components).open_feature).to receive(:wait_for_configuration) do
+          entered << true
+          resume.pop
+          Datadog::OpenFeature::Component::CONFIGURATION_READY
+        end
+        allow(application_hook).to receive(:before).and_return(context("subject", true))
+        thread = Thread.new { api_configuration.set_provider_and_wait(provider) }
+        Timeout.timeout(5) { entered.pop }
+        details = nil
+        trace.measure("root") { details = evaluate("subject", invocation_opt_out, hooks: [application_hook]) }
+
+        expect(details.value).to eq("fallback")
+        expect(details.error_code).to eq("PROVIDER_NOT_READY")
+        expect(application_hook).not_to have_received(:before)
+        expect_signals(evaluations: invocation_opt_out ? 0 : 1, exposures: 0, annotations: 0)
+      ensure
+        resume << true
+        thread&.join(5)
+        thread&.kill if thread&.alive?
+      end
     end
   end
 
@@ -457,6 +553,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     end
 
     expect_signals(evaluations: 1, exposures: 2)
+    expect(span_hook).to have_received(:capture).once
   end
 
   context "with full evaluation data enabled" do
@@ -469,6 +566,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       end
 
       expect_signals(evaluations: 1, exposures: 2)
+      expect(span_hook).to have_received(:capture).once
       event = evp_payloads.first["flagEvaluations"].first
       expect(event["targeting_key"]).to eq("allowed")
       expect(event["context"]["evaluation"]).to include("dd_evaluation_telemetry_opt_out" => false)

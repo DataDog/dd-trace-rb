@@ -3,8 +3,8 @@
 require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
-require "open_feature/sdk"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
@@ -69,10 +69,13 @@ module Datadog
       attr_reader :metadata
 
       def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
-        @enable_evaluation_telemetry_opt_out_parameter = if enable_evaluation_telemetry_opt_out_parameter.nil?
+        @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
+        when nil
           Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
-        else
+        when true, false
           enable_evaluation_telemetry_opt_out_parameter
+        else
+          raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
@@ -399,7 +402,6 @@ module Datadog
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
         flag_meta = nil
-        telemetry_opted_out = evaluation_telemetry_opted_out?(evaluation_context)
 
         engine = OpenFeature.engine
         return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
@@ -416,7 +418,7 @@ module Datadog
         # Drive APM span enrichment directly from the evaluation path. This is the only reliable
         # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
         # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
-        unless telemetry_opted_out || evaluation_telemetry_opted_out?(evaluation_context)
+        unless evaluation_telemetry_opted_out?(evaluation_context)
           enrich_span(flag_key, result, evaluation_context)
         end
 

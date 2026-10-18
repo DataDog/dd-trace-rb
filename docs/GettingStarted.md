@@ -2898,9 +2898,16 @@ The API key is sent only to the managed Datadog endpoint. A custom agentless URL
 
 #### Evaluation telemetry opt-out
 
-Enable per-subject evaluation telemetry opt-out when you construct the provider:
+Set `dd_evaluation_telemetry_opt_out: true` in an evaluation context to suppress new flag evaluation events, `feature_flag.evaluations` metrics, and automatic flag span tags.
+Suppression does not change flag values or experiment exposures.
+The parameter remains an ordinary context attribute: targeting rules can read it, and exposure reporting uses its existing attribute and deduplication rules.
+
+Enable suppression with `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED=true` or for one provider:
 
 ```ruby
+require "datadog"
+require "datadog/open_feature/provider"
+
 provider = Datadog::OpenFeature::Provider.new(
   enable_evaluation_telemetry_opt_out_parameter: true,
 )
@@ -2915,18 +2922,15 @@ OpenFeature::SDK.build_client.fetch_string_value(
 )
 ```
 
-Alternatively, set `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED=true` and construct the provider without that keyword.
-An omitted or `nil` keyword uses `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled`, which defaults to `false`.
-An explicit provider `true` or `false` overrides that setting and its environment variable.
-The provider snapshots this setting when constructed. Later configuration changes do not affect an existing provider.
-When enabled, the `dd_evaluation_telemetry_opt_out` parameter must contain boolean `true` to suppress new evaluation telemetry.
-This suppresses evaluation events, evaluation metrics, and automatic flag span annotations.
-Missing values, `false`, `nil`, strings, and numbers preserve existing reporting.
-The provider uses the merged evaluation context, including application before hooks.
+- Only boolean `true` opts out. Missing values, `false`, `nil`, strings, and numbers retain telemetry.
+- An omitted or `nil` provider option uses `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled`, which defaults to `false`. Explicit `true` or `false` overrides it.
+- The provider reads the setting when constructed. Later changes do not affect that provider. Other provider option types raise `ArgumentError`.
+- Existing reporting modes, application hooks, unrelated telemetry, and previously captured data remain unchanged.
 
-Flag values, variants, reasons, defaults, experiment assignment, and exposure logging remain unchanged.
-Application hooks, unrelated telemetry, and data captured before the opt-out remain unchanged.
-Your application owns the decision to set this parameter.
+Set opt-out before evaluation. Context returned by application before hooks also applies, except when the SDK skips those hooks.
+With `openfeature-sdk` 0.6.3 or later, the SDK skips before hooks while the provider is not ready or fatal.
+A before hook's opt-out cannot suppress evaluation events or metrics on that path.
+To cover it, supply opt-out in the invocation, client, or global evaluation context.
 
 ### Profiling
 

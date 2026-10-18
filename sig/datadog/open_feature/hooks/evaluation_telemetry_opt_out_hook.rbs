@@ -4,17 +4,11 @@ module Datadog
       class EvaluationTelemetryOptOutHook
         PARAMETER: String
 
-        @opted_out: bool
-
         @hook: FlagEvalMetricsHook | FlagEvalEVPHook
 
         def self.opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 
         def initialize: (FlagEvalMetricsHook | FlagEvalEVPHook hook) -> void
-
-        def before: (hook_context: ::OpenFeature::SDK::Hooks::HookContext, **untyped) -> nil
-
-        def error: (hook_context: ::OpenFeature::SDK::Hooks::HookContext, **untyped) -> bool
 
         def finally: (
           hook_context: ::OpenFeature::SDK::Hooks::HookContext,
