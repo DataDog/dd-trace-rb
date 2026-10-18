@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6512",
+  "message": "Add Amazon RDS instance, cluster, endpoint type, and Region identity tags to MySQL2, PostgreSQL, Trilogy, Sequel, and Active Record spans."
+}
