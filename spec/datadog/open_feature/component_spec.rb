@@ -154,6 +154,45 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
+  describe "#debug_logging_hook", skip: !Datadog::OpenFeature::Hooks::DebugLoggingHook.available? do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    it "is returned while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+
+    it "is withheld while debug logging is disabled" do
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+    end
+
+    it "reuses one hook across evaluations" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be(component.debug_logging_hook)
+    end
+
+    it "is built once the OpenFeature SDK loads after the component" do
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(false)
+      component
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+  end
+
   describe "#shutdown!" do
     before do
       settings.open_feature.enabled = true

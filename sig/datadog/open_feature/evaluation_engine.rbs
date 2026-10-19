@@ -28,6 +28,8 @@ module Datadog
 
       private
 
+      def configuration_summary: (::String configuration) -> ::String
+
       def with_observe_full_evaluation_data: (
         ResolutionDetails result,
         bool observe_full_evaluation_data

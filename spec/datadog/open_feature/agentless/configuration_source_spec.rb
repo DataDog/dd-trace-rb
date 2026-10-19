@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     )
   end
   let(:transport) { instance_double(Datadog::OpenFeature::Agentless::Transport) }
-  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil, debug: nil) }
   let(:apply) { ->(_configuration) {} }
   let(:random) { -> { 0.5 } }
   let(:retry_wait) { ->(_delay) { false } }
@@ -197,6 +197,20 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       allow(apply).to receive(:call).and_raise(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
 
       expect { source.poll }.not_to change(source, :etag).from(nil)
+    end
+
+    it "retries through each response outcome with debug logging enabled" do
+      allow(logger).to receive(:debug) { |&block| block.call }
+      allow(transport).to receive(:get).and_return(
+        response(status: nil, error: SocketError.new),
+        response(status: 503),
+        response(status: 304),
+      )
+
+      source.poll
+
+      expect(transport).to have_received(:get).exactly(3).times
+      expect(logger).not_to have_received(:error)
     end
   end
 

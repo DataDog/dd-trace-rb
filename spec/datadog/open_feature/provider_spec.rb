@@ -9,6 +9,7 @@ require "datadog/open_feature/hooks/flag_eval_metrics_hook"
 require "datadog/open_feature/hooks/flag_eval_evp_hook"
 require "datadog/open_feature/flag_evaluation/writer"
 require "datadog/open_feature/hooks/span_enrichment_hook"
+require "datadog/open_feature/hooks/debug_logging_hook"
 
 RSpec.describe Datadog::OpenFeature, ".activate_provider" do
   subject(:activate_provider) { described_class.activate_provider(provider) }
@@ -626,10 +627,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
+        allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
         expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
+      end
+
+      context "when debug logging is enabled" do
+        let(:debug_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::DebugLoggingHook) }
+
+        before { allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_logging_hook) }
+
+        it "also returns the debug logging hook" do
+          expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
+        end
       end
 
       context "when EVP hook is disabled (killswitch)" do
@@ -672,6 +684,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
+      allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
     end
 
     it "passes provider success details to the EVP hook after SDK finalization" do

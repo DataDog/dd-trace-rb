@@ -99,6 +99,7 @@ module Datadog
           @stale_emitted = false
           @stale_pending = false
         end
+        Datadog.logger.debug("Feature Flags: provider initialization started")
         ready_handler_installed = install_initialization_ready_handler
 
         component, failure = OpenFeature.activate_provider(self)
@@ -117,6 +118,7 @@ module Datadog
         case wait_result
         when Component::CONFIGURATION_READY
           @initialization_mutex.synchronize { @initializing = false } unless ready_handler_installed
+          Datadog.logger.debug("Feature Flags: provider initialized successfully")
         when Component::CONFIGURATION_TIMEOUT
           message = "Feature Flags provider initialization timed out while waiting for configuration"
           Datadog.logger.error(message)
@@ -164,6 +166,7 @@ module Datadog
           )
         end
         OpenFeature.deactivate_provider(self)
+        Datadog.logger.debug("Feature Flags: provider shut down")
       end
 
       def hooks
@@ -171,6 +174,7 @@ module Datadog
         [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
+          component&.debug_logging_hook,
         ].compact
       end
 
@@ -222,6 +226,8 @@ module Datadog
       def fail_initialization(component, message)
         prepare_initialization_failure(component)
         cancel_initialization_if_shutdown!
+        # Non-blocking set_provider surfaces this only as a PROVIDER_ERROR event.
+        Datadog.logger.debug { "Feature Flags: provider failed to initialize: #{message}" }
         raise message.to_s
       end
 

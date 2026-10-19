@@ -99,7 +99,9 @@ module Datadog
           payload = @batch_builder.payload_for(events)
           response = @transport.send_exposures(payload)
 
-          unless response&.ok?
+          if response&.ok?
+            @logger.debug { "Feature Flags: sent #{events.size} exposure event(s)" }
+          else
             @logger.debug { "OpenFeature: Resolution details upload response was not OK: #{response.inspect}" }
           end
 
