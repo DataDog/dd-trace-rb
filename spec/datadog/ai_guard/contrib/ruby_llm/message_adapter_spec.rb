@@ -88,6 +88,8 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
     end
 
     context "when string content was redacted" do
+      before { allow(Datadog.logger).to receive(:warn) }
+
       let(:adapter) { described_class.new([message]) }
       let(:message) do
         RubyLLM::Message.new(
@@ -98,9 +100,6 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
       end
 
       it "copies the message and clears provider-shaped content" do
-        debug_messages = []
-        allow(Datadog.logger).to receive(:debug) { |&block| debug_messages << block&.call }
-
         ai_guard_message = adapter.to_ai_guard[0]
         rewritten_message = adapter.apply_redactions([ai_guard_message.copy(content: "Account <REDACTED>")])[0]
 
@@ -109,10 +108,9 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
           expect(rewritten_message.raw_content).to be_nil
           expect(message.content).to eq("Account 123")
           expect(rewritten_message).not_to be(message)
-          expect(debug_messages).to include(
-            "AI Guard omitted RubyLLM raw content because it may contain sensitive data"
-          )
         end
+        expect(Datadog.logger).to have_received(:warn)
+          .with("AI Guard omitted RubyLLM raw content because it may contain sensitive data")
       end
     end
 

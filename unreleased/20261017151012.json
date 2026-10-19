@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "AI Guard",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6505",
-  "message": "RubyLLM messages that carry raw content no longer log a per-message warning when AI Guard redaction omits the raw content; the notice now logs at debug level."
-}
