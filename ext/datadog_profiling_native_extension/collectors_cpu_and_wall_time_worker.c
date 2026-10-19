@@ -271,6 +271,10 @@ static VALUE safely_call(
   VALUE (*handle_sampling_failure)(VALUE, VALUE)
 );
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_miteruby_read_sample_flags(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
@@ -390,6 +394,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
@@ -407,6 +412,10 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
   rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
+  rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume", _native_miteruby_miniconsumer_consume, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_read_sample_flags", _native_miteruby_read_sample_flags, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
@@ -1211,6 +1220,34 @@ static VALUE safely_call(
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) {
   handle_sampling_signal(0, NULL, NULL);
   return Qtrue;
+}
+
+static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  miteruby_miniconsumer_consume(&miteruby_buffer, recorder_instance);
+  return Qnil;
+}
+
+static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  miteruby_miniconsumer_consume_loop(&miteruby_buffer, recorder_instance);
+  return Qnil;
+}
+
+static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self, VALUE thread) {
+  ENFORCE_THREAD(thread);
+  return miteruby_sample_event_publish_mask(&miteruby_buffer, thread, &sigprof_signal_mask) ? Qtrue : Qfalse;
+}
+
+static VALUE _native_miteruby_read_sample_flags(DDTRACE_UNUSED VALUE self) {
+  VALUE flags = rb_ary_new();
+  while (true) {
+    miteruby_buffer_record_t record = miteruby_buffer_read(&miteruby_buffer, false);
+    if (record.data == NULL) {
+      if (record.rejected_count != 0) continue;
+      return flags;
+    }
+    const miteruby_event_header_t *header = (const miteruby_event_header_t *)record.data;
+    if (header->type == MITERUBY_EVENT_STACK_SAMPLE) rb_ary_push(flags, UINT2NUM(header->flags));
+  }
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
