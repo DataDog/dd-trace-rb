@@ -4,7 +4,41 @@ module Datadog
       module Aws
         module Service
           class Base
+            ACCOUNT_ID_FORMAT: ::Regexp
+
+            SUCCESS_STATUS_CODES: ::Range[::Integer]
+
+            NO_DOTTED_DNS_SUFFIXES: ::Array[::String]
+
+            DNS_SUFFIX_FAILURE_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
+
+            DNS_SUFFIX_FAILURE_DESCRIPTION: ::String
+
+            self.@aws_dotted_dns_suffixes: ::Array[::String]?
+
+            def self.aws_dotted_dns_suffixes: () -> ::Array[::String]
+
             def add_tags: (untyped span, untyped params) -> nil
+
+            def add_owner_tags: (untyped span, untyped params, untyped context) -> nil
+
+            private
+
+            def self.load_and_memoize_aws_dotted_dns_suffixes: () -> ::Array[::String]
+
+            def self.load_aws_dotted_dns_suffixes: () -> ::Array[::String]
+
+            def self.report_dns_suffix_failure: (::String reason) -> void
+
+            def self.report_dns_suffix_error: (::StandardError error) -> void
+
+            def valid_account_id: (untyped value) -> ::String?
+
+            def aws_confirmed_response?: (untyped context) -> bool
+
+            def success?: (untyped status_code) -> bool
+
+            def aws_owned_endpoint?: (untyped host) -> bool
           end
         end
       end

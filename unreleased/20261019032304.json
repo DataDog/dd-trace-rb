@@ -1,0 +1,7 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6511",
+  "message": "Add the resource-owner account to DynamoDB and S3 spans when the finished request already identifies it.",
+  "author": "@pedramsafaei"
+}
