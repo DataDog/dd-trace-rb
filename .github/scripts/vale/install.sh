@@ -2,18 +2,18 @@
 set -euo pipefail
 
 if [[ -z "${VALE_VERSION:-}" ]]; then
-    echo "Error: VALE_VERSION environment variable is not set"
-    exit 1
+  echo "Error: VALE_VERSION environment variable is not set"
+  exit 1
 fi
 
 if [[ -z "${VALE_SHA256:-}" ]]; then
-    echo "Error: VALE_SHA256 environment variable is not set"
-    exit 1
+  echo "Error: VALE_SHA256 environment variable is not set"
+  exit 1
 fi
 
 archive="/tmp/vale.tar.gz"
 curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o "${archive}" \
-    "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
+  "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
 echo "${VALE_SHA256}  ${archive}" | sha256sum -c -
 tar -xzf "${archive}" -C /tmp vale
 install /tmp/vale /usr/local/bin/vale
