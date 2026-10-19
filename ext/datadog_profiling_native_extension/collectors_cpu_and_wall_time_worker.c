@@ -19,6 +19,7 @@
 #include "unsafe_api_calls_check.h"
 #include "miteruby/buffer.h"
 #include "miteruby/buffer_marking.h"
+#include "miteruby/miniconsumer.h"
 #include "miteruby/sample_event.h"
 
 #ifdef __APPLE__
@@ -596,6 +597,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   //
   // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
+  miteruby_miniconsumer_init();
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
