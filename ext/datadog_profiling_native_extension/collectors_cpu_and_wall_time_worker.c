@@ -753,7 +753,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // c) `simulate_sampling_signal_delivery` calls us directly instead of via a real SIGPROF, and blocks SIGPROF delivery on its
   //    thread for the duration of that call, so it can't be nested into by a real SIGPROF either
 
-  if (state->miteruby_enabled && !rb_during_gc()) miteruby_sample_event_publish(&miteruby_buffer);
+  if (state->miteruby_enabled && !rb_during_gc()) miteruby_sample_event_publish_sighandler(&miteruby_buffer);
 
   state->stats.signal_handler_enqueued_sample++;
 
