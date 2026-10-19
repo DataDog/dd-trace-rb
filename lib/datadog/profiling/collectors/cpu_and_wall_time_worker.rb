@@ -13,6 +13,7 @@ module Datadog
         # @rbs @start_stop_mutex: ::Thread::Mutex
         # @rbs @idle_sampling_helper: IdleSamplingHelper
         # @rbs @worker_state: WorkerState
+        # @rbs @miteruby_recorder: Datadog::Profiling::StackRecorder?
 
         # @rbs gc_profiling_enabled: bool
         # @rbs no_signals_workaround_enabled: bool
@@ -81,6 +82,7 @@ module Datadog
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
           @worker_state = WorkerState.new
+          @miteruby_recorder = miteruby_enabled ? StackRecorder.for_testing : nil
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -142,7 +144,12 @@ module Datadog
 
         # @rbs return: Datadog::Profiling::StackRecorder
         def prepare_serialize
-          self.class._native_prepare_serialize(self)
+          recorder = self.class._native_prepare_serialize(self)
+          miteruby_recorder = @miteruby_recorder
+          return recorder unless miteruby_recorder
+
+          recorder.serialize
+          miteruby_recorder
         end
 
         #: () -> true
