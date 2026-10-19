@@ -22,7 +22,7 @@ install_package() {
   local package="$1" version="$2" sha256="$3"
   local archive="/tmp/${package}.zip"
 
-  curl -sSL -o "${archive}" \
+  curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o "${archive}" \
     "https://github.com/errata-ai/${package}/releases/download/v${version}/${package}.zip"
   echo "${sha256}  ${archive}" | sha256sum -c -
   rm -rf "${styles_dir:?}/${package}"
@@ -37,7 +37,7 @@ install_package proselint "${PROSELINT_VERSION}" "${PROSELINT_SHA256}"
 # rules need; the dictionaries must sit at vale/styles/config/ next to
 # the rules, or those rules silently match nothing.
 harper_dir="$(mktemp -d)"
-curl -sSL -o /tmp/Harper.zip \
+curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o /tmp/Harper.zip \
   "https://github.com/vale-cli/Harper/releases/download/v${HARPER_VERSION}/Harper.zip"
 echo "${HARPER_SHA256}  /tmp/Harper.zip" | sha256sum -c -
 unzip -q /tmp/Harper.zip -d "${harper_dir}"
