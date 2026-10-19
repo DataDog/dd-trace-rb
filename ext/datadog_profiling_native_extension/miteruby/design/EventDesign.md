@@ -1,6 +1,6 @@
 # MITERUBY event design
 
-In-memory format for individual events captured from a signal handler.
+In-memory format for individual events captured by miteruby.
 
 ## Structures
 
@@ -44,7 +44,11 @@ typedef struct {
   Advance to the next event by this many bytes.
 - `frame_count`: number of reference pairs and positions; zero for overflow events.
 - `type`: event discriminator; `MITERUBY_EVENT_INVALID` is never emitted.
-- `flags`: proposed low two bits: `0` = complete, `1` = truncated, `2` = unavailable. Other bits reserved.
+- `flags`: for stack samples, the low two bits (`MITERUBY_EVENT_STACK_STATUS_MASK`, `0x03`) encode
+  stack status: `0` = complete, `1` = truncated, `2` = unavailable; `3` is reserved.
+  Bit 2 (`MITERUBY_EVENT_FROM_SIGNAL_HANDLER`, `0x04`) is set for the signal-handler sampling path,
+  including simulated signal delivery (TODO: stop doing this for simulate), and clear for the masked publishing entry point.
+  Stack status must be read independently of this source bit. Other bits are reserved.
 - `timestamp_ns`: monotonic observation time, before stack capture.
 
 ### miteruby_event_frame_refs_t
