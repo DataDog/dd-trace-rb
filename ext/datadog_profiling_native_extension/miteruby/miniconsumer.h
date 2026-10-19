@@ -4,5 +4,7 @@
 
 #include "buffer.h"
 
+void miteruby_miniconsumer_init(void);
+
 // Requires the main ractor's GVL and exclusive consumer access; must not be called recursively.
 void miteruby_miniconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance);
