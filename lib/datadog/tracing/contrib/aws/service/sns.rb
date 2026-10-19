@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "base"
+require_relative "../arn"
 require_relative "../ext"
 
 module Datadog
@@ -10,17 +11,32 @@ module Datadog
         module Service
           # SNS tag handlers.
           class SNS < Base
+            SERVICE = "sns"
+
+            # A topic ARN is the one SNS ARN whose resource is a bare name
+            # (`arn:aws:sns:us-west-2:123456789012:my-topic`). Endpoint,
+            # platform application and subscription ARNs all carry a further
+            # `/` or `:` segment, so requiring a bare resource is what keeps
+            # `Publish`'s `TargetArn` -- which may address a mobile platform
+            # endpoint rather than a topic -- from being labelled as a topic.
+            # `TargetArn` is deliberately not read here, so an endpoint can
+            # never reach the topic tags.
             def add_tags(span, params)
               topic_arn = params[:topic_arn]
               topic_name = params[:name]
-              if topic_arn
-                # example topic_arn: arn:aws:sns:us-west-2:123456789012:my-topic-name
-                parts = topic_arn.split(":")
-                topic_name = parts[-1]
-                aws_account = parts[-2]
-                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)
+
+              arn = Aws::Arn.parse(topic_arn)
+              resolved_name = arn&.bare_resource_id(SERVICE)
+
+              if arn && resolved_name
+                topic_name = resolved_name
+                account_id = arn.account_id
+                span.set_tag(Aws::Ext::TAG_AWS_TOPIC_ARN, topic_arn)
+                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
               end
+
               span.set_tag(Aws::Ext::TAG_TOPIC_NAME, topic_name)
+              set_resolved_name(span, Aws::Ext::TAG_AWS_TOPIC_NAME, topic_name)
             end
           end
         end

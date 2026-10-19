@@ -4,7 +4,17 @@ module Datadog
       module Aws
         module Service
           class DynamoDB < Base
+            SERVICE: ::String
+
+            TABLE_RESOURCE_TYPES: ::Array[::String]
+
+            TABLE_RESOURCE_SEGMENTS: ::Integer
+
             def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def arn_like?: (untyped value) -> bool
           end
         end
       end
