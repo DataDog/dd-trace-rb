@@ -1,6 +1,0 @@
-{
-  "type": "Added",
-  "product": "Open Feature",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6418",
-  "message": "Start Feature Flags delivery during provider initialization, including for applications that never receive traced requests."
-}
