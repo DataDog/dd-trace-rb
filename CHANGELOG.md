@@ -17,9 +17,7 @@
 * SSI: Reduce the single-step injection init image by about 2 MB, lowering download size and disk use when installing the library. ([#6485][])
 * SSI: Reduce the single-step injection init image by about 7 MB, lowering download size and disk use when installing the library. ([#6488][])
 * Profiling: Upgrade `datadog-ruby_core_source` to support Ruby 4.1.0-preview1. ([#6470][])
-* Dynamic Instrumentation: Dynamic Instrumentation: Bound snapshot captures by the
-`DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` budget (default `150`).
-`DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is deprecated. ([#6205][])
+* Dynamic Instrumentation: Bound snapshot captures by the `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` budget (default `150`). `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` is deprecated. ([#6205][])
 
 ## [2.45.0] - 2026-10-13
 
