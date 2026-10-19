@@ -84,6 +84,24 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         expect(correlation.emit?(p, nil)).to be(true)
         expect(correlation.emit?(p, nil)).to be(true)
       end
+
+      it "drops when the process-wide GLOBAL budget is exhausted" do
+        # global_rate 1 fills GLOBAL with one token; the first uncorrelated
+        # admit consumes it, the second consults a non-positive balance.
+        sampler = described_class.new(global_rate: 1)
+        p = probe("a")
+        expect(sampler.emit?(p, nil)).to be(true)
+        expect(sampler.emit?(p, nil)).to be(false)
+      end
+
+      it "shares the process-wide GLOBAL budget with correlated traffic" do
+        sampler = described_class.new(global_rate: 1)
+        expect(sampler.emit?(probe("a"), nil)).to be(true)
+
+        # GLOBAL is at zero: the next trace's top probe starves instead of
+        # drawing from a second, uncorrelated-only budget.
+        expect(sampler.emit?(probe("a"), trace)).to be(false)
+      end
     end
 
     context "top probe (first capturing probe in a trace)" do
@@ -265,6 +283,69 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       # Nine stores minus the two dead entries: seven retained.
       expect(ledger.entries.size).to eq(7)
       expect(retained.all? { |trace| ledger.fetch(trace) }).to be(true)
+    end
+  end
+
+  describe "#after_fork!" do
+    it "clears starvation and the per-trace ledger with fresh buckets" do
+      # global_rate 1 admits exactly one emit before GLOBAL hits zero.
+      sampler = described_class.new(global_rate: 1)
+      first = trace
+      expect(sampler.emit?(probe("a"), first)).to be(true)
+
+      second = trace
+      expect(sampler.emit?(probe("a"), second)).to be(false)
+      # The starved trace stays starved for its correlated hits.
+      expect(sampler.emit?(probe("a"), second)).to be(false)
+
+      sampler.after_fork!
+
+      # The ledger is empty and the buckets are full: the starved trace
+      # re-enters through the top-probe path and is admitted.
+      expect(sampler.emit?(probe("a"), second)).to be(true)
+    end
+
+    it "rebuilds the buckets at the configured rates" do
+      correlation.after_fork!
+
+      1.upto(top_rate) do |index|
+        expect(correlation.emit?(probe("p#{index}"), trace)).to be(true)
+      end
+      expect(correlation.emit?(probe("next"), trace)).to be(false)
+    end
+
+    it "serves a child whose inherited mutex was held at fork time" do
+      # A parent thread holds the sampler lock across the fork, as a probe
+      # hit in the parent would; the inherited mutex stays locked forever
+      # in the child, so the rebuild must replace it without acquiring it.
+      held = Queue.new
+      release = Queue.new
+      holder = Thread.new do
+        correlation.send(:lock).synchronize do
+          held << true
+          release.pop
+        end
+      end
+      held.pop
+
+      expect_in_fork(timeout_seconds: 10) do
+        correlation.after_fork!
+        expect(correlation.emit?(probe("a"), Object.new)).to be(true)
+      end
+
+      release << true
+      holder.join
+    end
+
+    it "serves a child after the parent exhausted the process-wide buckets" do
+      # Exhaust TOP and GLOBAL in the parent.
+      1.upto(top_rate) { correlation.emit?(probe("a"), trace) }
+      expect(correlation.emit?(probe("a"), trace)).to be(false)
+
+      expect_in_fork(timeout_seconds: 10) do
+        correlation.after_fork!
+        expect(correlation.emit?(probe("a"), Object.new)).to be(true)
+      end
     end
   end
 

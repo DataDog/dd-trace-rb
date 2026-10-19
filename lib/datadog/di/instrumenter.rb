@@ -130,24 +130,14 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
-      # Process-wide snapshot rate limiter.
+      # Process-wide limiter bounding condition-evaluation-failure
+      # notifications; capturing-probe emission volume is bounded by the
+      # correlation sampler's GLOBAL budget instead.
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_snapshot_rate_limiter
       # Process-wide log rate limiter.
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
-
-      # Returns the process-wide rate limiter for the probe.
-      #
-      # @param probe [Probe] the probe whose invocation is being rate limited
-      # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
-      def probe_global_rate_limiter(probe)
-        if probe.capturing?
-          global_snapshot_rate_limiter
-        else
-          global_log_rate_limiter
-        end
-      end
 
       # Emits the canonical rate-limit skip metric for a probe.
       #
@@ -509,40 +499,29 @@ module Datadog
 
       attr_reader :lock
 
-      # Coordinated sampling gate. A capturing probe with an active trace
-      # delegates the whole decision to the correlation sampler so probes in
-      # one trace share the decision. Every other hit (uncorrelated,
-      # non-capturing, or a hit failing open after a gate error) consults the
-      # probe's own rate limiter and then the process-wide hard limiter for
-      # the probe's category.
+      # Coordinated sampling gate. A capturing probe delegates the whole
+      # decision to the correlation sampler: correlated hits get the trace's
+      # unit decision, uncorrelated hits the probe's own rate limit plus the
+      # sampler's GLOBAL budget. A gate error fails open to the probe's own
+      # rate limiter. A non-capturing hit consults the probe's own rate
+      # limiter and then the process-wide hard limiter for its category.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
       # @return [Boolean]
       def emit?(probe)
         if probe.capturing?
           begin
-            trace = current_trace
-            emit = correlation_sampler.emit?(probe, trace)
-            return emit if trace
-
-            # Uncorrelated hit: the sampler already consulted the probe's own
-            # rate limiter, so only the hard limiter remains.
-            return false unless emit
-
-            return global_rate_limit_allows?(probe)
+            return correlation_sampler.emit?(probe, current_trace)
           rescue Exception => exc # standard:disable Lint/RescueException
-            Datadog::DI.reraise_if_fatal(exc)
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            reraise_per_policy(exc)
 
             logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
             telemetry&.report(exc, description: "Error in DI correlation gate")
+            return own_rate_limit_admits?(probe)
           end
         end
 
-        unless probe.own_rate_limit_allows?
-          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-          return false
-        end
+        return false unless own_rate_limit_admits?(probe)
 
         global_rate_limit_allows?(probe)
       end
@@ -554,16 +533,53 @@ module Datadog
         Datadog::DI.active_trace
       end
 
-      # Consults the process-wide hard rate limiter for the probe's category.
-      # Correlated capturing hits bypass this limiter; their process-wide
-      # bound is the correlation sampler's GLOBAL borrowing budget, and a
-      # hard cap at the same rate would drop the borrowed snapshots that
-      # keep a related chain intact.
+      # The trace active when the gate admitted a hit, for the snapshot
+      # envelope. A resolution failure returns nil, leaving the envelope's
+      # trace to the builder's own read; the error policy is still honored.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace_at_admission
+        current_trace
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission trace capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
+      # Re-raises a gate error per the DI error policy: fatal exceptions
+      # always, every exception when the customer opted into propagation.
+      # Called from rescue blocks only.
+      #
+      # @param exc [Exception] the in-flight exception
+      # @return [void]
+      def reraise_per_policy(exc)
+        Datadog::DI.reraise_if_fatal(exc)
+        raise exc if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+      end
+
+      # Consults the probe's own rate limiter, recording the canonical skip
+      # metric when it denies.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the probe's own limiter admits the hit
+      def own_rate_limit_admits?(probe)
+        return true if probe.own_rate_limit_allows?
+
+        record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+        false
+      end
+
+      # Consults the process-wide hard rate limiter bounding non-capturing
+      # hits. Capturing hits never consult it: their process-wide bound is the
+      # correlation sampler's GLOBAL budget, which traced and untraced traffic
+      # share, and a hard cap at the same rate would drop the borrowed
+      # snapshots that keep a related chain intact.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
       # @return [Boolean] true when the hard limiter admits the hit
       def global_rate_limit_allows?(probe)
-        unless probe_global_rate_limiter(probe).allow?
+        unless global_log_rate_limiter.allow?
           record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
           return false
         end
@@ -661,6 +677,10 @@ module Datadog
           end
 
           admitted = continue && emit?(probe)
+          # Captured before the customer method runs: a method that finishes
+          # the active trace or starts a new one must not relabel the
+          # snapshot away from the trace whose budget the gate consumed.
+          admission_trace = active_trace_at_admission if admitted
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -760,6 +780,7 @@ module Datadog
               entry_capture_expressions: entry_capture_expressions,
               entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
+              admission_trace: admission_trace,
               return_value: rv, duration: duration, exception: exc,)
 
             begin

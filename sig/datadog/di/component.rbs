@@ -73,6 +73,8 @@ module Datadog
 
       def started?: () -> bool
 
+      def after_fork: () -> void
+
       def shutdown!: (?Component? replacement) -> void
 
       def parse_probe_spec_and_notify: (Hash[String, untyped] probe_spec) -> Probe

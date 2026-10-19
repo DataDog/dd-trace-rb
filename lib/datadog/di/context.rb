@@ -16,6 +16,7 @@ module Datadog
         serialized_entry_args: nil,
         entry_capture_expressions: nil,
         entry_capture_evaluation_errors: nil,
+        admission_trace: nil,
         return_value: nil, duration: nil, exception: nil)
         @probe = probe
         @settings = settings
@@ -27,6 +28,7 @@ module Datadog
         @serialized_entry_args = serialized_entry_args
         @entry_capture_expressions = entry_capture_expressions
         @entry_capture_evaluation_errors = entry_capture_evaluation_errors
+        @admission_trace = admission_trace
         @return_value = return_value
         @duration = duration
         @exception = exception
@@ -51,6 +53,11 @@ module Datadog
       attr_reader :entry_capture_expressions
 
       attr_reader :entry_capture_evaluation_errors
+
+      # The APM trace active when the probe's hit was admitted by the
+      # sampling gate, for a method probe; nil when the hit carried no
+      # admission trace.
+      attr_reader :admission_trace
 
       # Return value for the method, for a method probe
       attr_reader :return_value

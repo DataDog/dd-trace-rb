@@ -52,6 +52,9 @@ module Datadog
 
         @per_probe_budget = per_probe_budget
         @all_budget = all_budget
+        @sweep_threshold = sweep_threshold
+        @top_rate = top_rate
+        @global_rate = global_rate
         @lock = Mutex.new
         @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
         @top_limiter = Core::TokenBucket.new(top_rate)
@@ -64,9 +67,9 @@ module Datadog
       # @param trace [Datadog::Tracing::TraceOperation, nil]
       # @return [Boolean]
       def emit?(probe, trace)
-        return emit_uncorrelated?(probe) if trace.nil?
-
         lock.synchronize do
+          return emit_uncorrelated?(probe) if trace.nil?
+
           budget = touch_budget(trace)
           if budget
             emit_correlated?(budget, probe)
@@ -76,11 +79,30 @@ module Datadog
         end
       end
 
+      # Rebuilds the process-scoped state for a freshly forked child. The
+      # inherited buckets can be depleted (GLOBAL carries any borrowed,
+      # negative balance), the inherited ledger holds entries for traces
+      # that do not exist in the child, and a mutex held by a parent thread
+      # at fork time stays locked forever in the child. The rebuild replaces
+      # the objects rather than mutating them, so it never acquires the
+      # inherited mutex; it must run while the child is single-threaded,
+      # which the at-fork hook calling it guarantees.
+      #
+      # @return [void]
+      def after_fork!
+        @lock = Mutex.new
+        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
+        @top_limiter = Core::TokenBucket.new(top_rate)
+        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+        nil
+      end
+
       private
 
       # Process-wide mutex guarding trace_budgets and the shared limiters; every
-      # correlated capturing fire serializes here, a conscious trade-off for O(1)
-      # critical sections.
+      # capturing fire serializes here, a conscious trade-off for O(1) critical
+      # sections. The lock is required for uncorrelated hits too: their GLOBAL
+      # check-and-consume must be atomic with the correlated hits' consumption.
       # @return [Thread::Mutex]
       attr_reader :lock
 
@@ -104,13 +126,32 @@ module Datadog
       # @return [Integer]
       attr_reader :all_budget
 
-      # Decides a hit with no active trace through the probe's own rate limit,
-      # so uncorrelated hits are decided independently of one another.
+      # Sweep floor this sampler rebuilds the ledger with.
+      # @return [Integer]
+      attr_reader :sweep_threshold
+
+      # TOP rate this sampler rebuilds its TOP bucket with.
+      # @return [Numeric]
+      attr_reader :top_rate
+
+      # GLOBAL rate this sampler rebuilds its GLOBAL bucket with.
+      # @return [Numeric]
+      attr_reader :global_rate
+
+      # Decides a hit with no active trace through the probe's own rate limit
+      # and the process-wide GLOBAL budget, so uncorrelated and correlated
+      # traffic share one process-wide bound. GLOBAL is consulted, not
+      # borrowed: only correlated probes of an admitted trace consume GLOBAL
+      # without a check. Must hold the lock.
       #
       # @param probe [Datadog::DI::Probe]
       # @return [Boolean]
       def emit_uncorrelated?(probe)
-        probe.own_rate_limit_allows?
+        return false unless probe.own_rate_limit_allows?
+        return false unless global_limiter.available?
+
+        global_limiter.consume
+        true
       end
 
       # Returns the trace's budget; nil when the trace has no established

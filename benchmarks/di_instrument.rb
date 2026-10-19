@@ -116,7 +116,7 @@ class DIInstrumentBenchmark
 
   # The process-wide global rate limiters are orthogonal admission control
   # and must not pollute per-call wrapper-cost measurement. BenchInstrumenter
-  # overrides the public probe_global_rate_limiter seam to return a limiter
+  # overrides the public global_log_rate_limiter seam to return a limiter
   # whose admission the benchmark toggles, so a single instrumenter isolates
   # the firing branch (admit) and the global-reject branch (reject).
   # Production wiring is unchanged; these are benchmark-only.
@@ -138,7 +138,7 @@ class DIInstrumentBenchmark
   end
 
   class BenchInstrumenter < Datadog::DI::Instrumenter
-    def probe_global_rate_limiter(*)
+    def global_log_rate_limiter
       ToggleLimiter
     end
   end

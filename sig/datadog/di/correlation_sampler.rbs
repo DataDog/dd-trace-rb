@@ -15,6 +15,12 @@ module Datadog
 
       @all_budget: ::Integer
 
+      @sweep_threshold: ::Integer
+
+      @top_rate: (::Float | ::Integer)
+
+      @global_rate: (::Float | ::Integer)
+
       @lock: Thread::Mutex
 
       @trace_budgets: TraceBudgetLedger
@@ -26,6 +32,8 @@ module Datadog
       def initialize: (?sweep_threshold: ::Integer, ?top_rate: (::Float | ::Integer), ?global_rate: (::Float | ::Integer), ?per_probe_budget: ::Integer, ?all_budget: ::Integer) -> void
 
       def emit?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> bool
+
+      def after_fork!: () -> void
 
       private
 
@@ -40,6 +48,12 @@ module Datadog
       attr_reader per_probe_budget: ::Integer
 
       attr_reader all_budget: ::Integer
+
+      attr_reader sweep_threshold: ::Integer
+
+      attr_reader top_rate: (::Float | ::Integer)
+
+      attr_reader global_rate: (::Float | ::Integer)
 
       def emit_uncorrelated?: (Probe probe) -> bool
 

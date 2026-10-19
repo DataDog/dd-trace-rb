@@ -2178,39 +2178,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe "#probe_global_rate_limiter" do
-      let(:snapshot_probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
-          method_name: "hook_test_method", capture_snapshot: true,)
-      end
-
-      let(:log_probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
-          method_name: "hook_test_method", capture_snapshot: false)
-      end
-
-      let(:capture_expression_probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "HookTestClass",
-          method_name: "hook_test_method", capture_snapshot: false,
-          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)])
-      end
-
-      it "returns the snapshot limiter for capturing probes" do
-        expect(instrumenter.probe_global_rate_limiter(snapshot_probe))
-          .to be(instrumenter.global_snapshot_rate_limiter)
-      end
-
-      it "returns the snapshot limiter for capture-expression-only probes" do
-        expect(instrumenter.probe_global_rate_limiter(capture_expression_probe))
-          .to be(instrumenter.global_snapshot_rate_limiter)
-      end
-
-      it "returns the log limiter for non-capturing probes" do
-        expect(instrumenter.probe_global_rate_limiter(log_probe))
-          .to be(instrumenter.global_log_rate_limiter)
-      end
-    end
-
     describe "#emit? with a correlation sampler" do
       let(:probe) do
         Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
@@ -2228,17 +2195,15 @@ RSpec.describe Datadog::DI::Instrumenter do
         before do
           stub_active_trace(123)
 
-          # Freeze the rate limiter clock so the drain below is deterministic.
+          # Freeze the time provider so the sampler's buckets do not
+          # refill mid-example.
           frozen_time = Datadog::Core::Utils::Time.get_time
           allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
-          Datadog::DI::Instrumenter::GLOBAL_SNAPSHOT_RATE_LIMIT.times do
-            instrumenter.global_snapshot_rate_limiter.allow?
-          end
-          expect(instrumenter.global_snapshot_rate_limiter.allow?).to be(false)
         end
 
-        it "admits a correlated hit past an exhausted hard snapshot limit" do
+        it "does not consult the instrumenter's hard limiters for a correlated hit" do
           expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           expect(instrumenter.send(:emit?, probe)).to be(true)
         end
@@ -2254,15 +2219,37 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "without an active trace" do
         before do
           stub_no_trace
+
+          # Freeze the time provider so the sampler's buckets do not
+          # refill between the calls below.
+          frozen_time = Datadog::Core::Utils::Time.get_time
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
         end
 
-        it "applies the hard snapshot limit to an uncorrelated capturing hit" do
-          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+        it "admits an uncorrelated capturing hit through the sampler" do
+          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+          expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
-          expect(instrumenter.send(:emit?, probe)).to be(false)
-          expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit/)
-          end
+          expect(instrumenter.send(:emit?, probe)).to be(true)
+        end
+
+        it "drops an uncorrelated capturing hit when the probe's own rate limit denies" do
+          limited_probe = Datadog::DI::Probe.new(type_name: "HookTestClass",
+            method_name: "hook_test_method",
+            id: 1, type: :log, capture_snapshot: true, rate_limit: 1)
+
+          expect(instrumenter.send(:emit?, limited_probe)).to be(true)
+          expect(instrumenter.send(:emit?, limited_probe)).to be(false)
+        end
+
+        it "drops an uncorrelated capturing hit when the sampler's GLOBAL is exhausted" do
+          drained = described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+            guardrails_telemetry: guardrails_telemetry,
+            capture_expression_evaluator: capture_expression_evaluator,
+            correlation_sampler: Datadog::DI::CorrelationSampler.new(global_rate: 1),)
+
+          expect(drained.send(:emit?, probe)).to be(true)
+          expect(drained.send(:emit?, probe)).to be(false)
         end
       end
 
@@ -2311,6 +2298,17 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
           expect(instrumenter.send(:emit?, probe)).to be(true)
         end
+
+        it "records the per-probe skip metric when the fail-open limiter denies" do
+          allow(logger).to receive(:debug)
+          allow(telemetry).to receive(:report)
+          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+          expect(probe.rate_limiter).to receive(:allow?).and_return(false)
+
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
+
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
       end
     end
 
@@ -2345,19 +2343,14 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "when the global snapshot limit rejects a capturing probe" do
+      context "when an uncorrelated capturing probe hits its own rate limit" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-            id: 1, type: :log, capture_snapshot: true,)
+            id: 1, type: :log, capture_snapshot: true, rate_limit: 1,)
         end
 
-        before do
-          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
-        end
-
-        it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-
+        it "bounds the hit to the probe's own limit without consulting the hard limiters" do
+          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2365,11 +2358,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           expect(HookTestClass.new.hook_test_method).to eq 42
+          expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(observed_calls.length).to eq 0
-          expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
-          end
+          expect(observed_calls.length).to eq 1
         end
       end
 
@@ -2544,20 +2535,15 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "when the global snapshot limit rejects a capturing probe" do
+      context "when an uncorrelated capturing line probe hits its own rate limit" do
         let(:probe) do
           Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
-            capture_snapshot: true,)
+            capture_snapshot: true, rate_limit: 1,)
         end
 
-        before do
-          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
-        end
-
-        it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-
+        it "bounds the hit to the probe's own limit without consulting the hard limiters" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_line(probe) do |payload|
@@ -2565,11 +2551,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           HookLineTestClass.new.test_method
+          HookLineTestClass.new.test_method
 
-          expect(observed_calls).to be_empty
-          expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
-          end
+          expect(observed_calls.length).to eq 1
         end
       end
 

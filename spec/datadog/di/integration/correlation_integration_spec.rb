@@ -92,7 +92,7 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
     end
 
-    context "with the process-wide hard snapshot limiter exhausted" do
+    context "with the condition-error limiter exhausted" do
       before do
         # Freeze the rate limiter clock so the drain below is deterministic.
         frozen_time = Datadog::Core::Utils::Time.get_time
@@ -104,7 +104,7 @@ RSpec.describe "Correlation integration" do
         expect(component.instrumenter.global_snapshot_rate_limiter.allow?).to be(false)
       end
 
-      it "emits a nested capturing chain past an exhausted hard snapshot limit" do
+      it "emits a nested capturing chain past the exhausted limiter" do
         probe_manager.add_probe(method_probe("p-alpha", "alpha"))
         probe_manager.add_probe(method_probe("p-inner", "inner"))
 
@@ -216,6 +216,44 @@ RSpec.describe "Correlation integration" do
 
       expect(snapshots.size).to eq(1)
     end
+
+    it "shares the process-wide GLOBAL budget with correlated traffic" do
+      # Freeze the time provider so GLOBAL does not refill mid-example.
+      frozen_time = Datadog::Core::Utils::Time.get_time
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+
+      # The probe's own limit is raised so GLOBAL is the only bound.
+      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+
+      CorrelationIntegrationTestClass.new.loop_n(20)
+      flush
+
+      # GLOBAL is at zero: the uncorrelated loop stops at its process-wide
+      # budget, and a traced request's top probe starves instead of drawing
+      # from a second, uncorrelated-only budget.
+      stub_active_trace(987)
+      CorrelationIntegrationTestClass.new.inner
+      flush
+
+      expect(snapshots.size).to eq(20)
+    end
+  end
+
+  context "trace finishes inside the probed method" do
+    it "labels the snapshot with the trace active at admission, not at build" do
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
+      # The gate and the admission capture read the trace; by the time the
+      # builder runs, the probed method has finished it.
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace, trace, nil)
+
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
+
+      CorrelationIntegrationTestClass.new.inner
+      flush
+
+      expect(snapshots.size).to eq(1)
+      expect(snapshots[0][:"dd.trace_id"]).to eq("789")
+    end
   end
 
   context "fail-open" do
@@ -231,6 +269,25 @@ RSpec.describe "Correlation integration" do
       flush
 
       expect(snapshots.size).to eq(1)
+    end
+
+    it "emits from the builder's own trace when the admission capture fails" do
+      probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
+      # The gate's read and the admission capture both fail; the builder's
+      # own read, after the customer method ran, then supplies the envelope.
+      reads = 0
+      allow(Datadog::DI).to receive(:active_trace) do
+        reads += 1
+        raise "trace boom" if reads <= 2
+
+        nil
+      end
+
+      CorrelationIntegrationTestClass.new.inner
+      flush
+
+      expect(snapshots.size).to eq(1)
+      expect(snapshots[0][:"dd.trace_id"]).to be_nil
     end
   end
 
