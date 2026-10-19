@@ -1,0 +1,14 @@
+issuer: https://token.actions.githubusercontent.com
+
+# Caller: libddwaf's notify-consumers.yml. Pinned to main so only the
+# reviewed workflow definition on main can mint this contents:write token --
+# do not relax to another ref pattern.
+subject_pattern: "repo:DataDog/libddwaf:ref:refs/heads/main"
+
+claim_pattern:
+  event_name: workflow_run|workflow_dispatch
+  repository: DataDog/libddwaf
+  job_workflow_ref: DataDog/libddwaf/\.github/workflows/notify-consumers\.yml@refs/heads/main
+
+permissions:
+  contents: write
