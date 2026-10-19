@@ -1,0 +1,9 @@
+source 'https://rubygems.org'
+
+gem 'datadog', path: ".."
+gem 'grape', '~> 3.0'
+gem 'activesupport'
+gem 'open-uri'
+gem 'puma'
+gem 'rackup'
+gem 'dogstatsd-ruby'
