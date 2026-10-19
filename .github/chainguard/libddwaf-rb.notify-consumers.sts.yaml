@@ -1,9 +1,10 @@
 issuer: https://token.actions.githubusercontent.com
 
-# Caller: libddwaf-rb's notify-consumers.yml, run manually after a gem
-# release. Pinned to main so only the reviewed workflow definition on main can
-# mint this contents:write token -- do not relax to another ref pattern.
-subject_pattern: "repo:DataDog/libddwaf-rb:ref:refs/heads/main"
+# Caller: libddwaf-rb's notify-consumers.yml, run manually after a local gem
+# release. Pinned to master (the repo's default branch) so only the reviewed
+# workflow definition on master can mint this contents:write token -- do not
+# relax to another ref pattern.
+subject_pattern: "repo:DataDog/libddwaf-rb:ref:refs/heads/master"
 
 claim_pattern:
   event_name: workflow_dispatch

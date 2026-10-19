@@ -5,7 +5,7 @@ issuer: https://token.actions.githubusercontent.com
 # manually dispatched on main). Pinned to main so only the reviewed workflow
 # definition on main can mint this contents:write token -- do not relax to
 # another ref pattern.
-subject_pattern: "repo:DataDog/datadog-ruby_core_source:ref:refs/heads/main"
+subject_pattern: "repo:DataDog/datadog-ruby_core_source:ref:refs/heads/master"
 
 claim_pattern:
   event_name: workflow_dispatch
