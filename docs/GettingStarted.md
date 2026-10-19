@@ -2895,8 +2895,6 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
-To troubleshoot Feature Flags setup, enable [debug mode](#debugging-and-diagnostics) with `DD_TRACE_DEBUG=true` or `c.diagnostics.debug = true`. Log lines prefixed with `Feature Flags:` report the selected configuration source, each agentless configuration request and its outcome, applied configurations, provider initialization and shutdown, delivered exposures, and the reason, variant, and error code of each flag evaluation. These lines never include flag values, targeting keys, evaluation context attributes, error messages, or credentials. With Remote Configuration, requests go through the Datadog Agent using the shared Remote Configuration client, which reports Agent connectivity and sync errors in the same debug output.
-
 ### Profiling
 
 `datadog` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.

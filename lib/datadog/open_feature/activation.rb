@@ -238,8 +238,9 @@ module Datadog
 
         @logger.debug do
           agentless = @settings.feature_flags.agentless
+          endpoint_kind = endpoint.managed? ? "managed endpoint, env=#{@settings.env || "unset"}" : "custom endpoint"
           "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
-            "(#{endpoint.managed? ? "managed" : "custom"} endpoint, env=#{@settings.env || "unset"}, " \
+            "(#{endpoint_kind}, " \
             "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
         end
 

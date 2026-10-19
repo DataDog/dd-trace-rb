@@ -145,6 +145,22 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(configuration_source).to have_received(:start).once
     end
 
+    context "with a custom endpoint and debug logging enabled" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+          URI("https://example.test/config"),
+          managed: false,
+        )
+      end
+
+      it "starts agentless delivery" do
+        allow(logger).to receive(:debug) { |&block| block.call }
+
+        expect(activation.activate(provider)).to be(component)
+        expect(configuration_source).to have_received(:start).once
+      end
+    end
+
     context "with Remote Configuration selected" do
       before { settings.feature_flags.configuration_source = "remote_config" }
 
