@@ -1,5 +1,8 @@
 #include "miniconsumer.h"
 
+#include <ruby/st.h>
+
+#include "../clock_id.h"
 #include "../collectors_stack.h"
 #include "../datadog_ruby_common.h"
 #include "../private_vm_api_access.h"
@@ -16,17 +19,38 @@
 #define THREAD_ID_LIMIT_CHARS 44
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 
+typedef struct {
+  thread_cpu_time_id thread_cpu_time_id;
+  long cpu_time_at_previous_sample_ns;
+  long wall_time_at_previous_sample_ns;
+} miniconsumer_thread_context;
+
+// TODO: Mark and pin the Ruby thread keys in this table.
+static st_table *thread_contexts;
+
 // Declared in Ruby's private iseq.h; redeclared here to avoid importing VM internals.
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
+static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
 static void record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_stack_sample_t *event,
   monotonic_to_system_epoch_state *time_converter
 );
+static sample_values sample_values_for(VALUE thread, long wall_time_ns);
+static miniconsumer_thread_context *thread_context_for(VALUE thread);
+static long time_since_previous_sample(long *previous_time_ns, long current_time_ns);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
-// TODO: Replace the fixed 10ms CPU/wall weights and "had cpu" state with real measurements and categorization.
+void miteruby_miniconsumer_init(void) {
+  if (thread_contexts == NULL) {
+    thread_contexts = st_init_numtable();
+  } else {
+    st_foreach(thread_contexts, free_thread_context, 0);
+  }
+}
+
+// TODO: Replace the fixed "had cpu" state with real categorization.
 // TODO: Include capture-time trace identifiers and remove the temporary miteruby=1 label.
 // TODO: Cache thread labels instead of fetching them for every sample.
 void miteruby_miniconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance) {
@@ -54,6 +78,7 @@ static void record_stack_sample(
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
+  sample_values values = sample_values_for(thread, event->header.timestamp_ns);
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[THREAD_ID_LIMIT_CHARS];
@@ -69,11 +94,6 @@ static void record_stack_sample(
     {.key = DDOG_CHARSLICE_C("thread name"), .str = thread_name_label(thread, thread_name, fallback_name, sizeof(fallback_name))},
     {.key = DDOG_CHARSLICE_C("state"), .str = DDOG_CHARSLICE_C("had cpu")},
     {.key = DDOG_CHARSLICE_C("miteruby"), .num = 1},
-  };
-  sample_values values = {
-    .cpu_time_ns = MILLIS_AS_NS(10),
-    .wall_time_ns = MILLIS_AS_NS(10),
-    .cpu_or_wall_samples = 1,
   };
   sample_labels sample_label_values = {
     .labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])},
@@ -117,6 +137,38 @@ static void record_stack_sample(
   RB_GC_GUARD(thread_name);
 }
 
+static sample_values sample_values_for(VALUE thread, long wall_time_ns) {
+  miniconsumer_thread_context *context = thread_context_for(thread);
+  thread_cpu_time cpu_time = is_thread_alive(thread) ? thread_cpu_time_for(context->thread_cpu_time_id) : (thread_cpu_time) {0};
+
+  return (sample_values) {
+    .cpu_time_ns = time_since_previous_sample(&context->cpu_time_at_previous_sample_ns, cpu_time.valid ? cpu_time.result_ns : INVALID_TIME),
+    .wall_time_ns = time_since_previous_sample(&context->wall_time_at_previous_sample_ns, wall_time_ns),
+    .cpu_or_wall_samples = 1,
+  };
+}
+
+static miniconsumer_thread_context *thread_context_for(VALUE thread) {
+  st_data_t existing_context;
+  if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (miniconsumer_thread_context *) existing_context;
+
+  miniconsumer_thread_context *context = ruby_xmalloc(sizeof(*context));
+  *context = (miniconsumer_thread_context) {
+    .thread_cpu_time_id = is_thread_alive(thread) ? thread_cpu_time_id_for(thread) : (thread_cpu_time_id) {0},
+    .cpu_time_at_previous_sample_ns = INVALID_TIME,
+    .wall_time_at_previous_sample_ns = INVALID_TIME,
+  };
+  st_insert(thread_contexts, (st_data_t) thread, (st_data_t) context);
+  return context;
+}
+
+static long time_since_previous_sample(long *previous_time_ns, long current_time_ns) {
+  // The first sample, or the first valid CPU clock read after a failure, only establishes a baseline.
+  long elapsed_ns = *previous_time_ns == INVALID_TIME || current_time_ns == INVALID_TIME ? 0 : current_time_ns - *previous_time_ns;
+  *previous_time_ns = current_time_ns;
+  return elapsed_ns;
+}
+
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size) {
   if (name != Qnil) return char_slice_from_ruby_string(name);
   if (thread == rb_thread_main()) return DDOG_CHARSLICE_C("main");
@@ -133,4 +185,9 @@ static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback
 
   snprintf(fallback, fallback_size, "%s:%d", path, line);
   return (ddog_CharSlice) {.ptr = fallback, .len = strlen(fallback)};
+}
+
+static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused) {
+  ruby_xfree((void *) context);
+  return ST_DELETE;
 }
