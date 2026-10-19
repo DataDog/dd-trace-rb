@@ -7,6 +7,7 @@ require "datadog/tracing/contrib/peer_service_configuration_examples"
 require "datadog/tracing/contrib/svc_src_examples"
 
 require "aws-sdk"
+require "tempfile"
 
 require "datadog/tracing"
 require "datadog/tracing/metadata/ext"
@@ -16,6 +17,13 @@ require "datadog/tracing/contrib/aws/patcher"
 RSpec.describe "AWS instrumentation" do
   let(:configuration_options) { {} }
   let(:server_error_statuses) { nil }
+
+  # The stubbed-response examples produce exactly one span, so they use the
+  # `span` helper. The examples that let the request go over HTTP cannot: when
+  # another spec in the same process has already patched `net/http`, that
+  # integration traces the same request and a second span appears. Picking the
+  # AWS span by name keeps those examples independent of what else ran first.
+  let(:aws_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Aws::Ext::SPAN_COMMAND } }
 
   before do
     Datadog.configure do |c|
@@ -255,6 +263,151 @@ RSpec.describe "AWS instrumentation" do
 
         it "returns an unmodified response" do
           expect(presign).to start_with("https://bucket.s3.us-stubbed-1.amazonaws.com/key")
+        end
+      end
+    end
+
+    describe "bucket owner condition" do
+      subject(:get_object) do
+        client.get_object(bucket: "my-bucket", key: "my-key", **owner_params)
+      end
+
+      let(:client) { ::Aws::S3::Client.new(stub_responses: true) }
+      let(:owner_params) { {expected_bucket_owner: "123456789012"} }
+
+      context "when the response succeeds" do
+        before { client.stub_responses(:get_object, status_code: 200, body: "data", headers: {}) }
+
+        it "tags the verified bucket owner" do
+          get_object
+
+          expect(span.get_tag("aws_account")).to eq("123456789012")
+          expect(span.get_tag("bucketname")).to eq("my-bucket")
+          expect(span.get_tag("http.status_code")).to eq("200")
+        end
+      end
+
+      context "when S3 rejects the expected bucket owner" do
+        before { client.stub_responses(:get_object, status_code: 403, body: "", headers: {}) }
+
+        it "does not tag an account" do
+          expect { get_object }.to raise_error(::Aws::S3::Errors::Forbidden)
+
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("bucketname")).to eq("my-bucket")
+          expect(span.get_tag("http.status_code")).to eq("403")
+        end
+      end
+
+      context "when the request fails for an unrelated reason" do
+        before { client.stub_responses(:get_object, status_code: 500, body: "", headers: {}) }
+
+        it "does not tag an account" do
+          expect { get_object }.to raise_error(::Aws::S3::Errors::Http500Error)
+
+          expect(span.get_tag("aws_account")).to be_nil
+        end
+      end
+
+      context "without the expected bucket owner parameter" do
+        let(:owner_params) { {} }
+
+        before { client.stub_responses(:get_object, status_code: 200, body: "data", headers: {}) }
+
+        it "does not tag an account" do
+          get_object
+
+          expect(span.get_tag("aws_account")).to be_nil
+        end
+      end
+
+      context "over HTTP against an AWS endpoint", webmock: true do
+        before { WebMock.disable_net_connect! }
+        after { WebMock.allow_net_connect! }
+
+        let(:client) do
+          ::Aws::S3::Client.new(
+            region: "us-east-1",
+            credentials: ::Aws::Credentials.new("akid", "secret"),
+            force_path_style: true,
+            retry_limit: 0
+          )
+        end
+
+        let(:url) { "https://s3.amazonaws.com/my-bucket/my-key" }
+
+        context "when S3 returns the object" do
+          before { stub_request(:get, url).to_return(status: 200, body: "data") }
+
+          it "tags the verified bucket owner" do
+            get_object
+
+            expect(
+              a_request(:get, url).with(headers: {"x-amz-expected-bucket-owner" => "123456789012"})
+            ).to have_been_made
+
+            expect(aws_span.get_tag("aws_account")).to eq("123456789012")
+            expect(aws_span.get_tag("http.status_code")).to eq("200")
+          end
+        end
+
+        context "when S3 denies the request" do
+          before do
+            stub_request(:get, url).to_return(
+              status: 403,
+              body: "<Error><Code>AccessDenied</Code><Message>Access Denied</Message></Error>"
+            )
+          end
+
+          it "does not tag an account" do
+            expect { get_object }.to raise_error(::Aws::S3::Errors::AccessDenied)
+
+            expect(aws_span.get_tag("aws_account")).to be_nil
+            expect(aws_span.get_tag("http.status_code")).to eq("403")
+          end
+        end
+      end
+
+      # An S3-compatible service accepts `x-amz-expected-bucket-owner` and
+      # ignores it, so a 200 from one is not evidence about an AWS account.
+      context "over HTTP against an S3-compatible endpoint", webmock: true do
+        before { WebMock.disable_net_connect! }
+        after { WebMock.allow_net_connect! }
+
+        let(:client) do
+          ::Aws::S3::Client.new(
+            region: "us-east-1",
+            credentials: ::Aws::Credentials.new("akid", "secret"),
+            endpoint: endpoint,
+            force_path_style: true,
+            retry_limit: 0
+          )
+        end
+
+        {
+          "a LocalStack endpoint" => "http://localhost:4566",
+          "a MinIO endpoint" => "http://minio.internal:9000",
+          "a self-hosted gateway" => "https://s3.storage.example.com",
+          "an AWS lookalike domain" => "https://s3.us-east-1.amazonaws.com.example.net",
+        }.each do |description, configured_endpoint|
+          context "such as #{description}" do
+            let(:endpoint) { configured_endpoint }
+            let(:url) { "#{configured_endpoint}/my-bucket/my-key" }
+
+            before { stub_request(:get, url).to_return(status: 200, body: "data") }
+
+            it "sends the header but does not tag an account" do
+              get_object
+
+              expect(
+                a_request(:get, url).with(headers: {"x-amz-expected-bucket-owner" => "123456789012"})
+              ).to have_been_made
+
+              expect(aws_span.get_tag("aws_account")).to be_nil
+              expect(aws_span.get_tag("bucketname")).to eq("my-bucket")
+              expect(aws_span.get_tag("http.status_code")).to eq("200")
+            end
+          end
         end
       end
     end
@@ -557,6 +710,74 @@ RSpec.describe "AWS instrumentation" do
   context "with an dynamodb client" do
     let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
 
+    # A real STS client with a stubbed response, so the providers below derive
+    # their account id the production way: from the `AssumedRoleUser.Arn` that
+    # STS returned.
+    def stub_sts_client(operation, account_id: "999988887777")
+      ::Aws::STS::Client.new(
+        region: "us-east-1",
+        credentials: ::Aws::Credentials.new("stub-akid", "stub-secret"),
+        stub_responses: true
+      ).tap do |sts|
+        sts.stub_responses(
+          operation,
+          credentials: {
+            access_key_id: "ASIAEXAMPLE",
+            secret_access_key: "session-secret",
+            session_token: "session-token",
+            expiration: Time.now + 3600,
+          },
+          assumed_role_user: {
+            assumed_role_id: "AROAEXAMPLE:example-session",
+            arn: "arn:aws:sts::#{account_id}:assumed-role/example-role/example-session",
+          }
+        )
+      end
+    end
+
+    def assume_role_provider(account_id: "999988887777")
+      ::Aws::AssumeRoleCredentials.new(
+        client: stub_sts_client(:assume_role, account_id: account_id),
+        role_arn: "arn:aws:iam::#{account_id}:role/example-role",
+        role_session_name: "example-session"
+      )
+    end
+
+    # Owner tagging is optional, so a failure in it must not cost the span any
+    # of the tags the instrumentation is actually responsible for.
+    describe "owner tagging failure isolation" do
+      subject(:get_item) { client.get_item(table_name: "my-table-name", key: {id: "1234"}) }
+
+      let(:responses) { {get_item: {item: {"Artist" => "Acme Band"}}} }
+      let(:handler) { Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS["dynamodb"] }
+
+      before { allow(handler).to receive(:add_owner_tags).and_raise("owner tagging blew up") }
+
+      it "keeps every mandatory tag and leaves the call unaffected" do
+        expect(get_item.item).to eq("Artist" => "Acme Band")
+
+        expect(handler).to have_received(:add_owner_tags)
+        expect(span.get_tag("aws_account")).to be_nil
+
+        expect(span.get_tag("tablename")).to eq("my-table-name")
+        expect(span.get_tag("aws.agent")).to eq("aws-sdk-ruby")
+        expect(span.get_tag("aws_service")).to eq("dynamodb")
+        expect(span.get_tag("aws.operation")).to eq("get_item")
+        expect(span.get_tag("aws.region")).to eq("us-stubbed-1")
+        expect(span.get_tag("region")).to eq("us-stubbed-1")
+        expect(span.get_tag("path")).to eq("")
+        expect(span.get_tag("host")).to eq("dynamodb.us-stubbed-1.amazonaws.com")
+        expect(span.get_tag("http.method")).to eq("POST")
+        expect(span.get_tag("http.status_code")).to eq("200")
+        expect(span.get_tag("span.kind")).to eq("client")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq("aws")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq("command")
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq("dynamodb.us-stubbed-1.amazonaws.com")
+        expect(span).not_to have_error
+      end
+    end
+
     describe "#get_item" do
       subject!(:get_item) { client.get_item(table_name: "my-table-name", key: {id: "1234"}) }
 
@@ -600,6 +821,239 @@ RSpec.describe "AWS instrumentation" do
           .to eq("command")
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
           .to eq("dynamodb.us-stubbed-1.amazonaws.com")
+      end
+    end
+
+    describe "owner account identity" do
+      subject!(:get_item) { client.get_item(table_name: table_name, key: {id: "1234"}) }
+
+      let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses, credentials: credentials) }
+      let(:responses) { {get_item: {item: {"Artist" => "Acme Band"}}} }
+      let(:table_name) { "my-table-name" }
+      let(:credentials) { assume_role_provider }
+
+      # STS is instrumented too, so building an assume-role provider emits its
+      # own span. Pick the DynamoDB one rather than assume there is only one.
+      let(:span) { spans.find { |candidate| candidate.get_tag("aws_service") == "dynamodb" } }
+
+      context "with an AssumeRole provider" do
+        it "tags the assumed-role account" do
+          expect(span.get_tag("aws_account")).to eq("999988887777")
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+          expect(span).not_to have_error
+        end
+      end
+
+      context "with an AssumeRoleWithWebIdentity provider" do
+        let(:token_file) do
+          file = Tempfile.new("web-identity-token")
+          file.write("stub-oidc-token")
+          file.flush
+          file
+        end
+
+        let(:credentials) do
+          ::Aws::AssumeRoleWebIdentityCredentials.new(
+            client: stub_sts_client(:assume_role_with_web_identity, account_id: "111122223333"),
+            role_arn: "arn:aws:iam::111122223333:role/example-role",
+            role_session_name: "example-session",
+            web_identity_token_file: token_file.path
+          )
+        end
+
+        after { token_file.close! }
+
+        it "tags the assumed-role account" do
+          expect(span.get_tag("aws_account")).to eq("111122223333")
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      # The account id these report came from local configuration, not from
+      # AWS, so it is not evidence of who owns the table.
+      context "with static credentials carrying an account id" do
+        let(:credentials) { ::Aws::Credentials.new("akid", "secret", nil, account_id: "123456789012") }
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      context "with static credentials carrying no account id" do
+        let(:credentials) { ::Aws::Credentials.new("akid", "secret") }
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      context "with a custom credential provider carrying an account id" do
+        let(:credentials) do
+          provider_class = Class.new do
+            include ::Aws::CredentialProvider
+
+            def initialize(credentials)
+              @credentials = credentials
+            end
+          end
+
+          provider_class.new(
+            ::Aws::Credentials.new("akid", "secret", "session-token", account_id: "999988887777")
+          )
+        end
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+        end
+      end
+
+      context "with an assume-role account id that is malformed" do
+        let(:credentials) { assume_role_provider(account_id: "12345") }
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+        end
+      end
+
+      context "with a table ARN" do
+        let(:table_name) { "arn:aws:dynamodb:us-stubbed-1:999988887777:table/my-table-name" }
+
+        it "does not tag an account" do
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("tablename")).to eq(table_name)
+        end
+      end
+
+      context "when a second credential lookup would fail" do
+        let(:credentials) do
+          provider = assume_role_provider
+          # Nothing after the provider is built may resolve credentials again,
+          # neither the signer nor span annotation, so make any further STS
+          # call raise: a second lookup then shows up as a missing tag.
+          allow(provider.client).to receive(:assume_role)
+            .and_raise(::Aws::Errors::MissingCredentialsError)
+          provider
+        end
+
+        it "tags the resolved account and never looks the credentials up again" do
+          expect(get_item.item).to eq("Artist" => "Acme Band")
+          expect(span.get_tag("aws_account")).to eq("999988887777")
+          expect(span).not_to have_error
+          expect(credentials.client).not_to have_received(:assume_role)
+        end
+      end
+
+      context "when reading the resolved credentials raises" do
+        let(:credentials) do
+          provider = assume_role_provider
+          allow(provider).to receive(:instance_variable_defined?)
+            .and_raise(::Aws::Errors::MissingCredentialsError)
+          provider
+        end
+
+        it "completes the call and does not tag an account" do
+          expect(get_item.item).to eq("Artist" => "Acme Band")
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span).not_to have_error
+        end
+      end
+    end
+
+    # A bare table name only names a table in the signing account once AWS has
+    # resolved it there, so a request that failed, or one that never reached
+    # AWS, proves nothing about who owns anything.
+    describe "owner account identity on a response that proves nothing" do
+      subject(:get_item) { client.get_item(table_name: "my-table-name", key: {id: "1234"}) }
+
+      let(:credentials) { assume_role_provider }
+      let(:span) { spans.find { |candidate| candidate.get_tag("aws_service") == "dynamodb" } }
+
+      context "when the table does not exist in the signing account" do
+        let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses, credentials: credentials) }
+        let(:responses) { {get_item: "ResourceNotFoundException"} }
+
+        it "does not tag an account" do
+          expect { get_item }.to raise_error(::Aws::DynamoDB::Errors::ResourceNotFoundException)
+
+          expect(span.get_tag("aws_account")).to be_nil
+          expect(span.get_tag("tablename")).to eq("my-table-name")
+        end
+      end
+
+      # DynamoDB Local and LocalStack accept the same bare table name and
+      # resolve it in a local store that has no AWS account behind it, so a 200
+      # from one of those is not evidence about any AWS account.
+      context "over HTTP against a DynamoDB-compatible endpoint", webmock: true do
+        let(:endpoint) { "http://localhost:8000" }
+        let(:url) { "#{endpoint}/" }
+        let(:client) do
+          ::Aws::DynamoDB::Client.new(
+            region: "us-east-1",
+            credentials: credentials,
+            endpoint: endpoint,
+            retry_limit: 0
+          )
+        end
+
+        before do
+          WebMock.disable_net_connect!
+          stub_request(:post, url).to_return(
+            status: 200,
+            body: '{"Item":{"Artist":{"S":"Acme Band"}}}',
+            headers: {"Content-Type" => "application/x-amz-json-1.0"}
+          )
+        end
+
+        after { WebMock.allow_net_connect! }
+
+        it "does not tag an account" do
+          expect(get_item.item).to eq("Artist" => "Acme Band")
+
+          expect(a_request(:post, url)).to have_been_made
+          expect(aws_span.get_tag("aws_account")).to be_nil
+          expect(aws_span.get_tag("tablename")).to eq("my-table-name")
+          expect(aws_span.get_tag("host")).to eq("localhost")
+          expect(aws_span.get_tag("http.status_code")).to eq("200")
+        end
+      end
+
+      # The same request against the real endpoint is tagged, which is what
+      # says the endpoint check is the only thing holding the case above back.
+      context "over HTTP against an AWS endpoint", webmock: true do
+        # DynamoDB uses account-based endpoint routing when the credentials
+        # carry an account id, which puts it in the host
+        # (`<account>.ddb.<region>.amazonaws.com`) instead of using
+        # `dynamodb.<region>.amazonaws.com`. Either host is AWS, and which one
+        # the SDK picks depends on its version, so this matches on the shape.
+        let(:url) { %r{\Ahttps://[a-z0-9.-]+\.amazonaws\.com/\z} }
+        let(:client) do
+          ::Aws::DynamoDB::Client.new(
+            region: "us-east-1",
+            credentials: credentials,
+            retry_limit: 0
+          )
+        end
+
+        before do
+          WebMock.disable_net_connect!
+          stub_request(:post, url).to_return(
+            status: 200,
+            body: '{"Item":{"Artist":{"S":"Acme Band"}}}',
+            headers: {"Content-Type" => "application/x-amz-json-1.0"}
+          )
+        end
+
+        after { WebMock.allow_net_connect! }
+
+        it "tags the assumed-role account" do
+          expect(get_item.item).to eq("Artist" => "Acme Band")
+
+          expect(aws_span.get_tag("aws_account")).to eq("999988887777")
+          expect(aws_span.get_tag("host")).to end_with(".amazonaws.com")
+          expect(aws_span.get_tag("http.status_code")).to eq("200")
+        end
       end
     end
   end
