@@ -271,6 +271,44 @@ module Datadog
           Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
+        # Replaces the profiler with one built from the current settings.
+        #
+        # build_profiler_component snapshots setting values into the recorder and
+        # the native worker, so a running profiler cannot pick up a settings
+        # change and has to be rebuilt instead. The old profiler is shut down
+        # before the new one starts because the native extension permits only one
+        # active CpuAndWallTimeWorker (see active_sampler_instance in
+        # collectors_cpu_and_wall_time_worker.c); CpuAndWallTimeWorker#stop joins
+        # the worker thread, so that slot is free once shutdown! returns.
+        #
+        # Acquires the Components lock so a concurrent Datadog.configure cannot
+        # start a second profiler against the replacement components.
+        def reconfigure_profiler
+          Datadog.send(:safely_synchronize) do
+            old_profiler = @profiler
+
+            @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
+              settings: settings,
+              agent_settings: agent_settings,
+              optional_tracer: tracer,
+              logger: logger,
+            )
+            @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
+
+            old_profiler&.shutdown!
+
+            if settings.profiling.enabled
+              if @profiler
+                @profiler.start
+              else
+                logger.warn(
+                  "Profiling was requested but is not supported, profiling disabled: #{Profiling.unsupported_reason}"
+                )
+              end
+            end
+          end
+        end
+
         # Starts up components
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)

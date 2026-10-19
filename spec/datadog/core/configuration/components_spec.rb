@@ -626,6 +626,75 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#reconfigure_profiler" do
+    subject(:reconfigure_profiler) { components.reconfigure_profiler }
+
+    let(:old_profiler) { instance_double(Datadog::Profiling::Profiler, shutdown!: nil, start: nil) }
+    let(:new_profiler) { instance_double(Datadog::Profiling::Profiler, shutdown!: nil, start: nil) }
+
+    before do
+      components.instance_variable_set(:@profiler, old_profiler)
+      allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([new_profiler, {profiling_enabled: true}])
+    end
+
+    context "when profiling is enabled" do
+      before { settings.profiling.enabled = true }
+
+      it "rebuilds the profiler from the current settings" do
+        expect(Datadog::Profiling::Component).to receive(:build_profiler_component) do |**kwargs|
+          expect(kwargs).to include(
+            settings: settings,
+            agent_settings: components.agent_settings,
+            optional_tracer: components.tracer,
+            logger: components.logger,
+          )
+          [new_profiler, nil]
+        end
+
+        expect { reconfigure_profiler }.to change { components.profiler }.from(old_profiler).to(new_profiler)
+      end
+
+      # The native extension permits only one active CpuAndWallTimeWorker, so
+      # starting before the old one is stopped would raise.
+      it "shuts the old profiler down before starting the new one" do
+        expect(old_profiler).to receive(:shutdown!).ordered
+        expect(new_profiler).to receive(:start).ordered
+
+        reconfigure_profiler
+      end
+    end
+
+    context "when profiling is disabled" do
+      before do
+        settings.profiling.enabled = false
+        allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+          .and_return([nil, {profiling_enabled: false}])
+      end
+
+      it "shuts the old profiler down and clears it" do
+        expect(old_profiler).to receive(:shutdown!)
+
+        expect { reconfigure_profiler }.to change { components.profiler }.from(old_profiler).to(nil)
+      end
+    end
+
+    context "when profiling is enabled but unsupported" do
+      before do
+        settings.profiling.enabled = true
+        allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+          .and_return([nil, {profiling_enabled: false}])
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason")
+      end
+
+      it "warns instead of starting" do
+        expect(components.logger).to receive(:warn).with(/not supported, profiling disabled: test reason/)
+
+        reconfigure_profiler
+      end
+    end
+  end
+
   describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 

@@ -1,0 +1,31 @@
+module Datadog
+  module Profiling
+    module Remote
+      ENABLED_KEY: "profiling_enabled"
+
+      NO_SIGNALS_WORKAROUND_KEY: "profiling_no_signals_workaround_enabled"
+
+      ENV_ENABLED: "DD_PROFILING_ENABLED"
+
+      ENV_NO_SIGNALS_WORKAROUND_ENABLED: "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED"
+
+      CAPABILITIES: ::Array[Integer]
+
+      def self.capabilities: () -> ::Array[Integer]
+
+      def self.apply_lib_config: (Hash[String, untyped] lib_config) -> ::Array[[String, untyped]]
+
+      private
+
+      def self.apply_option: (
+        Core::Configuration::Options::InstanceMethods configuration_object,
+        Symbol setting_key,
+        Object? value,
+      ) -> Core::Telemetry::Event::telemetry_value
+
+      def self.profiling_settings: (Core::Configuration::Settings settings) -> [bool, untyped]
+
+      def self.restart_profiler: () -> void
+    end
+  end
+end

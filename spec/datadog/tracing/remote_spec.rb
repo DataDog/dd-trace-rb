@@ -63,6 +63,8 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_PROFILING_ENABLED", nil],
+              ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
             ))
 
           apply_configs
@@ -82,6 +84,8 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_PROFILING_ENABLED", nil],
+              ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
             ))
 
           apply_configs
@@ -110,6 +114,8 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", "X-Test-Header:test_header_rc,Content-Length:"],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_PROFILING_ENABLED", nil],
+              ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
             ))
 
           apply_configs
@@ -140,12 +146,59 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", "[{\"sample_rate\":1.0,\"tags\":{\"service\":\"web-*\"}}]"],
+              ["DD_PROFILING_ENABLED", nil],
+              ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
             ))
 
           apply_configs
 
           expect(content.apply_state).to eq(2)
           expect(content.apply_error).to be_nil
+        end
+      end
+
+      context "and profiling is configured" do
+        let(:config) do
+          {
+            "lib_config" => {
+              "profiling_enabled" => true,
+              "profiling_no_signals_workaround_enabled" => true,
+            },
+          }
+        end
+
+        before { allow(Datadog.send(:components)).to receive(:reconfigure_profiler) }
+
+        after do
+          precedence = Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          Datadog.configuration.profiling.unset_option(:enabled, precedence: precedence)
+          Datadog.configuration.profiling.advanced
+            .unset_option(:no_signals_workaround_enabled, precedence: precedence)
+        end
+
+        it "applies the profiling settings and restarts the profiler" do
+          expect(Datadog.send(:components)).to receive(:reconfigure_profiler)
+
+          expect { apply_configs }
+            .to change { Datadog.configuration.profiling.enabled }.from(false).to(true)
+            .and change { Datadog.configuration.profiling.advanced.no_signals_workaround_enabled }
+            .from(:auto).to(true)
+
+          expect(content.apply_state).to eq(2)
+        end
+
+        it "sends the profiling values to telemetry" do
+          expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+            .with(contain_exactly(
+              ["DD_LOGS_INJECTION", nil],
+              ["DD_TRACE_HEADER_TAGS", nil],
+              ["DD_TRACE_SAMPLE_RATE", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_PROFILING_ENABLED", true],
+              ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", true],
+            ))
+
+          apply_configs
         end
       end
 
@@ -417,6 +470,8 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_PROFILING_ENABLED", nil],
+            ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)
@@ -554,6 +609,8 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_PROFILING_ENABLED", nil],
+            ["DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)
