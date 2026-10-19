@@ -1010,6 +1010,36 @@ RSpec.describe Datadog::DI::Serializer do
     end
   end
 
+  context "when registering a custom serializer with an explicitly nil condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: nil) { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context "when registering a custom serializer with an Integer condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: 42) { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context "when registering a custom serializer without a block" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: ->(value) { true })
+      }.to raise_error(ArgumentError)
+    end
+  end
+
   context "when serialization raises an exception" do
     with_di_registry_change
 
