@@ -12,7 +12,6 @@
 #include "ruby_helpers.h"
 #include "stack_recorder.h"
 #include "time_helpers.h"
-#include "miteruby/miniconsumer.h"
 #include "unsafe_api_calls_check.h"
 #include "extconf.h"
 
@@ -1328,8 +1327,6 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   }
 
   latest_max_frames = state->locations.len;
-
-  miteruby_miniconsumer_init();
 
   long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns();
 
