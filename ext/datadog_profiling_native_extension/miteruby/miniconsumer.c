@@ -21,6 +21,7 @@
 #define THREAD_ID_LIMIT_CHARS 44
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define MITERUBY_DEBUG_SIGHANDLER_FRAME true
+#define MITERUBY_DEBUG_ROOT_FRAME true
 
 typedef struct {
   thread_cpu_time_id thread_cpu_time_id;
@@ -141,8 +142,14 @@ static void record_stack_sample(
   uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
   bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0;
   size_t frame_offset = MITERUBY_DEBUG_SIGHANDLER_FRAME && (event->header.flags & MITERUBY_EVENT_FROM_SIGNAL_HANDLER) ? 1 : 0;
-  size_t location_count = (unavailable ? 1 : count) + frame_offset;
+  size_t location_count = (unavailable ? 1 : count) + frame_offset + (MITERUBY_DEBUG_ROOT_FRAME ? 1 : 0);
   ddog_prof_Location locations[location_count];
+  if (MITERUBY_DEBUG_ROOT_FRAME) {
+    locations[location_count - 1] = (ddog_prof_Location) {
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .function = {.name = DDOG_CHARSLICE_C("(sampled by miteruby)"), .filename = DDOG_CHARSLICE_C("")},
+    };
+  }
   if (frame_offset != 0) {
     locations[0] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
