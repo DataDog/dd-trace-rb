@@ -368,14 +368,12 @@ jobs:
 
   update-release-branch:
     if: github.ref_name == 'master'
-    name: Pull request to update 'release' branch
+    name: Update 'release' branch with a merge commit
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     permissions:
-      issues: write
-      pull-requests: write
       id-token: write
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
@@ -390,19 +388,8 @@ jobs:
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
-      - env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEMP_BRANCH="update-document-v${GEM_VERSION}"
-
-          # Create and checkout a new branch from the tag
-          git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
-          git push origin "${TEMP_BRANCH}"
-
-          gh pr create \
-            --base release \
-            --head "${TEMP_BRANCH}" \
-            --title "Update document v${GEM_VERSION}" \
-          --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
-            --label "docs"
+      - run: |
+          git checkout -B release origin/release
+          # On conflict, the released tag wins.
+          git merge --no-edit -X theirs "v${GEM_VERSION}"
+          git push origin release
