@@ -50,13 +50,16 @@ module Datadog
           sighandler_sampling_enabled:,
           cpu_sampling_interval_ms:,
           waiting_for_gvl_threshold_ns:,
-          miteruby_enabled: false,
+          miteruby_enabled: ENV["MITERUBY"] == "true",
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
           skip_idle_samples_for_testing: false,
           idle_sampling_helper: IdleSamplingHelper.new
         )
+          if miteruby_enabled
+            Datadog.logger.warn("MITERUBY enabled!!!")
+          end
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
               "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
