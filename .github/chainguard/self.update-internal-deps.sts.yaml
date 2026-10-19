@@ -6,7 +6,7 @@ subject_pattern: "repo:DataDog/dd-trace-rb:ref:refs/heads/master"
 # dd-trace-rb, provisioned externally) must identify the caller as each
 # repo's notify-consumers workflow.
 claim_pattern:
-  event_name: repository_dispatch|workflow_dispatch
+  event_name: repository_dispatch
   repository: DataDog/dd-trace-rb
   job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/update-internal-deps\.yml@refs/heads/master
 
