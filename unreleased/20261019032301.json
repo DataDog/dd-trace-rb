@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6510",
+  "message": "Resolve AWS SDK target names safely from request ARNs instead of reporting ARN fragments as DynamoDB, Kinesis, SNS, Step Functions, or Lambda identity."
+}
