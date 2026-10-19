@@ -6,11 +6,13 @@
 #include "../collectors_stack.h"
 #include "../datadog_ruby_common.h"
 #include "../private_vm_api_access.h"
+#include "../setup_signal_handler.h"
 #include "../time_helpers.h"
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 // Why "miniconsumer"?
 // This miniconsumer bridges miteruby and the existing profiler APIs (specifically, StackRecorder).
@@ -26,6 +28,11 @@ typedef struct {
   long wall_time_at_previous_sample_ns;
 } miniconsumer_thread_context;
 
+typedef struct {
+  miteruby_buffer_t *buffer;
+  VALUE recorder_instance;
+} miniconsumer_consume_loop_args;
+
 // TODO: Mark and pin the Ruby thread keys in this table.
 static st_table *thread_contexts;
 
@@ -33,6 +40,8 @@ static st_table *thread_contexts;
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
+static VALUE consume_loop_body(VALUE args);
+static VALUE consume_loop_ensure(VALUE args);
 static void record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_stack_sample_t *event,
@@ -49,6 +58,32 @@ void miteruby_miniconsumer_init(void) {
   } else {
     st_foreach(thread_contexts, free_thread_context, 0);
   }
+}
+
+void miteruby_miniconsumer_consume_loop(miteruby_buffer_t *buffer, VALUE recorder_instance) {
+  enforce_recorder_instance(recorder_instance);
+  miniconsumer_consume_loop_args args = {
+    .buffer = buffer,
+    .recorder_instance = recorder_instance,
+  };
+  rb_ensure(consume_loop_body, (VALUE) &args, consume_loop_ensure, Qnil);
+}
+
+static VALUE consume_loop_body(VALUE args_ptr) {
+  miniconsumer_consume_loop_args *args = (miniconsumer_consume_loop_args *) args_ptr;
+
+  for (;;) {
+    rb_thread_wait_for((struct timeval) {.tv_sec = 0, .tv_usec = 100000});
+    // Buffer marking during GC may have unblocked SIGPROF since the previous iteration.
+    block_sigprof_signal_handler_from_running_in_current_thread();
+    miteruby_miniconsumer_consume(args->buffer, args->recorder_instance);
+  }
+  return Qnil;
+}
+
+static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
+  unblock_sigprof_signal_handler_from_running_in_current_thread();
+  return Qnil;
 }
 
 // TODO: Replace the fixed "had cpu" state with real categorization.
