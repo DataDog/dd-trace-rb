@@ -1,0 +1,113 @@
+name: Update Internal Dependencies
+
+# When a Datadog-owned gem (libdatadog, libddwaf, datadog-ruby_core_source)
+# publishes a new release, its release workflow sends this repo a
+# `repository_dispatch` event (`internal-dep-updated`) carrying the gem name and
+# version, which starts this workflow. The workflow only bumps the version
+# pins (via `rake dependency:<gem>:pin[VERSION]`). The gemfile.lockfiles are regenerated
+# afterwards by lock-dependency.yml, which triggers on the datadog.gemspec
+# change. Its lock-dependency-commit.yml companion commits the new lockfiles
+# back to this PR's branch. dd-trace-rb's own CI on the PR is the
+# validation that the new dependency works with Ruby consumers.
+#
+# The workflow can also be run manually via workflow_dispatch, but only from
+# the `master` branch: the dd-octo-sts policy below pins job_workflow_ref to
+# `master`, so dispatching from any other branch fails at the token-minting
+# step rather than minting a token for a branch-modified workflow.
+
+on: # yamllint disable-line rule:truthy
+  repository_dispatch:
+    types: [internal-dep-updated]
+  workflow_dispatch:
+    inputs:
+      gem:
+        description: "Gem to pin"
+        required: true
+        type: choice
+        options:
+          - libdatadog
+          - libddwaf
+          - datadog-ruby_core_source
+      version:
+        description: "Gem version to pin (e.g. 46.0.0.1.1)"
+        required: true
+        type: string
+      source_commit:
+        description: "Upstream commit that released this version (optional)"
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  update-internal-dep:
+    name: "Update Internal Dependency"
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
+      GEM: ${{ github.event.client_payload.gem || inputs.gem }}
+      VERSION: ${{ github.event.client_payload.version || inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: "4.0.1"
+          bundler-cache: true
+
+      - name: Pin ${{ env.GEM }}
+        run: bundle exec rake "dependency:${GEM}:pin[$VERSION]"
+
+      - run: git diff --color=always
+
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.update-internal-deps
+
+      # There appers to be a race condition, wait it out a bit
+      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
+      - name: Wait for token propagation
+        run: sleep 30
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: auto-generate/update-${{ env.GEM }}
+          title: '[🤖] Update ${{ env.GEM }} ${{ env.VERSION }}'
+          base: master
+          labels: dev/internal
+          draft: true
+          commit-message: "[🤖] Update ${{ env.GEM }} ${{ env.VERSION }}: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
+          sign-commits: true
+          add-paths: |
+            datadog.gemspec
+            ext/
+          body: |
+            _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-internal-deps.yml)_
+            The PR pins ${{ env.GEM }} to version ${{ env.VERSION }}.
+
+            The gemfile.lockfiles regenerate automatically via the Lock Dependencies workflow once this PR is opened.
+
+            **Trigger Information:**
+            - Triggered by: ${{ github.event.client_payload.triggered_by || 'manual dispatch' }}
+            - Source commit: ${{ github.event.client_payload.commit || inputs.source_commit || 'not provided' }}
+            - Source run: ${{ github.event.client_payload.source_run_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}
+
+            Please review the changes and merge when ready.
