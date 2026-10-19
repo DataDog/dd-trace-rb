@@ -16,6 +16,7 @@ module Datadog
         # @rbs @wait_until_running_mutex: ::Thread::Mutex
         # @rbs @wait_until_running_condition: ::Thread::ConditionVariable
         # @rbs @miteruby_recorder: Datadog::Profiling::StackRecorder?
+        # @rbs @miteruby_miniconsumer_thread: Thread?
 
         private
 
@@ -93,6 +94,7 @@ module Datadog
           @wait_until_running_mutex = Mutex.new
           @wait_until_running_condition = ConditionVariable.new
           @miteruby_recorder = miteruby_enabled ? StackRecorder.for_testing : nil
+          @miteruby_miniconsumer_thread = nil
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -104,6 +106,7 @@ module Datadog
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
             @idle_sampling_helper.start(self)
+            @miteruby_miniconsumer_thread = create_miteruby_miniconsumer
 
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
@@ -141,6 +144,9 @@ module Datadog
             Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
             @idle_sampling_helper.stop
+            @miteruby_miniconsumer_thread&.kill
+            @miteruby_miniconsumer_thread&.join
+            @miteruby_miniconsumer_thread = nil
 
             return unless @worker_thread
 
@@ -202,6 +208,29 @@ module Datadog
         end
 
         private
+
+        # @rbs return: Thread?
+        def create_miteruby_miniconsumer
+          recorder = @miteruby_recorder
+          return unless recorder
+          return @miteruby_miniconsumer_thread if @miteruby_miniconsumer_thread&.alive?
+
+          thread_name = "#{self.class.name}::MiterubyMiniconsumer"
+          thread = Thread.new do
+            Thread.current.name = thread_name
+            self.class._native_miteruby_miniconsumer_consume_loop(recorder)
+          rescue Exception => e # rubocop:disable Lint/RescueException
+            @failure_exception = e
+            Datadog.logger.warn(
+              "Miteruby miniconsumer thread error. " \
+              "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            )
+            Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby miniconsumer thread error")
+          end
+          thread.name = thread_name
+          thread.thread_variable_set(:fork_safe, true)
+          thread
+        end
 
         #: () -> void
         def signal_running
