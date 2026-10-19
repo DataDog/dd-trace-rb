@@ -1281,7 +1281,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
         capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
           settings: settings, serializer: nil, logger: logger,
           guardrails_telemetry: guardrails, telemetry: nil,
-        ),)
+        ),
+        metric_emitter: instance_double(Datadog::DI::MetricEmitter, available?: true),)
     end
     let(:probes) do
       %w[home home secret].each_with_index.map do |method_name, index|
