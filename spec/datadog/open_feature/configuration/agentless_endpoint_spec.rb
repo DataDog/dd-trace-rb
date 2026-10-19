@@ -103,4 +103,30 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       end
     end
   end
+
+  describe "#origin" do
+    context "with the managed endpoint" do
+      let(:environment) { "prod" }
+
+      it "drops the path and environment query" do
+        expect(endpoint.origin).to eq("https://ufc-server.ff-cdn.datadoghq.com")
+      end
+    end
+
+    context "with a custom endpoint carrying credentials, a path, and a query" do
+      let(:base_url) { "http://user:token@flags.example.test:8080/signed-path/ufc?sig=secret" }
+
+      it "keeps only the scheme, host, and non-default port" do
+        expect(endpoint.origin).to eq("http://flags.example.test:8080")
+      end
+    end
+
+    context "with a custom endpoint on the default port" do
+      let(:base_url) { "https://flags.example.test:443/ufc" }
+
+      it "omits the port" do
+        expect(endpoint.origin).to eq("https://flags.example.test")
+      end
+    end
+  end
 end

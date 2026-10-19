@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 require_relative "ext"
 require_relative "noop_evaluator"
 require_relative "native_evaluator"
@@ -66,12 +68,13 @@ module Datadog
       #       in the format expected by `libdatadog` without any modifications
       def reconfigure!(configuration)
         if configuration.nil?
-          @logger.debug("OpenFeature: Removing configuration")
+          @logger.debug("Feature Flags: configuration removed")
 
           return @evaluator = NoopEvaluator.new(configuration)
         end
 
         @evaluator = NativeEvaluator.new(configuration)
+        @logger.debug { "Feature Flags: configuration applied (#{configuration_summary(configuration)})" }
       rescue => e
         message = "OpenFeature: Failed to reconfigure, reverting to the previous configuration"
 
@@ -82,6 +85,20 @@ module Datadog
       end
 
       private
+
+      # Must not raise: reconfigure! would report the already-applied configuration as rejected.
+      def configuration_summary(configuration)
+        ufc = JSON.parse(configuration)
+        return "unrecognized format" unless ufc.is_a?(Hash)
+
+        flags = ufc["flags"]
+        environment = ufc["environment"]
+        environment_name = environment["name"] if environment.is_a?(Hash)
+        "#{flags.is_a?(Hash) ? flags.size : 0} flag(s), " \
+          "environment=#{environment_name || "unknown"}, created_at=#{ufc["createdAt"] || "unknown"}"
+      rescue JSON::ParserError
+        "unrecognized format"
+      end
 
       # Stamps observe_full_evaluation_data onto the result metadata so the hook
       # reads it from the event, not live config.

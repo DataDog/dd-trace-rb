@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, register: nil, start: nil) }
-  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, debug: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
   let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
@@ -136,6 +136,13 @@ RSpec.describe Datadog::OpenFeature::Activation do
       apply.call("ufc-payload")
 
       expect(component).to have_received(:reconfigure!).with("ufc-payload")
+    end
+
+    it "starts agentless delivery with debug logging enabled" do
+      allow(logger).to receive(:debug) { |&block| block.call }
+
+      expect(activation.activate(provider)).to be(component)
+      expect(configuration_source).to have_received(:start).once
     end
 
     context "with Remote Configuration selected" do

@@ -149,9 +149,14 @@ module Datadog
         @activated = true
         unless resolution.enabled?
           @failure = "Feature Flags are disabled"
+          @logger.debug do
+            "Feature Flags: disabled (feature_flags.enabled=#{@settings.feature_flags.enabled}, " \
+              "configuration source=#{resolution.source})"
+          end
           return
         end
 
+        @logger.debug { "Feature Flags: configuration source is #{resolution.source}" }
         component = Component.build(
           @settings,
           @agent_settings,
@@ -230,6 +235,14 @@ module Datadog
         end
 
         @configuration_source = configuration_source
+
+        @logger.debug do
+          agentless = @settings.feature_flags.agentless
+          "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
+            "(#{endpoint.managed? ? "managed" : "custom"} endpoint, env=#{@settings.env || "unset"}, " \
+            "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
+        end
+
         started = configuration_source.start
         @failure = "Feature Flags agentless delivery could not start" unless started
         started
@@ -256,6 +269,7 @@ module Datadog
           receivers: receivers,
         )
         remote.start
+        @logger.debug("Feature Flags: started Remote Configuration source; configuration arrives through the Datadog Agent")
         true
       end
 

@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
   let(:evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
   let(:observe_full_evaluation_data_key) do
     Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA
@@ -250,9 +250,27 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   describe "#reconfigure!" do
     context "when configuration is not yet present" do
       it "does nothing and logs the issue" do
-        expect(logger).to receive(:debug).with(/OpenFeature: Removing configuration/)
+        expect(logger).to receive(:debug)
 
         engine.reconfigure!(nil)
+      end
+    end
+
+    context "with debug logging enabled" do
+      before { allow(logger).to receive(:debug) { |&block| block.call } }
+
+      it "applies the configuration" do
+        expect { engine.reconfigure!(configuration) }.not_to raise_error
+
+        expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
+      end
+
+      ["[]", "{"].each do |unsummarizable_configuration|
+        it "applies #{unsummarizable_configuration.inspect} even though it cannot be summarized" do
+          expect { engine.reconfigure!(unsummarizable_configuration) }.not_to raise_error
+
+          expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(unsummarizable_configuration)
+        end
       end
     end
 

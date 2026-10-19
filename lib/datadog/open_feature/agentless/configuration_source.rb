@@ -110,6 +110,7 @@ module Datadog
             return if stopped?
 
             response = @transport.get(@etag)
+            log_poll_attempt(response, attempt)
             unless retryable?(response)
               apply_response(response)
               return
@@ -120,7 +121,9 @@ module Datadog
               return
             end
 
-            return if wait_before_retry(retry_delay(attempt))
+            delay = retry_delay(attempt)
+            @logger.debug { "Feature Flags: retrying agentless configuration poll in #{delay.round(1)}s" }
+            return if wait_before_retry(delay)
 
             attempt += 1
           end
@@ -138,6 +141,20 @@ module Datadog
 
         def stopped?
           @lifecycle_mutex.synchronize { @stopped }
+        end
+
+        def log_poll_attempt(response, attempt)
+          @logger.debug do
+            outcome = case response.status
+            when nil
+              "failed: #{request_error_class(response)}"
+            when 304
+              "returned HTTP 304 (unchanged)"
+            else
+              "returned HTTP #{response.status}"
+            end
+            "Feature Flags: agentless configuration poll attempt #{attempt}/#{MAX_ATTEMPTS} #{outcome}"
+          end
         end
 
         def retryable?(response)
@@ -228,10 +245,14 @@ module Datadog
             if status
               @logger.warn("Feature Flags agentless endpoint returned HTTP #{status} after #{attempts} attempt(s)")
             else
-              error_class = response.error ? response.error.class : StandardError
-              @logger.warn("Feature Flags agentless request failed after #{attempts} attempt(s): #{error_class}")
+              @logger.warn("Feature Flags agentless request failed after #{attempts} attempt(s): #{request_error_class(response)}")
             end
           end
+        end
+
+        # Class only: transport error messages can embed endpoint details.
+        def request_error_class(response)
+          response.error ? response.error.class : StandardError
         end
 
         def warn_once(category)
