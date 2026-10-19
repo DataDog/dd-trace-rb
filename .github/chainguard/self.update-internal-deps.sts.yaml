@@ -2,9 +2,9 @@ issuer: https://token.actions.githubusercontent.com
 
 subject_pattern: "repo:DataDog/dd-trace-rb:ref:refs/heads/master"
 
-# The corresponding cross-repo grants (libdatadog-rb / libddwaf /
-# datadog-ruby_core_source -> dd-trace-rb, provisioned externally) must
-# identify the caller as each repo's notify-consumers workflow.
+# Cross-repo grants (libdatadog-rb / libddwaf / datadog-ruby_core_source ->
+# dd-trace-rb, provisioned externally) must identify the caller as each
+# repo's notify-consumers workflow.
 claim_pattern:
   event_name: repository_dispatch|workflow_dispatch
   repository: DataDog/dd-trace-rb

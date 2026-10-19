@@ -146,8 +146,7 @@ namespace :dependency do
     end
   end
 
-  # Pin sites for Datadog-owned gems released from upstream repositories; each
-  # entry maps a file to the pin line that file carries.
+  # Pin sites for Datadog-owned gems; file -> the pin line it carries.
   internal_dep_pins = {
     "libdatadog" => [
       ["datadog.gemspec", /spec\.add_dependency "libdatadog", [^\n]+/,
@@ -165,7 +164,7 @@ namespace :dependency do
     ],
   }
 
-  # Checks rubygems.org first so a typo'd version fails before any pin is written.
+  # Fail on unpublished versions, before any pin is written.
   released_version = lambda do |gem, version|
     versions = Net::HTTP.get(URI("https://rubygems.org/api/v1/versions/#{gem}.json"))
     abort "#{gem} #{version} not found on rubygems.org" unless JSON.parse(versions).any? { |v| v["number"] == version }

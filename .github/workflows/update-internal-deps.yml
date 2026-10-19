@@ -1,19 +1,14 @@
 name: Update Internal Dependencies
 
-# When a Datadog-owned gem (libdatadog, libddwaf, datadog-ruby_core_source)
-# publishes a new release, its release workflow sends this repo a
-# `repository_dispatch` event (`internal-dep-updated`) carrying the gem name and
-# version, which starts this workflow. The workflow only bumps the version
-# pins (via `rake dependency:<gem>:pin[VERSION]`). The gemfile.lockfiles are regenerated
-# afterwards by lock-dependency.yml, which triggers on the datadog.gemspec
-# change. Its lock-dependency-commit.yml companion commits the new lockfiles
-# back to this PR's branch. dd-trace-rb's own CI on the PR is the
-# validation that the new dependency works with Ruby consumers.
+# A published release of a Datadog-owned gem (libdatadog, libddwaf,
+# datadog-ruby_core_source) sends `internal-dep-updated`, which starts this
+# workflow. It bumps the pins via `rake dependency:<gem>:pin[VERSION]` and opens
+# a draft PR. lock-dependency.yml then regenerates the gemfile.lockfiles on
+# that PR, and this repo's CI on the PR validates the new dependency.
 #
-# The workflow can also be run manually via workflow_dispatch, but only from
-# the `master` branch: the dd-octo-sts policy below pins job_workflow_ref to
-# `master`, so dispatching from any other branch fails at the token-minting
-# step rather than minting a token for a branch-modified workflow.
+# Manual workflow_dispatch runs work only from `master`: the dd-octo-sts
+# policy pins job_workflow_ref to master, so a run from another branch fails
+# at token minting instead of trusting a branch-modified workflow.
 
 on: # yamllint disable-line rule:truthy
   repository_dispatch:
