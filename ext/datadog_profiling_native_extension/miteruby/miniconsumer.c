@@ -102,7 +102,8 @@ static void record_stack_sample(
   };
 
   uint16_t count = event->header.frame_count;
-  if (event->header.flags == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0) {
+  uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
+  if (stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0) {
     record_placeholder_stack(recorder_instance, values, sample_label_values, DDOG_CHARSLICE_C("In native code"));
   } else {
     const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[count];
@@ -125,7 +126,7 @@ static void record_stack_sample(
       };
     }
 
-    if (event->header.flags == MITERUBY_EVENT_STACK_TRUNCATED) {
+    if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) {
       locations[0] = (ddog_prof_Location) {
         .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
         .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},
