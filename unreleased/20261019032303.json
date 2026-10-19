@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6510",
+  "message": "Add AWS target name and ARN tags for DynamoDB, Kinesis, SNS, Step Functions, and Lambda SDK spans."
+}
