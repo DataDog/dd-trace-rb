@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "libddwaf", "~> 1.30.0.0.0"
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
-  # (and yes we have a test for it)
+  # (and yes we have a test for it), or run `rake dependency:libdatadog:pin[VERSION]` to update both.
   spec.add_dependency "libdatadog", "~> 46.0.0.1.1"
 
   # No longer a default gem on Ruby 4.0.
