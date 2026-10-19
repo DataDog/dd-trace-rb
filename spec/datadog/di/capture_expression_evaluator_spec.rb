@@ -278,13 +278,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
       end
 
-      # Probe.new's rate limiter reads the clock once during construction.
-      probe_rate_limiter_init = 0.0
+      # Probe.new's rate limiter reads the monotonic clock once during
+      # construction; it passes through the CPU clock stub below.
       deadline_calc = 0.0
       first_expr_check = 0.0
       first_result_serialize = 0.0
       second_expr_check = 0.2  # past the deadline
-      stub_monotonic_clock([probe_rate_limiter_init, deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
+      stub_cpu_clock([deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(
