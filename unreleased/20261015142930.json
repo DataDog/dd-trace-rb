@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "SSI",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6481",
-  "message": "Reduce the single-step injection init image by about 14 MB, lowering download size and disk use when installing the library."
-}
