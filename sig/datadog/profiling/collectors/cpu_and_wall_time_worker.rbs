@@ -35,6 +35,8 @@ module Datadog
         def _native_profiler_internal_thread_done: () -> nil
 
         def self._native_prepare_serialize: (CpuAndWallTimeWorker self_instance) -> Datadog::Profiling::StackRecorder
+
+        def self._native_miteruby_miniconsumer_consume_loop: (Datadog::Profiling::StackRecorder recorder) -> void
       end
     end
   end
