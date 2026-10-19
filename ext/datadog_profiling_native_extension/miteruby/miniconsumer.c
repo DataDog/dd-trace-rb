@@ -18,6 +18,7 @@
 
 #define THREAD_ID_LIMIT_CHARS 44
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
+#define MITERUBY_DEBUG_SIGHANDLER_FRAME true
 
 typedef struct {
   thread_cpu_time_id thread_cpu_time_id;
@@ -103,11 +104,23 @@ static void record_stack_sample(
 
   uint16_t count = event->header.frame_count;
   uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
-  if (stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0) {
-    record_placeholder_stack(recorder_instance, values, sample_label_values, DDOG_CHARSLICE_C("In native code"));
+  bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0;
+  size_t frame_offset = MITERUBY_DEBUG_SIGHANDLER_FRAME && (event->header.flags & MITERUBY_EVENT_FROM_SIGNAL_HANDLER) ? 1 : 0;
+  size_t location_count = (unavailable ? 1 : count) + frame_offset;
+  ddog_prof_Location locations[location_count];
+  if (frame_offset != 0) {
+    locations[0] = (ddog_prof_Location) {
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .function = {.name = DDOG_CHARSLICE_C("(sampled in sighandler)"), .filename = DDOG_CHARSLICE_C("")},
+    };
+  }
+  if (unavailable) {
+    locations[frame_offset] = (ddog_prof_Location) {
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .function = {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")},
+    };
   } else {
     const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[count];
-    ddog_prof_Location locations[count];
     ddog_CharSlice filename = DDOG_CHARSLICE_C("");
     int line = 0;
 
@@ -119,7 +132,7 @@ static void record_stack_sample(
       }
       VALUE name = ddtrace_location_base_label(frame->cme, frame->iseq);
       // Walk root-first to inherit Ruby caller locations for C frames; libdatadog expects the opposite order.
-      locations[count - 1 - i] = (ddog_prof_Location) {
+      locations[frame_offset + count - 1 - i] = (ddog_prof_Location) {
         .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
         .function = {.name = name == Qfalse ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name), .filename = filename},
         .line = line,
@@ -127,14 +140,13 @@ static void record_stack_sample(
     }
 
     if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) {
-      locations[0] = (ddog_prof_Location) {
+      locations[frame_offset] = (ddog_prof_Location) {
         .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
         .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},
       };
     }
-
-    record_sample(recorder_instance, (ddog_prof_Slice_Location) {.ptr = locations, .len = count}, values, sample_label_values);
   }
+  record_sample(recorder_instance, (ddog_prof_Slice_Location) {.ptr = locations, .len = location_count}, values, sample_label_values);
   RB_GC_GUARD(thread_name);
 }
 
