@@ -1,14 +1,16 @@
 issuer: https://token.actions.githubusercontent.com
 
-# Caller: libdatadog-rb's notify-consumers.yml, run manually after a gem
-# release. Pinned to main so only the reviewed workflow definition on main can
-# mint this contents:write token -- do not relax to another ref pattern.
+# Caller: libdatadog-rb's notify-consumers job, appended to build.yml and
+# gated on its publish job (trusted-publishing release, manually dispatched
+# with push=true on main). Pinned to main so only the reviewed workflow
+# definition on main can mint this contents:write token -- do not relax to
+# another ref pattern.
 subject_pattern: "repo:DataDog/libdatadog-rb:ref:refs/heads/main"
 
 claim_pattern:
   event_name: workflow_dispatch
   repository: DataDog/libdatadog-rb
-  job_workflow_ref: DataDog/libdatadog-rb/\.github/workflows/notify-consumers\.yml@refs/heads/main
+  job_workflow_ref: DataDog/libdatadog-rb/\.github/workflows/build\.yml@refs/heads/main
 
 permissions:
   contents: write
