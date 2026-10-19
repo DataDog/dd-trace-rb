@@ -4,7 +4,15 @@ module Datadog
       module Aws
         module Service
           class DynamoDB < Base
+            BARE_TABLE_NAME_FORMAT: ::Regexp
+
             def add_tags: (untyped span, untyped params) -> untyped
+
+            def add_owner_tags: (untyped span, untyped params, untyped context) -> untyped
+
+            private
+
+            def bare_table_name?: (untyped table_name) -> bool
           end
         end
       end
