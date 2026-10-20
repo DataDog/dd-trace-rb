@@ -43,6 +43,13 @@ static ID id_datadog_di_in_probe;
 // generation token.
 static ID id_datadog_di_thread_generation;
 
+#ifdef HAVE_PRUNING_WEAKMAP
+// Method IDs for the ObjectSpace::WeakMap lookups and assignments that
+// store frozen threads' generation tokens.
+static ID id_weakmap_aref;
+static ID id_weakmap_aset;
+#endif
+
 // Process-wide source of snapshot generation tokens. Incremented only inside
 // current_thread_generation, which runs with the GVL held and never releases
 // it, so the counter and the accompanying ivar write need no lock.
@@ -50,13 +57,27 @@ static unsigned long long generation_counter;
 
 // Snapshot generation tokens for Thread objects frozen before their first
 // snapshot. rb_ivar_set raises FrozenError on a frozen Thread, so those
-// tokens are keyed by the Thread object here instead. The table is plain C
-// memory invisible to the GC and holds no reference to the Thread, so an
-// entry outlives its thread: a Thread allocated later at the same address
-// reuses the dead thread's token, and the table grows by one entry per
-// frozen thread that captured a snapshot. Guarded by the GVL like the
-// counter above.
+// tokens are keyed by the Thread object here instead.
+//
+// On Ruby 2.7+ the store is an ObjectSpace::WeakMap keyed by the Thread,
+// which prunes an entry when its Thread is collected, so a Thread allocated
+// later does not receive a collected thread's token. The map is kept in a
+// static VALUE registered with the GC, so it outlives every entry.
+//
+// Ruby 2.6's WeakMap defines a finalizer on both the key and the value,
+// which a frozen Thread and an Integer token cannot take, so on 2.6 the
+// store is a plain C st_table keyed by the Thread VALUE. The table is
+// invisible to the GC and holds no reference to the Thread, so an entry
+// outlives its thread: a Thread allocated later at the same address reuses
+// the dead thread's token, and the table grows by one entry per frozen
+// thread that captured a snapshot. No Ruby 2.6 API observes the collection
+// of a frozen object, so a 2.6 store cannot prune its entries. Guarded by
+// the GVL like the counter above.
+#ifdef HAVE_PRUNING_WEAKMAP
+static VALUE frozen_thread_generations;
+#else
 static st_table *frozen_thread_generations;
+#endif
 
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
 // The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
@@ -176,6 +197,15 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
  * Only called for a Thread whose ivar write would raise FrozenError.
  */
 static VALUE frozen_thread_generation(VALUE thread) {
+#ifdef HAVE_PRUNING_WEAKMAP
+  VALUE generation = rb_funcall(frozen_thread_generations, id_weakmap_aref, 1, thread);
+  if (!NIL_P(generation)) {
+    return generation;
+  }
+  generation = ULL2NUM(++generation_counter);
+  rb_funcall(frozen_thread_generations, id_weakmap_aset, 2, thread, generation);
+  return generation;
+#else
   st_data_t token;
   if (st_lookup(frozen_thread_generations, (st_data_t)thread, &token)) {
     return ULL2NUM((unsigned long long)token);
@@ -183,6 +213,7 @@ static VALUE frozen_thread_generation(VALUE thread) {
   token = (st_data_t)++generation_counter;
   st_insert(frozen_thread_generations, (st_data_t)thread, token);
   return ULL2NUM((unsigned long long)token);
+#endif
 }
 
 /*
@@ -202,10 +233,14 @@ static VALUE frozen_thread_generation(VALUE thread) {
  * returns nil for an unset ivar and, unlike rb_ivar_get, emits no
  * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
  * A Thread frozen before its first snapshot, where writing the ivar would
- * raise FrozenError, keeps its token in a process-wide table keyed by the
- * Thread object. Both accesses bypass Thread#thread_variable_get and
- * Thread#thread_variable_set method dispatch, so a user-installed method
- * probe on those methods cannot fire during DI snapshot building.
+ * raise FrozenError, keeps its token in process-wide storage keyed by the
+ * Thread object: an ObjectSpace::WeakMap, whose entry is pruned when the
+ * Thread is collected, on Ruby 2.7+; on Ruby 2.6, a C table keyed by the
+ * Thread VALUE, where a Thread allocated at a collected frozen thread's
+ * address receives the collected thread's token. Both accesses bypass
+ * Thread#thread_variable_get and Thread#thread_variable_set method dispatch,
+ * so a user-installed method probe on those methods cannot fire during DI
+ * snapshot building.
  *
  * @return [Integer] the generation token of the current thread
  * @api private
@@ -297,7 +332,16 @@ void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
   id_datadog_di_thread_generation = rb_intern("@datadog_di_thread_generation");
+#ifdef HAVE_PRUNING_WEAKMAP
+  id_weakmap_aref = rb_intern("[]");
+  id_weakmap_aset = rb_intern("[]=");
+  VALUE object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  VALUE weakmap_class = rb_const_get(object_space, rb_intern("WeakMap"));
+  frozen_thread_generations = rb_funcall(weakmap_class, rb_intern("new"), 0);
+  rb_gc_register_mark_object(frozen_thread_generations);
+#else
   frozen_thread_generations = st_init_numtable();
+#endif
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
