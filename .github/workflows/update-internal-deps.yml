@@ -10,8 +10,11 @@ on: # yamllint disable-line rule:truthy
   repository_dispatch:
     types: [internal-dep-updated]
 
+# Per-gem group: a queued run replaces the group's pending run, so a shared
+# group drops another gem's update.
+# https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.event.client_payload.gem }}
   cancel-in-progress: false
 
 # Default permissions for all jobs
