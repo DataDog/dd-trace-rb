@@ -188,6 +188,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       [:disabled, "immediate", false],
       [:immediate, "disabled", true],
       [:disabled, "unsupported", false],
+      [:immediate, "unsupported", true],
     ].each do |explicit_mode, env_mode, expected_immediate|
       context "with explicit #{explicit_mode.inspect} and environment #{env_mode.inspect}" do
         let(:mode) { explicit_mode }
@@ -279,6 +280,38 @@ RSpec.describe Datadog::OpenFeature::Provider do
         "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
         experimentation_opt_out_immediate: false
       )
+    end
+  end
+
+  describe "invalid opt-out containers" do
+    let(:provider) { described_class.new(experimentation_opt_out_mode: :disabled) }
+    let(:configured_provider) { described_class.new(experimentation_opt_out_mode: :immediate) }
+    let(:configuration) do
+      instance_double(Datadog::Core::FeatureFlags::Configuration, observe_full_evaluation_data: false)
+    end
+
+    before do
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?).and_call_original
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?)
+        .with(:get_assignment_with_options).and_return(true)
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:new).and_return(configuration)
+      engine.reconfigure!('{"flags":{}}')
+    end
+
+    [[], {"timestamp" => "2026-10-19T12:00:00Z"}].each do |value|
+      it "rejects #{value.class} before conversion to native attributes" do
+        context = ::OpenFeature::SDK::EvaluationContext.new(
+          targeting_key: "subject", dd_experimentation_opt_out_at: value
+        )
+        expect(configuration).not_to receive(:get_assignment)
+
+        result = configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false, evaluation_context: context)
+
+        expect(result.value).to be(false)
+        expect(result.error_code).to eq("INVALID_CONTEXT")
+        expect(result.error_message).to include("supply a valid timestamp", "omit the attribute")
+        expect(context.fields["dd_experimentation_opt_out_at"]).to eq(value)
+      end
     end
   end
 

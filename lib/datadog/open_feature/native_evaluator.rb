@@ -39,7 +39,8 @@ module Datadog
           unless timestamp.is_a?(String) && !timestamp.include?("\0")
             return ResolutionDetails.build_error(
               value: default_value, error_code: Ext::INVALID_CONTEXT,
-              error_message: "dd_experimentation_opt_out_at must be an RFC3339 timestamp"
+              error_message: "dd_experimentation_opt_out_at must be an RFC3339 timestamp string; " \
+                "supply a valid timestamp to opt out, or omit the attribute to permit experimentation"
             )
           end
         end
