@@ -82,7 +82,7 @@ jobs:
             echo "No cached task weights. No fallback URL. Scheduling statically"
           else
             mkdir -p tmp
-            if curl -fsSL "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
+            if curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
                && ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'; then
               echo "Using fallback task weights from $WEIGHTS_FALLBACK_URL"
             else
