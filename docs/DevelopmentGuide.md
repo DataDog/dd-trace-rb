@@ -425,7 +425,7 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth tok
 
 The versions above must match the pins in `.github/workflows/check.yml`. Update them together.
 
-Dependabot only updates action references (`uses:`). Container image tags in workflows, such as `datadog/ci`, are bumped by hand.
+Dependabot only updates action references (`uses:`). Container image tags in workflows, such as `datadog/ci`, are bumped by hand. Search for `MANUAL-PIN` to find every hand-bumped tool version.
 
 #### Dependency audit (bundler-audit)
 
