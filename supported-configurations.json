@@ -408,6 +408,14 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.evaluation_telemetry_per_subject_opt_out_enabled"],
+        "default": "false"
+      }
+    ],
     "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE": [
       {
         "version": "A",

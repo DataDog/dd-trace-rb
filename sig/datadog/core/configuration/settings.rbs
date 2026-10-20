@@ -221,6 +221,10 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def evaluation_telemetry_per_subject_opt_out_enabled: () -> bool
+
+          def evaluation_telemetry_per_subject_opt_out_enabled=: (bool) -> void
+
           def configuration_source: () -> String
 
           def configuration_source=: (String) -> void

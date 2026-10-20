@@ -211,6 +211,42 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
+    [:disabled, :immediate].product([false, true]).each do |experiment_mode, telemetry_enabled|
+      context "with experimentation #{experiment_mode} and telemetry opt-out #{telemetry_enabled}" do
+        let(:mode) { experiment_mode }
+        let(:flag_eval_metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook) }
+        let(:component) do
+          instance_double(
+            Datadog::OpenFeature::Component,
+            flag_eval_metrics_hook: flag_eval_metrics_hook,
+            flag_eval_evp_hook: nil,
+          )
+        end
+        let(:components) { instance_double(Datadog::Core::Configuration::Components, open_feature: component) }
+        subject(:configured_provider) do
+          described_class.new(
+            experimentation_opt_out_mode: mode,
+            enable_evaluation_telemetry_opt_out_parameter: telemetry_enabled,
+          )
+        end
+
+        before { allow(Datadog).to receive(:send).with(:components).and_return(components) }
+
+        it "keeps the controls independent" do
+          configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+          expect(engine).to have_received(:fetch_value).with(
+            "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
+            experimentation_opt_out_immediate: experiment_mode == :immediate,
+          )
+          if telemetry_enabled
+            expect(configured_provider.hooks.first).to be_a(Datadog::OpenFeature::Hooks::EvaluationTelemetryOptOutHook)
+          else
+            expect(configured_provider.hooks).to eq([flag_eval_metrics_hook])
+          end
+        end
+      end
+    end
+
     context "with an unsupported explicit mode" do
       let(:mode) { :unknown }
 
