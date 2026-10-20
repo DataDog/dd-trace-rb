@@ -143,4 +143,40 @@ namespace :dependency do
       end
     end
   end
+
+  # Pin sites for Datadog-owned gems; file -> the pin line it carries.
+  internal_dep_pins = {
+    "libdatadog" => [
+      ["datadog.gemspec", /spec\.add_dependency "libdatadog", [^\n]+/,
+        ->(v) { %(spec.add_dependency "libdatadog", "~> #{v}") }],
+      ["ext/libdatadog_extconf_helpers.rb", /LIBDATADOG_VERSION = "[^"]+"/,
+        ->(v) { %(LIBDATADOG_VERSION = "~> #{v}") }],
+    ],
+    "libddwaf" => [
+      ["datadog.gemspec", /spec\.add_dependency "libddwaf", [^\n]+/,
+        ->(v) { %(spec.add_dependency "libddwaf", "~> #{v}") }],
+    ],
+    "datadog-ruby_core_source" => [
+      ["datadog.gemspec", /spec\.add_dependency "datadog-ruby_core_source", [^\n]+/,
+        ->(v) { %(spec.add_dependency "datadog-ruby_core_source", "~> #{v.split(".")[0, 2].join(".")}", ">= #{v}") }],
+    ],
+  }
+
+  internal_dep_pins.each_key do |gem|
+    namespace gem do
+      desc "Pin #{gem} to a new version: rake dependency:#{gem}:pin[VERSION]"
+      task :pin, [:version] do |_t, args|
+        version = args[:version]
+        abort "Invalid version #{version.inspect}" unless version&.match?(/\A\d+(\.\d+)+\z/)
+
+        internal_dep_pins.fetch(gem).each do |file, pin, replacement|
+          content = File.read(file)
+          abort "No #{gem} pin found in #{file}" unless content.match?(pin)
+
+          File.write(file, content.sub(pin) { replacement.call(version) })
+          puts "Updated #{file}"
+        end
+      end
+    end
+  end
 end
