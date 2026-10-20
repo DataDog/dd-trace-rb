@@ -2,9 +2,6 @@ require_relative "appraisal_conversion"
 require_relative "prelock"
 require_relative "security_capabilities"
 
-require "json"
-require "net/http"
-
 namespace :dependency do
   # Call outside `Bundler.with_unbundled_env`, which clears `BUNDLE_*` from `ENV`
   # for the duration of its block.
@@ -164,22 +161,12 @@ namespace :dependency do
     ],
   }
 
-  # Fail on unpublished versions, before any pin is written.
-  released_version = lambda do |gem, version|
-    versions = Net::HTTP.get(URI("https://rubygems.org/api/v1/versions/#{gem}.json"))
-    abort "#{gem} #{version} not found on rubygems.org" unless JSON.parse(versions).any? { |v| v["number"] == version }
-  rescue => e
-    abort "Could not verify #{gem} #{version} on rubygems.org: #{e.class}"
-  end
-
   internal_dep_pins.each_key do |gem|
     namespace gem do
       desc "Pin #{gem} to a new version: rake dependency:#{gem}:pin[VERSION]"
       task :pin, [:version] do |_t, args|
         version = args[:version]
         abort "Invalid version #{version.inspect}" unless version&.match?(/\A\d+(\.\d+)+\z/)
-
-        released_version.call(gem, version)
 
         internal_dep_pins.fetch(gem).each do |file, pin, replacement|
           content = File.read(file)

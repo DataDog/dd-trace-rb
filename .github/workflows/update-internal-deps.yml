@@ -42,6 +42,14 @@ jobs:
           ruby-version: "4.0.1"
           bundler-cache: true
 
+      # Validate the dispatched version before writing anything. The senders'
+      # publish jobs already await the release (rubygems/release-gem runs
+      # rubygems-await), so the short timeout is a backstop, not a propagation wait.
+      - name: Await ${{ env.GEM }} release on rubygems.org
+        run: |
+          gem install rubygems-await --version 0.5.4 --no-document
+          gem exec rubygems-await "${GEM}:${VERSION}" --timeout 60
+
       - name: Pin ${{ env.GEM }}
         run: bundle exec rake "dependency:${GEM}:pin[$VERSION]"
 
