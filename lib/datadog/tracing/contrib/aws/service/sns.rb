@@ -13,14 +13,12 @@ module Datadog
           class SNS < Base
             SERVICE = "sns"
 
-            # A topic ARN is the one SNS ARN whose resource is a bare name
-            # (`arn:aws:sns:us-west-2:123456789012:my-topic`). Endpoint,
-            # platform application and subscription ARNs all carry a further
-            # `/` or `:` segment, so requiring a bare resource is what keeps
-            # `Publish`'s `TargetArn` -- which may address a mobile platform
-            # endpoint rather than a topic -- from being labelled as a topic.
-            # `TargetArn` is deliberately not read here, so an endpoint can
-            # never reach the topic tags.
+            # A topic ARN is the one SNS ARN with a bare-name resource
+            # (`arn:aws:sns:us-west-2:123456789012:my-topic`); endpoint,
+            # platform application and subscription ARNs carry a further
+            # segment. Requiring a bare resource, and reading only `topic_arn`
+            # (never `Publish`'s `TargetArn`), keeps a mobile endpoint from
+            # being labelled a topic.
             def add_tags(span, params)
               topic_arn = params[:topic_arn]
               topic_name = params[:name]
