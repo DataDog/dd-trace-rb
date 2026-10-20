@@ -410,18 +410,22 @@ For non-Ruby code, follow the instructions below to debug locally, if CI failed 
 
 - For `yamllint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
+pipx run yamllint==1.38.0 .
 ```
 
 - For `actionlint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint:1.7.8 -color
 ```
 
 - For `zizmor`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/zizmorcore/zizmor:1.31.1 --min-severity low .
 ```
+
+The versions above must match the pins in `.github/workflows/check.yml`. Update them together.
+
+Dependabot only updates action references (`uses:`). Container image tags in workflows, such as `datadog/ci`, are bumped by hand.
 
 #### Dependency audit (bundler-audit)
 

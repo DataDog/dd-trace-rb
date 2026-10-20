@@ -98,7 +98,8 @@ jobs:
     permissions:
       id-token: write
     container:
-      image: datadog/ci:v3.7.1
+      # Bump by hand. Dependabot does not update container image tags.
+      image: datadog/ci:v5.7.0
       env:
         DD_ENV: ci
         DATADOG_SITE: datadoghq.com

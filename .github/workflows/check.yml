@@ -160,6 +160,8 @@ jobs:
     permissions:
       id-token: write
     container:
+      # Bump container image tags and ad-hoc pip/gem tool installs by hand.
+      # Dependabot only updates `uses:` action references.
       image: datadog/ci:v5.7.0
     steps:
       - name: Get Datadog credentials via dd-sts
@@ -277,7 +279,7 @@ jobs:
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
-          version: 1.26.1
+          version: 1.31.1
           min-severity: low
           advanced-security: false
           token: ${{ steps.generate-token.outputs.token }}
@@ -306,7 +308,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: pip install yamllint
+      - run: pip install yamllint==1.38.0
       - name: Run yamllint
         run: yamllint --strict .
 
