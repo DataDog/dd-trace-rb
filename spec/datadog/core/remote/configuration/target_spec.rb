@@ -177,11 +177,21 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     end
 
     context "with signed that is not a Hash and exceeds the reported value size limit" do
-      it "reports the value truncated to its first 100 and last 50 bytes" do
+      it "reports the value truncated to its first 100 and last 50 characters" do
         invalid_data = raw_target_map.merge("signed" => "x" * 1000)
 
         expect { described_class.parse(invalid_data) }.to raise_error(
           TypeError, "Invalid type for signed: expected Hash: \"#{"x" * 99}...#{"x" * 49}\""
+        )
+      end
+    end
+
+    context "with signed that is not a Hash, exceeds the reported value size limit, and contains multibyte characters" do
+      it "reports the value truncated to its first 100 and last 50 characters" do
+        invalid_data = raw_target_map.merge("signed" => "é" * 1000)
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          TypeError, "Invalid type for signed: expected Hash: \"#{"é" * 99}...#{"é" * 49}\""
         )
       end
     end

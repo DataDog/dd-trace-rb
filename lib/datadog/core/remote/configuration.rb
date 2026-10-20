@@ -13,10 +13,10 @@ module Datadog
         class << self
           # Builds the message for an exception raised because a remote config
           # payload value has an unexpected type. The offending value is
-          # reported truncated to its first 100 and last 50 bytes.
+          # reported truncated to its first 100 and last 50 characters.
           def invalid_type_message(field, value, expected_type)
             "Invalid type for #{field}: expected #{expected_type}: " \
-              "#{Core::Utils::Truncation.truncate_in_middle_bytes(value.inspect, 100, 50)}"
+              "#{Core::Utils::Truncation.truncate_in_middle(value.inspect, 100, 50)}"
           end
         end
       end

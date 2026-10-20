@@ -3,12 +3,6 @@ module Datadog
     module Utils
       module Truncation
         def self?.truncate_in_middle: (String string, Integer max_prefix_length, Integer max_suffix_length) -> ::String
-
-        def self?.truncate_in_middle_bytes: (
-          String string,
-          Integer max_prefix_bytes,
-          Integer max_suffix_bytes
-        ) -> ::String
       end
     end
   end
