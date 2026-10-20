@@ -146,6 +146,40 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     end
   end
 
+  describe "#reconcile" do
+    let(:invocations) { [] }
+
+    let(:receiver_block) do
+      proc { |_repository, changes| invocations << [:matched, changes] }
+    end
+
+    let(:skipped_receiver) do
+      described_class::Receiver.new(
+        described_class::Matcher.new { |_path| false }
+      ) { |_repository, changes| invocations << [:skipped, changes] }
+    end
+
+    subject(:dispatcher) do
+      described_class.new([receiver, skipped_receiver])
+    end
+
+    it "invokes the receivers whose product held no change, with empty changes" do
+      changes = repository.transaction do |_repository, transaction|
+        transaction.insert(path, target, content)
+      end
+
+      dispatcher.reconcile(changes, repository)
+
+      expect(invocations).to contain_exactly([:skipped, []])
+    end
+
+    it "invokes every receiver when the change set is empty" do
+      dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+      expect(invocations).to contain_exactly([:matched, []], [:skipped, []])
+    end
+  end
+
   describe "#add_receivers" do
     let(:additional_receiver) do
       described_class::Receiver.new(matcher, &receiver_block)

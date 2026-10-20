@@ -389,6 +389,77 @@ RSpec.describe Datadog::Core::Remote::Client do
       end
     end
 
+    context "the client's first successful sync" do
+      let(:invocations) { [] }
+
+      let(:receiver_products) { ["TEST_PRODUCT"] }
+
+      let(:test_receiver) do
+        Datadog::Core::Remote::Dispatcher::Receiver.new(
+          Datadog::Core::Remote::Dispatcher::Matcher::Product.new(receiver_products)
+        ) { |_repository, changes| invocations << changes }
+      end
+
+      let(:capabilities) do
+        capabilities = Datadog::Core::Remote::Client::Capabilities.new(
+          settings,
+          telemetry: instance_double(Datadog::Core::Telemetry::Component)
+        )
+        capabilities.send(:register_receivers, [test_receiver])
+
+        capabilities
+      end
+
+      context "the sync serves no changes for the receiver's product" do
+        it "invokes the receiver with empty changes" do
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+
+        it "does not invoke the receiver again on the next changeless sync" do
+          client.sync
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+
+        it "keeps the initial reconcile pending when the first sync fails" do
+          allow(http_connection).to receive(:request).and_raise(IOError)
+          expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)
+
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+          )
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+      end
+
+      context "the response is completely empty" do
+        let(:response_body) { "{}" }
+
+        it "still invokes the receiver with empty changes" do
+          client.sync
+
+          expect(invocations).to eq([[]])
+        end
+      end
+
+      context "the sync serves changes for the receiver's product" do
+        let(:receiver_products) { ["ASM"] }
+
+        it "invokes the receiver only with the dispatched changes" do
+          client.sync
+
+          expect(invocations).to contain_exactly(
+            [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          )
+        end
+      end
+    end
+
     context "invalid response" do
       context "invalid response body" do
         let(:response_body) do

@@ -581,4 +581,70 @@ RSpec.describe "DI implicit enablement integration" do
       end
     end
   end
+
+  describe "RC withdraws the enable signal while no client holds it (fresh client)" do
+    # A fresh RC client — after a Datadog.configure rebuild, a sync-error
+    # client replacement, or a fork — starts with an empty repository, so a
+    # config the backend withdrew while no client held it produces no delete
+    # change and no dispatch. The first successful sync reconciles the
+    # receivers the dispatch skipped, which runs the APM_TRACING merge over
+    # the APM_TRACING-empty repository and maps the absent enable signal to
+    # false for the implicitly enabled component.
+    let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
+    let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
+
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
+
+    # The replacement client's first poll: the backend withdrew the enable
+    # config while no client was polling, so the response holds no APM_TRACING
+    # path, only an unrelated product.
+    let(:poll_without_enable) do
+      DIHelpers::TestRemoteConfigGenerator.new(
+        {"datadog/2/ASM_DATA/blocked_ips/config" => {"rules_data" => []}}
+      ).mock_response
+    end
+
+    before do
+      allow(telemetry).to receive(:client_configuration_change!)
+      allow(Datadog::DI).to receive(:activate_tracking)
+      allow(Datadog::DI).to receive(:component).and_return(component)
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+    end
+
+    context "when DI was started solely from RC enablement" do
+      it "stops the component and withdraws the DI products on the first sync" do
+        apply_rc_payload(rc_payload_enable)
+        expect(component.started?).to be true
+
+        expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+        expect(transport).to receive(:send_config).and_return(poll_without_enable)
+
+        client.sync
+
+        expect(component.started?).to be false
+      end
+    end
+
+    context "when DI was started by an explicit customer opt-in" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |s|
+          s.remote.enabled = true
+          s.dynamic_instrumentation.enabled = true
+          s.dynamic_instrumentation.internal.development = true
+          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+        end
+      end
+
+      it "leaves the component started on the first sync" do
+        component.start!
+        expect(component.implicitly_enabled?).to be false
+
+        expect(transport).to receive(:send_config).and_return(poll_without_enable)
+        client.sync
+
+        expect(component.started?).to be true
+      end
+    end
+  end
 end

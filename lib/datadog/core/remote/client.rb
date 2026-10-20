@@ -15,6 +15,7 @@ module Datadog
         class SyncError < StandardError; end
 
         attr_reader :transport, :repository, :id, :dispatcher, :settings, :logger
+        attr_reader :pending_initial_reconcile
 
         def initialize(transport, capabilities, settings:, logger:, repository: Configuration::Repository.new)
           @transport = transport
@@ -25,6 +26,7 @@ module Datadog
           @id = SecureRandom.uuid
           @capabilities = capabilities
           @dispatcher = Dispatcher.new(@capabilities.receivers)
+          @pending_initial_reconcile = true
         end
 
         def sync
@@ -32,7 +34,9 @@ module Datadog
           response = transport.send_config(payload)
 
           if response.ok?
-            process_response(response)
+            changes = process_response(response)
+            dispatcher.reconcile(changes, repository) if pending_initial_reconcile
+            @pending_initial_reconcile = false
           elsif response.internal_error?
             raise TransportError, response.to_s
           end
@@ -45,7 +49,7 @@ module Datadog
           if response.empty?
             logger.debug { "remote: empty response => NOOP" }
 
-            return
+            return Configuration::Repository::ChangeSet.new
           end
 
           begin
@@ -61,7 +65,7 @@ module Datadog
           end
 
           # To make sure steep does not complain
-          return unless paths && targets && contents
+          return Configuration::Repository::ChangeSet.new unless paths && targets && contents
 
           # TODO: sometimes it can strangely be so that paths.empty?
           # TODO: sometimes it can strangely be so that targets.empty?
@@ -121,6 +125,8 @@ module Datadog
           else
             dispatcher.dispatch(changes, repository)
           end
+
+          changes
         end
 
         def payload # standard:disable Metrics/MethodLength

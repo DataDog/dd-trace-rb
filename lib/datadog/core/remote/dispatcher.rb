@@ -23,10 +23,28 @@ module Datadog
 
         def dispatch(changes, repository)
           receivers.each do |receiver|
-            matching_changes = changes.select { |c| receiver.match?(c.path) }
+            matching = matching_changes(changes, receiver)
 
-            receiver.call(repository, matching_changes) if matching_changes.any?
+            receiver.call(repository, matching) if matching.any?
           end
+        end
+
+        # Invokes every receiver whose product held no change in `changes`,
+        # with empty changes, so products that reconcile from the repository
+        # see its current state. A fresh client cannot produce a delete change
+        # for a config the backend withdrew while no client held it; this pass
+        # is where such a withdrawal is detected.
+        def reconcile(changes, repository)
+          receivers.each do |receiver|
+            receiver.call(repository, []) if matching_changes(changes, receiver).empty?
+          end
+          nil
+        end
+
+        private
+
+        def matching_changes(changes, receiver)
+          changes.select { |change| receiver.match?(change.path) }
         end
 
         # Store Matcher and block to be executed on a match

@@ -14,6 +14,12 @@ module Datadog
 
         def dispatch: (Remote::Configuration::Repository::ChangeSet changes, Remote::Configuration::Repository repository) -> void
 
+        def reconcile: (Remote::Configuration::Repository::ChangeSet changes, Remote::Configuration::Repository repository) -> void
+
+        private
+
+        def matching_changes: (Remote::Configuration::Repository::ChangeSet changes, Receiver receiver) -> Array[Remote::Configuration::Repository::change]
+
         class Receiver
           attr_reader block: ^(Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void
 
