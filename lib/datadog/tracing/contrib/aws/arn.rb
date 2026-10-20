@@ -6,27 +6,20 @@ module Datadog
       module Aws
         # A strict, non-throwing parser for Amazon Resource Names.
         #
-        # AWS SDK request parameters routinely carry a full ARN where this
-        # integration historically assumed a bare name: DynamoDB's `TableName`
-        # accepts a table ARN so a request can address another account, and
-        # Kinesis, SNS, Lambda and Step Functions all take ARNs directly.
-        # Indexing into `String#split` output cannot tell those forms apart, so
-        # it silently tags a span with whichever segment happened to land at the
-        # chosen offset.
+        # SDK request parameters often carry a full ARN where this integration
+        # historically assumed a bare name (DynamoDB's `TableName`, and the
+        # stream, topic, function and state-machine ARNs of the other
+        # services). {.parse} validates the whole structure and answers `nil`
+        # for anything malformed, so callers fall back to the raw parameter
+        # instead of rescuing on a hot path or indexing into `String#split`
+        # output that cannot tell the forms apart.
         #
-        # {.parse} validates the entire structure up front and answers `nil` for
-        # anything that is not a well-formed ARN, which lets callers fall back to
-        # the raw parameter instead of rescuing an exception on a hot path.
-        # Fields the ARN omits stay omitted: an account or Region that is absent
-        # is reported as `nil` rather than guessed, because attributing a span to
-        # the wrong account is worse than attributing it to none.
-        #
-        # The Region a parsed ARN carries is the Region of the *target* resource,
-        # which is not necessarily the Region the client sent the request to.
-        # This parser never writes that Region to a tag of its own: `aws.region`
-        # keeps its established meaning of the request endpoint's Region, and the
-        # target Region stays available because each ARN tag this integration
-        # emits is the complete ARN, which carries its own Region.
+        # A field the ARN omits stays `nil` rather than guessed: mis-attributing
+        # a span to the wrong account is worse than to none. The Region a
+        # parsed ARN carries is the *target* resource's, not necessarily the
+        # request endpoint's, and is never written to a tag of its own, so
+        # `aws.region` keeps its established meaning; each emitted ARN tag
+        # carries the target Region itself.
         #
         # @see https://docs.aws.amazon.com/IAM/latest/UserGuide/reference-arns.html
         class Arn
@@ -66,17 +59,13 @@ module Datadog
 
           # True when `value` is a string this parser can inspect at all.
           #
-          # Every byte of an ARN is ASCII, so a string in an encoding that is
-          # not ASCII-compatible cannot be one. Both that case and a string
-          # whose bytes are not valid in its own encoding have to be rejected
-          # before any comparison runs, because `String#start_with?` raises
-          # `Encoding::CompatibilityError` for the former and `Regexp#match?`
-          # raises `ArgumentError` for the latter. Request parameters reach
-          # this parser straight from the caller, so a `FunctionName` or
-          # `TableName` carrying either is reachable with ordinary input.
-          #
-          # Callers that run their own patterns over a request parameter share
-          # this guard for the same reason.
+          # A non-ASCII-compatible encoding cannot be an ARN, and both that
+          # case and invalid bytes must be rejected before any comparison:
+          # `String#start_with?` raises `Encoding::CompatibilityError` for the
+          # former and `Regexp#match?` raises `ArgumentError` for the latter.
+          # Request parameters reach this parser straight from the caller, so
+          # either is reachable with ordinary input. Callers running their own
+          # patterns over a parameter share this guard.
           def self.scannable?(value)
             value.is_a?(::String) && value.encoding.ascii_compatible? && value.valid_encoding?
           end
