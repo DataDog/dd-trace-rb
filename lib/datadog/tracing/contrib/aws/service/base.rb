@@ -12,13 +12,8 @@ module Datadog
 
             private
 
-            # Emits a resolved target-identity name tag, skipping an empty
-            # name.
-            #
-            # The new `aws.*.name` tags preserve no prior behavior, so an empty
-            # one would publish a target identity the request never named. The
-            # legacy name tags are written unconditionally by each handler
-            # because `peer.service` resolution depends on it.
+            # Sets a target-identity name tag, skipping a nil or empty name so
+            # an unresolved target is never reported as a named one.
             def set_resolved_name(span, key, name)
               return if name.nil? || name == ""
 

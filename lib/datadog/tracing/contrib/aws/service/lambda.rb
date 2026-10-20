@@ -23,27 +23,22 @@ module Datadog
             #
             # Transcribed below as three fully anchored grammars (bare name,
             # partial ARN, full {Aws::Arn}) so a value matches one in full or
-            # contributes no tags. Partial matching is how the previous
-            # `String#split` reported an account id or fragment as the function.
+            # contributes no tags.
             #
             # @see https://docs.aws.amazon.com/lambda/latest/api/API_Invoke.html
 
-            # The documented maximum for the whole parameter. It bounds the
-            # full-ARN form; the bare name carries its own tighter limit.
+            # The documented maximum for the whole parameter (full-ARN form).
             MAX_FUNCTION_NAME_LENGTH = 256
 
-            # A function name is 1-64 characters of letters, digits, hyphens,
-            # underscores and dots. Dots are part of the published name class,
-            # and 64 is the documented limit for a name given on its own.
+            # A function name: 1-64 characters of letters, digits, hyphens,
+            # underscores and dots.
             NAME_FORMAT = /[a-zA-Z0-9_.-]{1,64}/
 
             # A version number, an alias, `$LATEST`, or `$LATEST.PUBLISHED`.
-            # Only the `$LATEST` forms may carry a `$` or a dot.
             QUALIFIER_FORMAT = /(?:\$LATEST(?:\.PUBLISHED)?|[a-zA-Z0-9_-]{1,128})/
 
-            # A name with an optional qualifier. A qualifier selects a version
-            # of the same function rather than a different function, so it is
-            # captured out of the name and reported only inside the ARN.
+            # A name with an optional qualifier. The qualifier is captured out
+            # of the name and reported only inside the ARN.
             QUALIFIED_NAME = /(?<name>#{NAME_FORMAT})(?::#{QUALIFIER_FORMAT})?/
 
             # The `function:my-function:PROD` tail shared by a partial ARN and
@@ -51,8 +46,7 @@ module Datadog
             FUNCTION_RESOURCE = /function:#{QUALIFIED_NAME}/
 
             # The Region segment a partial ARN may carry ahead of the account.
-            # Matched but not captured: a partial ARN never names the
-            # partition, so a Region alone cannot complete an ARN.
+            # Matched but not captured, since it cannot complete an ARN alone.
             REGION_FORMAT = /[a-z]{2}(?:-gov|-iso[a-z]?)?-[a-z]+-\d/
 
             # `my-function`, `my.function:PROD`, `my-function:$LATEST.PUBLISHED`.
@@ -63,21 +57,14 @@ module Datadog
             PARTIAL_ARN_FORMAT = /\A(?:#{REGION_FORMAT}:)?(?<account_id>\d{12}):#{FUNCTION_RESOURCE}\z/
 
             # The resource of a full Lambda function ARN. A layer, an event
-            # source mapping, a name carrying characters Lambda does not
-            # accept, and a segment beyond the qualifier all fail here.
+            # source mapping, and anything beyond the qualifier fail here.
             FUNCTION_RESOURCE_FORMAT = /\A#{FUNCTION_RESOURCE}\z/
 
-            # Resolves `aws.function.name` from every form, since a
-            # cross-account or cross-Region invocation must use a full ARN and
-            # passing the value through would split one function across several
-            # names. `aws.function.arn` is emitted only for a full ARN; a
-            # partial ARN is left without one rather than completed from the
-            # client's own Region and partition.
-            #
-            # None of this reaches `peer.service`: Lambda spans source it from
-            # `peer.hostname`, and `aws.function.name` is deliberately absent
-            # from {Ext::PEER_SERVICE_SOURCES}, matching the other tracers so
-            # the same dependency is not renamed per tracer.
+            # Resolves `aws.function.name` from every form, and
+            # `aws.function.arn` only for a full ARN. None of this reaches
+            # `peer.service`: `aws.function.name` is absent from
+            # {Ext::PEER_SERVICE_SOURCES} so Lambda keeps sourcing it from
+            # `peer.hostname`, as the other tracers do.
             def add_tags(span, params)
               function_name = params[:function_name]
               return unless Aws::Arn.scannable?(function_name)
@@ -96,8 +83,8 @@ module Datadog
 
             private
 
-            # A full ARN this integration cannot read as a Lambda function
-            # yields no tags, since the rest would be invented.
+            # Tags a full Lambda function ARN. One this integration cannot read
+            # as a function yields no tags.
             def tag_full_arn(span, function_name)
               arn = Aws::Arn.parse(function_name)
               return unless arn
@@ -112,16 +99,16 @@ module Datadog
               span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
             end
 
-            # A partial ARN names the account but neither the Region nor the
-            # partition, so the account is reported and no ARN is.
+            # Tags a partial ARN: the account is reported, no ARN is, since the
+            # Region and partition are absent.
             def tag_partial_arn(span, match)
               span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, match[:name])
               span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, match[:account_id])
             end
 
-            # A bare name reports neither account nor ARN, because the request
-            # named neither. A name of exactly twelve digits is refused: it is
-            # indistinguishable from the account id a partial ARN opens with.
+            # Tags a bare name: neither account nor ARN, since the request
+            # named neither. A name of exactly twelve digits is refused as
+            # indistinguishable from a partial ARN's leading account id.
             def tag_bare_name(span, name)
               return if Aws::Arn::ACCOUNT_ID_FORMAT.match?(name)
 
