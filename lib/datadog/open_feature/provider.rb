@@ -67,7 +67,8 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize
+      def initialize(experimentation_opt_out_mode: nil)
+        @experimentation_opt_out_immediate = resolve_experimentation_opt_out_mode(experimentation_opt_out_mode)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -429,8 +430,25 @@ module Datadog
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
+          experimentation_opt_out_immediate: @experimentation_opt_out_immediate
         )
+      end
+
+      def resolve_experimentation_opt_out_mode(mode)
+        mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
+        normalized = mode.to_s.strip.downcase
+        return false if normalized.empty? || normalized == "disabled"
+
+        unless normalized == "immediate"
+          raise ArgumentError, "Experimentation opt-out mode must be disabled or immediate"
+        end
+
+        unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_options)
+          raise ArgumentError, "Immediate experimentation opt-out requires a libdatadog build with evaluation options"
+        end
+
+        true
       end
 
       def sdk_success_details(result, flag_meta)

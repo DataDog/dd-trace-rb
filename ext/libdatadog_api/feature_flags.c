@@ -16,6 +16,10 @@ static void configuration_free(void *ptr);
 static VALUE configuration_get_observe_full_evaluation_data(VALUE self);
 static VALUE configuration_get_assignment(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+static VALUE configuration_get_assignment_with_options(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context, VALUE experimentation_opt_out_immediate);
+#endif
 
 static void resolution_details_free(void *ptr);
 static VALUE resolution_details_get_raw_value(VALUE self);
@@ -95,6 +99,9 @@ void feature_flags_init(VALUE core_module) {
   rb_undef_alloc_func(configuration_class);
   rb_define_singleton_method(configuration_class, "new", configuration_new, 1);
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+  rb_define_method(configuration_class, "get_assignment_with_options", configuration_get_assignment_with_options, 4);
+#endif
   rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
   rb_gc_register_address(&resolution_details_class);
@@ -328,6 +335,34 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expe
 
   return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
 }
+
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+static VALUE configuration_get_assignment_with_options(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash, VALUE experimentation_opt_out_immediate
+) {
+  ENFORCE_TYPED_DATA(self, &configuration_data_type);
+  ENFORCE_TYPE(flag_key, T_STRING);
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+  ENFORCE_TYPE(context_hash, T_HASH);
+  if (experimentation_opt_out_immediate != Qtrue && experimentation_opt_out_immediate != Qfalse) {
+    rb_raise(rb_eTypeError, "experimentation_opt_out_immediate must be a boolean");
+  }
+
+  const ddog_ffe_Handle_Configuration config =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
+  ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+  const struct ddog_ffe_EvaluationOptions options = {
+    .experimentation_opt_out_immediate = experimentation_opt_out_immediate == Qtrue
+  };
+  ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment_with_options(
+    config, RSTRING_PTR(flag_key), expected_ty, context, options
+  );
+  ddog_ffe_evaluation_context_drop(&context);
+
+  return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
+}
+#endif
 
 static void resolution_details_free(void *ptr) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)ptr;

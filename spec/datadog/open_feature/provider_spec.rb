@@ -158,6 +158,94 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
   subject(:provider) { described_class.new }
 
+  describe "experimentation opt-out configuration" do
+    let(:provider) { described_class.new(experimentation_opt_out_mode: :disabled) }
+    let(:mode) { nil }
+    let(:environment_mode) { nil }
+    let(:native_supported) { true }
+    subject(:configured_provider) { described_class.new(experimentation_opt_out_mode: mode) }
+
+    before do
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?).and_call_original
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?)
+        .with(:get_assignment_with_options).and_return(native_supported)
+      allow(engine).to receive(:fetch_value).and_return(
+        Datadog::OpenFeature::ResolutionDetails.build_error(
+          value: false, error_code: "PROVIDER_NOT_READY", error_message: "Waiting for configuration"
+        )
+      )
+    end
+
+    around do |example|
+      ClimateControl.modify("DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => environment_mode) { example.run }
+    end
+
+    [
+      [nil, nil, false],
+      [nil, "", false],
+      [nil, " disabled ", false],
+      [nil, " IMMEDIATE ", true],
+      [:disabled, "immediate", false],
+      [:immediate, "disabled", true],
+      [:disabled, "unsupported", false],
+    ].each do |explicit_mode, env_mode, expected_immediate|
+      context "with explicit #{explicit_mode.inspect} and environment #{env_mode.inspect}" do
+        let(:mode) { explicit_mode }
+        let(:environment_mode) { env_mode }
+
+        it "passes the resolved mode into evaluation" do
+          configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+          expect(engine).to have_received(:fetch_value).with(
+            "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
+            experimentation_opt_out_immediate: expected_immediate
+          )
+        end
+      end
+    end
+
+    context "with an unsupported environment mode" do
+      let(:environment_mode) { "future_experiments_only" }
+
+      it "rejects construction" do
+        expect { configured_provider }.to raise_error(ArgumentError, /disabled or immediate/)
+      end
+    end
+
+    context "with an unsupported explicit mode" do
+      let(:mode) { :unknown }
+
+      it "rejects construction" do
+        expect { configured_provider }.to raise_error(ArgumentError, /disabled or immediate/)
+      end
+    end
+
+    context "when native support is unavailable" do
+      let(:native_supported) { false }
+      let(:mode) { :immediate }
+
+      it "rejects activation rather than permitting experiment enrollment" do
+        expect { configured_provider }.to raise_error(ArgumentError, /requires a libdatadog build/)
+      end
+
+      context "when disabled" do
+        let(:mode) { :disabled }
+
+        it { expect { configured_provider }.not_to raise_error }
+      end
+    end
+
+    it "keeps the construction-time mode after configuration changes" do
+      configured_provider
+      Datadog.configuration.feature_flags.experimentation_opt_out_mode = "immediate"
+      configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+
+      expect(engine).to have_received(:fetch_value).with(
+        "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
+        experimentation_opt_out_immediate: false
+      )
+    end
+  end
+
   describe "initialization" do
     let(:component) do
       instance_double(

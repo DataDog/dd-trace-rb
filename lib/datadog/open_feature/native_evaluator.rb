@@ -31,8 +31,24 @@ module Datadog
       #                       and other attributes
       #
       # @return [ResolutionDetails] The assignment for the flag
-      def get_assignment(flag_key, default_value:, expected_type:, context:)
-        result = @configuration.get_assignment(flag_key, expected_type, context)
+      def get_assignment(flag_key, default_value:, expected_type:, context:, experimentation_opt_out_immediate: false)
+        if experimentation_opt_out_immediate && context.key?("dd_experimentation_opt_out_at")
+          timestamp = context["dd_experimentation_opt_out_at"]
+          # The C binding omits unsupported types and uses NUL-terminated strings.
+          # Reject invalid opt-out values before that conversion loses information.
+          unless timestamp.is_a?(String) && !timestamp.include?("\0")
+            return ResolutionDetails.build_error(
+              value: default_value, error_code: Ext::INVALID_CONTEXT,
+              error_message: "dd_experimentation_opt_out_at must be an RFC3339 timestamp"
+            )
+          end
+        end
+
+        result = if experimentation_opt_out_immediate
+          @configuration.get_assignment_with_options(flag_key, expected_type, context, true)
+        else
+          @configuration.get_assignment(flag_key, expected_type, context)
+        end
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 

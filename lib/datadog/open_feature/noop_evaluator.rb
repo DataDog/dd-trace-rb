@@ -16,7 +16,9 @@ module Datadog
         # no-op
       end
 
-      def get_assignment(_flag_key, default_value:, context:, expected_type:)
+      def get_assignment(
+        _flag_key, default_value:, context:, expected_type:, experimentation_opt_out_immediate: false
+      )
         ResolutionDetails.new(
           value: default_value,
           log?: false,

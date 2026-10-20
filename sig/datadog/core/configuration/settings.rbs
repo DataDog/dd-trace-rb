@@ -225,6 +225,10 @@ module Datadog
 
           def configuration_source=: (String) -> void
 
+          def experimentation_opt_out_mode: () -> String
+
+          def experimentation_opt_out_mode=: (String) -> void
+
           def agentless: () -> _FeatureFlagsAgentless
 
           def initialization_timeout_ms: () -> Integer

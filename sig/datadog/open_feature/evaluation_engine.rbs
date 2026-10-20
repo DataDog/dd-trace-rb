@@ -21,7 +21,8 @@ module Datadog
         ::String flag_key,
         default_value: untyped,
         expected_type: ::Symbol,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?,
+        ?experimentation_opt_out_immediate: bool
       ) -> ResolutionDetails
 
       def reconfigure!: (::String? configuration) -> void

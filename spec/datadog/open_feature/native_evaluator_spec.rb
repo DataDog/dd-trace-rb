@@ -136,4 +136,21 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       it { is_expected.to be(false) }
     end
   end
+
+  describe "immediate opt-out context validation" do
+    [nil, true, false, 123, [], {}, "2026-10-01T00:00:00Z\0suffix"].each do |invalid_value|
+      it "rejects #{invalid_value.inspect} before native context conversion" do
+        result = evaluator.get_assignment(
+          flag_key, default_value: false, expected_type: expected_type,
+          context: context.merge("dd_experimentation_opt_out_at" => invalid_value),
+          experimentation_opt_out_immediate: true
+        )
+
+        expect(result.value).to be(false)
+        expect(result.error_code).to eq("INVALID_CONTEXT")
+        expect(result.log?).to be(false)
+        expect(configuration).not_to have_received(:get_assignment)
+      end
+    end
+  end
 end

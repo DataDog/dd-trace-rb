@@ -408,6 +408,14 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE": [
+      {
+        "version": "A",
+        "type": "string",
+        "propertyKeys": ["feature_flags.experimentation_opt_out_mode"],
+        "default": "disabled"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",

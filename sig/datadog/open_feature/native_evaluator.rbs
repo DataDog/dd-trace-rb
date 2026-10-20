@@ -15,7 +15,8 @@ module Datadog
         ::String flag_key,
         default_value: untyped,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
-        expected_type: ::Symbol
+        expected_type: ::Symbol,
+        ?experimentation_opt_out_immediate: bool
       ) -> ResolutionDetails
 
       private

@@ -36,10 +36,11 @@ module Datadog
       @waiting_component: Component?
 
       @shutdown: bool
+      @experimentation_opt_out_immediate: bool
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
-      def initialize: () -> void
+      def initialize: (?experimentation_opt_out_mode: String | Symbol | nil) -> void
 
       def init: () -> void
 
@@ -84,6 +85,8 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private
+
+      def resolve_experimentation_opt_out_mode: (String | Symbol | nil mode) -> bool
 
       def after_fork: (Component? component) -> void
 
