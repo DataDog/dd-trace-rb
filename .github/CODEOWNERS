@@ -83,10 +83,13 @@ sig/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 sig/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
 
 # Specs (top-level, shared, and core)
-spec/ @DataDog/ruby-guild
+spec/ @DataDog/lang-platform-ruby @DataDog/ruby-guild
 spec/datadog/kit/appsec/ @DataDog/asm-ruby
 spec/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 spec/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
+integration/apps/opentelemetry/spec/ @DataDog/apm-sdk-capabilities @DataDog/ruby-guild
+integration/apps/rails-*/spec/integration/di_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
+integration/apps/rails-*/spec/integration/symdb_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 
 # Additional documentation (Ruby-specific tracer detail)
 docs/ @DataDog/ruby-guild
@@ -159,6 +162,8 @@ sig/datadog/symbol_database.rbs @DataDog/debugger-ruby @DataDog/ruby-guild
 spec/datadog/ai_guard/ @DataDog/asm-ruby
 spec/datadog/ai_guard_spec.rb @DataDog/asm-ruby
 spec/datadog/appsec/ @DataDog/asm-ruby
+spec/datadog/benchmark/pg_contrib_spec.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities @DataDog/ruby-guild
+spec/datadog/benchmark/sql_comment_propagation_spec.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities @DataDog/ruby-guild
 spec/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 spec/datadog/tracing_spec.rb @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 spec/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities
@@ -168,6 +173,7 @@ spec/datadog/profiling/ @DataDog/profiling-rb
 spec/datadog/profiling_spec.rb @DataDog/profiling-rb
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
 spec/datadog/core/feature_flags_spec.rb @DataDog/feature-flagging-and-experimentation-sdk @DataDog/ruby-guild
+spec/datadog/core/libdatadog_extconf_helpers_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/open_feature_spec.rb @DataDog/feature-flagging-and-experimentation-sdk
 spec/datadog/di/ @DataDog/debugger-ruby @DataDog/ruby-guild
