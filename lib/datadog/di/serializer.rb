@@ -96,8 +96,25 @@ module Datadog
       # hex string, or UTF-8 with replacement characters) before returning
       # it from the custom serializer.
       @@flat_registry = []
-      def self.register(condition: nil, &block)
+      # Registers a custom serializer. The block serializes each value
+      # for which +condition+ returns a truthy value.
+      #
+      # @param condition [Proc] receives the value being serialized and
+      #   returns whether this serializer applies to it
+      # @param block [Proc] serializer for the values +condition+ accepts
+      # @raise [ArgumentError] if +condition+ is not a Proc or +block+ is absent
+      # @return [void]
+      def self.register(condition:, &block)
+        unless condition.is_a?(Proc)
+          raise ArgumentError, "Serializer.register condition must be a Proc, got #{condition.class}"
+        end
+
+        unless block
+          raise ArgumentError, "Serializer.register requires a serializer block"
+        end
+
         @@flat_registry << {condition: condition, proc: block}
+        nil
       end
 
       # Initializes the serializer.
