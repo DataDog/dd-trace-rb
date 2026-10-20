@@ -225,6 +225,12 @@ package-oci:
 
 requirements_json_test:
   rules:
+    # The one-pipeline job needs package-oci and consumes its
+    # packaging/sources/requirements.json artifact, but package-oci skips on
+    # SKIP_SHARED_PIPELINE. Skip together so a skipped shared pipeline stays
+    # creatable. Drop this override once the template carries the guard.
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
     - when: on_success
   variables:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
