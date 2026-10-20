@@ -87,6 +87,8 @@ require "datadog"
 require "datadog/di"
 require "datadog/di/logger"
 require "datadog/di/proc_responder"
+require "datadog/core/configuration/agent_settings_resolver"
+require "datadog/core/telemetry/component"
 
 class DIInstrumentBenchmark
   class Target
@@ -146,18 +148,40 @@ class DIInstrumentBenchmark
     @logger ||= Logger.new($stderr)
   end
 
+  # Builds and memoizes the telemetry component, so the skip variants
+  # measure the production cost of emitting the debugger.events.skipped
+  # metric. Telemetry is not sent to the agent because Component#start
+  # is omitted.
+  def telemetry
+    @telemetry_component ||= begin
+      settings = Datadog.configuration
+      agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(
+        settings, logger: logger,
+      )
+      Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
+    end
+  end
+
   def configure
     settings = Datadog.configuration
     yield settings if block_given?
 
     redactor = Datadog::DI::Redactor.new(settings)
-    serializer = Datadog::DI::Serializer.new(settings, redactor)
     # Wrap in the DI::Logger facade (as lib/datadog/di/component.rb does)
     # so the instrumenter's logger.trace calls on the global-rate-limit
     # skip path resolve; stdlib Logger has no trace method.
     di_logger = Datadog::DI::Logger.new(settings, logger)
+    guardrails_telemetry = Datadog::DI::GuardrailsTelemetry.new(
+      settings: settings, logger: di_logger, telemetry: telemetry,
+    )
+    serializer = Datadog::DI::Serializer.new(settings, redactor, logger: di_logger, guardrails_telemetry: guardrails_telemetry)
     @instrumenter = BenchInstrumenter.new(settings, serializer, di_logger,
-      code_tracker: Datadog::DI.code_tracker)
+      code_tracker: Datadog::DI.code_tracker, telemetry: telemetry,
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
+        settings: settings, serializer: serializer, logger: di_logger,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+      ),)
   end
 
   # Run one Benchmark.ips measurement for the given report label. The target

@@ -48,7 +48,7 @@ jobs:
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -61,10 +61,42 @@ jobs:
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
+      - name: Restore task weights
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tmp/ci_task_timings.json
+          key: spec-task-weights-exact
+          restore-keys: |
+            spec-task-weights-
+
+      # Task weights, in priority order: the Actions cache, then the
+      # fallback manifest at WEIGHTS_FALLBACK_URL (a repository variable)
+      # when the cache misses, then static batching when neither exists.
+      - name: Fetch task weights
+        env:
+          WEIGHTS_FALLBACK_URL: ${{ vars.WEIGHTS_FALLBACK_URL || '' }}
+        run: |
+          if [ -f tmp/ci_task_timings.json ]; then
+            echo "Using cached task weights"
+          elif [ -z "$WEIGHTS_FALLBACK_URL" ]; then
+            echo "No cached task weights. No fallback URL. Scheduling statically"
+          else
+            mkdir -p tmp
+            if curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
+               && ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'; then
+              echo "Using fallback task weights from $WEIGHTS_FALLBACK_URL"
+            else
+              # The weights are optional: leave no file behind and let the
+              # scheduler fall back to the static split.
+              rm -f tmp/ci_task_timings.json
+              echo "Fetch of task weights failed. Scheduling statically"
+            fi
+          fi
+
       - id: set-batches
         name: Distribute tasks into batches
         run: |
-          data=$(bundle exec rake github:generate_batches)
+          data=$(bundle exec rake github:schedule_batches)
           echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
           # Extract each key and set it as a separate output
@@ -112,7 +144,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -201,7 +233,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -235,7 +267,7 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: "true"
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       elasticsearch:
-        image: elasticsearch:8.19.11
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.19.11
         env:
           discovery.type: single-node
           xpack.security.enabled: "false"

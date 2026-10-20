@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:2.1-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+FROM ghcr.io/datadog/images-rb/engines/ruby:2.1-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
 
 # Add Jessie repos
 # Fixes https://www.lucas-nussbaum.net/blog/?p=947
@@ -17,7 +17,8 @@ RUN set -ex && \
         apt-get install -y --force-yes --no-install-recommends nodejs && \
         \
         echo "===> Installing Yarn" && \
-        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+        curl -fsSL --retry 5 --retry-delay 2 -o /tmp/yarn-pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg && \
+        apt-key add /tmp/yarn-pubkey.gpg && rm /tmp/yarn-pubkey.gpg && \
         echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
         apt-get install -y --force-yes --no-install-recommends yarn && \

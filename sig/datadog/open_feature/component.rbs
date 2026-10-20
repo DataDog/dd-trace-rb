@@ -2,12 +2,17 @@ module Datadog
   module OpenFeature
     class Component
       type configuration_wait_result = :ready | :timeout | :shutdown
+      type configuration_event = :ready | :changed | :lost
 
       CONFIGURATION_READY: :ready
 
       CONFIGURATION_TIMEOUT: :timeout
 
       CONFIGURATION_SHUTDOWN: :shutdown
+
+      CONFIGURATION_CHANGED: :changed
+
+      CONFIGURATION_LOST: :lost
 
       @settings: Core::Configuration::Settings
 
@@ -39,6 +44,8 @@ module Datadog
 
       @configuration_shutdown: bool
 
+      @on_configuration_change: (^(configuration_event) -> void)?
+
       attr_reader engine: EvaluationEngine
 
       attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
@@ -50,6 +57,8 @@ module Datadog
       def self.build: (
         Core::Configuration::Settings settings,
         Core::Configuration::AgentSettings agent_settings,
+        resolution: Configuration::Source::Resolution,
+        on_configuration_change: ^(configuration_event) -> void,
         logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> Component?
@@ -57,6 +66,7 @@ module Datadog
       def initialize: (
         Core::Configuration::Settings settings,
         Core::Configuration::AgentSettings agent_settings,
+        ?on_configuration_change: (^(configuration_event) -> void)?,
         logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> void
@@ -65,7 +75,9 @@ module Datadog
 
       def reconfigure!: (::String? configuration) -> void
 
-      def wait_for_configuration: () -> configuration_wait_result
+      def wait_for_configuration: () ?{ () -> bool } -> configuration_wait_result
+
+      def wake_configuration_waiters: () -> void
 
       def configuration_received?: () -> bool
 

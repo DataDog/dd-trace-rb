@@ -893,6 +893,10 @@ const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
 }
 #endif
 
+int imemo_mask(void) {
+  return IMEMO_MASK;
+}
+
 // This is used to workaround a VM bug. See "handle_sampling_signal" in "collectors_cpu_and_wall_time_worker" for details.
 #ifdef NO_POSTPONED_TRIGGER
 void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
