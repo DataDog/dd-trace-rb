@@ -47,8 +47,10 @@ default:
 # shared SSI pipeline (artifact builds + system tests), via the
 # SKIP_SHARED_PIPELINE variable that every one-pipeline job already guards on.
 .ssi_relevant_paths: &ssi_relevant_paths
-  - lib/**
-  - ext/**
+  # "**/*" not "**": GitLab matches paths with File.fnmatch(FNM_PATHNAME),
+  # where plain "**" does not match nested files like lib/datadog/tracing.rb.
+  - lib/**/*
+  - ext/**/*
   - datadog.gemspec
   - Gemfile.lock
   - .gitlab-ci.yml
@@ -77,7 +79,8 @@ workflow:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"'
       variables:
         SKIP_SHARED_PIPELINE: "true"
-    - when: on_success
+    # workflow:rules accepts only always or never, never on_success.
+    - when: always
 
 .build-image-base:
   stage: manual-images
