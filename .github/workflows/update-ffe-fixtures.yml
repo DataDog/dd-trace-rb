@@ -50,7 +50,12 @@ jobs:
         run: |
           count=$(gh pr list --repo "$GITHUB_REPOSITORY" \
             --head auto-generate/update-ffe-fixtures --state open \
-            --json number --jq 'length')
+            --json headRefName,headRepositoryOwner,isCrossRepository \
+            --jq '[.[] | select(
+              .headRefName == "auto-generate/update-ffe-fixtures" and
+              .headRepositoryOwner.login == "DataDog" and
+              (.isCrossRepository | not)
+            )] | length')
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request

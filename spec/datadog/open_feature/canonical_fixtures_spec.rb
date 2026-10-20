@@ -27,7 +27,10 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator, "canonical FFE fixtures" d
         expect(result.value).to eq(expected.fetch("value"))
         expect(result.reason).to eq(expected.fetch("reason"))
         expect(result.variant).to eq(expected["variant"]) if expected.key?("variant")
-        expect(result.error_code).to eq(expected["errorCode"]) if expected.key?("errorCode")
+        if expected.key?("errorCode") || expected.fetch("reason") != "ERROR"
+          expect(result.error_code).to eq(expected["errorCode"])
+        end
+        expect(result.error?).to eq(expected.fetch("reason") == "ERROR")
       end
     end
   end
