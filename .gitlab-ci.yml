@@ -137,7 +137,13 @@ promote-image:
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
+# Both jobs only feed package-oci, which skips on SKIP_SHARED_PIPELINE, so
+# they skip too in a skipped shared pipeline.
 build-gem:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
@@ -177,6 +183,10 @@ build-gem:
       - lib/datadog/version.rb
 
 install-dependencies:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
   tags: ["arch:$ARCH"]
   parallel:
