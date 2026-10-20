@@ -389,7 +389,7 @@ RSpec.describe Datadog::Core::Remote::Client do
       end
     end
 
-    context "the client's first successful sync" do
+    context "the initial reconcile" do
       let(:invocations) { [] }
 
       let(:receiver_products) { ["TEST_PRODUCT"] }
@@ -437,10 +437,26 @@ RSpec.describe Datadog::Core::Remote::Client do
         end
       end
 
-      context "the response is completely empty" do
-        let(:response_body) { "{}" }
+      context "the first response is completely empty" do
+        before do
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: "{}", code: response_code)
+          )
+        end
 
-        it "still invokes the receiver with empty changes" do
+        it "does not invoke the receiver" do
+          client.sync
+
+          expect(invocations).to eq([])
+        end
+
+        it "invokes the receiver with empty changes on the first later response that carries targets" do
+          client.sync
+          client.sync
+
+          allow(http_connection).to receive(:request).and_return(
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+          )
           client.sync
 
           expect(invocations).to eq([[]])

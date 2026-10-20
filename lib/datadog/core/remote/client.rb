@@ -29,14 +29,29 @@ module Datadog
           @pending_initial_reconcile = true
         end
 
+        # Polls the agent for remote configuration, applies the response to
+        # the repository and dispatches the resulting changes to the receivers.
+        #
+        # The agent sends an empty response when it holds no targets newer
+        # than the targets version the client reported. Until the client
+        # applies a response that carries targets, it reports the initial
+        # targets version, so an empty response then means the agent has not
+        # received targets from the backend. The initial reconcile therefore
+        # waits for a response that carries targets.
+        #
+        # @return [void]
+        # @raise [TransportError] when the agent reports an internal error
+        # @raise [SyncError] when the response cannot be applied to the repository
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
 
           if response.ok?
             changes = process_response(response)
-            dispatcher.reconcile(changes, repository) if pending_initial_reconcile
-            @pending_initial_reconcile = false
+            if pending_initial_reconcile && !response.empty?
+              dispatcher.reconcile(changes, repository)
+              @pending_initial_reconcile = false
+            end
           elsif response.internal_error?
             raise TransportError, response.to_s
           end

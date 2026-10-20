@@ -586,8 +586,8 @@ RSpec.describe "DI implicit enablement integration" do
     # A fresh RC client — after a Datadog.configure rebuild, a sync-error
     # client replacement, or a fork — starts with an empty repository, so a
     # config the backend withdrew while no client held it produces no delete
-    # change and no dispatch. The first successful sync reconciles the
-    # receivers the dispatch skipped, which runs the APM_TRACING merge over
+    # change and no dispatch. The first sync whose response carries targets
+    # reconciles the receivers the dispatch skipped, which runs the APM_TRACING merge over
     # the APM_TRACING-empty repository and maps the absent enable signal to
     # false for the implicitly enabled component.
     let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
@@ -605,6 +605,11 @@ RSpec.describe "DI implicit enablement integration" do
       ).mock_response
     end
 
+    # The agent's empty `{}` response, which carries no targets.
+    let(:empty_poll) do
+      double(Datadog::Core::Remote::Transport::HTTP::Config::Response, ok?: true, empty?: true)
+    end
+
     before do
       allow(telemetry).to receive(:client_configuration_change!)
       allow(Datadog::DI).to receive(:activate_tracking)
@@ -619,6 +624,21 @@ RSpec.describe "DI implicit enablement integration" do
 
         expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
         expect(transport).to receive(:send_config).and_return(poll_without_enable)
+
+        client.sync
+
+        expect(component.started?).to be false
+      end
+
+      it "keeps the component started on an empty first response and stops it on the next response that carries targets" do
+        apply_rc_payload(rc_payload_enable)
+        expect(transport).to receive(:send_config).twice.and_return(empty_poll, poll_without_enable)
+
+        client.sync
+
+        expect(component.started?).to be true
+
+        expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
         client.sync
 
