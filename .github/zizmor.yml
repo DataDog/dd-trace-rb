@@ -1,0 +1,7 @@
+# The 'self-repository' audit wants the '$/...' self-repository syntax in
+# 'uses:' instead of './...'. actionlint does not understand '$/...' yet,
+# so adopting it now breaks the actionlint CI job. Re-enable this audit
+# once actionlint supports the '$' self-repository reference.
+rules:
+  self-repository:
+    disable: true
