@@ -77,9 +77,8 @@ module Datadog
               # A present but non-object lib_config (e.g. {"lib_config": []}) is a
               # schema violation the customer can fix. Acknowledging it as applied
               # would tell the backend the config was successfully applied when it
-              # was not, and an empty merge would revert active tracing overrides
-              # to their non-RC values. Reject it per content so the malformed
-              # payload is reported errored instead. A null or absent lib_config
+              # was not. Reject it per content so the malformed payload is
+              # reported errored instead. A null or absent lib_config
               # carries no overrides and is left as a no-op.
               lib_config = config["lib_config"]
               if !lib_config.nil? && !lib_config.is_a?(Hash)
