@@ -223,12 +223,6 @@ module Datadog
             # TODO assert content state (errored for this example)
             content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
           end
-
-          # Important: even if processing fails for this probe config,
-          # we need to note it as being current so that we do not
-          # try to remove instrumentation that is still supposed to be
-          # active.
-          # current_probe_ids[probe_spec.fetch('id')] = true
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
