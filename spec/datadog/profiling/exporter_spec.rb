@@ -42,7 +42,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   end
   let(:internal_metadata) { {no_signals_workaround_enabled: no_signals_workaround_enabled} }
   let(:info) { {profiler: {running_under_test: true}} }
-  let(:info_collector) { instance_double(Datadog::Profiling::Collectors::Info, info: info) }
+  let(:info_collector) { instance_double(Datadog::Profiling::Collectors::Info, info_json: JSON.generate(info)) }
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }
