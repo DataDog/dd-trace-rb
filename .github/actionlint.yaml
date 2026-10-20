@@ -1,0 +1,9 @@
+# Silence actionlint's errors for GitHub's '$/' self-repository syntax in
+# 'uses:'. actionlint does not support '$/' yet. Track rhysd/actionlint#760
+# and remove this file once a release supports it. The ignores also disable
+# actionlint's input/secret checks for '$/' calls until then.
+paths:
+  .github/workflows/**/*.{yaml,yml}:
+    ignore:
+      - '^reusable workflow call "\$/'
+      - '^specifying action "\$/'

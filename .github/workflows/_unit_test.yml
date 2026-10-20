@@ -59,7 +59,7 @@ jobs:
 
       - name: Prepare bundle cache
         id: bundle-cache
-        uses: ./.github/actions/bundle-cache
+        uses: $/.github/actions/bundle-cache
 
       - name: Restore task weights
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -210,12 +210,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - name: Build & Test
-        uses: ./.github/actions/build-test
+        uses: $/.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
@@ -298,12 +298,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - name: Build & Test
-        uses: ./.github/actions/build-test
+        uses: $/.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"

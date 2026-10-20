@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
       - name: Prepare bundle cache
         id: bundle-cache
-        uses: ./.github/actions/bundle-cache
+        uses: $/.github/actions/bundle-cache
 
   standard:
     name: standard/lint
@@ -47,7 +47,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
@@ -67,7 +67,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
@@ -87,7 +87,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
@@ -112,7 +112,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
@@ -236,7 +236,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
