@@ -4,6 +4,7 @@ require "json"
 require_relative "trace_formatter"
 require_relative "statistics"
 require_relative "span_events_negotiation"
+require_relative "native/telemetry"
 
 module Datadog
   module Tracing
@@ -49,6 +50,16 @@ module Datadog
 
           attr_reader :logger, :url
 
+          def telemetry=(client)
+            @send_mutex.synchronize do
+              if (reporter = @telemetry)
+                reporter.client = client
+              elsif @exporter
+                @telemetry = Telemetry.new(client)
+              end
+            end
+          end
+
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
@@ -58,6 +69,7 @@ module Datadog
             end
 
             @logger = logger
+            @telemetry = nil
 
             # Serializes native sends and is held across a fork. See the
             # fork-safety note below.
@@ -226,6 +238,7 @@ module Datadog
                   @exporter&._native_close
                 ensure
                   @fork_hooks = nil
+                  @telemetry = nil
                   @exporter = nil
                   hooks.each do |stage, block|
                     Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
@@ -285,7 +298,9 @@ module Datadog
               exporter = @exporter
               raise "Native transport has been closed" if exporter.nil?
 
-              exporter._native_send_traces(chunks, native_events_supported)
+              exporter._native_send_traces(chunks, native_events_supported) do |observations|
+                @telemetry&.record(observations)
+              end
             end
 
             # Update statistics from the response

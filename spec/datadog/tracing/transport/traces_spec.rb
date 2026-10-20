@@ -19,6 +19,18 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   end
 end
 
+RSpec.describe Datadog::Tracing::Transport::Traces::Request do
+  it "isolates status inspection errors from trace delivery" do
+    request = described_class.new
+    request.capture_telemetry = true
+    response = double("HTTP response")
+    allow(response).to receive(:code).and_raise("status unavailable")
+
+    expect { request.capture_status(response) }.not_to raise_error
+    expect(request.http_status).to be_nil
+  end
+end
+
 RSpec.describe Datadog::Tracing::Transport::Traces::Response do
   context "when implemented by a class" do
     subject(:response) { response_class.new }
@@ -175,12 +187,14 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v1,
         logger: logger,
-        native_events_supported: false
+        native_events_supported: false,
+        telemetry: nil,
       ).and_return(chunker)
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v2,
         logger: logger,
-        native_events_supported: false
+        native_events_supported: false,
+        telemetry: nil,
       ).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
@@ -282,7 +296,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               logger: logger,
-              native_events_supported: true
+              native_events_supported: true,
+              telemetry: nil,
             ).and_return(chunker)
 
             send_traces
@@ -307,7 +322,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               logger: logger,
-              native_events_supported: false
+              native_events_supported: false,
+              telemetry: nil,
             ).and_return(chunker)
             send_traces
           end
@@ -330,7 +346,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
-                native_events_supported: false
+                native_events_supported: false,
+                telemetry: nil,
               ).and_return(chunker)
               send_traces
             end
@@ -343,7 +360,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
-                native_events_supported: true
+                native_events_supported: true,
+                telemetry: nil,
               ).and_return(chunker)
               send_traces
             end
@@ -356,7 +374,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
                 logger: logger,
-                native_events_supported: false
+                native_events_supported: false,
+                telemetry: nil,
               ).and_return(chunker)
               send_traces
             end

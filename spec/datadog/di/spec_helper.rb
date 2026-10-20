@@ -188,6 +188,15 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Builds a telemetry component double whose metric increments raise the
+    # given exception, for exercising emission containment paths.
+    def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
+      instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+        allow(telemetry).to receive(:inc).and_raise(exception)
+        allow(telemetry).to receive(:report)
+      end
+    end
+
     # Helper method to generate a deeply nested hash for circuit breaker tests
     def generate_deep_hash(keys_per_level, depth)
       return "leaf_value" if depth == 0
@@ -213,6 +222,25 @@ module DIHelpers
       else
         hash
       end
+    end
+
+    # Stubs the dynamic instrumentation settings accessors read by the
+    # serialization paths, with per-spec overrides for the values that differ.
+    def stub_di_settings(settings, enabled: true, max_capture_depth: 2,
+      max_capture_attribute_count: 2, max_capture_string_length: 100,
+      max_capture_collection_size: 100, max_time_to_serialize_ms: 200,
+      redacted_type_names: [], redacted_identifiers: [], redaction_excluded_identifiers: [])
+      allow(settings).to receive_messages(
+        enabled: enabled,
+        max_capture_depth: max_capture_depth,
+        max_capture_attribute_count: max_capture_attribute_count,
+        max_capture_string_length: max_capture_string_length,
+        max_capture_collection_size: max_capture_collection_size,
+        max_time_to_serialize_ms: max_time_to_serialize_ms,
+        redacted_type_names: redacted_type_names,
+        redacted_identifiers: redacted_identifiers,
+        redaction_excluded_identifiers: redaction_excluded_identifiers,
+      )
     end
 
     def instance_double_agent_settings

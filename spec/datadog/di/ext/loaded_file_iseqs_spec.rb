@@ -17,6 +17,16 @@ RSpec.describe "all_iseqs" do
     end
   end
 
+  # We don't compile libdatadog_api with the private headers, but we can ask
+  # the profiler to tell us what it got so we validate the hardcoded value in DI
+  it "uses the same IMEMO_MASK as Ruby's private headers" do
+    skip "Profiling is not available" unless Datadog::Profiling.supported?
+
+    expect(Datadog::DI::Testing._native_imemo_mask).to eq(
+      Datadog::Profiling::NativeExtension::Testing._native_imemo_mask,
+    )
+  end
+
   # We would like to assert that the iseqs we are getting from the VM are
   # complete. Unfortunately only iseqs that correspond to files that defined
   # methods generally exist in the VM - a file that was executed and has
