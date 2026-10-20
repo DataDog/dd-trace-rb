@@ -555,6 +555,75 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
+    context "when an APM_TRACING config fails to parse while DI was started solely from RC enablement" do
+      let(:malformed_json) do
+        Datadog::Core::Remote::Configuration::Content.parse(
+          {
+            path: "datadog/1/APM_TRACING/malformed_json/lib_config",
+            content: "{not json",
+          }
+        )
+      end
+      let(:symbol_database) do
+        instance_double(Datadog::SymbolDatabase::Component, resume_pending_upload: nil, stop_for_di_disable: nil)
+      end
+      let(:remote_component) do
+        instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
+      end
+      let(:di_component) { instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: true) }
+
+      before do
+        components = Datadog.send(:components)
+        allow(components).to receive(:symbol_database).and_return(symbol_database)
+        allow(components).to receive(:remote).and_return(remote_component)
+        allow(components).to receive(:dynamic_instrumentation).and_return(di_component)
+        allow(components.telemetry).to receive(:report)
+      end
+
+      shared_examples "keeps the DI state" do
+        it "does not stop DI or withdraw the DI products, and marks the failed config errored" do
+          expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
+          expect(symbol_database).not_to receive(:stop_for_di_disable)
+          expect(remote_component).not_to receive(:remove_products)
+
+          remote.merge_and_apply_configs(repository)
+
+          expect(failed.apply_state).to eq(3)
+        end
+      end
+
+      context "and it is the only config, holding malformed JSON" do
+        let(:failed) { malformed_json }
+        let(:contents) { [failed] }
+
+        include_examples "keeps the DI state"
+      end
+
+      context "and it is the only config, holding a non-object lib_config" do
+        let(:failed) { build_content("bad_lib_config", {"lib_config" => []}) }
+        let(:contents) { [failed] }
+
+        include_examples "keeps the DI state"
+      end
+
+      context "and a valid config without dynamic_instrumentation_enabled is also present" do
+        let(:valid) do
+          build_content("org", {"service_target" => {"service" => "*", "env" => "*"},
+                              "lib_config" => {"log_injection_enabled" => false}})
+        end
+        let(:failed) { malformed_json }
+        let(:contents) { [valid, failed] }
+
+        include_examples "keeps the DI state"
+
+        it "marks the valid config applied" do
+          remote.merge_and_apply_configs(repository)
+
+          expect(valid.apply_state).to eq(2)
+        end
+      end
+    end
+
     context "when a config has a null or absent lib_config" do
       let(:null_lib_config) do
         build_content("null_lc", {"service_target" => {"service" => "*", "env" => "*"},

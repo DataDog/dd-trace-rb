@@ -62,6 +62,7 @@ module Datadog
 
           # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
           parsed = []
+          all_contents_parsed = true
           repository.contents.each do |content|
             next unless content.path.product == PRODUCT
 
@@ -92,6 +93,7 @@ module Datadog
                 description: "Failed to parse APM_TRACING remote config",
               )
               content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+              all_contents_parsed = false
             end
           end
 
@@ -120,7 +122,7 @@ module Datadog
 
           # Applied even when the set is empty: an emptied repository (last config
           # removed) reverts the tracing overrides to their non-RC values.
-          apply_lib_config(merged, repository)
+          apply_lib_config(merged, repository, all_contents_parsed: all_contents_parsed)
 
           parsed.each { |content, _config| content.applied }
           nil
@@ -205,8 +207,9 @@ module Datadog
         #
         # @param lib_config [Hash[String, untyped]] the lib_config to apply
         # @param repository [Core::Remote::Configuration::Repository, nil] forwarded to DI enablement
+        # @param all_contents_parsed [Boolean] true when every APM_TRACING content in the repository parsed
         # @return [nil]
-        def apply_lib_config(lib_config, repository)
+        def apply_lib_config(lib_config, repository, all_contents_parsed:)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
 
@@ -234,9 +237,20 @@ module Datadog
           # path; this branch maps that nil to false for such tracers. A tracer
           # the customer enabled via DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
           # stays running, since that opt-in is independent of RC.
+          # An APM_TRACING config that failed to parse is left out of the merge
+          # and may carry the signal, so while one is present the field's
+          # absence does not show a withdrawal. DI keeps its state until that
+          # config is deleted or replaced by one that parses.
           if di_enabled.nil? && components&.dynamic_instrumentation&.implicitly_enabled?
-            Datadog.logger.debug("APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false")
-            di_enabled = false
+            if all_contents_parsed
+              Datadog.logger.debug("APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false")
+              di_enabled = false
+            else
+              Datadog.logger.debug(
+                "APM_TRACING RC: dynamic_instrumentation_enabled absent while an APM_TRACING config failed to parse; " \
+                "keeping the DI state"
+              )
+            end
           end
 
           unless di_enabled.nil?

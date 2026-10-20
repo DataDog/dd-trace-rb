@@ -103,14 +103,18 @@ RSpec.describe "DI implicit enablement integration" do
 
   after { component&.shutdown! }
 
-  # Drives the production RC dispatch path (Tracing::Remote.merge_and_apply_configs)
-  # for a single APM_TRACING payload, returning the Content so apply_state can
-  # be asserted. Replaces the former single-config process_config entry point.
   def apply_rc_payload(payload)
+    apply_rc_content(JSON.dump(payload))
+  end
+
+  # Drives the production RC dispatch path (Tracing::Remote.merge_and_apply_configs)
+  # for a single APM_TRACING content, returning the Content so apply_state can
+  # be asserted. raw_content need not be valid JSON.
+  def apply_rc_content(raw_content)
     content = Datadog::Core::Remote::Configuration::Content.parse(
       {
         path: "datadog/1/APM_TRACING/lib_config/config",
-        content: JSON.dump(payload),
+        content: raw_content,
       }
     )
     repository = instance_double(
@@ -579,6 +583,26 @@ RSpec.describe "DI implicit enablement integration" do
 
         expect(component.started?).to be true
       end
+    end
+  end
+
+  describe "RC replaces the enable config with a payload that fails to parse" do
+    before do
+      allow(Datadog::DI).to receive(:activate_tracking)
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      allow(telemetry).to receive(:report)
+    end
+
+    it "leaves the component started and marks the payload errored" do
+      apply_rc_payload({"lib_config" => {"dynamic_instrumentation_enabled" => true}})
+      expect(component.started?).to be true
+
+      expect(remote).not_to receive(:remove_products)
+
+      content = apply_rc_content("{not json")
+
+      expect(component.started?).to be true
+      expect(content.apply_state).to eq(3)
     end
   end
 
