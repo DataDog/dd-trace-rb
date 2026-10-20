@@ -1,11 +1,5 @@
 require "datadog/di/spec_helper"
 
-# Unit tests for the C-implemented snapshot generation token primitive:
-# Datadog::DI.current_thread_generation. These tests exercise the token's
-# semantics: a positive integer, stable for one thread, shared by all fibers
-# of a thread, distinct across threads, and still assigned to a Thread
-# frozen before its first snapshot.
-
 RSpec.describe "Datadog::DI snapshot generation token" do
   di_test
   describe ".current_thread_generation" do
