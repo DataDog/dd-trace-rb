@@ -63,14 +63,15 @@ RSpec.describe Datadog::AIGuard::Contrib::RubyLLM::MessageAdapter do
     context "when tool-call arguments cannot be encoded as JSON" do
       let(:adapter) { described_class.new([message]) }
       let(:message) do
-        recursive_arguments = {}
-        recursive_arguments["recursive"] = recursive_arguments
+        # we want to exceed JSON's default depth limit, but avoid getting stack overflow in RubyLLM 2.1
+        nested_arguments = {}
+        101.times { nested_arguments = {"nested" => nested_arguments} }
 
         RubyLLM::Message.new(
           role: :assistant,
           content: "Running the command",
           tool_calls: {
-            "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: recursive_arguments),
+            "call_1" => RubyLLM::ToolCall.new(id: "call_1", name: "shell", arguments: nested_arguments),
           }
         )
       end
