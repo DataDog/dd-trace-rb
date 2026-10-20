@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "fatal_exceptions"
-require_relative "../core/remote/configuration"
 
 module Datadog
   module DI
@@ -290,13 +289,11 @@ module Datadog
         # been marked. Removal of probes happens when an RC entry disappears,
         # as such there is nothing to mark.
         def remove_probe(previous_content, component)
-          # TODO test exception capture
           probe_spec = parse_content(previous_content)
-          probe_id = probe_spec.fetch("id")
-          unless probe_id.is_a?(String)
-            raise TypeError, Core::Remote::Configuration.invalid_type_message("probe id", probe_id, String)
-          end
-
+          # ProbeBuilder is loaded by di/boot.rb, which has run whenever a DI
+          # component exists. This file is also loaded on runtimes that
+          # cannot run DI, and therefore does not require probe_builder.
+          probe_id = ProbeBuilder.fetch_probe_id(probe_spec)
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)

@@ -9,6 +9,8 @@ module Datadog
 
       def self?.build_from_remote_config: (Hash[String, untyped] config, logger: DI::Logger) -> Probe
 
+      def self?.fetch_probe_id: (Hash[String, untyped] probe_spec) -> String
+
       def self?.build_template_segments: (Array[Hash[String, untyped]]? segments) -> Array[String | DI::EL::Expression]?
 
       def self?.build_capture_expressions: (Array[Hash[String, untyped]]? raw) -> Array[CaptureExpression]

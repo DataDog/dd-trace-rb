@@ -38,7 +38,13 @@ module Datadog
         "DEFAULT" => :exit,
       }.freeze
 
+      # Builds a Probe from a probe specification in remote configuration
+      # format.
+      #
+      # @raise [ArgumentError] if the specification is malformed or describes
+      #   a probe type that is not supported
       def build_from_remote_config(config, logger:)
+        probe_id = fetch_probe_id(config)
         # The validations here are not yet comprehensive.
         type = config.fetch("type")
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
@@ -50,14 +56,14 @@ module Datadog
           EL::Expression.new(cond_spec["dsl"], compiled, regexps: regexps)
         end
         capture_expressions = build_capture_expressions(config["captureExpressions"])
-        capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
+        capture_expressions = dedup_capture_expressions(capture_expressions, probe_id, logger)
         if !!config["captureSnapshot"] && !capture_expressions.empty?
           logger.debug do
-            "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
+            "di: probe #{probe_id}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
         end
         Probe.new(
-          id: config.fetch("id"),
+          id: probe_id,
           type: type_symbol,
           file: config["where"]&.[]("sourceFile"),
           # Sometimes lines are sometimes received as an array of nil
@@ -75,12 +81,26 @@ module Datadog
           max_capture_collection_size: config["capture"]&.[]("maxCollectionSize"),
           max_capture_string_length: config["capture"]&.[]("maxLength"),
           capture_expressions: capture_expressions,
-          evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"], logger),
+          evaluate_at: parse_evaluate_at(config["evaluateAt"], probe_id, logger),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
+      end
+
+      # Returns the id of a probe specification in remote configuration
+      # format.
+      #
+      # @raise [KeyError] if the specification has no id
+      # @raise [ArgumentError] if the id is not a String
+      def fetch_probe_id(probe_spec)
+        probe_id = probe_spec.fetch("id")
+        unless probe_id.is_a?(String)
+          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("id", probe_id, String)
+        end
+
+        probe_id
       end
 
       def build_capture_expressions(raw)
