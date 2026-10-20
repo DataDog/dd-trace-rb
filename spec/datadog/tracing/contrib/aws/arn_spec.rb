@@ -256,6 +256,52 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
     end
   end
 
+  describe ".arn_like?" do
+    subject(:arn_like) { described_class.arn_like?(value) }
+
+    context "with a well-formed ARN" do
+      let(:value) { "arn:aws:sns:us-west-2:123456789012:my-topic" }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "with a malformed value that still opens with the ARN prefix" do
+      let(:value) { "arn:not-an-arn" }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "with an ARN-prefixed value whose bytes are invalid in its encoding" do
+      let(:value) { (+"arn:aws:sns:us-west-2:123456789012:my-\xFFtopic").force_encoding("UTF-8") }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "with a bare name" do
+      let(:value) { "my-topic" }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "with a non-string" do
+      let(:value) { 1234 }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "with nil" do
+      let(:value) { nil }
+
+      it { is_expected.to be(false) }
+    end
+
+    context "with a non ASCII-compatible encoding whose bytes do not match the prefix" do
+      let(:value) { "arn:".encode(::Encoding::UTF_16LE) }
+
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe "#typed_resource_id" do
     subject(:resource_id) { described_class.parse(value).typed_resource_id(service, resource_types) }
 

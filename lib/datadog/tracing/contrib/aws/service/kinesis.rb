@@ -13,10 +13,9 @@ module Datadog
           class Kinesis < Base
             SERVICE = "kinesis"
 
-            # `arn:aws:kinesis:us-east-1:123456789012:stream/my-stream`. A
-            # consumer ARN extends the same resource with
-            # `/consumer/<name>/<timestamp>`, and the stream it belongs to is
-            # still the second resource segment.
+            # The stream is the second resource segment of a stream ARN
+            # (`stream/my-stream`) and of a consumer ARN
+            # (`stream/my-stream/consumer/<name>/<timestamp>`).
             STREAM_RESOURCE_TYPES = %w[stream].freeze
 
             def add_tags(span, params)

@@ -16,23 +16,18 @@ module Datadog
             # `arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine`
             STATE_MACHINE_RESOURCE_TYPES = %w[stateMachine].freeze
 
-            # `execution:MyStateMachine:MyExecution`, or
-            # `express:MyStateMachine:MyExecution:<uuid>` for a Synchronous
-            # Express workflow. The state machine is the second segment in
-            # both, so an execution ARN resolves to the state machine name.
+            # The state machine is the second segment of an execution ARN
+            # (`execution:MyStateMachine:MyExecution`) and of an Express
+            # workflow ARN (`express:MyStateMachine:MyExecution:<uuid>`).
             EXECUTION_RESOURCE_TYPES = %w[execution express].freeze
 
             def add_tags(span, params)
               execution_arn = params[:execution_arn]
               state_machine_arn = params[:state_machine_arn]
 
-              # Both ARNs, when present, name the same state machine. No
-              # operation accepts both today, so a request supplying both can
-              # only come from a params shape this handler does not control.
-              # `name` is the state machine's own name only on a create
-              # operation (which carries no ARN); on `StartExecution` it is the
-              # execution name and a `peer.service` source, so it is read only
-              # when no ARN was supplied at all.
+              # With no ARN, `name` is the state machine's own name on a create
+              # operation. On `StartExecution` it is the execution name and a
+              # `peer.service` source, so it is read only when no ARN is present.
               if execution_arn.nil? && state_machine_arn.nil?
                 span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, params[:name])
                 return
@@ -46,13 +41,13 @@ module Datadog
               state_machine_name = state_machine&.typed_resource_id(SERVICE, STATE_MACHINE_RESOURCE_TYPES)
               state_machine = nil unless state_machine_name
 
-              # A supplied ARN that did not resolve leaves the request naming a
-              # target this handler cannot read, so nothing is reported.
+              # A supplied ARN that did not resolve names a target this handler
+              # cannot read, so nothing is reported.
               return if execution_arn && execution.nil?
               return if state_machine_arn && state_machine.nil?
 
-              # Both resolved ARNs describe different targets. Emitting both
-              # would publish a contradiction; picking one would be arbitrary.
+              # Two resolved ARNs naming different targets are a contradiction;
+              # emitting either would be arbitrary, so neither is.
               if execution && state_machine &&
                   target_identity(execution, execution_name) != target_identity(state_machine, state_machine_name)
                 return
@@ -62,7 +57,7 @@ module Datadog
               span.set_tag(Aws::Ext::TAG_AWS_STATE_MACHINE_ARN, state_machine_arn) if state_machine
 
               # The state machine ARN names the target directly, so it is
-              # preferred over the execution ARN when both resolved.
+              # preferred when both resolved.
               resolved = state_machine || execution
               resolved_name = state_machine ? state_machine_name : execution_name
 
@@ -73,9 +68,8 @@ module Datadog
 
             private
 
-            # The fields two ARNs must share to name one target: name, account,
-            # partition and Region. A field one omits and the other supplies
-            # counts as a disagreement.
+            # The fields two ARNs must share to name one target. A field one
+            # omits and the other supplies counts as a disagreement.
             def target_identity(arn, name)
               [name, arn.account_id, arn.partition, arn.region]
             end

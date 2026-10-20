@@ -16,9 +16,9 @@ module Datadog
             # A topic ARN is the one SNS ARN with a bare-name resource
             # (`arn:aws:sns:us-west-2:123456789012:my-topic`); endpoint,
             # platform application and subscription ARNs carry a further
-            # segment. Requiring a bare resource, and reading only `topic_arn`
-            # (never `Publish`'s `TargetArn`), keeps a mobile endpoint from
-            # being labelled a topic.
+            # segment. Reading only `topic_arn` (never `Publish`'s `TargetArn`)
+            # and requiring a bare resource keeps those from being tagged as a
+            # topic.
             def add_tags(span, params)
               topic_arn = params[:topic_arn]
               topic_name = params[:name]
