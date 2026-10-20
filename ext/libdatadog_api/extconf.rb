@@ -98,6 +98,11 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 
 have_func("rb_iseq_type")
 
+# Ruby 2.7 is the first release whose ObjectSpace::WeakMap accepts frozen keys and
+# Integer values without defining finalizers on them; the frozen-thread generation
+# token storage in di.c relies on both.
+$defs << "-DHAVE_PRUNING_WEAKMAP" if RUBY_VERSION >= "2.7"
+
 $defs << "-DHAVE_RB_IMEMO_NAME" if RUBY_VERSION >= "3.0"
 $defs << "-DHAVE_SHIFTED_IMEMO_MASK" if RUBY_VERSION >= "4.1"
 $defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"

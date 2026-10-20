@@ -91,6 +91,35 @@ RSpec.describe "Datadog::DI snapshot generation token" do
         expect(frozen_thread_token).to be_a(Integer)
         expect(frozen_thread_token).not_to eq(Datadog::DI.current_thread_generation)
       end
+
+      it "returns a distinct token to a Thread allocated after a frozen thread is collected" do
+        skip "frozen-thread token storage is not GC-aware on Ruby 2.6" if RubyVersion.is?("< 2.7")
+
+        collected_thread = nil
+        collected_tokens = 60.times.map do
+          collected_thread = Thread.new do
+            Thread.current.freeze
+            Datadog::DI.current_thread_generation
+          end
+          collected_thread.value
+        end
+        collected_thread = nil
+        4.times { GC.start }
+
+        later_tokens = []
+        5.times do
+          later_tokens.concat(300.times.map do
+            Thread.new do
+              Thread.current.freeze
+              Datadog::DI.current_thread_generation
+            end.value
+          end)
+          2.times { GC.start }
+        end
+
+        expect(later_tokens & collected_tokens).to be_empty
+        expect(later_tokens.uniq).to eq(later_tokens)
+      end
     end
 
     context "for a thread frozen after its first token" do
