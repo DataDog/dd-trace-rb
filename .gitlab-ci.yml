@@ -42,9 +42,45 @@ variables:
 default:
   tags: ["arch:amd64"]
 
+# Paths that change the shipped tracer code or how the SSI artifacts are
+# built. Pushes and MRs touching none of these run the pipeline without the
+# shared SSI pipeline (artifact builds + system tests), via the
+# SKIP_SHARED_PIPELINE variable that every one-pipeline job already guards on.
+.ssi_relevant_paths: &ssi_relevant_paths
+  # "**/*" not "**": GitLab matches paths with File.fnmatch(FNM_PATHNAME),
+  # where plain "**" does not match nested files like lib/datadog/tracing.rb.
+  - lib/**/*
+  - ext/**/*
+  - datadog.gemspec
+  - Gemfile.lock
+  - .gitlab-ci.yml
+  - .gitlab/install_datadog_deps.rb
+  - .gitlab/prepare-oci-package.sh
+  - .gitlab/one-pipeline.locked.yml
+  - lib-injection/requirements.json
+
 workflow:
   auto_cancel:
     on_new_commit: interruptible
+  rules:
+    # Escape hatch to force the full SSI pipeline on an otherwise-skipped push.
+    - if: '$FORCE_SHARED_PIPELINE == "true"'
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths: *ssi_relevant_paths
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
+        paths: *ssi_relevant_paths
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"'
+      variables:
+        SKIP_SHARED_PIPELINE: "true"
+    # workflow:rules accepts only always or never, never on_success.
+    - when: always
 
 .build-image-base:
   stage: manual-images
@@ -104,7 +140,13 @@ promote-image:
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
+# Both jobs only feed package-oci, which skips on SKIP_SHARED_PIPELINE, so
+# they skip too in a skipped shared pipeline.
 build-gem:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
@@ -144,6 +186,10 @@ build-gem:
       - lib/datadog/version.rb
 
 install-dependencies:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
   tags: ["arch:$ARCH"]
   parallel:
@@ -184,34 +230,7 @@ requirements_json_test:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
 
-# Rules for the SSI shared pipeline. configure_system_tests and system_tests
-# must always be included or excluded together: system_tests needs
-# configure_system_tests, and needing a job absent from the pipeline fails
-# pipeline creation.
-.ssi_pipeline_rules:
-  rules: &ssi_pipeline_rules
-    - if: $SKIP_SHARED_PIPELINE == "true"
-      when: never
-    - if: $DANGEROUSLY_SKIP_SHARED_PIPELINE_TESTS == "true"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: '$CI_COMMIT_TAG'
-    - changes:
-        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
-        paths:
-          - lib/**
-          - ext/**
-          - datadog.gemspec
-          - Gemfile.lock
-          - .gitlab-ci.yml
-          - .gitlab/install_datadog_deps.rb
-          - .gitlab/prepare-oci-package.sh
-          - .gitlab/one-pipeline.locked.yml
-          - lib-injection/requirements.json
-    - when: never
-
 configure_system_tests:
-  rules: *ssi_pipeline_rules
   variables:
     SYSTEM_TESTS_REF: 1f289cff86f5ec2a61502f179ede8960bda417fb # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
@@ -229,12 +248,21 @@ save_versions:
     paths:
       - upstream.env
 
-system_tests:
-  rules: *ssi_pipeline_rules
-
 deploy_to_reliability_env:
   needs:
     - save_versions
+
+# The one-pipeline job is not guarded on SKIP_SHARED_PIPELINE, but the jobs it
+# needs are. Without this override, a skipped shared pipeline leaves the job's
+# needs dangling and the pipeline never finishes.
+publish_dora_metrics:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+$/'
+      when: on_success
+    - when: manual
+      allow_failure: true
 
 # Config inversion CI steps
 validate_supported_configurations_v2_local_file:
