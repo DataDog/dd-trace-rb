@@ -29,11 +29,15 @@ module Datadog
           end
         end
 
-        # Invokes every receiver whose product held no change in `changes`,
-        # with empty changes, so products that reconcile from the repository
-        # see its current state. A fresh client cannot produce a delete change
-        # for a config the backend withdrew while no client held it; this pass
-        # is where such a withdrawal is detected.
+        # Calls each receiver that has no matching change in `changes`,
+        # passing it an empty change list, so that the receiver acts on the
+        # current repository contents.
+        #
+        # A new client starts with an empty repository. When the backend
+        # removed a config before the client was created, the client's first
+        # sync produces no delete change for that config, and #dispatch does
+        # not call the receiver for that config's product. Calling the
+        # receiver here lets it detect that the config was removed.
         def reconcile(changes, repository)
           receivers.each do |receiver|
             receiver.call(repository, []) if matching_changes(changes, receiver).empty?
