@@ -1,0 +1,15 @@
+issuer: https://token.actions.githubusercontent.com
+
+subject_pattern: "repo:DataDog/dd-trace-rb:ref:refs/heads/master"
+
+# The corresponding caller grants (libdatadog-rb / libddwaf /
+# datadog-ruby_core_source -> dd-trace-rb, in this directory) authorize each
+# upstream repo's notify-consumers workflow to send the dispatch.
+claim_pattern:
+  event_name: repository_dispatch
+  repository: DataDog/dd-trace-rb
+  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/update-internal-deps\.yml@refs/heads/master
+
+permissions:
+  contents: write
+  pull_requests: write
