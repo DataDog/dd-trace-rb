@@ -1,4 +1,5 @@
 require "spec_helper"
+require "json"
 
 require "datadog/tracing/contrib/utils/quantization/http"
 
@@ -6,8 +7,6 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
   def quantize_path_oracle(path)
     encoding = path.encoding
     bytes = path.bytes
-    return (+"").force_encoding(encoding) if bytes.empty?
-
     bytes.unshift(47) unless bytes.first == 47
     output = []
     replacements = 0
@@ -24,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       specials = segment.length - allowed - digits
 
       output << 47
-      if segment.first == 118 && allowed == 1 && digits > 0
+      if segment.first == 118 && allowed == 1 && digits > 0 && specials.zero?
         output.concat(segment)
       elsif specials > 0 || digits > 0
         output << 42
@@ -36,6 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       index = segment_end + 1
     end
 
+    output << 47 if bytes.last == 47
     (replacements.zero? ? bytes : output).pack("C*").force_encoding(encoding)
   end
 
@@ -578,7 +578,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     subject(:quantized_path) { described_class.quantize_path(path) }
 
     vectors = {
-      "" => "",
+      "" => "/",
       "/" => "/",
       "users" => "/users",
       "users/123" => "/users/*",
@@ -603,19 +603,19 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       "/vv1" => "/*",
       "/v1-beta" => "/*",
       "/v1_" => "/*",
-      "/v1." => "/v1.",
-      "/v.1" => "/v.1",
-      "/v🌟1" => "/v🌟1",
+      "/v1." => "/*",
+      "/v.1" => "/*",
+      "/v🌟1" => "/*",
       "/trailing/slash/" => "/trailing/slash/",
-      "/users/123/" => "/users/*",
-      "/users/123//" => "/users/*/",
+      "/users/123/" => "/users/*/",
+      "/users/123//" => "/users/*//",
       "/a//b" => "/a//b",
-      "/a//123/" => "/a//*",
+      "/a//123/" => "/a//*/",
       "//a/123" => "//a/*",
       "//" => "//",
       "/a//" => "/a//",
       "a/" => "/a/",
-      "a/1//" => "/a/*/",
+      "a/1//" => "/a/*//",
       "/v." => "/*",
       "/x1." => "/*",
       "/v_1." => "/*",
@@ -628,7 +628,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
         it "matches across repeated calls" do
           expect(quantized_path).to eq(expected)
-          expect(described_class.quantize_path(quantized_path)).to eq(quantize_path_oracle(expected))
+          expect(described_class.quantize_path(quantized_path)).to eq(expected)
         end
       end
     end
@@ -669,7 +669,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       ["v", "v", "v first, one allowed, no digit, no special"],
       ["v.", "*", "v first, one allowed, no digit, special"],
       ["v1", "v1", "v first, one allowed, digit, no special"],
-      ["v1.", "v1.", "v first, one allowed, digit, special"],
+      ["v1.", "*", "v first, one allowed, digit, special"],
       ["vv", "vv", "v first, multiple allowed, no digit, no special"],
       ["vv.", "*", "v first, multiple allowed, no digit, special"],
       ["vv1", "*", "v first, multiple allowed, digit, no special"],
@@ -754,7 +754,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         wildcard_path = ([47] + wildcard).pack("C*")
         message = "seed=#{seed} bytes=#{wildcard.inspect}"
         expect(described_class.quantize_path(wildcard_path)).to eq("/*"), message
-        expect(described_class.quantize_path(wildcard_path + "/")).to eq("/*"), message
+        expect(described_class.quantize_path(wildcard_path + "/")).to eq("/*/"), message
 
         api_version = [
           118,
@@ -766,15 +766,15 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         end)
         api_version_path = ([47] + api_version).pack("C*")
         message = "seed=#{seed} bytes=#{api_version.inspect}"
-        expect(described_class.quantize_path(api_version_path)).to eq(api_version_path), message
+        expect(described_class.quantize_path(api_version_path)).to eq("/*"), message
       end
     end
 
-    it "re-quantizes a result ending in a trailing slash" do
+    it "preserves trailing slashes across repeated quantization" do
       first_result = described_class.quantize_path("/users/123//")
 
-      expect(first_result).to eq("/users/*/")
-      expect(described_class.quantize_path(first_result)).to eq("/users/*")
+      expect(first_result).to eq("/users/*//")
+      expect(described_class.quantize_path(first_result)).to eq("/users/*//")
     end
 
     it "preserves caller input and its encoding label" do
@@ -863,6 +863,15 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       end
     end
 
+    context "with invalid decoded bytes in a version-like segment" do
+      let(:path) { "/v%FF1" }
+
+      it "replaces the segment and produces a serializable resource" do
+        expect(client_resource).to eq("GET /*")
+        expect(JSON.parse(JSON.generate(resource: client_resource))).to eq("resource" => "GET /*")
+      end
+    end
+
     context "when disabled" do
       let(:enabled) { false }
 
@@ -878,7 +887,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     context "with an empty path" do
       let(:path) { "" }
 
-      it { is_expected.to equal(method) }
+      it { is_expected.to eq("GET /") }
+
+      context "when disabled" do
+        let(:enabled) { false }
+
+        it { is_expected.to equal(method) }
+      end
     end
 
     it "does not mutate method or path" do

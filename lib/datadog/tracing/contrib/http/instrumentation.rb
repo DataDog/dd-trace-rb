@@ -123,7 +123,10 @@ module Datadog
 
             def request_uri_path(request)
               uri = request.uri if request.respond_to?(:uri)
-              uri ? uri.path : URI.parse(request.path).path
+              return uri.path if uri
+              return request.path.split(/[?#]/, 2).first if request.path.start_with?("/")
+
+              URI.parse(request.path).path
             rescue URI::InvalidURIError
               nil
             end

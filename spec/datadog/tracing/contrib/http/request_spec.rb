@@ -158,10 +158,11 @@ RSpec.describe "net/http requests" do
 
     let(:path) { "/files/readme%2Emd?download=1" }
     let(:request) { Net::HTTP::Get.new(path) }
+    let(:request_url) { "#{uri}#{path}" }
 
     before do
       Datadog.configuration.tracing.http_client_resource_name_quantize = true
-      stub_request(:get, "#{uri}#{path}").to_return(status: 200)
+      stub_request(:get, request_url).to_return(status: 200)
       response
     end
 
@@ -169,6 +170,25 @@ RSpec.describe "net/http requests" do
       expect(span.resource).to eq("GET /files/*")
       expect(span.get_tag("http.url")).to eq("/files/readme%2Emd")
       expect(request.path).to eq(path)
+    end
+
+    context "with a path beginning with two slashes" do
+      let(:path) { "//api/users/123?active=true#fragment" }
+
+      it "preserves all path segments and excludes the query and fragment" do
+        expect(span.resource).to eq("GET //api/users/*")
+        expect(request.path).to eq(path)
+      end
+    end
+
+    context "with an absolute request target" do
+      let(:path) { "#{uri}/users/123?active=true" }
+      let(:request_url) { path }
+
+      it "excludes the authority and query" do
+        expect(span.resource).to eq("GET /users/*")
+        expect(request.path).to eq(path)
+      end
     end
   end
 

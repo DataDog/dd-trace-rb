@@ -21,7 +21,7 @@ module Datadog
             module_function
 
             def client_resource(method, path, enabled:)
-              return method unless enabled && path && !path.empty?
+              return method unless enabled && path
 
               resource = method.dup
               resource << (+" ").force_encoding(resource.encoding)
@@ -59,8 +59,6 @@ module Datadog
             end
 
             def quantize_path(path)
-              return path.dup if path.empty?
-
               slash = (+"/").force_encoding(path.encoding)
               normalized = if path.getbyte(0) == 47
                 path
@@ -94,7 +92,7 @@ module Datadog
 
                 output << slash
                 segment = normalized.byteslice(index, segment_end - index) || String.new(encoding: path.encoding)
-                if normalized.getbyte(index) == 118 && allowed == 1 && digits > 0
+                if normalized.getbyte(index) == 118 && allowed == 1 && digits > 0 && specials.zero?
                   output << segment
                 elsif specials > 0 || digits > 0
                   output << (+"*").force_encoding(path.encoding)
@@ -106,7 +104,10 @@ module Datadog
                 index = segment_end + 1
               end
 
-              replacements.zero? ? normalized.dup : output
+              return normalized.dup if replacements.zero?
+
+              output << slash if normalized.getbyte(normalized.bytesize - 1) == 47
+              output
             end
 
             def url(url, options = {})

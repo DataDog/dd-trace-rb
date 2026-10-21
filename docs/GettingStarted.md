@@ -2204,7 +2204,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 
 #### HTTP client resource-name quantization
 
-By default, outbound HTTP client span resources contain only the HTTP method, such as `GET`. Set `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE=true` or `tracing.http_client_resource_name_quantize = true` to append a quantized path:
+By default, the resource name of an outbound HTTP client span is the HTTP method alone, such as `GET`. Set `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE=true` or `tracing.http_client_resource_name_quantize = true` to append a quantized path, where high-cardinality segments such as IDs are replaced with `*`:
 
 ```ruby
 Datadog.configure do |c|
@@ -2212,7 +2212,7 @@ Datadog.configure do |c|
 end
 ```
 
-For example, enabling this option changes the resource for `GET /users/123?active=true` from `GET` to `GET /users/*`. Quantization uses only the decoded path; scheme, credentials, host, port, query, and fragment are excluded. It does not change the outgoing request or `http.url` tag.
+With this option enabled, a request to `GET /users/123?active=true` produces the resource name `GET /users/*` instead of `GET`. Quantization applies only to the decoded request path. It ignores scheme, credentials, host, port, query, and fragment, and it does not change the outgoing request or `http.url` tag.
 
 #### Custom logging
 
