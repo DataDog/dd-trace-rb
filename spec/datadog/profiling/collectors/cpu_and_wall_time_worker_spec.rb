@@ -1987,7 +1987,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     before do
       allow(cpu_and_wall_time_worker).to receive(:create_miteruby_consumer)
       consume_miteruby
-      miteruby_recorder.serialize!
+      recorded_miteruby_samples
     end
 
     after do
@@ -2020,7 +2020,31 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def recorded_miteruby_samples
+      if miteruby_consumer_name == :dedupconsumer
+        described_class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+      end
       samples_from_pprof(miteruby_recorder.serialize!)
+    end
+
+    if consumer_name == :dedupconsumer
+      it "buffers multiple drains until prepare_serialize" do
+        capture_miteruby do
+          described_class::Testing._native_miteruby_read_sample_headers
+          [100, 250].each do |cpu_time_ns|
+            described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)
+            consume_miteruby
+            expect(samples_from_pprof(miteruby_recorder.serialize!)).to be_empty
+          end
+        end
+
+        GC.start
+        GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+        samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+          .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
+
+        expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([0, 150])
+        expect(recorded_miteruby_samples).to be_empty
+      end
     end
 
     it "records buffered Ruby and C frames, labels, and capture timestamps" do
@@ -2207,7 +2231,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
-    it "looks up thread names on each drain instead of caching them" do
+    it "looks up thread names when recording instead of caching them" do
       original_name = Thread.current.name
       Thread.current.name = "miteruby first name"
       capture_miteruby { publish_miteruby_sample }
@@ -2234,9 +2258,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
         sampled_thread.join
       end
+      consume_miteruby
       GC.start
       GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
-      consume_miteruby
 
       samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
         .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
