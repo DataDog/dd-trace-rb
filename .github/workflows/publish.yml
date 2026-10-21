@@ -368,7 +368,7 @@ jobs:
 
   update-release-branch:
     if: github.ref_name == 'master'
-    name: Update 'release' branch with a merge commit
+    name: Point 'release' branch at the released tag
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
@@ -388,10 +388,6 @@ jobs:
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
-      - run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B release origin/release
-          # On conflict, the released tag wins.
-          git merge --no-edit -X theirs "v${GEM_VERSION}"
-          git push origin release
+      # The documentation website is sourced from this branch, so it must
+      # always mirror the released state, not merge it in.
+      - run: git push --force-with-lease origin "v${GEM_VERSION}":refs/heads/release
