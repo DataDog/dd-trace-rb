@@ -1921,55 +1921,63 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
-  describe "miteruby miniconsumer thread" do
-    let(:no_signals_workaround_enabled) { true }
+  [:miniconsumer, :dedupconsumer].each do |consumer_name|
+    describe "miteruby #{consumer_name} thread" do
+      let(:no_signals_workaround_enabled) { true }
 
-    after { cpu_and_wall_time_worker.stop }
-
-    it "does not start a miniconsumer when miteruby is disabled" do
-      expect(described_class).to_not receive(:_native_miteruby_miniconsumer_consume_loop)
-
-      cpu_and_wall_time_worker.start
-      wait_until_running
-      cpu_and_wall_time_worker.stop
-    end
-
-    context "when miteruby is enabled" do
-      let(:options) { {miteruby_enabled: true} }
-
-      it "drains into the worker's recorder and manages the consumer across starts and stops" do
-        started = Queue.new
-        consumers = []
-        miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
-        allow(described_class).to receive(:_native_miteruby_miniconsumer_consume_loop).and_wrap_original do |original, recorder|
-          started << [Thread.current, recorder]
-          original.call(recorder)
+      before do
+        allow(cpu_and_wall_time_worker).to receive(:create_miteruby_consumer).and_wrap_original do |original, _name|
+          original.call(consumer_name)
         end
+      end
 
-        2.times do
-          cpu_and_wall_time_worker.start
-          wait_until_running
-          consumer, consumer_recorder = started.pop
-          consumers << consumer
-          expect(consumer_recorder).to equal(miteruby_recorder)
-          expect(consumer.name).to eq("#{described_class.name}::MiterubyMiniconsumer")
-          expect(consumer.thread_variable_get(:fork_safe)).to be true
+      after { cpu_and_wall_time_worker.stop }
 
-          cpu_and_wall_time_worker.start
-          expect(started).to be_empty
+      it "does not start a consumer when miteruby is disabled" do
+        expect(described_class).to_not receive(:"_native_miteruby_#{consumer_name}_consume_loop")
 
-          described_class::Testing._native_simulate_handle_sampling_signal
-          loop_until do
-            samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!).any? do |sample|
-              sample.locations.any? { |frame| frame.label == "_native_simulate_handle_sampling_signal" }
-            end
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        cpu_and_wall_time_worker.stop
+      end
+
+      context "when miteruby is enabled" do
+        let(:options) { {miteruby_enabled: true} }
+
+        it "drains into the worker's recorder and manages the consumer across starts and stops" do
+          started = Queue.new
+          consumers = []
+          miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
+          allow(described_class).to receive(:"_native_miteruby_#{consumer_name}_consume_loop").and_wrap_original do |original, recorder|
+            started << [Thread.current, recorder]
+            original.call(recorder)
           end
 
-          cpu_and_wall_time_worker.stop
-          expect(consumer).to_not be_alive
-        end
+          2.times do
+            cpu_and_wall_time_worker.start
+            wait_until_running
+            consumer, consumer_recorder = started.pop
+            consumers << consumer
+            expect(consumer_recorder).to equal(miteruby_recorder)
+            expect(consumer.name).to eq("#{described_class.name}::Miteruby#{consumer_name.to_s.capitalize}")
+            expect(consumer.thread_variable_get(:fork_safe)).to be true
 
-        expect(consumers.uniq.size).to eq(2)
+            cpu_and_wall_time_worker.start
+            expect(started).to be_empty
+
+            described_class::Testing._native_simulate_handle_sampling_signal
+            loop_until do
+              samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!).any? do |sample|
+                sample.locations.any? { |frame| frame.label == "_native_simulate_handle_sampling_signal" }
+              end
+            end
+
+            cpu_and_wall_time_worker.stop
+            expect(consumer).to_not be_alive
+          end
+
+          expect(consumers.uniq.size).to eq(2)
+        end
       end
     end
   end
@@ -1980,7 +1988,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     let(:miteruby_recorder) { Datadog::Profiling::StackRecorder.for_testing }
 
     before do
-      allow(cpu_and_wall_time_worker).to receive(:create_miteruby_miniconsumer)
+      allow(cpu_and_wall_time_worker).to receive(:create_miteruby_consumer)
       consume_miteruby
       miteruby_recorder.serialize!
     end
