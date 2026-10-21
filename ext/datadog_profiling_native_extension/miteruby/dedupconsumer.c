@@ -13,6 +13,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <threads.h>
+
+static once_flag mutexes_initialized = ONCE_FLAG_INIT;
+
+// Lock order: consumed_events_mutex, then objects_to_mark_mutex. Recursive locking allows same-thread re-entry:
+// GC marking takes only objects_to_mark_mutex; the memory-size callback takes both for memory accounting.
+static mtx_t consumed_events_mutex;
+static mtx_t objects_to_mark_mutex;
 
 // Why "dedupconsumer"?
 // This dedupconsumer bridges miteruby and the existing profiler APIs (specifically, StackRecorder).
@@ -29,6 +37,8 @@ static size_t consumed_events_pos = 0;
 static size_t consumed_events_size = 0;
 
 typedef struct {
+  // TODO: Move away from st_table because it can trigger Ruby GC, which we don't want from the dedupconsumer.
+  // This may also interact with locking, e.g. insertion triggering GC, which then wants to mark.
   st_table *objects_to_mark;
 } dedupconsumer_state;
 
@@ -53,6 +63,8 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
 static VALUE consume_loop_body(VALUE args);
 static VALUE consume_loop_ensure(VALUE args);
+static VALUE prepare_serialize_locked(VALUE recorder_instance);
+static VALUE prepare_serialize_unlock_ensure(VALUE unused);
 static void buffer_event(const miteruby_event_header_t *header);
 static void record_stack_sample(
   VALUE recorder_instance,
@@ -64,6 +76,19 @@ static dedupconsumer_thread_context *thread_context_for(VALUE thread, monotonic_
 static long update_and_get_time_since_previous_sample(dedupconsumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
+static void mutex_lock(mtx_t *mutex) {
+  if (mtx_lock(mutex) != thrd_success) rb_bug("Failed to lock miteruby consumer mutex");
+}
+
+static void mutex_unlock(mtx_t *mutex) {
+  if (mtx_unlock(mutex) != thrd_success) rb_bug("Failed to unlock miteruby consumer mutex");
+}
+
+static void initialize_mutexes(void) {
+  if (mtx_init(&consumed_events_mutex, mtx_recursive) != thrd_success) rb_bug("Failed to initialize miteruby consumer mutex");
+  if (mtx_init(&objects_to_mark_mutex, mtx_recursive) != thrd_success) rb_bug("Failed to initialize miteruby consumer mutex");
+}
+
 static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t unused) {
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
   // so these objects must stay pinned at their current addresses.
@@ -73,13 +98,20 @@ static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE
 
 static void dedupconsumer_mark(void *data) {
   dedupconsumer_state *consumer_state = data;
+  mutex_lock(&objects_to_mark_mutex);
   if (consumer_state->objects_to_mark != NULL) st_foreach(consumer_state->objects_to_mark, mark_object, 0);
+  mutex_unlock(&objects_to_mark_mutex);
 }
 
 static size_t dedupconsumer_size(const void *data) {
   const dedupconsumer_state *consumer_state = data;
-  return sizeof(*consumer_state) + consumed_events_size +
+  mutex_lock(&consumed_events_mutex);
+  mutex_lock(&objects_to_mark_mutex);
+  size_t size = sizeof(*consumer_state) + consumed_events_size +
     (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
+  mutex_unlock(&objects_to_mark_mutex);
+  mutex_unlock(&consumed_events_mutex);
+  return size;
 }
 
 static const rb_data_type_t dedupconsumer_typed_data = {
@@ -92,8 +124,12 @@ static const rb_data_type_t dedupconsumer_typed_data = {
 };
 
 void miteruby_dedupconsumer_init(void) {
+  call_once(&mutexes_initialized, initialize_mutexes);
+  mutex_lock(&consumed_events_mutex);
+  mutex_lock(&objects_to_mark_mutex);
+
   char *new_buffer = calloc(1, CONSUMED_EVENTS_BUFFER_CHUNK_SIZE);
-  if (new_buffer == NULL) rb_memerror();
+  if (new_buffer == NULL) rb_bug("Failed to allocate miteruby consumed events buffer");
   free(consumed_events_buffer);
   consumed_events_buffer = new_buffer;
   consumed_events_pos = 0;
@@ -112,6 +148,8 @@ void miteruby_dedupconsumer_init(void) {
   } else {
     st_foreach(thread_contexts, free_thread_context, 0);
   }
+  mutex_unlock(&objects_to_mark_mutex);
+  mutex_unlock(&consumed_events_mutex);
 }
 
 void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer, VALUE recorder_instance) {
@@ -142,6 +180,7 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 
 void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance) {
   enforce_recorder_instance(recorder_instance);
+  mutex_lock(&consumed_events_mutex);
 
   for (;;) {
     miteruby_buffer_record_t record = miteruby_buffer_read(buffer, false);
@@ -152,6 +191,7 @@ void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_in
 
     buffer_event((const miteruby_event_header_t *)record.data);
   }
+  mutex_unlock(&consumed_events_mutex);
 }
 
 // TODO: Replace the fixed "had cpu" state with real categorization.
@@ -159,7 +199,11 @@ void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_in
 // TODO: Cache thread labels instead of fetching them for every sample.
 void miteruby_dedupconsumer_prepare_serialize(VALUE recorder_instance) {
   enforce_recorder_instance(recorder_instance);
+  mutex_lock(&consumed_events_mutex);
+  rb_ensure(prepare_serialize_locked, recorder_instance, prepare_serialize_unlock_ensure, Qnil);
+}
 
+static VALUE prepare_serialize_locked(VALUE recorder_instance) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   for (size_t pos = 0; pos < consumed_events_pos;) {
     const miteruby_event_header_t *header = (const miteruby_event_header_t *)(consumed_events_buffer + pos);
@@ -169,24 +213,32 @@ void miteruby_dedupconsumer_prepare_serialize(VALUE recorder_instance) {
     pos += header->size_bytes;
   }
   consumed_events_pos = 0;
+  return Qnil;
+}
+
+static VALUE prepare_serialize_unlock_ensure(DDTRACE_UNUSED VALUE unused) {
+  mutex_unlock(&consumed_events_mutex);
+  return Qnil;
 }
 
 static void buffer_event(const miteruby_event_header_t *header) {
   // Retain references before the next buffer read releases the record's GC protection.
   if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
     const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
+    mutex_lock(&objects_to_mark_mutex);
     st_insert(state.objects_to_mark, (st_data_t) event->thread.value, 0);
     for (uint16_t i = 0; i < header->frame_count; i++) {
       if (event->refs[i].cme != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].cme, 0);
       if (event->refs[i].iseq != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].iseq, 0);
     }
+    mutex_unlock(&objects_to_mark_mutex);
   }
 
   while (consumed_events_size - consumed_events_pos < header->size_bytes) {
-    if (consumed_events_size > SIZE_MAX - CONSUMED_EVENTS_BUFFER_CHUNK_SIZE) rb_memerror();
+    if (consumed_events_size > SIZE_MAX - CONSUMED_EVENTS_BUFFER_CHUNK_SIZE) rb_bug("Miteruby consumed events buffer size overflow");
     size_t new_size = consumed_events_size + CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
     char *new_buffer = realloc(consumed_events_buffer, new_size);
-    if (new_buffer == NULL) rb_memerror();
+    if (new_buffer == NULL) rb_bug("Failed to grow miteruby consumed events buffer");
     consumed_events_buffer = new_buffer;
     consumed_events_size = new_size;
   }
