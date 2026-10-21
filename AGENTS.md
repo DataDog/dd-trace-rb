@@ -204,6 +204,7 @@ When creating or modifying workflows in `.github/workflows/`:
 - Quote `$GITHUB_OUTPUT`: `echo "key=value" >> "$GITHUB_OUTPUT"`.
 - Group multiple redirects: `{ echo "a"; echo "b"; } >> "$GITHUB_OUTPUT"`.
 - Avoid heredocs; use echo grouping instead.
+- `curl` must fail on HTTP errors and retry: `curl -fsSL --retry 5 --retry-delay 2`.
 
 ## Validation
 

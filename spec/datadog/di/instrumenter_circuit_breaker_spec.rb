@@ -12,16 +12,14 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   let(:disabled_calls) { [] }
 
   mock_settings_for_di do |settings|
-    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(10)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(20)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_collection_size).and_return(20)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
-    allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+    stub_di_settings(settings.dynamic_instrumentation,
+      max_capture_depth: 10,
+      max_capture_attribute_count: 20,
+      max_capture_collection_size: 20,)
+    allow(settings.dynamic_instrumentation.internal).to receive_messages(
+      untargeted_trace_points: false,
+      propagate_all_exceptions: true,
+    )
   end
 
   let(:redactor) do
@@ -153,6 +151,13 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
 
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1e-8)
+        # Serializing the deep hash takes longer than the 150 ms capture
+        # budget on slower machines, which would truncate the snapshot;
+        # this example verifies the circuit breaker, so the capture budget
+        # is raised out of the way. The breaker measures processing time
+        # on the thread CPU-time clock, the same clock the capture budget
+        # reads.
+        allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(10_000_000)
       end
 
       after do

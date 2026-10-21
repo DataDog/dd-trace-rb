@@ -194,6 +194,7 @@ module Datadog
             telemetry: telemetry,
           )
           @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
+          Datadog::Tracing::Component.bind_transport_telemetry(@tracer, telemetry)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
