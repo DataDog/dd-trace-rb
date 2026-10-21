@@ -9,9 +9,11 @@ typedef struct {
 } value_thread_t;
 
 typedef struct {
-  // Cumulative thread CPU time in nanoseconds, or INVALID_TIME when unavailable.
+  // Cumulative thread CPU time in nanoseconds, or -1 when unavailable.
   long ns;
 } cpu_time_t;
+
+#define INVALID_CPU_TIME ((cpu_time_t) {.ns = -1})
 
 typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
