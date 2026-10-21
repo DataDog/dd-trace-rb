@@ -78,6 +78,27 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     let(:stack_recorder) { Datadog::Profiling::StackRecorder.for_testing }
     let(:thread_context_collector) { build_thread_context_collector(recorder: stack_recorder) }
 
+    it "returns the native recorder without serializing it when miteruby is disabled" do
+      expect(stack_recorder).to_not receive(:serialize)
+
+      expect(cpu_and_wall_time_worker.prepare_serialize).to equal(stack_recorder)
+    end
+
+    context "when miteruby is enabled" do
+      let(:options) { {miteruby_enabled: true} }
+
+      it "serializes the native recorder and returns a separate, persistent recorder" do
+        expect(stack_recorder).to receive(:serialize).twice.and_call_original
+        expect(described_class).to receive(:_native_prepare_serialize).with(cpu_and_wall_time_worker).twice.and_call_original
+
+        miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
+
+        expect(miteruby_recorder).to be_a(Datadog::Profiling::StackRecorder)
+        expect(miteruby_recorder).to_not equal(stack_recorder)
+        expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
+      end
+    end
+
     it "collects profiler-internal thread samples before serialization", :memcheck_valgrind_skip do
       ready = Queue.new
       internal_thread = Thread.new do
@@ -1897,6 +1918,312 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "raises an exception" do
         expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 0) }.to raise_error(/Timeout waiting/)
       end
+    end
+  end
+
+  describe "miteruby miniconsumer thread" do
+    let(:no_signals_workaround_enabled) { true }
+
+    after { cpu_and_wall_time_worker.stop }
+
+    it "does not start a miniconsumer when miteruby is disabled" do
+      expect(described_class).to_not receive(:_native_miteruby_miniconsumer_consume_loop)
+
+      cpu_and_wall_time_worker.start
+      wait_until_running
+      cpu_and_wall_time_worker.stop
+    end
+
+    context "when miteruby is enabled" do
+      let(:options) { {miteruby_enabled: true} }
+
+      it "drains into the worker's recorder and manages the consumer across starts and stops" do
+        started = Queue.new
+        consumers = []
+        miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
+        allow(described_class).to receive(:_native_miteruby_miniconsumer_consume_loop).and_wrap_original do |original, recorder|
+          started << [Thread.current, recorder]
+          original.call(recorder)
+        end
+
+        2.times do
+          cpu_and_wall_time_worker.start
+          wait_until_running
+          consumer, consumer_recorder = started.pop
+          consumers << consumer
+          expect(consumer_recorder).to equal(miteruby_recorder)
+          expect(consumer.name).to eq("#{described_class.name}::MiterubyMiniconsumer")
+          expect(consumer.thread_variable_get(:fork_safe)).to be true
+
+          cpu_and_wall_time_worker.start
+          expect(started).to be_empty
+
+          described_class::Testing._native_simulate_handle_sampling_signal
+          loop_until do
+            samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!).any? do |sample|
+              sample.locations.any? { |frame| frame.label == "_native_simulate_handle_sampling_signal" }
+            end
+          end
+
+          cpu_and_wall_time_worker.stop
+          expect(consumer).to_not be_alive
+        end
+
+        expect(consumers.uniq.size).to eq(2)
+      end
+    end
+  end
+
+  describe "miteruby miniconsumer" do
+    let(:options) { {miteruby_enabled: true} }
+    let(:no_signals_workaround_enabled) { true }
+    let(:miteruby_recorder) { Datadog::Profiling::StackRecorder.for_testing }
+
+    before do
+      allow(cpu_and_wall_time_worker).to receive(:create_miteruby_miniconsumer)
+      consume_miteruby
+      miteruby_recorder.serialize!
+    end
+
+    after do
+      cpu_and_wall_time_worker.stop
+      consume_miteruby
+    end
+
+    def consume_miteruby
+      described_class::Testing._native_miteruby_miniconsumer_consume(miteruby_recorder)
+    end
+
+    def capture_miteruby
+      cpu_and_wall_time_worker.start
+      wait_until_running
+      yield
+    ensure
+      cpu_and_wall_time_worker.stop
+    end
+
+    def publish_miteruby_sample
+      described_class::Testing._native_simulate_handle_sampling_signal
+    end
+
+    def recurse_for_miteruby(depth)
+      if depth.zero?
+        publish_miteruby_sample
+      else
+        recurse_for_miteruby(depth - 1)
+      end
+    end
+
+    def recorded_miteruby_samples
+      samples_from_pprof(miteruby_recorder.serialize!)
+    end
+
+    it "records buffered Ruby and C frames, labels, and capture timestamps" do
+      time_before = Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond)
+      capture_miteruby { publish_miteruby_sample }
+      time_after = Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond)
+      expect(cpu_and_wall_time_worker.stats).to include(
+        signal_handler_enqueued_sample: 0,
+        signal_handler_prepared_sample: 0,
+        cpu_sampled: 0,
+      )
+      consume_miteruby
+      samples = recorded_miteruby_samples
+
+      expect(samples).to_not be_empty
+      samples.each do |sample|
+        expect(sample.values).to include("cpu-time": be >= 0, "wall-time": be >= 0, "cpu-samples": 1)
+        expect(sample.labels).to include(state: "had cpu", miteruby: 1, end_timestamp_ns: be_between(time_before, time_after))
+        expect(sample.labels.keys).to contain_exactly(:state, :miteruby, :end_timestamp_ns, :"thread id", :"thread name")
+        expect(sample.locations.last).to eq(ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0))
+      end
+
+      explicit_sample = samples.find { |sample| sample.locations[1]&.label == "_native_simulate_handle_sampling_signal" }
+      expect(explicit_sample).to_not be_nil
+      expect(object_id_from(explicit_sample.labels.fetch(:"thread id"))).to eq(Thread.current.object_id)
+      expect(explicit_sample.labels.fetch(:"thread name")).to eq(Thread.current.name || "main")
+      source_file, source_line = method(:publish_miteruby_sample).source_location
+      expect(explicit_sample.locations.take(3)).to eq([
+        ProfileHelpers::Frame.new("(sampled in sighandler)", "", 0),
+        ProfileHelpers::Frame.new("_native_simulate_handle_sampling_signal", source_file, source_line + 1),
+        ProfileHelpers::Frame.new("publish_miteruby_sample", source_file, source_line + 1),
+      ])
+    end
+
+    it "drains repeatedly and unblocks SIGPROF after interruption" do
+      cleanup = Queue.new
+      recorder_instance = miteruby_recorder
+      consumer_thread = Thread.new do
+        described_class::Testing._native_miteruby_miniconsumer_consume_loop(recorder_instance)
+      ensure
+        cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
+      end
+      loop_until { consumer_thread.status == "sleep" }
+
+      2.times do
+        capture_miteruby { publish_miteruby_sample }
+        drained_samples = []
+        loop_until { !(drained_samples = recorded_miteruby_samples).empty? }
+        expect(drained_samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
+      end
+
+      consumer_thread.kill.join
+      expect(cleanup.pop).to be false
+    ensure
+      consumer_thread&.kill&.join
+    end
+
+    it "distinguishes the signal-handler sampling path from masked publishing in event flags" do
+      capture_miteruby do
+        publish_miteruby_sample
+        recurse_for_miteruby(500)
+        expect(described_class::Testing._native_miteruby_sample_event_publish_mask).to be true
+      end
+
+      expect(described_class::Testing._native_miteruby_read_sample_flags).to include(0x04, 0x05, 0x00)
+    end
+
+    it "publishes another thread's stack using the supplied signal mask" do
+      ready = Queue.new
+      finish = Queue.new
+      sampled_thread = Thread.new do
+        Thread.current.name = "miteruby masked publisher"
+        ready << true
+        finish.pop
+      end
+      ready.pop
+
+      capture_miteruby do
+        described_class::Testing._native_with_blocked_sigprof do
+          expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be true
+          expect(described_class::Testing._native_miteruby_sample_event_publish_thread(sampled_thread)).to be true
+          expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
+        end
+      end
+      consume_miteruby
+
+      samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
+      expect(samples.size).to eq(1)
+      expect(samples.first.labels).to include("thread name": "miteruby masked publisher")
+      expect(samples.first.locations.map(&:label)).to include("pop")
+      expect(samples.first.locations.map(&:label)).to_not include("_native_miteruby_sample_event_publish_thread")
+      expect(samples.first.locations.map(&:label)).to_not include("(sampled in sighandler)")
+      expect(samples.first.locations.last.label).to eq("(sampled by miteruby)")
+    ensure
+      finish << true if finish
+      sampled_thread&.join
+    end
+
+    it "uses capture timestamps for wall time and consumption-time CPU clock deltas for a batch" do
+      capture_miteruby { 3.times { publish_miteruby_sample } }
+      cpu_before = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+      consume_miteruby
+      cpu_after = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+      samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+        .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
+
+      expect(samples.size).to be >= 3
+      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      samples.each_cons(2) do |previous, current|
+        expect(current.values.fetch(:"wall-time"))
+          .to eq(current.labels.fetch(:end_timestamp_ns) - previous.labels.fetch(:end_timestamp_ns))
+      end
+      expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be_between(1, cpu_after - cpu_before)
+    end
+
+    it "keeps CPU accounting across drains and includes work performed after capture" do
+      capture_miteruby do
+        publish_miteruby_sample
+        consume_miteruby
+        recorded_miteruby_samples
+
+        publish_miteruby_sample
+        cpu_before_work = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        50_000.times { Math.sqrt(2) }
+        cpu_after_work = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        consume_miteruby
+        samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+
+        expect(samples).to_not be_empty
+        expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be >= cpu_after_work - cpu_before_work
+      end
+    end
+
+    it "resets both baselines when the worker starts a new profiling session" do
+      2.times do
+        capture_miteruby { 2.times { publish_miteruby_sample } }
+        consume_miteruby
+        samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+          .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
+
+        expect(samples.size).to be >= 2
+        expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+        expect(samples.last.values.fetch(:"wall-time")).to be > 0
+      end
+    end
+
+    it "returns without recording when empty and does not record a sample twice" do
+      consume_miteruby
+      expect(recorded_miteruby_samples).to be_empty
+
+      capture_miteruby { publish_miteruby_sample }
+      consume_miteruby
+      expect(recorded_miteruby_samples).to_not be_empty
+      consume_miteruby
+      expect(recorded_miteruby_samples).to be_empty
+    end
+
+    it "looks up thread names on each drain instead of caching them" do
+      original_name = Thread.current.name
+      Thread.current.name = "miteruby first name"
+      capture_miteruby { publish_miteruby_sample }
+      consume_miteruby
+      expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
+        .to all(include("thread name": "miteruby first name"))
+
+      capture_miteruby { publish_miteruby_sample }
+      Thread.current.name = "miteruby second name"
+      consume_miteruby
+      expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
+        .to all(include("thread name": "miteruby second name"))
+    ensure
+      Thread.current.name = original_name
+    end
+
+    it "resolves a finished thread's buffered stack after GC and compaction" do
+      sampled_thread = nil
+      capture_miteruby do
+        publish_miteruby_sample
+        sampled_thread = Thread.new do
+          Thread.current.name = "miteruby finished thread"
+          publish_miteruby_sample
+        end
+        sampled_thread.join
+      end
+      GC.start
+      GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+      consume_miteruby
+
+      samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
+      expect(samples).to_not be_empty
+      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      expect(samples.map(&:values)).to all(include("cpu-time": 0))
+      expect(samples.map(&:labels)).to all(include("thread name": "miteruby finished thread"))
+      expect(samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
+    ensure
+      sampled_thread&.join
+    end
+
+    it "shows a truncation placeholder for stacks exceeding the capture limit" do
+      capture_miteruby { recurse_for_miteruby(500) }
+      consume_miteruby
+
+      truncated = recorded_miteruby_samples.find { |sample| sample.locations[1]&.label == "Truncated Frames" }
+      expect(truncated).to_not be_nil
+      expect(truncated.locations.first.label).to eq("(sampled in sighandler)")
+      expect(truncated.locations.last.label).to eq("(sampled by miteruby)")
+      expect(truncated.locations.size).to eq(402)
+      expect(truncated.locations.map(&:label)).to include("recurse_for_miteruby")
     end
   end
 
