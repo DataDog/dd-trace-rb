@@ -96,7 +96,7 @@ jobs:
           policy: self.update-latest-dependency
 
       - name: Create Pull Request
-        uses: ./.github/actions/signed-commit-pr
+        uses: $/.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-latest-dependencies

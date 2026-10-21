@@ -67,7 +67,7 @@ jobs:
         run: cp .github/forced-tests-list.cfg.template .github/forced-tests-list.cfg
 
       - name: Create Pull Request
-        uses: ./.github/actions/signed-commit-pr
+        uses: $/.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/bump-datadog-gem-version
