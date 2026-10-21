@@ -89,6 +89,17 @@ typedef struct {
 - `cme`: callable method entry, where available; identifies C-method frames.
 - `iseq == NULL`: C-method frame. Capture must explicitly clear `iseq` for C frames.
 
+Why store both when `rb_profile_frames` (used by StackProf and Vernier) returns only one? Ruby's
+`Thread::Backtrace::Location` also stores both, since Ruby 3.4: the CME supplies the method owner for
+class-qualified names, while the executing ISEQ supplies source locations and block identity. For a block
+or `eval`, the CME can point to the enclosing method, whose ISEQ differs from the executing one.
+
+`rb_profile_frames` prefers the CME when it describes a Ruby method, losing that distinction: blocks can
+look like ordinary method frames, and eval frames can report the enclosing method's filename alongside
+the eval's line number. The [upstream commit introducing this representation](https://github.com/ruby/ruby/commit/02d5868962417298cf041ce723d406e16a635693)
+explicitly acknowledged the loss of block labels. These limitations remain in Ruby 4.0; storing both
+preserves the information needed for accurate locations and qualified block labels on modern Rubies too.
+
 ### miteruby_event_frame_position_t
 
 ```c
