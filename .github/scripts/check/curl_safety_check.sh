@@ -27,11 +27,11 @@ violations=""
 while IFS= read -r line; do
   case "$line" in
     "+++ "*)
-      file="${line#:+++ }"
+      file="${line#+++ }"
       file="${file#b/}"
       continue
       ;;
-    "+")
+    "+"*)
       ;;
     *)
       continue
@@ -58,7 +58,7 @@ while IFS= read -r line; do
   fi
 
   has_fail=false
-  if grep -qP '(^|\s)(-\\wzf\w*|--fail)(\s|$)' <<<"$content"; then
+  if grep -qP '(^|\s)(-\w*f\w*|--fail)(\s|$)' <<<"$content"; then
     has_fail=true
   fi
 
@@ -68,8 +68,7 @@ while IFS= read -r line; do
   fi
 
   if [[ "$has_fail" != true || "$has_retry" != true ]]; then
-    violations="${violations}${file}: ${content}"
-$'\n'
+    violations="${violations}${file}: ${content}"$'\n'
   fi
 done < <(git diff --no-color -U0 "origin/${BASE_REF}...${PR_HEAD_SHA}")
 
