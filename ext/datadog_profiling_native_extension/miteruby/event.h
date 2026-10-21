@@ -43,6 +43,7 @@ typedef struct {
   cpu_time_t cpu_time;
 } miteruby_event_header_t;
 
+// See design/EventDesign.md for more details on why we store both cme and iseq.
 typedef struct {
   const rb_callable_method_entry_t *cme;
   const rb_iseq_t *iseq;
