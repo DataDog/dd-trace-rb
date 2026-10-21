@@ -150,7 +150,7 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         expect(msg.topic).to eq("test_topic")
 
         # Verify the processor has updated its context after processing this message
-        current_ctx = processor.instance_variable_get(:@pathway_context)
+        current_ctx = processor.pathway_context
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).to be > 0
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consumer hash should differ (direction:in vs direction:out)
