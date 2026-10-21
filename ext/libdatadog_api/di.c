@@ -243,9 +243,14 @@ static VALUE frozen_thread_generation(VALUE thread) {
  * one on the first call for the thread. Snapshots captured by the same
  * thread share a token, and snapshots captured by different threads carry
  * different tokens, so a consumer can tell which thread captured each
- * snapshot. All fibers of a thread share that thread's token. Distinct
- * Thread objects get distinct tokens, even when native thread ids are
- * reused. Tokens are unique only within a runtime id.
+ * snapshot; on the releases that store frozen threads' tokens in the
+ * C table, a Thread allocated at a collected frozen thread's address
+ * receives that thread's token, and a cap-triggered clear of the table
+ * assigns a still-live frozen thread a fresh token on its next snapshot.
+ * All fibers of a thread share that thread's token. Distinct Thread
+ * objects get distinct tokens, even when native thread ids are reused,
+ * with the same C-table release exception. Tokens are unique only within
+ * a runtime id.
  *
  * The token is a value of the process-wide counter above, stored in an
  * ivar on the Thread object. The ivar is read via rb_attr_get, which
