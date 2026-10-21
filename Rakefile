@@ -174,6 +174,8 @@ namespace :spec do
   # (Core::FeatureFlags::Configuration#get_assignment), so the extension must be
   # compiled before this task runs.
   Rake::Task["spec:open_feature"].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+  # The canonical fixtures are fetched, not checked in; warm the cache first.
+  Rake::Task["spec:open_feature"].enhance(["fixtures:ffe:download"])
 
   desc "" # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
