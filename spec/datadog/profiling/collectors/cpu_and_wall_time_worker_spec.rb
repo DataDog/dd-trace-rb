@@ -2027,6 +2027,20 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     if consumer_name == :dedupconsumer
+      it "allows GC during consumption and serialization preparation" do
+        capture_miteruby { publish_miteruby_sample }
+        previous_gc_stress = GC.stress
+        begin
+          GC.stress = true
+          consume_miteruby
+          described_class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+        ensure
+          GC.stress = previous_gc_stress
+        end
+
+        expect(recorded_miteruby_samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
+      end
+
       it "buffers multiple drains until prepare_serialize" do
         capture_miteruby do
           described_class::Testing._native_miteruby_read_sample_headers
