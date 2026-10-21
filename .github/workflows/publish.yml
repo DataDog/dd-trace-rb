@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+      - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
           ruby-version: "4.0.1"
 
@@ -187,7 +187,7 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.publish
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
@@ -244,7 +244,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
@@ -264,7 +264,7 @@ jobs:
       id-token: write
     needs:
       - update-gem-version
-    uses: ./.github/workflows/bump-gem-version.yml
+    uses: $/.github/workflows/bump-gem-version.yml
     with:
       version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]

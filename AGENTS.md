@@ -137,6 +137,8 @@ no external grant needed. No local trigger otherwise.
 
 Tests must be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`, because most suites require specific Gemfiles and the rake task selects the correct one. The `test:main` task uses the default Gemfile; its specs and specs under `spec/datadog/profiling` may be run directly with `bundle exec rspec`.
 
+Canonical FFE fixtures for OpenFeature are not checked in. `bundle exec rake fixtures:ffe:download` downloads the pinned corpus from `DataDog/ffe-system-test-data` into `tmp/`, and `rake test:open_feature` warms that cache automatically. Each pinned commit needs one network download.
+
 ## Finding the right rake task
 
 1. Identify the component from the changed path under `lib/datadog/` or `spec/datadog/` (for example, `appsec`, `profiling`, `redis`, or `sinatra`).
@@ -202,6 +204,7 @@ When creating or modifying workflows in `.github/workflows/`:
 - Quote `$GITHUB_OUTPUT`: `echo "key=value" >> "$GITHUB_OUTPUT"`.
 - Group multiple redirects: `{ echo "a"; echo "b"; } >> "$GITHUB_OUTPUT"`.
 - Avoid heredocs; use echo grouping instead.
+- `curl` must fail on HTTP errors and retry: `curl -fsSL --retry 5 --retry-delay 2`.
 
 ## Validation
 

@@ -48,7 +48,7 @@ jobs:
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -59,7 +59,7 @@ jobs:
 
       - name: Prepare bundle cache
         id: bundle-cache
-        uses: ./.github/actions/bundle-cache
+        uses: $/.github/actions/bundle-cache
 
       - name: Restore task weights
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -82,7 +82,7 @@ jobs:
             echo "No cached task weights. No fallback URL. Scheduling statically"
           else
             mkdir -p tmp
-            if curl -fsSL "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
+            if curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused "$WEIGHTS_FALLBACK_URL" -o tmp/ci_task_timings.json \
                && ruby -rjson -e 'JSON.parse(File.read("tmp/ci_task_timings.json"))'; then
               echo "Using fallback task weights from $WEIGHTS_FALLBACK_URL"
             else
@@ -144,7 +144,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -166,7 +166,7 @@ jobs:
       agent:
         # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
         # Switch to the v1.66.0 tag once it is released.
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26 # MANUAL-PIN: ddapm-test-agent
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -210,12 +210,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - name: Build & Test
-        uses: ./.github/actions/build-test
+        uses: $/.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "standard-${{ matrix.batch }}"
@@ -233,7 +233,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g973f248fdbe8a57ba2a5d9930db3821d62b39ced
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
       env:
         BUNDLE_GEMFILE: gemfiles/${{ inputs.engine }}-${{ inputs.version }}.gemfile
         BUNDLE_FROZEN: "true"
@@ -256,7 +256,7 @@ jobs:
       agent:
         # Pinned by digest for https://github.com/DataDog/dd-apm-test-agent/pull/410
         # Switch to the v1.66.0 tag once it is released.
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent@sha256:67a560e0dbd928534e6d680362a5407d382acc263cb976c4a7a294070abfba26 # MANUAL-PIN: ddapm-test-agent
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -298,12 +298,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.batch.outputs.lockfile }}
           cache-key: ${{ needs.batch.outputs.cache-key }}
       - name: Build & Test
-        uses: ./.github/actions/build-test
+        uses: $/.github/actions/build-test
         with:
           alias: ${{ inputs.alias }}
           container-id: "misc-${{ matrix.batch }}"

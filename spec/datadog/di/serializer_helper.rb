@@ -42,17 +42,12 @@ module SerializerHelper
 
     let(:di_settings) do
       double("di settings").tap do |settings|
-        allow(settings).to receive(:enabled).and_return(true)
-        allow(settings).to receive(:redacted_identifiers).and_return([])
-        allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
-        allow(settings).to receive(:redacted_type_names).and_return(%w[
-          DISerializerSpecSensitiveType DISerializerSpecWildCard*
-        ])
-        allow(settings).to receive(:max_capture_collection_size).and_return(10)
-        allow(settings).to receive(:max_capture_attribute_count).and_return(10)
-        # Reduce max capture depth to 2 from default of 3
-        allow(settings).to receive(:max_capture_depth).and_return(2)
-        allow(settings).to receive(:max_capture_string_length).and_return(100)
+        # Reduce max capture depth to 2 from the default of 3.
+        stub_di_settings(settings,
+          max_capture_depth: 2,
+          max_capture_attribute_count: 10,
+          max_capture_collection_size: 10,
+          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*],)
       end
     end
   end
@@ -73,6 +68,25 @@ module SerializerHelper
       original_registry = Datadog::DI::Serializer.class_variable_get(:@@flat_registry).dup
       example.run
       Datadog::DI::Serializer.class_variable_set(:@@flat_registry, original_registry)
+    end
+  end
+
+  # Stubs the thread CPU clock reads (`Process.clock_gettime` with
+  # `CLOCK_THREAD_CPUTIME_ID`, `:float_second`) to return `values` in
+  # order. Reads of other clocks and units pass through to the real
+  # clock, so a probe's rate limiter construction, which reads the
+  # monotonic clock, is unaffected.
+  def stub_cpu_clock(values)
+    before do
+      original_clock_gettime = Process.method(:clock_gettime)
+      calls = 0
+      allow(Process).to receive(:clock_gettime) do |*args|
+        if args.length == 2 && args[0] == Process::CLOCK_THREAD_CPUTIME_ID && args[1] == :float_second
+          values[calls].tap { calls += 1 }
+        else
+          original_clock_gettime.call(*args)
+        end
+      end
     end
   end
 end

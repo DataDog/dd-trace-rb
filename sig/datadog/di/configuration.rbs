@@ -4,6 +4,8 @@ module Datadog
       module Settings
         def self.extended: (Module base) -> void
         def self.add_settings!: (Module base) -> void
+
+        def self.legacy_capture_timeout_value: () -> (::String | ::Integer | nil)
       end
     end
   end

@@ -258,7 +258,9 @@ module Datadog
 
               option :otel_thread_context_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
-                o.default true
+                o.default do
+                  RUBY_ENGINE == "ruby" && RUBY_PLATFORM.include?("linux")
+                end
                 o.type :bool
               end
 
@@ -564,6 +566,17 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
+              end
+
+              # Whether outbound HTTP client resource names include a quantized request path.
+              # URL tags and outgoing requests are unchanged.
+              #
+              # @default `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :http_client_resource_name_quantize do |o|
+                o.env Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE
+                o.default false
+                o.type :bool
               end
 
               # HTTP error statuses configuration

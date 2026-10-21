@@ -58,7 +58,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
           ruby-version: "4.0.1"
 
@@ -106,7 +106,7 @@ jobs:
           gh release create "v${VERSION}" --draft --title "v${VERSION}" --notes-file tmp/release_body.md
 
       - name: Create release Pull Request
-        uses: ./.github/actions/signed-commit-pr
+        uses: $/.github/actions/signed-commit-pr
         with:
           token: ${{ steps.generate-token.outputs.token }}
           branch: bump_to_version_${{ inputs.version }}

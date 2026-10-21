@@ -492,7 +492,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       it_behaves_like "a binary setting with",
         env_variable: "DD_TRACE_OTEL_CTX_ENABLED",
-        default: true
+        default: PlatformHelpers.mri? && PlatformHelpers.linux?
     end
 
     describe "#partial_flush" do
@@ -1147,6 +1147,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             expect(settings.tracing.client_ip.enabled).to eq(value)
           end
         end
+      end
+    end
+
+    describe "#http_client_resource_name_quantize" do
+      subject(:http_client_resource_name_quantize) { settings.tracing.http_client_resource_name_quantize }
+
+      let(:envs) do
+        {
+          Datadog::Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE => environment,
+        }
+      end
+      let(:environment) { nil }
+
+      it { is_expected.to be false }
+
+      {
+        "true" => true,
+        "1" => true,
+        "false" => false,
+        "0" => false,
+        "invalid" => false,
+      }.each do |value, expected|
+        context "when environment value is #{value.inspect}" do
+          let(:environment) { value }
+
+          it { is_expected.to be(expected) }
+        end
+      end
+
+      it "accepts programmatic boolean values" do
+        expect do
+          settings.tracing.http_client_resource_name_quantize = true
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(false).to(true)
+
+        expect do
+          settings.tracing.http_client_resource_name_quantize = false
+        end.to change { settings.tracing.http_client_resource_name_quantize }.from(true).to(false)
       end
     end
 

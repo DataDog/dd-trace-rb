@@ -61,9 +61,14 @@ module Datadog
       # Exception raised by the method, if any, for a method probe
       attr_reader :exception
 
-      def serialized_locals
+      # Returns the locals captured at the probe hit in serialized form,
+      # or nil when no locals were captured.
+      #
+      # @param serialization_deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @return [Hash{Symbol => Hash}, nil] serialized locals keyed by variable name
+      def serialized_locals(serialization_deadline:)
         # TODO cache?
-        locals && serializer.serialize_vars(locals, **probe.snapshot_serializer_limits(settings))
+        locals && serializer.serialize_vars(locals, deadline: serialization_deadline, **probe.snapshot_serializer_limits(settings))
       end
 
       def fetch(var_name)

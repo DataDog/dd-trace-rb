@@ -6,6 +6,7 @@ require_relative "capture_expression_evaluator/result"
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
+require_relative "../core/utils/time"
 
 module Datadog
   module DI
@@ -39,9 +40,10 @@ module Datadog
       attr_reader :telemetry
 
       # Evaluates each of the probe's capture expressions against the given
-      # context and serializes the captured values, enforcing the capture
-      # time budget between expressions. An expression that fails to evaluate
-      # or serialize contributes an entry to the returned errors.
+      # context, serializing the captured values under one capture deadline
+      # resolved through the serializer and shared across all expressions.
+      # An expression that fails to evaluate or serialize contributes an entry
+      # to the returned errors.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
@@ -49,8 +51,7 @@ module Datadog
       #   capture expression name and the errors of the expressions that failed
       #   to evaluate or serialize
       def evaluate(probe, context)
-        deadline = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) +
-          settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+        deadline = serializer.serialization_deadline
 
         output = {}
         evaluation_errors = []
@@ -58,7 +59,7 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :float_second) >= deadline
+          if Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
             output[name] = {notCapturedReason: "timeout"}
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             guardrails_telemetry.skipped(
@@ -81,6 +82,7 @@ module Datadog
               attribute_count: limits[:attribute_count],
               length: limits[:length],
               collection_size: limits[:collection_size],
+              deadline: deadline,
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

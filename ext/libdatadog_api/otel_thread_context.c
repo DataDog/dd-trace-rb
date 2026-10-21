@@ -30,7 +30,6 @@ DDTRACE_UNUSED static bool otel_context_enabled = false;
 
 static VALUE native_set(VALUE _self, VALUE trace_id, VALUE span_id, VALUE local_root_span_id);
 static VALUE native_clear(VALUE _self);
-static VALUE native_supported_p(VALUE _self);
 static VALUE native_enable(VALUE _self);
 static VALUE native_read(VALUE _self);
 
@@ -42,7 +41,6 @@ void otel_thread_context_init(VALUE tracing_module) {
   rb_define_method(otel_thread_context_class, "_native_enable", native_enable, 0);
   rb_define_method(otel_thread_context_class, "_native_set", native_set, 3);
   rb_define_method(otel_thread_context_class, "_native_clear", native_clear, 0);
-  rb_define_method(otel_thread_context_class, "_native_supported?", native_supported_p, 0);
 
   VALUE testing_module = rb_define_module_under(otel_thread_context_class, "Testing");
   rb_define_singleton_method(testing_module, "_native_read", native_read, 0);
@@ -197,15 +195,7 @@ static VALUE native_enable(DDTRACE_UNUSED VALUE _self) {
 
     return Qtrue;
   #else
-    return Qfalse;
-  #endif
-}
-
-static VALUE native_supported_p(DDTRACE_UNUSED VALUE _self) {
-  #ifdef OTEL_THREAD_CONTEXT_SUPPORTED
-    return Qtrue;
-  #else
-    return Qfalse;
+    raise_error(rb_eRuntimeError, "OTel thread context is not supported on this platform");
   #endif
 }
 
