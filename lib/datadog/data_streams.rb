@@ -88,8 +88,7 @@ module Datadog
       # @param context [PathwayContext, nil]
       # @!visibility private
       def pathway_context=(context)
-        current_processor = processor
-        current_processor.pathway_context = context if current_processor
+        processor&.pathway_context = context
       end
 
       # Check if Data Streams Monitoring is enabled and available
