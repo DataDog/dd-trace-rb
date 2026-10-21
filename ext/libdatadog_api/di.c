@@ -74,12 +74,23 @@ static unsigned long long generation_counter;
 // the GC and holds no reference to the Thread, so an entry outlives its
 // thread: a Thread allocated later at the same address reuses the dead
 // thread's token. No API of these releases observes the collection of a
-// frozen object, so the table cannot prune its entries. Guarded by the
-// GVL like the counter above.
+// frozen object, so the table cannot prune its entries; instead the
+// table holds at most FROZEN_THREAD_GENERATION_CAP entries: an insert
+// that would exceed the cap clears the table first, and a still-live
+// frozen thread therefore receives a fresh token on its next snapshot,
+// which keeps the table's memory bounded. Guarded by the GVL like the
+// counter above.
 #ifdef HAVE_PRUNING_WEAKMAP
 static VALUE frozen_thread_generations;
 #else
+// Cap on the entries the C-table frozen-thread store can hold, bounding
+// the memory the store uses in an application that churns frozen threads
+// under active probes.
+#define FROZEN_THREAD_GENERATION_CAP 1024
 static st_table *frozen_thread_generations;
+// Entries currently in the C-table store, tracked because st_table
+// exposes no entry count.
+static unsigned long long frozen_thread_generation_entries;
 #endif
 
 // Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
@@ -213,8 +224,13 @@ static VALUE frozen_thread_generation(VALUE thread) {
   if (st_lookup(frozen_thread_generations, (st_data_t)thread, &token)) {
     return ULL2NUM((unsigned long long)token);
   }
+  if (frozen_thread_generation_entries == FROZEN_THREAD_GENERATION_CAP) {
+    st_clear(frozen_thread_generations);
+    frozen_thread_generation_entries = 0;
+  }
   token = (st_data_t)++generation_counter;
   st_insert(frozen_thread_generations, (st_data_t)thread, token);
+  frozen_thread_generation_entries++;
   return ULL2NUM((unsigned long long)token);
 #endif
 }
@@ -239,7 +255,7 @@ static VALUE frozen_thread_generation(VALUE thread) {
  * raise FrozenError, keeps its token in process-wide storage keyed by the
  * Thread object: an ObjectSpace::WeakMap, whose entry is pruned when the
  * Thread is collected, on releases whose WeakMap survives GC compaction,
- * and a C table keyed by the Thread VALUE on the remaining releases,
+ * and a capped C table keyed by the Thread VALUE on the remaining releases,
  * where a Thread allocated at a collected frozen thread's address receives
  * the collected thread's token. Both accesses bypass
  * Thread#thread_variable_get and Thread#thread_variable_set method dispatch,
