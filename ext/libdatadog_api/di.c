@@ -66,19 +66,21 @@ static unsigned long long generation_counter;
 // registered with the GC, so it outlives every entry.
 //
 // On every other release the store is a plain C st_table keyed by the
-// Thread VALUE. Ruby 2.6's WeakMap defines a finalizer on both the key
-// and the value, which a frozen Thread and an Integer token cannot take,
-// and the WeakMaps of Ruby 2.7 through 3.1.3 and 3.2.0 through 3.2.2
-// corrupt their internal tables during GC compaction
-// (https://bugs.ruby-lang.org/issues/19529). The table is invisible to
-// the GC and holds no reference to the Thread, so an entry outlives its
-// thread: a Thread allocated later at the same address reuses the dead
-// thread's token. No API of these releases observes the collection of a
-// frozen object, so the table cannot prune its entries; instead the
-// table holds at most FROZEN_THREAD_GENERATION_CAP entries: an insert
-// that would exceed the cap clears the table first, and a still-live
-// frozen thread therefore receives a fresh token on its next snapshot,
-// which keeps the table's memory bounded. Guarded by the GVL like the
+// Thread VALUE. The table is invisible to the GC and holds no reference
+// to the Thread, so an entry outlives its thread: a Thread allocated
+// later at the same address reuses the dead thread's token. No
+// collection-observing API of these releases can back this store: the
+// WeakMaps of Ruby 2.5 and 2.6 define a finalizer on both the key and
+// the value, which a frozen Thread and an Integer token cannot take,
+// the WeakMaps of Ruby 2.7 through 3.1.3 and 3.2.0 through 3.2.2
+// observe collection but corrupt their internal tables during GC
+// compaction (https://bugs.ruby-lang.org/issues/19529), and
+// ObjectSpace.define_finalizer raises FrozenError on frozen objects,
+// so the table cannot prune its entries; instead the table holds at
+// most FROZEN_THREAD_GENERATION_CAP entries: an insert that would
+// exceed the cap clears the table first, and a still-live frozen
+// thread therefore receives a fresh token on its next snapshot, which
+// keeps the table's memory bounded. Guarded by the GVL like the
 // counter above.
 #ifdef HAVE_PRUNING_WEAKMAP
 static VALUE frozen_thread_generations;
