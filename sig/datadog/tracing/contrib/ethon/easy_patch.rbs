@@ -3,42 +3,37 @@ module Datadog
     module Contrib
       module Ethon
         module EasyPatch
-          def self.included: [T < Module] (T base) -> T
-
+          def self.included: (untyped base) -> untyped
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
-            def http_request: (String url, String | Symbol action_name, ?Hash[Symbol, untyped] options) -> void
+            def http_request: (untyped url, untyped action_name, ?::Hash[untyped, untyped] options) -> untyped
 
-            def headers=: (Hash[any, any]? headers) -> void
+            def headers=: (untyped headers) -> untyped
 
-            def perform: () -> Symbol
+            def perform: () -> untyped
 
-            def complete: () -> Array[Proc]?
+            def complete: () -> untyped
 
-            def reset: () -> void
+            def reset: () -> untyped
+            def datadog_before_request: (?continue_from: untyped?) -> untyped
 
-            def datadog_before_request: (?continue_from: TraceDigest?) -> void
-
-            def datadog_span_started?: () -> bool
+            def datadog_span_started?: () -> untyped
 
             private
 
-            attr_reader datadog_configuration: Configuration::Settings
+            attr_reader datadog_configuration: untyped
 
-            def datadog_tag_request: (URI::Generic? uri) -> bool?
+            def datadog_tag_request: (untyped uri) -> (nil | untyped)
 
-            def set_span_error_message: (String message) -> void
+            def set_span_error_message: (untyped message) -> untyped
+            def try_parse_uri: () -> untyped
 
-            def try_parse_uri: () -> URI::Generic?
+            def load_datadog_configuration_for: (?::Symbol host) -> untyped
 
-            def load_datadog_configuration_for: (?(String | Symbol) host) -> Configuration::Settings
+            def analytics_enabled?: () -> untyped
 
-            def analytics_enabled?: () -> bool
-
-            def analytics_sample_rate: () -> Float
-
-            def parse_response_headers: () -> Hash[String, String]
+            def analytics_sample_rate: () -> untyped
           end
         end
       end
