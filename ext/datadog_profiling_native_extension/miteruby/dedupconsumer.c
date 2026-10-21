@@ -10,6 +10,7 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -21,6 +22,11 @@
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define MITERUBY_DEBUG_SIGHANDLER_FRAME true
 #define MITERUBY_DEBUG_ROOT_FRAME true
+#define CONSUMED_EVENTS_BUFFER_CHUNK_SIZE (1024U * 1024U)
+
+static char *consumed_events_buffer = NULL;
+static size_t consumed_events_pos = 0;
+static size_t consumed_events_size = 0;
 
 typedef struct {
   st_table *objects_to_mark;
@@ -38,7 +44,7 @@ typedef struct {
   VALUE recorder_instance;
 } dedupconsumer_consume_loop_args;
 
-// TODO: Mark and pin the Ruby thread keys in this table.
+// Ruby thread keys are marked and pinned via objects_to_mark.
 static st_table *thread_contexts;
 
 // Declared in Ruby's private iseq.h; redeclared here to avoid importing VM internals.
@@ -47,6 +53,7 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
 static VALUE consume_loop_body(VALUE args);
 static VALUE consume_loop_ensure(VALUE args);
+static void buffer_event(const miteruby_event_header_t *header);
 static void record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_stack_sample_t *event,
@@ -71,7 +78,8 @@ static void dedupconsumer_mark(void *data) {
 
 static size_t dedupconsumer_size(const void *data) {
   const dedupconsumer_state *consumer_state = data;
-  return sizeof(*consumer_state) + (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
+  return sizeof(*consumer_state) + consumed_events_size +
+    (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
 }
 
 static const rb_data_type_t dedupconsumer_typed_data = {
@@ -84,6 +92,13 @@ static const rb_data_type_t dedupconsumer_typed_data = {
 };
 
 void miteruby_dedupconsumer_init(void) {
+  char *new_buffer = calloc(1, CONSUMED_EVENTS_BUFFER_CHUNK_SIZE);
+  if (new_buffer == NULL) rb_memerror();
+  free(consumed_events_buffer);
+  consumed_events_buffer = new_buffer;
+  consumed_events_pos = 0;
+  consumed_events_size = CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
+
   if (state.objects_to_mark == NULL) {
     VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
     rb_gc_register_mark_object(wrapper);
@@ -130,21 +145,49 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 // TODO: Cache thread labels instead of fetching them for every sample.
 void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance) {
   enforce_recorder_instance(recorder_instance);
-  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
   for (;;) {
     miteruby_buffer_record_t record = miteruby_buffer_read(buffer, false);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
-      return;
+      break;
     }
 
-    const miteruby_event_header_t *header = (const miteruby_event_header_t *)record.data;
+    buffer_event((const miteruby_event_header_t *)record.data);
+  }
+
+  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+  for (size_t pos = 0; pos < consumed_events_pos;) {
+    const miteruby_event_header_t *header = (const miteruby_event_header_t *)(consumed_events_buffer + pos);
     if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
-      // Keep the record borrowed through recording: the next read releases its GC protection and storage.
-      record_stack_sample(recorder_instance, (const miteruby_event_stack_sample_t *)record.data, &time_converter);
+      record_stack_sample(recorder_instance, (const miteruby_event_stack_sample_t *)header, &time_converter);
+    }
+    pos += header->size_bytes;
+  }
+  consumed_events_pos = 0;
+}
+
+static void buffer_event(const miteruby_event_header_t *header) {
+  // Retain references before the next buffer read releases the record's GC protection.
+  if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
+    const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
+    st_insert(state.objects_to_mark, (st_data_t) event->thread.value, 0);
+    for (uint16_t i = 0; i < header->frame_count; i++) {
+      if (event->refs[i].cme != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].cme, 0);
+      if (event->refs[i].iseq != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].iseq, 0);
     }
   }
+
+  while (consumed_events_size - consumed_events_pos < header->size_bytes) {
+    if (consumed_events_size > SIZE_MAX - CONSUMED_EVENTS_BUFFER_CHUNK_SIZE) rb_memerror();
+    size_t new_size = consumed_events_size + CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
+    char *new_buffer = realloc(consumed_events_buffer, new_size);
+    if (new_buffer == NULL) rb_memerror();
+    consumed_events_buffer = new_buffer;
+    consumed_events_size = new_size;
+  }
+  memcpy(consumed_events_buffer + consumed_events_pos, header, header->size_bytes);
+  consumed_events_pos += header->size_bytes;
 }
 
 static void record_stack_sample(
