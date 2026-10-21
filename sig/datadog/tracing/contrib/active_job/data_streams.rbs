@@ -10,11 +10,17 @@ module Datadog
             def deserialize: (::Hash[::String, any] job_data) -> void
 
             def queue_name: () -> ::String
+
+            def perform_now: () -> untyped
           end
 
           def serialize: () -> ::Hash[::String, any]
 
+          @datadog_pathway_context_before_job: Datadog::DataStreams::PathwayContext?
+
           def deserialize: (::Hash[::String, any] job_data) -> void
+
+          def perform_now: () -> untyped
         end
       end
     end
