@@ -83,10 +83,11 @@ sig/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 sig/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
 
 # Specs (top-level, shared, and core)
-spec/ @DataDog/lang-platform-ruby @DataDog/ruby-guild
+/spec/ @DataDog/lang-platform-ruby @DataDog/ruby-guild
 spec/datadog/kit/appsec/ @DataDog/asm-ruby
 spec/datadog/kit/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities
 spec/datadog/error_tracking/ @DataDog/error-tracking @DataDog/ruby-guild
+integration/apps/*/spec/ @DataDog/lang-platform-ruby @DataDog/ruby-guild
 integration/apps/opentelemetry/spec/ @DataDog/apm-sdk-capabilities @DataDog/ruby-guild
 integration/apps/rails-*/spec/integration/di_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
 integration/apps/rails-*/spec/integration/symdb_spec.rb @DataDog/debugger-ruby @DataDog/ruby-guild
