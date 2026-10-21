@@ -2,7 +2,6 @@
 
 #include <ruby/st.h>
 
-#include "../clock_id.h"
 #include "../collectors_stack.h"
 #include "../datadog_ruby_common.h"
 #include "../private_vm_api_access.h"
@@ -24,8 +23,7 @@
 #define MITERUBY_DEBUG_ROOT_FRAME true
 
 typedef struct {
-  thread_cpu_time_id thread_cpu_time_id;
-  long cpu_time_at_previous_sample_ns;
+  cpu_time_t cpu_time_at_previous_sample;
   monotonic_time_t monotonic_time_at_previous_sample;
 } miniconsumer_thread_context;
 
@@ -48,9 +46,9 @@ static void record_stack_sample(
   const miteruby_event_stack_sample_t *event,
   monotonic_to_system_epoch_state *time_converter
 );
-static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time);
-static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time);
-static long time_since_previous_sample(long *previous_time_ns, long current_time_ns);
+static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
+static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
+static long update_and_get_time_since_previous_sample(miniconsumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
 void miteruby_miniconsumer_init(void) {
@@ -115,7 +113,7 @@ static void record_stack_sample(
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
-  sample_values values = sample_values_for(thread, event->header.timestamp);
+  sample_values values = sample_values_for(thread, event->header.timestamp, event->header.cpu_time);
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[THREAD_ID_LIMIT_CHARS];
@@ -192,35 +190,37 @@ static void record_stack_sample(
   RB_GC_GUARD(thread_name);
 }
 
-static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time) {
-  miniconsumer_thread_context *context = thread_context_for(thread, monotonic_time);
-  thread_cpu_time cpu_time = is_thread_alive(thread) ? thread_cpu_time_for(context->thread_cpu_time_id) : (thread_cpu_time) {0};
+static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
+  miniconsumer_thread_context *context = thread_context_for(thread, monotonic_time, cpu_time);
 
-  return (sample_values) {
-    .cpu_time_ns = time_since_previous_sample(&context->cpu_time_at_previous_sample_ns, cpu_time.valid ? cpu_time.result_ns : INVALID_TIME),
-    .wall_time_ns = time_since_previous_sample(&context->monotonic_time_at_previous_sample.ns, monotonic_time.ns),
+  sample_values values = {
+    .cpu_time_ns = update_and_get_time_since_previous_sample(context, cpu_time),
+    .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
     .cpu_or_wall_samples = 1,
   };
+  context->monotonic_time_at_previous_sample = monotonic_time;
+  return values;
 }
 
-static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time) {
+static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
   st_data_t existing_context;
   if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (miniconsumer_thread_context *) existing_context;
 
   miniconsumer_thread_context *context = ruby_xmalloc(sizeof(*context));
   *context = (miniconsumer_thread_context) {
-    .thread_cpu_time_id = is_thread_alive(thread) ? thread_cpu_time_id_for(thread) : (thread_cpu_time_id) {0},
-    .cpu_time_at_previous_sample_ns = INVALID_TIME,
+    .cpu_time_at_previous_sample = cpu_time,
     .monotonic_time_at_previous_sample = monotonic_time,
   };
   st_insert(thread_contexts, (st_data_t) thread, (st_data_t) context);
   return context;
 }
 
-static long time_since_previous_sample(long *previous_time_ns, long current_time_ns) {
-  // The first sample, or the first valid CPU clock read after a failure, only establishes a baseline.
-  long elapsed_ns = *previous_time_ns == INVALID_TIME || current_time_ns == INVALID_TIME ? 0 : current_time_ns - *previous_time_ns;
-  *previous_time_ns = current_time_ns;
+static long update_and_get_time_since_previous_sample(miniconsumer_thread_context *context, cpu_time_t current_time) {
+  if (current_time.ns == INVALID_CPU_TIME.ns) return 0;
+
+  long elapsed_ns = context->cpu_time_at_previous_sample.ns == INVALID_CPU_TIME.ns ?
+    0 : current_time.ns - context->cpu_time_at_previous_sample.ns;
+  context->cpu_time_at_previous_sample = current_time;
   return elapsed_ns;
 }
 
