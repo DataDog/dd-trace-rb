@@ -330,9 +330,6 @@ Dynamic instrumentation sends some of the application data to Datadog.
     exception type is still reported but the message will show as
     redacted.
 - **Stack traces** — the call stack at the point the probe fires.
-- **Probe location** — the source file path for line probes, and the
-  class and method name for method probes. In Log Management, the method
-  name is in the `logger.method_name` attribute (the Logger Method facet).
 
 **Symbol Database** (uploaded once at startup, see below):
 
