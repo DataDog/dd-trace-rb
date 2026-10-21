@@ -58,6 +58,23 @@ the diff, re-ground Why, What, and Risk against the final diff before
 merge. An effect that no longer exists comes out. A newly added effect
 goes in. The caps hold after every edit.
 
+## Examples
+
+The check's fixtures are worked examples, and CI re-validates them on
+every PR, so they can never drift from the rules above:
+
+- A body to imitate: `.github/scripts/check/fixtures/pass_contract_body.md`
+- Automation bodies: `.github/scripts/check/fixtures/pass_automation_shape.md`
+- Each `fail_*.md` fixture shows one named rejection. For example,
+  `fail_wall_of_text.md` is the narration this skill forbids
+
+Before opening the PR, verify the draft body locally. The findings name
+the exact field and violation:
+
+```
+PR_BODY="$(cat draft.md)" ruby .github/scripts/check/pr_body.rb
+```
+
 ## Common mistakes
 
 Each of these passed older templates in this repo. CI now rejects the
