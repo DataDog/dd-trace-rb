@@ -3,37 +3,42 @@ module Datadog
     module Contrib
       module Ethon
         module EasyPatch
-          def self.included: (untyped base) -> untyped
+          def self.included: [T < Module] (T base) -> T
+
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
-            def http_request: (untyped url, untyped action_name, ?::Hash[untyped, untyped] options) -> untyped
+            def http_request: (String url, String | Symbol action_name, ?Hash[Symbol, untyped] options) -> void
 
-            def headers=: (untyped headers) -> untyped
+            def headers=: (Hash[any, any]? headers) -> void
 
-            def perform: () -> untyped
+            def perform: () -> Symbol
 
-            def complete: () -> untyped
+            def complete: () -> Array[Proc]?
 
-            def reset: () -> untyped
-            def datadog_before_request: (?continue_from: untyped?) -> untyped
+            def reset: () -> void
 
-            def datadog_span_started?: () -> untyped
+            def datadog_before_request: (?continue_from: TraceDigest?) -> void
+
+            def datadog_span_started?: () -> bool
 
             private
 
-            attr_reader datadog_configuration: untyped
+            attr_reader datadog_configuration: Configuration::Settings
 
-            def datadog_tag_request: (untyped uri) -> (nil | untyped)
+            def datadog_tag_request: (URI::Generic? uri) -> bool?
 
-            def set_span_error_message: (untyped message) -> untyped
-            def try_parse_uri: () -> untyped
+            def set_span_error_message: (String message) -> void
 
-            def load_datadog_configuration_for: (?::Symbol host) -> untyped
+            def try_parse_uri: () -> URI::Generic?
 
-            def analytics_enabled?: () -> untyped
+            def load_datadog_configuration_for: (?(String | Symbol) host) -> Configuration::Settings
 
-            def analytics_sample_rate: () -> untyped
+            def analytics_enabled?: () -> bool
+
+            def analytics_sample_rate: () -> Float
+
+            def parse_response_headers: () -> Hash[String, String]
           end
         end
       end

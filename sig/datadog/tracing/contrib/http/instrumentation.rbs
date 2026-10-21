@@ -3,28 +3,30 @@ module Datadog
     module Contrib
       module HTTP
         module Instrumentation
-          def self.included: (untyped base) -> untyped
+          def self.included: [T < Module] (T base) -> T
+
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
-            def request: (untyped req, ?untyped? body) ?{ () -> untyped } -> untyped
 
-            def annotate_span_with_request!: (untyped span, untyped request, untyped request_options) -> untyped
+            def request: (Net::HTTPGenericRequest req, ?String? body) ?{ (Net::HTTPResponse) -> void } -> Net::HTTPResponse
 
-            def annotate_span_with_response!: (untyped span, untyped response, untyped request_options) -> (nil | untyped)
+            def annotate_span_with_request!: (SpanOperation span, Net::HTTPGenericRequest request, Configuration::Settings request_options) -> void
 
-            def set_analytics_sample_rate: (untyped span, untyped request_options) -> (nil | untyped)
+            def annotate_span_with_response!: (SpanOperation span, Net::HTTPResponse? response, Configuration::Settings request_options) -> void
+
+            def set_analytics_sample_rate: (SpanOperation span, Configuration::Settings request_options) -> void
 
             private
 
-            def request_uri_path: (untyped request) -> ::String?
+            def request_uri_path: (Net::HTTPGenericRequest request) -> String?
 
-            def host_and_port: (untyped request) -> ::Array[untyped]
+            def host_and_port: (Net::HTTPGenericRequest request) -> [String?, Integer?]
 
-            def datadog_configuration: (?::Symbol host) -> untyped
+            def datadog_configuration: (?(String | Symbol)? host) -> Configuration::Settings
 
-            def analytics_enabled?: (untyped request_options) -> untyped
+            def analytics_enabled?: (Configuration::Settings request_options) -> bool
 
-            def analytics_sample_rate: (untyped request_options) -> untyped
+            def analytics_sample_rate: (Configuration::Settings request_options) -> Float
           end
         end
       end
