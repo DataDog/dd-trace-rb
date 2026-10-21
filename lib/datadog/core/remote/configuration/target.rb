@@ -15,11 +15,10 @@ module Datadog
               signed = hash.fetch("signed")
               raise Configuration::Error.invalid_data_type(signed, field: "signed", expected_type: Hash) unless signed.is_a?(Hash)
 
-              # Note that the +dig+ call permits +hash['signed']+ to be
-              # missing the +custom+ subtree entirely.
-              # Previously the subtree was required but +opaque_backend_state+
-              # could still be missing (and obtained here as nil).
-              opaque_backend_state = signed.dig("custom", "opaque_backend_state")
+              # The +custom+ subtree is optional: a missing or non-object
+              # subtree yields no opaque backend state.
+              custom = signed["custom"]
+              opaque_backend_state = custom.is_a?(Hash) ? custom["opaque_backend_state"] : nil
               opaque_backend_state = opaque_backend_state.is_a?(String) ? opaque_backend_state : nil
               # The version appears to be optional to the rest of this class,
               # and we have tests that do not provide it.
@@ -69,7 +68,8 @@ module Datadog
               raise Configuration::Error.invalid_data_type(hashes, field: "hashes", expected_type: Hash) unless hashes.is_a?(Hash)
               digests = Configuration::DigestList.parse(hashes)
 
-              version = hash.dig("custom", "v")
+              custom = hash["custom"]
+              version = custom.is_a?(Hash) ? custom["v"] : nil
               raise Configuration::Error.invalid_data_type(version, field: "custom.v", expected_type: Integer) unless version.is_a?(Integer)
 
               new(digests: digests, length: length, version: version)

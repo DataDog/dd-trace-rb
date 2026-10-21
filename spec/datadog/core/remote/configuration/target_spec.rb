@@ -208,6 +208,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       end
     end
 
+    context "with custom that is not a Hash" do
+      it "yields no opaque backend state" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("custom" => "not a hash")
+        )
+
+        expect(described_class.parse(invalid_data).opaque_backend_state).to be_nil
+      end
+    end
+
     context "with a targets entry that is not a Hash" do
       it "raises Configuration::Error" do
         invalid_data = raw_target_map.merge(
@@ -255,6 +265,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         it "raises Configuration::Error" do
           expect { described_class.parse(raw_target.merge("length" => "645")) }.to raise_error(
             Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "645"'
+          )
+        end
+      end
+
+      context "with custom that is not a Hash" do
+        it "raises Configuration::Error" do
+          expect { described_class.parse(raw_target.merge("custom" => "not a hash")) }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, "Invalid type for custom.v: expected Integer: nil"
           )
         end
       end
