@@ -35,7 +35,7 @@ bool miteruby_sample_event_publish_mask(miteruby_buffer_t *buffer, const sigset_
 }
 
 bool miteruby_sample_event_publish_thread(miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask) {
-  return miteruby_sample_event_publish_internal(buffer, thread, signal_mask, (cpu_time_t) {.ns = INVALID_TIME}, false);
+  return miteruby_sample_event_publish_internal(buffer, thread, signal_mask, INVALID_CPU_TIME, false);
 }
 
 bool miteruby_sample_event_publish_testing(miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time) {
@@ -44,7 +44,7 @@ bool miteruby_sample_event_publish_testing(miteruby_buffer_t *buffer, value_thre
 
 static cpu_time_t current_thread_cpu_time(void) {
   struct timespec cpu_time;
-  if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &cpu_time) != 0) return (cpu_time_t) {.ns = INVALID_TIME};
+  if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &cpu_time) != 0) return INVALID_CPU_TIME;
   return (cpu_time_t) {.ns = SECONDS_AS_NS(cpu_time.tv_sec) + cpu_time.tv_nsec};
 }
 
