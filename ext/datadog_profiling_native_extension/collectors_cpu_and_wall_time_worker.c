@@ -276,6 +276,7 @@ static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VA
 static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns);
@@ -401,6 +402,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_consume_loop", _native_miteruby_dedupconsumer_consume_loop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_prepare_serialize", _native_miteruby_dedupconsumer_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
@@ -1249,6 +1251,11 @@ static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE sel
 
 static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   miteruby_dedupconsumer_consume_loop(&miteruby_buffer, recorder_instance);
+  return Qnil;
+}
+
+static VALUE _native_miteruby_dedupconsumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  miteruby_dedupconsumer_prepare_serialize(recorder_instance);
   return Qnil;
 }
 

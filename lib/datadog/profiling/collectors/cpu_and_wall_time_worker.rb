@@ -15,6 +15,7 @@ module Datadog
         # @rbs @worker_state: WorkerState
         # @rbs @miteruby_recorder: Datadog::Profiling::StackRecorder?
         # @rbs @miteruby_consumer_thread: Thread?
+        # @rbs @miteruby_consumer_name: (:miniconsumer | :dedupconsumer)?
 
         # @rbs gc_profiling_enabled: bool
         # @rbs no_signals_workaround_enabled: bool
@@ -88,6 +89,7 @@ module Datadog
           @worker_state = WorkerState.new
           @miteruby_recorder = miteruby_enabled ? StackRecorder.for_testing : nil
           @miteruby_consumer_thread = nil
+          @miteruby_consumer_name = nil
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -158,6 +160,9 @@ module Datadog
           return recorder unless miteruby_recorder
 
           recorder.serialize
+          if @miteruby_consumer_name == :dedupconsumer
+            self.class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+          end
           miteruby_recorder
         end
 
@@ -216,6 +221,7 @@ module Datadog
           return unless recorder
           return @miteruby_consumer_thread if @miteruby_consumer_thread&.alive?
 
+          @miteruby_consumer_name = consumer_name
           thread_name = "#{self.class.name}::Miteruby#{consumer_name.to_s.capitalize}"
           thread = Thread.new do
             Thread.current.name = thread_name
