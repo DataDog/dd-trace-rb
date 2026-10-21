@@ -75,6 +75,23 @@ module Datadog
         processor&.track_kafka_consume(topic, partition, offset, Core::Utils::Time.now)
       end
 
+      # The calling fiber's pathway context, without creating one.
+      #
+      # @return [PathwayContext, nil]
+      # @!visibility private
+      def pathway_context
+        processor&.pathway_context
+      end
+
+      # Restores a context returned by {.pathway_context}; nil clears it.
+      #
+      # @param context [PathwayContext, nil]
+      # @!visibility private
+      def pathway_context=(context)
+        current_processor = processor
+        current_processor.pathway_context = context if current_processor
+      end
+
       # Check if Data Streams Monitoring is enabled and available
       #
       # @return [Boolean] true if the processor is available
