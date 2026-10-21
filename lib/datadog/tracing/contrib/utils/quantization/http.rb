@@ -223,12 +223,8 @@ module Datadog
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value
             def obfuscate_query(query, options = {})
-              re = options[:regex]
-              if re == :internal
-                options[:regex] = nil
-                re = nil
-              end
-              re ||= OBFUSCATOR_REGEX
+              options[:regex] = nil if options[:regex] == :internal
+              re = options[:regex] || OBFUSCATOR_REGEX
               with = options[:with] || OBFUSCATOR_WITH
 
               query.gsub(re, with)

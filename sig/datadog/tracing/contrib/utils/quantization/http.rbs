@@ -5,26 +5,7 @@ module Datadog
         module Quantization
           module HTTP
             PLACEHOLDER: "?"
-            RFC3986_URL_BASE: Regexp
-
-            type obfuscation_options = {
-              ?regex: (Regexp | :internal)?,
-              ?with: String?,
-            }
-
-            type query_options = {
-              ?show: (Array[String] | :all)?,
-              ?exclude: (Array[String] | :all)?,
-              ?obfuscate: (obfuscation_options | :internal | false)?,
-              ?placeholder: String?,
-            }
-
-            type url_options = {
-              ?base: (:show | :exclude)?,
-              ?query: query_options?,
-              ?fragment: (:show)?,
-              ?placeholder: String?,
-            }
+            RFC3986_URL_BASE: ::Regexp
 
             def self?.client_resource: (String method, String? path, enabled: bool) -> String
 
@@ -34,22 +15,20 @@ module Datadog
 
             def self?.decode_hex_byte: (Integer byte) -> Integer?
 
-            def self?.url: (String url, ?url_options options) -> String
+            def self?.url: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
 
-            def self?.base_url: (String url, ?any options) -> String?
+            def self?.base_url: (untyped url, ?::Hash[untyped, untyped] options) -> (untyped | "")
 
-            def self?.url!: (String url, ?url_options? options) -> String
+            def self?.url!: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
 
-            def self?.query: (String query, ?query_options options) -> String
+            def self?.query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
 
-            def self?.query!: (String query, ?query_options? options) -> String
-
-            def self?.collect_query: (String query, ?{ ?uniq: bool? } options) ?{ (String?, String?, String?) -> [String?, String?] } -> String
-
-            def self?.obfuscate_query: (String query, ?obfuscation_options options) -> String
+            def self?.query!: (untyped query, ?::Hash[untyped, untyped] options) -> ("" | untyped)
+            def self?.collect_query: (untyped query, ?::Hash[untyped, untyped] options) { (untyped, untyped, untyped) -> untyped } -> untyped
+            def self?.obfuscate_query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
 
             OBFUSCATOR_WITH: "<redacted>"
-            OBFUSCATOR_REGEX: Regexp
+            OBFUSCATOR_REGEX: ::Regexp
           end
         end
       end
