@@ -21,6 +21,12 @@ if [[ -z "${GITHUB_BASE_REF:-}" ]]; then
   exit 0
 fi
 
+# Container jobs checkout as a different user than the job user; git then
+# refuses the workspace unless it is marked safe.
+if [[ -n "${GITHUB_WORKSPACE:-}" ]]; then
+  git config --global --add safe.directory "$GITHUB_WORKSPACE"
+fi
+
 # The checkout step for this job uses the default shallow, single-branch
 # fetch, so the base branch's history isn't locally available yet. Fetch it
 # (unshallowing if necessary) so a merge-base diff against it is possible.
