@@ -6,6 +6,7 @@ module Datadog
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
         DEFAULT_BUFFER_SIZE: ::Integer
+        MAX_CACHED_PATHWAY_HASHES: ::Integer
 
         @pathway_context: PathwayContext
 
@@ -18,6 +19,16 @@ module Datadog
         @stats_mutex: ::Thread::Mutex
 
         @event_buffer: Core::Buffer::CRuby
+
+        @pathway_hash_cache: ::Hash[::Array[::String], [::Integer, ::Hash[::Integer, ::Integer]]]
+
+        @pathway_hash_cache_size: ::Integer
+
+        @pathway_hash_cache_service: ::String?
+
+        @pathway_hash_cache_env: ::String?
+
+        @pathway_hash_cache_propagation_checksum: ::Integer?
 
         @transport: Transport::Stats::Transport?
 
@@ -70,6 +81,7 @@ module Datadog
 
         def decode_and_set_pathway_context: (::Hash[::String, ::String] headers) -> void
         def compute_pathway_hash: (::Integer current_hash, ::Array[::String] tags) -> ::Integer
+        def clear_pathway_hash_cache: () -> void
         def fnv1_64: (::String data) -> ::Integer
         def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
         def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void

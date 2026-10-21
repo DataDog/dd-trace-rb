@@ -28,6 +28,10 @@ module Datadog
       # Set to handle high-throughput scenarios (e.g., 10k events/sec for 10s interval)
       DEFAULT_BUFFER_SIZE = 100_000
 
+      # Maximum number of cached pathway hashes; the cache is cleared when an insert would exceed it
+      MAX_CACHED_PATHWAY_HASHES = 1000
+      private_constant :MAX_CACHED_PATHWAY_HASHES
+
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
       # Initialize the Data Streams Monitoring processor
@@ -59,6 +63,16 @@ module Datadog
         @consumer_stats = []
         @stats_mutex = Mutex.new
         @event_buffer = Core::Buffer::CRuby.new(buffer_size)
+
+        # Memoizes compute_pathway_hash: sorted edge tags => [node hash, {parent hash => pathway hash}].
+        # Checkpoints run on application threads without a lock. This is safe because DSM only runs on
+        # CRuby, where single Hash reads and writes are atomic under the GVL; the worst outcome of a
+        # race is a recomputation.
+        @pathway_hash_cache = {}
+        @pathway_hash_cache_size = 0
+        @pathway_hash_cache_service = nil
+        @pathway_hash_cache_env = nil
+        @pathway_hash_cache_propagation_checksum = nil
 
         super()
         self.loop_base_interval = interval
@@ -402,20 +416,47 @@ module Datadog
       def compute_pathway_hash(current_hash, tags)
         service = @settings.service || "ruby-service"
         env = @settings.env || "none"
+        propagation_checksum = @agent_info.propagation_checksum if @settings.experimental_propagate_process_tags_enabled
 
-        bytes = service.bytes + env.bytes
-
-        if @settings.experimental_propagate_process_tags_enabled
-          propagation_checksum = @agent_info.propagation_checksum
-          bytes += [propagation_checksum].pack("Q<").bytes if propagation_checksum
+        if service != @pathway_hash_cache_service ||
+            env != @pathway_hash_cache_env ||
+            propagation_checksum != @pathway_hash_cache_propagation_checksum
+          clear_pathway_hash_cache
+          @pathway_hash_cache_service = service
+          @pathway_hash_cache_env = env
+          @pathway_hash_cache_propagation_checksum = propagation_checksum
         end
 
-        tags.each { |tag| bytes += tag.bytes }
-        byte_string = bytes.pack("C*")
+        node_hash, pathway_hashes = @pathway_hash_cache[tags]
+        unless node_hash
+          byte_string = service.b
+          byte_string << env.b
+          byte_string << [propagation_checksum].pack("Q<") if propagation_checksum
+          tags.each { |tag| byte_string << tag.b }
 
-        node_hash = Core::Utils::FNV.fnv1_64(byte_string)
-        combined_bytes = [node_hash, current_hash].pack("QQ")
-        Core::Utils::FNV.fnv1_64(combined_bytes)
+          node_hash = Core::Utils::FNV.fnv1_64(byte_string)
+          pathway_hashes = {}
+          @pathway_hash_cache[tags.dup.freeze] = [node_hash, pathway_hashes]
+        end
+
+        pathway_hash = pathway_hashes[current_hash]
+        return pathway_hash if pathway_hash
+
+        pathway_hash = Core::Utils::FNV.fnv1_64([node_hash, current_hash].pack("QQ"))
+
+        if @pathway_hash_cache_size >= MAX_CACHED_PATHWAY_HASHES
+          clear_pathway_hash_cache
+          @pathway_hash_cache[tags.dup.freeze] = [node_hash, pathway_hashes = {}]
+        end
+        pathway_hashes[current_hash] = pathway_hash
+        @pathway_hash_cache_size += 1
+
+        pathway_hash
+      end
+
+      def clear_pathway_hash_cache
+        @pathway_hash_cache = {}
+        @pathway_hash_cache_size = 0
       end
 
       def record_checkpoint_stats(
