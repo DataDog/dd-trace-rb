@@ -50,6 +50,25 @@ All changes should be covered by corresponding RSpec tests. Unit tests are prefe
 
 ### Running tests
 
+#### Canonical feature flag fixtures
+
+The OpenFeature specs evaluate the canonical corpus from
+[`DataDog/ffe-system-test-data`](https://github.com/DataDog/ffe-system-test-data).
+The corpus is not checked in. The pin is `tasks/lib/fixtures/ffe/version`, a
+bare upstream commit SHA. `bundle exec rake test:open_feature` downloads
+the pinned corpus into `tmp/ffe-system-test-data/<commit>/` first, so it needs
+network access once per pinned commit and works offline afterward.
+
+Run `bundle exec rake fixtures:ffe:download` to prefetch the pinned corpus, or
+`rake -f tasks/fixtures.rake fixtures:ffe:download` outside a bundled
+session. Both are no-ops when the corpus is already cached.
+
+The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
+opens a signed draft PR that bumps the pinned commit only when upstream fixture
+bytes change. It leaves an existing update PR untouched, so evaluator fixes can
+be added there. New cases may expose evaluator bugs: fix those before accepting
+the update, and change shared expectations upstream rather than locally.
+
 #### For the core library
 
 Any file that is **not** inside a `contrib` folder is part of the core library.
