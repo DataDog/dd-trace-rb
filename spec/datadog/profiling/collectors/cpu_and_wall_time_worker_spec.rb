@@ -2076,7 +2076,36 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(described_class::Testing._native_miteruby_sample_event_publish_mask).to be true
       end
 
-      expect(described_class::Testing._native_miteruby_read_sample_flags).to include(0x04, 0x05, 0x00)
+      headers = described_class::Testing._native_miteruby_read_sample_headers
+      expect(headers.map { |header| header.fetch(:flags) }).to include(0x04, 0x05, 0x00)
+      expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to all(be >= 0)
+    end
+
+    it "stores the supplied CPU readings in buffered event headers" do
+      [0, 5_000_000_000, -1].each do |cpu_time_ns|
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)).to be true
+      end
+
+      headers = described_class::Testing._native_miteruby_read_sample_headers
+      expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to eq([0, 5_000_000_000, -1])
+    end
+
+    it "captures current-thread CPU time before the event is consumed" do
+      cpu_before = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+      expect(described_class::Testing._native_miteruby_sample_event_publish_mask).to be true
+      cpu_after = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+      50_000.times { Math.sqrt(2) }
+
+      headers = described_class::Testing._native_miteruby_read_sample_headers
+      expect(headers.size).to eq(1)
+      expect(headers.first.fetch(:cpu_time_ns)).to be_between(cpu_before, cpu_after)
+    end
+
+    it "marks CPU time unavailable for explicit-thread publication" do
+      expect(described_class::Testing._native_miteruby_sample_event_publish_thread(Thread.current)).to be true
+
+      headers = described_class::Testing._native_miteruby_read_sample_headers
+      expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to eq([-1])
     end
 
     it "publishes another thread's stack using the supplied signal mask" do
