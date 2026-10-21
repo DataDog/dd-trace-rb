@@ -8,6 +8,11 @@ typedef struct {
   VALUE value;
 } value_thread_t;
 
+typedef struct {
+  // Cumulative thread CPU time in nanoseconds, or INVALID_TIME when unavailable.
+  long ns;
+} cpu_time_t;
+
 typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
   MITERUBY_EVENT_STACK_SAMPLE = 1,
