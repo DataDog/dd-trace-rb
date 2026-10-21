@@ -1982,7 +1982,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
-  describe "miteruby miniconsumer" do
+  shared_examples "a miteruby consumer" do |consumer_name|
+    let(:miteruby_consumer_name) { consumer_name }
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
     let(:miteruby_recorder) { Datadog::Profiling::StackRecorder.for_testing }
@@ -1999,7 +2000,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def consume_miteruby
-      described_class::Testing._native_miteruby_miniconsumer_consume(miteruby_recorder)
+      described_class::Testing.public_send("_native_miteruby_#{miteruby_consumer_name}_consume", miteruby_recorder)
     end
 
     def capture_miteruby
@@ -2062,7 +2063,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       cleanup = Queue.new
       recorder_instance = miteruby_recorder
       consumer_thread = Thread.new do
-        described_class::Testing._native_miteruby_miniconsumer_consume_loop(recorder_instance)
+        described_class.public_send("_native_miteruby_#{miteruby_consumer_name}_consume_loop", recorder_instance)
       ensure
         cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
       end
@@ -2262,6 +2263,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(truncated.locations.last.label).to eq("(sampled by miteruby)")
       expect(truncated.locations.size).to eq(402)
       expect(truncated.locations.map(&:label)).to include("recurse_for_miteruby")
+    end
+  end
+
+  [:miniconsumer, :dedupconsumer].each do |consumer_name|
+    describe "miteruby #{consumer_name}" do
+      include_examples "a miteruby consumer", consumer_name
     end
   end
 
