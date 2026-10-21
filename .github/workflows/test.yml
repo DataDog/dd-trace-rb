@@ -93,7 +93,11 @@ jobs:
 
   junit:
     name: dd/junit
-    if: ${{ !cancelled() }}
+    if: >-
+      !cancelled() &&
+      (github.event_name != 'pull_request' ||
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]'))
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -152,6 +156,10 @@ jobs:
 
   coverage:
     name: dd/coverage
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -199,6 +207,7 @@ jobs:
 
   complete:
     name: Unit Tests (complete)
+    if: always()
     runs-on: ubuntu-24.04
     needs:
       # ADD NEW RUBIES HERE
@@ -212,4 +221,7 @@ jobs:
       - ruby-26
       - ruby-25
     steps:
-      - run: echo "DONE!"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS" | jq -e 'length > 0 and all(.[]; .result == "success")'

@@ -4,16 +4,16 @@
 name: Cleanup caches by a branch
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] metadata only; no PR checkout
     types:
       - closed
+
+permissions: {}
 
 jobs:
   cleanup:
     runs-on: ubuntu-24.04
     permissions:
-      actions: write
-      contents: write
       id-token: write
     steps:
       - name: Get GitHub Token via dd-octo-sts

@@ -12,9 +12,12 @@ permissions: {}
 jobs:
   all-jobs-are-green:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 95
     permissions:
+      actions: read
       checks: read
+      contents: read
+      pull-requests: read
       statuses: read
     steps:
       - name: Run Ensure CI Success
@@ -38,7 +41,26 @@ jobs:
           # polling-interval-seconds: "60"
 
           # Excluded check names/status contexts; each pattern is a regular expression that must fully match.
-          # Mergegate checks non-CI merge requirements (e.g. code review); DDCI Status is optional.
+          # Reporting and metadata automation do not validate the proposed code.
           ignored-name-patterns: |
             devflow/.*
             DDCI Status
+            dd/junit
+            dd/coverage
+            green-ci/exclude-metrics
+            compute-stats
+            typing-stats/comment
+            triage
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
+        with:
+          ruby-version: "4.0.1"
+          bundler: none
+      - name: Verify required checks ran successfully
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: ruby .github/scripts/ci/required_checks.rb "$GITHUB_REPOSITORY" "$HEAD_SHA" "$PR_NUMBER"

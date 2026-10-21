@@ -87,8 +87,20 @@ jobs:
 
   complete:
     name: Lock Dependencies (complete)
+    if: always()
     runs-on: ubuntu-24.04
     needs:
+      - dependency
       - lock
     steps:
-      - run: echo "DONE!"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -e '
+            .dependency.result == "success" and
+            if .dependency.outputs.changes == "false" then
+              .lock.result == "skipped"
+            else
+              .lock.result == "success"
+            end'
