@@ -40,6 +40,7 @@ typedef struct {
   miteruby_event_type_t type;
   uint8_t flags;
   monotonic_time_t timestamp;
+  cpu_time_t cpu_time;
 } miteruby_event_header_t;
 
 typedef struct {
@@ -68,13 +69,14 @@ typedef struct {
 } miteruby_event_overflow_t;
 
 _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
+_Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");
 _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
-_Static_assert(sizeof(miteruby_event_header_t) == 16, "miteruby_event_header_t must be 16 bytes");
+_Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
 _Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_frame_position_t must be 2 bytes");
 _Static_assert(
-  sizeof(miteruby_event_stack_sample_t) == 24 && offsetof(miteruby_event_stack_sample_t, refs) == 24,
-  "miteruby_event_stack_sample_t frames must start after a 24-byte prefix"
+  sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, refs) == 32,
+  "miteruby_event_stack_sample_t frames must start after a 32-byte prefix"
 );
-_Static_assert(sizeof(miteruby_event_overflow_t) == 16, "miteruby_event_overflow_t must be 16 bytes");
+_Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
