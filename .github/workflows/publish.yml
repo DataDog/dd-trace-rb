@@ -264,7 +264,7 @@ jobs:
       id-token: write
     needs:
       - update-gem-version
-    uses: ./.github/workflows/bump-gem-version.yml
+    uses: $/.github/workflows/bump-gem-version.yml
     with:
       version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
