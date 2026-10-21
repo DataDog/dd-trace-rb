@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require "fileutils"
-require "json"
 require "net/http"
+require "stringio"
 require "uri"
+require "zlib"
+require "rubygems/package"
 
-# Fetches the canonical FFE fixture corpus from DataDog/ffe-system-test-data
+# Downloads the canonical FFE fixture corpus from DataDog/ffe-system-test-data
 # into a SHA-keyed cache under tmp/. Only the pin file beside this class
 # lives in the repo. The update-ffe-fixtures workflow rewrites it.
 # It mirrors update-system-tests.
@@ -39,10 +41,9 @@ class FfeFixtures
 
     staging = File.join(@repository_root, CACHE, ".partial-#{@sha}")
     FileUtils.rm_rf(staging)
-    fixture_paths.each do |path|
-      destination = File.join(staging, path)
-      FileUtils.mkdir_p(File.dirname(destination))
-      File.binwrite(destination, http_get(raw_url(path)))
+    extract(http_get(tarball_url), staging)
+    unless File.file?(File.join(staging, "ufc-config.json")) && Dir[File.join(staging, "evaluation-cases", "*.json")].any?
+      raise "No FFE fixtures found at #{tarball_url}"
     end
     begin
       File.rename(staging, cache)
@@ -54,20 +55,21 @@ class FfeFixtures
 
   private
 
-  def fixture_paths
-    # ponytail: api.github.com allows 60 unauthenticated requests per IP and hour.
-    # If shared runner IPs ever hit that limit, export GITHUB_TOKEN in CI.
-    tree = JSON.parse(http_get(tree_url)).fetch("tree")
-    tree.select { |entry| entry["type"] == "blob" }.map { |entry| entry["path"] }
-      .select { |path| path == "ufc-config.json" || path.match?(CASES_PATTERN) }
+  def extract(gzip, staging)
+    Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(gzip))) do |tar|
+      tar.each do |entry|
+        relative = entry.full_name.sub(/\A[^\/]+\//, "")
+        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN)
+
+        destination = File.join(staging, relative)
+        FileUtils.mkdir_p(File.dirname(destination))
+        File.binwrite(destination, entry.read)
+      end
+    end
   end
 
-  def tree_url
-    "https://api.github.com/repos/#{SOURCE_REPOSITORY}/git/trees/#{@sha}?recursive=1"
-  end
-
-  def raw_url(path)
-    "https://raw.githubusercontent.com/#{SOURCE_REPOSITORY}/#{@sha}/#{path}"
+  def tarball_url
+    "https://codeload.github.com/#{SOURCE_REPOSITORY}/tar.gz/#{@sha}"
   end
 
   def http_get(url)
