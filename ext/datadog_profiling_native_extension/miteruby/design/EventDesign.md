@@ -4,7 +4,7 @@ In-memory format for individual events captured by miteruby.
 
 ## Structures
 
-Structs use natural alignment; sizes below assume 64-bit pointers, `size_t`, and `VALUE`, with 8-byte pointer alignment.
+Structs use natural alignment; sizes below assume 64-bit pointers, `long`, `size_t`, and `VALUE`, with 8-byte pointer alignment.
 
 ### value_thread_t
 
@@ -15,6 +15,30 @@ typedef struct {
 ```
 
 - `value`: wrapped Ruby thread `VALUE`, visible to GC marking.
+
+### cpu_time_t
+
+```c
+typedef struct {
+  long ns;
+} cpu_time_t;
+
+#define INVALID_CPU_TIME ((cpu_time_t) {.ns = -1})
+```
+
+- 8-byte wrapper for cumulative thread CPU time in nanoseconds from `CLOCK_THREAD_CPUTIME_ID`.
+- `INVALID_CPU_TIME` represents an unavailable reading.
+
+### monotonic_time_t
+
+```c
+typedef struct {
+  long ns;
+} monotonic_time_t;
+```
+
+- 8-byte wrapper for a monotonic observation timestamp in nanoseconds from `CLOCK_MONOTONIC` on Linux
+  or `CLOCK_MONOTONIC_RAW` on macOS, not a Unix-epoch timestamp.
 
 ### miteruby_event_type_t
 
@@ -36,7 +60,7 @@ typedef struct {
   uint16_t frame_count;
   miteruby_event_type_t type;
   uint8_t flags;
-  uint64_t timestamp_ns;
+  monotonic_time_t timestamp;
 } miteruby_event_header_t; // 16 bytes
 ```
 
@@ -49,7 +73,7 @@ typedef struct {
   Bit 2 (`MITERUBY_EVENT_FROM_SIGNAL_HANDLER`, `0x04`) is set for the signal-handler sampling path,
   including simulated signal delivery (TODO: stop doing this for simulate), and clear for the masked publishing entry point.
   Stack status must be read independently of this source bit. Other bits are reserved.
-- `timestamp_ns`: monotonic observation time, before stack capture.
+- `timestamp`: monotonic observation time, before stack capture.
 
 ### miteruby_event_frame_refs_t
 
@@ -127,7 +151,7 @@ typedef struct {
 
 - Header-only candidate.
 - `frame_count` and `flags`: zero.
-- `timestamp_ns`: observation time of the first failed event.
+- `timestamp`: observation time of the first failed event.
 
 ## Caveats / open decisions
 
@@ -139,5 +163,3 @@ typedef struct {
 - **JIT:** the top frame's PC can be stale. Preserve the current unknown-line behavior by emitting an unknown
   position and skipping line lookup for it.
 - **GC:** the thread, CMEs, and ISEQs referenced by an event must remain alive and pinned while the event is retained.
-- **Measurements:** a monotonic timestamp is not thread CPU time. A CPU-clock reading and capture-time trace
-  identifiers are possible additions, not yet included.

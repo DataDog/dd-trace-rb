@@ -26,7 +26,7 @@
 typedef struct {
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;
-  long wall_time_at_previous_sample_ns;
+  monotonic_time_t monotonic_time_at_previous_sample;
 } miniconsumer_thread_context;
 
 typedef struct {
@@ -48,8 +48,8 @@ static void record_stack_sample(
   const miteruby_event_stack_sample_t *event,
   monotonic_to_system_epoch_state *time_converter
 );
-static sample_values sample_values_for(VALUE thread, long wall_time_ns);
-static miniconsumer_thread_context *thread_context_for(VALUE thread);
+static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time);
+static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time);
 static long time_since_previous_sample(long *previous_time_ns, long current_time_ns);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
@@ -115,7 +115,7 @@ static void record_stack_sample(
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
-  sample_values values = sample_values_for(thread, event->header.timestamp_ns);
+  sample_values values = sample_values_for(thread, event->header.timestamp);
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[THREAD_ID_LIMIT_CHARS];
@@ -135,7 +135,7 @@ static void record_stack_sample(
   sample_labels sample_label_values = {
     .labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])},
     .state_label = &labels[2],
-    .end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp_ns),
+    .end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns),
   };
 
   uint16_t count = event->header.frame_count;
@@ -192,18 +192,18 @@ static void record_stack_sample(
   RB_GC_GUARD(thread_name);
 }
 
-static sample_values sample_values_for(VALUE thread, long wall_time_ns) {
-  miniconsumer_thread_context *context = thread_context_for(thread);
+static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time) {
+  miniconsumer_thread_context *context = thread_context_for(thread, monotonic_time);
   thread_cpu_time cpu_time = is_thread_alive(thread) ? thread_cpu_time_for(context->thread_cpu_time_id) : (thread_cpu_time) {0};
 
   return (sample_values) {
     .cpu_time_ns = time_since_previous_sample(&context->cpu_time_at_previous_sample_ns, cpu_time.valid ? cpu_time.result_ns : INVALID_TIME),
-    .wall_time_ns = time_since_previous_sample(&context->wall_time_at_previous_sample_ns, wall_time_ns),
+    .wall_time_ns = time_since_previous_sample(&context->monotonic_time_at_previous_sample.ns, monotonic_time.ns),
     .cpu_or_wall_samples = 1,
   };
 }
 
-static miniconsumer_thread_context *thread_context_for(VALUE thread) {
+static miniconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time) {
   st_data_t existing_context;
   if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (miniconsumer_thread_context *) existing_context;
 
@@ -211,7 +211,7 @@ static miniconsumer_thread_context *thread_context_for(VALUE thread) {
   *context = (miniconsumer_thread_context) {
     .thread_cpu_time_id = is_thread_alive(thread) ? thread_cpu_time_id_for(thread) : (thread_cpu_time_id) {0},
     .cpu_time_at_previous_sample_ns = INVALID_TIME,
-    .wall_time_at_previous_sample_ns = INVALID_TIME,
+    .monotonic_time_at_previous_sample = monotonic_time,
   };
   st_insert(thread_contexts, (st_data_t) thread, (st_data_t) context);
   return context;

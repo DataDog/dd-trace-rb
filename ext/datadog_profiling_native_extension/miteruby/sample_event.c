@@ -17,6 +17,7 @@ static bool miteruby_sample_event_publish_internal(
   miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 );
 static cpu_time_t current_thread_cpu_time(void);
+static inline monotonic_time_t monotonic_time_now(void);
 static inline size_t round_up_to_8_bytes(size_t size_bytes);
 
 bool miteruby_sample_event_publish_sighandler(miteruby_buffer_t *buffer) {
@@ -48,6 +49,10 @@ static cpu_time_t current_thread_cpu_time(void) {
   return (cpu_time_t) {.ns = SECONDS_AS_NS(cpu_time.tv_sec) + cpu_time.tv_nsec};
 }
 
+static inline monotonic_time_t monotonic_time_now(void) {
+  return (monotonic_time_t) {.ns = monotonic_wall_time_now_ns()};
+}
+
 // TODO: Move away from hardcoded limit of 400 frames
 // TODO: Consider finally moving to upstream rb_profile_frames
 static bool miteruby_sample_event_publish_internal(
@@ -61,7 +66,7 @@ static bool miteruby_sample_event_publish_internal(
   miteruby_event_stack_sample_t *event = &storage.event;
   miteruby_event_stack_sample_view_t view = {.refs = event->refs, .positions = positions};
 
-  event->header.timestamp_ns = monotonic_wall_time_now_ns();
+  event->header.timestamp = monotonic_time_now();
   event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->thread = thread;
   event->header.flags = miteruby_rb_profile_frames(event->thread.value, MAX_FRAMES, &view);
