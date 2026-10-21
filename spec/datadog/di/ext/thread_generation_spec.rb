@@ -93,7 +93,9 @@ RSpec.describe "Datadog::DI snapshot generation token" do
       end
 
       it "returns a distinct token to a Thread allocated after a frozen thread is collected" do
-        skip "frozen-thread token storage is not GC-aware on Ruby 2.6" if RubyVersion.is?("< 2.7")
+        if Datadog::DI::Testing._native_frozen_thread_generation_store == :table
+          skip "frozen-thread token storage does not prune collected threads on this Ruby version"
+        end
 
         collected_thread = nil
         collected_tokens = 60.times.map do
