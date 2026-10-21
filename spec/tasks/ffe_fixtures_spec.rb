@@ -78,4 +78,31 @@ RSpec.describe FfeFixtures do
       expect(Dir.children(File.join(root, "evaluation-cases"))).to eq(["cases.json"])
     end
   end
+
+  describe "#http_get retries" do
+    it "retries a transient failure and succeeds" do
+      calls = 0
+      allow_any_instance_of(described_class).to receive(:http_attempt) do |_fetcher, url, **_kwargs|
+        calls += 1
+        (calls == 1) ? raise(described_class::TransientHTTPError, "transient") : "body"
+      end
+      allow_any_instance_of(described_class).to receive(:sleep)
+
+      fetcher = described_class.new(repository, commit)
+
+      expect(fetcher.send(:http_get, "https://example.com")).to eq("body")
+      expect(calls).to eq(2)
+    end
+
+    it "gives up after the attempt budget and keeps the last error" do
+      allow_any_instance_of(described_class)
+        .to receive(:http_attempt).and_raise(Net::OpenTimeout, "timed out")
+      expect_any_instance_of(described_class).to receive(:sleep).twice
+
+      fetcher = described_class.new(repository, commit)
+
+      expect { fetcher.send(:http_get, "https://example.com") }
+        .to raise_error(Net::OpenTimeout, /timed out/)
+    end
+  end
 end

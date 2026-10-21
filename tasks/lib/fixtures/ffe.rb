@@ -16,6 +16,13 @@ class FfeFixtures
 
   CACHE = File.join("tmp", "ffe-system-test-data")
   CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
+  HTTP_ATTEMPTS = 3
+  HTTP_TIMEOUT_SECONDS = 15
+  RETRYABLE_STATUS = /\A(429|5\d\d)\z/.freeze
+  HTTP_TRANSIENT_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, EOFError, SocketError, SystemCallError].freeze
+
+  class TransientHTTPError < StandardError
+  end
 
   def self.download(repository_root, sha: COMMIT_SHA)
     new(repository_root, sha).download
@@ -48,6 +55,8 @@ class FfeFixtures
   private
 
   def fixture_paths
+    # ponytail: api.github.com allows 60 unauthenticated requests per IP and hour.
+    # If shared runner IPs ever hit that limit, export GITHUB_TOKEN in CI.
     tree = JSON.parse(http_get(tree_url)).fetch("tree")
     tree.select { |entry| entry["type"] == "blob" }.map { |entry| entry["path"] }
       .select { |path| path == "ufc-config.json" || path.match?(CASES_PATTERN) }
@@ -62,15 +71,32 @@ class FfeFixtures
   end
 
   def http_get(url)
+    attempts = 0
+    begin
+      attempts += 1
+      http_attempt(url)
+    rescue TransientHTTPError, *HTTP_TRANSIENT_ERRORS
+      raise if attempts >= HTTP_ATTEMPTS
+
+      sleep(attempts)
+      retry
+    end
+  end
+
+  def http_attempt(url)
     uri = URI(url)
-    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+    Net::HTTP.start(
+      uri.host, uri.port, use_ssl: uri.scheme == "https",
+      open_timeout: HTTP_TIMEOUT_SECONDS, read_timeout: HTTP_TIMEOUT_SECONDS
+    ) do |http|
       request = Net::HTTP::Get.new(uri)
       request["User-Agent"] = "dd-trace-rb-ffe-fixtures"
       request["Authorization"] = "Bearer #{ENV["GITHUB_TOKEN"]}" if ENV["GITHUB_TOKEN"]
       response = http.request(request)
-      raise "GET #{url} failed: #{response.code} #{response.message}" unless response.is_a?(Net::HTTPSuccess)
+      return response.body if response.is_a?(Net::HTTPSuccess)
+      raise TransientHTTPError, "GET #{url} failed: #{response.code} #{response.message}" if response.code.match?(RETRYABLE_STATUS)
 
-      response.body
+      raise "GET #{url} failed: #{response.code} #{response.message}"
     end
   end
 end
