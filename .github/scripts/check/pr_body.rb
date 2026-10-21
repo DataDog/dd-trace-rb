@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require "cgi"
+
 # CI check for the pull request description, run from check.yml.
 # Enforces the required PR body fields (### Why, ### What, ### Risk) and
 # their caps. Drafts are included: the body is expected to be complete
@@ -124,6 +126,6 @@ failures = check_body(ENV["PR_BODY"] || "")
 if failures.empty?
   puts "PR body OK"
 else
-  failures.each { |failure| puts "PR body: #{failure}" }
+  failures.each { |failure| puts "PR body: #{CGI.escapeHTML(failure)}" }
   exit 1
 end
