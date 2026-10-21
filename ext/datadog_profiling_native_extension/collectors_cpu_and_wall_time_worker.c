@@ -275,7 +275,8 @@ static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VA
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_miteruby_read_sample_flags(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns);
+static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
@@ -417,7 +418,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
-  rb_define_singleton_method(testing_module, "_native_miteruby_read_sample_flags", _native_miteruby_read_sample_flags, 0);
+  rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_testing", _native_miteruby_sample_event_publish_testing, 2);
+  rb_define_singleton_method(testing_module, "_native_miteruby_read_sample_headers", _native_miteruby_read_sample_headers, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
@@ -1243,16 +1245,28 @@ static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE s
   return miteruby_sample_event_publish_thread(&miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
-static VALUE _native_miteruby_read_sample_flags(DDTRACE_UNUSED VALUE self) {
-  VALUE flags = rb_ary_new();
+static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns) {
+  ENFORCE_THREAD(thread);
+  return miteruby_sample_event_publish_testing(
+    &miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask, (cpu_time_t) {.ns = NUM2LONG(cpu_time_ns)}
+  ) ? Qtrue : Qfalse;
+}
+
+static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
+  VALUE headers = rb_ary_new();
   while (true) {
     miteruby_buffer_record_t record = miteruby_buffer_read(&miteruby_buffer, false);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
-      return flags;
+      return headers;
     }
     const miteruby_event_header_t *header = (const miteruby_event_header_t *)record.data;
-    if (header->type == MITERUBY_EVENT_STACK_SAMPLE) rb_ary_push(flags, UINT2NUM(header->flags));
+    if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
+      VALUE sample_header = rb_hash_new();
+      rb_hash_aset(sample_header, ID2SYM(rb_intern("flags")), UINT2NUM(header->flags));
+      rb_hash_aset(sample_header, ID2SYM(rb_intern("cpu_time_ns")), LONG2NUM(header->cpu_time.ns));
+      rb_ary_push(headers, sample_header);
+    }
   }
 }
 
