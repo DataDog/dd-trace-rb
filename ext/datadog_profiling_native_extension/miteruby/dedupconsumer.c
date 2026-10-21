@@ -58,6 +58,8 @@ static long update_and_get_time_since_previous_sample(dedupconsumer_thread_conte
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
 static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t unused) {
+  // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
+  // so these objects must stay pinned at their current addresses.
   rb_gc_mark((VALUE) object);
   return ST_CONTINUE;
 }
