@@ -347,6 +347,7 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
  * tokens, as selected at compile time: :weakmap (ObjectSpace::WeakMap) or
  * :table (C table).
  *
+ * @return [Symbol] the store used for frozen-thread generation tokens, `:weakmap` or `:table`
  * @api private
  */
 static VALUE _native_frozen_thread_generation_store(DDTRACE_UNUSED VALUE _self) {
