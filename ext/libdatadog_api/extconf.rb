@@ -99,9 +99,16 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 have_func("rb_iseq_type")
 
 # Ruby 2.7 is the first release whose ObjectSpace::WeakMap accepts frozen keys and
-# Integer values without defining finalizers on them; the frozen-thread generation
-# token storage in di.c relies on both.
-$defs << "-DHAVE_PRUNING_WEAKMAP" if RUBY_VERSION >= "2.7"
+# Integer values without defining finalizers on them, and Ruby 3.1.4 and 3.2.3 are
+# the first releases whose WeakMap does not corrupt its internal tables during GC
+# compaction (https://bugs.ruby-lang.org/issues/19529). The frozen-thread generation
+# token storage in di.c relies on both; every other release takes the plain C table
+# store di.c compiles when this macro is absent.
+ruby_version = Gem::Version.new(RUBY_VERSION)
+weakmap_corruptible_during_compaction =
+  ruby_version < Gem::Version.new("3.1.4") ||
+  (ruby_version >= Gem::Version.new("3.2") && ruby_version < Gem::Version.new("3.2.3"))
+$defs << "-DHAVE_PRUNING_WEAKMAP" if ruby_version >= Gem::Version.new("2.7") && !weakmap_corruptible_during_compaction
 
 $defs << "-DHAVE_RB_IMEMO_NAME" if RUBY_VERSION >= "3.0"
 $defs << "-DHAVE_SHIFTED_IMEMO_MASK" if RUBY_VERSION >= "4.1"

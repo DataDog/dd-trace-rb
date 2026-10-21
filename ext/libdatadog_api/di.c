@@ -59,20 +59,23 @@ static unsigned long long generation_counter;
 // snapshot. rb_ivar_set raises FrozenError on a frozen Thread, so those
 // tokens are keyed by the Thread object here instead.
 //
-// On Ruby 2.7+ the store is an ObjectSpace::WeakMap keyed by the Thread,
-// which prunes an entry when its Thread is collected, so a Thread allocated
-// later does not receive a collected thread's token. The map is kept in a
-// static VALUE registered with the GC, so it outlives every entry.
+// On releases where HAVE_PRUNING_WEAKMAP is defined the store is an
+// ObjectSpace::WeakMap keyed by the Thread, which prunes an entry when
+// its Thread is collected, so a Thread allocated later does not receive
+// a collected thread's token. The map is kept in a static VALUE
+// registered with the GC, so it outlives every entry.
 //
-// Ruby 2.6's WeakMap defines a finalizer on both the key and the value,
-// which a frozen Thread and an Integer token cannot take, so on 2.6 the
-// store is a plain C st_table keyed by the Thread VALUE. The table is
-// invisible to the GC and holds no reference to the Thread, so an entry
-// outlives its thread: a Thread allocated later at the same address reuses
-// the dead thread's token, and the table grows by one entry per frozen
-// thread that captured a snapshot. No Ruby 2.6 API observes the collection
-// of a frozen object, so a 2.6 store cannot prune its entries. Guarded by
-// the GVL like the counter above.
+// On every other release the store is a plain C st_table keyed by the
+// Thread VALUE. Ruby 2.6's WeakMap defines a finalizer on both the key
+// and the value, which a frozen Thread and an Integer token cannot take,
+// and the WeakMaps of Ruby 2.7 through 3.1.3 and 3.2.0 through 3.2.2
+// corrupt their internal tables during GC compaction
+// (https://bugs.ruby-lang.org/issues/19529). The table is invisible to
+// the GC and holds no reference to the Thread, so an entry outlives its
+// thread: a Thread allocated later at the same address reuses the dead
+// thread's token. No API of these releases observes the collection of a
+// frozen object, so the table cannot prune its entries. Guarded by the
+// GVL like the counter above.
 #ifdef HAVE_PRUNING_WEAKMAP
 static VALUE frozen_thread_generations;
 #else
@@ -235,9 +238,10 @@ static VALUE frozen_thread_generation(VALUE thread) {
  * A Thread frozen before its first snapshot, where writing the ivar would
  * raise FrozenError, keeps its token in process-wide storage keyed by the
  * Thread object: an ObjectSpace::WeakMap, whose entry is pruned when the
- * Thread is collected, on Ruby 2.7+; on Ruby 2.6, a C table keyed by the
- * Thread VALUE, where a Thread allocated at a collected frozen thread's
- * address receives the collected thread's token. Both accesses bypass
+ * Thread is collected, on releases whose WeakMap survives GC compaction,
+ * and a C table keyed by the Thread VALUE on the remaining releases,
+ * where a Thread allocated at a collected frozen thread's address receives
+ * the collected thread's token. Both accesses bypass
  * Thread#thread_variable_get and Thread#thread_variable_set method dispatch,
  * so a user-installed method probe on those methods cannot fire during DI
  * snapshot building.
@@ -315,6 +319,24 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 }
 #endif
 
+/*
+ * call-seq:
+ *   DI::Testing._native_frozen_thread_generation_store -> Symbol
+ *
+ * Returns the store this extension uses for frozen-thread generation
+ * tokens, as selected at compile time: :weakmap (ObjectSpace::WeakMap) or
+ * :table (C table).
+ *
+ * @api private
+ */
+static VALUE _native_frozen_thread_generation_store(DDTRACE_UNUSED VALUE _self) {
+#ifdef HAVE_PRUNING_WEAKMAP
+  return ID2SYM(rb_intern("weakmap"));
+#else
+  return ID2SYM(rb_intern("table"));
+#endif
+}
+
 static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
   return INT2NUM(IMEMO_MASK);
 }
@@ -357,6 +379,8 @@ void di_init(VALUE datadog_module) {
 
   VALUE testing_module = rb_define_module_under(di_module, "Testing");
   rb_define_singleton_method(testing_module, "_native_imemo_mask", _native_imemo_mask, 0);
+  rb_define_singleton_method(
+    testing_module, "_native_frozen_thread_generation_store", _native_frozen_thread_generation_store, 0);
 }
 
 #endif // TRUFFLERUBY
