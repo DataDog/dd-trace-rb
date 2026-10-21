@@ -23,6 +23,12 @@
 #define MITERUBY_DEBUG_ROOT_FRAME true
 
 typedef struct {
+  st_table *objects_to_mark;
+} dedupconsumer_state;
+
+static dedupconsumer_state state;
+
+typedef struct {
   cpu_time_t cpu_time_at_previous_sample;
   monotonic_time_t monotonic_time_at_previous_sample;
 } dedupconsumer_thread_context;
@@ -51,7 +57,39 @@ static dedupconsumer_thread_context *thread_context_for(VALUE thread, monotonic_
 static long update_and_get_time_since_previous_sample(dedupconsumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
+static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t unused) {
+  rb_gc_mark((VALUE) object);
+  return ST_CONTINUE;
+}
+
+static void dedupconsumer_mark(void *data) {
+  dedupconsumer_state *consumer_state = data;
+  if (consumer_state->objects_to_mark != NULL) st_foreach(consumer_state->objects_to_mark, mark_object, 0);
+}
+
+static size_t dedupconsumer_size(const void *data) {
+  const dedupconsumer_state *consumer_state = data;
+  return sizeof(*consumer_state) + (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
+}
+
+static const rb_data_type_t dedupconsumer_typed_data = {
+  .wrap_struct_name = "Datadog::Profiling::Miteruby::Dedupconsumer",
+  .function = {
+    .dmark = dedupconsumer_mark,
+    .dfree = NULL, // The state has static storage and its wrapper is permanently rooted.
+    .dsize = dedupconsumer_size,
+  },
+};
+
 void miteruby_dedupconsumer_init(void) {
+  if (state.objects_to_mark == NULL) {
+    VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
+    rb_gc_register_mark_object(wrapper);
+    state.objects_to_mark = st_init_numtable();
+  } else {
+    st_clear(state.objects_to_mark);
+  }
+
   if (thread_contexts == NULL) {
     thread_contexts = st_init_numtable();
   } else {
