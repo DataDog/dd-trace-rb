@@ -253,11 +253,9 @@ static VALUE frozen_thread_generation(VALUE thread) {
  * verbose-mode warning on Ruby 2.6 and 2.7; it is written via rb_ivar_set.
  * A Thread frozen before its first snapshot, where writing the ivar would
  * raise FrozenError, keeps its token in process-wide storage keyed by the
- * Thread object: an ObjectSpace::WeakMap, whose entry is pruned when the
- * Thread is collected, on releases whose WeakMap survives GC compaction,
- * and a capped C table keyed by the Thread VALUE on the remaining releases,
- * where a Thread allocated at a collected frozen thread's address receives
- * the collected thread's token. Both accesses bypass
+ * Thread object: an ObjectSpace::WeakMap on releases whose WeakMap
+ * survives GC compaction, and a C table on the remaining releases.
+ * Both accesses bypass
  * Thread#thread_variable_get and Thread#thread_variable_set method dispatch,
  * so a user-installed method probe on those methods cannot fire during DI
  * snapshot building.
