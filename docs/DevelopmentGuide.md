@@ -50,6 +50,25 @@ All changes should be covered by corresponding RSpec tests. Unit tests are prefe
 
 ### Running tests
 
+#### Canonical feature flag fixtures
+
+The OpenFeature specs evaluate the canonical corpus from
+[`DataDog/ffe-system-test-data`](https://github.com/DataDog/ffe-system-test-data).
+The corpus is not checked in. The pin is `tasks/lib/fixtures/ffe/version`, a
+bare upstream commit SHA. `bundle exec rake test:open_feature` downloads
+the pinned corpus into `tmp/ffe-system-test-data/<commit>/` first, so it needs
+network access once per pinned commit and works offline afterward.
+
+Run `bundle exec rake fixtures:ffe:download` to prefetch the pinned corpus, or
+`rake -f tasks/fixtures.rake fixtures:ffe:download` outside a bundled
+session. Both are no-ops when the corpus is already cached.
+
+The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
+opens a signed draft PR that bumps the pinned commit only when upstream fixture
+bytes change. It leaves an existing update PR untouched, so evaluator fixes can
+be added there. New cases may expose evaluator bugs: fix those before accepting
+the update, and change shared expectations upstream rather than locally.
+
 #### For the core library
 
 Any file that is **not** inside a `contrib` folder is part of the core library.
@@ -410,18 +429,22 @@ For non-Ruby code, follow the instructions below to debug locally, if CI failed 
 
 - For `yamllint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
+pipx run yamllint==1.38.0 .
 ```
 
 - For `actionlint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint:1.7.8 -color
 ```
 
 - For `zizmor`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/zizmorcore/zizmor:1.31.1 --min-severity low .
 ```
+
+The versions above must match the pins in `.github/workflows/check.yml`. Update them together.
+
+Dependabot only updates action references (`uses:`). Container image tags in workflows, such as `datadog/ci`, are bumped by hand. Search for `MANUAL-PIN` to find every hand-bumped tool version.
 
 #### Dependency audit (bundler-audit)
 
