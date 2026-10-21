@@ -273,6 +273,7 @@ static VALUE safely_call(
 );
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
@@ -418,6 +419,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume", _native_miteruby_miniconsumer_consume, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_dedupconsumer_consume", _native_miteruby_dedupconsumer_consume, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
@@ -1232,6 +1234,11 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
 
 static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   miteruby_miniconsumer_consume(&miteruby_buffer, recorder_instance);
+  return Qnil;
+}
+
+static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  miteruby_dedupconsumer_consume(&miteruby_buffer, recorder_instance);
   return Qnil;
 }
 
