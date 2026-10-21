@@ -94,8 +94,25 @@ def self_test
     puts "self-test failed: #{name}: expected #{expected}, got #{actual}"
     failed += 1
   end
-  abort("self-test: #{failed} of #{cases.size} cases failed") if failed > 0
-  puts "self-test OK: #{cases.size} cases"
+
+  # Body fixtures: an `<!-- expect: ... -->` header names the finding a
+  # body must produce, or is empty when the body must pass. The header is
+  # a comment, so check_body treats the rest as the body under test.
+  fixtures = Dir.glob(File.expand_path("fixtures", __dir__) + "/*.md").sort
+  fixtures.each do |path|
+    content = File.read(path)
+    expected = content[/\A<!--\s*expect:(.*?)-->/m, 1].to_s.strip
+    findings = check_body(content)
+    ok = expected.empty? ? findings.empty? : findings.any? { |finding| finding.include?(expected) }
+    next if ok
+
+    puts "self-test failed: #{File.basename(path)}: " \
+      "expected #{expected.empty? ? "no findings" : "'#{expected}'"}, got #{findings.inspect}"
+    failed += 1
+  end
+  total = cases.size + fixtures.size
+  abort("self-test: #{failed} of #{total} cases failed") if failed > 0
+  puts "self-test OK: #{cases.size} sentence cases, #{fixtures.size} body fixtures"
 end
 
 if ARGV.first == "--self-test"
