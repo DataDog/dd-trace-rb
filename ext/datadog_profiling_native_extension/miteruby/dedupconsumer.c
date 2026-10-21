@@ -140,9 +140,6 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-// TODO: Replace the fixed "had cpu" state with real categorization.
-// TODO: Include capture-time trace identifiers and remove the temporary miteruby=1 label.
-// TODO: Cache thread labels instead of fetching them for every sample.
 void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance) {
   enforce_recorder_instance(recorder_instance);
 
@@ -155,6 +152,13 @@ void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_in
 
     buffer_event((const miteruby_event_header_t *)record.data);
   }
+}
+
+// TODO: Replace the fixed "had cpu" state with real categorization.
+// TODO: Include capture-time trace identifiers and remove the temporary miteruby=1 label.
+// TODO: Cache thread labels instead of fetching them for every sample.
+void miteruby_dedupconsumer_prepare_serialize(VALUE recorder_instance) {
+  enforce_recorder_instance(recorder_instance);
 
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   for (size_t pos = 0; pos < consumed_events_pos;) {
