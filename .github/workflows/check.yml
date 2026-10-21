@@ -310,6 +310,19 @@ jobs:
       - name: Run yamllint
         run: yamllint --strict .
 
+  pr-body:
+    name: pr-body
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request' # pr_body.rb reads the PR description from the event payload
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: ruby .github/scripts/check/pr_body.rb
+
   complete:
     name: Static Analysis (complete)
     needs:
@@ -321,6 +334,7 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
+      - 'pr-body'
       - 'checksum-coverage'
       - 'bundler-audit'
       - 'document-lint'
