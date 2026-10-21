@@ -15,6 +15,11 @@ typedef struct {
 
 #define INVALID_CPU_TIME ((cpu_time_t) {.ns = -1})
 
+typedef struct {
+  // Monotonic observation time in nanoseconds.
+  long ns;
+} monotonic_time_t;
+
 typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
   MITERUBY_EVENT_STACK_SAMPLE = 1,
@@ -34,7 +39,7 @@ typedef struct {
   uint16_t frame_count;
   miteruby_event_type_t type;
   uint8_t flags;
-  uint64_t timestamp_ns;
+  monotonic_time_t timestamp;
 } miteruby_event_header_t;
 
 typedef struct {
@@ -63,6 +68,7 @@ typedef struct {
 } miteruby_event_overflow_t;
 
 _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
+_Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
 _Static_assert(sizeof(miteruby_event_header_t) == 16, "miteruby_event_header_t must be 16 bytes");
 _Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
