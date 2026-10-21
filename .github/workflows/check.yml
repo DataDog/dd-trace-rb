@@ -321,7 +321,9 @@ jobs:
       - name: Check PR body
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: ruby .github/scripts/check/pr_body.rb
+        run: |
+          ruby .github/scripts/check/pr_body.rb --self-test
+          ruby .github/scripts/check/pr_body.rb
 
   complete:
     name: Static Analysis (complete)
