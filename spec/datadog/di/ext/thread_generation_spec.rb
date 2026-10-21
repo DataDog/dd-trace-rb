@@ -137,5 +137,49 @@ RSpec.describe "Datadog::DI snapshot generation token" do
         expect(tokens.uniq).to eq([tokens.first])
       end
     end
+
+    context "when the frozen-thread token table reaches its entry cap" do
+      it "clears the table and assigns a fresh token to a still-frozen thread" do
+        if Datadog::DI::Testing._native_frozen_thread_generation_store == :weakmap
+          skip "the frozen-thread token store on this Ruby version prunes collected threads and holds no entry cap"
+        end
+
+        first_token_captured = Queue.new
+        fill_done = Queue.new
+        canary_tokens = nil
+        canary = Thread.new do
+          Thread.current.freeze
+          first_token = Datadog::DI.current_thread_generation
+          first_token_captured << true
+          fill_done.pop
+          second_token = Datadog::DI.current_thread_generation
+          third_token = Datadog::DI.current_thread_generation
+          canary_tokens = [first_token, second_token, third_token]
+        end
+        first_token_captured.pop
+
+        # Fill the table past its 1024-entry cap. Every thread is kept
+        # referenced so each is allocated a distinct address and each insert
+        # creates an entry, and the fill is twice the cap so the cap is
+        # crossed regardless of the entries earlier examples stored.
+        frozen_threads = []
+        2048.times do
+          thread = Thread.new do
+            Thread.current.freeze
+            Datadog::DI.current_thread_generation
+          end
+          thread.value
+          frozen_threads << thread
+        end
+        fill_done << true
+
+        raise "thread wait timeout" unless canary.join(5)
+
+        first_token, second_token, third_token = canary_tokens
+        expect(first_token).to be_a(Integer)
+        expect(second_token).not_to eq(first_token)
+        expect(third_token).to eq(second_token)
+      end
+    end
   end
 end
