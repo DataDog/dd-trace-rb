@@ -61,10 +61,11 @@ typedef struct {
   miteruby_event_type_t type;
   uint8_t flags;
   monotonic_time_t timestamp;
-} miteruby_event_header_t; // 16 bytes
+  cpu_time_t cpu_time;
+} miteruby_event_header_t; // 24 bytes
 ```
 
-- `size_bytes`: entire record including padding, a multiple of 8 from 16 to 65,528 bytes.
+- `size_bytes`: entire record including padding, a multiple of 8 from 24 to 65,528 bytes.
   Advance to the next event by this many bytes.
 - `frame_count`: number of reference pairs and positions; zero for overflow events.
 - `type`: event discriminator; `MITERUBY_EVENT_INVALID` is never emitted.
@@ -74,6 +75,7 @@ typedef struct {
   including simulated signal delivery (TODO: stop doing this for simulate), and clear for the masked publishing entry point.
   Stack status must be read independently of this source bit. Other bits are reserved.
 - `timestamp`: monotonic observation time, before stack capture.
+- `cpu_time`: cumulative CPU time of the sampled thread at publication, or `INVALID_CPU_TIME` when unavailable.
 
 ### miteruby_event_frame_refs_t
 
@@ -108,12 +110,12 @@ typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
   miteruby_event_frame_refs_t refs[];
-} miteruby_event_stack_sample_t; // 24 bytes + 18 * frame_count bytes + 0–6 padding bytes
+} miteruby_event_stack_sample_t; // 32 bytes + 18 * frame_count bytes + 0–6 padding bytes
 ```
 
 ```text
 header | thread | refs[N] | positions[N] | padding
-  16       8       16*N         2*N         0–6      bytes
+  24       8       16*N         2*N         0–6      bytes
 ```
 
 - `thread`: current Ruby thread; `thread.value` is the GC-visible `VALUE`.
@@ -123,7 +125,7 @@ header | thread | refs[N] | positions[N] | padding
 - Frames are ordered oldest/root first, newest last. For a nonempty,
   untruncated stack, index `N - 1` is the currently active frame.
   Truncation retains the oldest frames and omits the newest ones.
-- Require `size_bytes == round_up_to_8(24 + 18 * frame_count)` before accessing the arrays.
+- Require `size_bytes == round_up_to_8(32 + 18 * frame_count)` before accessing the arrays.
 
 ### miteruby_event_stack_sample_view_t
 
@@ -146,7 +148,7 @@ typedef struct {
 ```c
 typedef struct {
   miteruby_event_header_t header;
-} miteruby_event_overflow_t; // 16 bytes
+} miteruby_event_overflow_t; // 24 bytes
 ```
 
 - Header-only candidate.
@@ -155,8 +157,8 @@ typedef struct {
 
 ## Caveats / open decisions
 
-- **Event size:** 16-bit `size_bytes` fits at most 3,639 frames. The profiler's current 3,000-frame limit requires
-  54,024 bytes and fits.
+- **Event size:** 16-bit `size_bytes` fits at most 3,638 frames. The profiler's current 3,000-frame limit requires
+  54,032 bytes and fits.
 - **16-bit positions:** we support 65,535 positions (0–65,534). Beyond that, we skip recording the line.
 - **Alignment:** event storage must be 8-byte aligned. Record sizes are multiples of 8,
   preserving alignment between consecutive events.
