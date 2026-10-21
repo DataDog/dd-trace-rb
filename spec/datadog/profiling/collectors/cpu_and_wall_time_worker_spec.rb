@@ -2143,39 +2143,39 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       sampled_thread&.join
     end
 
-    it "uses capture timestamps for wall time and consumption-time CPU clock deltas for a batch" do
-      capture_miteruby { 3.times { publish_miteruby_sample } }
-      cpu_before = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+    it "uses captured CPU deltas and monotonic timestamps, preserving the CPU baseline across unavailable readings" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      [-1, 0, 100, -1, 180].each do |cpu_time_ns|
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)).to be true
+      end
       consume_miteruby
-      cpu_after = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
       samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
         .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
 
-      expect(samples.size).to be >= 3
-      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      expect(samples.map { |sample| sample.values.fetch(:"cpu-time") }).to eq([0, 0, 100, 0, 80])
+      expect(samples.first.values.fetch(:"wall-time")).to eq(0)
       samples.each_cons(2) do |previous, current|
         expect(current.values.fetch(:"wall-time"))
           .to eq(current.labels.fetch(:end_timestamp_ns) - previous.labels.fetch(:end_timestamp_ns))
       end
-      expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be_between(1, cpu_after - cpu_before)
     end
 
-    it "keeps CPU accounting across drains and includes work performed after capture" do
-      capture_miteruby do
-        publish_miteruby_sample
-        consume_miteruby
-        recorded_miteruby_samples
-
-        publish_miteruby_sample
-        cpu_before_work = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
-        50_000.times { Math.sqrt(2) }
-        cpu_after_work = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
-        consume_miteruby
-        samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
-
-        expect(samples).to_not be_empty
-        expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be >= cpu_after_work - cpu_before_work
+    it "retains the last valid CPU baseline across drains" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      [100, -1].each do |cpu_time_ns|
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)).to be true
       end
+      consume_miteruby
+      expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:values)).to all(include("cpu-time": 0))
+
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 180)).to be true
+      consume_miteruby
+      samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+
+      expect(samples.size).to eq(1)
+      expect(samples.first.values.fetch(:"cpu-time")).to eq(80)
     end
 
     it "resets both baselines when the worker starts a new profiling session" do
@@ -2225,7 +2225,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         publish_miteruby_sample
         sampled_thread = Thread.new do
           Thread.current.name = "miteruby finished thread"
-          publish_miteruby_sample
+          2.times { publish_miteruby_sample }
         end
         sampled_thread.join
       end
@@ -2234,9 +2234,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consume_miteruby
 
       samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
-      expect(samples).to_not be_empty
+        .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
+      expect(samples.size).to be >= 2
       expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
-      expect(samples.map(&:values)).to all(include("cpu-time": 0))
+      expect(samples.sum { |sample| sample.values.fetch(:"cpu-time") }).to be > 0
       expect(samples.map(&:labels)).to all(include("thread name": "miteruby finished thread"))
       expect(samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
     ensure
