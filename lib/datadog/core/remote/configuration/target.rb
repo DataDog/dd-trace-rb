@@ -2,6 +2,7 @@
 
 require_relative "path"
 require_relative "digest"
+require_relative "error"
 
 module Datadog
   module Core
@@ -12,7 +13,7 @@ module Datadog
           class << self
             def parse(hash)
               signed = hash.fetch("signed")
-              raise TypeError, Configuration.invalid_type_message("signed", signed, Hash) unless signed.is_a?(Hash)
+              raise Configuration::Error.invalid_data_type(signed, field: "signed", expected_type: Hash) unless signed.is_a?(Hash)
 
               # Note that the +dig+ call permits +hash['signed']+ to be
               # missing the +custom+ subtree entirely.
@@ -33,11 +34,11 @@ module Datadog
               end
 
               targets = signed.fetch("targets")
-              raise TypeError, Configuration.invalid_type_message("targets", targets, Hash) unless targets.is_a?(Hash)
+              raise Configuration::Error.invalid_data_type(targets, field: "targets", expected_type: Hash) unless targets.is_a?(Hash)
 
               targets.each_with_object(map) do |(p, t), m|
                 path = Configuration::Path.parse(p)
-                raise TypeError, Configuration.invalid_type_message("targets entry", t, Hash) unless t.is_a?(Hash)
+                raise Configuration::Error.invalid_data_type(t, field: "targets entry", expected_type: Hash) unless t.is_a?(Hash)
                 target = Configuration::Target.parse(t)
 
                 m[path] = target
@@ -62,14 +63,14 @@ module Datadog
           class << self
             def parse(hash)
               length = hash.fetch("length")
-              raise TypeError, Configuration.invalid_type_message("length", length, Integer) unless length.is_a?(Integer)
+              raise Configuration::Error.invalid_data_type(length, field: "length", expected_type: Integer) unless length.is_a?(Integer)
 
               hashes = hash.fetch("hashes")
-              raise TypeError, Configuration.invalid_type_message("hashes", hashes, Hash) unless hashes.is_a?(Hash)
+              raise Configuration::Error.invalid_data_type(hashes, field: "hashes", expected_type: Hash) unless hashes.is_a?(Hash)
               digests = Configuration::DigestList.parse(hashes)
 
               version = hash.dig("custom", "v")
-              raise TypeError, Configuration.invalid_type_message("custom.v", version, Integer) unless version.is_a?(Integer)
+              raise Configuration::Error.invalid_data_type(version, field: "custom.v", expected_type: Integer) unless version.is_a?(Integer)
 
               new(digests: digests, length: length, version: version)
             end

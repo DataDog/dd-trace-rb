@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class Error < TypeError
+          def self.invalid_data_type: (any value, field: String, expected_type: Module) -> Error
+        end
+      end
+    end
+  end
+end

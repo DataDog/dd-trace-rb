@@ -6,7 +6,7 @@ require_relative "probe"
 require_relative "capture_expression"
 require_relative "capture_limits"
 require_relative "el"
-require_relative "../core/remote/configuration"
+require_relative "../core/remote/configuration/error"
 
 module Datadog
   module DI
@@ -41,6 +41,8 @@ module Datadog
       # Builds a Probe from a probe specification in remote configuration
       # format.
       #
+      # @raise [Datadog::Core::Remote::Configuration::Error] if an entry has an
+      #   unexpected type
       # @raise [ArgumentError] if the specification is malformed or describes
       #   a probe type that is not supported
       def build_from_remote_config(config, logger:)
@@ -93,11 +95,12 @@ module Datadog
       # format.
       #
       # @raise [KeyError] if the specification has no id
-      # @raise [ArgumentError] if the id is not a String
+      # @raise [Datadog::Core::Remote::Configuration::Error] if the id is not
+      #   a String
       def fetch_probe_id(probe_spec)
         probe_id = probe_spec.fetch("id")
         unless probe_id.is_a?(String)
-          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("id", probe_id, String)
+          raise Core::Remote::Configuration::Error.invalid_data_type(probe_id, field: "id", expected_type: String)
         end
 
         probe_id
@@ -106,12 +109,12 @@ module Datadog
       def build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
-          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("captureExpressions", raw, Array)
+          raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "captureExpressions", expected_type: Array)
         end
         return [] if raw.empty?
         raw.map do |entry|
           unless Hash === entry
-            raise ArgumentError, Core::Remote::Configuration.invalid_type_message("captureExpressions entry", entry, Hash)
+            raise Core::Remote::Configuration::Error.invalid_data_type(entry, field: "captureExpressions entry", expected_type: Hash)
           end
           name = entry["name"]
           unless String === name && CAPTURE_EXPRESSION_NAME_PATTERN.match?(name)
@@ -144,7 +147,7 @@ module Datadog
       def build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
-          raise ArgumentError, Core::Remote::Configuration.invalid_type_message("capture", raw, Hash)
+          raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "capture", expected_type: Hash)
         end
         CaptureLimits.new(
           max_reference_depth: raw["maxReferenceDepth"],

@@ -2,6 +2,8 @@
 
 require "digest"
 
+require_relative "error"
+
 module Datadog
   module Core
     module Remote
@@ -12,7 +14,7 @@ module Datadog
             def parse(hash)
               new.concat(hash.map do |type, hexdigest|
                 unless hexdigest.is_a?(String)
-                  raise TypeError, Configuration.invalid_type_message("hexdigest", hexdigest, String)
+                  raise Configuration::Error.invalid_data_type(hexdigest, field: "hexdigest", expected_type: String)
                 end
 
                 Digest.new(type, hexdigest)
@@ -42,7 +44,7 @@ module Datadog
                 # It still doesn't work in the present implementation.
                 # Flag the nil data now to get earlier diagnostics when
                 # developing tests for example.
-                raise ArgumentError, Configuration.invalid_type_message("data", data, String)
+                raise Configuration::Error.invalid_data_type(data, field: "data", expected_type: String)
               end
 
               d = case type

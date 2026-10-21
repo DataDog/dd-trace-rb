@@ -2,7 +2,6 @@ module Datadog
   module Core
     module Remote
       class Configuration
-        def self.invalid_type_message: (::String field, untyped value, ::Module expected_type) -> ::String
       end
     end
   end

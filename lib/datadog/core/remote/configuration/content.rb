@@ -2,6 +2,7 @@
 
 require_relative "path"
 require_relative "digest"
+require_relative "error"
 
 module Datadog
   module Core
@@ -31,7 +32,7 @@ module Datadog
               raise ArgumentError, "data must not be nil"
             end
             unless String === data
-              raise ArgumentError, Configuration.invalid_type_message("data", data, String)
+              raise Configuration::Error.invalid_data_type(data, field: "data", expected_type: String)
             end
 
             @path = path

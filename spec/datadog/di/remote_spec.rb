@@ -461,14 +461,14 @@ RSpec.describe Datadog::DI::Remote do
           expect(probe_manager).not_to receive(:add_probe)
           expect(probe_manager).not_to receive(:remove_probe)
           expect_lazy_log_many(logger, :debug,
-            /unhandled exception handling a probe.*ArgumentError: Invalid type for id: expected String: 42/,
-            /unhandled exception removing probes.*ArgumentError: Invalid type for id: expected String: 42/,)
+            /unhandled exception handling a probe.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/,
+            /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/,)
           expect(telemetry).to receive(:report).with(
-            an_instance_of(ArgumentError),
+            an_instance_of(Datadog::Core::Remote::Configuration::Error),
             description: "Unhandled exception handling probe in DI remote receiver",
           )
           expect(telemetry).to receive(:report).with(
-            an_instance_of(ArgumentError),
+            an_instance_of(Datadog::Core::Remote::Configuration::Error),
             description: "Unhandled exception removing probes in DI remote receiver",
           )
 
@@ -508,10 +508,12 @@ RSpec.describe Datadog::DI::Remote do
         allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
       end
 
-      it "raises ArgumentError" do
+      it "raises Configuration::Error" do
         expect do
           described_class.send(:remove_probe, content, component)
-        end.to raise_error(ArgumentError, "Invalid type for id: expected String: 42")
+        end.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42"
+        )
       end
     end
 
@@ -528,9 +530,9 @@ RSpec.describe Datadog::DI::Remote do
         allow(component).to receive(:telemetry).and_return(telemetry)
         expect(component).not_to receive(:probe_manager)
         expect_lazy_log(logger, :debug,
-          /unhandled exception removing probes.*ArgumentError: Invalid type for id: expected String: 42/)
+          /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
         expect(telemetry).to receive(:report).with(
-          an_instance_of(ArgumentError),
+          an_instance_of(Datadog::Core::Remote::Configuration::Error),
           description: "Unhandled exception removing probes in DI remote receiver",
         )
 
