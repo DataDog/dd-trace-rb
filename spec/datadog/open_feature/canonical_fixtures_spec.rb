@@ -2,12 +2,17 @@
 
 require "json"
 require "spec_helper"
+require_relative "../../../tasks/lib/fixtures/ffe"
 require "datadog/open_feature/native_evaluator"
 
 RSpec.describe Datadog::OpenFeature::NativeEvaluator, "canonical FFE fixtures" do
-  fixture_root = File.expand_path("ffe-system-test-data", __dir__)
+  fixture_root = File.join(File.expand_path("../../..", __dir__), FfeFixtures::CACHE, FfeFixtures::COMMIT_SHA)
+  unless File.directory?(fixture_root)
+    raise "FFE fixtures are not cached under #{fixture_root}. Run: bundle exec rake fixtures:ffe:download"
+  end
+
   fixture_files = Dir[File.join(fixture_root, "evaluation-cases", "*.json")].sort
-  raise "Canonical FFE fixture snapshot is missing or empty" if fixture_files.empty?
+  raise "Canonical FFE corpus at #{fixture_root} is missing or empty" if fixture_files.empty?
 
   subject(:evaluator) { described_class.new(configuration) }
 

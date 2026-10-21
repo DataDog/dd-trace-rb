@@ -52,29 +52,22 @@ All changes should be covered by corresponding RSpec tests. Unit tests are prefe
 
 #### Canonical feature flag fixtures
 
-The OpenFeature specs use a checked-in snapshot from
+The OpenFeature specs evaluate the canonical corpus from
 [`DataDog/ffe-system-test-data`](https://github.com/DataDog/ffe-system-test-data).
-Normal local and CI tests need neither a network request nor submodule setup.
-Run them with `bundle exec rake test:open_feature`.
+The corpus is not checked in. The pin is `tasks/lib/fixtures/ffe/version`, a
+bare upstream commit SHA. `bundle exec rake test:open_feature` downloads
+the pinned corpus into `tmp/ffe-system-test-data/<commit>/` first, so it needs
+network access once per pinned commit and works offline afterward.
 
-Add or correct shared expectations upstream, then refresh with
-`ruby tasks/ffe_fixtures.rb --ref <upstream-commit>` (requires Git and network access).
-The updater copies only `ufc-config.json` and `evaluation-cases/*.json` and records
-the full source commit in `spec/datadog/open_feature/ffe-system-test-data/SOURCE.md`.
-Run `ruby tasks/ffe_fixtures.rb --check` to compare filenames and bytes against that
-commit without modifying the snapshot. Pull request CI also checks this provenance.
-
-To repair missing or incorrect `SOURCE.md` metadata, run
-`ruby tasks/ffe_fixtures.rb --ref <upstream-commit> --repair-source`.
-This regenerates only the metadata and requires the existing fixtures to match
-that commit exactly. Ordinary updates preserve the existing pin when fixture
-contents have not changed.
+Run `bundle exec rake fixtures:ffe:download` to prefetch the pinned corpus, or
+`rake -f tasks/fixtures.rake fixtures:ffe:download` outside a bundled
+session. Both are no-ops when the corpus is already cached.
 
 The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
-opens a signed draft PR only when fixture contents change. It leaves an existing
-update PR untouched, so evaluator fixes can be added there. New cases may expose
-evaluator bugs: fix those before accepting the update instead of editing copied
-expectations locally.
+opens a signed draft PR that bumps the pinned commit only when upstream fixture
+bytes change. It leaves an existing update PR untouched, so evaluator fixes can
+be added there. New cases may expose evaluator bugs: fix those before accepting
+the update, and change shared expectations upstream rather than locally.
 
 #### For the core library
 
