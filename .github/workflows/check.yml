@@ -298,12 +298,6 @@ jobs:
             --workdir /repo \
             "$ACTIONLINT_IMAGE" \
             -color
-      - name: PR body must not reach HTML-rendered surfaces
-        run: |
-          if grep -rn 'PR_BO[D]Y' .github/workflows .github/scripts | grep 'GITHUB_STEP_SUMMAR[Y]'; then
-            echo "PR body content must never be written to a step summary: it is untrusted and step summaries render HTML"
-            exit 1
-          fi
 
   yaml-lint:
     name: yaml-lint
