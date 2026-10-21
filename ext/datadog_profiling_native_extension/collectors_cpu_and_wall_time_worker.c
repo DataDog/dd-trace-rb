@@ -20,6 +20,7 @@
 #include "miteruby/buffer.h"
 #include "miteruby/buffer_marking.h"
 #include "miteruby/miniconsumer.h"
+#include "miteruby/dedupconsumer.h"
 #include "miteruby/sample_event.h"
 
 #ifdef __APPLE__
@@ -273,6 +274,7 @@ static VALUE safely_call(
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns);
@@ -397,6 +399,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_consume_loop", _native_miteruby_dedupconsumer_consume_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
@@ -611,6 +614,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
   miteruby_miniconsumer_init();
+  miteruby_dedupconsumer_init();
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
@@ -1233,6 +1237,11 @@ static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VA
 
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   miteruby_miniconsumer_consume_loop(&miteruby_buffer, recorder_instance);
+  return Qnil;
+}
+
+static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  miteruby_dedupconsumer_consume_loop(&miteruby_buffer, recorder_instance);
   return Qnil;
 }
 
