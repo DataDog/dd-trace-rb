@@ -14,5 +14,5 @@ bool miteruby_sample_event_publish_sighandler(miteruby_buffer_t *buffer);
 bool miteruby_sample_event_publish_mask(miteruby_buffer_t *buffer, const sigset_t *signal_mask);
 bool miteruby_sample_event_publish_thread(miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask);
 
-// For tests requiring deterministic CPU readings; cpu_time_ns may also be INVALID_TIME to simulate an unavailable reading.
-bool miteruby_sample_event_publish_testing(miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask, long cpu_time_ns);
+// For tests requiring deterministic CPU readings, including unavailable readings.
+bool miteruby_sample_event_publish_testing(miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time);
