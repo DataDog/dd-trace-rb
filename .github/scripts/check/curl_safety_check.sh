@@ -39,7 +39,7 @@ while IFS= read -r line; do
       file="${file#b/}"
       continue
       ;;
-    "+")
+    "+"*)
       ;;
     *)
       continue
@@ -64,7 +64,7 @@ while IFS= read -r line; do
   # followed by whitespace and then a flag, a shell variable, or a URL.
   # This avoids matching job/step names like "curl-safety" or filenames
   # like "curl_safety_check.sh".
-  if ! grep -qP '(?<![\w.-])curl\s+['"'"']?(-|\$|https?://)' <<<"$content"; then
+  if ! grep -qP '(?<![\w.-])curl\s+['"'"'"]?(-|\$|https?://)' <<<"$content"; then
     continue
   fi
 
