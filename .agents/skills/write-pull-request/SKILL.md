@@ -54,8 +54,11 @@ task."
 
 ### Details
 
-Optional and collapsible: links, benchmarks, plans, test instructions,
-anything longer than two sentences. A reader must not need it.
+Optional, and always collapsible. Everything that overflows the caps
+goes here, wrapped in `<details><summary>Notes</summary>` and
+`</details>`: links, benchmarks, plans, test instructions, any longer
+explanation. Never appended to a required field, never loose in the
+body. A reader must not need it.
 
 ## Grounding and drift
 

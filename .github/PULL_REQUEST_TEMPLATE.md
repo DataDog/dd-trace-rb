@@ -24,8 +24,12 @@ run the test suite, write new integrations, and more.
 
 ### Details
 
+<details><summary>Notes</summary>
+
 <!--
 Optional. Links, benchmarks, plans, test instructions, anything longer
 than two sentences. A reader must not need this section to understand the
 PR.
 -->
+
+</details>
