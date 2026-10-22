@@ -71,7 +71,7 @@ module Datadog
           if is_ruleset_update &&
               (diagnostics.key?("error") ||
               diagnostics.dig("rules", "error") ||
-              diagnostics.dig("processors", "errors"))
+              diagnostics.dig("processors", "error"))
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
             @reconfigured_ruleset_version = diagnostics["ruleset_version"]
             report_configuration_diagnostics(diagnostics, action: "update", telemetry: AppSec.telemetry)
