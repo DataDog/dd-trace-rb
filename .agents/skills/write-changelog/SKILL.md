@@ -109,6 +109,9 @@ Then keep every written claim grounded:
 
 - ALWAYS set `author` to the external contributor's `@`-prefixed GitHub
   handle; NEVER set `author` for a Datadog contributor
+- NEVER set a `waive_word_cap`/`waive_sentence_cap`/`waive_char_cap`
+  field: the 25-word, 2-sentence, 240-character caps are the agent's gate,
+  and a person who wrote the message themselves raises one
 
 ## The floor and the standard
 

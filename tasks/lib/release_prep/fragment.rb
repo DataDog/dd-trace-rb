@@ -42,8 +42,12 @@ module ReleasePrep
     # alphanumerics or single hyphens, never starting or ending with a hyphen.
     AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/.freeze
 
-    MESSAGE_SENTENCE_CAP = 3
+    MESSAGE_SENTENCE_CAP = 2
     MESSAGE_WORD_CAP = 25
+    # An optional "waive_<unit>_cap": N field raises that one cap to N for
+    # this fragment. A person sets it when they chose the wording, an agent
+    # never does (see the write-changelog skill).
+    WAIVED_CAP_FIELDS = {"waive_char_cap" => :chars, "waive_sentence_cap" => :sentences, "waive_word_cap" => :words}.freeze
 
     attr_reader :path, :type, :product, :pull_request, :message, :author
 
@@ -93,12 +97,29 @@ module ReleasePrep
       if author.to_s != "" && !author.to_s.match?(AUTHOR_HANDLE)
         errors << "#{path}: author #{@author.inspect} must be a GitHub handle like \"@octocat\""
       end
-      if message.to_s.length > MESSAGE_LENGTH_CAP
-        errors << "#{path}: message is #{message.length} characters, cap is #{MESSAGE_LENGTH_CAP}"
+      WAIVED_CAP_FIELDS.each_key do |field|
+        value = @entry[field]
+        next if value.nil?
+        unless value.is_a?(Integer) && value.positive?
+          errors << "#{path}: #{field} must be a positive integer"
+        end
       end
+      char_cap = waived_cap("waive_char_cap", MESSAGE_LENGTH_CAP)
+      if message.to_s.length > char_cap
+        errors << "#{path}: message is #{message.length} characters, cap is #{char_cap} " \
+          "(a person may set \"waive_char_cap\": N)"
+      end
+      sentence_cap = waived_cap("waive_sentence_cap", MESSAGE_SENTENCE_CAP)
+      sentences = sentence_count(message.to_s)
+      if sentences > sentence_cap
+        errors << "#{path}: message has #{sentences} sentences, cap is #{sentence_cap} " \
+          "(a person may set \"waive_sentence_cap\": N)"
+      end
+      word_cap = waived_cap("waive_word_cap", MESSAGE_WORD_CAP)
       words = word_count(message.to_s)
-      if words > MESSAGE_WORD_CAP
-        errors << "#{path}: message has #{words} words, cap is #{MESSAGE_WORD_CAP}"
+      if words > word_cap
+        errors << "#{path}: message has #{words} words, cap is #{word_cap} " \
+          "(a person may set \"waive_word_cap\": N)"
       end
       prose = without_code_spans(message.to_s)
       CANONICAL_CASING.each do |term, canonical|
@@ -111,10 +132,6 @@ module ReleasePrep
         errors << "#{path}: message has #{backticks} backticks; code spans need an even number"
       end
       errors << "#{path}: message has an empty code span" if message.to_s.include?("``")
-      count = sentence_count(message.to_s)
-      if count > MESSAGE_SENTENCE_CAP
-        errors << "#{path}: message has #{count} sentences, cap is #{MESSAGE_SENTENCE_CAP}"
-      end
       if (reference = message.to_s[PR_REFERENCES])
         errors << "#{path}: message references #{reference.inspect}; the PR number is rendered " \
           "automatically from the pull_request field"
@@ -124,6 +141,13 @@ module ReleasePrep
 
     private
 
+    # A waive field that fails validation never raises the cap: an invalid
+    # value falls back to the default rather than crashing the comparison.
+    def waived_cap(field, default)
+      value = @entry[field]
+      (value.is_a?(Integer) && value.positive?) ? value : default
+    end
+
     # Code spans name identifiers whose casing and punctuation the code itself
     # fixes (e.g. `appsec.track_user_events`), so checks about prose never see
     # inside them.
@@ -131,7 +155,7 @@ module ReleasePrep
       text.gsub(/`[^`]*`/, "")
     end
 
-    # Each code span names one identifier, so it counts as one word however
+    # Each code span is one identifier, so it counts as one word however
     # long the setting name or path inside it.
     def word_count(text)
       text.gsub(/`[^`]*`/, "code").split.size
