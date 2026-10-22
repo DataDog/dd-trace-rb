@@ -123,6 +123,36 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to eq([])
     end
 
+    it "reports a message over the word cap, naming the actual count" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen " \
+          "sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three " \
+          "twenty-four twenty-five twenty-six."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has 26 words, cap is 25/)
+    end
+
+    it "accepts a message at the word cap" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen " \
+          "sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three " \
+          "twenty-four twenty-five."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "counts each code span as one word, however many words it wraps" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "Fix paths like `GET /users/*` on HTTP client spans with one two three four five " \
+          "six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
     it "reports a lowercase product term, naming the canonical casing" do
       path = write_fragment("1.json", valid_entry("message" => "Fix the appsec rules."))
 

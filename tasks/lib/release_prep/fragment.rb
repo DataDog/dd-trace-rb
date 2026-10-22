@@ -43,6 +43,7 @@ module ReleasePrep
     AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/.freeze
 
     MESSAGE_SENTENCE_CAP = 3
+    MESSAGE_WORD_CAP = 25
 
     attr_reader :path, :type, :product, :pull_request, :message, :author
 
@@ -95,6 +96,10 @@ module ReleasePrep
       if message.to_s.length > MESSAGE_LENGTH_CAP
         errors << "#{path}: message is #{message.length} characters, cap is #{MESSAGE_LENGTH_CAP}"
       end
+      words = word_count(message.to_s)
+      if words > MESSAGE_WORD_CAP
+        errors << "#{path}: message has #{words} words, cap is #{MESSAGE_WORD_CAP}"
+      end
       prose = without_code_spans(message.to_s)
       CANONICAL_CASING.each do |term, canonical|
         if prose.match?(%r{\b#{Regexp.escape(term)}\b})
@@ -124,6 +129,12 @@ module ReleasePrep
     # inside them.
     def without_code_spans(text)
       text.gsub(/`[^`]*`/, "")
+    end
+
+    # Each code span names one identifier, so it counts as one word however
+    # long the setting name or path inside it.
+    def word_count(text)
+      text.gsub(/`[^`]*`/, "code").split.size
     end
 
     # Code spans and e.g./i.e. are neutralized first, so paths and version
