@@ -57,11 +57,6 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.update-images
 
-      # There appers to be a race condition; wait it out a bit
-      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
-      - name: Wait for token propagation
-        run: sleep 30
-
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
