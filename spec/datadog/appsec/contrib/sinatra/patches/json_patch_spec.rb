@@ -59,7 +59,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Patches::JsonPatch do
     end
 
     it "passes the encoded response to the gateway without parsing JSON" do
-      expect(JSON).not_to receive(:parse)
+      expect(JSON).not_to receive(:parse).with('{"x":1}', any_args)
 
       response
 

@@ -6,7 +6,7 @@ require "datadog/appsec/contrib/rails/patches/render_to_body_patch"
 require "action_controller"
 require "libddwaf"
 
-RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch do
+RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, execute_in_fork: true do
   describe "#render_to_body" do
     subject(:render_to_body) { controller.render_to_body(json: serializer) }
 
