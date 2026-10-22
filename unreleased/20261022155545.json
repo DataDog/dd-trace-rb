@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6549",
+  "message": "Fix pathways and full-pathway latency for `ruby-kafka` consumers that use `each_batch`, which ignored message headers and linked batch messages to unrelated pathways instead of their upstream producer."
+}
