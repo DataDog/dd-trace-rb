@@ -866,6 +866,54 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(gathered_stack).to include(have_attributes(path: filename, label: end_with(untrimmed_method_name)))
         end
       end
+
+      context "when sampling a block inside the template method" do
+        let(:do_in_background_thread) do
+          # rubocop:disable Security/Eval
+          # rubocop:disable Style/EvalWithLocation
+          # rubocop:disable Style/DocumentDynamicEvalDefinition
+          eval(
+            %(
+              def dummy_template.#{untrimmed_method_name}(ready_queue)
+                [1].each do
+                  ready_queue << true
+                  sleep
+                end
+              end
+
+              proc { |ready_queue| dummy_template.#{untrimmed_method_name}(ready_queue) }
+            ),
+            binding,
+            filename,
+            123456
+          )
+          # rubocop:enable Security/Eval
+          # rubocop:enable Style/EvalWithLocation
+          # rubocop:enable Style/DocumentDynamicEvalDefinition
+        end
+
+        it "samples the block frame with a simplified method name" do
+          expect(gathered_stack).to include(
+            have_attributes(
+              path: filename,
+              label: end_with("_app_views_layouts_explore_html_haml (block)"),
+            )
+          )
+        end
+
+        context "when show_classes is disabled" do
+          let(:show_classes) { false }
+
+          it "samples the block frame with a simplified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: end_with("_app_views_layouts_explore_html_haml"),
+              )
+            )
+          end
+        end
+      end
     end
   end
 

@@ -41,7 +41,7 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
+static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice, bool name_in_scratch_buffer);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -361,10 +361,13 @@ void sample_thread(
     ddog_CharSlice name_slice = (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
 
     ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
+    // Only a name we wrote ourselves can be modified in place by maybe_trim_template_random_ids below
+    bool name_in_scratch_buffer = false;
     if (show_classes) {
       ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
       if (written > 0) {
         qualified_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
+        name_in_scratch_buffer = true;
         qualified_name_buf += written;
         qualified_name_buf_size -= written;
       } else {
@@ -438,7 +441,7 @@ void sample_thread(
       frame_name = name_slice;
     }
 
-    maybe_trim_template_random_ids(&frame_name, &filename_slice);
+    maybe_trim_template_random_ids(&frame_name, &filename_slice, name_in_scratch_buffer);
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -548,14 +551,29 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 //  the extra "_".)
 //
 // This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice) {
+//
+// Blocks inside such a template get the ids in the middle of the name:
+// * "_app_views_articles_index_html_erb__123_456 (block)"
+// Trimming those means moving the " (block)" suffix left, which we only do for names we built in our own scratch
+// buffer, never for a Ruby String's own storage.
+static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice, bool name_in_scratch_buffer) {
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
 
   if (name_slice->len > 1024) return;
   if (name_slice->len == 0) return;
 
-  int pos = ((int) name_slice->len) - 1;
+  static const char block_suffix[] = " (block)";
+  size_t block_suffix_len = sizeof(block_suffix) - 1;
+
+  size_t len = name_slice->len;
+  bool has_block_suffix =
+    name_in_scratch_buffer &&
+    len > block_suffix_len &&
+    memcmp(name_slice->ptr + len - block_suffix_len, block_suffix, block_suffix_len) == 0;
+  if (has_block_suffix) len -= block_suffix_len;
+
+  int pos = ((int) len) - 1;
 
   // Let's match on something__number_number:
   // Find start of id suffix from the end...
@@ -574,7 +592,12 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   if (pos > 1 && name_slice->ptr[pos-1] == '_') pos--;
 
   // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
-  name_slice->len = pos;
+  if (has_block_suffix) {
+    memcpy((char *) name_slice->ptr + pos, block_suffix, block_suffix_len);
+    name_slice->len = pos + block_suffix_len;
+  } else {
+    name_slice->len = pos;
+  }
 }
 
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
