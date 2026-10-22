@@ -22,7 +22,7 @@ def sentence_count(content)
   text = content.gsub(/`[^`]*`/, "code")
     .gsub(/\.{3,}/, "\u2026")
     .gsub(/\b(?:e\.g|i\.e|etc|vs|approx|Mr|Mrs|Dr|Inc|Ltd)\./, "abbr")
-  text.split(/[.!?]+(?=\s|\z|["')\]])/).count { |sentence| !sentence.strip.empty? }
+  text.split(/[.!?]+["')\]]*(?=\s|\z)/).count { |sentence| !sentence.strip.empty? }
 end
 
 def check_body(body)
@@ -34,6 +34,7 @@ def check_body(body)
   stripped.each_line do |line|
     if (match = line.match(/\A###\s+(\S+)\s*\z/))
       current = match[1]
+      return ["duplicate field '### #{current}'"] if sections.key?(current)
       sections[current] = +""
     elsif current
       sections[current] << line
@@ -84,6 +85,8 @@ def self_test
     "code spans do not split" => ["The clock in `serializer.rb` reads CPU time. Revert.", 2],
     "sentence ends inside quotes" => ["He said \"stop.\" Then we merged.", 2],
     "sentence ends inside parens" => ["(See the docs.) Then it worked.", 2],
+    "closing quote at field end" => ["He said \"merge it.\"", 1],
+    "closing paren at field end" => ["Scoped to DI. (Revert restores the old clock.)", 2],
     "ellipsis does not split" => ["Wait... then merge. Two-way door.", 2],
     "three real sentences" => ["One. Two. Three.", 3],
     "empty content" => ["", 0]
