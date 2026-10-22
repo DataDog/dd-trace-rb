@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6543",
+  "message": "Fix the \"no signals\" workaround being enabled when `mysql2` uses MariaDB Connector/C 3.x."
+}

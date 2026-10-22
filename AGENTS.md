@@ -171,7 +171,7 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 
 - Push branches to `DataDog/dd-trace-rb`, not forks.
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
-- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions. Follow the write-pull-request skill (`.agents/skills/write-pull-request/`).
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
 - Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
 - Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
