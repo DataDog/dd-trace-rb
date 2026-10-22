@@ -178,6 +178,20 @@ RSpec.describe Datadog::AppSec::Remote do
           expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
         end
 
+        context "the initial reconcile (Dispatcher#reconcile on the client's first targets-bearing sync)" do
+          let(:dispatcher) { Datadog::Core::Remote::Dispatcher.new([receiver]) }
+
+          it "leaves the AppSec receiver uncalled, preserving the initialized ruleset version" do
+            initialized_ruleset_version = appsec_component.security_engine.new_runner.ruleset_version
+
+            expect(Datadog::AppSec).not_to receive(:reconfigure!)
+
+            dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+            expect(appsec_component.security_engine.new_runner.ruleset_version).to eq(initialized_ruleset_version)
+          end
+        end
+
         context "when the ASM_DD ruleset path changes" do
           let(:rules_v2) do
             {

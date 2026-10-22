@@ -396,7 +396,8 @@ RSpec.describe Datadog::Core::Remote::Client do
 
       let(:test_receiver) do
         Datadog::Core::Remote::Dispatcher::Receiver.new(
-          Datadog::Core::Remote::Dispatcher::Matcher::Product.new(receiver_products)
+          Datadog::Core::Remote::Dispatcher::Matcher::Product.new(receiver_products),
+          initial_reconcile: true
         ) { |_repository, changes| invocations << changes }
       end
 

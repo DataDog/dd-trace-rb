@@ -29,17 +29,24 @@ module Datadog
           end
         end
 
-        # Calls each receiver that has no matching change in `changes`,
-        # passing it an empty change list, so that the receiver acts on the
-        # current repository contents.
+        # Calls each receiver that declares initial-reconcile participation
+        # and has no matching change in `changes`, passing it an empty change
+        # list, so that the receiver acts on the current repository contents.
         #
         # A new client starts with an empty repository. When the backend
         # removed a config before the client was created, the client's first
         # sync produces no delete change for that config, and #dispatch does
-        # not call the receiver for that config's product. Calling the
-        # receiver here lets it detect that the config was removed.
+        # not call the receiver for that config's product. Calling a
+        # participating receiver here lets it detect that the config was
+        # removed. Receivers that act on the change list alone (they skip an
+        # empty call as a no-op or perform actions unrelated to the contents)
+        # do not participate: the initial reconcile is opt-in so that an
+        # empty-change call reaches only receivers that act on repository
+        # contents.
         def reconcile(changes, repository)
           receivers.each do |receiver|
+            next unless receiver.initial_reconcile?
+
             receiver.call(repository, []) if matching_changes(changes, receiver).empty?
           end
           nil
@@ -53,13 +60,22 @@ module Datadog
 
         # Store Matcher and block to be executed on a match
         class Receiver
-          def initialize(matcher, &block)
+          def initialize(matcher, initial_reconcile: false, &block)
             @block = block
+            @initial_reconcile = initial_reconcile
             @matcher = matcher
           end
 
           def match?(path)
             @matcher.match?(path)
+          end
+
+          # Whether #reconcile may call this receiver with an empty change
+          # list on the client's first sync. A participating receiver must
+          # act on the repository's current contents when the change list is
+          # empty.
+          def initial_reconcile?
+            @initial_reconcile
           end
 
           def call(repository, changes)

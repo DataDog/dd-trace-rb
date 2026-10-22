@@ -297,7 +297,7 @@ module Datadog
 
         def receiver(products = [PRODUCT], &block)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
-          [Core::Remote::Dispatcher::Receiver.new(matcher, &block)]
+          [Core::Remote::Dispatcher::Receiver.new(matcher, initial_reconcile: true, &block)]
         end
 
         private
