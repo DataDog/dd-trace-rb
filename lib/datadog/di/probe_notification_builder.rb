@@ -381,7 +381,6 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
-            version: 2,
           },
           runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
