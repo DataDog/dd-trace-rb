@@ -474,15 +474,18 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         expect(diagnostics["ruleset_version"]).to eq("1.0.0")
       end
 
-      it "falls back when the processor section fails to load" do
+      it "reloads default rules without conflicts when the processor section fails to load" do
+        appsec_settings.ruleset = asm_dd_config
+
         expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
 
         diagnostics = engine.add_or_update_config(
-          {processors: ""},
+          asm_dd_config.merge(processors: ""),
           path: "datadog/603646/ASM_DD/latest/config",
         )
 
-        expect(diagnostics.dig("rules", "loaded")).not_to be_empty
+        expect(diagnostics.dig("rules", "loaded")).to eq(%w[rasp-003-001])
+        expect(diagnostics.dig("rules", "errors")).to be_empty
       end
 
       it "removes default config before adding new config" do
