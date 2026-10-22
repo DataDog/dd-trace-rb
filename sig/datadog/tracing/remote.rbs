@@ -20,7 +20,7 @@ module Datadog
 
       def self.merge_lib_configs: (::Array[::Hash[::String, untyped]] configs_most_specific_first) -> ::Hash[::String, untyped]
 
-      def self.apply_lib_config: (::Hash[::String, untyped] lib_config, Core::Remote::Configuration::Repository? repository, all_contents_parsed: bool) -> void
+      def self.apply_lib_config: (::Hash[::String, untyped] lib_config, Core::Remote::Configuration::Repository? repository, unparseable_contents: ::Array[Core::Remote::Configuration::Content], enable_signal_paths: ::Array[Core::Remote::Configuration::Path]) -> void
 
       def self.receivers: (Datadog::Core::Telemetry::Component) -> ::Array[Core::Remote::Dispatcher::Receiver]
 

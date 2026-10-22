@@ -477,6 +477,45 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe "#rc_enablement_signal_paths" do
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.dynamic_instrumentation.internal.development = true
+        s.remote.enabled = true
+      end
+    end
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    before { allow(logger).to receive(:debug) }
+
+    after { component&.shutdown! }
+
+    it "starts empty before any RC enablement merge" do
+      expect(component.rc_enablement_signal_paths).to eq([])
+    end
+
+    it "returns the recorded paths, replacing the previous value" do
+      org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
+      svc_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
+
+      component.record_rc_enablement_signal_paths([org_path])
+      component.record_rc_enablement_signal_paths([svc_path])
+
+      expect(component.rc_enablement_signal_paths).to eq([svc_path])
+    end
+
+    it "stores a copy of the recorded array" do
+      org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
+      paths = [org_path]
+      component.record_rc_enablement_signal_paths(paths)
+      paths << Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
+
+      expect(component.rc_enablement_signal_paths).to eq([org_path])
+    end
+  end
+
   describe "@lifecycle_mutex serialization" do
     # The mutex serializes start!, stop!, and shutdown! so concurrent RC
     # callbacks (which run on the remote-config worker thread) cannot race

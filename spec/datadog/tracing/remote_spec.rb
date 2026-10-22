@@ -162,7 +162,9 @@ RSpec.describe Datadog::Tracing::Remote do
         end
         # handle_rc_enablement (isolated here) is what actually starts DI; expose
         # a component whose started? state the individual contexts control.
-        let(:di_component) { instance_double(Datadog::DI::Component, started?: true) }
+        let(:di_component) do
+          instance_double(Datadog::DI::Component, started?: true, record_rc_enablement_signal_paths: nil)
+        end
 
         before do
           # Isolate the Symbol Database replay wiring from DI's own enablement.
@@ -180,11 +182,12 @@ RSpec.describe Datadog::Tracing::Remote do
           let(:config) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
           context "and the DI component started" do
-            it "replays deferred Symbol Database upload and advertises the DI products" do
+            it "replays deferred Symbol Database upload, advertises the DI products, and records the signal path" do
               expect(symbol_database).to receive(:resume_pending_upload)
               expect(symbol_database).not_to receive(:stop_for_di_disable)
               expect(remote_component).to receive(:add_products)
                 .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+              expect(di_component).to receive(:record_rc_enablement_signal_paths).with([content.path])
 
               apply_configs
 
@@ -227,7 +230,13 @@ RSpec.describe Datadog::Tracing::Remote do
 
           context "and DI was started solely from RC enablement (implicitly_enabled?)" do
             let(:di_component) do
-              instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: true)
+              instance_double(
+                Datadog::DI::Component,
+                started?: true,
+                implicitly_enabled?: true,
+                rc_enablement_signal_paths: [],
+                record_rc_enablement_signal_paths: nil,
+              )
             end
 
             it "treats the withdrawal as false: stops DI, withdraws products, stops Symbol Database" do
@@ -236,6 +245,7 @@ RSpec.describe Datadog::Tracing::Remote do
               expect(symbol_database).not_to receive(:resume_pending_upload)
               expect(remote_component).to receive(:remove_products)
                 .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+              expect(di_component).to receive(:record_rc_enablement_signal_paths).with([])
 
               apply_configs
 
@@ -564,13 +574,27 @@ RSpec.describe Datadog::Tracing::Remote do
           }
         )
       end
+      # The path of a config that supplied the applied enable signal but is absent
+      # from the merge under test (deleted, or replaced by the failed content).
+      let(:deleted_signal_config_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/enable_signal/lib_config")
+      end
       let(:symbol_database) do
         instance_double(Datadog::SymbolDatabase::Component, resume_pending_upload: nil, stop_for_di_disable: nil)
       end
       let(:remote_component) do
         instance_double(Datadog::Core::Remote::Component, add_products: nil, remove_products: nil)
       end
-      let(:di_component) { instance_double(Datadog::DI::Component, started?: true, implicitly_enabled?: true) }
+      let(:recorded_signal_paths) { [failed.path] }
+      let(:di_component) do
+        instance_double(
+          Datadog::DI::Component,
+          started?: true,
+          implicitly_enabled?: true,
+          rc_enablement_signal_paths: recorded_signal_paths,
+          record_rc_enablement_signal_paths: nil,
+        )
+      end
 
       before do
         components = Datadog.send(:components)
@@ -578,6 +602,8 @@ RSpec.describe Datadog::Tracing::Remote do
         allow(components).to receive(:remote).and_return(remote_component)
         allow(components).to receive(:dynamic_instrumentation).and_return(di_component)
         allow(components.telemetry).to receive(:report)
+        allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products)
+          .and_return(["LIVE_DEBUGGING_SYMBOL_DB"])
       end
 
       shared_examples "keeps the DI state" do
@@ -585,6 +611,7 @@ RSpec.describe Datadog::Tracing::Remote do
           expect(Datadog::DI::Remote).not_to receive(:handle_rc_enablement)
           expect(symbol_database).not_to receive(:stop_for_di_disable)
           expect(remote_component).not_to receive(:remove_products)
+          expect(di_component).not_to receive(:record_rc_enablement_signal_paths)
 
           remote.merge_and_apply_configs(repository)
 
@@ -592,34 +619,62 @@ RSpec.describe Datadog::Tracing::Remote do
         end
       end
 
-      context "and it is the only config, holding malformed JSON" do
-        let(:failed) { malformed_json }
-        let(:contents) { [failed] }
+      context "and it replaced the config that carried the enable signal" do
+        context "holding malformed JSON as the only config" do
+          let(:failed) { malformed_json }
+          let(:contents) { [failed] }
 
-        include_examples "keeps the DI state"
-      end
-
-      context "and it is the only config, holding a non-object lib_config" do
-        let(:failed) { build_content("bad_lib_config", {"lib_config" => []}) }
-        let(:contents) { [failed] }
-
-        include_examples "keeps the DI state"
-      end
-
-      context "and a valid config without dynamic_instrumentation_enabled is also present" do
-        let(:valid) do
-          build_content("org", {"service_target" => {"service" => "*", "env" => "*"},
-                              "lib_config" => {"log_injection_enabled" => false}})
+          include_examples "keeps the DI state"
         end
+
+        context "holding a non-object lib_config as the only config" do
+          let(:failed) { build_content("bad_lib_config", {"lib_config" => []}) }
+          let(:contents) { [failed] }
+
+          include_examples "keeps the DI state"
+        end
+
+        context "while a valid config without dynamic_instrumentation_enabled is also present" do
+          let(:valid) do
+            build_content("org", {"service_target" => {"service" => "*", "env" => "*"},
+                                "lib_config" => {"log_injection_enabled" => false}})
+          end
+          let(:failed) { malformed_json }
+          let(:contents) { [valid, failed] }
+
+          include_examples "keeps the DI state"
+
+          it "marks the valid config applied" do
+            remote.merge_and_apply_configs(repository)
+
+            expect(valid.apply_state).to eq(2)
+          end
+        end
+      end
+
+      context "and the component holds no recorded signal paths (an enablement that predates the path recording)" do
+        let(:recorded_signal_paths) { [] }
         let(:failed) { malformed_json }
-        let(:contents) { [valid, failed] }
+        let(:contents) { [failed] }
 
         include_examples "keeps the DI state"
+      end
 
-        it "marks the valid config applied" do
+      context "and it replaced a config that never carried the enable signal" do
+        let(:recorded_signal_paths) { [deleted_signal_config_path] }
+        let(:failed) { malformed_json }
+        let(:contents) { [failed] }
+
+        it "treats the withdrawal as false: stops DI, withdraws products, and clears the recorded paths" do
+          expect(Datadog::DI::Remote).to receive(:handle_rc_enablement).with(false, repository)
+          expect(symbol_database).to receive(:stop_for_di_disable)
+          expect(remote_component).to receive(:remove_products)
+            .with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+          expect(di_component).to receive(:record_rc_enablement_signal_paths).with([])
+
           remote.merge_and_apply_configs(repository)
 
-          expect(valid.apply_state).to eq(2)
+          expect(failed.apply_state).to eq(3)
         end
       end
     end

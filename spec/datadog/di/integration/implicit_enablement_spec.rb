@@ -606,6 +606,44 @@ RSpec.describe "DI implicit enablement integration" do
     end
   end
 
+  describe "RC withdraws the enable signal while an unrelated APM_TRACING config fails to parse" do
+    # The enable config (deleted) and the malformed config hold different
+    # paths: the malformed config never supplied the signal, so its parse
+    # failure does not mask the withdrawal and the component stops.
+    let(:malformed_unrelated) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/1/APM_TRACING/unrelated/lib_config",
+          content: "{not json",
+        }
+      )
+    end
+    let(:repository) do
+      instance_double(
+        Datadog::Core::Remote::Configuration::Repository,
+        contents: [malformed_unrelated],
+      )
+    end
+
+    before do
+      allow(Datadog::DI).to receive(:activate_tracking)
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      allow(telemetry).to receive(:report)
+    end
+
+    it "stops the component and withdraws the DI products, marking the unrelated config errored" do
+      apply_rc_payload({"lib_config" => {"dynamic_instrumentation_enabled" => true}})
+      expect(component.started?).to be true
+
+      expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(repository)
+
+      expect(component.started?).to be false
+      expect(malformed_unrelated.apply_state).to eq(3)
+    end
+  end
+
   describe "RC withdraws the enable signal while no client holds it (fresh client)" do
     # A fresh RC client — after a Datadog.configure rebuild, a sync-error
     # client replacement, or a fork — starts with an empty repository, so a

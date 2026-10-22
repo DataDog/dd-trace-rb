@@ -122,6 +122,7 @@ module Datadog
         # cannot race a foreground start! with a background stop!.
         @lifecycle_mutex = Mutex.new
         @started = false
+        @rc_enablement_signal_paths = []
       end
 
       attr_reader :settings
@@ -218,6 +219,31 @@ module Datadog
       #   left the enabled setting at its default
       def implicitly_enabled?
         started? && @settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
+      # The repository paths of the APM_TRACING remote-config contents that
+      # supplied the dynamic_instrumentation_enabled value at the last merge
+      # where the field was present.
+      #
+      # Tracing::Remote's withdrawal branch reads this: a content that fails
+      # to parse at one of these paths is a failed replacement that may still
+      # carry the enable signal, so the field's absence then shows no
+      # withdrawal. The state lives on the component so that a fresh RC client
+      # (after a fork or a sync-error replacement) consults the same paths its
+      # predecessor recorded, and a rebuilt component starts with none.
+      #
+      # @return [Array[Core::Remote::Configuration::Path]] the paths of the
+      #   configs that supplied the last present enablement value
+      attr_reader :rc_enablement_signal_paths
+
+      # Records the repository paths of the APM_TRACING configs that supplied
+      # a present dynamic_instrumentation_enabled value at the current merge.
+      #
+      # @param paths [Array[Core::Remote::Configuration::Path]] the carrier
+      #   paths, empty when the merged field was absent
+      # @return [void]
+      def record_rc_enablement_signal_paths(paths)
+        @rc_enablement_signal_paths = paths.dup
       end
 
       # Shuts down dynamic instrumentation permanently.
