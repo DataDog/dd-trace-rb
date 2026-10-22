@@ -427,33 +427,35 @@ module Datadog
         end
       end
 
-      # To add just a bit more complexity to our detection code, in https://github.com/DataDog/dd-trace-rb/issues/3334
-      # a user reported that our code was incorrectly flagging the mariadb variant of libmysqlclient as being
-      # incompatible. In fact we have no reports of the mariadb variant needing the "no signals" workaround,
-      # so we flag it as compatible when it's in use.
+      # MariaDB's client has diverged from Oracle's and has no reported need for the "no signals" workaround, as
+      # reported in https://github.com/DataDog/dd-trace-rb/issues/3334, so we flag it as compatible when it's in use.
       #
-      # A problem is that there doesn't seem to be an obvious way to query the mysql2 gem on which kind of
-      # libmysqlclient it's using, so we detect it by looking at the version.
+      # There's no way to ask the mysql2 gem which client it was built against, so we infer it from the two versions
+      # that `Mysql2::Client.info` exposes:
       #
-      # The info method for mysql2 with mariadb looks something like this:
-      # `{:id=>30308, :version=>"3.3.8", :header_version=>"11.2.2"}`
+      # * `version` is `mysql_get_client_info()`. For MariaDB that's the version of
+      #   https://github.com/mariadb-corporation/mariadb-connector-c, which is still 3.x.
+      # * `header_version` is a constant baked in when mysql2 was compiled. Up to mysql2 0.5.6 it was the MariaDB
+      #   server version, which is what people usually call "the mariadb version"; 0.5.7 switched it to the
+      #   Connector/C version (https://github.com/brianmario/mysql2/pull/1406) and that broke our detection, as
+      #   reported in https://github.com/DataDog/dd-trace-rb/issues/6536.
       #
-      # * The version seems to come from https://github.com/mariadb-corporation/mariadb-connector-c and the latest
-      # one is 3.x.
-      # * The header_version is what people usually see as the "mariadb version"
+      # So MariaDB shows up as `{version: "3.3.8", header_version: "11.2.2"}` with mysql2 < 0.5.7 and as
+      # `{version: "3.4.9", header_version: "3.4.9"}` from 0.5.7 on. We accept both shapes: a header that is a server
+      # version (10 or newer, a sane range for modern releases per https://endoflife.date/mariadb) or one that is a
+      # Connector/C version (3.x, matching the client version).
       #
-      # As a comparison, for libmysql the info looks like:
-      # * `{:id=>80035, :version=>"8.0.35", :header_version=>"8.0.35"}`
-      #
-      # Thus our detection is version 4 or older, because libmysqlclient 4 is almost 20 years old so it's most probably
-      # not that one + header_version being 10 or newer, since according to https://endoflife.date/mariadb that's a
-      # sane range for modern mariadb releases.
+      # Oracle's client repeats one version in both fields (`{version: "8.0.35", header_version: "8.0.35"}`), and our
+      # caller already considers 8.0.0 and above compatible, so only a client older than 5.0.0 gets this far -- and
+      # no Oracle release has been one since libmysqlclient 4.1, which is from 2004.
       private_class_method def self.looks_like_mariadb?(info, libmysqlclient_version)
         header_version = Gem::Version.new(info[:header_version]) if info[:header_version]
 
-        !!(header_version &&
-          libmysqlclient_version < Gem::Version.new("5.0.0") &&
-          header_version >= Gem::Version.new("10.0.0"))
+        return false unless header_version && libmysqlclient_version < Gem::Version.new("5.0.0")
+        return true if header_version >= Gem::Version.new("10.0.0")
+
+        connector_c_versions = Gem::Requirement.new(">= 3.0.0", "< 4.0.0")
+        connector_c_versions.satisfied_by?(libmysqlclient_version) && connector_c_versions.satisfied_by?(header_version)
       end
 
       private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
