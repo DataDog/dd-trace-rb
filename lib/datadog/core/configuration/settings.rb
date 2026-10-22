@@ -646,10 +646,12 @@ module Datadog
             end
 
             # Whether the profiler samples include the class/module name in stack frames, like `Foo::Bar#baz`, or not (`baz`)
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED` environment variable as a boolean, otherwise `true`
             option :experimental_show_classes_enabled do |o|
               o.type :bool
               o.env "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED"
-              o.default false
+              o.default true
             end
           end
 
