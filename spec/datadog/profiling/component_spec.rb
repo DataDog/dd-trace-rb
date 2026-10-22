@@ -979,36 +979,57 @@ RSpec.describe Datadog::Profiling::Component do
               end
             end
 
-            # See comments on looks_like_mariadb? for details on how this matching works
-            context "when mysql2 gem is linked to mariadb's version of libmysqlclient" do
-              before do
-                fake_client = double("Fake Mysql2::Client")
-                stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_return({version: "4.9.99", header_version: "10.0.0"})
-              end
+            [
+              {version: "4.9.99", header_version: "10.0.0"},
+              {id: 30308, version: "3.3.8", header_version: "11.2.2"},
+              {id: 30409, version: "3.4.9", header_version: "3.4.9"},
+              {version: "3.0.0", header_version: "3.0.0"},
+              {version: "3.4.9", header_version: "3.3.8"},
+            ].each do |info|
+              context "when mysql2 gem is linked to MariaDB with client info #{info}" do
+                before do
+                  fake_client = double("Fake Mysql2::Client")
+                  stub_const("Mysql2::Client", fake_client)
+                  expect(fake_client).to receive(:info).and_return(info)
+                end
 
-              it { is_expected.to be false }
+                it { is_expected.to be false }
 
-              it "does not log any warning message" do
-                expect(logger).to_not receive(:warn)
+                it "does not log any warning message" do
+                  expect(logger).to_not receive(:warn)
 
-                no_signals_workaround_enabled?
+                  no_signals_workaround_enabled?
+                end
               end
             end
 
-            context "when mysql2 gem is using a version of libmysqlclient < 8.0.0" do
-              before do
-                fake_client = double("Fake Mysql2::Client")
-                stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_return({version: "7.9.9"})
-              end
+            [
+              {version: "4.1.22", header_version: "4.1.22"},
+              {version: "5.5.62", header_version: "5.5.62"},
+              {version: "5.7.44", header_version: "5.7.44"},
+              {version: "7.9.9"},
+              {version: "5.7.44", header_version: "10.0.0"},
+              {version: "4.1.22", header_version: "3.4.9"},
+              {version: "2.9.99", header_version: "3.4.9"},
+              {version: "3.4.9", header_version: "4.0.0"},
+              {version: "3.4.9", header_version: "2.9.99"},
+              {version: "3.4.9"},
+              {version: "3.4.9", header_version: nil},
+            ].each do |info|
+              context "when mysql2 gem uses incompatible or unrecognized client info #{info}" do
+                before do
+                  fake_client = double("Fake Mysql2::Client")
+                  stub_const("Mysql2::Client", fake_client)
+                  expect(fake_client).to receive(:info).and_return(info)
+                end
 
-              it { is_expected.to be true }
+                it { is_expected.to be true }
 
-              it "logs a warning message mentioning that the no signals workaround is going to be used" do
-                expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+                it "logs a warning message mentioning that the no signals workaround is going to be used" do
+                  expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-                no_signals_workaround_enabled?
+                  no_signals_workaround_enabled?
+                end
               end
             end
 

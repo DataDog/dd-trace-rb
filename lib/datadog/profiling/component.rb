@@ -427,33 +427,19 @@ module Datadog
         end
       end
 
-      # To add just a bit more complexity to our detection code, in https://github.com/DataDog/dd-trace-rb/issues/3334
-      # a user reported that our code was incorrectly flagging the mariadb variant of libmysqlclient as being
-      # incompatible. In fact we have no reports of the mariadb variant needing the "no signals" workaround,
-      # so we flag it as compatible when it's in use.
-      #
-      # A problem is that there doesn't seem to be an obvious way to query the mysql2 gem on which kind of
-      # libmysqlclient it's using, so we detect it by looking at the version.
-      #
-      # The info method for mysql2 with mariadb looks something like this:
-      # `{:id=>30308, :version=>"3.3.8", :header_version=>"11.2.2"}`
-      #
-      # * The version seems to come from https://github.com/mariadb-corporation/mariadb-connector-c and the latest
-      # one is 3.x.
-      # * The header_version is what people usually see as the "mariadb version"
-      #
-      # As a comparison, for libmysql the info looks like:
-      # * `{:id=>80035, :version=>"8.0.35", :header_version=>"8.0.35"}`
-      #
-      # Thus our detection is version 4 or older, because libmysqlclient 4 is almost 20 years old so it's most probably
-      # not that one + header_version being 10 or newer, since according to https://endoflife.date/mariadb that's a
-      # sane range for modern mariadb releases.
+      # MariaDB's client has diverged from Oracle's and has no reported need for the "no signals" workaround:
+      # https://github.com/DataDog/dd-trace-rb/issues/3334
+      # mysql2 doesn't expose the client vendor, so we infer it from the version information.
+      # MariaDB headers can report either a server version (10.x/11.x) or a Connector/C version (3.x):
+      # https://github.com/DataDog/dd-trace-rb/issues/6536
       private_class_method def self.looks_like_mariadb?(info, libmysqlclient_version)
         header_version = Gem::Version.new(info[:header_version]) if info[:header_version]
 
-        !!(header_version &&
-          libmysqlclient_version < Gem::Version.new("5.0.0") &&
-          header_version >= Gem::Version.new("10.0.0"))
+        return false unless header_version && libmysqlclient_version < Gem::Version.new("5.0.0")
+        return true if header_version >= Gem::Version.new("10.0.0")
+
+        connector_c_versions = Gem::Requirement.new(">= 3.0.0", "< 4.0.0")
+        connector_c_versions.satisfied_by?(libmysqlclient_version) && connector_c_versions.satisfied_by?(header_version)
       end
 
       private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
