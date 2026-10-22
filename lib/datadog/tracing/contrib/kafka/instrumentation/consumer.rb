@@ -43,16 +43,14 @@ module Datadog
                   Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
                   batch.messages.each do |message|
-                    begin
-                      headers = message.headers || {}
-                      Datadog::DataStreams.set_consume_checkpoint(
-                        type: "kafka",
-                        source: batch.topic,
-                        auto_instrumentation: true
-                      ) { |key| headers[key] }
-                    rescue => e
-                      Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
-                    end
+                    headers = message.headers || {}
+                    Datadog::DataStreams.set_consume_checkpoint(
+                      type: "kafka",
+                      source: batch.topic,
+                      auto_instrumentation: true
+                    ) { |key| headers[key] }
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
                   end
 
                   yield(batch) if block
