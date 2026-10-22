@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6543",
+  "message": "Fix the profiler enabling the \"no signals\" workaround, with an incompatible `mysql2` warning and lower-quality profiles, when `mysql2` is built against MariaDB Connector/C 3.x, such as on Debian Trixie."
+}
