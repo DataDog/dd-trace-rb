@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     )
   end
   let(:transport) { instance_double(Datadog::OpenFeature::Agentless::Transport) }
-  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil, debug: nil, debug?: true) }
   let(:apply) { ->(_configuration) {} }
   let(:random) { -> { 0.5 } }
   let(:retry_wait) { ->(_delay) { false } }
@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       source.poll
 
       expect(logger).to have_received(:warn)
-        .with("Feature Flags agentless endpoint returned HTTP 500 after 3 attempt(s)").once
+        .with("Feature Flags agentless endpoint returned HTTP 500 after 3 attempt(s); previous configuration, if any, remains active; next poll in 30s").once
       expect(logger).to have_received(:warn)
         .with("Feature Flags agentless endpoint returned HTTP 404 after 1 attempt(s)").once
     end
@@ -200,7 +200,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     end
 
     it "retries through each response outcome with debug logging enabled" do
-      allow(logger).to receive(:debug) { |&block| block.call }
+      allow(logger).to receive(:debug) { |message| message }
       allow(transport).to receive(:get).and_return(
         response(status: nil, error: SocketError.new),
         response(status: 503),
@@ -211,6 +211,83 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
 
       expect(transport).to have_received(:get).exactly(3).times
       expect(logger).not_to have_received(:error)
+    end
+
+    context "with debug logging enabled" do
+      let(:debug_messages) { [] }
+
+      before { allow(logger).to receive(:debug) { |message| debug_messages << message } }
+
+      it "logs the ETag of a received configuration" do
+        allow(transport).to receive(:get).and_return(response(status: 200, etag: '"v42"', body: body))
+
+        source.poll
+
+        expect(debug_messages).to eq(['Feature Flags: agentless configuration poll attempt 1/3 returned HTTP 200 (ETag "v42")'])
+      end
+
+      it "logs every ignored malformed payload" do
+        allow(transport).to receive(:get).and_return(response(status: 200, body: "{"))
+
+        2.times { source.poll }
+
+        expect(debug_messages.grep(/ignored malformed/)).to eq(
+          ["Feature Flags: ignored malformed agentless configuration payload; " \
+            "the previously applied configuration, if any, stays active"] * 2
+        )
+      end
+
+      it "logs when polling stops" do
+        source.stop
+
+        expect(debug_messages).to eq(["Feature Flags: stopped agentless configuration polling"])
+      end
+
+      it "logs repeated terminal failures at debug after the first warning" do
+        allow(transport).to receive(:get).and_return(response(status: 500))
+        message = "Feature Flags agentless endpoint returned HTTP 500 after 3 attempt(s); " \
+          "previous configuration, if any, remains active; next poll in 30s"
+
+        2.times { source.poll }
+
+        expect(logger).to have_received(:warn).with(message).once
+        expect(debug_messages.count(message)).to eq(1)
+      end
+
+      it "logs recovery once after failed polls" do
+        allow(transport).to receive(:get).and_return(
+          response(status: 404),
+          response(status: 401),
+          response(status: 304),
+          response(status: 304),
+        )
+
+        4.times { source.poll }
+
+        expect(debug_messages.grep(/recovered/)).to eq(
+          ["Feature Flags: agentless configuration delivery recovered after 2 failed poll(s)"]
+        )
+      end
+    end
+
+    context "when the logger fails" do
+      before { allow(logger).to receive(:debug).and_raise(IOError, "closed stream") }
+
+      it "still applies the configuration and advances the ETag" do
+        allow(transport).to receive(:get).and_return(response(status: 200, etag: "next", body: body))
+        expect(apply).to receive(:call).with(JSON.generate(attributes))
+
+        expect { source.poll }.to change(source, :etag).from(nil).to("next")
+        expect(logger).not_to have_received(:error)
+      end
+
+      it "still retries" do
+        allow(transport).to receive(:get).and_return(response(status: 503), response(status: 304))
+
+        source.poll
+
+        expect(transport).to have_received(:get).twice
+      end
     end
   end
 

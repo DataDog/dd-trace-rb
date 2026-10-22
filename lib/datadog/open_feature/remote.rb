@@ -19,7 +19,7 @@ module Datadog
           FFE_PRODUCTS
         end
 
-        def receivers(telemetry, component_provider:)
+        def receivers(telemetry, component_provider:, logger: Datadog.logger)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             component = component_provider.call
@@ -27,8 +27,25 @@ module Datadog
 
             changes.each do |change|
               content = repository[change.path]
+              begin
+                if logger.debug?
+                  version = content ? " (version #{content.version})" : ""
+                  logger.debug("Feature Flags: received Remote Configuration #{change.type} for #{change.path}#{version}")
+                end
+              rescue
+                nil
+              end
 
               unless content || change.type == :delete
+                begin
+                  if logger.debug?
+                    logger.debug(
+                      "Feature Flags: ignored Remote Configuration #{change.type} for #{change.path}: content is missing"
+                    )
+                  end
+                rescue
+                  nil
+                end
                 next telemetry.error("OpenFeature: Remote Configuration change is not present on #{change.type}")
               end
 

@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, register: nil, start: nil) }
-  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, debug: nil, debug?: true) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
   let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
@@ -139,10 +139,11 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
 
     it "starts agentless delivery with debug logging enabled" do
-      allow(logger).to receive(:debug) { |&block| block.call }
+      allow(logger).to receive(:debug) { |message| message }
 
       expect(activation.activate(provider)).to be(component)
       expect(configuration_source).to have_received(:start).once
+      expect(logger).to have_received(:debug).with(include("sdk_env=unset, requested_env=unset"))
     end
 
     context "with a custom endpoint and debug logging enabled" do
@@ -154,10 +155,12 @@ RSpec.describe Datadog::OpenFeature::Activation do
       end
 
       it "starts agentless delivery" do
-        allow(logger).to receive(:debug) { |&block| block.call }
+        settings.env = "production"
+        allow(logger).to receive(:debug) { |message| message }
 
         expect(activation.activate(provider)).to be(component)
         expect(configuration_source).to have_received(:start).once
+        expect(logger).to have_received(:debug).with(include("sdk_env=production, requested_env=not sent (custom endpoint)"))
       end
     end
 
@@ -201,6 +204,17 @@ RSpec.describe Datadog::OpenFeature::Activation do
         ).once
         expect(remote).to have_received(:start).once
         expect(configuration_source).not_to have_received(:start)
+      end
+
+      it "logs the SDK environment when Remote Configuration starts" do
+        settings.env = "production"
+
+        activation.start!
+
+        expect(logger).to have_received(:debug).with(
+          "Feature Flags: started Remote Configuration source (sdk_env=production); " \
+            "configuration arrives through the Datadog Agent"
+        )
       end
 
       it "reuses eager delivery when the provider is adopted" do

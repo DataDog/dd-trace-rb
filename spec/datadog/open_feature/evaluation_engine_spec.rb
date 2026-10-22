@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true, warn: nil) }
   let(:evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
   let(:observe_full_evaluation_data_key) do
     Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA
@@ -134,6 +134,21 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.reason).to eq("ERROR")
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
+
+      it "logs the raw failure after the raw-data warning" do
+        messages = []
+        allow(logger).to receive(:warn) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message| messages << message }
+
+        result
+
+        expect(messages).to eq(
+          [
+            described_class::RAW_DATA_WARNING,
+            'Feature Flags: provider failed to resolve "test": RuntimeError: Crash; returning the default value',
+          ]
+        )
+      end
     end
 
     context "when the evaluator changes while an error is returned" do
@@ -238,6 +253,58 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
 
+      it "logs the raw provider resolution while debug logging is enabled" do
+        allow(reporter).to receive(:report)
+        messages = []
+        allow(logger).to receive(:debug) { |message| messages << message }
+
+        result
+
+        expect(messages).to include(
+          'Feature Flags: provider resolved "test": type=string, value="hello", variant="blue", ' \
+            'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil'
+        )
+      end
+
+      it "returns the resolution when the logger fails" do
+        allow(reporter).to receive(:report)
+        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
+
+        expect(result.value).to eq("hello")
+      end
+
+      it "warns once about raw evaluation data before the first raw provider resolution" do
+        allow(reporter).to receive(:report)
+        messages = []
+        allow(logger).to receive(:warn) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message| messages << message }
+        resolution_message = 'Feature Flags: provider resolved "test": type=string, value="hello", variant="blue", ' \
+          'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil'
+
+        2.times do
+          engine.fetch_value("test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context)
+        end
+
+        expect(messages).to eq(
+          [
+            "Feature Flags: debug logging is enabled, so feature flag logs include raw evaluation data " \
+              "(targeting keys, evaluation context attributes, flag values, and default values) that may contain " \
+              "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it.",
+            resolution_message,
+            resolution_message,
+          ]
+        )
+      end
+
+      it "does not warn about raw evaluation data while debug logging is disabled" do
+        allow(reporter).to receive(:report)
+        allow(logger).to receive(:debug?).and_return(false)
+
+        result
+
+        expect(logger).not_to have_received(:warn)
+      end
+
       it "stamps an enabled policy from the evaluator" do
         allow(evaluator).to receive(:observe_full_evaluation_data).and_return(true)
         expect(reporter).to receive(:report)
@@ -248,6 +315,23 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe "#reconfigure!" do
+    [true, false].each do |include_valid|
+      it "accepts invalid flags alongside #{include_valid ? "valid flags" : "no valid flags"} and reports per-flag errors" do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
+        allow(reporter).to receive(:report)
+        payload = JSON.parse(configuration)
+        payload["flags"].clear unless include_valid
+        payload["flags"]["invalid"] = {}
+        engine.reconfigure!(JSON.generate(payload))
+        result = engine.fetch_value("invalid", default_value: "fallback", expected_type: :string)
+        expect(result.value).to eq("fallback")
+        expect(result.error_code).to eq("PARSE_ERROR")
+        if include_valid
+          expect(engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string).value).to eq("hello")
+        end
+      end
+    end
+
     context "when configuration is not yet present" do
       it "does nothing and logs the issue" do
         expect(logger).to receive(:debug)
@@ -257,12 +341,23 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     end
 
     context "with debug logging enabled" do
-      before { allow(logger).to receive(:debug) { |&block| block.call } }
+      before { allow(logger).to receive(:debug) { |message| message } }
 
       it "applies the configuration" do
         expect { engine.reconfigure!(configuration) }.not_to raise_error
 
         expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
+      end
+
+      it "summarizes the applied configuration" do
+        messages = []
+        allow(logger).to receive(:debug) { |message| messages << message }
+
+        engine.reconfigure!(configuration)
+
+        expect(messages).to eq(
+          ["Feature Flags: configuration applied (1 flag(s) received; per-flag validity is checked at evaluation, delivered_env=test, created_at=2024-04-17T19:40:53.716Z)"]
+        )
       end
 
       ["[]", "{"].each do |unsummarizable_configuration|
@@ -271,6 +366,17 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
           expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(unsummarizable_configuration)
         end
+      end
+    end
+
+    context "when the logger fails" do
+      before { allow(logger).to receive(:debug).and_raise(IOError, "closed stream") }
+
+      it "keeps the applied configuration without reporting a failure" do
+        expect(telemetry).not_to receive(:report)
+
+        expect { engine.reconfigure!(configuration) }.not_to raise_error
+        expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
       end
     end
 

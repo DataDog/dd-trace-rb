@@ -17,6 +17,10 @@ module Datadog
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext?
         ) -> bool
+
+        private
+
+        def skip: (String flag_key, String reason) -> false
       end
     end
   end

@@ -35,6 +35,8 @@ module Datadog
 
         @warned: Hash[Symbol, bool]
 
+        @failed_polls: Integer
+
         @lifecycle_mutex: Thread::Mutex
 
         @started: bool
@@ -95,6 +97,10 @@ module Datadog
         def apply_configuration: (Response response) -> void
 
         def warn_failure: (Response response, Integer attempts) -> void
+
+        def report_poll_failure: (Symbol category, String message) -> void
+
+        def log_recovery: () -> void
 
         def request_error_class: (Response response) -> singleton(Exception)
 

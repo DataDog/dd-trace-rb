@@ -6,6 +6,7 @@ require_relative "ext"
 require_relative "noop_evaluator"
 require_relative "native_evaluator"
 require_relative "resolution_details"
+require_relative "../core/utils/only_once"
 
 module Datadog
   module OpenFeature
@@ -16,10 +17,15 @@ module Datadog
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
+      RAW_DATA_WARNING = "Feature Flags: debug logging is enabled, so feature flag logs include raw evaluation data " \
+        "(targeting keys, evaluation context attributes, flag values, and default values) that may contain " \
+        "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it."
+
       def initialize(reporter, telemetry:, logger:)
         @reporter = reporter
         @telemetry = telemetry
         @logger = logger
+        @raw_data_warning = Core::Utils::OnlyOnce.new
 
         @evaluator = NoopEvaluator.new(nil)
       end
@@ -48,12 +54,14 @@ module Datadog
         )
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
+        log_resolution(flag_key, expected_type, result)
 
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result
       rescue => e
         @telemetry.report(e, description: "OpenFeature: Failed to fetch flag value")
+        log_resolution_failure(flag_key, e)
 
         result = ResolutionDetails.build_error(
           value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
@@ -74,7 +82,12 @@ module Datadog
         end
 
         @evaluator = NativeEvaluator.new(configuration)
-        @logger.debug { "Feature Flags: configuration applied (#{configuration_summary(configuration)})" }
+        # A raise here would report the already-applied configuration as rejected.
+        begin
+          @logger.debug("Feature Flags: configuration applied (#{configuration_summary(configuration)})") if @logger.debug?
+        rescue
+          nil
+        end
       rescue => e
         message = "OpenFeature: Failed to reconfigure, reverting to the previous configuration"
 
@@ -84,9 +97,44 @@ module Datadog
         raise ReconfigurationError, "#{e.class}: #{e.message}"
       end
 
+      # Public so Component can warn before handing out DebugLoggingHook, which logs raw data.
+      def warn_raw_data_logging
+        return unless @logger.debug?
+
+        @raw_data_warning.run { @logger.warn(RAW_DATA_WARNING) }
+      rescue
+        nil
+      end
+
       private
 
-      # Must not raise: reconfigure! would report the already-applied configuration as rejected.
+      # The SDK can still replace this result, for example on a type mismatch; DebugLoggingHook logs the final one.
+      def log_resolution(flag_key, expected_type, result)
+        return unless @logger.debug?
+
+        warn_raw_data_logging
+        @logger.debug(
+          "Feature Flags: provider resolved #{flag_key.inspect}: type=#{expected_type}, " \
+            "value=#{result.value.inspect}, variant=#{result.variant.inspect}, reason=#{result.reason.inspect}, " \
+            "allocation=#{result.allocation_key.inspect}, serial_id=#{result.serial_id.inspect}, " \
+            "error_code=#{result.error_code.inspect}, error_message=#{result.error_message.inspect}"
+        )
+      rescue
+        nil
+      end
+
+      def log_resolution_failure(flag_key, error)
+        return unless @logger.debug?
+
+        warn_raw_data_logging
+        @logger.debug(
+          "Feature Flags: provider failed to resolve #{flag_key.inspect}: #{error.class}: #{error.message}; " \
+            "returning the default value"
+        )
+      rescue
+        nil
+      end
+
       def configuration_summary(configuration)
         ufc = JSON.parse(configuration)
         return "unrecognized format" unless ufc.is_a?(Hash)
@@ -94,8 +142,8 @@ module Datadog
         flags = ufc["flags"]
         environment = ufc["environment"]
         environment_name = environment["name"] if environment.is_a?(Hash)
-        "#{flags.is_a?(Hash) ? flags.size : 0} flag(s), " \
-          "environment=#{environment_name || "unknown"}, created_at=#{ufc["createdAt"] || "unknown"}"
+        "#{flags.is_a?(Hash) ? flags.size : 0} flag(s) received; per-flag validity is checked at evaluation, " \
+          "delivered_env=#{environment_name || "unknown"}, created_at=#{ufc["createdAt"] || "unknown"}"
       rescue JSON::ParserError
         "unrecognized format"
       end

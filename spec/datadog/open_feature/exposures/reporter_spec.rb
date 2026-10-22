@@ -13,7 +13,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { logger_allowing_debug }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
 
   let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
   let(:context) do
@@ -44,6 +44,22 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         expect(worker).to receive(:enqueue).and_return(true)
         expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
       end
+
+      it "logs the queued exposure" do
+        allow(worker).to receive(:enqueue).and_return(true)
+        expect(logger).to receive(:debug).with(
+          'Feature Flags: queued exposure for "feature_flag" (allocation="4-for-john-doe", variant="4", ' \
+            'targeting_key="john-doe")'
+        )
+
+        reporter.report(result, flag_key: "feature_flag", context: context)
+      end
+
+      it "does not claim a rejected exposure was queued" do
+        allow(worker).to receive(:enqueue).and_return(false)
+        expect(logger).not_to receive(:debug)
+        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+      end
     end
 
     context "when exposure was already reported" do
@@ -52,6 +68,14 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       it "does not enqueue event again" do
         expect(worker).not_to receive(:enqueue)
         expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+      end
+
+      it "logs why the exposure was not recorded" do
+        expect(logger).to receive(:debug).with(
+          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject'
+        )
+
+        reporter.report(result, flag_key: "feature_flag", context: context)
       end
     end
 
@@ -65,7 +89,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it "returns false and logs debug message" do
         expect(telemetry).to receive(:report).with(error, description: /Failed to report resolution details/)
-        expect_lazy_log(logger, :debug, /Failed to report resolution details: StandardError: Oops/)
+        expect(logger).to receive(:debug).with(/Failed to report resolution details: StandardError: Oops/)
         expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
       end
     end
@@ -86,6 +110,15 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         expect(worker).not_to receive(:enqueue)
 
         expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+      end
+
+      it "logs why the exposure was not recorded" do
+        expect(logger).to receive(:debug).with(
+          'Feature Flags: exposure for "feature_flag" not recorded: ' \
+            "the evaluation result is not marked for exposure logging"
+        )
+
+        reporter.report(result, flag_key: "feature_flag", context: context)
       end
     end
 
@@ -129,6 +162,27 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         expect(worker).not_to receive(:enqueue)
 
         expect(reporter.report(result, flag_key: "feature_flag", context: nil)).to be(false)
+      end
+
+      it "logs why the exposure was not recorded" do
+        expect(logger).to receive(:debug).with('Feature Flags: exposure for "feature_flag" not recorded: no evaluation context')
+
+        reporter.report(result, flag_key: "feature_flag", context: nil)
+      end
+    end
+
+    context "when the logger fails" do
+      let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
+
+      before do
+        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
+        allow(deduplicator).to receive(:duplicate?).and_return(false)
+      end
+
+      it "still enqueues the event" do
+        expect(worker).to receive(:enqueue).and_return(true)
+
+        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
       end
     end
   end

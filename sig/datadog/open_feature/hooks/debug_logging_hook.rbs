@@ -22,7 +22,7 @@ module Datadog
           ::OpenFeature::SDK::EvaluationDetails evaluation_details
         ) -> ::String?
 
-        def targeting_key_presence: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ("absent" | "present")
+        def attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::OpenFeature::SDK::EvaluationContext::fields_t
       end
     end
   end

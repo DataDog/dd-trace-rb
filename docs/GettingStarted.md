@@ -2895,6 +2895,33 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
+#### Debugging Feature Flags
+
+Set `DD_TRACE_DEBUG=true` before starting the application. Require `datadog`, `open_feature/sdk`,
+and `datadog/open_feature/provider`, configure Datadog, then adopt `Datadog::OpenFeature::Provider.new`
+with `OpenFeature::SDK.set_provider_and_wait` before evaluating flags. Select `agentless` or
+`remote_config` with `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE`; the latter requires a Datadog Agent.
+
+When Feature Flags debug logging is enabled, a startup warning explains that raw targeting keys,
+evaluation context attributes, flag values, and default values may contain personal or sensitive
+information. Unset `DD_TRACE_DEBUG` when diagnostics are no longer needed.
+
+Logs go to stderr by default. If you configure `c.logger.instance`, its logger and downstream
+handlers must allow DEBUG output; `DD_TRACE_DEBUG` sets the Datadog logger's level to DEBUG.
+Collect every line containing `Feature Flags` or `OpenFeature` (warnings such as
+`Feature Flags agentless endpoint returned HTTP 401` have no colon after the prefix), together with
+Remote Configuration (`remote:`, `remote worker`, `agent unreachable`), transport (`send_request` /
+`Internal error during`), and worker shutdown (`Timeout while waiting for worker`) lines. Filtering
+only evaluation lines omits configuration delivery and exposure failures.
+
+Failures raised by application hooks and OpenFeature event handlers are reported through the
+OpenFeature SDK's own logger, which is unset by default. To see them, configure it, for example
+with `OpenFeature::SDK.configure { |config| config.logger = Logger.new($stderr) }`.
+
+Startup logs distinguish `sdk_env`, `requested_env`, and the configuration's `delivered_env`.
+An exposure accepted by the Datadog Agent has not necessarily reached the backend; consult Agent
+logs for subsequent delivery failures. Provider shutdown may leave process-scoped Remote Configuration active.
+
 ### Profiling
 
 `datadog` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.

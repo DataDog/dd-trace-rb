@@ -22,7 +22,7 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
-  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false, warn: nil) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
@@ -174,6 +174,12 @@ RSpec.describe Datadog::OpenFeature::Component do
       expect(component.debug_logging_hook).to be_nil
     end
 
+    it "is withheld when the logger fails" do
+      allow(logger).to receive(:debug?).and_raise(IOError, "closed stream")
+
+      expect(component.debug_logging_hook).to be_nil
+    end
+
     it "reuses one hook across evaluations" do
       allow(logger).to receive(:debug?).and_return(true)
 
@@ -190,6 +196,59 @@ RSpec.describe Datadog::OpenFeature::Component do
       allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(true)
 
       expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+  end
+
+  describe "raw evaluation data warning" do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) do
+      described_class.build(
+        settings,
+        agent_settings,
+        resolution: resolution,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
+    end
+
+    let(:raw_data_warning) { Datadog::OpenFeature::EvaluationEngine::RAW_DATA_WARNING }
+
+    it "warns once when built while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+
+      component.debug_logging_hook
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+    end
+
+    it "does not warn while debug logging is disabled" do
+      component.debug_logging_hook
+
+      expect(logger).not_to have_received(:warn)
+    end
+
+    it "warns once before handing out the debug logging hook when debug logging is enabled later" do
+      component
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component.debug_logging_hook
+      component.debug_logging_hook
+
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+    end
+
+    it "still builds when the logger fails to warn" do
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(logger).to receive(:warn).and_raise(IOError, "closed stream")
+
+      expect(component).to be_a(described_class)
     end
   end
 
@@ -261,6 +320,27 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!("configuration") }
           .to change(component, :configuration_received?).from(false).to(true)
+        expect(on_configuration_change).to have_received(:call).with(:ready)
+      end
+
+      it "marks an applied configuration as received when the logger fails" do
+        evaluator = instance_double(Datadog::OpenFeature::NativeEvaluator)
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).with("configuration").and_return(evaluator)
+        component
+        allow(logger).to receive(:debug?).and_return(true)
+        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
+
+        expect { component.reconfigure!("configuration") }
+          .to change(component, :configuration_received?).from(false).to(true)
+        expect(on_configuration_change).to have_received(:call).with(:ready)
+      end
+
+      it "notifies readiness even when diagnostic formatting fails" do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
+        allow(logger).to receive(:debug?).and_return(true)
+        allow(component.engine).to receive(:configuration_summary).and_raise("cannot format")
+        component.reconfigure!("configuration")
+        expect(component.configuration_received?).to be(true)
         expect(on_configuration_change).to have_received(:call).with(:ready)
       end
 
