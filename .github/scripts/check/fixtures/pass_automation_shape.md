@@ -13,9 +13,7 @@ Two-way door, CI-only reference. Before merging, confirm the commit is merged in
 
 ### Details
 
-Reviewer action: merge when CI is green.
-
-<details><summary>Automation</summary>
+<details><summary>Automation: merge when CI is green.</summary>
 
 - Event: repository_dispatch
 - Triggered by: images-rb
