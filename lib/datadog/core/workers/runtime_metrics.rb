@@ -32,7 +32,7 @@ module Datadog
           end
 
           # Workers::Async::Thread settings
-          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
+          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_RESTART)
 
           # Workers::IntervalLoop settings
           self.loop_base_interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
