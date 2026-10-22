@@ -157,6 +157,80 @@ RSpec.describe "Kafka Data Streams instrumentation" do
         expect(current_ctx.pathway_start).to be_within(0.001).of(producer_ctx.pathway_start) # Should preserve pathway start time (within 1ms due to serialization precision loss)
       end
     end
+
+    context "when consuming a batch" do
+      let(:test_batch_consumer_class) do
+        Class.new do
+          attr_accessor :test_batch
+
+          def each_batch(**kwargs)
+            yield(@test_batch) if @test_batch && block_given?
+          end
+
+          prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
+        end
+      end
+
+      let(:batch_consumer) { test_batch_consumer_class.new }
+
+      def produce_headers
+        message = OpenStruct.new(topic: "test_topic", value: "test", headers: {})
+        test_producer = test_producer_class.new
+        test_producer.pending_message_queue << message
+        test_producer.deliver_messages
+        message.headers
+      end
+
+      def consumed_message(headers, offset)
+        OpenStruct.new(topic: "test_topic", partition: 0, offset: offset, headers: headers)
+      end
+
+      it "sets a consume checkpoint for each message from its own headers" do
+        first_headers = produce_headers
+        second_headers = produce_headers
+        batch_consumer.test_batch = OpenStruct.new(
+          topic: "test_topic",
+          messages: [consumed_message(first_headers, 100), consumed_message(second_headers, 101)]
+        )
+        extracted = []
+        allow(Datadog::DataStreams).to receive(:set_consume_checkpoint).and_wrap_original do |original, **kwargs, &block|
+          original.call(**kwargs) { |key| block.call(key).tap { |value| extracted << value } }
+        end
+
+        batch_consumer.each_batch { |_batch| }
+
+        expect(extracted).to eq([first_headers["dd-pathway-ctx-base64"], second_headers["dd-pathway-ctx-base64"]])
+      end
+
+      it "chains onto the upstream producer's pathway" do
+        now = Datadog::Core::Utils::Time.now
+        producer_ctx = Datadog::DataStreams::PathwayContext.new(
+          hash_value: 12345,
+          pathway_start: now - 300,
+          current_edge_start: now - 1
+        )
+        producer_ctx_b64 = producer_ctx.encode_b64
+        batch_consumer.test_batch = OpenStruct.new(
+          topic: "test_topic",
+          messages: [consumed_message({"dd-pathway-ctx-base64" => producer_ctx_b64}, 100)]
+        )
+
+        batch_consumer.each_batch do |_batch|
+          current_ctx = Datadog::DataStreams.send(:processor).pathway_context
+          expect(current_ctx.hash).not_to eq(producer_ctx.hash)
+          expect(current_ctx.pathway_start).to be_within(0.001).of(producer_ctx.pathway_start)
+        end
+      end
+
+      it "sets no consume checkpoint for an empty batch" do
+        batch_consumer.test_batch = OpenStruct.new(topic: "test_topic", messages: [])
+        allow(Datadog::DataStreams).to receive(:set_consume_checkpoint)
+
+        batch_consumer.each_batch { |_batch| }
+
+        expect(Datadog::DataStreams).not_to have_received(:set_consume_checkpoint)
+      end
+    end
   end
 
   describe "when DSM is disabled" do
