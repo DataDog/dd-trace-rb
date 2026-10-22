@@ -55,11 +55,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       )
       expect(evaluator).to receive(:get_assignment).with(
         "test", default_value: "fallback", context: {}, expected_type: :string,
-        experimentation_opt_out_immediate: true
+        experimentation_opt_out_mode: :future_experiments_only
       ).and_return(details)
       expect(reporter).to receive(:report)
       engine.fetch_value(
-        "test", default_value: "fallback", expected_type: :string, experimentation_opt_out_immediate: true
+        "test", default_value: "fallback", expected_type: :string, experimentation_opt_out_mode: :future_experiments_only
       )
     end
 

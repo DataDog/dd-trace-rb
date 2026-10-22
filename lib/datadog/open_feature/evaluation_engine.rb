@@ -23,7 +23,7 @@ module Datadog
       end
 
       def fetch_value(
-        flag_key, default_value:, expected_type:, evaluation_context: nil, experimentation_opt_out_immediate: false
+        flag_key, default_value:, expected_type:, evaluation_context: nil, experimentation_opt_out_mode: :disabled
       )
         # Pre-bound to the safe default so the rescue below can still read it if the
         # evaluator read itself raises.
@@ -45,7 +45,7 @@ module Datadog
         context = evaluation_context&.fields.to_h
         result = evaluator.get_assignment(
           flag_key, default_value: default_value, context: context, expected_type: expected_type,
-          experimentation_opt_out_immediate: experimentation_opt_out_immediate
+          experimentation_opt_out_mode: experimentation_opt_out_mode
         )
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)

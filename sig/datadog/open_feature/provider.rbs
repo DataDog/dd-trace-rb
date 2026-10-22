@@ -9,6 +9,8 @@ module Datadog
 
       type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
 
+      type experimentation_opt_out_mode = :disabled | :immediate | :future_experiments_only
+
       @initialization_mutex: Thread::Mutex
 
       @initializing: bool
@@ -36,7 +38,8 @@ module Datadog
       @waiting_component: Component?
 
       @shutdown: bool
-      @experimentation_opt_out_immediate: bool
+
+      @experimentation_opt_out_mode: experimentation_opt_out_mode
 
       @enable_evaluation_telemetry_opt_out_parameter: bool
 
@@ -89,7 +92,7 @@ module Datadog
 
       private
 
-      def resolve_experimentation_opt_out_mode: ((String | Symbol)? mode) -> bool
+      def resolve_experimentation_opt_out_mode: ((String | Symbol)? mode) -> experimentation_opt_out_mode
 
       def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 

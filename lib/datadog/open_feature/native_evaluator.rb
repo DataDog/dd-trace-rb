@@ -31,8 +31,8 @@ module Datadog
       #                       and other attributes
       #
       # @return [ResolutionDetails] The assignment for the flag
-      def get_assignment(flag_key, default_value:, expected_type:, context:, experimentation_opt_out_immediate: false)
-        if experimentation_opt_out_immediate && context.key?("dd_experimentation_opt_out_at")
+      def get_assignment(flag_key, default_value:, expected_type:, context:, experimentation_opt_out_mode: :disabled)
+        if experimentation_opt_out_mode != :disabled && context.key?("dd_experimentation_opt_out_at")
           timestamp = context["dd_experimentation_opt_out_at"]
           # The C binding omits unsupported types and uses NUL-terminated strings.
           # Reject invalid opt-out values before that conversion loses information.
@@ -45,8 +45,11 @@ module Datadog
           end
         end
 
-        result = if experimentation_opt_out_immediate
+        result = case experimentation_opt_out_mode
+        when :immediate
           @configuration.get_assignment_with_options(flag_key, expected_type, context, true)
+        when :future_experiments_only
+          @configuration.get_assignment_with_opt_out_mode(flag_key, expected_type, context, :future_experiments_only)
         else
           @configuration.get_assignment(flag_key, expected_type, context)
         end

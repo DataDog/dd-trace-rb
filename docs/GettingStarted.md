@@ -2887,7 +2887,7 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
-| `c.feature_flags.experimentation_opt_out_mode` | `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE` | `String` | Selects `disabled` or `immediate` per-subject experimentation opt-out. The provider reads this setting at construction. | `disabled` |
+| `c.feature_flags.experimentation_opt_out_mode` | `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE` | `String` | Selects `disabled`, `immediate`, or `future_experiments_only` per-subject experimentation opt-out. The provider reads this setting at construction. | `disabled` |
 | `c.feature_flags.agentless.base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless endpoint. Origin URLs receive the standard configuration path; URLs with a non-root path are used verbatim. | `nil` |
 | `c.feature_flags.agentless.poll_interval_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS` | `Integer` | Sets the agentless polling interval in seconds. Must be greater than `0`. | `30` |
 | `c.feature_flags.agentless.request_timeout_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS` | `Integer` | Sets the agentless request timeout in seconds, from `1` through `300`. | `5` |
@@ -2899,7 +2899,14 @@ The API key is sent only to the managed Datadog endpoint. A custom agentless URL
 
 #### Per-subject experimentation opt-out
 
-Set `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE=immediate` before creating the provider.
+Set `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE` before creating the provider:
+
+| Mode | Behavior when the subject supplies an opt-out timestamp |
+| --- | --- |
+| `disabled` (default) | Ignore the attribute. |
+| `immediate` | Skip all allocations that record experiment exposures. |
+| `future_experiments_only` | Skip those allocations activated at or after opt-out, or whose activation time is unknown. |
+
 Supply `dd_experimentation_opt_out_at` in the subject's evaluation context:
 
 ```ruby
@@ -2912,8 +2919,8 @@ end
 
 client = OpenFeature::SDK.build_client
 context = OpenFeature::SDK::EvaluationContext.new(
-  'targeting_key' => athlete.id,
-  'dd_experimentation_opt_out_at' => athlete.experimentation_opt_out_at.iso8601
+  'targeting_key' => user.id,
+  'dd_experimentation_opt_out_at' => user.experimentation_opt_out_at.iso8601(9)
 )
 enabled = client.fetch_boolean_value(
   flag_key: 'new-route-planner', default_value: false, evaluation_context: context
@@ -2924,8 +2931,13 @@ Omit the attribute when the subject can participate in experimentation.
 In `immediate` mode, a valid RFC3339 timestamp excludes the subject from allocations that record experiment exposures.
 Evaluation continues through ordinary feature allocations in order. If none match, the SDK returns the application's default.
 A future timestamp also takes effect immediately.
-An invalid, empty, null, or non-string timestamp returns the application's default with `INVALID_CONTEXT`.
+In either enabled mode, an invalid, empty, null, or non-string timestamp returns the application's default with `INVALID_CONTEXT`.
 This setting does not change evaluation telemetry.
+
+Future mode compares the stored subject timestamp with the allocation's `randomizationActivatedAt` time.
+Older allocations continue normal evaluation and exposure logging. This is an activation cutoff, not a record of prior subject enrollment.
+Missing or null activation causes exclusion. Malformed activation returns `PARSE_ERROR` for the affected flag in every mode.
+Comparisons preserve nanosecond precision and timezone offsets. A future subject timestamp is a cutoff, not scheduled opt-out.
 
 The default mode, `disabled`, ignores the attribute.
 Values are case-insensitive and surrounding whitespace is ignored. An empty value also means `disabled`.
@@ -2934,11 +2946,13 @@ An explicit provider setting overrides the environment, including `:disabled`:
 
 ```ruby
 provider = Datadog::OpenFeature::Provider.new(experimentation_opt_out_mode: :immediate)
+# Or permit allocations activated before the stored opt-out time:
+provider = Datadog::OpenFeature::Provider.new(experimentation_opt_out_mode: :future_experiments_only)
 ```
 
 Immediate exclusion can change the experience of a subject already enrolled in an experiment.
 Account for that change in experiment analysis.
-Immediate mode requires native evaluation-options support. The provider rejects activation when the installed native library lacks it.
+Each enabled mode requires matching native library support. The provider rejects activation when the installed native library lacks it.
 
 #### Evaluation telemetry opt-out
 

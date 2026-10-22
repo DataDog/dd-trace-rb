@@ -17,7 +17,7 @@ module Datadog
       end
 
       def get_assignment(
-        _flag_key, default_value:, context:, expected_type:, experimentation_opt_out_immediate: false
+        _flag_key, default_value:, context:, expected_type:, experimentation_opt_out_mode: :disabled
       )
         ResolutionDetails.new(
           value: default_value,

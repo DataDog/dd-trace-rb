@@ -16,7 +16,7 @@ module Datadog
         default_value: untyped,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
         expected_type: ::Symbol,
-        ?experimentation_opt_out_immediate: bool
+        ?experimentation_opt_out_mode: Provider::experimentation_opt_out_mode
       ) -> ResolutionDetails
 
       private

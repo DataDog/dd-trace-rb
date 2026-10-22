@@ -20,6 +20,10 @@ static VALUE configuration_get_assignment(
 static VALUE configuration_get_assignment_with_options(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context, VALUE experimentation_opt_out_immediate);
 #endif
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+static VALUE configuration_get_assignment_with_opt_out_mode(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context, VALUE experimentation_opt_out_mode);
+#endif
 
 static void resolution_details_free(void *ptr);
 static VALUE resolution_details_get_raw_value(VALUE self);
@@ -101,6 +105,9 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
 #ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
   rb_define_method(configuration_class, "get_assignment_with_options", configuration_get_assignment_with_options, 4);
+#endif
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+  rb_define_method(configuration_class, "get_assignment_with_opt_out_mode", configuration_get_assignment_with_opt_out_mode, 4);
 #endif
   rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
@@ -357,6 +364,41 @@ static VALUE configuration_get_assignment_with_options(
   };
   ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment_with_options(
     config, RSTRING_PTR(flag_key), expected_ty, context, options
+  );
+  ddog_ffe_evaluation_context_drop(&context);
+
+  return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
+}
+#endif
+
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+static VALUE configuration_get_assignment_with_opt_out_mode(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash, VALUE experimentation_opt_out_mode
+) {
+  ENFORCE_TYPED_DATA(self, &configuration_data_type);
+  ENFORCE_TYPE(flag_key, T_STRING);
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+  ENFORCE_TYPE(context_hash, T_HASH);
+  ENFORCE_TYPE(experimentation_opt_out_mode, T_SYMBOL);
+
+  const ID mode_id = SYM2ID(experimentation_opt_out_mode);
+  enum ddog_ffe_ExperimentationOptOutMode mode;
+  if (mode_id == rb_intern("disabled")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_DISABLED;
+  } else if (mode_id == rb_intern("immediate")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_IMMEDIATE;
+  } else if (mode_id == rb_intern("future_experiments_only")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_FUTURE_EXPERIMENTS_ONLY;
+  } else {
+    rb_raise(rb_eArgError, "Unsupported experimentation opt-out mode");
+  }
+
+  const ddog_ffe_Handle_Configuration config =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
+  ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+  ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment_with_opt_out_mode(
+    config, RSTRING_PTR(flag_key), expected_ty, context, mode
   );
   ddog_ffe_evaluation_context_drop(&context);
 
