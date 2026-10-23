@@ -2145,6 +2145,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
+    it "preserves a repeated stack and CPU timing across serialization and compaction" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+
+      batches = [100, 250].map do |cpu_time_ns|
+        described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)
+        consume_miteruby
+        samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
+        GC.start
+        GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+        samples
+      end
+
+      expect(batches.map(&:size)).to eq([1, 1])
+      expect(batches.last.first.locations).to eq(batches.first.first.locations)
+      expect(batches.map { |samples| samples.first.values.fetch(:"cpu-time") }).to eq([0, 150])
+    end
+
     it "records buffered Ruby and C frames, labels, and capture timestamps" do
       time_before = Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond)
       capture_miteruby { publish_miteruby_sample }
