@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6532",
+  "message": "Start a new pathway when one thread consumes and another produces, instead of linking to the last message consumed anywhere in the process; to keep one pathway, call `set_produce_checkpoint` and `set_consume_checkpoint` across the hand-off."
+}
