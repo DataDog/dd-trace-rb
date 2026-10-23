@@ -55,7 +55,7 @@ module Datadog
           # extension, remote config off, non-MRI). Under the always-build model
           # it is non-nil even when the DI setting defaults to off, so a built
           # SymbolDatabase component is inert until an upload is actually
-          # permitted: the component's own gate (see Component#upload_allowed?)
+          # permitted: the component's own gate, SymbolDatabase::Component#upload_allowed?,
           # only extracts and uploads when DI is truly active or the customer
           # opted in explicitly. This mirrors DI advertising/building a component
           # by default while installing no probes until it is enabled.
@@ -288,12 +288,20 @@ module Datadog
             end
           end
 
+          if dynamic_instrumentation && old_state
+            dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
+          end
+
           if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
+            #
+            # The DI signal-path restore above must precede this: the
+            # replacement client's first sync can dispatch the APM_TRACING
+            # merge, whose withdrawal branch reads the recorded paths.
             remote.start
           end
 
@@ -405,19 +413,12 @@ module Datadog
           # di_implicitly_enabled distinguishes RC-driven start from explicit
           # start (env var or programmatic) so that an explicit
           # `enabled = false` on reconfiguration can take effect.
-          #
-          # using_default? — not `!enabled` — because Datadog.configure has
-          # already mutated the singleton settings by the time #state runs,
-          # so `!enabled` would treat a customer's explicit
-          # `enabled = false` as "implicitly enabled" and restart DI.
-          # using_default? asks "did the customer ever touch this setting",
-          # which is the right question for RC carry-over.
-          di_implicit = dynamic_instrumentation&.started? &&
-            @settings.dynamic_instrumentation.using_default?(:enabled)
+          di_implicit = dynamic_instrumentation&.implicitly_enabled?
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
             di_implicitly_enabled: di_implicit || false,
+            rc_enablement_signal_paths: dynamic_instrumentation&.rc_enablement_signal_paths || [],
           )
         end
 

@@ -21,14 +21,14 @@ module Datadog
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
 
+        sampler = build_sampler(settings)
+
         # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled
           trace_flush = build_test_mode_trace_flush(settings)
-          sampler = build_test_mode_sampler
           writer = build_test_mode_writer(settings, agent_settings)
         else
           trace_flush = build_trace_flush(settings)
-          sampler = build_sampler(settings)
           writer = build_writer(settings, agent_settings)
         end
 
@@ -76,7 +76,12 @@ module Datadog
         nil
       end
 
+      # Builds the sampler for the given settings: the sampler that keeps
+      # every trace when test mode is enabled, otherwise the sampler built
+      # from the custom sampler, sampling rules and rates.
       def build_sampler(settings)
+        return build_test_mode_sampler if settings.tracing.test_mode.enabled
+
         # A custom sampler is provided
         if (sampler = settings.tracing.sampler)
           return sampler
