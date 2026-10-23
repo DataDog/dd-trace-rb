@@ -218,6 +218,8 @@ module Datadog
             [env_var, telemetry_value]
           end
 
+          env_vars.concat(Datadog::Profiling::Remote.apply_lib_config(lib_config))
+
           if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
             # repository is forwarded so that an enable signal can reconcile DI
             # against probes delivered in an earlier poll while DI was stopped

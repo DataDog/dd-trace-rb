@@ -294,6 +294,8 @@ module Datadog
 
         def feature_flags: () -> _FeatureFlags
 
+        def profiling: () -> untyped
+
         def tracing: () -> untyped
 
         def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
