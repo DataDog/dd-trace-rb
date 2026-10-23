@@ -122,7 +122,6 @@ static const rb_data_type_t dedupconsumer_typed_data = {
   },
 };
 
-// TODO: This is somewhat misnamed, as this marking is also used for the miniconsumer.
 void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
   state.buffer = buffer;
@@ -150,8 +149,7 @@ void miteruby_dedupconsumer_init(void) {
   mutex_unlock(&consumed_events_mutex);
 }
 
-void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer, VALUE recorder_instance) {
-  enforce_recorder_instance(recorder_instance);
+void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer) {
   dedupconsumer_consume_loop_args args = {
     .buffer = buffer,
   };
@@ -199,8 +197,7 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_instance) {
-  enforce_recorder_instance(recorder_instance);
+void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer) {
   mutex_lock(&consumed_events_mutex);
 
   for (;;) {
