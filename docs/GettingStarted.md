@@ -2137,7 +2137,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `peer_service` | `DD_TRACE_TRILOGY_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE` | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `dynamic_service` \| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'` |
 | `append_comment` | | `Bool` | Appends the SQL comment propagation to the query string. Prepends the comment if `false`. For long query strings, the appended propagation comment might be truncated, causing loss of correlation between the query and trace. | `false` |
-| `on_error` | | `Proc` | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | | `Proc` | Custom error handler invoked when Trilogy raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ## Additional configuration
 
