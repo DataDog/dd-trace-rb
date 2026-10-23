@@ -1,4 +1,4 @@
-#include "dedupconsumer_stack_dedup.h"
+#include "consumer_stack_dedup.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -65,11 +65,11 @@ static void unique_stacks_free(void *allocation, size_t size) {
   unique_stacks_map_allocated_bytes -= size;
 }
 
-void miteruby_dedupconsumer_stack_dedup_init(void) {
+void miteruby_consumer_stack_dedup_init(void) {
   verstable_unique_stacks_map_init(&unique_stacks);
 }
 
-void miteruby_dedupconsumer_stack_dedup_reset(void) {
+void miteruby_consumer_stack_dedup_reset(void) {
   verstable_unique_stacks_map_clear(&unique_stacks);
   free(unique_stacks_array);
   unique_stacks_array = NULL;
@@ -77,11 +77,11 @@ void miteruby_dedupconsumer_stack_dedup_reset(void) {
   unique_stacks_size = 0;
 }
 
-size_t miteruby_dedupconsumer_stack_dedup_size(void) {
+size_t miteruby_consumer_stack_dedup_size(void) {
   return sizeof(unique_stacks) + unique_stacks_size + unique_stacks_map_allocated_bytes;
 }
 
-const miteruby_stack_t *miteruby_dedupconsumer_stack_dedup_get(size_t stack_id) {
+const miteruby_stack_t *miteruby_consumer_stack_dedup_get(size_t stack_id) {
   return (const miteruby_stack_t *)(unique_stacks_array + stack_id);
 }
 
@@ -113,7 +113,7 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   return entry.data->val;
 }
 
-size_t miteruby_dedupconsumer_stack_dedup_get_or_insert(
+size_t miteruby_consumer_stack_dedup_get_or_insert(
   const miteruby_event_frame_refs_t *refs,
   uint16_t frame_count,
   bool *inserted
