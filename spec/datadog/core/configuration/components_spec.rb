@@ -1065,9 +1065,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it "restores the recorded paths before the replacement remote starts" do
-        # The replacement remote client's first sync can dispatch the
-        # APM_TRACING merge, whose withdrawal branch reads the recorded
-        # paths; the restore must therefore happen before remote.start.
         expect(components.dynamic_instrumentation)
           .to receive(:record_rc_enablement_signal_paths).with([signal_path]).ordered
         expect(remote).to receive(:start).ordered
