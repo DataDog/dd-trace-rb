@@ -4,6 +4,7 @@
 
 #include "buffer.h"
 
+void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer);
 void miteruby_dedupconsumer_init(void);
 
 // Requires the main ractor's GVL on entry and exclusive consumer access throughout the loop.

@@ -1,5 +1,6 @@
 #include "dedupconsumer.h"
 #include "dedupconsumer_recorder.h"
+#include "buffer_marking.h"
 
 #include <ruby/st.h>
 
@@ -16,7 +17,7 @@
 static once_flag mutexes_initialized = ONCE_FLAG_INIT;
 
 // Lock order: consumed_events_mutex, then objects_to_mark_mutex. Recursive locking allows same-thread re-entry:
-// GC marking takes only objects_to_mark_mutex; the memory-size callback takes both for memory accounting.
+// marking and memory accounting can run while the owning thread holds both locks.
 static mtx_t consumed_events_mutex;
 static mtx_t objects_to_mark_mutex;
 
@@ -31,6 +32,7 @@ static size_t consumed_events_pos = 0;
 static size_t consumed_events_size = 0;
 
 typedef struct {
+  miteruby_buffer_t *buffer;
   // TODO: Move away from st_table because it can trigger Ruby GC, which we don't want from the dedupconsumer.
   // This may also interact with locking, e.g. insertion triggering GC, which then wants to mark.
   st_table *objects_to_mark;
@@ -71,16 +73,22 @@ static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE
 
 static void dedupconsumer_mark(void *data) {
   dedupconsumer_state *consumer_state = data;
+  // Keep the event handoff paused across both scans so neither can miss a transferred reference.
+  mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
+  // This also blocks publishers while scanning the shared buffer. Holding both consumer locks is safe:
+  // publishers never acquire them, and buffer marking masks SIGPROF before taking the producer lock.
+  miteruby_buffer_mark(consumer_state->buffer);
   if (consumer_state->objects_to_mark != NULL) st_foreach(consumer_state->objects_to_mark, mark_object, 0);
   mutex_unlock(&objects_to_mark_mutex);
+  mutex_unlock(&consumed_events_mutex);
 }
 
 static size_t dedupconsumer_size(const void *data) {
   const dedupconsumer_state *consumer_state = data;
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
-  size_t size = sizeof(*consumer_state) + consumed_events_size +
+  size_t size = sizeof(*consumer_state) + sizeof(*consumer_state->buffer) + consumed_events_size +
     (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
   mutex_unlock(&objects_to_mark_mutex);
   mutex_unlock(&consumed_events_mutex);
@@ -96,8 +104,16 @@ static const rb_data_type_t dedupconsumer_typed_data = {
   },
 };
 
-void miteruby_dedupconsumer_init(void) {
+// TODO: This is somewhat misnamed, as this marking is also used for the miniconsumer.
+void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
+  state.buffer = buffer;
+  VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
+  // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
+  rb_gc_register_mark_object(wrapper);
+}
+
+void miteruby_dedupconsumer_init(void) {
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
 
@@ -109,8 +125,6 @@ void miteruby_dedupconsumer_init(void) {
   consumed_events_size = CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
 
   if (state.objects_to_mark == NULL) {
-    VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
-    rb_gc_register_mark_object(wrapper);
     state.objects_to_mark = st_init_numtable();
   } else {
     st_clear(state.objects_to_mark);
