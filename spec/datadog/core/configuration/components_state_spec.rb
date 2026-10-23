@@ -37,12 +37,6 @@ RSpec.describe Datadog::Core::Configuration::ComponentsState do
   end
 
   describe "#rc_enablement_signal_paths" do
-    # The recorded enable-signal carrier paths ride on ComponentsState so
-    # that a Datadog.configure rebuild hands them to the replacement DI
-    # component. The withdrawal branch in Tracing::Remote.apply_lib_config
-    # reads them to decide whether an APM_TRACING parse failure can mask a
-    # withdrawn dynamic_instrumentation_enabled signal.
-
     let(:signal_path) do
       Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
     end
