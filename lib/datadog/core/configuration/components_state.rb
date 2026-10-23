@@ -25,14 +25,9 @@ module Datadog
           @di_implicitly_enabled
         end
 
-        # The repository paths of the APM_TRACING configs that supplied the
-        # dynamic_instrumentation_enabled value at the last merge where the
-        # field was present, carried over from the replaced tree's DI
-        # component so a withdrawn enable signal is still recognized after
-        # a rebuild.
+        # The RC enable-signal carrier paths recorded by the replaced tree's DI component.
         #
-        # @return [Array[Core::Remote::Configuration::Path]] the recorded
-        #   enable-signal carrier paths
+        # @return [Array<Core::Remote::Configuration::Path>]
         attr_reader :rc_enablement_signal_paths
       end
     end
