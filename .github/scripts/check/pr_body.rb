@@ -6,13 +6,15 @@ require "cgi"
 # CI check for the pull request description, run from check.yml.
 # Enforces the required PR body fields (### Why, ### What, ### Risk) and
 # their caps. Drafts are included: the body is expected to be complete
-# when the PR is opened.
+# when the PR is opened. A `<!-- pr-body: skip -->` comment opts a body
+# out. check.yml names who is exempt without it.
 #
 # Run `ruby .github/scripts/check/pr_body.rb --self-test` to verify the
 # counting logic.
 
 MAX_WORDS = 50
 MAX_SENTENCES = 2
+SKIP_MARKER = "<!-- pr-body: skip -->"
 REQUIRED_FIELDS = ["Why", "What", "Risk"].freeze
 OPTIONAL_FIELDS = ["Details"].freeze
 
@@ -26,6 +28,8 @@ def sentence_count(content)
 end
 
 def check_body(body)
+  return [] if body.include?(SKIP_MARKER)
+
   # HTML comments are guidance, not content.
   stripped = body.gsub(/<!--.*?-->/m, "")
 
@@ -89,7 +93,7 @@ def self_test
     "closing paren at field end" => ["Scoped to DI. (Revert restores the old clock.)", 2],
     "ellipsis does not split" => ["Wait... then merge. Two-way door.", 2],
     "three real sentences" => ["One. Two. Three.", 3],
-    "empty content" => ["", 0]
+    "empty content" => ["", 0],
   }
   failed = 0
   cases.each do |name, (content, expected)|
