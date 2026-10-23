@@ -18,7 +18,6 @@
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
 #include "miteruby/buffer.h"
-#include "miteruby/buffer_marking.h"
 #include "miteruby/miniconsumer.h"
 #include "miteruby/dedupconsumer.h"
 #include "miteruby/sample_event.h"
@@ -359,7 +358,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
   if (miteruby_buffer_init(&miteruby_buffer) != 0) raise_syserr(errno, "Failed to initialize miteruby buffer");
-  miteruby_buffer_marking_init(&miteruby_buffer);
+  miteruby_dedupconsumer_marking_init(&miteruby_buffer);
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
