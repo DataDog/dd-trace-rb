@@ -64,26 +64,17 @@ jobs:
           labels: dev/internal
           add-paths: tasks/lib/fixtures/ffe/version
           body: |
-            ### Why
+            ## Motivation
 
-            Routine maintenance: the canonical FFE fixtures pin moves weekly. This PR updates the pin to the latest corpus commit.
+            Keep Ruby's evaluator aligned with the shared FFE evaluation corpus.
 
-            ### What
+            ## Changes and Decisions
 
-            Updates the pinned fixture commit to [${{ steps.latest.outputs.commit }}](https://github.com/DataDog/ffe-system-test-data/commit/${{ steps.latest.outputs.commit }}). The corpus is fetched on demand from that commit, so this PR only bumps the pin.
+            Update the pinned fixture commit to [${{ steps.latest.outputs.commit }}](https://github.com/DataDog/ffe-system-test-data/commit/${{ steps.latest.outputs.commit }}).
+            The corpus is fetched on demand from that commit, so this PR only bumps the pin.
+            Fix evaluator failures exposed by new cases in this PR before merging; change shared expectations upstream only when they are incorrect.
+            Weekly runs append a new pin bump commit to an open PR on the same branch.
+            Human commits on that branch are preserved: create-pull-request only adds commits, it never force-pushes.
 
-            ### Risk
-
-            Two-way door, a one-line pin. Before merging, fix evaluator failures exposed by new cases in this corpus.
-
-            ### Details
-
-            <details><summary>Automation: merge when FFE evaluator specs are green.</summary>
-
-            - Event: weekly schedule
-            - Source repo: DataDog/ffe-system-test-data
-            - Weekly runs append a new pin bump commit to an open PR on the same branch
-            - Human commits on that branch are preserved: create-pull-request only adds commits, it never force-pushes
-            - Changelog: none, internal test fixtures only
-
-            </details>
+            **Change log entry**
+            None.

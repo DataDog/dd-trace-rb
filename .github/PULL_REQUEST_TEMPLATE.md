@@ -1,35 +1,44 @@
 <!--
-Every required field has a cap: at most 2 sentences and 50 words.
-CI (check.yml "pr-body" job) enforces this on every pull request, drafts
-included. Longer material goes in Details as links or references.
-See .agents/skills/write-pull-request/ for how to fill this in.
-
 Check out the
 https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 for guidance on how to set up your development environment,
 run the test suite, write new integrations, and more.
 -->
 
-### Why
+**What does this PR do?**
+<!-- A brief description of the change being made with this pull request. -->
 
-<!-- The problem or motivation, in customer or reviewer terms. -->
+**Motivation:**
+<!-- What inspired you to submit this pull request? -->
 
-### What
-
-<!-- What this PR changes at the level a reviewer needs to decide whether to care. -->
-
-### Risk
-
-<!-- One-way or two-way door, and the blast radius. How can this be reverted? -->
-
-### Details
-
-<details><summary>Notes</summary>
-
+**Change log entry**
 <!--
-Optional. Links, benchmarks, plans, test instructions, anything longer
-than two sentences. A reader must not need this section to understand the
-PR.
+If this is a customer-visible change, add a changelog fragment: see
+unreleased/README.md for how. Not every change needs one — internal
+refactors, tests, and CI/tooling changes usually don't.
+
+If you are not a Datadog employee, you can skip this and a reviewer will
+add or edit the fragment for you.
+
+Reviewer: if a fragment is present, judge it —
+- Do its claims (components, versions, behavior) match this diff?
+- Read the rendered entry in the CI "Render changelog fragments" step
+  as a customer would: is it informative and at the right level?
 -->
 
-</details>
+**Additional Notes:**
+<!--
+If you used AI, have you read and understood what AI wrote?
+
+Anything else we should know when reviewing?
+-->
+
+**How to test the change?**
+<!--
+Describe here how the change can be validated.
+You are strongly encouraged to provide automated tests for this PR (unit or integration).
+If this change cannot be feasibly tested, please explain why,
+unless the change does not modify code (e.g. only modifies docs, comments).
+-->
+
+<!-- Unsure? Have a question? Request a review! -->
