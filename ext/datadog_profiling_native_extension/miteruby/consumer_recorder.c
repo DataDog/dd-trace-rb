@@ -1,4 +1,4 @@
-#include "dedupconsumer_recorder.h"
+#include "consumer_recorder.h"
 
 #include <ruby/st.h>
 
@@ -18,7 +18,7 @@
 typedef struct {
   cpu_time_t cpu_time_at_previous_sample;
   monotonic_time_t monotonic_time_at_previous_sample;
-} dedupconsumer_thread_context;
+} consumer_thread_context;
 
 // Ruby thread keys are marked and pinned via objects_to_mark.
 static st_table *thread_contexts;
@@ -28,11 +28,11 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
 static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
-static dedupconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
-static long update_and_get_time_since_previous_sample(dedupconsumer_thread_context *context, cpu_time_t current_time);
+static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
+static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
-void miteruby_dedupconsumer_recorder_init(void) {
+void miteruby_consumer_recorder_init(void) {
   if (thread_contexts == NULL) {
     thread_contexts = st_init_numtable();
   } else {
@@ -43,7 +43,7 @@ void miteruby_dedupconsumer_recorder_init(void) {
 // TODO: Replace the fixed "had cpu" state with real categorization.
 // TODO: Include capture-time trace identifiers and remove the temporary miteruby=1 label.
 // TODO: Cache thread labels instead of fetching them for every sample.
-void miteruby_dedupconsumer_record_stack_sample(
+void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_deduped_sample_t *event,
   const miteruby_event_frame_refs_t *refs,
@@ -128,7 +128,7 @@ void miteruby_dedupconsumer_record_stack_sample(
 }
 
 static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
-  dedupconsumer_thread_context *context = thread_context_for(thread, monotonic_time, cpu_time);
+  consumer_thread_context *context = thread_context_for(thread, monotonic_time, cpu_time);
 
   sample_values values = {
     .cpu_time_ns = update_and_get_time_since_previous_sample(context, cpu_time),
@@ -139,12 +139,12 @@ static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_
   return values;
 }
 
-static dedupconsumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
+static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
   st_data_t existing_context;
-  if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (dedupconsumer_thread_context *) existing_context;
+  if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (consumer_thread_context *) existing_context;
 
-  dedupconsumer_thread_context *context = ruby_xmalloc(sizeof(*context));
-  *context = (dedupconsumer_thread_context) {
+  consumer_thread_context *context = ruby_xmalloc(sizeof(*context));
+  *context = (consumer_thread_context) {
     .cpu_time_at_previous_sample = cpu_time,
     .monotonic_time_at_previous_sample = monotonic_time,
   };
@@ -152,7 +152,7 @@ static dedupconsumer_thread_context *thread_context_for(VALUE thread, monotonic_
   return context;
 }
 
-static long update_and_get_time_since_previous_sample(dedupconsumer_thread_context *context, cpu_time_t current_time) {
+static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time) {
   if (current_time.ns == INVALID_CPU_TIME.ns) return 0;
 
   long elapsed_ns = context->cpu_time_at_previous_sample.ns == INVALID_CPU_TIME.ns ?
