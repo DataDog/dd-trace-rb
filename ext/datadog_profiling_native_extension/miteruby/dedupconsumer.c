@@ -27,7 +27,7 @@ static void objects_to_mark_free(void *allocation, size_t size) {
   objects_to_mark_allocated_bytes -= size;
 }
 
-#define NAME objects_to_mark_set
+#define NAME verstable_objects_to_mark_set
 #define KEY_TY VALUE
 #define HASH_FN vt_hash_integer
 #define CMPR_FN vt_cmpr_integer
@@ -50,7 +50,7 @@ static size_t consumed_events_capacity = 0;
 
 typedef struct {
   miteruby_buffer_t *buffer;
-  objects_to_mark_set objects_to_mark;
+  verstable_objects_to_mark_set objects_to_mark;
 } dedupconsumer_state;
 
 static dedupconsumer_state state;
@@ -90,9 +90,9 @@ static void dedupconsumer_mark(void *data) {
   // publishers never acquire them, and buffer marking masks SIGPROF before taking the producer lock.
   miteruby_buffer_mark(consumer_state->buffer);
   for (
-    objects_to_mark_set_itr itr = objects_to_mark_set_first(&consumer_state->objects_to_mark);
-    !objects_to_mark_set_is_end(itr);
-    itr = objects_to_mark_set_next(itr)
+    verstable_objects_to_mark_set_itr itr = verstable_objects_to_mark_set_first(&consumer_state->objects_to_mark);
+    !verstable_objects_to_mark_set_is_end(itr);
+    itr = verstable_objects_to_mark_set_next(itr)
   ) {
     // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
     // so these objects must stay pinned at their current addresses.
@@ -126,7 +126,7 @@ static const rb_data_type_t dedupconsumer_typed_data = {
 void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
   state.buffer = buffer;
-  objects_to_mark_set_init(&state.objects_to_mark);
+  verstable_objects_to_mark_set_init(&state.objects_to_mark);
   miteruby_dedupconsumer_stack_dedup_init();
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
@@ -146,7 +146,7 @@ void miteruby_dedupconsumer_init(void) {
 
   miteruby_dedupconsumer_stack_dedup_reset();
 
-  objects_to_mark_set_clear(&state.objects_to_mark);
+  verstable_objects_to_mark_set_clear(&state.objects_to_mark);
 
   miteruby_dedupconsumer_recorder_init();
   mutex_unlock(&objects_to_mark_mutex);
@@ -240,7 +240,7 @@ static VALUE prepare_serialize_unlock_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 static void retain_object(VALUE object) {
-  if (objects_to_mark_set_is_end(objects_to_mark_set_get_or_insert(&state.objects_to_mark, object))) {
+  if (verstable_objects_to_mark_set_is_end(verstable_objects_to_mark_set_get_or_insert(&state.objects_to_mark, object))) {
     rb_bug("Failed to grow miteruby objects_to_mark set");
   }
 }
