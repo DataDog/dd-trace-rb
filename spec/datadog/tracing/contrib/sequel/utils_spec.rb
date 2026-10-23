@@ -1,5 +1,6 @@
 require "datadog/tracing/contrib/support/spec_helper"
 require "datadog/tracing/contrib/sequel/utils"
+require "datadog/tracing/span_operation"
 
 RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
   describe ".set_common_tags" do
@@ -23,6 +24,63 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Utils do
         .with(Datadog::Tracing::Contrib::Sequel::Ext::TAG_DB_NAME, "orders")
       expect(Datadog::Tracing::Contrib::SpanAttributeSchema).to have_received(:set_peer_service!)
         .with(span, Datadog::Tracing::Contrib::Sequel::Ext::PEER_SERVICE_SOURCES)
+    end
+
+    context "with an RDS endpoint as the connection host" do
+      let(:span) { Datadog::Tracing::SpanOperation.new("fake") }
+      let(:db) do
+        double(
+          "Sequel::Database",
+          database_type: :postgres,
+          opts: {host: "orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com", port: 5432, database: "orders"}
+        )
+      end
+
+      it "tags the RDS identity of the reader endpoint" do
+        set_common_tags
+
+        expect(span.get_tag("out.host")).to eq("orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com")
+        expect(span.get_tag("aws.rds.identifier")).to eq("orders")
+        expect(span.get_tag("aws.rds.endpoint_type")).to eq("cluster-ro")
+        expect(span.get_tag("aws.region")).to eq("eu-west-1")
+        expect(span.get_tag("dbclusteridentifier")).to eq("orders")
+        expect(span.get_tag("dbinstanceidentifier")).to be_nil
+      end
+    end
+
+    context "with a JDBC connection string pointing at an RDS instance" do
+      let(:span) { Datadog::Tracing::SpanOperation.new("fake") }
+      let(:db) do
+        double(
+          "Sequel::Database",
+          database_type: :mysql,
+          opts: {uri: "jdbc:mysql://orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:3306/orders"}
+        )
+      end
+
+      it "tags the RDS identity parsed out of the connection string" do
+        set_common_tags
+
+        expect(span.get_tag("aws.rds.identifier")).to eq("orders-db")
+        expect(span.get_tag("aws.rds.endpoint_type")).to eq("instance")
+        expect(span.get_tag("aws.region")).to eq("us-east-1")
+        expect(span.get_tag("dbinstanceidentifier")).to eq("orders-db")
+      end
+    end
+
+    context "with a non-RDS host" do
+      let(:span) { Datadog::Tracing::SpanOperation.new("fake") }
+      let(:db) do
+        double("Sequel::Database", database_type: :postgres, opts: {host: "127.0.0.1", database: "orders"})
+      end
+
+      it "adds no RDS tags" do
+        set_common_tags
+
+        expect(span.get_tag("aws.rds.identifier")).to be_nil
+        expect(span.get_tag("aws.rds.endpoint_type")).to be_nil
+        expect(span.get_tag("aws.region")).to be_nil
+      end
     end
   end
 

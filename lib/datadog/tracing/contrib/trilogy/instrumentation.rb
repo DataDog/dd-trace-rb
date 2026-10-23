@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../analytics"
 require_relative "ext"
 require_relative "../ext"
+require_relative "../utils/rds_endpoint"
 require_relative "../propagation/sql_comment"
 require_relative "../propagation/sql_comment/mode"
 
@@ -49,6 +50,7 @@ module Datadog
                 span.set_tag(Ext::TAG_DB_NAME, connection_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, connection_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, connection_options[:port])
+                Contrib::Utils::RDSEndpoint.annotate!(span, connection_options[:host])
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 

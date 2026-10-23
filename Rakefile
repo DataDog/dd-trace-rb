@@ -348,6 +348,7 @@ namespace :spec do
       "configuration/resolvers/*",
       "registry/*",
       "propagation/**/*",
+      "utils/**/*",
     ].join(",")
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
