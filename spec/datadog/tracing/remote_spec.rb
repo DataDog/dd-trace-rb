@@ -175,9 +175,11 @@ RSpec.describe Datadog::Tracing::Remote do
           # Isolate the Symbol Database replay wiring from DI's own enablement.
           allow(Datadog::DI::Remote).to receive(:handle_rc_enablement)
           components = Datadog.send(:components)
-          allow(components).to receive(:symbol_database).and_return(symbol_database)
-          allow(components).to receive(:remote).and_return(remote_component)
-          allow(components).to receive(:dynamic_instrumentation).and_return(di_component)
+          allow(components).to receive_messages(
+            symbol_database: symbol_database,
+            remote: remote_component,
+            dynamic_instrumentation: di_component,
+          )
           allow(components.telemetry).to receive(:client_configuration_change!)
           allow(Datadog::SymbolDatabase::Remote).to receive(:deferred_products)
             .and_return(["LIVE_DEBUGGING_SYMBOL_DB"])
