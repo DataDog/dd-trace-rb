@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "cgi"
-
 # CI check for the pull request description, run from check.yml.
 # Enforces the required PR body fields (### Why, ### What, ### Risk) and
 # their caps. Drafts are included: the body is expected to be complete
@@ -15,6 +13,9 @@ require "cgi"
 MAX_WORDS = 50
 MAX_SENTENCES = 2
 SKIP_MARKER = "<!-- pr-body: skip -->"
+# Quotes only matter inside quoted attribute values, and no sink places
+# findings inside one. Escaping them garbles every failure line.
+HTML_CONTEXT = { "&" => "&amp;", "<" => "&lt;", ">" => "&gt;" }.freeze
 REQUIRED_FIELDS = ["Why", "What", "Risk"].freeze
 OPTIONAL_FIELDS = ["Details"].freeze
 
@@ -25,6 +26,11 @@ def sentence_count(content)
     .gsub(/\.{3,}/, "\u2026")
     .gsub(/\b(?:e\.g|i\.e|etc|vs|approx|Mr|Mrs|Dr|Inc|Ltd)\./, "abbr")
   text.split(/[.!?]+["')\]]*(?=\s|\z)/).count { |sentence| !sentence.strip.empty? }
+end
+
+# Neutralize every character that can open an HTML context in the output.
+def html_neutral(text)
+  text.gsub(/[&<>]/, HTML_CONTEXT)
 end
 
 def check_body(body)
@@ -133,6 +139,6 @@ failures = check_body(ENV["PR_BODY"] || "")
 if failures.empty?
   puts "PR body OK"
 else
-  failures.each { |failure| puts "PR body: #{CGI.escapeHTML(failure)}" }
+  failures.each { |failure| puts "PR body: #{html_neutral(failure)}" }
   exit 1
 end
