@@ -93,7 +93,7 @@ void miteruby_miniconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_ins
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
   for (;;) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(buffer, false);
+    miteruby_buffer_record_t record = miteruby_buffer_read(buffer, NULL);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
       return;

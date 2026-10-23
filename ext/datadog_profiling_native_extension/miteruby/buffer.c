@@ -77,7 +77,7 @@ static uint32_t miteruby_buffer_unread_count(uint32_t write_position, uint32_t r
     return write_position - read_position;
 }
 
-static void miteruby_buffer_wake_consumer(miteruby_buffer_t *buffer)
+void miteruby_buffer_wake_consumer(miteruby_buffer_t *buffer)
 {
 #ifdef __APPLE__
     (void)buffer; // Polling readers never set the sleeping flag.
@@ -198,7 +198,8 @@ void miteruby_buffer_close(miteruby_buffer_t *buffer, const sigset_t *signal_mas
     miteruby_buffer_producer_unlock(buffer);
 }
 
-miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool blocking)
+miteruby_buffer_record_t miteruby_buffer_read(
+    miteruby_buffer_t *buffer, atomic_bool *interrupted)
 {
     uint32_t read_position = buffer->next_read_position;
     // The caller has finished using the last item. Only now may producers
@@ -206,6 +207,8 @@ miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool bl
     atomic_store(&buffer->read_position, read_position);
 
     for (;;) {
+        if (interrupted != NULL && atomic_load(interrupted))
+            return (miteruby_buffer_record_t){.interrupted = true};
         uint64_t write_state = atomic_load(&buffer->write_state);
         uint32_t available_count = miteruby_buffer_unread_count(
             miteruby_buffer_position_from_state(write_state), read_position);
@@ -251,7 +254,7 @@ miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool bl
                                            write_state & ~MITERUBY_BUFFER_EXTRA_PENDING);
             continue;
         }
-        if (!blocking)
+        if (interrupted == NULL)
             return (miteruby_buffer_record_t){0};
 
 #ifdef __APPLE__
@@ -267,10 +270,10 @@ miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool bl
         if (!atomic_compare_exchange_strong(&buffer->write_state, &write_state,
                                            write_state | MITERUBY_BUFFER_CONSUMER_SLEEPING))
             continue;
-        while (sem_wait(&buffer->consumer_wakeup) != 0) {
-            if (errno != EINTR)
-                abort();
-        }
+        if (atomic_load(interrupted))
+            return (miteruby_buffer_record_t){.interrupted = true};
+        if (sem_wait(&buffer->consumer_wakeup) != 0 && errno != EINTR)
+            abort();
 #endif
     }
 }

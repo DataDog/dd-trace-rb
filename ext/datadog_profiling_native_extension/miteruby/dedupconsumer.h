@@ -8,7 +8,7 @@ void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer);
 void miteruby_dedupconsumer_init(void);
 
 // Requires the main ractor's GVL on entry and exclusive consumer access throughout the loop.
-// Sleeps without the GVL between drains; Ruby interruption exits the loop and unblocks SIGPROF.
+// Reads and copies without the GVL; Ruby interruption exits the loop and unblocks SIGPROF.
 void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer, VALUE recorder_instance);
 
 // Requires the main ractor's GVL and exclusive consumer access; must not be called recursively.
