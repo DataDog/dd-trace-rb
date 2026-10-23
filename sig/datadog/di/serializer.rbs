@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class Serializer
+      type positional_param_names_type = ::Array[::Symbol?]?
+
       MAX_MESSAGE_COLLECTION_SIZE: Integer
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
@@ -32,8 +34,8 @@ module Datadog
 
       def record_capture_incomplete: (String reason) -> void
 
-      def combine_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, Object target_self) -> Hash[Symbol, untyped]
-      def serialize_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, untyped target_self, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, deadline: Float) -> Hash[Symbol, untyped]
+      def combine_args: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Object target_self, ?positional_param_names: positional_param_names_type) -> ::Hash[::Symbol, untyped]
+      def serialize_args: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, untyped target_self, ?positional_param_names: positional_param_names_type, ?depth: ::Integer, ?attribute_count: ::Integer?, ?length: ::Integer?, ?collection_size: ::Integer?, deadline: Float) -> ::Hash[::Symbol, untyped]
       def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, deadline: Float) -> Hash[Symbol, untyped]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?, deadline: Float) -> Hash[Symbol, untyped]
       def serialization_deadline: () -> Float
