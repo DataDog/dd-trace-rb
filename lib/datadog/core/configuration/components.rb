@@ -55,7 +55,7 @@ module Datadog
           # extension, remote config off, non-MRI). Under the always-build model
           # it is non-nil even when the DI setting defaults to off, so a built
           # SymbolDatabase component is inert until an upload is actually
-          # permitted: the component's own gate, Component#upload_allowed?,
+          # permitted: the component's own gate, SymbolDatabase::Component#upload_allowed?,
           # only extracts and uploads when DI is truly active or the customer
           # opted in explicitly. This mirrors DI advertising/building a component
           # by default while installing no probes until it is enabled.

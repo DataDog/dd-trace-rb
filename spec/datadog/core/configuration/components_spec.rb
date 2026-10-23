@@ -245,7 +245,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # disabled, runtime supported); nil stands for "DI's component was not
     # built". The resolver never calls a method on it, only checks presence.
     # Whether a built component actually uploads is gated separately, at upload
-    # time, on DI being active, by Component#upload_allowed?.
+    # time, on DI being active, by SymbolDatabase::Component#upload_allowed?.
     let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
 
     context "when the symbol_database settings group is not registered (partial load)" do
@@ -856,12 +856,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe "#state" do
-    # #state reports di_implicitly_enabled by delegating to the component's
-    # own implicitly_enabled?, coercing a nil component to false. The result
-    # rides on ComponentsState: when Datadog.configure rebuilds the tree, the
-    # old tree's #state is read by the new tree's #startup! to decide whether
-    # to restart DI. The real started?/using_default? decision lives in
-    # Datadog::DI::Component#implicitly_enabled?.
+    # When Datadog.configure rebuilds the tree, the old tree's #state is read
+    # by the new tree's #startup! to decide whether to restart DI.
 
     context "when the component reports it is implicitly enabled" do
       let(:stub_di_component) { instance_double(Datadog::DI::Component, implicitly_enabled?: true, shutdown!: nil) }
