@@ -1943,6 +1943,80 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       context "when miteruby is enabled" do
         let(:options) { {miteruby_enabled: true} }
+        let(:consumer_threads) { Queue.new }
+
+        before do
+          allow(described_class).to receive(:"_native_miteruby_#{consumer_name}_consume_loop").and_wrap_original do |original, recorder|
+            consumer_threads << Thread.current
+            original.call(recorder)
+          end
+        end
+
+        it "initializes safely when the consumer has already entered its loop" do
+          allow(described_class).to receive(:_native_sampling_loop).and_wrap_original do |original, worker|
+            consumer = consumer_threads.pop
+            loop_until { consumer.status == "sleep" }
+            original.call(worker)
+          end
+
+          cpu_and_wall_time_worker.start
+          wait_until_running
+
+          expect(cpu_and_wall_time_worker.send(:failure_exception)).to be_nil
+          cpu_and_wall_time_worker.stop
+        end
+
+        if consumer_name == :dedupconsumer
+          it "allows GC and serialization while idle" do
+            cpu_and_wall_time_worker.start
+            wait_until_running
+            consumer = consumer_threads.pop
+            loop_until { consumer.status == "sleep" }
+
+            consumer.wakeup
+            GC.start
+            GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+            miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
+            expect(consumer).to be_alive
+
+            consumer.kill
+            expect(consumer.join(5)).to equal(consumer)
+            expect { described_class::Testing._native_miteruby_dedupconsumer_consume(miteruby_recorder) }.to_not raise_error
+          end
+
+          it "preserves references while consuming concurrently with GC and serialization" do
+            cpu_and_wall_time_worker.start
+            wait_until_running
+            consumer = consumer_threads.pop
+            loop_until { consumer.status == "sleep" }
+
+            samples = []
+            3.times do
+              100.times { described_class::Testing._native_miteruby_sample_event_publish_mask }
+              described_class::Testing._native_miteruby_wake_reader
+              GC.start
+              GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+              samples.concat(samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!))
+            end
+
+            expect(samples.flat_map(&:locations).map(&:label)).to include("_native_miteruby_sample_event_publish_mask")
+            consumer.kill
+            expect(consumer.join(5)).to equal(consumer)
+          end
+
+          it "handles Thread#raise while blocked" do
+            cpu_and_wall_time_worker.start
+            wait_until_running
+            consumer = consumer_threads.pop
+            loop_until { consumer.status == "sleep" }
+
+            error = RuntimeError.new("interrupt dedupconsumer")
+            consumer.raise(error)
+            expect(consumer.join(5)).to equal(consumer)
+            expect(cpu_and_wall_time_worker.send(:failure_exception)).to equal(error)
+            expect { described_class::Testing._native_miteruby_read_sample_headers }.to_not raise_error
+          end
+        end
 
         it "drains into the worker's recorder and manages the consumer across starts and stops" do
           started = Queue.new
@@ -1966,6 +2040,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             expect(started).to be_empty
 
             described_class::Testing._native_simulate_handle_sampling_signal
+            described_class::Testing._native_miteruby_wake_reader
             loop_until do
               samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!).any? do |sample|
                 sample.locations.any? { |frame| frame.label == "_native_simulate_handle_sampling_signal" }
@@ -2122,22 +2197,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     it "drains repeatedly and unblocks SIGPROF after interruption" do
       cleanup = Queue.new
       recorder_instance = miteruby_recorder
-      consumer_thread = Thread.new do
-        described_class.public_send("_native_miteruby_#{miteruby_consumer_name}_consume_loop", recorder_instance)
-      ensure
-        cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
-      end
-      loop_until { consumer_thread.status == "sleep" }
+      consumer_thread = nil
+      capture_miteruby do
+        consumer_thread = Thread.new do
+          described_class.public_send("_native_miteruby_#{miteruby_consumer_name}_consume_loop", recorder_instance)
+        ensure
+          cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
+        end
+        loop_until { consumer_thread.status == "sleep" }
 
-      2.times do
-        capture_miteruby { publish_miteruby_sample }
-        drained_samples = []
-        loop_until { !(drained_samples = recorded_miteruby_samples).empty? }
-        expect(drained_samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
-      end
+        2.times do
+          publish_miteruby_sample
+          described_class::Testing._native_miteruby_wake_reader
+          drained_samples = []
+          loop_until do
+            drained_samples = recorded_miteruby_samples
+            drained_samples.flat_map(&:locations).any? { |frame| frame.label == "publish_miteruby_sample" }
+          end
+          expect(drained_samples.flat_map(&:locations).map(&:label)).to include("publish_miteruby_sample")
+        end
 
-      consumer_thread.kill.join
-      expect(cleanup.pop).to be false
+        consumer_thread.kill.join
+        expect(cleanup.pop).to be false
+      end
     ensure
       consumer_thread&.kill&.join
     end
