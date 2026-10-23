@@ -108,6 +108,96 @@ RSpec.describe Datadog::Core::FeatureFlags do
       end
     end
 
+    describe "#get_assignment_with_opt_out_mode" do
+      let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
+      let(:config) { JSON.parse(flags_json) }
+      let(:context) do
+        {"targeting_key" => "subject", "email" => "user@example.com",
+         "dd_experimentation_opt_out_at" => "2026-10-19T12:00:00Z"}
+      end
+
+      before do
+        unless described_class::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+          skip "Requires a libdatadog build with opt-out modes"
+        end
+        flag = config.fetch("flags").fetch("test-flag")
+        flag["variations"]["ordinary"] = {"key" => "ordinary", "value" => {"feature" => "ordinary"}}
+        flag["allocations"] << {
+          "key" => "ordinary", "doLog" => false,
+          "splits" => [{"variationKey" => "ordinary", "shards" => []}],
+        }
+      end
+
+      [
+        ["2026-10-19T11:59:59.999999999Z", true],
+        ["2026-10-19T12:00:00Z", false],
+        ["2026-10-19T12:00:00.000000001Z", false],
+        ["2026-10-19T17:30:00+05:30", false],
+        [nil, false],
+      ].product([:disabled, :immediate, :future_experiments_only]).each do |(activation, older), mode|
+        it "evaluates activation #{activation.inspect} in #{mode}" do
+          config["flags"]["test-flag"]["allocations"].first["randomizationActivatedAt"] = activation
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, mode)
+          experiment = mode == :disabled || (mode == :future_experiments_only && older)
+
+          expect(result.variant).to eq(experiment ? "treatment" : "ordinary")
+          expect(result.allocation_key).to eq(experiment ? "test-allocation" : "ordinary")
+          expect(result.log?).to eq(experiment)
+          expect(result.error_code).to be_nil
+        end
+      end
+
+      it "excludes unknown activation but evaluates an absent subject attribute normally" do
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to eq("ordinary")
+        expect(result.log?).to be(false)
+
+        context.delete("dd_experimentation_opt_out_at")
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to eq("treatment")
+        expect(result.log?).to be(true)
+      end
+
+      it "returns the default state when no ordinary allocation matches" do
+        config["flags"]["test-flag"]["allocations"].pop
+        result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+        expect(result.variant).to be_nil
+        expect(result.reason).to eq("DEFAULT")
+        expect(result.log?).to be(false)
+      end
+
+      ["", "invalid", true, 123].each do |input|
+        it "rejects invalid subject input #{input.inspect}" do
+          context["dd_experimentation_opt_out_at"] = input
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :future_experiments_only)
+          expect(result.error_code).to eq("INVALID_CONTEXT")
+          expect(result.log?).to be(false)
+        end
+      end
+
+      [:disabled, :immediate, :future_experiments_only].each do |mode|
+        it "isolates malformed activation in #{mode}" do
+          config["flags"]["neighbor"] = Marshal.load(Marshal.dump(config["flags"]["test-flag"]))
+          config["flags"]["neighbor"]["key"] = "neighbor"
+          config["flags"]["test-flag"]["allocations"].first["randomizationActivatedAt"] = "invalid"
+          result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, mode)
+          expect(result.error_code).to eq("PARSE_ERROR")
+          expect(result.log?).to be(false)
+          neighbor = configuration.get_assignment_with_opt_out_mode("neighbor", :object, context, mode)
+          expect(neighbor.error_code).to be_nil
+        end
+      end
+
+      it "rejects unsupported modes before native evaluation" do
+        expect do
+          configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, :unknown)
+        end.to raise_error(ArgumentError, /Unsupported experimentation opt-out mode/)
+        expect do
+          configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, "future_experiments_only")
+        end.to raise_error(TypeError)
+      end
+    end
+
     describe ".new" do
       it "creates a new configuration from valid JSON" do
         expect { described_class::Configuration.new(flags_json) }.not_to raise_error

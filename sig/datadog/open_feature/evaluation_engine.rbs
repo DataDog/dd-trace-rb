@@ -22,7 +22,7 @@ module Datadog
         default_value: untyped,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?,
-        ?experimentation_opt_out_immediate: bool
+        ?experimentation_opt_out_mode: Provider::experimentation_opt_out_mode
       ) -> ResolutionDetails
 
       def reconfigure!: (::String? configuration) -> void

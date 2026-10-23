@@ -169,6 +169,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?).and_call_original
       allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?)
         .with(:get_assignment_with_options).and_return(native_supported)
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?)
+        .with(:get_assignment_with_opt_out_mode).and_return(native_supported)
       allow(engine).to receive(:fetch_value).and_return(
         Datadog::OpenFeature::ResolutionDetails.build_error(
           value: false, error_code: "PROVIDER_NOT_READY", error_message: "Waiting for configuration"
@@ -181,15 +183,18 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
 
     [
-      [nil, nil, false],
-      [nil, "", false],
-      [nil, " disabled ", false],
-      [nil, " IMMEDIATE ", true],
-      [:disabled, "immediate", false],
-      [:immediate, "disabled", true],
-      [:disabled, "unsupported", false],
-      [:immediate, "unsupported", true],
-    ].each do |explicit_mode, env_mode, expected_immediate|
+      [nil, nil, :disabled],
+      [nil, "", :disabled],
+      [nil, " disabled ", :disabled],
+      [nil, " IMMEDIATE ", :immediate],
+      [nil, " FUTURE_EXPERIMENTS_ONLY ", :future_experiments_only],
+      [:disabled, "immediate", :disabled],
+      [:immediate, "disabled", :immediate],
+      [:disabled, "unsupported", :disabled],
+      [:immediate, "unsupported", :immediate],
+      [:future_experiments_only, "unsupported", :future_experiments_only],
+      [:disabled, "future_experiments_only", :disabled],
+    ].each do |explicit_mode, env_mode, expected_mode|
       context "with explicit #{explicit_mode.inspect} and environment #{env_mode.inspect}" do
         let(:mode) { explicit_mode }
         let(:environment_mode) { env_mode }
@@ -198,21 +203,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
           configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
           expect(engine).to have_received(:fetch_value).with(
             "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
-            experimentation_opt_out_immediate: expected_immediate
+            experimentation_opt_out_mode: expected_mode
           )
         end
       end
     end
 
     context "with an unsupported environment mode" do
-      let(:environment_mode) { "future_experiments_only" }
+      let(:environment_mode) { "unsupported" }
 
       it "rejects construction" do
-        expect { configured_provider }.to raise_error(ArgumentError, /disabled or immediate/)
+        expect { configured_provider }.to raise_error(ArgumentError, /disabled, immediate, or future_experiments_only/)
       end
     end
 
-    [:disabled, :immediate].product([false, true]).each do |experiment_mode, telemetry_enabled|
+    [:disabled, :immediate, :future_experiments_only].product([false, true]).each do |experiment_mode, telemetry_enabled|
       context "with experimentation #{experiment_mode} and telemetry opt-out #{telemetry_enabled}" do
         let(:mode) { experiment_mode }
         let(:flag_eval_metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook) }
@@ -237,7 +242,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
           expect(engine).to have_received(:fetch_value).with(
             "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
-            experimentation_opt_out_immediate: experiment_mode == :immediate,
+            experimentation_opt_out_mode: experiment_mode,
           )
           if telemetry_enabled
             expect(configured_provider.hooks.first).to be_a(Datadog::OpenFeature::Hooks::EvaluationTelemetryOptOutHook)
@@ -252,7 +257,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       let(:mode) { :unknown }
 
       it "rejects construction" do
-        expect { configured_provider }.to raise_error(ArgumentError, /disabled or immediate/)
+        expect { configured_provider }.to raise_error(ArgumentError, /disabled, immediate, or future_experiments_only/)
       end
     end
 
@@ -269,6 +274,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         it { expect { configured_provider }.not_to raise_error }
       end
+
+      context "with future mode" do
+        let(:mode) { :future_experiments_only }
+
+        it "rejects activation" do
+          expect { configured_provider }.to raise_error(ArgumentError, /requires a libdatadog build with opt-out modes/)
+        end
+      end
+    end
+
+    context "when only immediate native support is available" do
+      before do
+        allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?)
+          .with(:get_assignment_with_opt_out_mode).and_return(false)
+      end
+
+      context "with immediate mode" do
+        let(:mode) { :immediate }
+
+        it { expect { configured_provider }.not_to raise_error }
+      end
+
+      context "with future mode" do
+        let(:mode) { :future_experiments_only }
+
+        it { expect { configured_provider }.to raise_error(ArgumentError, /requires a libdatadog build/) }
+      end
     end
 
     it "keeps the construction-time mode after configuration changes" do
@@ -278,7 +310,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(engine).to have_received(:fetch_value).with(
         "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
-        experimentation_opt_out_immediate: false
+        experimentation_opt_out_mode: :disabled
       )
     end
   end
