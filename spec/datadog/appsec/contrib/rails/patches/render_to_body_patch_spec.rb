@@ -218,6 +218,26 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
             include("rule" => include("id" => "shallow-response-field")),
           )
         end
+
+        context "when rendering JSONP" do
+          subject(:render_to_body) { controller.render_to_body(json: response_body, callback: "app.callback") }
+
+          it "inspects the JSON payload inside the callback" do
+            expect { render_to_body }.to change { context.events.size }.from(0).to(1)
+            expect(context.events.first.waf_result.events).to include(
+              include("rule" => include("id" => "shallow-response-field")),
+            )
+          end
+        end
+
+        context "when the callback expression contains parentheses" do
+          subject(:render_to_body) { controller.render_to_body(json: response_body, callback: "factory().callback") }
+
+          it "preserves the response when native JSON parsing rejects the candidate" do
+            expect(render_to_body).to eq("/**/factory().callback(#{response_body})")
+            expect(context.events).to be_empty
+          end
+        end
       end
     end
 
@@ -239,6 +259,48 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
         expect(gateway).to have_received(:push).with(
           "rails.response.body.json",
           have_attributes(data: a_string_including("app.callback")),
+        )
+      end
+
+      context "when the callback is a custom object" do
+        subject(:render_to_body) { controller.render_to_body(json: serializer, callback: callback) }
+
+        let(:callback) do
+          Class.new do
+            attr_reader :calls
+
+            def initialize
+              @calls = 0
+            end
+
+            def to_s
+              @calls += 1
+              "app.callback"
+            end
+          end.new
+        end
+
+        it "forwards the response without repeating callback conversion" do
+          expect(render_to_body).to eq(
+            unpatched_controller.render_to_body(json: {x: 1}, callback: "app.callback"),
+          )
+          expect(callback.calls).to eq(1)
+          expect(serializer.calls).to eq(1)
+          expect(gateway).to have_received(:push).with(
+            "rails.response.body.json", have_attributes(data: a_string_including("app.callback")),
+          )
+        end
+      end
+    end
+
+    context "when the callback key is nil" do
+      subject(:render_to_body) { controller.render_to_body(json: serializer, callback: nil) }
+
+      it "inspects the JSON response without a callback wrapper" do
+        expect(render_to_body).to eq('{"x":1}')
+        expect(serializer.calls).to eq(1)
+        expect(gateway).to have_received(:push).with(
+          "rails.response.body.json", have_attributes(data: '{"x":1}'),
         )
       end
     end
@@ -276,6 +338,30 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
       end
     end
 
+    context "when a custom JSON renderer is installed" do
+      let(:controller_class) do
+        stub_const("CustomJsonController", Class.new(ActionController::Base) do
+          attr_reader :render_calls
+
+          def _render_with_renderer_json(_object, _options)
+            @render_calls = @render_calls.to_i + 1
+            '{"custom":true}'
+          end
+        end).tap do |controller|
+          controller.prepend(described_class) unless controller < described_class
+        end
+      end
+
+      it "uses the custom renderer once without serializing the original object" do
+        expect(render_to_body).to eq('{"custom":true}')
+        expect(controller.render_calls).to eq(1)
+        expect(serializer.calls).to eq(0)
+        expect(gateway).to have_received(:push).with(
+          "rails.response.body.json", have_attributes(data: '{"custom":true}', context: context),
+        )
+      end
+    end
+
     context "when a custom renderer returns a non-string body" do
       before { allow(controller).to receive(:_render_with_renderer_json).and_return(response_body) }
 
@@ -296,8 +382,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
       it "passes the same string without copying the response" do
         expect(render_to_body).to equal(response_body)
         expect(gateway).to have_received(:push).with(
-          "rails.response.body.json",
-          have_attributes(data: equal(response_body)),
+          "rails.response.body.json", have_attributes(data: equal(response_body)),
         )
       end
     end

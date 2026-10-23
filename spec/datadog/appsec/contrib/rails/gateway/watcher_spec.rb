@@ -193,6 +193,236 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       gateway.push("rails.response.body.json", container)
     end
 
+    context "when the response is JSONP" do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(25) }
+
+      let(:container) do
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
+          +'/**/app.callback({"x":1})', context: context,
+        )
+      end
+
+      it "inspects the JSON payload and reports the original response size" do
+        gateway.push("rails.response.body.json", container)
+
+        expect(context).to have_received(:run_waf).with(
+          {
+            "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
+            "server.response.body.byte_length" => 25,
+          }, {}, anything,
+        )
+      end
+
+      context "when the JSON argument is an array" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
+            '/**/app.callback(["({"])', context: context,
+          )
+        end
+
+        it "preserves object-like text inside the array payload" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('["({"]')),
+              "server.response.body.byte_length" => 24,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the JSONP prefix is missing" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("app.callback(42)", context: context)
+        end
+
+        it "passes the whole body to the native JSON parser" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("app.callback(42)")),
+              "server.response.body.byte_length" => 16,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the closing parenthesis is missing" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("/**/app.callback(42", context: context)
+        end
+
+        it "reports the response size without a JSON body" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {"server.response.body.byte_length" => 19}, {}, anything,
+          )
+        end
+      end
+
+      context "when the opening parenthesis is missing" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("/**/app.callback42)", context: context)
+        end
+
+        it "reports the response size without a JSON body" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {"server.response.body.byte_length" => 19}, {}, anything,
+          )
+        end
+      end
+
+      context "when the JSON argument is a number" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("/**/app.callback(42)", context: context)
+        end
+
+        it "passes the number to the native JSON parser" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("42")),
+              "server.response.body.byte_length" => 20,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the JSON argument is a string" do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(32) }
+
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
+            '/**/app.callback("text (value)")', context: context,
+          )
+        end
+
+        it "preserves the quoted string and its parentheses" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('"text (value)"')),
+              "server.response.body.byte_length" => 32,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the JSON argument is a boolean" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("/**/app.callback(false)", context: context)
+        end
+
+        it "passes the boolean to the native JSON parser" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("false")),
+              "server.response.body.byte_length" => 23,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the JSON argument is null" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new("/**/app.callback(null)", context: context)
+        end
+
+        it "passes null to the native JSON parser" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq("null")),
+              "server.response.body.byte_length" => 22,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when the response exceeds the limit" do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(24) }
+
+        it "does not copy the JSON payload" do
+          expect(container.data).not_to receive(:byteslice)
+
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {"server.response.body.byte_length" => 25}, {}, anything,
+          )
+        end
+      end
+
+      context "when the callback name contains multibyte characters" do
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new('/**/é({"x":1})', context: context)
+        end
+
+        it "extracts the payload using byte offsets" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
+              "server.response.body.byte_length" => 15,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when JSON strings contain parentheses" do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(33) }
+
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
+            '/**/app.callback({"x":"(value)"})', context: context,
+          )
+        end
+
+        it "preserves the parentheses inside the payload" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":"(value)"}')),
+              "server.response.body.byte_length" => 33,
+            }, {}, anything,
+          )
+        end
+      end
+
+      context "when a JSON string contains an unmatched opening parenthesis" do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(27) }
+
+        let(:container) do
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(
+            '/**/app.callback({"x":"("})', context: context,
+          )
+        end
+
+        it "preserves the opening parenthesis inside the JSON string" do
+          gateway.push("rails.response.body.json", container)
+
+          expect(context).to have_received(:run_waf).with(
+            {
+              "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":"("}')),
+              "server.response.body.byte_length" => 27,
+            }, {}, anything,
+          )
+        end
+      end
+    end
+
     context "when the response exceeds the byte limit" do
       before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(6) }
 
