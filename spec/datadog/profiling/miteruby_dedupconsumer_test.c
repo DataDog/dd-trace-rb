@@ -132,7 +132,7 @@ static void test_compact_events_and_reset(void) {
     buffer_event(&event->header);
   }
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
-  assert(objects_to_mark_set_size(&state.objects_to_mark) == 3);
+  assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 3);
   assert(consumed_events_count == 30000);
   assert(consumed_events_capacity > CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY);
   for (size_t i = 0; i < 30000; i++) {
@@ -158,13 +158,13 @@ static void test_compact_events_and_reset(void) {
   event->thread.value = Qtrue;
   buffer_event(&event->header);
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
-  assert(objects_to_mark_set_size(&state.objects_to_mark) == 4);
+  assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 4);
 
   miteruby_dedupconsumer_init();
   assert(consumed_events_count == 0 && unique_stacks_pos == 0);
   assert(unique_stacks_size == 0 && unique_stacks_array == NULL);
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 0);
-  assert(objects_to_mark_set_size(&state.objects_to_mark) == 0);
+  assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 0);
   buffer_event(&event->header);
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
   assert(consumed_events_buffer[0].stack_id == 0);
@@ -172,13 +172,13 @@ static void test_compact_events_and_reset(void) {
 
 int main(void) {
   initialize_mutexes();
-  objects_to_mark_set_init(&state.objects_to_mark);
+  verstable_objects_to_mark_set_init(&state.objects_to_mark);
   miteruby_dedupconsumer_stack_dedup_init();
   test_identity_and_collisions();
   test_growth_and_relocation();
   test_compact_events_and_reset();
   verstable_unique_stacks_map_cleanup(&unique_stacks);
-  objects_to_mark_set_cleanup(&state.objects_to_mark);
+  verstable_objects_to_mark_set_cleanup(&state.objects_to_mark);
   assert(unique_stacks_map_allocated_bytes == 0 && objects_to_mark_allocated_bytes == 0);
   free(unique_stacks_array);
   free(consumed_events_buffer);
