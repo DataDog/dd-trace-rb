@@ -288,12 +288,6 @@ module Datadog
             end
           end
 
-          # Restore the recorded RC enable-signal paths the replaced tree's DI
-          # component held: a rebuilt component starts with none, and the
-          # withdrawal branch in Tracing::Remote.apply_lib_config reads the
-          # recorded paths to tell a failed signal-carrier replacement from an
-          # unrelated parse failure. Without the restore, any parse failure
-          # would mask a withdrawn enable signal on the rebuilt component.
           if dynamic_instrumentation && old_state
             dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
           end
