@@ -22,6 +22,9 @@ module Datadog
           TAG_OPERATION = "aws.operation"
           TAG_OPERATION_COMMAND = "command"
           TAG_PATH = "path"
+          # The Region of the endpoint the request was sent to (the client's
+          # own Region). A target resource's Region is carried by its ARN in
+          # the `*.arn` tags below, not here.
           TAG_AWS_REGION = "aws.region"
           TAG_REGION = "region"
           TAG_AWS_SERVICE = "aws_service"
@@ -33,6 +36,24 @@ module Datadog
           TAG_RULE_NAME = "rulename"
           TAG_STATE_MACHINE_NAME = "statemachinename"
           TAG_BUCKET_NAME = "bucketname"
+          # Target identity tags shared with the other Datadog tracers. They
+          # complement, and never replace, the legacy top-level name tags
+          # above, which remain the `peer.service` sources. An `*.arn` tag is
+          # the ARN the request supplied, byte for byte, including any version
+          # or alias qualifier.
+          TAG_AWS_TABLE_NAME = "aws.table.name"
+          TAG_AWS_TABLE_ARN = "aws.table.arn"
+          TAG_AWS_TOPIC_NAME = "aws.topic.name"
+          TAG_AWS_TOPIC_ARN = "aws.topic.arn"
+          TAG_AWS_STREAM_NAME = "aws.stream.name"
+          TAG_AWS_STREAM_ARN = "aws.stream.arn"
+          TAG_AWS_STATE_MACHINE_ARN = "aws.state_machine.arn"
+          TAG_AWS_EXECUTION_ARN = "aws.execution.arn"
+          TAG_AWS_FUNCTION_NAME = "aws.function.name"
+          TAG_AWS_FUNCTION_ARN = "aws.function.arn"
+          # `aws.function.name` is deliberately absent: Lambda spans source
+          # `peer.service` from `peer.hostname`, as the other tracers do, so
+          # adding it here would rename the dependency for this tracer alone.
           PEER_SERVICE_SOURCES = [TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,
             TAG_STREAM_NAME,

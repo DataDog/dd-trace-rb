@@ -1,0 +1,53 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        class Arn
+          PREFIX: ::String
+
+          SEGMENT_COUNT: ::Integer
+
+          PARTITION_FORMAT: ::Regexp
+
+          REGION_FORMAT: ::Regexp
+
+          ACCOUNT_ID_FORMAT: ::Regexp
+
+          RESOURCE_SEPARATOR: ::Regexp
+
+          @bare_resource: bool
+
+          attr_reader partition: ::String
+
+          attr_reader service: ::String
+
+          attr_reader region: ::String?
+
+          attr_reader account_id: ::String?
+
+          attr_reader resource: ::String
+
+          attr_reader resource_segments: ::Array[::String]
+
+          def self.scannable?: (untyped value) -> bool
+
+          def self.parse: (untyped value) -> Arn?
+
+          def initialize: (
+            partition: ::String,
+            service: ::String,
+            region: ::String?,
+            account_id: ::String?,
+            resource: ::String
+          ) -> void
+
+          def bare_resource?: () -> bool
+
+          def typed_resource_id: (::String service_name, ::Array[::String] resource_types) -> ::String?
+
+          def bare_resource_id: (::String service_name) -> ::String?
+        end
+      end
+    end
+  end
+end
