@@ -399,6 +399,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:level) { settings.logger.level }
 
         before do
+          # Build the settings before Core::Logger.new is stubbed: the first
+          # settings construction in the process also builds the library's
+          # internal logger through Core::Logger.new, and the stub would return
+          # this instance double, which rejects its level= call.
+          settings
+
           expect(Datadog::Core::Logger).to receive(:new)
             .with($stderr)
             .and_return(logger)
