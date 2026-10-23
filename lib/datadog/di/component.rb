@@ -210,30 +210,21 @@ module Datadog
       # enablement: once the customer sets the option, this returns false
       # even while the component is still started.
       #
-      # @return [Boolean] true when the component is started and the customer
-      #   left the enabled setting at its default
+      # @return [Boolean]
       def implicitly_enabled?
         started? && settings.dynamic_instrumentation.using_default?(:enabled)
       end
 
-      # Whether an APM_TRACING merge that omitted
-      # dynamic_instrumentation_enabled withdraws this component's RC enable
-      # signal, so the component must stop. False for a component that is
-      # not implicitly enabled: an explicit customer opt-in is independent
-      # of RC enablement.
+      # Whether an APM_TRACING merge that omitted dynamic_instrumentation_enabled
+      # withdraws this component's RC enable signal, so the component must stop.
       #
-      # A content that fails to parse at a recorded signal path is a failed
-      # replacement of a config that supplied the signal: its bytes may
-      # still carry the signal, so this returns false and the component
-      # keeps its state until that config is deleted or replaced by one
-      # that parses. A content that fails to parse at any other path never
-      # supplied the signal, so it does not hide the withdrawal. A component
-      # that holds no recorded signal paths (an enablement that predates
-      # the recording) keeps its state while any content fails to parse,
-      # because the carrier is unknown.
+      # Returns true when the component is implicitly enabled and no unparseable
+      # content can be the signal carrier. A content at a recorded signal path can be
+      # the carrier. When no paths are recorded, every unparseable content can be the
+      # carrier.
       #
-      # @param unparseable_contents [Array[Core::Remote::Configuration::Content]] the APM_TRACING contents that failed to parse at this merge
-      # @return [Boolean] true when the signal was withdrawn from an implicitly enabled component
+      # @param unparseable_contents [Array<Core::Remote::Configuration::Content>] the APM_TRACING contents that failed to parse at this merge
+      # @return [Boolean]
       def rc_enablement_signal_withdrawn?(unparseable_contents)
         return false unless implicitly_enabled?
 
@@ -264,24 +255,16 @@ module Datadog
         end
       end
 
-      # The repository paths of the APM_TRACING remote-config contents that
-      # supplied the dynamic_instrumentation_enabled value at the last merge
-      # where the field was present.
+      # The repository paths of the APM_TRACING contents that supplied the
+      # dynamic_instrumentation_enabled value at the last merge where the field was
+      # present. The component holds the paths so that they outlive the RC client.
       #
-      # Tracing::Remote's withdrawal branch reads this. The state is stored
-      # on the component so that a fresh RC client (after a fork or a
-      # sync-error replacement) consults the same paths its predecessor
-      # recorded, and a rebuilt component starts with none.
-      #
-      # @return [Array[Core::Remote::Configuration::Path]] the paths of the
-      #   configs that supplied the last present enablement value
+      # @return [Array<Core::Remote::Configuration::Path>]
       attr_reader :rc_enablement_signal_paths
 
-      # Records the repository paths of the APM_TRACING configs that supplied
-      # a present dynamic_instrumentation_enabled value at the current merge.
+      # Replaces the recorded enable-signal carrier paths.
       #
-      # @param paths [Array[Core::Remote::Configuration::Path]] the carrier
-      #   paths, empty when the merged field was absent
+      # @param paths [Array<Core::Remote::Configuration::Path>] the carrier paths, empty when the merged field was absent
       # @return [void]
       def record_rc_enablement_signal_paths(paths)
         @rc_enablement_signal_paths = paths.dup
