@@ -1,18 +1,21 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "cgi"
-
 # CI check for the pull request description, run from check.yml.
 # Enforces the required PR body fields (### Why, ### What, ### Risk) and
 # their caps. Drafts are included: the body is expected to be complete
-# when the PR is opened.
+# when the PR is opened. A `<!-- pr-body: skip -->` comment opts a body
+# out. check.yml names who is exempt without it.
 #
 # Run `ruby .github/scripts/check/pr_body.rb --self-test` to verify the
 # counting logic.
 
 MAX_WORDS = 50
 MAX_SENTENCES = 2
+SKIP_MARKER = "<!-- pr-body: skip -->"
+# Quotes only matter inside quoted attribute values, and no sink places
+# findings inside one. Escaping them garbles every failure line.
+HTML_CONTEXT = { "&" => "&amp;", "<" => "&lt;", ">" => "&gt;" }.freeze
 REQUIRED_FIELDS = ["Why", "What", "Risk"].freeze
 OPTIONAL_FIELDS = ["Details"].freeze
 
@@ -25,7 +28,13 @@ def sentence_count(content)
   text.split(/[.!?]+["')\]]*(?=\s|\z)/).count { |sentence| !sentence.strip.empty? }
 end
 
+def html_neutral(text)
+  text.gsub(/[&<>]/, HTML_CONTEXT)
+end
+
 def check_body(body)
+  return [] if body.include?(SKIP_MARKER)
+
   # HTML comments are guidance, not content.
   stripped = body.gsub(/<!--.*?-->/m, "")
 
@@ -89,7 +98,7 @@ def self_test
     "closing paren at field end" => ["Scoped to DI. (Revert restores the old clock.)", 2],
     "ellipsis does not split" => ["Wait... then merge. Two-way door.", 2],
     "three real sentences" => ["One. Two. Three.", 3],
-    "empty content" => ["", 0]
+    "empty content" => ["", 0],
   }
   failed = 0
   cases.each do |name, (content, expected)|
@@ -116,8 +125,18 @@ def self_test
     failed += 1
   end
   total = cases.size + fixtures.size
+
+  # check_body scans the raw body, so a template carrying the skip marker
+  # verbatim opts every template-descended PR out of the whole contract.
+  template = File.read(File.expand_path("../../PULL_REQUEST_TEMPLATE.md", __dir__))
+  if template.include?(SKIP_MARKER)
+    puts "self-test failed: PR template embeds the skip marker verbatim"
+    failed += 1
+  end
+  total += 1
+
   abort("self-test: #{failed} of #{total} cases failed") if failed > 0
-  puts "self-test OK: #{cases.size} sentence cases, #{fixtures.size} body fixtures"
+  puts "self-test OK: #{cases.size} sentence cases, #{fixtures.size} body fixtures, 1 template guard"
 end
 
 if ARGV.first == "--self-test"
@@ -129,6 +148,21 @@ failures = check_body(ENV["PR_BODY"] || "")
 if failures.empty?
   puts "PR body OK"
 else
-  failures.each { |failure| puts "PR body: #{CGI.escapeHTML(failure)}" }
+  claim = "PR body: the description breaks the contract."
+  fix = "Fix: use .agents/skills/write-pull-request/ to write the description, or fill ### Why, ### What, and " \
+    "### Risk per .github/PULL_REQUEST_TEMPLATE.md, at most 2 sentences and 50 words each."
+  findings = failures.map { |failure| html_neutral(failure) }.join(" ")
+
+  # One annotation carries the claim, the fix, and every finding: the
+  # workflow command is a single line, so CI output aggregates while local
+  # output stays readable.
+  if ENV["GITHUB_ACTIONS"] == "true"
+    puts "::error ::#{[claim, fix, findings].join(' ')}"
+  else
+    puts claim
+    puts fix
+    puts ""
+    failures.each { |failure| puts " - #{html_neutral(failure)}" }
+  end
   exit 1
 end
