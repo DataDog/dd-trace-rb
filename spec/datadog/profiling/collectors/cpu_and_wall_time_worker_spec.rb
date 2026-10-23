@@ -2031,6 +2031,28 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     if consumer_name == :dedupconsumer
+      it "keeps dynamically defined stacks alive in both buffers across GC and compaction" do
+        capture_miteruby do
+          ["consumed_before_gc", "pending_during_gc"].each_with_index do |method_name, index|
+            Class.new do
+              class_eval(
+                "def #{method_name}; Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal; end",
+                __FILE__,
+                __LINE__ - 2,
+              )
+            end.new.public_send(method_name)
+            consume_miteruby if index.zero?
+          end
+        end
+
+        GC.start
+        GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+        consume_miteruby
+
+        expect(recorded_miteruby_samples.flat_map(&:locations).map(&:label))
+          .to include("consumed_before_gc", "pending_during_gc")
+      end
+
       it "allows GC during consumption and serialization preparation" do
         capture_miteruby { publish_miteruby_sample }
         previous_gc_stress = GC.stress
