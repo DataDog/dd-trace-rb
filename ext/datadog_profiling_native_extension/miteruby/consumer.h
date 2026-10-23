@@ -4,15 +4,15 @@
 
 #include "buffer.h"
 
-void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer);
-void miteruby_dedupconsumer_init(void);
+void miteruby_consumer_marking_init(miteruby_buffer_t *buffer);
+void miteruby_consumer_init(void);
 
 // Requires the main ractor's GVL on entry and exclusive consumer access throughout the loop.
 // Reads and copies without the GVL; Ruby interruption exits the loop and unblocks SIGPROF.
-void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer);
+void miteruby_consumer_consume_loop(miteruby_buffer_t *buffer);
 
 // Requires the main ractor's GVL and exclusive consumer access; must not be called recursively.
-void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer);
+void miteruby_consumer_consume(miteruby_buffer_t *buffer);
 
 // Requires the main ractor's GVL throughout; may allocate and raise while holding the buffer lock.
-void miteruby_dedupconsumer_prepare_serialize(VALUE recorder_instance);
+void miteruby_consumer_prepare_serialize(VALUE recorder_instance);
