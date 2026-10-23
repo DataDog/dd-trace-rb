@@ -45,6 +45,9 @@ module Datadog
 
             begin
               @datadog_pathway_context_before_job = Datadog::DataStreams.pathway_context
+              @datadog_pathway_context_restore_pending = true
+              # A headerless job would otherwise checkpoint into, and mutate, the saved context.
+              Datadog::DataStreams.pathway_context = nil
               Datadog::DataStreams.set_consume_checkpoint(
                 type: Ext::TAG_COMPONENT,
                 source: queue_name,
@@ -62,9 +65,13 @@ module Datadog
           def perform_now
             super
           ensure
-            if instance_variable_defined?(:@datadog_pathway_context_before_job)
+            # A flag rather than `if @datadog_pathway_context_before_job`: nil is a valid saved
+            # context (the thread had none) and must still be restored.
+            if @datadog_pathway_context_restore_pending
               begin
-                context_before_job = remove_instance_variable(:@datadog_pathway_context_before_job)
+                @datadog_pathway_context_restore_pending = false
+                context_before_job = @datadog_pathway_context_before_job
+                @datadog_pathway_context_before_job = nil
                 Datadog::DataStreams.pathway_context = context_before_job
               rescue => e
                 Datadog.logger.debug { "Error restoring DSM pathway context: #{e.class}: #{e.message}" }
