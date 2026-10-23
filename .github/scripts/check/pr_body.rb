@@ -149,7 +149,8 @@ if failures.empty?
   puts "PR body OK"
 else
   claim = "PR body: the description breaks the contract."
-  fix = "Fix: fill ### Why, ### What, and ### Risk per .github/PULL_REQUEST_TEMPLATE.md, at most 2 sentences and 50 words each."
+  fix = "Fix: use .agents/skills/write-pull-request/ to write the description, or fill ### Why, ### What, and " \
+    "### Risk per .github/PULL_REQUEST_TEMPLATE.md, at most 2 sentences and 50 words each."
   findings = failures.map { |failure| html_neutral(failure) }.join(" ")
 
   # One annotation carries the claim, the fix, and every finding: the
