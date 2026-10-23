@@ -1,11 +1,11 @@
-#include "../../../ext/datadog_profiling_native_extension/miteruby/dedupconsumer_stack_dedup.c"
-#include "../../../ext/datadog_profiling_native_extension/miteruby/dedupconsumer.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/consumer_stack_dedup.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/consumer.c"
 
 #undef NDEBUG
 #include <assert.h>
 #include <stdio.h>
 
-void miteruby_dedupconsumer_recorder_init(void) {}
+void miteruby_consumer_recorder_init(void) {}
 __attribute__((noreturn)) void miteruby_buffer_mark(DDTRACE_UNUSED miteruby_buffer_t *buffer) { abort(); }
 
 typedef union {
@@ -36,7 +36,7 @@ static void test_identity_and_collisions(void) {
   positions_for(event)[1].value = UINT16_MAX;
 
   bool inserted;
-  size_t first = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t first = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted && first == 0);
   size_t used = unique_stacks_pos;
   sample_storage duplicate = storage;
@@ -45,19 +45,19 @@ static void test_identity_and_collisions(void) {
   duplicate.event.header.flags = MITERUBY_EVENT_STACK_TRUNCATED | MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   duplicate.event.thread.value = Qtrue;
   ((char *)duplicate.event.refs)[stack_data_size(2)] = 0xff;
-  assert(miteruby_dedupconsumer_stack_dedup_get_or_insert(duplicate.event.refs, duplicate.event.header.frame_count, &inserted) == first && !inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(duplicate.event.refs, duplicate.event.header.frame_count, &inserted) == first && !inserted);
   assert(unique_stacks_pos == used);
 
   positions_for(event)[0].value++;
-  size_t other_position = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t other_position = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted && other_position != first);
   event->refs[0].cme = NULL;
-  size_t other_cme = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t other_cme = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted && other_cme != other_position);
   event->refs[0].iseq = NULL;
-  assert(miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != other_cme && inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != other_cme && inserted);
   event->header.frame_count = 1;
-  assert(miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != first && inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != first && inserted);
 
   stack_key collision = key_for(event);
   collision.hash = 42;
@@ -70,9 +70,9 @@ static void test_identity_and_collisions(void) {
   assert(deduplicate_stack(collision, &inserted) == collision_first && !inserted);
 
   event->header.frame_count = 0;
-  size_t empty = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t empty = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted);
-  assert(miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == empty && !inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == empty && !inserted);
   assert(unique_stacks_pos > empty);
 }
 
@@ -84,7 +84,7 @@ static void test_growth_and_relocation(void) {
   bool inserted;
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
-    ids[i] = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+    ids[i] = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
     assert(inserted);
     assert(ids[i] % 8 == 0);
   }
@@ -99,7 +99,7 @@ static void test_growth_and_relocation(void) {
   size_t used = unique_stacks_pos;
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
-    assert(miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == ids[i] && !inserted);
+    assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == ids[i] && !inserted);
   }
   assert(unique_stacks_pos == used);
   for (
@@ -113,7 +113,7 @@ static void test_growth_and_relocation(void) {
 }
 
 static void test_compact_events_and_reset(void) {
-  miteruby_dedupconsumer_init();
+  miteruby_consumer_init();
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
   event->header = (miteruby_event_header_t) {
@@ -160,7 +160,7 @@ static void test_compact_events_and_reset(void) {
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 4);
 
-  miteruby_dedupconsumer_init();
+  miteruby_consumer_init();
   assert(consumed_events_count == 0 && unique_stacks_pos == 0);
   assert(unique_stacks_size == 0 && unique_stacks_array == NULL);
   assert(verstable_unique_stacks_map_size(&unique_stacks) == 0);
@@ -173,7 +173,7 @@ static void test_compact_events_and_reset(void) {
 int main(void) {
   initialize_mutexes();
   verstable_objects_to_mark_set_init(&state.objects_to_mark);
-  miteruby_dedupconsumer_stack_dedup_init();
+  miteruby_consumer_stack_dedup_init();
   test_identity_and_collisions();
   test_growth_and_relocation();
   test_compact_events_and_reset();
@@ -184,6 +184,6 @@ int main(void) {
   free(consumed_events_buffer);
   mtx_destroy(&consumed_events_mutex);
   mtx_destroy(&objects_to_mark_mutex);
-  puts("Miteruby dedupconsumer tests passed");
+  puts("Miteruby consumer tests passed");
   return 0;
 }

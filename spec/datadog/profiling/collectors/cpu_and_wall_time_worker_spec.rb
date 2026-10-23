@@ -1921,13 +1921,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
-  describe "miteruby dedupconsumer thread" do
+  describe "miteruby consumer thread" do
     let(:no_signals_workaround_enabled) { true }
 
     after { cpu_and_wall_time_worker.stop }
 
     it "does not start a consumer when miteruby is disabled" do
-      expect(described_class).to_not receive(:_native_miteruby_dedupconsumer_consume_loop)
+      expect(described_class).to_not receive(:_native_miteruby_consumer_consume_loop)
 
       cpu_and_wall_time_worker.start
       wait_until_running
@@ -1939,7 +1939,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:consumer_threads) { Queue.new }
 
       before do
-        allow(described_class).to receive(:_native_miteruby_dedupconsumer_consume_loop).and_wrap_original do |original|
+        allow(described_class).to receive(:_native_miteruby_consumer_consume_loop).and_wrap_original do |original|
           consumer_threads << Thread.current
           original.call
         end
@@ -1973,7 +1973,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         consumer.kill
         expect(consumer.join(5)).to equal(consumer)
-        expect { described_class::Testing._native_miteruby_dedupconsumer_consume }.to_not raise_error
+        expect { described_class::Testing._native_miteruby_consumer_consume }.to_not raise_error
       end
 
       it "preserves references while consuming concurrently with GC and serialization" do
@@ -2002,7 +2002,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         consumer = consumer_threads.pop
         loop_until { consumer.status == "sleep" }
 
-        error = RuntimeError.new("interrupt dedupconsumer")
+        error = RuntimeError.new("interrupt consumer")
         consumer.raise(error)
         expect(consumer.join(5)).to equal(consumer)
         expect(cpu_and_wall_time_worker.send(:failure_exception)).to equal(error)
@@ -2012,7 +2012,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "drains into the worker's recorder and manages the consumer across starts and stops" do
         started = Queue.new
         consumers = []
-        allow(described_class).to receive(:_native_miteruby_dedupconsumer_consume_loop).and_wrap_original do |original|
+        allow(described_class).to receive(:_native_miteruby_consumer_consume_loop).and_wrap_original do |original|
           started << Thread.current
           original.call
         end
@@ -2022,7 +2022,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           wait_until_running
           consumer = started.pop
           consumers << consumer
-          expect(consumer.name).to eq("#{described_class.name}::MiterubyDedupconsumer")
+          expect(consumer.name).to eq("#{described_class.name}::MiterubyConsumer")
           expect(consumer.thread_variable_get(:fork_safe)).to be true
 
           cpu_and_wall_time_worker.start
@@ -2045,7 +2045,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
-  describe "miteruby dedupconsumer" do
+  describe "miteruby consumer" do
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
     let(:miteruby_recorder) { Datadog::Profiling::StackRecorder.for_testing }
@@ -2062,7 +2062,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def consume_miteruby
-      described_class::Testing._native_miteruby_dedupconsumer_consume
+      described_class::Testing._native_miteruby_consumer_consume
     end
 
     def capture_miteruby
@@ -2086,7 +2086,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def recorded_miteruby_samples
-      described_class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+      described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
       samples_from_pprof(miteruby_recorder.serialize!)
     end
 
@@ -2118,7 +2118,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       begin
         GC.stress = true
         consume_miteruby
-        described_class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+        described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
       ensure
         GC.stress = previous_gc_stress
       end
@@ -2200,7 +2200,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consumer_thread = nil
       capture_miteruby do
         consumer_thread = Thread.new do
-          described_class._native_miteruby_dedupconsumer_consume_loop
+          described_class._native_miteruby_consumer_consume_loop
         ensure
           cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
         end
