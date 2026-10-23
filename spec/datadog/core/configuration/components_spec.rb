@@ -864,7 +864,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # Datadog::DI::Component#implicitly_enabled?.
 
     context "when the component reports it is implicitly enabled" do
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, implicitly_enabled?: true, shutdown!: nil) }
+      let(:stub_di_component) do
+        instance_double(Datadog::DI::Component, implicitly_enabled?: true, shutdown!: nil, rc_enablement_signal_paths: [])
+      end
 
       before do
         allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
@@ -876,7 +878,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context "when the component reports it is not implicitly enabled" do
-      let(:stub_di_component) { instance_double(Datadog::DI::Component, implicitly_enabled?: false, shutdown!: nil) }
+      let(:stub_di_component) do
+        instance_double(Datadog::DI::Component, implicitly_enabled?: false, shutdown!: nil, rc_enablement_signal_paths: [])
+      end
 
       before do
         allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
@@ -884,6 +888,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       it "captures di_implicitly_enabled? as false" do
         expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context "when the component holds recorded RC enable-signal paths" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:stub_di_component) do
+        instance_double(
+          Datadog::DI::Component,
+          implicitly_enabled?: true,
+          shutdown!: nil,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it "captures rc_enablement_signal_paths from the component" do
+        expect(components.state.rc_enablement_signal_paths).to eq([signal_path])
       end
     end
 
@@ -895,6 +921,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it "captures di_implicitly_enabled? as false" do
         expect(components.dynamic_instrumentation).to be nil
         expect(components.state.di_implicitly_enabled?).to be false
+      end
+
+      it "captures rc_enablement_signal_paths as an empty array" do
+        expect(components.state.rc_enablement_signal_paths).to eq([])
       end
     end
   end
@@ -925,6 +955,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         allow(dbl).to receive(:start!) { di_state[:started] = true }
         allow(dbl).to receive(:stop!) { di_state[:started] = false }
         allow(dbl).to receive(:shutdown!) { di_state[:started] = false }
+        allow(dbl).to receive(:record_rc_enablement_signal_paths)
       end
     end
 
@@ -993,6 +1024,59 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it "leaves the DI component stopped when env var is not set" do
         startup!
         expect(components.dynamic_instrumentation.started?).to be false
+      end
+
+      it "does not overwrite the component's recorded signal paths" do
+        expect(components.dynamic_instrumentation).not_to receive(:record_rc_enablement_signal_paths)
+
+        startup!
+      end
+    end
+
+    context "old_state carries recorded RC enable-signal paths" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: true,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      it "restores the recorded paths on the rebuilt DI component and starts it" do
+        expect(components.dynamic_instrumentation).to receive(:record_rc_enablement_signal_paths).with([signal_path])
+
+        startup!
+
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context "old_state carries recorded paths while the remote was started" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: true,
+          di_implicitly_enabled: true,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      it "restores the recorded paths before the replacement remote starts" do
+        # The replacement remote client's first sync can dispatch the
+        # APM_TRACING merge, whose withdrawal branch reads the recorded
+        # paths; the restore must therefore happen before remote.start.
+        expect(components.dynamic_instrumentation)
+          .to receive(:record_rc_enablement_signal_paths).with([signal_path]).ordered
+        expect(remote).to receive(:start).ordered
+
+        startup!
       end
     end
 

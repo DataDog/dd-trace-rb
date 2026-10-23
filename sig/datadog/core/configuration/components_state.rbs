@@ -8,10 +8,13 @@ module Datadog
 
         @di_implicitly_enabled: bool
 
+        @rc_enablement_signal_paths: ::Array[Core::Remote::Configuration::Path]
+
         def initialize: (
           telemetry_enabled: bool,
           remote_started: bool?,
-          ?di_implicitly_enabled: bool
+          ?di_implicitly_enabled: bool,
+          ?rc_enablement_signal_paths: ::Array[Core::Remote::Configuration::Path]?
         ) -> void
 
         def telemetry_enabled?: () -> bool
@@ -19,6 +22,8 @@ module Datadog
         def remote_started?: () -> bool
 
         def di_implicitly_enabled?: () -> bool
+
+        def rc_enablement_signal_paths: () -> ::Array[Core::Remote::Configuration::Path]
       end
     end
   end
