@@ -31,6 +31,8 @@ module Datadog
 
       @started: bool
 
+      @rc_enablement_signal_paths: Array[Core::Remote::Configuration::Path]
+
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?telemetry: Core::Telemetry::Component?) -> Component?
 
       def self.explicitly_enabled?: (Datadog::Core::Configuration::Settings settings) -> bool
@@ -74,6 +76,14 @@ module Datadog
       def started?: () -> bool
 
       def after_fork: () -> void
+
+      def implicitly_enabled?: () -> bool
+
+      def rc_enablement_signal_withdrawn?: (Array[Core::Remote::Configuration::Content] unparseable_contents) -> bool
+
+      def rc_enablement_signal_paths: () -> Array[Core::Remote::Configuration::Path]
+
+      def record_rc_enablement_signal_paths: (Array[Core::Remote::Configuration::Path] paths) -> void
 
       def shutdown!: (?Component? replacement) -> void
 
