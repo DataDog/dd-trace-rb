@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Utils
       module EnumerableCompat
-        def self.filter_map: (::Array[any] array) { (any) -> any } -> ::Array[any]
+        def self.filter_map: [T] (::Array[T] array) { (T) -> any } -> ::Array[any]
       end
     end
   end

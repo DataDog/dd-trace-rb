@@ -542,6 +542,45 @@ RSpec.describe Datadog::Tracing::Component do
     end
   end
 
+  describe "::build_sampler" do
+    subject(:build_sampler) { described_class.build_sampler(settings) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    context "with test mode enabled" do
+      before do
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.sampling.default_rate = 0.0
+      end
+
+      it "builds the sampler that keeps every trace, ignoring the configured rate" do
+        expect(build_sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+
+      it "ignores a custom sampler" do
+        settings.tracing.sampler = double("custom sampler", sample!: true)
+
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+    end
+
+    context "with test mode disabled" do
+      before do
+        settings.tracing.sampling.default_rate = 0.5
+      end
+
+      it "builds the rate-driven sampler honoring the default rate" do
+        expect(build_sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::RuleSampler)
+        expect(build_sampler.priority_sampler.rules.first.sampler.sample_rate).to eq(0.5)
+      end
+    end
+  end
+
   describe "custom writer transports" do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:transport) { double("custom transport") }
