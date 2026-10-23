@@ -2,8 +2,6 @@
 #include "dedupconsumer_recorder.h"
 #include "buffer_marking.h"
 
-#include <ruby/st.h>
-
 #include "../datadog_ruby_common.h"
 #include "../setup_signal_handler.h"
 #include "../stack_recorder.h"
@@ -13,6 +11,27 @@
 #include <string.h>
 #include <sys/time.h>
 #include <threads.h>
+
+static size_t objects_to_mark_allocated_bytes = 0;
+
+static void *objects_to_mark_calloc(size_t size) {
+  void *allocation = calloc(1, size);
+  if (allocation != NULL) objects_to_mark_allocated_bytes += size;
+  return allocation;
+}
+
+static void objects_to_mark_free(void *allocation, size_t size) {
+  free(allocation);
+  objects_to_mark_allocated_bytes -= size;
+}
+
+#define NAME objects_to_mark_set
+#define KEY_TY VALUE
+#define HASH_FN vt_hash_integer
+#define CMPR_FN vt_cmpr_integer
+#define MALLOC_FN objects_to_mark_calloc
+#define FREE_FN objects_to_mark_free
+#include "verstable.h"
 
 static once_flag mutexes_initialized = ONCE_FLAG_INIT;
 
@@ -33,9 +52,7 @@ static size_t consumed_events_size = 0;
 
 typedef struct {
   miteruby_buffer_t *buffer;
-  // TODO: Move away from st_table because it can trigger Ruby GC, which we don't want from the dedupconsumer.
-  // This may also interact with locking, e.g. insertion triggering GC, which then wants to mark.
-  st_table *objects_to_mark;
+  objects_to_mark_set objects_to_mark;
 } dedupconsumer_state;
 
 static dedupconsumer_state state;
@@ -64,13 +81,6 @@ static void initialize_mutexes(void) {
   if (mtx_init(&objects_to_mark_mutex, mtx_recursive) != thrd_success) rb_bug("Failed to initialize miteruby consumer mutex");
 }
 
-static int mark_object(st_data_t object, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t unused) {
-  // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
-  // so these objects must stay pinned at their current addresses.
-  rb_gc_mark((VALUE) object);
-  return ST_CONTINUE;
-}
-
 static void dedupconsumer_mark(void *data) {
   dedupconsumer_state *consumer_state = data;
   // Keep the event handoff paused across both scans so neither can miss a transferred reference.
@@ -79,7 +89,15 @@ static void dedupconsumer_mark(void *data) {
   // This also blocks publishers while scanning the shared buffer. Holding both consumer locks is safe:
   // publishers never acquire them, and buffer marking masks SIGPROF before taking the producer lock.
   miteruby_buffer_mark(consumer_state->buffer);
-  if (consumer_state->objects_to_mark != NULL) st_foreach(consumer_state->objects_to_mark, mark_object, 0);
+  for (
+    objects_to_mark_set_itr itr = objects_to_mark_set_first(&consumer_state->objects_to_mark);
+    !objects_to_mark_set_is_end(itr);
+    itr = objects_to_mark_set_next(itr)
+  ) {
+    // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
+    // so these objects must stay pinned at their current addresses.
+    rb_gc_mark(itr.data->key);
+  }
   mutex_unlock(&objects_to_mark_mutex);
   mutex_unlock(&consumed_events_mutex);
 }
@@ -89,7 +107,7 @@ static size_t dedupconsumer_size(const void *data) {
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
   size_t size = sizeof(*consumer_state) + sizeof(*consumer_state->buffer) + consumed_events_size +
-    (consumer_state->objects_to_mark == NULL ? 0 : st_memsize(consumer_state->objects_to_mark));
+    objects_to_mark_allocated_bytes;
   mutex_unlock(&objects_to_mark_mutex);
   mutex_unlock(&consumed_events_mutex);
   return size;
@@ -108,6 +126,7 @@ static const rb_data_type_t dedupconsumer_typed_data = {
 void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
   state.buffer = buffer;
+  objects_to_mark_set_init(&state.objects_to_mark);
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
   rb_gc_register_mark_object(wrapper);
@@ -124,11 +143,7 @@ void miteruby_dedupconsumer_init(void) {
   consumed_events_pos = 0;
   consumed_events_size = CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
 
-  if (state.objects_to_mark == NULL) {
-    state.objects_to_mark = st_init_numtable();
-  } else {
-    st_clear(state.objects_to_mark);
-  }
+  objects_to_mark_set_clear(&state.objects_to_mark);
 
   miteruby_dedupconsumer_recorder_init();
   mutex_unlock(&objects_to_mark_mutex);
@@ -201,15 +216,21 @@ static VALUE prepare_serialize_unlock_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
+static void retain_object(VALUE object) {
+  if (objects_to_mark_set_is_end(objects_to_mark_set_get_or_insert(&state.objects_to_mark, object))) {
+    rb_bug("Failed to grow miteruby objects_to_mark set");
+  }
+}
+
 static void buffer_event(const miteruby_event_header_t *header) {
   // Retain references before the next buffer read releases the record's GC protection.
   if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
     const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
     mutex_lock(&objects_to_mark_mutex);
-    st_insert(state.objects_to_mark, (st_data_t) event->thread.value, 0);
+    retain_object(event->thread.value);
     for (uint16_t i = 0; i < header->frame_count; i++) {
-      if (event->refs[i].cme != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].cme, 0);
-      if (event->refs[i].iseq != NULL) st_insert(state.objects_to_mark, (st_data_t) event->refs[i].iseq, 0);
+      if (event->refs[i].cme != NULL) retain_object((VALUE) event->refs[i].cme);
+      if (event->refs[i].iseq != NULL) retain_object((VALUE) event->refs[i].iseq);
     }
     mutex_unlock(&objects_to_mark_mutex);
   }
