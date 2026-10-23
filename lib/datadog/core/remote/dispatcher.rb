@@ -30,13 +30,8 @@ module Datadog
           nil
         end
 
-        # Calls each receiver that declares initial-reconcile participation
-        # and has no matching change in `changes`, passing it an empty change
-        # list, so that the receiver acts on the current repository contents
-        # and can detect a config the backend deleted before the client was
-        # created. Receivers that act on the change list alone do not
-        # participate: the initial reconcile is opt-in, so an empty-change
-        # call reaches only receivers that act on repository contents.
+        # Calls each receiver that declares initial-reconcile participation and has no
+        # matching change in `changes`, passing an empty change list.
         def reconcile(changes, repository)
           receivers.each do |receiver|
             next unless receiver.initial_reconcile?
