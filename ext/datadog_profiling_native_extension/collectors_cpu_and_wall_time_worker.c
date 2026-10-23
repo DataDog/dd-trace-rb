@@ -18,7 +18,6 @@
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
 #include "miteruby/buffer.h"
-#include "miteruby/miniconsumer.h"
 #include "miteruby/dedupconsumer.h"
 #include "miteruby/sample_event.h"
 
@@ -271,10 +270,8 @@ static VALUE safely_call(
   VALUE (*handle_sampling_failure)(VALUE, VALUE)
 );
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
-static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
-static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
-static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
-static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_dedupconsumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
@@ -400,8 +397,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_consume_loop", _native_miteruby_dedupconsumer_consume_loop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_consume_loop", _native_miteruby_dedupconsumer_consume_loop, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_dedupconsumer_prepare_serialize", _native_miteruby_dedupconsumer_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -420,10 +416,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
   rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
-  rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume", _native_miteruby_miniconsumer_consume, 1);
-  rb_define_singleton_method(testing_module, "_native_miteruby_dedupconsumer_consume", _native_miteruby_dedupconsumer_consume, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_dedupconsumer_consume", _native_miteruby_dedupconsumer_consume, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_wake_reader", _native_miteruby_wake_reader, 0);
-  rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_testing", _native_miteruby_sample_event_publish_testing, 2);
@@ -618,7 +612,6 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   //
   // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
-  miteruby_miniconsumer_init();
   miteruby_dedupconsumer_init();
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
@@ -1235,24 +1228,14 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
   return Qtrue;
 }
 
-static VALUE _native_miteruby_miniconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
-  miteruby_miniconsumer_consume(&miteruby_buffer, recorder_instance);
-  return Qnil;
-}
-
-static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
-  miteruby_dedupconsumer_consume(&miteruby_buffer, recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self) {
+  miteruby_dedupconsumer_consume(&miteruby_buffer);
   return Qnil;
 }
 
 // TODO: Enforce there's only one thread running a consumer loop + handle forking.
-static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
-  miteruby_miniconsumer_consume_loop(&miteruby_buffer, recorder_instance);
-  return Qnil;
-}
-
-static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
-  miteruby_dedupconsumer_consume_loop(&miteruby_buffer, recorder_instance);
+static VALUE _native_miteruby_dedupconsumer_consume_loop(DDTRACE_UNUSED VALUE self) {
+  miteruby_dedupconsumer_consume_loop(&miteruby_buffer);
   return Qnil;
 }
 
