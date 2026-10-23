@@ -139,6 +139,10 @@ failures = check_body(ENV["PR_BODY"] || "")
 if failures.empty?
   puts "PR body OK"
 else
-  failures.each { |failure| puts "PR body: #{html_neutral(failure)}" }
+  puts "PR body: the description breaks the contract."
+  puts "Fix: fill ### Why, ### What, and ### Risk per .github/PULL_REQUEST_TEMPLATE.md, at most 2 sentences and 50 words each."
+  puts "Exceptions only: a '<!-- pr-body: skip -->' comment in the description opts out."
+  puts ""
+  failures.each { |failure| puts " - #{html_neutral(failure)}" }
   exit 1
 end
