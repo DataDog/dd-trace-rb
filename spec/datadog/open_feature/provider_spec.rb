@@ -347,6 +347,72 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
   end
 
+  describe "native opt-out string boundaries" do
+    let(:provider) { described_class.new(experimentation_opt_out_mode: mode) }
+    let(:mode) { :disabled }
+
+    before do
+      unless Datadog::Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+        skip "Requires a libdatadog build with opt-out modes"
+      end
+      engine.reconfigure!(JSON.generate(
+        "createdAt" => "2026-01-01T00:00:00Z", "environment" => {"name" => "test"},
+        "flags" => {"feature" => {
+          "key" => "feature", "enabled" => true, "variationType" => "STRING",
+          "variations" => {
+            "experiment" => {"key" => "experiment", "value" => "experiment"},
+            "ordinary" => {"key" => "ordinary", "value" => "ordinary"},
+          },
+          "allocations" => [
+            {"key" => "experiment", "doLog" => true, "randomizationActivatedAt" => "2025-01-01T00:00:00Z",
+             "splits" => [{"variationKey" => "experiment", "shards" => []}]},
+            {"key" => "ordinary", "doLog" => false, "splits" => [{"variationKey" => "ordinary", "shards" => []}]},
+          ],
+        }},
+      ))
+    end
+
+    [:disabled, :immediate, :future_experiments_only].each do |selected_mode|
+      context "in #{selected_mode} mode" do
+        let(:mode) { selected_mode }
+
+        ["\xFF".b, (+"\xFF").force_encoding(Encoding::UTF_8),
+          "2026-10-01T00:00:00Z".encode(Encoding::UTF_16LE)].each do |timestamp|
+          it "rejects invalid native timestamp bytes #{timestamp.inspect} only when enabled" do
+            context = ::OpenFeature::SDK::EvaluationContext.new(
+              "targeting_key" => "subject", "dd_experimentation_opt_out_at" => timestamp,
+            )
+            result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
+            expect(result.value).to eq((mode == :disabled) ? "experiment" : "default")
+            expect(result.error_code).to eq((mode == :disabled) ? nil : "INVALID_CONTEXT")
+            expect(context.fields["dd_experimentation_opt_out_at"].encoding).to eq(timestamp.encoding)
+          end
+        end
+
+        ["2026-10-01T00:00:00Z".b, "2026-10-01T00:00:00Z", "2026-\u00a010-01T00:00:00Z"].each do |timestamp|
+          it "preserves valid native timestamp bytes #{timestamp.inspect}" do
+            context = ::OpenFeature::SDK::EvaluationContext.new(
+              "targeting_key" => "subject", "dd_experimentation_opt_out_at" => timestamp,
+            )
+            result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
+            expect(result.value).to eq((mode == :immediate) ? "ordinary" : "experiment")
+            expect(result.error_code).to be_nil
+            expect(context.fields["dd_experimentation_opt_out_at"].encoding).to eq(timestamp.encoding)
+          end
+        end
+
+        it "does not alias an attribute containing NUL to the opt-out key" do
+          context = ::OpenFeature::SDK::EvaluationContext.new(
+            "targeting_key" => "subject", "dd_experimentation_opt_out_at\0suffix" => "invalid",
+          )
+          result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
+          expect(result.value).to eq("experiment")
+          expect(result.error_code).to be_nil
+        end
+      end
+    end
+  end
+
   describe "initialization" do
     let(:component) do
       instance_double(

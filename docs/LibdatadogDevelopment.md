@@ -40,3 +40,20 @@ with:
 2. From inside of the libdatadog repo, follow the [instructions to build libdatadog](https://github.com/datadog/libdatadog?tab=readme-ov-file#builder-crate)
    and build libdatadog into the build folder you picked: `cargo run --bin release (...see libdatadog readme for details...) -- --out my-libdatadog-build/$DD_RUBY_PLATFORM`
 3. Jump to step 4 of "Using libdatadog builds from CI or GitHub"
+
+## Temporary experimentation opt-out dependency
+
+The experimentation opt-out draft uses
+[`leoromanovsky/experimentation-opt-out-immediate`](https://github.com/DataDog/libdatadog/pull/2698),
+pinned to `ead1d3db2aa16e494f23e47b946ff12a7a1be53a`.
+Use this native build through `LIBDATADOG_VENDOR_OVERRIDE`; the released gem does not contain these APIs.
+Replace this temporary pin with a released `libdatadog` gem before merging the Ruby PR.
+
+```bash
+git clone --branch leoromanovsky/experimentation-opt-out-immediate https://github.com/DataDog/libdatadog.git tmp/opt-out-libdatadog
+git -C tmp/opt-out-libdatadog checkout --detach ead1d3db2aa16e494f23e47b946ff12a7a1be53a
+export LIBDATADOG_VENDOR_OVERRIDE="$(pwd)/tmp/opt-out-native"
+export DD_RUBY_PLATFORM="$(ruby -e 'puts Gem::Platform.local')"
+(cd tmp/opt-out-libdatadog && cargo run --bin release --features otel-thread-ctx,data-pipeline-external-observations -- --out "$LIBDATADOG_VENDOR_OVERRIDE/$DD_RUBY_PLATFORM")
+bundle exec rake clean test:open_feature
+```

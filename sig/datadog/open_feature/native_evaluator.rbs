@@ -21,6 +21,8 @@ module Datadog
 
       private
 
+      def valid_native_timestamp?: (Object timestamp) -> bool
+
       def build_resolution_details: (
         Core::FeatureFlags::ResolutionDetails result,
         untyped default_value

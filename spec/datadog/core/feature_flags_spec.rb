@@ -181,8 +181,9 @@ RSpec.describe Datadog::Core::FeatureFlags do
           config["flags"]["neighbor"]["key"] = "neighbor"
           config["flags"]["test-flag"]["allocations"].first["randomizationActivatedAt"] = "invalid"
           result = configuration.get_assignment_with_opt_out_mode("test-flag", :object, context, mode)
-          expect(result.error_code).to eq("PARSE_ERROR")
-          expect(result.log?).to be(false)
+          expect(result.error_code).to eq((mode == :future_experiments_only) ? "PARSE_ERROR" : nil)
+          expect(result.variant).to eq({disabled: "treatment", immediate: "ordinary", future_experiments_only: nil}.fetch(mode))
+          expect(result.log?).to eq(mode == :disabled)
           neighbor = configuration.get_assignment_with_opt_out_mode("neighbor", :object, context, mode)
           expect(neighbor.error_code).to be_nil
         end

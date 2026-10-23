@@ -2949,7 +2949,9 @@ This setting does not change evaluation telemetry.
 
 Future mode compares the stored subject timestamp with the allocation's `randomizationActivatedAt` time.
 Older allocations continue normal evaluation and exposure logging. This is an activation cutoff, not a record of prior subject enrollment.
-Missing or null activation causes exclusion. Malformed activation returns `PARSE_ERROR` for the affected flag in every mode.
+Missing or null activation causes exclusion.
+Malformed activation returns `PARSE_ERROR` for the affected flag only in future mode with a valid subject cutoff.
+This check includes allocations that targeting rules would not reach.
 Comparisons preserve nanosecond precision and timezone offsets. A future subject timestamp is a cutoff, not scheduled opt-out.
 
 The default mode, `disabled`, ignores the attribute.

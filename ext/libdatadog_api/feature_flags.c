@@ -202,6 +202,10 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
 
   ENFORCE_TYPE(key, T_STRING);
   const char *name = RSTRING_PTR(key);
+  // C strings must not turn a different attribute into a reserved key.
+  if (memchr(name, '\0', RSTRING_LEN(key)) != NULL) {
+    return ST_CONTINUE;
+  }
 
   // Extract targeting_key separately if present.
   //

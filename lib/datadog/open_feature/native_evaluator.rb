@@ -36,7 +36,7 @@ module Datadog
           timestamp = context["dd_experimentation_opt_out_at"]
           # The C binding omits unsupported types and uses NUL-terminated strings.
           # Reject invalid opt-out values before that conversion loses information.
-          unless timestamp.is_a?(String) && !timestamp.include?("\0")
+          unless valid_native_timestamp?(timestamp)
             return ResolutionDetails.build_error(
               value: default_value, error_code: Ext::INVALID_CONTEXT,
               error_message: "dd_experimentation_opt_out_at must be an RFC3339 timestamp string; " \
@@ -60,6 +60,13 @@ module Datadog
       end
 
       private
+
+      def valid_native_timestamp?(timestamp)
+        return false unless timestamp.is_a?(String)
+
+        native_timestamp = timestamp.dup.force_encoding(Encoding::UTF_8)
+        native_timestamp.valid_encoding? && !native_timestamp.include?("\0")
+      end
 
       def build_resolution_details(result, default_value)
         ResolutionDetails.new(

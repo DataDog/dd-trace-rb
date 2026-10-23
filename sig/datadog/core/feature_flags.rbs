@@ -16,9 +16,9 @@ module Datadog
         ) -> ResolutionDetails
 
         def get_assignment_with_options: (
-          ::String flag_key,
-          ::Symbol expected_type,
-          ::Hash[::String, untyped] context,
+          String flag_key,
+          Symbol expected_type,
+          Hash[String, untyped] context,
           bool experimentation_opt_out_immediate
         ) -> ResolutionDetails
 
