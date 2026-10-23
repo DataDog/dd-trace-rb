@@ -2,8 +2,8 @@
 <!-- pr-body: skip -->
 ### Why
 
-The pin moved upstream.
+One. Two. Three.
 
 ### What
 
-Updates the images-rb pin to the latest main build.
+See https://github.com/DataDog/images-rb for the pin.
