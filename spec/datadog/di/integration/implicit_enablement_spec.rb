@@ -113,8 +113,6 @@ RSpec.describe "DI implicit enablement integration" do
 
   after { component&.shutdown! }
 
-  # Stubs the environment the RC enablement specs share: DI code tracking
-  # stays off and Symbol Database support is deterministic.
   def stub_di_rc_environment
     allow(Datadog::DI).to receive(:activate_tracking)
     allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
@@ -127,9 +125,6 @@ RSpec.describe "DI implicit enablement integration" do
     apply_rc_content(JSON.dump(payload))
   end
 
-  # Drives the production RC dispatch path (Tracing::Remote.merge_and_apply_configs)
-  # for a single APM_TRACING content, returning the Content so apply_state can
-  # be asserted. raw_content need not be valid JSON.
   def apply_rc_content(raw_content)
     content = Datadog::Core::Remote::Configuration::Content.parse(
       {
@@ -348,8 +343,6 @@ RSpec.describe "DI implicit enablement integration" do
         expect(component.started?).to be false
         expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
 
-        # The backend deletes the probe config; the DI receiver ignores the
-        # delete change while the component is stopped.
         deletion = repository.transaction do |current, txn|
           current.paths.each { |path| txn.delete(path) }
         end
@@ -710,14 +703,6 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   describe "RC withdraws the enable signal after a Datadog.configure rebuild, with an unrelated parse failure" do
-    # Regression: the component-tree rebuild Datadog.configure performs used
-    # to discard the recorded enable-signal paths (Components#state carried
-    # only the implicit-enabled flag), so the rebuilt component treated any
-    # APM_TRACING parse failure as a possible carrier of the withdrawn
-    # signal and kept DI running indefinitely. The recorded paths must ride
-    # ComponentsState into the rebuilt component so the withdrawal decision
-    # matches the one the pre-rebuild component makes for the same repository.
-
     let(:rebuild_remote) do
       instance_double(
         Datadog::Core::Remote::Component,
@@ -751,8 +736,7 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     before do
-      # Route the RC dispatch at the real tree Datadog.configure installs,
-      # instead of the file-wide components double.
+      # Dispatch RC against the real component tree that Datadog.configure installs.
       allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_call_original
 
       allow(Datadog::Core::Remote::Component).to receive(:new).and_return(rebuild_remote)
@@ -768,9 +752,7 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     after do
-      # Shut the trees Datadog.configure installed down while the component
-      # doubles above still answer, so the global reset that follows every
-      # example finds nothing left to tear down through them.
+      # Shut down the installed trees while the doubles above still respond, before the global reset.
       Datadog.send(:reset!)
     end
 
@@ -798,10 +780,6 @@ RSpec.describe "DI implicit enablement integration" do
       rebuilt_di = current_components.dynamic_instrumentation
       expect(rebuilt_di).not_to be(first_tree_di)
       expect(rebuilt_di.implicitly_enabled?).to be true
-      # The regression assertion: the rebuilt component must hold the paths
-      # its predecessor recorded. Without them, the malformed unrelated
-      # record below reads as a possible signal carrier and masks the
-      # withdrawal.
       expect(rebuilt_di.rc_enablement_signal_paths).to eq(recorded_paths)
 
       expect(rebuild_remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
@@ -919,8 +897,6 @@ RSpec.describe "DI implicit enablement integration" do
       )
       expect(component.started?).to be true
 
-      # Config b is deleted while config a is still an unparseable replacement
-      # of a carrier, so the signal state is unknown and DI keeps running.
       expect(remote).not_to receive(:remove_products)
 
       Datadog::Tracing::Remote.merge_and_apply_configs(
@@ -941,8 +917,6 @@ RSpec.describe "DI implicit enablement integration" do
       )
       expect(component.started?).to be true
 
-      # Config b is deleted and config a's last valid payload held no signal,
-      # so the withdrawal stops DI and withdraws the products.
       expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
       Datadog::Tracing::Remote.merge_and_apply_configs(
@@ -979,8 +953,6 @@ RSpec.describe "DI implicit enablement integration" do
 
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
-    # The replacement client's first poll: the backend deleted the probe
-    # config while no client was polling; the enable config is still there.
     let(:poll_without_probe) do
       DIHelpers::TestRemoteConfigGenerator.new(
         {"datadog/2/APM_TRACING/lib_config/config" => rc_payload_enable}
