@@ -1,0 +1,44 @@
+name: PR Body
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    # Body edits re-check the description. check.yml's pull_request trigger
+    # never sees them, which is why this check lives on its own workflow.
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  pr-body:
+    name: pr-body
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.created_at >= '2026-10-22T16:11:42Z' # Dependabot bodies cannot be templated, so they are exempt. PRs opened before this check merged (2026-10-22) never agreed to the contract and are exempt here. Other exceptions use the skip marker that pr_body.rb documents.
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The body is fetched at run time, so re-running this job after a fix
+      # checks the current description instead of the event payload.
+      - name: Fetch PR body
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "PR_BODY<<PR_BODY_EOF"
+            gh pr view "$PR_NUMBER" --json body --jq .body
+            echo "PR_BODY_EOF"
+          } >> "$GITHUB_ENV"
+      - name: Check PR body
+        run: |
+          ruby .github/scripts/check/pr_body.rb --self-test
+          ruby .github/scripts/check/pr_body.rb
