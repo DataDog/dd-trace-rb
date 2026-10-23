@@ -568,6 +568,56 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
     end
 
+    context "when work is started after a consume" do
+      let(:consume_hash) { processor.pathway_context.hash }
+
+      before do
+        processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
+      end
+
+      context "with fiber storage (Ruby 3.2+)" do
+        before { skip "Fiber storage requires Ruby 3.2+" unless Fiber.respond_to?(:[]) }
+
+        it "chains a new thread's produces onto the consumed pathway" do
+          expected_parent = consume_hash
+          Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
+
+          expect(checkpoint_events.last).to include(parent_hash: expected_parent, full_pathway_latency_sec: 300.0)
+        end
+
+        it "keeps the new thread's checkpoints out of the starting thread's pathway" do
+          context_before = processor.pathway_context
+          hash_before = context_before.hash
+
+          Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
+
+          expect(processor.pathway_context).to be(context_before)
+          expect(context_before.hash).to eq(hash_before)
+        end
+
+        it "chains produces inside an external enumerator onto the consumed pathway" do
+          expected_parent = consume_hash
+          enumerator = Enumerator.new do |yielder|
+            yielder << processor.set_produce_checkpoint(type: "kafka", destination: "direct")
+          end
+
+          enumerator.next
+
+          expect(checkpoint_events.last).to include(parent_hash: expected_parent)
+        end
+      end
+
+      context "without fiber storage (Ruby < 3.2)" do
+        before { skip "Covers the Thread#[] fallback" if Fiber.respond_to?(:[]) }
+
+        it "starts a new pathway in a new thread" do
+          Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
+
+          expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+        end
+      end
+    end
+
     context "when the process forks" do
       before do
         skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
