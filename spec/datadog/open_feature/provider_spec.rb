@@ -348,13 +348,16 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe "native opt-out string boundaries" do
-    let(:provider) { described_class.new(experimentation_opt_out_mode: mode) }
-    let(:mode) { :disabled }
-
-    before do
+    let(:provider) do
       unless Datadog::Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
         skip "Requires a libdatadog build with opt-out modes"
       end
+
+      described_class.new(experimentation_opt_out_mode: mode)
+    end
+    let(:mode) { :disabled }
+
+    before do
       engine.reconfigure!(JSON.generate(
         "createdAt" => "2026-01-01T00:00:00Z", "environment" => {"name" => "test"},
         "flags" => {"feature" => {
