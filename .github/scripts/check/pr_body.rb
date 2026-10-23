@@ -28,7 +28,6 @@ def sentence_count(content)
   text.split(/[.!?]+["')\]]*(?=\s|\z)/).count { |sentence| !sentence.strip.empty? }
 end
 
-# Neutralize every character that can open an HTML context in the output.
 def html_neutral(text)
   text.gsub(/[&<>]/, HTML_CONTEXT)
 end
@@ -126,8 +125,18 @@ def self_test
     failed += 1
   end
   total = cases.size + fixtures.size
+
+  # check_body scans the raw body, so a template carrying the skip marker
+  # verbatim opts every template-descended PR out of the whole contract.
+  template = File.read(File.expand_path("../../PULL_REQUEST_TEMPLATE.md", __dir__))
+  if template.include?(SKIP_MARKER)
+    puts "self-test failed: PR template embeds the skip marker verbatim"
+    failed += 1
+  end
+  total += 1
+
   abort("self-test: #{failed} of #{total} cases failed") if failed > 0
-  puts "self-test OK: #{cases.size} sentence cases, #{fixtures.size} body fixtures"
+  puts "self-test OK: #{cases.size} sentence cases, #{fixtures.size} body fixtures, 1 template guard"
 end
 
 if ARGV.first == "--self-test"

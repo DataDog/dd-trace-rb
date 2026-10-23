@@ -2,7 +2,7 @@
 Every required field has a cap: at most 2 sentences and 50 words.
 CI (check.yml "pr-body" job) enforces this on every pull request, drafts
 included. Longer material goes in Details as links or references.
-A `<!-- pr-body: skip -->` comment in this description opts out of the
+A `pr-body: skip` body comment opts out of the
 check. The opt-out is an exception mechanism (for example, automation
 that cannot carry the fields), not a substitute for fitting the caps.
 See .agents/skills/write-pull-request/ for how to fill this in.
