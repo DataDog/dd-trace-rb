@@ -168,7 +168,7 @@ module Datadog
           return recorder unless miteruby_recorder
 
           recorder.serialize
-          self.class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
+          self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
           miteruby_recorder
         end
 
@@ -218,17 +218,17 @@ module Datadog
           return unless @miteruby_recorder
           return @miteruby_consumer_thread if @miteruby_consumer_thread&.alive?
 
-          thread_name = "#{self.class.name}::MiterubyDedupconsumer"
+          thread_name = "#{self.class.name}::MiterubyConsumer"
           thread = Thread.new do
             Thread.current.name = thread_name
-            self.class._native_miteruby_dedupconsumer_consume_loop
+            self.class._native_miteruby_consumer_consume_loop
           rescue Exception => e # rubocop:disable Lint/RescueException
             @failure_exception = e
             Datadog.logger.warn(
-              "Miteruby dedupconsumer thread error. " \
+              "Miteruby consumer thread error. " \
               "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
             )
-            Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby dedupconsumer thread error")
+            Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby consumer thread error")
           end
           thread.name = thread_name
           thread.thread_variable_set(:fork_safe, true)
