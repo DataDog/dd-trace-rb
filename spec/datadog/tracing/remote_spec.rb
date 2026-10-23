@@ -779,6 +779,27 @@ RSpec.describe Datadog::Tracing::Remote do
       end
     end
 
+    context "with no APM_TRACING contents and test mode enabled" do
+      let(:contents) { [] }
+
+      before do
+        Datadog.configure do |c|
+          c.tracing.test_mode.enabled = true
+          c.tracing.sampling.default_rate = 0.0
+        end
+        allow(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
+      end
+
+      it "keeps the sampler that keeps every trace" do
+        remote.merge_and_apply_configs(repository)
+
+        delegatee = Datadog.send(:components).tracer.sampler.sampler
+        expect(delegatee).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(delegatee.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(delegatee.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+    end
+
     context "when applying the merged config raises" do
       let(:contents) do
         [build_content("org", {"service_target" => {"service" => "*", "env" => "*"},

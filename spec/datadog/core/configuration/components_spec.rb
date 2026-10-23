@@ -624,6 +624,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
         )
       end
     end
+
+    context "with test mode enabled" do
+      subject(:reconfigure_sampler) { components.reconfigure_sampler(settings) }
+
+      before do
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.sampling.default_rate = 0.0
+      end
+
+      it "keeps the sampler that keeps every trace despite the zero rate" do
+        reconfigure_sampler
+
+        delegatee = components.tracer.sampler.sampler
+        expect(delegatee).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(delegatee.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(delegatee.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+    end
   end
 
   describe "#startup!" do
