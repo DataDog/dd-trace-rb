@@ -181,6 +181,9 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 
 When creating or modifying workflows in `.github/workflows/`:
 
+Read `.github/README.md` for the contributor-CI trust boundaries, completion
+checks, and local verification commands.
+
 ## Security
 
 - Never interpolate user input directly in `run:` blocks; use `env:` instead:

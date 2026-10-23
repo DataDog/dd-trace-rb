@@ -35,8 +35,6 @@ jobs:
     if: ${{ needs.changes.outputs.changes == 'true' }}
     runs-on: ubuntu-24.04
     name: Build artifact
-    permissions:
-      packages: write
     outputs:
       forced_tests: ${{ steps.compute_forced_tests.outputs.forced_tests }}
     steps:
@@ -64,7 +62,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      packages: write
     with:
       library: ruby
       binaries_artifact: dd-trace-rb
@@ -73,13 +70,26 @@ jobs:
       ref: 1f289cff86f5ec2a61502f179ede8960bda417fb # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
-      push_to_test_optimization: true
+      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
       skip_empty_scenarios: true
 
   complete:
     name: System Tests (complete)
+    if: always()
     runs-on: ubuntu-24.04
     needs:
+      - changes
+      - build
       - test
     steps:
-      - run: echo "DONE!"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -e '
+            .changes.result == "success" and
+            if .changes.outputs.changes == "false" then
+              .build.result == "skipped" and .test.result == "skipped"
+            else
+              .build.result == "success" and .test.result == "success"
+            end'

@@ -1,14 +1,14 @@
 name: "Pull Request Labeler"
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] metadata only; no PR checkout
+
+permissions: {}
 
 jobs:
   triage:
     permissions:
-      contents: read
       id-token: write
-      pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Get GitHub Token via dd-octo-sts

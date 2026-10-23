@@ -126,11 +126,6 @@ jobs:
     # lockfiles that predate the advisory database refresh, so a newly
     # published CVE there would only block the release without a fix path.
     # Skipped; findings are handled at the next regular dependency refresh.
-    if: >-
-      !(
-        (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
-        (github.event_name == 'pull_request' && startsWith(github.head_ref, 'bump_to_version_'))
-      )
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
     steps:
@@ -138,6 +133,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Install and run dependency audit
+        if: >-
+          !(
+            (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+            (github.event_name == 'pull_request' &&
+             github.event.pull_request.head.repo.full_name == github.repository &&
+             startsWith(github.head_ref, 'bump_to_version_'))
+          )
         run: .github/scripts/check/dependency_audit.sh
 
   document-lint:
@@ -156,6 +158,10 @@ jobs:
   # bundler-audit is a guard against newly published CVEs, not a test.
   green-ci-exclude-metrics:
     name: green-ci/exclude-metrics
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -193,6 +199,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: .github/scripts/check_changelog_release_only.sh
@@ -263,6 +270,7 @@ jobs:
     name: zizmor
     runs-on: ubuntu-24.04
     permissions:
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -270,6 +278,7 @@ jobs:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
@@ -280,7 +289,7 @@ jobs:
           version: 1.31.1 # MANUAL-PIN: zizmor (needs a zizmor-action release that knows this version)
           min-severity: low
           advanced-security: false
-          token: ${{ steps.generate-token.outputs.token }}
+          token: ${{ steps.generate-token.outputs.token || github.token }}
 
   actionlint:
     name: actionlint
@@ -327,6 +336,7 @@ jobs:
 
   complete:
     name: Static Analysis (complete)
+    if: always()
     needs:
       - 'steep-check'
       - 'steep-stats'
@@ -340,8 +350,10 @@ jobs:
       - 'checksum-coverage'
       - 'bundler-audit'
       - 'document-lint'
-      - 'green-ci-exclude-metrics'
       - 'changelog'
     runs-on: ubuntu-24.04
     steps:
-      - run: echo "Done"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS" | jq -e 'length > 0 and all(.[]; .result == "success")'
