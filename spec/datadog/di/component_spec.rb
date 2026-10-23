@@ -519,7 +519,7 @@ RSpec.describe Datadog::DI::Component do
             expect(component.rc_enablement_signal_withdrawn?([])).to be true
           end
 
-          it "is true when an unparseable content sits at a path that never carried the signal" do
+          it "is true when an unparseable content sits at a path outside the recorded signal paths" do
             component.record_rc_enablement_signal_paths([carrier_content.path])
 
             expect(component.rc_enablement_signal_withdrawn?([unrelated_content])).to be true
