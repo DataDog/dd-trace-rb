@@ -62,7 +62,7 @@ module Datadog
 
           # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
           parsed = []
-          # @type var unparseable_contents: Array[::Datadog::Core::Remote::Configuration::Content]
+          # @type var unparseable_contents: Array[Datadog::Core::Remote::Configuration::Content]
           unparseable_contents = []
           repository.contents.each do |content|
             next unless content.path.product == PRODUCT
@@ -122,13 +122,14 @@ module Datadog
           # The applicable configs carrying a non-null dynamic_instrumentation_enabled
           # value: any of their paths can still supply the signal after a later
           # replacement, so the DI component records them all.
-          # @type var enable_signal_paths: Array[::Datadog::Core::Remote::Configuration::Path]
-          enable_signal_paths = ordered.map do |content, config|
+          # @type var enable_signal_paths: Array[Datadog::Core::Remote::Configuration::Path]
+          enable_signal_paths = Core::Utils::EnumerableCompat.filter_map(ordered) do |pair|
+            content, config = pair
             lib_config = config["lib_config"]
             if lib_config.is_a?(Hash) && !lib_config["dynamic_instrumentation_enabled"].nil?
               content.path
             end
-          end.compact
+          end
 
           # Applied even when the set is empty: an emptied repository (last config
           # removed) reverts the tracing overrides to their non-RC values.
@@ -238,58 +239,26 @@ module Datadog
           end
 
           di_enabled = lib_config["dynamic_instrumentation_enabled"]
-          # allow_initialization: false because this runs on the remote-config
-          # worker thread. If components have not been built yet (e.g. during a
-          # teardown/reset window), the default would synchronously build the
-          # entire component tree from this thread. components is then nil, so
-          # every access below guards with &., matching the pattern used by
-          # DI::Remote.handle_rc_enablement in the same dispatch path.
           components = Datadog.send(:components, allow_initialization: false)
           di_component = components&.dynamic_instrumentation
-          # When the RC enable signal is withdrawn (the config carrying
-          # dynamic_instrumentation_enabled is deleted, or the field is set
-          # to null), the field is absent from the merged config and di_enabled
-          # is nil. A tracer whose DI was started solely by the RC signal must
-          # stop and unsubscribe on withdrawal, matching the explicit-false
-          # path; this branch maps that nil to false for such tracers. A tracer
-          # the customer enabled via DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
-          # stays running, since that opt-in is independent of RC.
-          # An unparseable content shows no withdrawal only when it replaced a
-          # config that supplied the applied enable signal: its bytes may
-          # still carry the signal, so DI keeps its state until that config is
-          # deleted or replaced by one that parses. An unparseable content at
-          # any other path never supplied the signal, so it does not mask the
-          # withdrawal. A tracer that upgraded while implicitly enabled holds
-          # no recorded paths (the enable predates the recording); the carrier
-          # is unknown then, so while the component holds no recorded paths any
-          # parse failure keeps the state until a merge where the field is
-          # present records the carriers.
-          if di_enabled.nil? && di_component&.implicitly_enabled?
-            recorded_signal_paths = di_component.rc_enablement_signal_paths
-            signal_source_unparseable =
-              if recorded_signal_paths.empty?
-                unparseable_contents.any?
-              else
-                unparseable_contents.any? { |content| recorded_signal_paths.include?(content.path) }
-              end
-            if signal_source_unparseable
-              Datadog.logger.debug(
-                "APM_TRACING RC: dynamic_instrumentation_enabled absent while the config that carried " \
-                "the enable signal failed to parse; keeping the DI state"
-              )
-            else
-              Datadog.logger.debug("APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false")
-              di_enabled = false
+          if di_enabled.nil? && di_component&.rc_enablement_signal_withdrawn?(unparseable_contents)
+            di_enabled = false
+          end
+
+          # Recorded on every merge, including a merge that preserves the DI
+          # state after a parse failure, so the set stays correct while the
+          # state is preserved: the parsed carrier paths plus the previously
+          # recorded paths whose replacements remain unparseable.
+          if di_component
+            unparseable_recorded_paths = di_component.rc_enablement_signal_paths.select do |path|
+              unparseable_contents.any? { |content| content.path == path }
             end
+            di_component.record_rc_enablement_signal_paths(enable_signal_paths + unparseable_recorded_paths)
           end
 
           unless di_enabled.nil?
-            di_component&.record_rc_enablement_signal_paths(enable_signal_paths)
-
-            # repository is forwarded so that an enable signal can reconcile DI
-            # against probes delivered in an earlier poll while DI was stopped:
-            # Datadog::DI::Remote.handle_rc_enablement replays the current
-            # LIVE_DEBUGGING contents on the stopped->started transition.
+            # repository is forwarded for the stopped->started replay in
+            # Datadog::DI::Remote.handle_rc_enablement.
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
 
             di_products = Datadog::DI::Remote.products +
