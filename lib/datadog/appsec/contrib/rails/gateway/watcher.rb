@@ -66,10 +66,23 @@ module Datadog
                 gateway.watch("rails.response.body.json") do |stack, container|
                   context = container.context
 
+                  body_bytesize = container.data.bytesize
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+
                   persistent_data = {
-                    "server.response.body" => container.data,
+                    "server.response.body.byte_length" => body_bytesize,
                   }
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                  if limit > 0 && body_bytesize <= limit
+                    json = extract_json(container.data)
+                    persistent_data["server.response.body"] = WAF::JSONString.new(json) if json
+                  end
+
+                  result = begin
+                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  rescue WAF::ConversionError
+                    next stack.call(container)
+                  end
 
                   if result.match?
                     context.events.push(
@@ -84,6 +97,20 @@ module Datadog
 
                   stack.call(container)
                 end
+              end
+
+              private
+
+              def extract_json(body)
+                return body unless body.start_with?("/**/")
+                return unless body.end_with?(")")
+
+                # NOTE: Best-effort support for standard Rails JSONP callbacks.
+                #       Callback expressions with parentheses may prevent extraction
+                opening_parenthesis_index = body.b.index("(")
+                return unless opening_parenthesis_index
+
+                body.byteslice(opening_parenthesis_index + 1, body.bytesize - opening_parenthesis_index - 2) #: String
               end
             end
           end
