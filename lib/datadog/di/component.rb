@@ -206,31 +206,72 @@ module Datadog
       # DD_DYNAMIC_INSTRUMENTATION_ENABLED at its default, the state produced
       # by remote-configuration enablement.
       #
-      # The decision reads using_default?(:enabled) so that an explicit
-      # enabled=false takes effect even after RC started the component.
-      # Datadog.configure mutates the singleton settings before
-      # Components#state runs; a direct read of the enabled value would
-      # classify a customer's explicit enabled=false as implicit and restart
-      # DI on reconfiguration. using_default? answers whether the customer
-      # ever set the option, which drives RC carry-over and lets a withdrawn
-      # RC enable signal be handled as a disable.
+      # An explicit `enabled = false` takes precedence over a prior RC
+      # enablement: once the customer sets the option, this returns false
+      # even while the component is still started.
       #
       # @return [Boolean] true when the component is started and the customer
       #   left the enabled setting at its default
       def implicitly_enabled?
-        started? && @settings.dynamic_instrumentation.using_default?(:enabled)
+        started? && settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
+      # Whether an APM_TRACING merge that omitted
+      # dynamic_instrumentation_enabled withdraws this component's RC enable
+      # signal, so the component must stop. False for a component that is
+      # not implicitly enabled: an explicit customer opt-in is independent
+      # of RC enablement.
+      #
+      # A content that fails to parse at a recorded signal path is a failed
+      # replacement of a config that supplied the signal: its bytes may
+      # still carry the signal, so this returns false and the component
+      # keeps its state until that config is deleted or replaced by one
+      # that parses. A content that fails to parse at any other path never
+      # supplied the signal, so it does not hide the withdrawal. A component
+      # that holds no recorded signal paths (an enablement that predates
+      # the recording) keeps its state while any content fails to parse,
+      # because the carrier is unknown.
+      #
+      # @param unparseable_contents [Array[Core::Remote::Configuration::Content]] the APM_TRACING contents that failed to parse at this merge
+      # @return [Boolean] true when the signal was withdrawn from an implicitly enabled component
+      def rc_enablement_signal_withdrawn?(unparseable_contents)
+        return false unless implicitly_enabled?
+
+        recorded_signal_paths = rc_enablement_signal_paths
+        signal_source_unparseable =
+          if recorded_signal_paths.empty?
+            unparseable_contents.any?
+          else
+            unparseable_contents.any? { |content| recorded_signal_paths.include?(content.path) }
+          end
+        if signal_source_unparseable
+          if recorded_signal_paths.empty?
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while an APM_TRACING config " \
+              "failed to parse; the enable signal carrier is unknown (no signal paths recorded), " \
+              "keeping the DI state"
+            end
+          else
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while the config that carried " \
+              "the enable signal failed to parse; keeping the DI state"
+            end
+          end
+          false
+        else
+          logger.trace { "APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false" }
+          true
+        end
       end
 
       # The repository paths of the APM_TRACING remote-config contents that
       # supplied the dynamic_instrumentation_enabled value at the last merge
       # where the field was present.
       #
-      # Tracing::Remote's withdrawal branch reads this: a content that fails
-      # to parse at one of these paths is a failed replacement that may still
-      # carry the enable signal, so the field's absence then shows no
-      # withdrawal. The state lives on the component so that a fresh RC client
-      # (after a fork or a sync-error replacement) consults the same paths its
-      # predecessor recorded, and a rebuilt component starts with none.
+      # Tracing::Remote's withdrawal branch reads this. The state is stored
+      # on the component so that a fresh RC client (after a fork or a
+      # sync-error replacement) consults the same paths its predecessor
+      # recorded, and a rebuilt component starts with none.
       #
       # @return [Array[Core::Remote::Configuration::Path]] the paths of the
       #   configs that supplied the last present enablement value
@@ -244,6 +285,7 @@ module Datadog
       # @return [void]
       def record_rc_enablement_signal_paths(paths)
         @rc_enablement_signal_paths = paths.dup
+        nil
       end
 
       # Shuts down dynamic instrumentation permanently.

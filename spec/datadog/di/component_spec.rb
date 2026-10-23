@@ -396,88 +396,7 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe "#implicitly_enabled?" do
-    let(:agent_settings) { instance_double_agent_settings_with_stubs }
-    let(:logger) { instance_double(Logger) }
-    let(:component) { described_class.build(settings, agent_settings, logger) }
-
-    before { allow(logger).to receive(:debug) }
-
-    after { component&.shutdown! }
-
-    context "when the component is started and the enabled setting is at its default" do
-      # The implicit-enablement scenario: the customer never set
-      # DD_DYNAMIC_INSTRUMENTATION_ENABLED, so RC may have started the
-      # component. A withdrawn RC enable signal must treat this as a disable.
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.dynamic_instrumentation.internal.development = true
-          s.remote.enabled = true
-        end
-      end
-
-      before { component.start! }
-
-      it "is true" do
-        expect(component.implicitly_enabled?).to be true
-      end
-    end
-
-    context "when the component is started but the customer explicitly enabled it" do
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.dynamic_instrumentation.enabled = true
-          s.dynamic_instrumentation.internal.development = true
-          s.remote.enabled = true
-        end
-      end
-
-      before { component.start! }
-
-      it "is false (explicit opt-in is independent of RC enablement)" do
-        expect(component.implicitly_enabled?).to be false
-      end
-    end
-
-    context "when the component is started and the customer then explicitly disables it" do
-      # Regression for the using_default? decision. Datadog.configure mutates
-      # the singleton settings before Components#state reads this predicate, so
-      # an explicit enabled=false can arrive while the component is still
-      # started. using_default? keeps the result false in that case, letting
-      # the explicit disable win on the next rebuild. A predicate keyed on the
-      # enabled value would report true here and restart DI.
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.dynamic_instrumentation.internal.development = true
-          s.remote.enabled = true
-        end
-      end
-
-      before do
-        component.start!
-        settings.dynamic_instrumentation.enabled = false
-      end
-
-      it "is false" do
-        expect(component.implicitly_enabled?).to be false
-      end
-    end
-
-    context "when the component is stopped" do
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.dynamic_instrumentation.internal.development = true
-          s.remote.enabled = true
-        end
-      end
-
-      it "is false" do
-        expect(component.implicitly_enabled?).to be false
-      end
-    end
-  end
-
-  describe "#rc_enablement_signal_paths" do
+  describe "RC enablement state" do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
     let(:settings) do
@@ -492,27 +411,179 @@ RSpec.describe Datadog::DI::Component do
 
     after { component&.shutdown! }
 
-    it "starts empty before any RC enablement merge" do
-      expect(component.rc_enablement_signal_paths).to eq([])
+    describe "#implicitly_enabled?" do
+      context "when the component is started and the enabled setting is at its default" do
+        before { component.start! }
+
+        it "is true" do
+          expect(component.implicitly_enabled?).to be true
+        end
+      end
+
+      context "when the component is started but the customer explicitly enabled it" do
+        let(:settings) do
+          super().tap { |s| s.dynamic_instrumentation.enabled = true }
+        end
+
+        before { component.start! }
+
+        it "is false (explicit opt-in is independent of RC enablement)" do
+          expect(component.implicitly_enabled?).to be false
+        end
+      end
+
+      context "when the component is started and the customer then explicitly disables it" do
+        before do
+          component.start!
+          settings.dynamic_instrumentation.enabled = false
+        end
+
+        it "is false" do
+          expect(component.implicitly_enabled?).to be false
+        end
+      end
+
+      context "when the component is stopped" do
+        it "is false" do
+          expect(component.implicitly_enabled?).to be false
+        end
+      end
     end
 
-    it "returns the recorded paths, replacing the previous value" do
-      org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
-      svc_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
+    describe "#rc_enablement_signal_paths" do
+      it "starts empty before any RC enablement merge" do
+        expect(component.rc_enablement_signal_paths).to eq([])
+      end
 
-      component.record_rc_enablement_signal_paths([org_path])
-      component.record_rc_enablement_signal_paths([svc_path])
+      it "returns the recorded paths, replacing the previous value" do
+        org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
+        svc_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
 
-      expect(component.rc_enablement_signal_paths).to eq([svc_path])
-    end
+        component.record_rc_enablement_signal_paths([org_path])
+        component.record_rc_enablement_signal_paths([svc_path])
 
-    it "stores a copy of the recorded array" do
-      org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
-      paths = [org_path]
-      component.record_rc_enablement_signal_paths(paths)
-      paths << Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
+        expect(component.rc_enablement_signal_paths).to eq([svc_path])
+      end
 
-      expect(component.rc_enablement_signal_paths).to eq([org_path])
+      it "stores a copy of the recorded array" do
+        org_path = Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/org/lib_config")
+        paths = [org_path]
+        component.record_rc_enablement_signal_paths(paths)
+        paths << Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/svc/lib_config")
+
+        expect(component.rc_enablement_signal_paths).to eq([org_path])
+      end
+
+      describe "#rc_enablement_signal_withdrawn?" do
+        let(:carrier_content) do
+          Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              path: "datadog/1/APM_TRACING/carrier/lib_config",
+              content: "{not json",
+            }
+          )
+        end
+        let(:unrelated_content) do
+          Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              path: "datadog/1/APM_TRACING/unrelated/lib_config",
+              content: "{not json",
+            }
+          )
+        end
+
+        context "when the component is stopped" do
+          it "is false" do
+            expect(component.rc_enablement_signal_withdrawn?([])).to be false
+          end
+        end
+
+        context "when the customer explicitly enabled the component" do
+          let(:settings) do
+            super().tap { |s| s.dynamic_instrumentation.enabled = true }
+          end
+
+          before { component.start! }
+
+          it "is false even when an unparseable content replaced the carrier" do
+            component.record_rc_enablement_signal_paths([carrier_content.path])
+
+            expect(component.rc_enablement_signal_withdrawn?([carrier_content])).to be false
+          end
+        end
+
+        context "when the component is implicitly enabled" do
+          before { component.start! }
+
+          it "is true when no content failed to parse" do
+            expect(component.rc_enablement_signal_withdrawn?([])).to be true
+          end
+
+          it "is true when an unparseable content sits at a path that never carried the signal" do
+            component.record_rc_enablement_signal_paths([carrier_content.path])
+
+            expect(component.rc_enablement_signal_withdrawn?([unrelated_content])).to be true
+          end
+
+          it "is false when an unparseable content replaced the recorded carrier" do
+            component.record_rc_enablement_signal_paths([carrier_content.path])
+
+            expect(component.rc_enablement_signal_withdrawn?([carrier_content])).to be false
+          end
+
+          it "is false when no paths are recorded and any content failed to parse" do
+            expect(component.rc_enablement_signal_withdrawn?([unrelated_content])).to be false
+          end
+        end
+
+        context "when the component is implicitly enabled and trace logging is on" do
+          let(:settings) do
+            super().tap { |s| s.dynamic_instrumentation.internal.trace_logging = true }
+          end
+
+          before { component.start! }
+
+          def captured_trace_messages
+            messages = []
+            allow(logger).to receive(:debug) { |*args, &blk| messages << (blk ? blk.call : args.first) }
+            messages
+          end
+
+          it "logs the withdrawal when the signal is withdrawn" do
+            messages = captured_trace_messages
+
+            expect(component.rc_enablement_signal_withdrawn?([])).to be true
+
+            expect(messages).to eq(
+              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"]
+            )
+          end
+
+          it "logs the recorded carrier's parse failure when the state is kept for it" do
+            messages = captured_trace_messages
+            component.record_rc_enablement_signal_paths([carrier_content.path])
+
+            expect(component.rc_enablement_signal_withdrawn?([carrier_content])).to be false
+
+            expect(messages).to eq([
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while the config that carried " \
+              "the enable signal failed to parse; keeping the DI state",
+            ])
+          end
+
+          it "logs the unknown carrier when no paths are recorded and any content failed to parse" do
+            messages = captured_trace_messages
+
+            expect(component.rc_enablement_signal_withdrawn?([unrelated_content])).to be false
+
+            expect(messages).to eq([
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while an APM_TRACING config " \
+              "failed to parse; the enable signal carrier is unknown (no signal paths recorded), " \
+              "keeping the DI state",
+            ])
+          end
+        end
+      end
     end
   end
 
