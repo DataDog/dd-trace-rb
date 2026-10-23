@@ -68,7 +68,8 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+      def initialize(experimentation_opt_out_mode: nil, enable_evaluation_telemetry_opt_out_parameter: nil)
+        @experimentation_opt_out_mode = resolve_experimentation_opt_out_mode(experimentation_opt_out_mode)
         @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
         when nil
           Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
@@ -443,8 +444,30 @@ module Datadog
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
+          experimentation_opt_out_mode: @experimentation_opt_out_mode
         )
+      end
+
+      def resolve_experimentation_opt_out_mode(mode)
+        mode = Datadog.configuration.feature_flags.experimentation_opt_out_mode if mode.nil?
+        normalized = mode.to_s.strip.downcase
+        return :disabled if normalized.empty? || normalized == "disabled"
+
+        case normalized
+        when "immediate"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_options)
+            raise ArgumentError, "Immediate experimentation opt-out requires a libdatadog build with evaluation options"
+          end
+          :immediate
+        when "future_experiments_only"
+          unless Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+            raise ArgumentError, "Future experimentation opt-out requires a libdatadog build with opt-out modes"
+          end
+          :future_experiments_only
+        else
+          raise ArgumentError, "Experimentation opt-out mode must be disabled, immediate, or future_experiments_only"
+        end
       end
 
       def sdk_success_details(result, flag_meta)

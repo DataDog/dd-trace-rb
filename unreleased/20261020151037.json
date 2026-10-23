@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6521",
+  "message": "Add per-subject experimentation opt-out with `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE=immediate|future_experiments_only` and the `dd_experimentation_opt_out_at` evaluation context attribute."
+}
