@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6554",
+  "message": "Reduce overhead by reusing pathway hashes across repeated checkpoints on the same edge; reported pathways are unchanged."
+}
