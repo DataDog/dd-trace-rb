@@ -1084,7 +1084,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it "includes heap recorder snapshot" do
         live_objects = []
 
-        # Isolate temporary references from CRuby's conservative GC: https://bugs.ruby-lang.org/issues/19460
+        # Use the `Thread.new { allocations; nil }.join; GC.start` trick to reliably GC the allocations
         dead_heap_samples = 10
         Thread.new do
           dead_heap_samples.times do |i|
