@@ -17,12 +17,14 @@ module Datadog
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for builder diagnostics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
       # @return [void]
-      def initialize(settings, serializer, logger, capture_expression_evaluator:)
+      def initialize(settings, serializer, logger, capture_expression_evaluator:, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @capture_expression_evaluator = capture_expression_evaluator
+        @telemetry = telemetry
       end
 
       attr_reader :settings
@@ -32,6 +34,10 @@ module Datadog
       attr_reader :logger
 
       attr_reader :capture_expression_evaluator
+
+      # The telemetry component evaluation timeouts are counted through.
+      # @return [Datadog::Core::Telemetry::Component, nil]
+      attr_reader :telemetry
 
       def build_received(probe)
         build_status(probe,
@@ -401,19 +407,35 @@ module Datadog
         end
       end
 
-      def evaluate_template(template_segments, context)
+      # Renders the probe's message template against +context+.
+      #
+      # @param template_segments [Array<String, EL::Expression>] compiled
+      #   template segments to render.
+      # @param context [Context] evaluation context for expression segments.
+      # @param deadline [Float, nil] cooperative evaluation deadline, as
+      #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation unbounded.
+      # @return [Array(String, Array<Hash>)] the rendered message and the
+      #   evaluation errors.
+      def evaluate_template(template_segments, context, deadline: EL::Evaluator.evaluation_deadline(settings))
         evaluation_errors = []
         message = template_segments.map do |segment|
+          if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(deadline)
+            raise DI::Error::EvaluationTimeout, EL::Evaluator::EVALUATION_TIMEOUT_MESSAGE
+          end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context), name: segment.redaction_identifier)
+            serializer.serialize_value_for_message(segment.evaluate(context, deadline: deadline), name: segment.redaction_identifier)
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
+          if exc.is_a?(DI::Error::EvaluationTimeout)
+            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+            logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc.message}" }
+          end
           evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
             message: "#{exc.class}: #{exc.message}",

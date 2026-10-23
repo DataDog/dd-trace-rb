@@ -5,7 +5,7 @@
       - isEmpty:
           ref: '@it'
 
-  compiled: "all(ref('collection')) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
+  compiled: "all(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
 
   eval:
     - locals:
@@ -21,6 +21,26 @@
         collection: []
       result: true
 
+- name: "all with @key"
+  ast:
+    all:
+      - ref: collection
+      - isEmpty:
+          ref: '@key'
+
+  compiled: "all(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_key, '@key') }"
+
+  eval:
+    - locals:
+        collection:
+          "": 42
+      result: true
+
+    - locals:
+        collection:
+          foo: 42
+      result: false
+
 - name: any
   ast:
     any:
@@ -28,7 +48,7 @@
       - isEmpty:
           ref: '@it'
 
-  compiled: "any(ref('collection')) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
+  compiled: "any(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
 
   eval:
     - locals:
@@ -51,7 +71,7 @@
       - isEmpty:
           ref: '@key'
 
-  compiled: "any(ref('collection')) { |current_item, current_key, current_value| is_empty(current_key, '@key') }"
+  compiled: "any(ref(context, 'collection'), deadline) { |current_item, current_key, current_value| is_empty(current_key, '@key') }"
 
   eval:
     - locals:

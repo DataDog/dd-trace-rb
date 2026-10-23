@@ -4,21 +4,27 @@ module Datadog
       class Evaluator
         MATCHES_TIMEOUT_SECONDS: ::Float
 
-        @context: Context
+        EVALUATION_DEADLINE_CHECK_INTERVAL: ::Integer
+
+        EVALUATION_TIMEOUT_MESSAGE: String
 
         @regexps: ::Array[::Regexp]
 
         def initialize: (?::Array[::Regexp] regexps) -> void
 
-        def evaluate: (Context compiled) -> any
+        def evaluate: (Context context, Float? deadline) -> any
 
         def regexps: () -> ::Array[::Regexp]
 
         def self.compile_regexp: (::String needle) -> ::Regexp
 
-        def ref: ((Symbol | String) var) -> any
+        def self.evaluation_deadline: (Datadog::Core::Configuration::Settings settings) -> ::Float?
 
-        def iref: ((Symbol | String) var) -> any
+        def self.evaluation_deadline_exceeded?: (Float? deadline) -> bool
+
+        def ref: (Context context, (Symbol | String) var) -> any
+
+        def iref: (Context context, (Symbol | String) var) -> any
 
         def len: (any var, (Symbol | String) var_name) -> Integer
 
@@ -44,11 +50,13 @@ module Datadog
 
         def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
+        def all: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> bool
 
-        def any: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
+        def any: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> bool
 
-        def filter: (Array[any] | Hash[any, any] collection) { (?) -> any } -> (Array[any] | Hash[any, any])
+        def filter: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> (Array[any] | Hash[any, any])
+
+        private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float? deadline) -> void
 
         def instanceof: (any object, String cls_name) -> bool
       end
