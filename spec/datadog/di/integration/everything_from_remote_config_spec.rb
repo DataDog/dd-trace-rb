@@ -204,7 +204,7 @@ RSpec.describe "DI integration from remote config" do
       duration: Integer,
       host: nil,
       logger: {
-        method: "target_method",
+        method_name: "target_method",
         name: nil,
         thread_id: nil,
         thread_name: "Thread.main",
@@ -477,7 +477,7 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: "target_method",
+            method_name: "target_method",
             name: nil,
             thread_id: nil,
             thread_name: "Thread.main",
@@ -656,7 +656,7 @@ RSpec.describe "DI integration from remote config" do
           duration: Integer,
           host: nil,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
             thread_name: "Thread.main",
@@ -743,7 +743,7 @@ RSpec.describe "DI integration from remote config" do
             duration: Integer,
             host: nil,
             logger: {
-              method: nil,
+              method_name: nil,
               name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
               thread_name: "Thread.main",

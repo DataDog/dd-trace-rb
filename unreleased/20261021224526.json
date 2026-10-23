@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6539",
+  "message": "Report the probed method name of snapshots in the `logger.method_name` attribute, which populates the Logger Method facet in Log Management; queries that filter Ruby snapshots on `@logger.method` need to use `@logger.method_name`."
+}
