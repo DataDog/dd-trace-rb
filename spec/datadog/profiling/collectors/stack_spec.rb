@@ -913,6 +913,40 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             )
           end
         end
+
+        context "when the template method is on a named class" do
+          let(:do_in_background_thread) do
+            template_class = stub_const("DummyTemplateClass", Class.new)
+            # rubocop:disable Style/EvalWithLocation
+            # rubocop:disable Style/DocumentDynamicEvalDefinition
+            template_class.class_eval(
+              %(
+                def #{untrimmed_method_name}(ready_queue)
+                  [1].each do
+                    ready_queue << true
+                    sleep
+                  end
+                end
+              ),
+              filename,
+              123456
+            )
+            # rubocop:enable Style/DocumentDynamicEvalDefinition
+            # rubocop:enable Style/EvalWithLocation
+            template = template_class.new
+
+            proc { |ready_queue| template.send(untrimmed_method_name, ready_queue) }
+          end
+
+          it "samples the block frame with a simplified qualified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: "DummyTemplateClass#_app_views_layouts_explore_html_haml (block)",
+              )
+            )
+          end
+        end
       end
     end
   end
