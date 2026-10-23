@@ -100,8 +100,8 @@ module Datadog
           apply_config(paths, targets, contents)
         end
 
-        # Applies the paths, targets and contents from the response to the
-        # repository in one transaction and returns the resulting change set.
+        # Applies the response to the repository in a transaction, dispatches the
+        # resulting changes to the receivers and returns them.
         #
         # @param paths [Array<Configuration::Path>] ingress paths from the response
         # @param targets [Configuration::TargetMap] targets keyed by path
