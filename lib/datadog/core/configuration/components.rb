@@ -288,12 +288,26 @@ module Datadog
             end
           end
 
+          # Restore the recorded RC enable-signal paths the replaced tree's DI
+          # component held: a rebuilt component starts with none, and the
+          # withdrawal branch in Tracing::Remote.apply_lib_config reads the
+          # recorded paths to tell a failed signal-carrier replacement from an
+          # unrelated parse failure. Without the restore, any parse failure
+          # would mask a withdrawn enable signal on the rebuilt component.
+          if dynamic_instrumentation && old_state
+            dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
+          end
+
           if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
+            #
+            # The DI signal-path restore above must precede this: the
+            # replacement client's first sync can dispatch the APM_TRACING
+            # merge, whose withdrawal branch reads the recorded paths.
             remote.start
           end
 
@@ -410,6 +424,7 @@ module Datadog
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
             di_implicitly_enabled: di_implicit || false,
+            rc_enablement_signal_paths: dynamic_instrumentation&.rc_enablement_signal_paths || [],
           )
         end
 

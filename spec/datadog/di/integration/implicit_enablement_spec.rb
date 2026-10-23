@@ -1,6 +1,7 @@
 require "spec_helper"
 require "datadog/di/spec_helper"
 require "datadog/di"
+require "datadog/statsd"
 require "datadog/tracing/remote"
 
 # Target class for the method probe used below. Loaded before the RC
@@ -705,6 +706,110 @@ RSpec.describe "DI implicit enablement integration" do
 
       expect(component.started?).to be false
       expect(malformed_unrelated.apply_state).to eq(3)
+    end
+  end
+
+  describe "RC withdraws the enable signal after a Datadog.configure rebuild, with an unrelated parse failure" do
+    # Regression: the component-tree rebuild Datadog.configure performs used
+    # to discard the recorded enable-signal paths (Components#state carried
+    # only the implicit-enabled flag), so the rebuilt component treated any
+    # APM_TRACING parse failure as a possible carrier of the withdrawn
+    # signal and kept DI running indefinitely. The recorded paths must ride
+    # ComponentsState into the rebuilt component so the withdrawal decision
+    # matches the one the pre-rebuild component makes for the same repository.
+
+    let(:rebuild_remote) do
+      instance_double(
+        Datadog::Core::Remote::Component,
+        start: nil, started?: false, shutdown!: nil,
+        add_products: nil, remove_products: nil,
+      )
+    end
+    let(:rebuild_telemetry) do
+      instance_double(
+        Datadog::Core::Telemetry::Component,
+        start: nil, enabled: false, shutdown!: nil, emit_closing!: nil,
+        integrations_change!: nil,
+      )
+    end
+    # Both trees share this double so the old tree's shutdown sees the
+    # replacement still using it and skips closing it.
+    let(:rebuild_statsd) { instance_double(Datadog::Statsd, close: nil) }
+    let(:unrelated_malformed_content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/1/APM_TRACING/unrelated/lib_config",
+          content: "{not json",
+        }
+      )
+    end
+    let(:withdrawal_repository) do
+      instance_double(
+        Datadog::Core::Remote::Configuration::Repository,
+        contents: [unrelated_malformed_content],
+      )
+    end
+
+    before do
+      # Route the RC dispatch at the real tree Datadog.configure installs,
+      # instead of the file-wide components double.
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_call_original
+
+      allow(Datadog::Core::Remote::Component).to receive(:new).and_return(rebuild_remote)
+      allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(rebuild_telemetry)
+      allow(Datadog::Statsd).to receive(:new).and_return(rebuild_statsd)
+      allow(Datadog::SymbolDatabase::Component).to receive(:build).and_return(nil)
+      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      allow(Datadog::DI).to receive(:activate_tracking)
+      allow(rebuild_telemetry).to receive(:report)
+      allow(rebuild_telemetry).to receive(:client_configuration_change!)
+    end
+
+    after do
+      # Shut the trees Datadog.configure installed down while the component
+      # doubles above still answer, so the global reset that follows every
+      # example finds nothing left to tear down through them.
+      Datadog.send(:reset!)
+    end
+
+    def current_components
+      Datadog.send(:components, allow_initialization: false)
+    end
+
+    it "stops the rebuilt component and withdraws the DI products" do
+      expect(current_components).to be nil
+
+      Datadog.configure {}
+
+      first_tree_di = current_components.dynamic_instrumentation
+      expect(first_tree_di).not_to be_nil
+      expect(first_tree_di.started?).to be false
+
+      apply_rc_payload({"lib_config" => {"dynamic_instrumentation_enabled" => true}})
+
+      expect(first_tree_di.started?).to be true
+      recorded_paths = first_tree_di.rc_enablement_signal_paths
+      expect(recorded_paths).not_to be_empty
+
+      Datadog.configure {}
+
+      rebuilt_di = current_components.dynamic_instrumentation
+      expect(rebuilt_di).not_to be(first_tree_di)
+      expect(rebuilt_di.implicitly_enabled?).to be true
+      # The regression assertion: the rebuilt component must hold the paths
+      # its predecessor recorded. Without them, the malformed unrelated
+      # record below reads as a possible signal carrier and masks the
+      # withdrawal.
+      expect(rebuilt_di.rc_enablement_signal_paths).to eq(recorded_paths)
+
+      expect(rebuild_remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(withdrawal_repository)
+
+      expect(rebuilt_di.started?).to be false
+      expect(unrelated_malformed_content.apply_state).to eq(3)
     end
   end
 
