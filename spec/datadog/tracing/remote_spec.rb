@@ -160,7 +160,7 @@ RSpec.describe Datadog::Tracing::Remote do
       end
 
       context "and dynamic_instrumentation_enabled is configured" do
-        # handle_rc_enablement (isolated here) is what actually starts DI; expose
+        # handle_rc_enablement (isolated here) is what starts DI; expose
         # a component whose started? state the individual contexts control.
         let(:di_component) do
           instance_double(
@@ -607,16 +607,11 @@ RSpec.describe Datadog::Tracing::Remote do
           }
         )
       end
-      # The path of a config that supplied the applied enable signal but is absent
-      # from the merge under test (deleted, or replaced by the failed content).
       let(:deleted_signal_config_path) do
         Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/enable_signal/lib_config")
       end
       let(:signal_withdrawn) { false }
       let(:recorded_signal_paths) { [failed.path] }
-      # The paths expected to remain recorded after this merge: no config
-      # carries the field, so only the recorded paths whose replacement
-      # failed to parse survive.
       let(:expected_recorded_paths) { recorded_signal_paths.select { |path| path == failed.path } }
       let(:di_component) do
         instance_double(
@@ -698,8 +693,6 @@ RSpec.describe Datadog::Tracing::Remote do
         let(:carrier_two_path) do
           Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/carrier_two/lib_config")
         end
-        # The repository holds malformed bytes at the first recorded path and
-        # no config at the second.
         let(:recorded_signal_paths) { [failed.path, carrier_two_path] }
         let(:failed) { malformed_json }
         let(:contents) { [failed] }
@@ -707,7 +700,7 @@ RSpec.describe Datadog::Tracing::Remote do
         include_examples "keeps the DI state"
       end
 
-      context "and it replaced a config that never carried the enable signal" do
+      context "and the failed config sits outside the recorded signal paths" do
         let(:signal_withdrawn) { true }
         let(:recorded_signal_paths) { [deleted_signal_config_path] }
         let(:failed) { malformed_json }
