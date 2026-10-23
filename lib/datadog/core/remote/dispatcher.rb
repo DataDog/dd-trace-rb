@@ -27,27 +27,21 @@ module Datadog
 
             receiver.call(repository, matching) if matching.any?
           end
+          nil
         end
 
         # Calls each receiver that declares initial-reconcile participation
         # and has no matching change in `changes`, passing it an empty change
-        # list, so that the receiver acts on the current repository contents.
-        #
-        # A new client starts with an empty repository. When the backend
-        # removed a config before the client was created, the client's first
-        # sync produces no delete change for that config, and #dispatch does
-        # not call the receiver for that config's product. Calling a
-        # participating receiver here lets it detect that the config was
-        # removed. Receivers that act on the change list alone (they skip an
-        # empty call as a no-op or perform actions unrelated to the contents)
-        # do not participate: the initial reconcile is opt-in so that an
-        # empty-change call reaches only receivers that act on repository
-        # contents.
+        # list, so that the receiver acts on the current repository contents
+        # and can detect a config the backend deleted before the client was
+        # created. Receivers that act on the change list alone do not
+        # participate: the initial reconcile is opt-in, so an empty-change
+        # call reaches only receivers that act on repository contents.
         def reconcile(changes, repository)
           receivers.each do |receiver|
             next unless receiver.initial_reconcile?
 
-            receiver.call(repository, []) if matching_changes(changes, receiver).empty?
+            receiver.call(repository, []) unless any_matching?(changes, receiver)
           end
           nil
         end
@@ -56,6 +50,10 @@ module Datadog
 
         def matching_changes(changes, receiver)
           changes.select { |change| receiver.match?(change.path) }
+        end
+
+        def any_matching?(changes, receiver)
+          changes.any? { |change| receiver.match?(change.path) }
         end
 
         # Store Matcher and block to be executed on a match

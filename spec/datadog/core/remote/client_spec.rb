@@ -438,7 +438,7 @@ RSpec.describe Datadog::Core::Remote::Client do
         end
       end
 
-      context "the first response is completely empty" do
+      context "the first response carries no targets" do
         before do
           allow(http_connection).to receive(:request).and_return(
             instance_double(::Net::HTTPResponse, body: "{}", code: response_code)

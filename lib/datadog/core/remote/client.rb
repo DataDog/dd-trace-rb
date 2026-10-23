@@ -15,6 +15,11 @@ module Datadog
         class SyncError < StandardError; end
 
         attr_reader :transport, :repository, :id, :dispatcher, :settings, :logger
+
+        # Whether the initial reconcile is still pending, to run on the first
+        # sync whose response contains targets.
+        #
+        # @return [Boolean]
         attr_reader :pending_initial_reconcile
 
         def initialize(transport, capabilities, settings:, logger:, repository: Configuration::Repository.new)
@@ -55,10 +60,17 @@ module Datadog
           elsif response.internal_error?
             raise TransportError, response.to_s
           end
+          nil
         end
 
         private
 
+        # Applies an OK response to the repository and returns the resulting
+        # change set, which is empty when the response is empty.
+        #
+        # @param response [Transport::Config::Response] the response returned by the agent
+        # @return [Configuration::Repository::ChangeSet] the changes applied by this response
+        # @raise [SyncError] when the response cannot be applied to the repository
         def process_response(response)
           # when response is completely empty, do nothing as in: leave as is
           if response.empty?
@@ -88,6 +100,14 @@ module Datadog
           apply_config(paths, targets, contents)
         end
 
+        # Applies the paths, targets and contents from the response to the
+        # repository in one transaction and returns the resulting change set.
+        #
+        # @param paths [Array<Configuration::Path>] ingress paths from the response
+        # @param targets [Configuration::TargetMap] targets keyed by path
+        # @param contents [Configuration::ContentList] contents from the response
+        # @return [Configuration::Repository::ChangeSet] the changes applied by the transaction
+        # @raise [SyncError] when a path has no matching target or content
         def apply_config(paths, targets, contents)
           changes = repository.transaction do |current, transaction|
             # paths to be removed: previously applied paths minus ingress paths
