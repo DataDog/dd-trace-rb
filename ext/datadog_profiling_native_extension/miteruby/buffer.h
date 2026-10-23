@@ -47,6 +47,7 @@ typedef struct {
     uint16_t length; // Payload word count, excluding the one-word length prefix.
     uint64_t rejected_count; // Failed write attempts, not necessarily lost items.
     bool end_of_stream;
+    bool interrupted;
 } miteruby_buffer_record_t;
 
 // Returns 0 on success, -1 with errno set if semaphore initialization fails.
@@ -87,11 +88,18 @@ void miteruby_buffer_close(miteruby_buffer_t *buffer, const sigset_t *signal_mas
 // a rejection count, or EOF. data != NULL means an item, even when length is 0.
 // Rewind markers are skipped internally; payloads are always borrowed directly
 // from the ring. Empty items have a stored total length of 1, not a rewind marker.
-// With blocking=false, an all-zero result means nothing is available yet.
+// With interrupted=NULL, reads never block; an all-zero result means nothing is available yet.
+// Otherwise reads block until data, EOF, or interruption. Keep the flag alive throughout the read;
+// to interrupt, set it to true before calling miteruby_buffer_wake_consumer.
+// Interruption leaves unread records available for a later read.
 // On macOS, blocking reads poll every 100 ms while empty; available items
 // return immediately. Other platforms use semaphore notifications.
 // EOF follows all items and rejection reports.
-miteruby_buffer_record_t miteruby_buffer_read(miteruby_buffer_t *buffer, bool blocking);
+miteruby_buffer_record_t miteruby_buffer_read(
+    miteruby_buffer_t *buffer, atomic_bool *interrupted);
+
+// May run concurrently with the reader, including from a signal handler. macOS readers notice interrupts on their next poll.
+void miteruby_buffer_wake_consumer(miteruby_buffer_t *buffer);
 
 typedef void (*miteruby_buffer_visitor_t)(const uint64_t *data);
 
