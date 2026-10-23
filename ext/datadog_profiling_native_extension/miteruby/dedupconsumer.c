@@ -1,5 +1,6 @@
 #include "dedupconsumer.h"
 #include "dedupconsumer_recorder.h"
+#include "dedupconsumer_stack_dedup.h"
 #include "buffer_marking.h"
 
 #include "../datadog_ruby_common.h"
@@ -10,7 +11,6 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ruby/thread.h>
 #include <threads.h>
 
@@ -42,11 +42,11 @@ static once_flag mutexes_initialized = ONCE_FLAG_INIT;
 static mtx_t consumed_events_mutex;
 static mtx_t objects_to_mark_mutex;
 
-#define CONSUMED_EVENTS_BUFFER_CHUNK_SIZE (1024U * 1024U)
+#define CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY (1024U * 1024U / sizeof(miteruby_event_deduped_sample_t))
 
-static char *consumed_events_buffer = NULL;
-static size_t consumed_events_pos = 0;
-static size_t consumed_events_size = 0;
+static miteruby_event_deduped_sample_t *consumed_events_buffer = NULL;
+static size_t consumed_events_count = 0;
+static size_t consumed_events_capacity = 0;
 
 typedef struct {
   miteruby_buffer_t *buffer;
@@ -106,8 +106,9 @@ static size_t dedupconsumer_size(const void *data) {
   const dedupconsumer_state *consumer_state = data;
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
-  size_t size = sizeof(*consumer_state) + sizeof(*consumer_state->buffer) + consumed_events_size +
-    objects_to_mark_allocated_bytes;
+  size_t size = sizeof(*consumer_state) + sizeof(*consumer_state->buffer) +
+    consumed_events_capacity * sizeof(*consumed_events_buffer) +
+    objects_to_mark_allocated_bytes + miteruby_dedupconsumer_stack_dedup_size();
   mutex_unlock(&objects_to_mark_mutex);
   mutex_unlock(&consumed_events_mutex);
   return size;
@@ -126,6 +127,7 @@ void miteruby_dedupconsumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
   state.buffer = buffer;
   objects_to_mark_set_init(&state.objects_to_mark);
+  miteruby_dedupconsumer_stack_dedup_init();
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &dedupconsumer_typed_data, &state);
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
   rb_gc_register_mark_object(wrapper);
@@ -135,12 +137,14 @@ void miteruby_dedupconsumer_init(void) {
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
 
-  char *new_buffer = calloc(1, CONSUMED_EVENTS_BUFFER_CHUNK_SIZE);
+  miteruby_event_deduped_sample_t *new_buffer = calloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY, sizeof(*new_buffer));
   if (new_buffer == NULL) rb_bug("Failed to allocate miteruby consumed events buffer");
   free(consumed_events_buffer);
   consumed_events_buffer = new_buffer;
-  consumed_events_pos = 0;
-  consumed_events_size = CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
+  consumed_events_count = 0;
+  consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
+
+  miteruby_dedupconsumer_stack_dedup_reset();
 
   objects_to_mark_set_clear(&state.objects_to_mark);
 
@@ -220,14 +224,13 @@ void miteruby_dedupconsumer_prepare_serialize(VALUE recorder_instance) {
 
 static VALUE prepare_serialize_locked(VALUE recorder_instance) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
-  for (size_t pos = 0; pos < consumed_events_pos;) {
-    const miteruby_event_header_t *header = (const miteruby_event_header_t *)(consumed_events_buffer + pos);
-    if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
-      miteruby_dedupconsumer_record_stack_sample(recorder_instance, (const miteruby_event_stack_sample_t *)header, &time_converter);
-    }
-    pos += header->size_bytes;
+  for (size_t i = 0; i < consumed_events_count; i++) {
+    const miteruby_event_deduped_sample_t *event = &consumed_events_buffer[i];
+    const miteruby_stack_t *stack = miteruby_dedupconsumer_stack_dedup_get(event->stack_id);
+    const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&stack->refs[event->header.frame_count];
+    miteruby_dedupconsumer_record_stack_sample(recorder_instance, event, stack->refs, positions, &time_converter);
   }
-  consumed_events_pos = 0;
+  consumed_events_count = 0;
   return Qnil;
 }
 
@@ -243,26 +246,35 @@ static void retain_object(VALUE object) {
 }
 
 static void buffer_event(const miteruby_event_header_t *header) {
+  // TODO: Handle overflow and other kinds of events
+  if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return;
+
+  const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
+  bool inserted;
+  size_t stack_id = miteruby_dedupconsumer_stack_dedup_get_or_insert(event->refs, header->frame_count, &inserted);
+
   // Retain references before the next buffer read releases the record's GC protection.
-  if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
-    const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
-    mutex_lock(&objects_to_mark_mutex);
-    retain_object(event->thread.value);
+  mutex_lock(&objects_to_mark_mutex);
+  retain_object(event->thread.value);
+  if (inserted) {
     for (uint16_t i = 0; i < header->frame_count; i++) {
       if (event->refs[i].cme != NULL) retain_object((VALUE) event->refs[i].cme);
       if (event->refs[i].iseq != NULL) retain_object((VALUE) event->refs[i].iseq);
     }
-    mutex_unlock(&objects_to_mark_mutex);
   }
+  mutex_unlock(&objects_to_mark_mutex);
 
-  while (consumed_events_size - consumed_events_pos < header->size_bytes) {
-    if (consumed_events_size > SIZE_MAX - CONSUMED_EVENTS_BUFFER_CHUNK_SIZE) rb_bug("Miteruby consumed events buffer size overflow");
-    size_t new_size = consumed_events_size + CONSUMED_EVENTS_BUFFER_CHUNK_SIZE;
-    char *new_buffer = realloc(consumed_events_buffer, new_size);
+  if (consumed_events_count == consumed_events_capacity) {
+    if (consumed_events_capacity > SIZE_MAX / sizeof(*consumed_events_buffer) - CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY)
+      rb_bug("Miteruby consumed events buffer size overflow");
+    size_t new_capacity = consumed_events_capacity + CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
+    miteruby_event_deduped_sample_t *new_buffer = realloc(consumed_events_buffer, new_capacity * sizeof(*new_buffer));
     if (new_buffer == NULL) rb_bug("Failed to grow miteruby consumed events buffer");
     consumed_events_buffer = new_buffer;
-    consumed_events_size = new_size;
+    consumed_events_capacity = new_capacity;
   }
-  memcpy(consumed_events_buffer + consumed_events_pos, header, header->size_bytes);
-  consumed_events_pos += header->size_bytes;
+  miteruby_event_deduped_sample_t *deduped = &consumed_events_buffer[consumed_events_count++];
+  *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = stack_id};
+  deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
+  deduped->header.size_bytes = sizeof(*deduped);
 }

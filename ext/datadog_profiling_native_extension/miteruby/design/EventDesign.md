@@ -47,6 +47,7 @@ typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
   MITERUBY_EVENT_STACK_SAMPLE = 1,
   MITERUBY_EVENT_OVERFLOW = 2,
+  MITERUBY_EVENT_DEDUPED_SAMPLE = 3,
 } miteruby_event_type_t; // 1 byte
 ```
 
@@ -153,6 +154,22 @@ typedef struct {
   `offsetof(miteruby_event_stack_sample_t, refs) + frame_count * sizeof(miteruby_event_frame_refs_t)` from the event.
   Producers supply the captured count; readers use `header.frame_count` after validating `size_bytes`.
 - Borrows the event storage; invalid after storage is reused. No allocation or extra buffer bytes.
+
+### miteruby_event_deduped_sample_t
+
+```c
+typedef struct {
+  miteruby_event_header_t header;
+  value_thread_t thread;
+  size_t stack_id;
+} miteruby_event_deduped_sample_t;
+```
+
+- Consumer-only format, stored in `consumed_events_buffer`; producers still publish inline stack samples.
+- `header.type` is `MITERUBY_EVENT_DEDUPED_SAMPLE` and `header.size_bytes` is 40.
+  Frame count, flags, timestamps, CPU time, and thread are preserved for each sample.
+- `stack_id` is a byte offset into `unique_stacks_array`, including zero as a valid ID.
+  See [ConsumerDesign.md](ConsumerDesign.md) for stack storage, deduplication, and lifetime.
 
 ### miteruby_event_overflow_t
 
