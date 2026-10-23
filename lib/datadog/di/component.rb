@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "correlation_sampler"
 require_relative "fatal_exceptions"
 
 module Datadog
@@ -98,7 +99,9 @@ module Datadog
           settings: settings, serializer: serializer, logger: logger,
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
         )
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+        @correlation_sampler = CorrelationSampler.new
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
+          correlation_sampler: correlation_sampler, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
           capture_expression_evaluator: capture_expression_evaluator,)
         @probe_repository = ProbeRepository.new
@@ -136,6 +139,9 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # Coordinated sampling gate for capturing probe hits.
+      # @return [Datadog::DI::CorrelationSampler]
+      attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker
@@ -200,6 +206,15 @@ module Datadog
       # @return [Boolean] true if start! has been called and stop! has not
       def started?
         @started
+      end
+
+      # Rebuilds the process-scoped coordinated-sampling state after the
+      # process forks, so the child starts with fresh budgets and cannot
+      # inherit a sampler mutex held by a parent thread.
+      #
+      # @return [void]
+      def after_fork
+        correlation_sampler.after_fork!
       end
 
       # Whether the component is started while the customer left

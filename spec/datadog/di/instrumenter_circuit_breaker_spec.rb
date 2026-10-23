@@ -2,6 +2,7 @@
 
 require "datadog/di/spec_helper"
 require "datadog/di/instrumenter"
+require "datadog/di/correlation_sampler"
 require_relative "hook_method"
 require_relative "hook_line_basic"
 
@@ -44,7 +45,8 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
       guardrails_telemetry: guardrails_telemetry,
-      capture_expression_evaluator: capture_expression_evaluator)
+      capture_expression_evaluator: capture_expression_evaluator,
+      correlation_sampler: Datadog::DI::CorrelationSampler.new)
   end
 
   let(:responder) do

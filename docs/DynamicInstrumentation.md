@@ -371,6 +371,11 @@ To minimize performance impact, probes have default rate limits:
 
 - **Non-capturing probes**: 5,000 invocations per second
 - **Capturing probes** (with snapshots): 1 invocation per second
+- When a capturing probe fires inside an active APM trace, emission is
+  coordinated per trace instead: each probe emits at most one snapshot per
+  trace, all probes in one trace share a total of 20 snapshots, and at most
+  10 traces per second per process start emitting. Inside a trace, the
+  per-probe rate limit does not apply.
 
 These limits can be configured per probe in the probe definition.
 

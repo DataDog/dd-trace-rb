@@ -396,6 +396,37 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe "#after_fork" do
+    let(:settings) do
+      settings = Datadog::Core::Configuration::Settings.new
+      settings.dynamic_instrumentation.internal.development = true
+      settings.remote.enabled = true
+      settings
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
+    end
+
+    let(:logger) do
+      instance_double(Logger)
+    end
+
+    let(:component) do
+      described_class.build(settings, agent_settings, logger)
+    end
+
+    after do
+      component&.shutdown!
+    end
+
+    it "rebuilds the correlation sampler's process-scoped state" do
+      expect(component.correlation_sampler).to receive(:after_fork!)
+
+      component.after_fork
+    end
+  end
+
   describe "RC enablement state" do
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }

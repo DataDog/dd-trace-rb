@@ -7,11 +7,7 @@ module Datadog
     end
 
     class TokenBucket < RateLimiter
-      @rate: ::Float | ::Integer
-
-      @max_tokens: ::Numeric
-
-      @tokens: ::Numeric
+      include RefillableBucket
 
       @total_messages: ::Integer
 
@@ -23,12 +19,6 @@ module Datadog
 
       @current_window: ::Float?
 
-      @last_refill: ::Numeric
-
-      attr_reader rate: ::Float | ::Integer
-
-      attr_reader max_tokens: ::Numeric
-
       def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
 
       def allow?: (?::Integer size) -> bool
@@ -37,13 +27,7 @@ module Datadog
 
       def current_window_rate: () -> ::Float
 
-      def available_tokens: () -> ::Numeric
-
       private
-
-      def refill_since_last_message: () -> void
-
-      def refill_tokens: (::Numeric size) -> void
 
       def increment_total_count: () -> void
 

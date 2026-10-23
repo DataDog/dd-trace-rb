@@ -1,0 +1,210 @@
+# frozen_string_literal: true
+
+require_relative "../core/rate_limiter"
+require_relative "correlation_sampler/trace_budget"
+require_relative "correlation_sampler/trace_budget_ledger"
+
+module Datadog
+  module DI
+    # Sampling gate that coordinates capturing Live Debugger probe hits within
+    # one trace and bounds total snapshot volume with process-wide budgets.
+    #
+    # @api private
+    class CorrelationSampler
+      # Sweep floor for the per-trace budget ledger.
+      DEFAULT_SWEEP_THRESHOLD = 4096
+
+      # Snapshots per second, process-wide, that may establish an emitting
+      # trace.
+      TOP_RATE = 10
+
+      # Snapshots per second, process-wide, across all emits.
+      GLOBAL_RATE = 20
+
+      # Snapshots one probe may emit within one trace.
+      PER_PROBE_BUDGET = 1
+
+      # Snapshots all probes together may emit within one trace.
+      ALL_BUDGET = 20
+
+      # Initializes an empty per-trace ledger and full process-wide TOP/GLOBAL
+      # buckets.
+      #
+      # @param sweep_threshold [Integer] sweep floor for the per-trace budget
+      #   ledger
+      # @param top_rate [Numeric] TOP rate limit, snapshots/second
+      # @param global_rate [Numeric] GLOBAL rate limit, snapshots/second
+      # @param per_probe_budget [Integer] per-probe counter start value for
+      #   each trace's budget
+      # @param all_budget [Integer] all-probe counter start value for each
+      #   trace's budget
+      # @raise [ArgumentError] when sweep_threshold is not a positive Integer,
+      #   or per_probe_budget or all_budget is not a non-negative Integer
+      def initialize(sweep_threshold: DEFAULT_SWEEP_THRESHOLD, top_rate: TOP_RATE,
+        global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
+        all_budget: ALL_BUDGET)
+        unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
+          raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"
+        end
+        unless all_budget.is_a?(Integer) && all_budget >= 0
+          raise ArgumentError, "all_budget must be a non-negative Integer: #{all_budget}"
+        end
+
+        @per_probe_budget = per_probe_budget
+        @all_budget = all_budget
+        @sweep_threshold = sweep_threshold
+        @top_rate = top_rate
+        @global_rate = global_rate
+        @lock = Mutex.new
+        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
+        @top_limiter = Core::TokenBucket.new(top_rate)
+        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+      end
+
+      # Decides whether this capturing probe hit emits a snapshot.
+      #
+      # @param probe [Datadog::DI::Probe]
+      # @param trace [Datadog::Tracing::TraceOperation, nil]
+      # @return [Boolean]
+      def emit?(probe, trace)
+        lock.synchronize do
+          return emit_uncorrelated?(probe) if trace.nil?
+
+          budget = touch_budget(trace)
+          if budget
+            emit_correlated?(budget, probe)
+          else
+            emit_top?(trace, probe)
+          end
+        end
+      end
+
+      # Rebuilds the process-scoped state for a freshly forked child. The
+      # inherited buckets can be depleted (GLOBAL carries any borrowed,
+      # negative balance), the inherited ledger holds entries for traces
+      # that do not exist in the child, and a mutex held by a parent thread
+      # at fork time stays locked forever in the child. The rebuild replaces
+      # the objects rather than mutating them, so it never acquires the
+      # inherited mutex; it must run while the child is single-threaded,
+      # which the at-fork hook calling it guarantees.
+      #
+      # @return [void]
+      def after_fork!
+        @lock = Mutex.new
+        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
+        @top_limiter = Core::TokenBucket.new(top_rate)
+        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+        nil
+      end
+
+      private
+
+      # Process-wide mutex guarding trace_budgets and the shared limiters; every
+      # capturing fire serializes here, a conscious trade-off for O(1) critical
+      # sections. The lock is required for uncorrelated hits too: their GLOBAL
+      # check-and-consume must be atomic with the correlated hits' consumption.
+      # @return [Thread::Mutex]
+      attr_reader :lock
+
+      # Store of per-trace budgets, keyed by the trace object.
+      # @return [TraceBudgetLedger]
+      attr_reader :trace_budgets
+
+      # Process-wide TOP gate.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :top_limiter
+
+      # Process-wide GLOBAL gate.
+      # @return [Datadog::Core::BorrowingTokenBucket]
+      attr_reader :global_limiter
+
+      # Per-probe counter start value this sampler seeds trace budgets with.
+      # @return [Integer]
+      attr_reader :per_probe_budget
+
+      # All-probe counter start value this sampler seeds trace budgets with.
+      # @return [Integer]
+      attr_reader :all_budget
+
+      # Sweep floor this sampler rebuilds the ledger with.
+      # @return [Integer]
+      attr_reader :sweep_threshold
+
+      # TOP rate this sampler rebuilds its TOP bucket with.
+      # @return [Numeric]
+      attr_reader :top_rate
+
+      # GLOBAL rate this sampler rebuilds its GLOBAL bucket with.
+      # @return [Numeric]
+      attr_reader :global_rate
+
+      # Decides a hit with no active trace through the probe's own rate limit
+      # and the process-wide GLOBAL budget, so uncorrelated and correlated
+      # traffic share one process-wide bound. GLOBAL is consulted, not
+      # borrowed: only correlated probes of an admitted trace consume GLOBAL
+      # without a check. Must hold the lock.
+      #
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
+      def emit_uncorrelated?(probe)
+        return false unless probe.own_rate_limit_allows?
+        return false unless global_limiter.available?
+
+        global_limiter.consume
+        true
+      end
+
+      # Returns the trace's budget; nil when the trace has no established
+      # unit yet. Must hold the lock.
+      #
+      # @param trace [Datadog::Tracing::TraceOperation]
+      # @return [TraceBudget, nil]
+      def touch_budget(trace)
+        trace_budgets.fetch(trace)
+      end
+
+      # First capturing probe in the trace. Passes the process-wide GLOBAL and
+      # TOP gates to emit and seed the trace counters; on either gate's refusal,
+      # or when the seeded budget denies the top probe itself, marks the trace
+      # starved so every correlated probe in it also drops without re-querying
+      # the process-wide gates. Must hold the lock.
+      #
+      # @param trace [Datadog::Tracing::TraceOperation]
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
+      def emit_top?(trace, probe)
+        unless global_limiter.available? && top_limiter.allow?
+          store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
+          return false
+        end
+
+        global_limiter.consume
+        budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
+        store(trace, budget)
+        budget.admit(probe.id)
+      end
+
+      # A capturing probe firing inside an established unit. Bounded by the
+      # per-probe and all counters; consumes GLOBAL on emit. Must hold the lock.
+      #
+      # @param budget [TraceBudget]
+      # @param probe [Datadog::DI::Probe]
+      # @return [Boolean]
+      def emit_correlated?(budget, probe)
+        return false unless budget.admit(probe.id)
+
+        global_limiter.consume
+        true
+      end
+
+      # Stores the trace's budget in the ledger. Must hold the lock.
+      #
+      # @param trace [Datadog::Tracing::TraceOperation]
+      # @param budget [TraceBudget]
+      # @return [void]
+      def store(trace, budget)
+        trace_budgets.store(trace, budget)
+      end
+    end
+  end
+end

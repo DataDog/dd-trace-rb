@@ -871,6 +871,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect { after_fork }.not_to raise_error
     end
+
+    it "dispatches after_fork to dynamic_instrumentation when present" do
+      dynamic_instrumentation = instance_double(Datadog::DI::Component, after_fork: nil)
+      allow(components).to receive(:dynamic_instrumentation).and_return(dynamic_instrumentation)
+      expect(dynamic_instrumentation).to receive(:after_fork)
+
+      after_fork
+    end
+
+    it "does not raise when dynamic_instrumentation is nil" do
+      allow(components).to receive(:dynamic_instrumentation).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
   end
 
   describe "#state" do
