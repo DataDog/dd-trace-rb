@@ -280,6 +280,7 @@ static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE sel
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns);
 static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_wake_reader(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
@@ -421,6 +422,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume", _native_miteruby_miniconsumer_consume, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_dedupconsumer_consume", _native_miteruby_dedupconsumer_consume, 1);
+  rb_define_singleton_method(testing_module, "_native_miteruby_wake_reader", _native_miteruby_wake_reader, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_miniconsumer_consume_loop", _native_miteruby_miniconsumer_consume_loop, 1);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
@@ -1243,6 +1245,7 @@ static VALUE _native_miteruby_dedupconsumer_consume(DDTRACE_UNUSED VALUE self, V
   return Qnil;
 }
 
+// TODO: Enforce there's only one thread running a consumer loop + handle forking.
 static VALUE _native_miteruby_miniconsumer_consume_loop(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   miteruby_miniconsumer_consume_loop(&miteruby_buffer, recorder_instance);
   return Qnil;
@@ -1262,6 +1265,11 @@ static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE sel
   return miteruby_sample_event_publish_mask(&miteruby_buffer, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
+static VALUE _native_miteruby_wake_reader(DDTRACE_UNUSED VALUE self) {
+  miteruby_buffer_wake_consumer(&miteruby_buffer);
+  return Qnil;
+}
+
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread) {
   ENFORCE_THREAD(thread);
   return miteruby_sample_event_publish_thread(&miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
@@ -1277,7 +1285,7 @@ static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE 
 static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
   VALUE headers = rb_ary_new();
   while (true) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(&miteruby_buffer, false);
+    miteruby_buffer_record_t record = miteruby_buffer_read(&miteruby_buffer, NULL);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
       return headers;
