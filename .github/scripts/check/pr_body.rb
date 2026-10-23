@@ -141,18 +141,16 @@ if failures.empty?
 else
   claim = "PR body: the description breaks the contract."
   fix = "Fix: fill ### Why, ### What, and ### Risk per .github/PULL_REQUEST_TEMPLATE.md, at most 2 sentences and 50 words each."
-  opt_out = "Exceptions only: a '<!-- pr-body: skip -->' comment in the description opts out."
   findings = failures.map { |failure| html_neutral(failure) }.join(" ")
 
   # One annotation carries the claim, the fix, and every finding: the
   # workflow command is a single line, so CI output aggregates while local
   # output stays readable.
   if ENV["GITHUB_ACTIONS"] == "true"
-    puts "::error ::#{[claim, fix, opt_out, findings].join(' ')}"
+    puts "::error ::#{[claim, fix, findings].join(' ')}"
   else
     puts claim
     puts fix
-    puts opt_out
     puts ""
     failures.each { |failure| puts " - #{html_neutral(failure)}" }
   end
