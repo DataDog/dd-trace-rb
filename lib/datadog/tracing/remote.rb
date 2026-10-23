@@ -62,6 +62,8 @@ module Datadog
 
           # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
           parsed = []
+          # @type var unparseable_contents: Array[Datadog::Core::Remote::Configuration::Content]
+          unparseable_contents = []
           repository.contents.each do |content|
             next unless content.path.product == PRODUCT
 
@@ -76,9 +78,8 @@ module Datadog
               # A present but non-object lib_config (e.g. {"lib_config": []}) is a
               # schema violation the customer can fix. Acknowledging it as applied
               # would tell the backend the config was successfully applied when it
-              # was not, and an empty merge would revert active tracing overrides
-              # to their non-RC values. Reject it per content so the malformed
-              # payload is reported errored instead. A null or absent lib_config
+              # was not. Reject it per content so the malformed payload is
+              # reported errored instead. A null or absent lib_config
               # carries no overrides and is left as a no-op.
               lib_config = config["lib_config"]
               if !lib_config.nil? && !lib_config.is_a?(Hash)
@@ -92,6 +93,7 @@ module Datadog
                 description: "Failed to parse APM_TRACING remote config",
               )
               content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
+              unparseable_contents << content
             end
           end
 
@@ -117,10 +119,26 @@ module Datadog
           # deterministic merge.
           ordered = applicable.sort_by { |content, config| [-config_priority(config), content.path.config_id] }
           merged = merge_lib_configs(ordered.map { |_content, config| config })
+          # The applicable configs carrying a non-null dynamic_instrumentation_enabled
+          # value: any of their paths can still supply the signal after a later
+          # replacement, so the DI component records them all.
+          # @type var enable_signal_paths: Array[Datadog::Core::Remote::Configuration::Path]
+          enable_signal_paths = Core::Utils::EnumerableCompat.filter_map(ordered) do |pair|
+            content, config = pair
+            lib_config = config["lib_config"]
+            if lib_config.is_a?(Hash) && !lib_config["dynamic_instrumentation_enabled"].nil?
+              content.path
+            end
+          end
 
           # Applied even when the set is empty: an emptied repository (last config
           # removed) reverts the tracing overrides to their non-RC values.
-          apply_lib_config(merged, repository)
+          apply_lib_config(
+            merged,
+            repository,
+            unparseable_contents: unparseable_contents,
+            enable_signal_paths: enable_signal_paths,
+          )
 
           parsed.each { |content, _config| content.applied }
           nil
@@ -205,8 +223,10 @@ module Datadog
         #
         # @param lib_config [Hash[String, untyped]] the lib_config to apply
         # @param repository [Core::Remote::Configuration::Repository, nil] forwarded to DI enablement
+        # @param unparseable_contents [Array<Core::Remote::Configuration::Content>] the APM_TRACING contents that failed to parse
+        # @param enable_signal_paths [Array<Core::Remote::Configuration::Path>] the paths of the applicable configs carrying the field
         # @return [nil]
-        def apply_lib_config(lib_config, repository)
+        def apply_lib_config(lib_config, repository, unparseable_contents:, enable_signal_paths:)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
 
@@ -218,13 +238,30 @@ module Datadog
             [env_var, telemetry_value]
           end
 
-          if (di_enabled = lib_config["dynamic_instrumentation_enabled"]) != nil # rubocop:disable Style/NonNilCheck
-            # repository is forwarded so that an enable signal can reconcile DI
-            # against probes delivered in an earlier poll while DI was stopped
-            # (see Datadog::DI::Remote.handle_rc_enablement).
+          di_enabled = lib_config["dynamic_instrumentation_enabled"]
+          # allow_initialization: false because this runs on the remote-config worker
+          # thread, and the default would build the component tree from that thread.
+          components = Datadog.send(:components, allow_initialization: false)
+          di_component = components&.dynamic_instrumentation
+          if di_enabled.nil? && di_component&.rc_enablement_signal_withdrawn?(unparseable_contents)
+            di_enabled = false
+          end
+
+          # Records the parsed carrier paths and the previously recorded paths whose
+          # replacements remain unparseable, on every merge including merges that keep
+          # the DI state.
+          if di_component
+            unparseable_recorded_paths = di_component.rc_enablement_signal_paths.select do |path|
+              unparseable_contents.any? { |content| content.path == path }
+            end
+            di_component.record_rc_enablement_signal_paths(enable_signal_paths + unparseable_recorded_paths)
+          end
+
+          unless di_enabled.nil?
+            # repository is forwarded for the stopped->started replay in
+            # Datadog::DI::Remote.handle_rc_enablement.
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
 
-            components = Datadog.send(:components, allow_initialization: false)
             di_products = Datadog::DI::Remote.products +
               Datadog::SymbolDatabase::Remote.deferred_products(Datadog.configuration)
 
@@ -236,7 +273,7 @@ module Datadog
               # by DD_DYNAMIC_INSTRUMENTATION_ENABLED=false. Advertising then would
               # report DI as in use when it is not and invite probe configs the
               # tracer must refuse; withdraw the products otherwise.
-              if components&.dynamic_instrumentation&.started?
+              if di_component&.started?
                 components&.remote&.add_products(*di_products)
               else
                 components&.remote&.remove_products(*di_products)
@@ -249,13 +286,7 @@ module Datadog
             Datadog.logger.debug { "APM_TRACING RC: merged dynamic_instrumentation_enabled=#{di_enabled}" }
           end
 
-          # allow_initialization: false because this runs on the remote-config
-          # worker thread. If components haven't been built yet (e.g. during a
-          # teardown/reset window), the default value would synchronously build
-          # the entire component tree from this thread. The &. chain matches the
-          # pattern used by DI::Remote.handle_rc_enablement in the same dispatch
-          # path.
-          Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
+          components&.telemetry&.client_configuration_change!(env_vars)
           nil
         end
 
@@ -269,7 +300,7 @@ module Datadog
 
         def receiver(products = [PRODUCT], &block)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
-          [Core::Remote::Dispatcher::Receiver.new(matcher, &block)]
+          [Core::Remote::Dispatcher::Receiver.new(matcher, initial_reconcile: true, &block)]
         end
 
         private
