@@ -16,11 +16,6 @@ _Static_assert(
   "Bulk marking requires contiguous VALUE-sized frame references without padding"
 );
 
-static size_t miteruby_buffer_size(const void *buffer) {
-  (void)buffer;
-  return sizeof(miteruby_buffer_t);
-}
-
 static void miteruby_buffer_mark_event(const uint64_t *data) {
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)data;
   if (event->header.type != MITERUBY_EVENT_STACK_SAMPLE) return;
@@ -30,24 +25,9 @@ static void miteruby_buffer_mark_event(const uint64_t *data) {
   rb_gc_mark_locations(&event->thread.value, (const VALUE *)&event->refs[event->header.frame_count]);
 }
 
-static void miteruby_buffer_mark(void *buffer) {
+void miteruby_buffer_mark(miteruby_buffer_t *buffer) {
   // NOTE: ObjectSpace can also invoke dmark outside GC, where the signal handler would otherwise try to take our lock.
   //       Hence we mask out the signal as well during marking, even though the signal handler shouldn't try to push
   //       on the buffer in the middle of GC.
   miteruby_buffer_visit(buffer, miteruby_buffer_mark_event, &sigprof_signal_mask);
-}
-
-static const rb_data_type_t miteruby_buffer_typed_data = {
-  .wrap_struct_name = "Datadog::Profiling::Miteruby::Buffer",
-  .function = {
-    .dmark = miteruby_buffer_mark,
-    .dfree = NULL, // The buffer has static storage owned by cpu_and_wall_time_worker.
-    .dsize = miteruby_buffer_size,
-  },
-};
-
-void miteruby_buffer_marking_init(miteruby_buffer_t *buffer) {
-  VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &miteruby_buffer_typed_data, buffer);
-  // TODO: Make buffer be collectable when profiling disabled
-  rb_gc_register_mark_object(wrapper);
 }
