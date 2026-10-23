@@ -40,10 +40,6 @@ static once_flag mutexes_initialized = ONCE_FLAG_INIT;
 static mtx_t consumed_events_mutex;
 static mtx_t objects_to_mark_mutex;
 
-// Why "dedupconsumer"?
-// This dedupconsumer bridges miteruby and the existing profiler APIs (specifically, StackRecorder).
-// It's not the intended end-state for miteruby, and exists only to enable quicker experimentation.
-
 #define CONSUMED_EVENTS_BUFFER_CHUNK_SIZE (1024U * 1024U)
 
 static char *consumed_events_buffer = NULL;
