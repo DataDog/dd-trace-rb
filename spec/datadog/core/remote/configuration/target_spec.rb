@@ -165,6 +165,72 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         )
       end
     end
+
+    context "with signed that is not a Hash" do
+      it "raises Configuration::Error" do
+        invalid_data = raw_target_map.merge("signed" => "not a hash")
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for signed: expected Hash: "not a hash"'
+        )
+      end
+    end
+
+    context "with signed that is not a Hash and exceeds the reported value size limit" do
+      it "reports the value truncated to its first 100 and last 50 characters" do
+        invalid_data = raw_target_map.merge("signed" => "x" * 1000)
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"x" * 99}...#{"x" * 49}\""
+        )
+      end
+    end
+
+    context "with signed that is not a Hash, exceeds the reported value size limit, and contains multibyte characters" do
+      it "reports the value truncated to its first 100 and last 50 characters" do
+        invalid_data = raw_target_map.merge("signed" => "é" * 1000)
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"é" * 99}...#{"é" * 49}\""
+        )
+      end
+    end
+
+    context "with targets that is not a Hash" do
+      it "raises Configuration::Error" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("targets" => "not a hash")
+        )
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets: expected Hash: "not a hash"'
+        )
+      end
+    end
+
+    context "with custom that is not a Hash" do
+      it "yields no opaque backend state" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("custom" => "not a hash")
+        )
+
+        expect(described_class.parse(invalid_data).opaque_backend_state).to be_nil
+      end
+    end
+
+    context "with a targets entry that is not a Hash" do
+      it "raises Configuration::Error" do
+        invalid_data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge(
+            "targets" => {"datadog/603646/ASM/exclusion_filters/config" => "not a hash"}
+          )
+        )
+
+        expect { described_class.parse(invalid_data) }.to raise_error(
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets entry: expected Hash: "not a hash"'
+        )
+      end
+    end
   end
 
   describe Datadog::Core::Remote::Configuration::Target do
@@ -184,6 +250,38 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with valid target" do
         it "returns a Target instance" do
           expect(target).to be_a(described_class)
+        end
+      end
+
+      context "with hashes that is not a Hash" do
+        it "raises Configuration::Error" do
+          expect { described_class.parse(raw_target.merge("hashes" => "not a hash")) }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, 'Invalid type for hashes: expected Hash: "not a hash"'
+          )
+        end
+      end
+
+      context "with length that is not an Integer" do
+        it "raises Configuration::Error" do
+          expect { described_class.parse(raw_target.merge("length" => "645")) }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "645"'
+          )
+        end
+      end
+
+      context "with custom that is not a Hash" do
+        it "raises Configuration::Error" do
+          expect { described_class.parse(raw_target.merge("custom" => "not a hash")) }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, "Invalid type for custom.v: expected Integer: nil"
+          )
+        end
+      end
+
+      context "with custom.v that is not an Integer" do
+        it "raises Configuration::Error" do
+          expect do
+            described_class.parse(raw_target.merge("custom" => {"v" => "21"}))
+          end.to raise_error(Datadog::Core::Remote::Configuration::Error, 'Invalid type for custom.v: expected Integer: "21"')
         end
       end
     end
