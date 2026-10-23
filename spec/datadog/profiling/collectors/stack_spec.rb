@@ -866,6 +866,88 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(gathered_stack).to include(have_attributes(path: filename, label: end_with(untrimmed_method_name)))
         end
       end
+
+      context "when sampling a block inside the template method" do
+        let(:do_in_background_thread) do
+          # rubocop:disable Security/Eval
+          # rubocop:disable Style/EvalWithLocation
+          # rubocop:disable Style/DocumentDynamicEvalDefinition
+          eval(
+            %(
+              def dummy_template.#{untrimmed_method_name}(ready_queue)
+                [1].each do
+                  ready_queue << true
+                  sleep
+                end
+              end
+
+              proc { |ready_queue| dummy_template.#{untrimmed_method_name}(ready_queue) }
+            ),
+            binding,
+            filename,
+            123456
+          )
+          # rubocop:enable Security/Eval
+          # rubocop:enable Style/EvalWithLocation
+          # rubocop:enable Style/DocumentDynamicEvalDefinition
+        end
+
+        it "samples the block frame with a simplified method name" do
+          expect(gathered_stack).to include(
+            have_attributes(
+              path: filename,
+              label: end_with("_app_views_layouts_explore_html_haml (block)"),
+            )
+          )
+        end
+
+        context "when show_classes is disabled" do
+          let(:show_classes) { false }
+
+          it "samples the block frame with a simplified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: end_with("_app_views_layouts_explore_html_haml"),
+              )
+            )
+          end
+        end
+
+        context "when the template method is on a named class" do
+          let(:do_in_background_thread) do
+            template_class = stub_const("DummyTemplateClass", Class.new)
+            # rubocop:disable Style/EvalWithLocation
+            # rubocop:disable Style/DocumentDynamicEvalDefinition
+            template_class.class_eval(
+              %(
+                def #{untrimmed_method_name}(ready_queue)
+                  [1].each do
+                    ready_queue << true
+                    sleep
+                  end
+                end
+              ),
+              filename,
+              123456
+            )
+            # rubocop:enable Style/DocumentDynamicEvalDefinition
+            # rubocop:enable Style/EvalWithLocation
+            template = template_class.new
+
+            proc { |ready_queue| template.send(untrimmed_method_name, ready_queue) }
+          end
+
+          it "samples the block frame with a simplified qualified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: "DummyTemplateClass#_app_views_layouts_explore_html_haml (block)",
+              )
+            )
+          end
+        end
+      end
     end
   end
 
