@@ -666,9 +666,9 @@
     ],
     "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
