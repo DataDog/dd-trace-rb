@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 #include <datadog/data-pipeline.h>
 #include <datadog/shared-runtime.h>
 
@@ -34,11 +35,11 @@ static VALUE _native_from_span(VALUE klass, VALUE span);
 
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
-static VALUE _native_close(VALUE self);
+static VALUE _native_close(int argc, VALUE *argv, VALUE self);
 static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_supported);
 static VALUE _native_before_fork(VALUE self);
 static VALUE _native_after_fork_in_parent(VALUE self);
-static VALUE _native_after_fork_in_child(VALUE self);
+static VALUE _native_after_fork_in_child(int argc, VALUE *argv, VALUE self);
 
 /* Response helpers */
 static VALUE create_ok_response(long trace_count, VALUE payload);
@@ -150,6 +151,13 @@ static void tracer_span_dfree(void *ptr) {
 typedef struct {
   ddog_TraceExporter       *exporter;
   const ddog_ForkSafeRuntime *runtime;
+#ifdef DD_NATIVE_TELEMETRY
+  ddog_MutableMetadataHandle *metadata;
+  uint64_t shutdown_timeout_ms;
+#endif
+  bool ready;
+  pid_t owner_pid;
+  bool collect_observations;
 } trace_exporter_t;
 
 static const rb_data_type_t trace_exporter_typed_data = {
@@ -162,16 +170,33 @@ static const rb_data_type_t trace_exporter_typed_data = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
+static void discard_exporter_resources(trace_exporter_t *wrapper) {
+  if (wrapper->exporter != NULL) {
+#ifdef DD_NATIVE_TELEMETRY
+    /* GC and interrupted close must not flush network traffic while holding the GVL. */
+    ddog_trace_exporter_discard(wrapper->exporter);
+#else
+    ddog_trace_exporter_free(wrapper->exporter);
+#endif
+    wrapper->exporter = NULL;
+  }
+  if (wrapper->runtime != NULL) {
+    ddog_shared_runtime_free(wrapper->runtime);
+    wrapper->runtime = NULL;
+  }
+#ifdef DD_NATIVE_TELEMETRY
+  if (wrapper->metadata != NULL) {
+    ddog_mutable_metadata_free(wrapper->metadata);
+    wrapper->metadata = NULL;
+  }
+#endif
+  wrapper->ready = false;
+}
+
 static void trace_exporter_dfree(void *ptr) {
   if (ptr != NULL) {
-    trace_exporter_t *wrapper = (trace_exporter_t *)ptr;
-    if (wrapper->exporter != NULL) {
-      ddog_trace_exporter_free(wrapper->exporter);
-    }
-    if (wrapper->runtime != NULL) {
-      ddog_shared_runtime_free(wrapper->runtime);
-    }
-    ruby_xfree(wrapper);
+    discard_exporter_resources((trace_exporter_t *)ptr);
+    ruby_xfree(ptr);
   }
 }
 
@@ -1435,6 +1460,12 @@ static VALUE _native_exporter_new(
   VALUE rb_env                  = rb_hash_fetch(options, ID2SYM(rb_intern("env")));
   VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
   VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
+  VALUE rb_runtime_id = rb_hash_aref(options, ID2SYM(rb_intern("runtime_id")));
+  VALUE rb_root_id = rb_hash_aref(options, ID2SYM(rb_intern("root_runtime_id")));
+  VALUE rb_parent_id = rb_hash_aref(options, ID2SYM(rb_intern("parent_runtime_id")));
+  VALUE rb_interval = rb_hash_aref(options, ID2SYM(rb_intern("telemetry_interval")));
+  VALUE rb_debug = rb_hash_aref(options, ID2SYM(rb_intern("telemetry_debug")));
+  VALUE rb_shutdown_timeout = rb_hash_aref(options, ID2SYM(rb_intern("shutdown_timeout")));
   VALUE rb_client_computed_stats = rb_hash_lookup2(options, ID2SYM(rb_intern("client_computed_stats")), Qfalse);
   VALUE rb_timeout_milliseconds = rb_hash_lookup2(options, ID2SYM(rb_intern("timeout_milliseconds")), Qnil);
 
@@ -1448,6 +1479,15 @@ static VALUE _native_exporter_new(
   if (rb_env                  != Qnil) ENFORCE_TYPE(rb_env,                  T_STRING);
   if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
   if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
+  if (rb_runtime_id != Qnil) ENFORCE_TYPE(rb_runtime_id, T_STRING);
+  if (rb_root_id != Qnil) ENFORCE_TYPE(rb_root_id, T_STRING);
+  if (rb_parent_id != Qnil) ENFORCE_TYPE(rb_parent_id, T_STRING);
+  uint64_t interval = rb_interval == Qnil ? 0 : NUM2ULL(rb_interval);
+  uint64_t shutdown_timeout = rb_shutdown_timeout == Qnil ? 1000 : NUM2ULL(rb_shutdown_timeout);
+  if (rb_interval != Qnil && (interval == 0 || rb_runtime_id == Qnil)) {
+    rb_raise(rb_eArgError, "Telemetry requires a runtime ID and a positive interval");
+  }
+
   if (rb_client_computed_stats != Qtrue && rb_client_computed_stats != Qfalse) {
     rb_raise(rb_eTypeError, "client_computed_stats must be true or false");
   }
@@ -1463,14 +1503,13 @@ static VALUE _native_exporter_new(
     }
   }
 
+  trace_exporter_t *wrapper;
+  VALUE result = TypedData_Make_Struct(trace_exporter_class, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  *wrapper = (trace_exporter_t){.collect_observations = true};
+
   /* Phase 2: configure before creating the separately-owned runtime. */
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
-  ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
-  if (observation_error != NULL) {
-    ddog_trace_exporter_config_free(config);
-    check_exporter_error("Failed to select exporter observations", observation_error);
-  }
 
   set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
   set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
@@ -1481,6 +1520,52 @@ static VALUE _native_exporter_new(
   set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
   set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
   set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
+
+#ifdef DD_NATIVE_TELEMETRY
+  wrapper->shutdown_timeout_ms = shutdown_timeout;
+  if (rb_runtime_id != Qnil) {
+    ddog_mutable_metadata_new(&wrapper->metadata);
+    ddog_VoidResult identity = ddog_mutable_metadata_set_identity(
+        wrapper->metadata, nullable_char_slice(rb_runtime_id), nullable_char_slice(rb_runtime_id),
+        nullable_char_slice(rb_root_id), nullable_char_slice(rb_parent_id));
+    if (identity.tag == DDOG_VOID_RESULT_ERR) {
+      ddog_trace_exporter_config_free(config);
+      ddog_Error_drop(&identity.err);
+      rb_raise(rb_eArgError, "Invalid native telemetry identity");
+    }
+    ddog_TraceExporterError *metadata_err = ddog_trace_exporter_config_set_mutable_metadata(config, wrapper->metadata);
+    if (metadata_err != NULL) {
+      ddog_trace_exporter_config_free(config);
+      check_exporter_error("Failed to attach mutable metadata", metadata_err);
+    }
+  }
+  if (rb_interval != Qnil) {
+    ddog_TelemetryClientConfig telemetry = {
+      .interval = interval,
+      .debug_enabled = RTEST(rb_debug),
+      .session_id = nullable_char_slice(Qnil),
+      .root_session_id = nullable_char_slice(Qnil),
+      .parent_session_id = nullable_char_slice(Qnil),
+    };
+    ddog_TraceExporterError *telemetry_err = ddog_trace_exporter_config_enable_telemetry(config, &telemetry);
+    if (telemetry_err != NULL) {
+      ddog_trace_exporter_config_free(config);
+      check_exporter_error("Failed to enable native telemetry", telemetry_err);
+    }
+    wrapper->collect_observations = false;
+  }
+#else
+  (void)rb_debug;
+  (void)shutdown_timeout;
+#endif
+
+  if (wrapper->collect_observations) {
+    ddog_TraceExporterError *observation_error = ddog_trace_exporter_config_enable_observations(config);
+    if (observation_error != NULL) {
+      ddog_trace_exporter_config_free(config);
+      check_exporter_error("Failed to select exporter observations", observation_error);
+    }
+  }
 
   if (rb_timeout_milliseconds != Qnil) {
     ddog_TraceExporterError *timeout_err = ddog_trace_exporter_config_set_connection_timeout(
@@ -1537,12 +1622,11 @@ static VALUE _native_exporter_new(
     check_exporter_error("Failed to create TraceExporter", err);
   }
 
-  trace_exporter_t *wrapper = ruby_xmalloc(sizeof(trace_exporter_t));
   wrapper->exporter = exporter;
   wrapper->runtime  = runtime;
-
-  return TypedData_Wrap_Struct(trace_exporter_class, &trace_exporter_typed_data,
-                               wrapper);
+  wrapper->ready = true;
+  wrapper->owner_pid = getpid();
+  return result;
 }
 
 /* ========================================================================
@@ -1552,68 +1636,140 @@ static VALUE _native_exporter_new(
  * (Puma, Unicorn, Passenger).
  * ======================================================================== */
 
-static void *close_exporter_without_gvl(void *ptr) {
-  trace_exporter_t *resources = ptr;
-  if (resources->exporter != NULL) {
-    ddog_trace_exporter_free(resources->exporter);
-    resources->exporter = NULL;
-  }
-  if (resources->runtime != NULL) {
-    ddog_shared_runtime_free(resources->runtime);
-    resources->runtime = NULL;
-  }
-  return NULL;
-}
-
-static VALUE close_exporter_body(VALUE ptr) {
-  rb_thread_call_without_gvl(close_exporter_without_gvl, (void *)ptr, NULL, NULL);
-  return Qnil;
-}
-
-static VALUE close_exporter_ensure(VALUE ptr) {
-  /* An interrupt may arrive before the no-GVL call starts. */
-  close_exporter_without_gvl((void *)ptr);
-  return Qnil;
-}
-
-static VALUE _native_close(VALUE self) {
+typedef struct {
   trace_exporter_t *wrapper;
-  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL) return Qnil;
+  ddog_SharedRuntimeFFIError *error;
+  bool ran;
+} pause_args;
 
-  trace_exporter_t resources = *wrapper;
-  wrapper->exporter = NULL;
-  wrapper->runtime = NULL;
-  rb_ensure(close_exporter_body, (VALUE)&resources, close_exporter_ensure, (VALUE)&resources);
-  RB_GC_GUARD(self);
-  return Qnil;
+static void *pause_without_gvl(void *data) {
+  pause_args *args = data;
+  args->error = ddog_shared_runtime_before_fork(args->wrapper->runtime);
+  args->ran = true;
+  return NULL;
 }
 
 static VALUE _native_before_fork(VALUE self) {
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
-  ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_before_fork(wrapper->runtime);
-  check_shared_runtime_error("Failed to prepare for fork", err);
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    return Qnil;
+  }
+  pause_args args = {.wrapper = wrapper};
+  do {
+    rb_thread_call_without_gvl2(pause_without_gvl, &args, NULL, NULL);
+    if (!args.ran) rb_thread_check_ints();
+  } while (!args.ran);
+  check_shared_runtime_error("Failed to prepare for fork", args.error);
   return Qnil;
 }
 
 static VALUE _native_after_fork_in_parent(VALUE self) {
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    return Qnil;
+  }
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_parent(wrapper->runtime);
   check_shared_runtime_error("Failed to restore after fork in parent", err);
+  wrapper->ready = true;
   return Qnil;
 }
 
-static VALUE _native_after_fork_in_child(VALUE self) {
+static VALUE _native_after_fork_in_child(int argc, VALUE *argv, VALUE self) {
+  VALUE runtime_id, root_id, parent_id;
+  rb_scan_args(argc, argv, "03", &runtime_id, &root_id, &parent_id);
   trace_exporter_t *wrapper;
   TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
-  if (wrapper == NULL || wrapper->runtime == NULL) return Qnil;
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    return Qnil;
+  }
+  wrapper->ready = false;
+#ifdef DD_NATIVE_TELEMETRY
+  if (wrapper->metadata != NULL) {
+    ENFORCE_TYPE(runtime_id, T_STRING);
+    ddog_VoidResult identity = ddog_mutable_metadata_set_identity(
+        wrapper->metadata, nullable_char_slice(runtime_id), nullable_char_slice(runtime_id),
+        nullable_char_slice(root_id), nullable_char_slice(parent_id));
+    if (identity.tag == DDOG_VOID_RESULT_ERR) {
+      ddog_Error_drop(&identity.err);
+      rb_raise(rb_eArgError, "Invalid native telemetry child identity");
+    }
+  }
+#endif
   ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
   check_shared_runtime_error("Failed to restore after fork in child", err);
+  wrapper->ready = true;
+  wrapper->owner_pid = getpid();
   return Qnil;
+}
+
+typedef struct {
+  trace_exporter_t *wrapper;
+  ddog_TraceExporterError *error;
+  bool flush;
+  bool ran;
+} close_args;
+
+static void *close_without_gvl(void *data) {
+  close_args *args = data;
+  trace_exporter_t *wrapper = args->wrapper;
+  if (wrapper->exporter != NULL) {
+#ifdef DD_NATIVE_TELEMETRY
+    if (wrapper->ready && wrapper->owner_pid == getpid() && args->flush) {
+      args->error = ddog_trace_exporter_shutdown(wrapper->exporter, wrapper->shutdown_timeout_ms);
+    } else {
+      ddog_SharedRuntimeFFIError *pause_error = ddog_shared_runtime_before_fork(wrapper->runtime);
+      if (pause_error != NULL) ddog_shared_runtime_error_free(pause_error);
+      ddog_trace_exporter_discard(wrapper->exporter);
+    }
+#else
+    ddog_trace_exporter_free(wrapper->exporter);
+#endif
+    wrapper->exporter = NULL;
+  }
+  discard_exporter_resources(wrapper);
+  args->ran = true;
+  return NULL;
+}
+
+static VALUE close_exporter_body(VALUE ptr) {
+  close_args *args = (close_args *)ptr;
+  rb_thread_call_without_gvl(close_without_gvl, args, NULL, NULL);
+  ddog_TraceExporterError *error = args->error;
+  args->error = NULL;
+  check_exporter_error("Native exporter shutdown failed", error);
+  return Qnil;
+}
+
+static VALUE close_exporter_ensure(VALUE ptr) {
+  close_args *args = (close_args *)ptr;
+  /* An interrupt can skip the no-GVL callback or bypass its error handling. */
+  if (!args->ran) discard_exporter_resources(args->wrapper);
+  if (args->error != NULL) ddog_trace_exporter_error_free(args->error);
+  return Qnil;
+}
+
+static VALUE _native_close(int argc, VALUE *argv, VALUE self) {
+  VALUE flush;
+  rb_scan_args(argc, argv, "01", &flush);
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  if (wrapper == NULL) return Qnil;
+  trace_exporter_t resources = *wrapper;
+  *wrapper = (trace_exporter_t){0};
+  close_args args = {.wrapper = &resources, .flush = argc == 0 || RTEST(flush)};
+  rb_ensure(close_exporter_body, (VALUE)&args, close_exporter_ensure, (VALUE)&args);
+  RB_GC_GUARD(self);
+  return Qnil;
+}
+
+static VALUE _native_telemetry_supported(DDTRACE_UNUSED VALUE klass) {
+#ifdef DD_NATIVE_TELEMETRY
+  return Qtrue;
+#else
+  return Qfalse;
+#endif
 }
 
 /* ========================================================================
@@ -1629,6 +1785,7 @@ typedef struct {
   ddog_TracerTraceChunks         *chunks;
   ddog_TraceExporterResponse     *response;
   ddog_TraceExporterObservations  observations;
+  bool                            collect_observations;
   ddog_TraceExporterCancelToken  *cancel_token;  /* borrowed, not owned */
   ddog_TraceExporterErrorCode     error_code;
   bool                            failed;
@@ -1637,8 +1794,14 @@ typedef struct {
 
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
-  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks_observed(
-      args->exporter, args->chunks, &args->response, &args->observations, args->cancel_token);
+  ddog_TraceExporterError *err;
+  if (args->collect_observations) {
+    err = ddog_trace_exporter_send_trace_chunks_observed(
+        args->exporter, args->chunks, &args->response, &args->observations, args->cancel_token);
+  } else {
+    err = ddog_trace_exporter_send_trace_chunks(
+        args->exporter, args->chunks, &args->response, args->cancel_token);
+  }
   if (err != NULL) {
     args->error_code = err->code;
     args->failed = true;
@@ -1707,6 +1870,7 @@ typedef struct {
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
   ddog_TraceExporterResponse *response;
+  bool                      collect_observations;
 } send_traces_ctx;
 
 typedef struct {
@@ -1827,6 +1991,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     .exporter     = ctx->exporter,
     .chunks       = ctx->chunks,
     .response     = NULL,
+    .collect_observations = ctx->collect_observations,
     .cancel_token = cancel_token,
     .failed       = false,
     .send_ran     = false,
@@ -1856,7 +2021,7 @@ static VALUE build_and_send_traces(VALUE arg) {
   if (!pending_exception) {
     pending_exception = check_if_pending_exception();
   }
-  if (args.send_ran && rb_block_given_p()) {
+  if (args.send_ran && args.collect_observations && rb_block_given_p()) {
     if (pending_exception) {
       /* rb_ensure preserves Thread#kill's fatal sentinel, which rb_set_errinfo cannot restore. */
       rb_ensure(rethrow_interrupt, INT2FIX(pending_exception),
@@ -1921,6 +2086,9 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
     raise_error(rb_eRuntimeError,
                 "TraceExporter has not been initialized or was already freed");
   }
+  if (!wrapper->ready || wrapper->owner_pid != getpid()) {
+    rb_raise(rb_eRuntimeError, "Native exporter fork recovery has not completed");
+  }
 
   long trace_count = RARRAY_LEN(traces);
 
@@ -1945,6 +2113,7 @@ static VALUE _native_send_traces(VALUE self, VALUE traces, VALUE native_events_s
     .trace_count = trace_count,
     .span_owner  = {.span = NULL},
     .chunks      = chunks,
+    .collect_observations = wrapper->collect_observations,
   };
 
   return rb_ensure(
@@ -1993,7 +2162,6 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Instance: _native_send_traces(traces, native_events_supported) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
                    _native_send_traces, 2);
-  rb_define_method(trace_exporter_class, "_native_close", _native_close, 0);
 
   /* Instance: fork safety hooks */
   rb_define_method(trace_exporter_class, "_native_before_fork",
@@ -2001,7 +2169,9 @@ void trace_exporter_init(VALUE tracing_module) {
   rb_define_method(trace_exporter_class, "_native_after_fork_in_parent",
                    _native_after_fork_in_parent, 0);
   rb_define_method(trace_exporter_class, "_native_after_fork_in_child",
-                   _native_after_fork_in_child, 0);
+                   _native_after_fork_in_child, -1);
+  rb_define_method(trace_exporter_class, "_native_close", _native_close, -1);
+  rb_define_singleton_method(trace_exporter_class, "_native_telemetry_supported?", _native_telemetry_supported, 0);
 
   /* ----------------------------------------------------------------
    * Response class (defined in Ruby, loaded lazily)

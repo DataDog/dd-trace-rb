@@ -1773,6 +1773,20 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe "#native_exporter_enabled" do
+      subject(:native_exporter_enabled) { settings.telemetry.native_exporter_enabled }
+      let(:env_var_name) { "DD_EXPERIMENTAL_NATIVE_EXPORTER_TELEMETRY_ENABLED" }
+      let(:env_var_value) { nil }
+
+      it_behaves_like "a binary setting with",
+        env_variable: "DD_EXPERIMENTAL_NATIVE_EXPORTER_TELEMETRY_ENABLED", default: true
+
+      it "allows opting out through configuration" do
+        expect { settings.telemetry.native_exporter_enabled = false }
+          .to change { settings.telemetry.native_exporter_enabled }.from(true).to(false)
+      end
+    end
+
     describe "#log_collection_enabled" do
       subject(:log_collection_enabled) { settings.telemetry.log_collection_enabled }
 

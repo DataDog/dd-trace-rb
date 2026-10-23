@@ -51,6 +51,8 @@ module Datadog
           attr_reader :logger, :url
 
           def telemetry=(client)
+            return if @native_telemetry
+
             @send_mutex.synchronize do
               if (reporter = @telemetry)
                 reporter.client = client
@@ -63,12 +65,13 @@ module Datadog
           # @param agent_settings [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings]
           #   Agent connection settings, including the request timeout.
           # @param logger [Logger]
-          def initialize(agent_settings:, logger:)
+          def initialize(agent_settings:, logger:, settings: Datadog.configuration)
             unless Native.supported?
               raise "Native transport is not supported: #{UNSUPPORTED_REASON}"
             end
 
             @logger = logger
+            @settings = settings
             @telemetry = nil
 
             # Serializes native sends and is held across a fork. See the
@@ -89,9 +92,13 @@ module Datadog
             rescue
               nil
             end
-            env = Datadog.configuration.env
-            service = Datadog.configuration.service
-            version = Datadog.configuration.version
+            env = settings.env
+            service = settings.service
+            version = settings.version
+            runtime_id = Core::Environment::Identity.id
+            @native_telemetry = settings.telemetry.native_exporter_enabled &&
+              Native::TraceExporter._native_telemetry_supported? &&
+              telemetry_enabled?
 
             exporter = Native::TraceExporter._native_new(
               url: url,
@@ -104,7 +111,13 @@ module Datadog
               env: env,
               service: service,
               version: version,
-              client_computed_stats: !Datadog.configuration.apm.tracing.enabled
+              runtime_id: runtime_id,
+              root_runtime_id: Core::Environment::Identity.root_runtime_id,
+              parent_runtime_id: Core::Environment::Identity.parent_runtime_id,
+              telemetry_interval: @native_telemetry ? [(settings.telemetry.heartbeat_interval_seconds * 1000).to_i, 1].max : nil,
+              telemetry_debug: settings.telemetry.debug,
+              shutdown_timeout: [(settings.telemetry.shutdown_timeout_seconds * 1000).to_i, 1].max,
+              client_computed_stats: !settings.apm.tracing.enabled,
             )
             @exporter = exporter
 
@@ -125,8 +138,8 @@ module Datadog
             # `@fork_mutex` serializes concurrent forks for this exporter. The
             # `:before` hook locks it first, then calls `_native_before_fork`,
             # and finally locks `@send_mutex`, which serializes sends and is
-            # held across the fork. Sends and #close only acquire @send_mutex,
-            # so there is no lock-order inversion.
+            # held across the fork. #close acquires these locks in the same order;
+            # sends only acquire @send_mutex.
             #
             # `_native_before_fork` must run before locking `@send_mutex` to
             # pause the runtime before waiting for an in-flight send to drain.
@@ -194,7 +207,14 @@ module Datadog
               fork_mutex.unlock if fork_mutex.owned?
             end
             child_hook = proc do
-              exporter._native_after_fork_in_child if fork_mutex.owned?
+              if fork_mutex.owned?
+                child_id = Core::Environment::Identity.id
+                exporter._native_after_fork_in_child(
+                  child_id,
+                  Core::Environment::Identity.root_runtime_id,
+                  Core::Environment::Identity.parent_runtime_id,
+                )
+              end
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
@@ -235,7 +255,9 @@ module Datadog
                 return if hooks.nil?
 
                 begin
-                  @exporter&._native_close
+                  @exporter&._native_close(telemetry_enabled?)
+                rescue => e
+                  logger.debug { "Native transport shutdown failed: #{e.class}: #{e.message}" }
                 ensure
                   @fork_hooks = nil
                   @telemetry = nil
@@ -315,6 +337,11 @@ module Datadog
 
           private
 
+          def telemetry_enabled?
+            @settings.tracing.enabled && @settings.telemetry.enabled && @settings.telemetry.metrics_enabled &&
+              !@settings.telemetry.agentless_enabled
+          end
+
           # Writes each span's events into the legacy JSON +events+ meta tag
           # when the agent lacks typed-event support, mutating spans in place.
           #
@@ -336,7 +363,7 @@ module Datadog
           end
 
           def tracer_version_string
-            defined?(Datadog::VERSION::STRING) ? Datadog::VERSION::STRING : "unknown"
+            Core::Environment::Identity.gem_datadog_version_semver2
           end
         end
 

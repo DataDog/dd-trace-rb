@@ -88,6 +88,40 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
       expect { trace_exporter_class.new }.to raise_error(TypeError)
     end
 
+    it "cleans up invalid telemetry identity during construction", :native_transport_memcheck do
+      skip "Requires fork-safe telemetry APIs" unless trace_exporter_class._native_telemetry_supported?
+
+      5.times do
+        expect {
+          trace_exporter_class._native_new(
+            url: "http://127.0.0.1:8126",
+            tracer_version: "1.0.0", language: "ruby", language_version: RUBY_VERSION,
+            language_interpreter: RUBY_ENGINE, hostname: nil, env: nil,
+            service: "test", version: nil,
+            runtime_id: "\xff".b, telemetry_interval: 1000,
+          )
+        }.to raise_error(ArgumentError, /identity/)
+      end
+      GC.start
+    end
+
+    it "reclaims telemetry workers on explicit close and GC", :native_transport_memcheck do
+      skip "Requires fork-safe telemetry APIs" unless trace_exporter_class._native_telemetry_supported?
+
+      6.times do |index|
+        exporter = trace_exporter_class._native_new(
+          url: "http://127.0.0.1:9",
+          tracer_version: "1.0.0", language: "ruby", language_version: RUBY_VERSION,
+          language_interpreter: RUBY_ENGINE, hostname: nil, env: nil,
+          service: "test", version: nil,
+          runtime_id: "5fa789ed-91b6-4b9d-a7c9-17e0e461d09b", telemetry_interval: 3600000,
+          shutdown_timeout: 10000,
+        )
+        exporter._native_close if index.even?
+      end
+      GC.start
+    end
+
     it "rejects a non-boolean client-computed stats setting" do
       expect {
         trace_exporter_class._native_new(
@@ -126,6 +160,26 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter" do
         expect { exporter._native_before_fork }.not_to raise_error
         expect { exporter._native_after_fork_in_parent }.not_to raise_error
         expect { exporter._native_after_fork_in_child }.not_to raise_error
+      end
+
+      it "releases resources when close is interrupted", :native_transport_memcheck do
+        exporter = trace_exporter_class._native_new(
+          url: "http://127.0.0.1:9",
+          tracer_version: nil, language: nil, language_version: nil,
+          language_interpreter: nil, hostname: nil, env: nil,
+          service: nil, version: nil,
+        )
+
+        expect {
+          Thread.handle_interrupt(Interrupt => :never) do
+            Thread.current.raise(Interrupt, "interrupted close")
+            Thread.handle_interrupt(Interrupt => :on_blocking) { exporter._native_close }
+          end
+        }.to raise_error(Interrupt, "interrupted close")
+        expect { exporter._native_send_traces([], false) }.to raise_error(RuntimeError, /already freed/)
+        expect { exporter._native_close }.not_to raise_error
+      ensure
+        exporter&._native_close
       end
 
       it "does not crash when instances are garbage collected" do

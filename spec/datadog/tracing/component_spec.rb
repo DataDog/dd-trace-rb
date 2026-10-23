@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Component do
 
     before do
       allow(described_class).to receive(:build_native_transport)
-        .with(agent_settings)
+        .with(agent_settings, settings)
         .and_return(native_transport)
     end
 

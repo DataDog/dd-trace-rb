@@ -143,7 +143,17 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   end
 
   describe "telemetry forwarding" do
-    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |config|
+        config.telemetry.enabled = true
+        config.telemetry.native_exporter_enabled = false
+      end
+    end
+    let(:transport) do
+      transport_class.new(agent_settings: agent_settings, logger: logger, settings: settings).tap do |instance|
+        built_transports << instance
+      end
+    end
     let(:telemetry_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: logger) }
     let(:client) do
       Datadog::Core::Telemetry::Component.new(settings: settings, agent_settings: telemetry_settings, logger: logger, enabled: true)

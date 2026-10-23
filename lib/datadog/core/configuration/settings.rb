@@ -914,6 +914,14 @@ module Datadog
             o.default true
           end
 
+          # Ruby remains the application lifecycle owner in either delivery mode.
+          # @!visibility private
+          option :native_exporter_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_NATIVE_EXPORTER_ENABLED
+            o.default true
+          end
+
           # The interval in seconds when telemetry must be sent.
           #
           # This method is used internally, for testing purposes only.
