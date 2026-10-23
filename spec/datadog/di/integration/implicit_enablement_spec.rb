@@ -33,6 +33,15 @@ RSpec.describe "DI implicit enablement integration" do
     end
   end
 
+  let(:explicit_opt_in_settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |s|
+      s.remote.enabled = true
+      s.dynamic_instrumentation.enabled = true
+      s.dynamic_instrumentation.internal.development = true
+      s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+    end
+  end
+
   let(:agent_settings) { instance_double_agent_settings_with_stubs }
   let(:logger) { instance_double(Logger) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -103,6 +112,16 @@ RSpec.describe "DI implicit enablement integration" do
 
   after { component&.shutdown! }
 
+  # Stubs the environment the RC enablement specs share: DI code tracking
+  # stays off and Symbol Database support is deterministic.
+  def stub_di_rc_environment
+    allow(Datadog::DI).to receive(:activate_tracking)
+    allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+  end
+
+  # Drives the production RC dispatch path (Tracing::Remote.merge_and_apply_configs)
+  # for a single APM_TRACING payload, returning the Content so apply_state can
+  # be asserted.
   def apply_rc_payload(payload)
     apply_rc_content(JSON.dump(payload))
   end
@@ -297,6 +316,53 @@ RSpec.describe "DI implicit enablement integration" do
         expect(probe.instrumentation_module).to be_nil
       end
     end
+
+    context "with an installed probe that the backend deletes while DI is stopped" do
+      let(:probe_spec) do
+        {
+          id: "test-probe-deleted-while-stopped",
+          name: "bar",
+          type: "LOG_PROBE",
+          where: {
+            typeName: "ImplicitEnablementSpecTargetClass",
+            methodName: "target_method",
+          },
+        }
+      end
+
+      let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+      let(:probe_configs) { {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec} }
+      let(:transaction) do
+        DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
+      end
+      let(:di_receiver) { Datadog::DI::Remote.receivers(telemetry).first }
+
+      it "does not reinstall the probe when RC re-enables DI" do
+        apply_rc_payload(rc_payload_enable)
+        di_receiver.call(repository, transaction)
+        component.probe_notifier_worker.flush
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+
+        apply_rc_payload(rc_payload_disable)
+        expect(component.started?).to be false
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+
+        # The backend deletes the probe config; the DI receiver ignores the
+        # delete change while the component is stopped.
+        deletion = repository.transaction do |current, txn|
+          current.paths.each { |path| txn.delete(path) }
+        end
+        di_receiver.call(repository, deletion)
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+
+        apply_rc_payload(rc_payload_enable)
+
+        expect(component.started?).to be true
+        expect(component.probe_manager.probe_repository.installed_probes).to be_empty
+        expect(component.probe_manager.probe_repository.pending_probes).to be_empty
+        expect(Datadog::DI.instrumented_count).to eq 0
+      end
+    end
   end
 
   describe "combined RC transaction: LIVE_DEBUGGING + APM_TRACING dispatched together" do
@@ -382,7 +448,7 @@ RSpec.describe "DI implicit enablement integration" do
       }
     end
 
-    let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
+    let(:transport) { instance_double(Datadog::Core::Remote::Transport::Config::Transport) }
     let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
     let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
 
@@ -538,12 +604,15 @@ RSpec.describe "DI implicit enablement integration" do
 
     before do
       allow(telemetry).to receive(:client_configuration_change!)
-      allow(Datadog::DI).to receive(:activate_tracking)
-      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      stub_di_rc_environment
     end
 
     context "when DI was started solely from RC enablement" do
-      before { apply_rc_payload(rc_payload_enable) }
+      before do
+        apply_rc_payload(rc_payload_enable)
+        expect(component.started?).to be true
+        expect(component.implicitly_enabled?).to be true
+      end
 
       it "is started by the RC enable signal" do
         expect(component.started?).to be true
@@ -559,16 +628,13 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     context "when DI was started by an explicit customer opt-in" do
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.remote.enabled = true
-          s.dynamic_instrumentation.enabled = true
-          s.dynamic_instrumentation.internal.development = true
-          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
-        end
-      end
+      let(:settings) { explicit_opt_in_settings }
 
-      before { component.start! }
+      before do
+        component.start!
+        expect(component.started?).to be true
+        expect(component.implicitly_enabled?).to be false
+      end
 
       it "is started by the explicit opt-in and is not implicitly enabled" do
         expect(component.started?).to be true
@@ -587,16 +653,17 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   describe "RC replaces the enable config with a payload that fails to parse" do
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
+
     before do
-      allow(Datadog::DI).to receive(:activate_tracking)
-      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      stub_di_rc_environment
       allow(telemetry).to receive(:report)
+
+      apply_rc_payload(rc_payload_enable)
+      expect(component.started?).to be true
     end
 
     it "leaves the component started and marks the payload errored" do
-      apply_rc_payload({"lib_config" => {"dynamic_instrumentation_enabled" => true}})
-      expect(component.started?).to be true
-
       expect(remote).not_to receive(:remove_products)
 
       content = apply_rc_content("{not json")
@@ -607,9 +674,7 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   describe "RC withdraws the enable signal while an unrelated APM_TRACING config fails to parse" do
-    # The enable config (deleted) and the malformed config hold different
-    # paths: the malformed config never supplied the signal, so its parse
-    # failure does not mask the withdrawal and the component stops.
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
     let(:malformed_unrelated) do
       Datadog::Core::Remote::Configuration::Content.parse(
         {
@@ -626,15 +691,14 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     before do
-      allow(Datadog::DI).to receive(:activate_tracking)
-      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      stub_di_rc_environment
       allow(telemetry).to receive(:report)
+
+      apply_rc_payload(rc_payload_enable)
+      expect(component.started?).to be true
     end
 
     it "stops the component and withdraws the DI products, marking the unrelated config errored" do
-      apply_rc_payload({"lib_config" => {"dynamic_instrumentation_enabled" => true}})
-      expect(component.started?).to be true
-
       expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
 
       Datadog::Tracing::Remote.merge_and_apply_configs(repository)
@@ -645,45 +709,35 @@ RSpec.describe "DI implicit enablement integration" do
   end
 
   describe "RC withdraws the enable signal while no client holds it (fresh client)" do
-    # A fresh RC client — after a Datadog.configure rebuild, a sync-error
-    # client replacement, or a fork — starts with an empty repository, so a
-    # config the backend withdrew while no client held it produces no delete
-    # change and no dispatch. The first sync whose response carries targets
-    # reconciles the receivers the dispatch skipped, which runs the APM_TRACING merge over
-    # the APM_TRACING-empty repository and maps the absent enable signal to
-    # false for the implicitly enabled component.
-    let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
+    let(:transport) { instance_double(Datadog::Core::Remote::Transport::Config::Transport) }
     let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
     let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
 
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
-    # The replacement client's first poll: the backend withdrew the enable
-    # config while no client was polling, so the response holds no APM_TRACING
-    # path, only an unrelated product.
     let(:poll_without_enable) do
       DIHelpers::TestRemoteConfigGenerator.new(
         {"datadog/2/ASM_DATA/blocked_ips/config" => {"rules_data" => []}}
       ).mock_response
     end
 
-    # The agent's empty `{}` response, which carries no targets.
     let(:empty_poll) do
-      double(Datadog::Core::Remote::Transport::HTTP::Config::Response, ok?: true, empty?: true)
+      instance_double(Datadog::Core::Remote::Transport::HTTP::Config::Response, ok?: true, empty?: true)
     end
 
     before do
       allow(telemetry).to receive(:client_configuration_change!)
-      allow(Datadog::DI).to receive(:activate_tracking)
-      allow(Datadog::DI).to receive(:component).and_return(component)
-      allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
+      stub_di_rc_environment
     end
 
     context "when DI was started solely from RC enablement" do
-      it "stops the component and withdraws the DI products on the first sync" do
+      before do
         apply_rc_payload(rc_payload_enable)
         expect(component.started?).to be true
+        expect(component.implicitly_enabled?).to be true
+      end
 
+      it "stops the component and withdraws the DI products on the first sync" do
         expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
         expect(transport).to receive(:send_config).and_return(poll_without_enable)
 
@@ -693,7 +747,6 @@ RSpec.describe "DI implicit enablement integration" do
       end
 
       it "keeps the component started on an empty first response and stops it on the next response that carries targets" do
-        apply_rc_payload(rc_payload_enable)
         expect(transport).to receive(:send_config).twice.and_return(empty_poll, poll_without_enable)
 
         client.sync
@@ -709,24 +762,145 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     context "when DI was started by an explicit customer opt-in" do
-      let(:settings) do
-        Datadog::Core::Configuration::Settings.new.tap do |s|
-          s.remote.enabled = true
-          s.dynamic_instrumentation.enabled = true
-          s.dynamic_instrumentation.internal.development = true
-          s.dynamic_instrumentation.internal.propagate_all_exceptions = true
-        end
+      let(:settings) { explicit_opt_in_settings }
+
+      before do
+        component.start!
+        expect(component.started?).to be true
+        expect(component.implicitly_enabled?).to be false
       end
 
       it "leaves the component started on the first sync" do
-        component.start!
-        expect(component.implicitly_enabled?).to be false
-
         expect(transport).to receive(:send_config).and_return(poll_without_enable)
         client.sync
 
         expect(component.started?).to be true
       end
+    end
+  end
+
+  describe "RC delivers enablement changes across sequential merges over two carriers" do
+    def apm_content(config_id, raw_content)
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
+          content: raw_content,
+        }
+      )
+    end
+
+    def repository_with(*contents)
+      instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents)
+    end
+
+    let(:enable) { JSON.dump("lib_config" => {"dynamic_instrumentation_enabled" => true}) }
+    let(:no_di_field) { JSON.dump("lib_config" => {"tracing_sampling_rate" => 0.5}) }
+    let(:malformed) { "{not json" }
+
+    before do
+      allow(telemetry).to receive(:client_configuration_change!)
+      allow(telemetry).to receive(:report)
+      stub_di_rc_environment
+    end
+
+    it "keeps the DI state when the carrier deleted last was replaced by malformed content" do
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", enable), apm_content("b", enable)),
+      )
+      expect(component.started?).to be true
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", malformed), apm_content("b", enable)),
+      )
+      expect(component.started?).to be true
+
+      # Config b is deleted while config a is still an unparseable replacement
+      # of a carrier, so the signal state is unknown and DI keeps running.
+      expect(remote).not_to receive(:remove_products)
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", malformed)),
+      )
+
+      expect(component.started?).to be true
+    end
+
+    it "stops DI when the carrier validly dropped the field before its replacement failed to parse" do
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", enable), apm_content("b", enable)),
+      )
+      expect(component.started?).to be true
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", no_di_field), apm_content("b", malformed)),
+      )
+      expect(component.started?).to be true
+
+      # Config b is deleted and config a's last valid payload held no signal,
+      # so the withdrawal stops DI and withdraws the products.
+      expect(remote).to receive(:remove_products).with("LIVE_DEBUGGING", "LIVE_DEBUGGING_SYMBOL_DB")
+
+      Datadog::Tracing::Remote.merge_and_apply_configs(
+        repository_with(apm_content("a", malformed)),
+      )
+
+      expect(component.started?).to be false
+    end
+  end
+
+  describe "RC withdraws a LIVE_DEBUGGING probe while no client holds it (fresh client)" do
+    let(:probe_spec) do
+      {
+        id: "test-probe-fresh-client-removal",
+        name: "bar",
+        type: "LOG_PROBE",
+        where: {
+          typeName: "ImplicitEnablementSpecTargetClass",
+          methodName: "target_method",
+        },
+      }
+    end
+
+    let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+    let(:probe_configs) { {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec} }
+    let(:transaction) do
+      DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
+    end
+    let(:di_receiver) { Datadog::DI::Remote.receivers(telemetry).first }
+
+    let(:transport) { instance_double(Datadog::Core::Remote::Transport::Config::Transport) }
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
+    let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
+
+    let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
+
+    # The replacement client's first poll: the backend deleted the probe
+    # config while no client was polling; the enable config is still there.
+    let(:poll_without_probe) do
+      DIHelpers::TestRemoteConfigGenerator.new(
+        {"datadog/2/APM_TRACING/lib_config/config" => rc_payload_enable}
+      ).mock_response
+    end
+
+    before do
+      allow(telemetry).to receive(:client_configuration_change!)
+      stub_di_rc_environment
+    end
+
+    it "uninstalls the probe on the fresh client's first sync" do
+      apply_rc_payload(rc_payload_enable)
+      di_receiver.call(repository, transaction)
+      component.probe_notifier_worker.flush
+      expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+
+      expect(transport).to receive(:send_config).and_return(poll_without_probe)
+
+      client.sync
+      component.probe_notifier_worker.flush
+
+      expect(component.probe_manager.probe_repository.installed_probes).to be_empty
+      expect(Datadog::DI.instrumented_count).to eq 0
+      expect(component.started?).to be true
     end
   end
 end
