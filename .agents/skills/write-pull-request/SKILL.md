@@ -31,6 +31,9 @@ required. `### Details` is optional.
 - ALWAYS make the required fields stand alone: a reader who opens
   nothing else can decide whether to care
 - NEVER narrate the implementation
+- NEVER use the `<!-- pr-body: skip -->` marker. It is an escape hatch
+  for exceptions a human judge calls, not for agent drafts. Fit the
+  message into the caps
 - Links in required fields use markdown style: link text carries the
   meaning, the URL is optional context. Bare URLs go in Details
 
