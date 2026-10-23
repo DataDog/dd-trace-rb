@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6558",
+  "message": "Link messages produced from threads, fibers, and external enumerators started after a consume to the consumed message on Ruby 3.2+, instead of starting a new pathway."
+}
