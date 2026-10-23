@@ -18,13 +18,15 @@ env MITERUBY=false \
   DD_SERVICE=benoit-testing \
   bundle exec ddprofrb exec ruby "${ruby_args[@]}"
 
-printf '\nDatadog profiler with miteruby, telemetry enabled\n'
-env MITERUBY=true \
-  DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true \
-  DD_PROFILING_ENABLED=true \
-  DD_INSTRUMENTATION_TELEMETRY_ENABLED=true \
-  DD_SERVICE=benoit-testing \
-  bundle exec ddprofrb exec ruby "${ruby_args[@]}"
+## @ivoanjo: Telemetry also disturbs this benchmark, since the loop runs for very long. Since right now we're mostly
+## worried with profiler impact, we can investigate this later.
+# printf '\nDatadog profiler with miteruby, telemetry enabled\n'
+# env MITERUBY=true \
+#   DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true \
+#   DD_PROFILING_ENABLED=true \
+#   DD_INSTRUMENTATION_TELEMETRY_ENABLED=true \
+#   DD_SERVICE=benoit-testing \
+#   bundle exec ddprofrb exec ruby "${ruby_args[@]}"
 
 printf '\nDatadog profiler with miteruby, telemetry disabled\n'
 env MITERUBY=true \
