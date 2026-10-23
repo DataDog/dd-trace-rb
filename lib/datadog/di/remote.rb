@@ -99,10 +99,6 @@ module Datadog
             DI.activate_tracking
             was_started = component.started?
             if repository && !was_started
-              # The DI receiver ignores changes while !started?, so a probe
-              # the backend deleted during the stop is still in the preserved
-              # repository; remove it before the restart re-hooks the
-              # survivors.
               remove_withdrawn_probes(repository, component)
             end
             component.start!
@@ -153,10 +149,6 @@ module Datadog
 
             component = DI.component
             if changes.empty?
-              # Initial reconcile on a fresh client's first sync: a config
-              # the backend deleted while no client held it produces no
-              # delete change, so reconcile the tracked probes against the
-              # current LIVE_DEBUGGING contents.
               remove_withdrawn_probes(repository, component) if component
             elsif component&.started?
               changes.each do |change|
@@ -279,13 +271,11 @@ module Datadog
           end
         end
 
-        # Removes every probe the component tracks whose id no longer appears
-        # in any LIVE_DEBUGGING content the repository holds. Called on the
-        # stopped->started transition and on a fresh client's initial
-        # reconcile, the two paths where a backend deletion produces no delete
-        # change {.receivers} processes. A LIVE_DEBUGGING content that fails
-        # to parse can hold any tracked probe, so nothing is removed while one
-        # is present.
+        # Removes every probe the component tracks whose id is absent from all
+        # LIVE_DEBUGGING contents in the repository. Reconciles backend deletions that
+        # produced no delete change for {.receivers}. Skips removal while a
+        # LIVE_DEBUGGING content fails to parse, because that content can hold any
+        # tracked probe.
         def remove_withdrawn_probes(repository, component)
           # @type var present_probe_ids: Array[String]
           present_probe_ids = []
