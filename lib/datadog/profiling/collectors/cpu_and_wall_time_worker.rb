@@ -17,7 +17,6 @@ module Datadog
         # @rbs @wait_until_running_condition: ::Thread::ConditionVariable
         # @rbs @miteruby_recorder: Datadog::Profiling::StackRecorder?
         # @rbs @miteruby_consumer_thread: Thread?
-        # @rbs @miteruby_consumer_name: (:miniconsumer | :dedupconsumer)?
 
         private
 
@@ -99,7 +98,6 @@ module Datadog
           @wait_until_running_condition = ConditionVariable.new
           @miteruby_recorder = miteruby_enabled ? StackRecorder.for_testing : nil
           @miteruby_consumer_thread = nil
-          @miteruby_consumer_name = nil
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -111,7 +109,7 @@ module Datadog
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
             @idle_sampling_helper.start(self)
-            @miteruby_consumer_thread = create_miteruby_consumer(:miniconsumer)
+            @miteruby_consumer_thread = create_miteruby_consumer
 
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
@@ -170,9 +168,7 @@ module Datadog
           return recorder unless miteruby_recorder
 
           recorder.serialize
-          if @miteruby_consumer_name == :dedupconsumer
-            self.class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
-          end
+          self.class._native_miteruby_dedupconsumer_prepare_serialize(miteruby_recorder)
           miteruby_recorder
         end
 
@@ -217,25 +213,22 @@ module Datadog
 
         private
 
-        # @rbs consumer_name: :miniconsumer | :dedupconsumer
         # @rbs return: Thread?
-        def create_miteruby_consumer(consumer_name)
-          recorder = @miteruby_recorder
-          return unless recorder
+        def create_miteruby_consumer
+          return unless @miteruby_recorder
           return @miteruby_consumer_thread if @miteruby_consumer_thread&.alive?
 
-          @miteruby_consumer_name = consumer_name
-          thread_name = "#{self.class.name}::Miteruby#{consumer_name.to_s.capitalize}"
+          thread_name = "#{self.class.name}::MiterubyDedupconsumer"
           thread = Thread.new do
             Thread.current.name = thread_name
-            self.class.public_send("_native_miteruby_#{consumer_name}_consume_loop", recorder)
+            self.class._native_miteruby_dedupconsumer_consume_loop
           rescue Exception => e # rubocop:disable Lint/RescueException
             @failure_exception = e
             Datadog.logger.warn(
-              "Miteruby #{consumer_name} thread error. " \
+              "Miteruby dedupconsumer thread error. " \
               "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
             )
-            Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby #{consumer_name} thread error")
+            Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby dedupconsumer thread error")
           end
           thread.name = thread_name
           thread.thread_variable_set(:fork_safe, true)
