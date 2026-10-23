@@ -36,9 +36,7 @@ module Datadog
 
         def self._native_prepare_serialize: (CpuAndWallTimeWorker self_instance) -> Datadog::Profiling::StackRecorder
 
-        def self._native_miteruby_miniconsumer_consume_loop: (Datadog::Profiling::StackRecorder recorder) -> void
-
-        def self._native_miteruby_dedupconsumer_consume_loop: (Datadog::Profiling::StackRecorder recorder) -> void
+        def self._native_miteruby_dedupconsumer_consume_loop: () -> void
 
         def self._native_miteruby_dedupconsumer_prepare_serialize: (Datadog::Profiling::StackRecorder recorder) -> void
       end
