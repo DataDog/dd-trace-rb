@@ -102,6 +102,9 @@ VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod);
 // if the module does not have a permanent name (e.g. `#<Module:0x0123>::Foo`).
 VALUE ddtrace_permanent_mod_name(VALUE mod);
 
+// Suffix ddtrace_location_label() adds to blocks, e.g. "Foo#bar (block)"
+#define DDTRACE_BLOCK_SUFFIX " (block)"
+
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size);
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);
 void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme);
