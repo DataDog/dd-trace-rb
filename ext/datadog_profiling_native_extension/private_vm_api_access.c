@@ -1085,7 +1085,60 @@ VALUE ddtrace_permanent_mod_name(VALUE mod) {
 #define BUFFER_OUT_OF_SPACE ((ssize_t) -2)
 #define NO_METHOD_NAME ((ssize_t) -3)
 
-static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, size_t buf_size) {
+// Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
+// names such as:
+// * "_app_views_layouts_explore_html_haml__2304485752546535910_211320" (__number_number suffix -- two underscores)
+// * "_app_views_articles_index_html_erb___2022809201779434309_12900" (___number_number suffix -- three underscores)
+// This makes these stacks not aggregate well, as well as being not-very-useful data.
+// (Reference:
+//  https://github.com/rails/rails/blob/4fa56814f18fd3da49c83931fa773caa727d8096/actionview/lib/action_view/template.rb#L389
+//  The two vs three underscores happen when @identifier.hash is negative in that method: the "-" gets replaced with
+//  the extra "_".)
+//
+// We trim these suffixes off the method name before composing the full frame name, so that we keep less data + the
+// names correctly aggregate together, and so that a block inside such a template gets trimmed too
+// ("_app_views_articles_index_html_erb (block)").
+size_t ddtrace_trim_template_random_ids(const char *name, size_t name_len, const char *filename, size_t filename_len) {
+  // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
+  if (filename_len < 3 || memcmp(filename + filename_len - 3, ".rb", 3) == 0) return name_len;
+
+  if (name_len > 1024) return name_len;
+  if (name_len == 0) return name_len;
+
+  int pos = ((int) name_len) - 1;
+
+  // Let's match on something__number_number:
+  // Find start of id suffix from the end...
+  if (name[pos] < '0' || name[pos] > '9') return name_len;
+
+  // ...now match a bunch of numbers and interspersed underscores
+  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
+    if (name[pos] == '_') underscores++;
+    else if (name[pos] < '0' || name[pos] > '9') return name_len;
+  }
+
+  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
+  if (pos <= 0 || name[pos] != '_') return name_len;
+
+  // Does it have the optional third underscore? If so, remove it as well
+  if (pos > 1 && name[pos-1] == '_') pos--;
+
+  // If we got here, we matched on our pattern, so the name ends before the suffix
+  return pos;
+}
+
+// The ids always end with a digit, so we only look up the iseq's path for names that can match
+static size_t trimmed_template_method_name_len(const rb_iseq_t *iseq, VALUE method_name) {
+  const char *name = RSTRING_PTR(method_name);
+  size_t name_len = RSTRING_LEN(method_name);
+
+  if (name_len == 0 || name[name_len - 1] < '0' || name[name_len - 1] > '9') return name_len;
+
+  VALUE path = rb_iseq_path(iseq);
+  return ddtrace_trim_template_random_ids(name, name_len, RSTRING_PTR(path), RSTRING_LEN(path));
+}
+
+static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, size_t method_name_len, char *buf, size_t buf_size) {
   if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
     return ONLY_METHOD_NAME;
   }
@@ -1105,7 +1158,6 @@ static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, siz
   }
 
   size_t mod_name_len = RSTRING_LEN(mod_name);
-  size_t method_name_len = RSTRING_LEN(method_name);
   size_t total = mod_name_len + 1 + method_name_len;
   if (total <= buf_size) {
     memcpy(buf, RSTRING_PTR(mod_name), mod_name_len);
@@ -1125,8 +1177,11 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
       // Just the method name, not `Object#<top (required)>`
       return ONLY_METHOD_NAME;
 
-    case ISEQ_TYPE_METHOD:
-      return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label, buf, buf_size);
+    case ISEQ_TYPE_METHOD: {
+      VALUE method_name = ISEQ_BODY(iseq)->location.label;
+      size_t method_name_len = trimmed_template_method_name_len(iseq, method_name);
+      return rb_gen_method_name(owner, method_name, method_name_len, buf, buf_size);
+    }
 
 #ifdef ISEQ_TYPE_PLAIN /* 2.5 does not have it */
     case ISEQ_TYPE_PLAIN:
@@ -1146,7 +1201,7 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
         return written + suffix_len;
       } else if (written == ONLY_METHOD_NAME) {
         VALUE method_name = rb_iseq_base_label(method_iseq);
-        size_t method_name_len = RSTRING_LEN(method_name);
+        size_t method_name_len = trimmed_template_method_name_len(method_iseq, method_name);
         if ((method_name_len + suffix_len) <= buf_size) {
           memcpy(buf, RSTRING_PTR(method_name), method_name_len);
           memcpy(buf + method_name_len, suffix, suffix_len);
@@ -1177,7 +1232,7 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
     if (method_name == Qfalse) {
       return NO_METHOD_NAME;
     }
-    return rb_gen_method_name(cme->owner, method_name, buf, buf_size);
+    return rb_gen_method_name(cme->owner, method_name, RSTRING_LEN(method_name), buf, buf_size);
   } else {
     VALUE owner = cme ? cme->owner : Qnil;
     return calculate_iseq_label(owner, iseq, buf, buf_size);

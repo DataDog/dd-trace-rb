@@ -41,7 +41,6 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -359,6 +358,8 @@ void sample_thread(
     // because we don't always use qualified method names yet, so we don't always compute it,
     // and checks below need to compare to something stable until we always qualified method names.
     ddog_CharSlice name_slice = (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+    name_slice.len =
+      ddtrace_trim_template_random_ids(name_slice.ptr, name_slice.len, filename_slice.ptr, filename_slice.len);
 
     ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
     if (show_classes) {
@@ -437,8 +438,6 @@ void sample_thread(
     } else {
       frame_name = name_slice;
     }
-
-    maybe_trim_template_random_ids(&frame_name, &filename_slice);
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -535,46 +534,6 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 
   st_insert(native_filenames_cache, (st_data_t) function, (st_data_t) native_filename);
   return native_filename;
-}
-
-// Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
-// names such as:
-// * "_app_views_layouts_explore_html_haml__2304485752546535910_211320" (__number_number suffix -- two underscores)
-// * "_app_views_articles_index_html_erb___2022809201779434309_12900" (___number_number suffix -- three underscores)
-// This makes these stacks not aggregate well, as well as being not-very-useful data.
-// (Reference:
-//  https://github.com/rails/rails/blob/4fa56814f18fd3da49c83931fa773caa727d8096/actionview/lib/action_view/template.rb#L389
-//  The two vs three underscores happen when @identifier.hash is negative in that method: the "-" gets replaced with
-//  the extra "_".)
-//
-// This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice) {
-  // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
-  if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
-
-  if (name_slice->len > 1024) return;
-  if (name_slice->len == 0) return;
-
-  int pos = ((int) name_slice->len) - 1;
-
-  // Let's match on something__number_number:
-  // Find start of id suffix from the end...
-  if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
-
-  // ...now match a bunch of numbers and interspersed underscores
-  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
-    if (name_slice->ptr[pos] == '_') underscores++;
-    else if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
-  }
-
-  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
-  if (pos <= 0 || name_slice->ptr[pos] != '_') return;
-
-  // Does it have the optional third underscore? If so, remove it as well
-  if (pos > 1 && name_slice->ptr[pos-1] == '_') pos--;
-
-  // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
-  name_slice->len = pos;
 }
 
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {

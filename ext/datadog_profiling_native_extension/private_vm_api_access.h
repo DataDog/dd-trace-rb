@@ -102,6 +102,10 @@ VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod);
 // if the module does not have a permanent name (e.g. `#<Module:0x0123>::Foo`).
 VALUE ddtrace_permanent_mod_name(VALUE mod);
 
+// Returns the length to use for `name` with Rails's dynamically-generated template method ids trimmed off
+// (see the implementation for details), or `name_len` when there's nothing to trim.
+size_t ddtrace_trim_template_random_ids(const char *name, size_t name_len, const char *filename, size_t filename_len);
+
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size);
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);
 void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme);
