@@ -18,6 +18,8 @@ module Datadog
 
           @datadog_pathway_context_before_job: Datadog::DataStreams::PathwayContext?
 
+          @datadog_pathway_context_restore_pending: bool?
+
           def deserialize: (::Hash[::String, any] job_data) -> void
 
           def perform_now: () -> untyped

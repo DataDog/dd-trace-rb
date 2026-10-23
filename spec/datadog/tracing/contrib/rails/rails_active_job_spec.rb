@@ -272,6 +272,24 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
             expect(Datadog::DataStreams).to have_received(:pathway_context=).with(context_before_job).once
           end
 
+          it "clears the thread's pathway context before the consume checkpoint" do
+            expect(Datadog::DataStreams).to receive(:pathway_context=).with(nil).ordered
+            expect(Datadog::DataStreams).to receive(:set_consume_checkpoint).ordered
+            expect(Datadog::DataStreams).to receive(:pathway_context=).with(context_before_job).ordered
+
+            job_class.execute(job.serialize)
+          end
+
+          context "when the worker thread had no pathway context" do
+            let(:context_before_job) { nil }
+
+            it "leaves the thread without one after the job runs" do
+              job_class.execute(job.serialize)
+
+              expect(Datadog::DataStreams).to have_received(:pathway_context=).with(nil).twice
+            end
+          end
+
           it "does not touch the pathway context for a job performed without deserializing" do
             job.perform_now
 
