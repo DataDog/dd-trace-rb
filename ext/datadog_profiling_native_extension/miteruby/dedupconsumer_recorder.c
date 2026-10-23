@@ -45,7 +45,9 @@ void miteruby_dedupconsumer_recorder_init(void) {
 // TODO: Cache thread labels instead of fetching them for every sample.
 void miteruby_dedupconsumer_record_stack_sample(
   VALUE recorder_instance,
-  const miteruby_event_stack_sample_t *event,
+  const miteruby_event_deduped_sample_t *event,
+  const miteruby_event_frame_refs_t *refs,
+  const miteruby_event_frame_position_t *positions,
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
@@ -96,17 +98,16 @@ void miteruby_dedupconsumer_record_stack_sample(
       .function = {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")},
     };
   } else {
-    const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[count];
     ddog_CharSlice filename = DDOG_CHARSLICE_C("");
     int line = 0;
 
     for (uint16_t i = 0; i < count; i++) {
-      const miteruby_event_frame_refs_t *frame = &event->refs[i];
-      if (frame->iseq != NULL) {
-        filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame->iseq));
-        line = positions[i].value == UINT16_MAX ? 0 : rb_iseq_line_no(frame->iseq, positions[i].value);
+      const miteruby_event_frame_refs_t frame = refs[i];
+      if (frame.iseq != NULL) {
+        filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
+        line = positions[i].value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, positions[i].value);
       }
-      VALUE name = ddtrace_location_base_label(frame->cme, frame->iseq);
+      VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
       // Walk root-first to inherit Ruby caller locations for C frames; libdatadog expects the opposite order.
       locations[frame_offset + count - 1 - i] = (ddog_prof_Location) {
         .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
