@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6548",
+  "message": "Fix duplicate JSON serialization of Rails and Sinatra response objects when application security is enabled."
+}
