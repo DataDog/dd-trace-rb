@@ -7,9 +7,11 @@
 #include "../stack_recorder.h"
 #include "../time_helpers.h"
 
+#include <pthread.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+#include <ruby/thread.h>
 #include <threads.h>
 
 static size_t objects_to_mark_allocated_bytes = 0;
@@ -55,11 +57,13 @@ static dedupconsumer_state state;
 
 typedef struct {
   miteruby_buffer_t *buffer;
-  VALUE recorder_instance;
+  atomic_bool interrupted;
 } dedupconsumer_consume_loop_args;
 
 static VALUE consume_loop_body(VALUE args);
 static VALUE consume_loop_ensure(VALUE args);
+static void *consume_without_gvl(void *args);
+static void consume_unblock(void *args);
 static VALUE prepare_serialize_locked(VALUE recorder_instance);
 static VALUE prepare_serialize_unlock_ensure(VALUE unused);
 static void buffer_event(const miteruby_event_header_t *header);
@@ -150,8 +154,8 @@ void miteruby_dedupconsumer_consume_loop(miteruby_buffer_t *buffer, VALUE record
   enforce_recorder_instance(recorder_instance);
   dedupconsumer_consume_loop_args args = {
     .buffer = buffer,
-    .recorder_instance = recorder_instance,
   };
+  atomic_init(&args.interrupted, false);
   rb_ensure(consume_loop_body, (VALUE) &args, consume_loop_ensure, Qnil);
 }
 
@@ -159,12 +163,35 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   dedupconsumer_consume_loop_args *args = (dedupconsumer_consume_loop_args *) args_ptr;
 
   for (;;) {
-    rb_thread_wait_for((struct timeval) {.tv_sec = 0, .tv_usec = 100000});
-    // Buffer marking during GC may have unblocked SIGPROF since the previous iteration.
-    block_sigprof_signal_handler_from_running_in_current_thread();
-    miteruby_dedupconsumer_consume(args->buffer, args->recorder_instance);
+    atomic_store(&args->interrupted, false);
+    bool interrupted = (bool) rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
+    if (!interrupted) break;
   }
   return Qnil;
+}
+
+static void consume_unblock(void *args_ptr) {
+  dedupconsumer_consume_loop_args *args = args_ptr;
+  atomic_store(&args->interrupted, true);
+  miteruby_buffer_wake_consumer(args->buffer);
+}
+
+static void *consume_without_gvl(void *args_ptr) {
+  dedupconsumer_consume_loop_args *args = args_ptr;
+  // TODO: We toggle this here directly as existing helper assumes GVL
+  if (pthread_sigmask(SIG_BLOCK, &sigprof_signal_mask, NULL) != 0) rb_bug("Failed to block SIGPROF in miteruby consumer");
+
+  for (;;) {
+    miteruby_buffer_record_t record = miteruby_buffer_read(args->buffer, &args->interrupted);
+    if (record.interrupted) return (void *) true;
+    if (record.end_of_stream) return (void *) false;
+    if (record.data == NULL) continue;
+
+    // The borrowed event stays in shared-buffer marking until the next read, after this transfer completes.
+    mutex_lock(&consumed_events_mutex);
+    buffer_event((const miteruby_event_header_t *)record.data);
+    mutex_unlock(&consumed_events_mutex);
+  }
 }
 
 static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
@@ -177,7 +204,7 @@ void miteruby_dedupconsumer_consume(miteruby_buffer_t *buffer, VALUE recorder_in
   mutex_lock(&consumed_events_mutex);
 
   for (;;) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(buffer, false);
+    miteruby_buffer_record_t record = miteruby_buffer_read(buffer, NULL);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
       break;
