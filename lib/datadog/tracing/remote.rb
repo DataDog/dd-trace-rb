@@ -223,8 +223,8 @@ module Datadog
         #
         # @param lib_config [Hash[String, untyped]] the lib_config to apply
         # @param repository [Core::Remote::Configuration::Repository, nil] forwarded to DI enablement
-        # @param unparseable_contents [Array[Core::Remote::Configuration::Content]] the APM_TRACING contents that failed to parse
-        # @param enable_signal_paths [Array[Core::Remote::Configuration::Path]] the paths of the applicable configs carrying the field
+        # @param unparseable_contents [Array<Core::Remote::Configuration::Content>] the APM_TRACING contents that failed to parse
+        # @param enable_signal_paths [Array<Core::Remote::Configuration::Path>] the paths of the applicable configs carrying the field
         # @return [nil]
         def apply_lib_config(lib_config, repository, unparseable_contents:, enable_signal_paths:)
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
@@ -239,16 +239,17 @@ module Datadog
           end
 
           di_enabled = lib_config["dynamic_instrumentation_enabled"]
+          # allow_initialization: false because this runs on the remote-config worker
+          # thread, and the default would build the component tree from that thread.
           components = Datadog.send(:components, allow_initialization: false)
           di_component = components&.dynamic_instrumentation
           if di_enabled.nil? && di_component&.rc_enablement_signal_withdrawn?(unparseable_contents)
             di_enabled = false
           end
 
-          # Recorded on every merge, including a merge that preserves the DI
-          # state after a parse failure, so the set stays correct while the
-          # state is preserved: the parsed carrier paths plus the previously
-          # recorded paths whose replacements remain unparseable.
+          # Records the parsed carrier paths and the previously recorded paths whose
+          # replacements remain unparseable, on every merge including merges that keep
+          # the DI state.
           if di_component
             unparseable_recorded_paths = di_component.rc_enablement_signal_paths.select do |path|
               unparseable_contents.any? { |content| content.path == path }
