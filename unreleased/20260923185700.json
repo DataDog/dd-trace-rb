@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6224",
+  "message": "Prune snapshots exceeding the 1 MB per-event limit instead of dropping them."
+}
