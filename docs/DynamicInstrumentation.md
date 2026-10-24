@@ -270,7 +270,8 @@ generated.
 ### Snapshot Size
 
 - Maximum snapshot size is **1 MB**
-- A snapshot exceeding this size is pruned.
+- A snapshot exceeding this size is pruned; a snapshot that still
+  exceeds it after pruning is dropped.
 - Consider reducing capture depth or collection sizes if you encounter
   this limit
 
