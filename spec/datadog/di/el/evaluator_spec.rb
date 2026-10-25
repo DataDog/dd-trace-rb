@@ -146,25 +146,40 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
   end
 
+  let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+  let(:settings) { instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: nil).as_null_object }
+  let(:serializer) { instance_double(Datadog::DI::Serializer).as_null_object }
+
+  def compile_expr(dsl_expr, ast)
+    src, regexps = compiler.compile(ast)
+    Datadog::DI::EL::Expression.new(dsl_expr, src, regexps: regexps)
+  end
+
+  # `collection.filter(@it >= 500)`, the collection-filter shape used
+  # by the system test, with a predicate that selects only part of the
+  # collection so the selected content is observable in assertions.
+  let(:filter_expr) do
+    compile_expr("collection.filter(@it >= 500)",
+      "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
+  end
+
+  # `collection.filter(@value >= 0)`, the Hash filter shape, where the
+  # predicate must use @value because @it is a key-value pair array on
+  # the Hash branch.
+  let(:filter_hash_expr) do
+    compile_expr("collection.filter(@value >= 0)",
+      "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
+  end
+
+  def context_with(collection)
+    Datadog::DI::Context.new(
+      probe: nil, settings: settings, serializer: serializer,
+      locals: {collection: collection}
+    )
+  end
+
   describe "#filter, #all, #any evaluation deadline" do
-    let(:compiler) { Datadog::DI::EL::Compiler.new }
-
-    let(:settings) { instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: nil).as_null_object }
-    let(:serializer) { instance_double(Datadog::DI::Serializer).as_null_object }
-
-    def compile_expr(dsl_expr, ast)
-      src, regexps = compiler.compile(ast)
-      Datadog::DI::EL::Expression.new(dsl_expr, src, regexps: regexps)
-    end
-
-    # `collection.filter(@it >= 500)`, the collection-filter shape used
-    # by the system test, with a predicate that selects only part of the
-    # collection so the selected content is observable in assertions.
-    let(:filter_expr) do
-      compile_expr("collection.filter(@it >= 500)",
-        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
-    end
-
     # `collection.all(@it >= 0)` and `collection.any(@it >= 0)` exercise #all/#any.
     let(:all_expr) do
       compile_expr("collection.all(@it >= 0)",
@@ -174,21 +189,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     let(:any_expr) do
       compile_expr("collection.any(@it >= 0)",
         "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
-    end
-
-    # `collection.filter(@value >= 0)`, the Hash filter shape, where the
-    # predicate must use @value because @it is a key-value pair array on
-    # the Hash branch.
-    let(:filter_hash_expr) do
-      compile_expr("collection.filter(@value >= 0)",
-        "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
-    end
-
-    def context_with(collection)
-      Datadog::DI::Context.new(
-        probe: nil, settings: settings, serializer: serializer,
-        locals: {collection: collection}
-      )
     end
 
     context "with the deadline already in the past" do
@@ -352,6 +352,40 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
         result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
         expect(result).to eq(collection)
+      end
+    end
+  end
+
+  describe "#filter does not dispatch customer code" do
+    context "over an Array subclass that overrides each" do
+      let(:each_raising_array_class) do
+        Class.new(Array) do
+          def each
+            raise "customer each dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects items without invoking the override" do
+        collection = each_raising_array_class.new([400, 600, 700])
+        expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq([600, 700])
+      end
+    end
+
+    context "over a Hash subclass that overrides each" do
+      let(:each_raising_hash_class) do
+        Class.new(Hash) do
+          def each
+            raise "customer each dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects entries without invoking the override" do
+        collection = each_raising_hash_class.new
+        collection["a"] = 1
+        collection["b"] = -1
+        expect(filter_hash_expr.evaluate(context_with(collection), deadline: nil)).to eq("a" => 1)
       end
     end
   end

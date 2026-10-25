@@ -8,6 +8,10 @@ module Datadog
 
         EVALUATION_TIMEOUT_MESSAGE: String
 
+        ARRAY_EACH: ::UnboundMethod
+
+        HASH_EACH: ::UnboundMethod
+
         @regexps: ::Array[::Regexp]
 
         def initialize: (?::Array[::Regexp] regexps) -> void

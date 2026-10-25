@@ -27,6 +27,13 @@ module Datadog
         # cooperative evaluation-deadline checks.
         EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
 
+        # Built-in iteration, resolved once at load and bound per
+        # invocation: #filter's explicit iteration then dispatches no
+        # customer #each override during probe evaluation.
+        ARRAY_EACH = Array.instance_method(:each)
+        HASH_EACH = Hash.instance_method(:each)
+        private_constant :ARRAY_EACH, :HASH_EACH
+
         # @param regexps [Array<Regexp>] Regexps precompiled from literal
         #   `matches` patterns, looked up by index by #matches_compiled.
         #    Empty when the expression has no `matches` pattern with
@@ -311,7 +318,7 @@ module Datadog
           when Array
             i = 0
             result = []
-            collection.each do |item|
+            ARRAY_EACH.bind(collection).call do |item|
               raise_if_evaluation_deadline_exceeded(i, deadline)
               i += 1
               result << item if block.call(item)
@@ -323,7 +330,7 @@ module Datadog
             # A compare_by_identity source hash can hold distinct-but-eql?
             # keys; the result keeps the same key semantics.
             result.compare_by_identity if collection.compare_by_identity?
-            collection.each do |key, value|
+            HASH_EACH.bind(collection).call do |key, value|
               raise_if_evaluation_deadline_exceeded(i, deadline)
               i += 1
               result[key] = value if block.call([key, value], key, value)
