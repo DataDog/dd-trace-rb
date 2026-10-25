@@ -389,6 +389,25 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
     end
 
+    context "over a Hash subclass that overrides compare_by_identity?" do
+      let(:identity_raising_hash_class) do
+        Class.new(Hash) do
+          def compare_by_identity?
+            raise "customer compare_by_identity? dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "preserves the identity mode without invoking the override" do
+        collection = identity_raising_hash_class.new.compare_by_identity
+        collection["key"] = 1
+        collection[+"key"] = 2
+        result = filter_hash_expr.evaluate(context_with(collection), deadline: nil)
+        expect(result.length).to eq(2)
+        expect(result.compare_by_identity?).to be(true)
+      end
+    end
+
     context "over a Hash whose keys raise from hash and eql?" do
       # The two keys hash to distinct values unarmed, so the selected
       # entries never collide in the result and eql? stays uncalled;

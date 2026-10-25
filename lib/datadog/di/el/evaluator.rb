@@ -319,18 +319,20 @@ module Datadog
             end.to_h
           end
         else
-          # Built-in Hash#each, resolved once at load and bound per
-          # invocation so that #filter's iteration dispatches no customer
-          # each override during probe evaluation.
+          # Built-in Hash#each and the core identity-mode check, resolved
+          # once at load and bound per invocation so that #filter dispatches
+          # no customer each or compare_by_identity? override during probe
+          # evaluation.
           HASH_EACH = Hash.instance_method(:each)
-          private_constant :HASH_EACH
+          IDENTITY_MODE_CHECK = Hash.instance_method(:compare_by_identity?)
+          private_constant :HASH_EACH, :IDENTITY_MODE_CHECK
 
           def filter_hash(collection, deadline, &block)
             i = 0
             result = {}
             # A compare_by_identity source hash can hold distinct-but-eql?
             # keys; the result keeps the same key semantics.
-            result.compare_by_identity if collection.compare_by_identity?
+            result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
             HASH_EACH.bind(collection).call do |key, value|
               raise_if_evaluation_deadline_exceeded(i, deadline)
               i += 1

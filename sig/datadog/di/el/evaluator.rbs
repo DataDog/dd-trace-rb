@@ -12,6 +12,8 @@ module Datadog
 
         HASH_EACH: UnboundMethod
 
+        IDENTITY_MODE_CHECK: UnboundMethod
+
         @regexps: ::Array[::Regexp]
 
         def initialize: (?::Array[::Regexp] regexps) -> void
