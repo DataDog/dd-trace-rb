@@ -8,9 +8,9 @@ module Datadog
 
         EVALUATION_TIMEOUT_MESSAGE: String
 
-        ARRAY_EACH: ::UnboundMethod
+        ARRAY_EACH: UnboundMethod
 
-        HASH_EACH: ::UnboundMethod
+        HASH_EACH: UnboundMethod
 
         @regexps: ::Array[::Regexp]
 
@@ -59,6 +59,8 @@ module Datadog
         def any: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> bool
 
         def filter: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> (Array[any] | Hash[any, any])
+
+        private def filter_hash: (Hash[any, any] collection, Float? deadline) { (?) -> any } -> Hash[any, any]
 
         private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float? deadline) -> void
 

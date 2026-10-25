@@ -388,6 +388,46 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         expect(filter_hash_expr.evaluate(context_with(collection), deadline: nil)).to eq("a" => 1)
       end
     end
+
+    context "over a Hash whose keys raise from hash and eql?" do
+      # The two keys hash to distinct values unarmed, so the selected
+      # entries never collide in the result and eql? stays uncalled;
+      # Ruby 3.1+'s Hash#select compares colliding keys through eql?.
+      let(:raising_key_class) do
+        Class.new do
+          class << self
+            attr_accessor :methods_raise
+          end
+
+          def initialize(n)
+            @n = n
+          end
+
+          def hash
+            raise "customer key hash dispatched during filter evaluation" if self.class.methods_raise
+            @n
+          end
+
+          def eql?(other)
+            raise "customer key eql? dispatched during filter evaluation" if self.class.methods_raise
+            equal?(other)
+          end
+        end
+      end
+
+      # Earlier Rubies' Hash#select rehashes the keys, so the copy without
+      # key-method invocations exists only from Ruby 3.1 on.
+      it "selects entries without invoking the key methods" do
+        skip "Hash#select copies entries without rehashing only from Ruby 3.1" if Datadog::RubyVersion.is?("< 3.1")
+        key_a = raising_key_class.new(1)
+        key_b = raising_key_class.new(2)
+        collection = {key_a => 1, key_b => -1}
+        raising_key_class.methods_raise = true
+        result = filter_hash_expr.evaluate(context_with(collection), deadline: nil)
+        raising_key_class.methods_raise = false
+        expect(result).to eq(key_a => 1)
+      end
+    end
   end
 
   describe Datadog::DI::EL::Compiler do

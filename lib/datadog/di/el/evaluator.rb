@@ -27,12 +27,11 @@ module Datadog
         # cooperative evaluation-deadline checks.
         EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
 
-        # Built-in iteration, resolved once at load and bound per
-        # invocation: #filter's explicit iteration then dispatches no
-        # customer #each override during probe evaluation.
+        # Built-in Array#each, resolved once at load and bound per
+        # invocation: #filter's iteration then dispatches no customer
+        # each override during probe evaluation.
         ARRAY_EACH = Array.instance_method(:each)
-        HASH_EACH = Hash.instance_method(:each)
-        private_constant :ARRAY_EACH, :HASH_EACH
+        private_constant :ARRAY_EACH
 
         # @param regexps [Array<Regexp>] Regexps precompiled from literal
         #   `matches` patterns, looked up by index by #matches_compiled.
@@ -301,6 +300,47 @@ module Datadog
           end
         end
 
+        # Returns the key-value pairs of the Hash +collection+ for which
+        # +block+ returns a truthy value.
+        #
+        # Ruby 3.1 changed Hash#select to reuse the stored key hashes
+        # instead of invoking the keys' hash methods and to keep a
+        # compare_by_identity hash's distinct-but-eql? keys and identity
+        # flag. Earlier Rubies invoke the keys' hash methods and collapse
+        # identity hashes, so they keep the manual iteration, whose
+        # built-in Hash#each is bound per invocation as ARRAY_EACH is.
+        if Datadog::RubyVersion.is?(">= 3.1")
+          def filter_hash(collection, deadline, &block)
+            i = 0
+            collection.select do |key, value|
+              raise_if_evaluation_deadline_exceeded(i, deadline)
+              i += 1
+              block.call([key, value], key, value)
+            end.to_h
+          end
+        else
+          # Built-in Hash#each, resolved once at load and bound per
+          # invocation so that #filter's iteration dispatches no customer
+          # each override during probe evaluation.
+          HASH_EACH = Hash.instance_method(:each)
+          private_constant :HASH_EACH
+
+          def filter_hash(collection, deadline, &block)
+            i = 0
+            result = {}
+            # A compare_by_identity source hash can hold distinct-but-eql?
+            # keys; the result keeps the same key semantics.
+            result.compare_by_identity if collection.compare_by_identity?
+            HASH_EACH.bind(collection).call do |key, value|
+              raise_if_evaluation_deadline_exceeded(i, deadline)
+              i += 1
+              result[key] = value if block.call([key, value], key, value)
+            end
+            result
+          end
+        end
+        private :filter_hash
+
         # Returns the elements of +collection+ for which +block+ returns a
         # truthy value: the selected items of an Array collection, and a
         # Hash of the selected key-value pairs of a Hash collection.
@@ -325,17 +365,7 @@ module Datadog
             end
             result
           when Hash
-            i = 0
-            result = {}
-            # A compare_by_identity source hash can hold distinct-but-eql?
-            # keys; the result keeps the same key semantics.
-            result.compare_by_identity if collection.compare_by_identity?
-            HASH_EACH.bind(collection).call do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              result[key] = value if block.call([key, value], key, value)
-            end
-            result
+            filter_hash(collection, deadline, &block)
           else
             raise DI::Error::ExpressionEvaluationError, "Bad collection type for filter: #{collection.class}"
           end
