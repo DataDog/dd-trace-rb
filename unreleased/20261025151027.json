@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6223",
+  "message": "Skip evaluating a probe's condition again for 5 minutes after it times out, so a timing-out condition does not consume its evaluation budget on every hit."
+}

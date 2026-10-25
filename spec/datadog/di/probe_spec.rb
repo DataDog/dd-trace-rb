@@ -477,4 +477,42 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
   end
+
+  describe "condition error throttle" do
+    let(:probe) do
+      described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+        condition: condition)
+    end
+
+    let(:condition) do
+      Datadog::DI::EL::Expression.new("true", "true")
+    end
+
+    it "is not throttled before a timeout" do
+      expect(probe.condition_error_throttled_until).to be nil
+      expect(probe.condition_error_throttled?).to be false
+    end
+
+    it "opens the skip window for the configured duration on trip" do
+      allow(Process).to receive(:clock_gettime).and_return(100.0)
+
+      probe.trip_condition_error_throttle!
+
+      expect(probe.condition_error_throttled_until).to eq(
+        Datadog::DI::Probe::CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS + 100.0,
+      )
+      expect(probe.condition_error_throttled?).to be true
+    end
+
+    it "closes the skip window once the deadline passes" do
+      allow(Process).to receive(:clock_gettime).and_return(100.0)
+      probe.trip_condition_error_throttle!
+
+      allow(Process).to receive(:clock_gettime).and_return(
+        Datadog::DI::Probe::CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS + 100.0,
+      )
+
+      expect(probe.condition_error_throttled?).to be false
+    end
+  end
 end

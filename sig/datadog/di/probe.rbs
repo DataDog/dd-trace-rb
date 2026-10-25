@@ -4,6 +4,8 @@ module Datadog
       KNOWN_TYPES: Array[Symbol]
       EVALUATE_AT_VALUES: Array[Symbol]
 
+      CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS: Float
+
       @id: String
 
       @type: Symbol
@@ -22,6 +24,8 @@ module Datadog
       @capture_snapshot: bool
 
       @rate_limiter: Datadog::Core::RateLimiter
+
+      @condition_error_throttled_until: Float?
 
       @executed_on_line: bool?
 
@@ -72,6 +76,12 @@ module Datadog
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
       attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
+
+      attr_reader condition_error_throttled_until: Float?
+
+      def trip_condition_error_throttle!: -> void
+
+      def condition_error_throttled?: () -> bool
 
       def capture_snapshot?: () -> bool
       def capture_expressions?: () -> bool

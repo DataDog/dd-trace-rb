@@ -2209,6 +2209,35 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
+      context "method probe skip after timeout" do
+        let(:responder) do
+          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+        end
+
+        it "skips condition evaluation on the hit after the timeout" do
+          allow(logger).to receive(:debug)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_lazy_log(logger, :trace,
+            /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).once do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+          expect(probe.condition).to receive(:satisfied?).once.and_call_original
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            # The first hit times out evaluating the condition; the second
+            # skips the evaluation while the throttle window is open.
+            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
       context "method probe snapshot through the probe manager" do
         let(:probe_notification_builder) do
           Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
@@ -2269,7 +2298,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "line probe callback" do
+      shared_context "timing-out line probe" do
         include_context "with code tracking"
 
         before do
@@ -2280,6 +2309,10 @@ RSpec.describe Datadog::DI::Instrumenter do
           instrumenter.unhook(probe)
         end
 
+        # `arg.filter(@it >= 0).length > 0` over the argument of
+        # HookLineLoadTestClass#test_method_with_arg, whose line 34 the
+        # probe hooks. With a zero evaluation budget the cooperative
+        # deadline inside #filter fires immediately.
         let(:probe) do
           src, regexps = Datadog::DI::EL::Compiler.new.compile(
             "gt" => [
@@ -2300,6 +2333,10 @@ RSpec.describe Datadog::DI::Instrumenter do
             condition: condition,
           )
         end
+      end
+
+      context "line probe callback" do
+        include_context "timing-out line probe"
 
         let(:responder) do
           instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
@@ -2317,6 +2354,34 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           instrumenter.hook_line(probe, responder)
 
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
+        end
+      end
+
+      context "line probe skip after timeout" do
+        include_context "timing-out line probe"
+
+        let(:responder) do
+          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+        end
+
+        it "skips condition evaluation on the hit after the timeout" do
+          allow(logger).to receive(:debug)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_lazy_log(logger, :trace,
+            /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).once do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+          expect(probe.condition).to receive(:satisfied?).once.and_call_original
+
+          instrumenter.hook_line(probe, responder)
+
+          # The first hit times out evaluating the condition; the second
+          # skips the evaluation while the throttle window is open.
+          expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
           expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
         end
       end
