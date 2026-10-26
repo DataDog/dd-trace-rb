@@ -627,10 +627,10 @@ module Datadog
       end
 
       # Consults the process-wide hard rate limiter bounding non-capturing
-      # hits. Capturing hits never consult it: their process-wide bound is the
-      # correlation sampler's GLOBAL budget, which traced and untraced traffic
-      # share, and a hard cap at the same rate would drop the borrowed
-      # snapshots that keep a related chain intact.
+      # hits. Capturing hits draw their process-wide bound from the
+      # correlation sampler's GLOBAL budget, which traced and untraced
+      # traffic share; a hard cap at the same rate would drop the snapshots
+      # already admitted under a trace's GLOBAL deficit.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
       # @return [Boolean] true when the hard limiter admits the hit
