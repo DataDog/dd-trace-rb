@@ -560,15 +560,14 @@ module Datadog
           end
 
           yield(trace) if block_given?
-          true
         else
           return false unless own_rate_limit_admits?(probe)
 
           return false unless global_rate_limit_allows?(probe)
 
           yield(active_trace_at_admission) if block_given?
-          true
         end
+        true
       end
 
       # The active APM trace, or nil when no trace is active.
