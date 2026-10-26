@@ -339,9 +339,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
 
       it "keeps the invoking evaluation's deadline" do
-        # More than EVALUATION_DEADLINE_CHECK_INTERVAL items, so a deadline
-        # check runs after the trigger item at index 0.
-        collection = [trigger] + Array.new(70) { |i| i + 1 }
+        collection = [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
         deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
         result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
         expect(result).to eq(collection)
