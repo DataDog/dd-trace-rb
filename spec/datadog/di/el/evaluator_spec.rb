@@ -299,7 +299,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       # sharing that occurs when two threads evaluate the same probe
       # concurrently.
 
-      # `collection.filter(isUndefined(@it) != true && marker == 'outer')`
       let(:filter_with_refs_expr) do
         compile_expr("collection.filter(isUndefined(@it) != true && marker == 'outer')",
           "filter" => [
