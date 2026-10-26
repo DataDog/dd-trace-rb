@@ -59,6 +59,8 @@ module Datadog
       # The APM trace active when the probe's hit was admitted by the
       # sampling gate, for a method probe; nil when the hit carried no
       # admission trace.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
       attr_reader :admission_trace
 
       # The APM span active when the probe's hit was admitted by the
