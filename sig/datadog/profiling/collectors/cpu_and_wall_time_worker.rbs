@@ -38,7 +38,7 @@ module Datadog
 
         def self._native_miteruby_consumer_consume_loop: () -> void
 
-        def self._native_miteruby_consumer_prepare_serialize: (Datadog::Profiling::StackRecorder recorder) -> void
+        def self._native_miteruby_consumer_prepare_serialize: (Datadog::Profiling::Miteruby::LibdatadogRecorder recorder) -> void
       end
     end
   end
