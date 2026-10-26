@@ -350,7 +350,7 @@ RSpec.describe Datadog::DI::Remote do
             settings: settings, serializer: serializer, logger: logger,
             guardrails_telemetry: guardrails_telemetry, telemetry: nil,
           ),
-          correlation_sampler: Datadog::DI::CorrelationSampler.new,)
+          correlation_sampler: Datadog::DI::CorrelationSampler.new)
       end
 
       let(:probe_notification_builder) do
