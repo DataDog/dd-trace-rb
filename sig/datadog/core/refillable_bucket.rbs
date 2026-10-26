@@ -1,29 +1,29 @@
 module Datadog
   module Core
     module RefillableBucket
-      @rate: ::Float | ::Integer
+      @rate: Float | Integer
 
-      @max_tokens: ::Numeric
+      @max_tokens: Numeric
 
-      @tokens: ::Numeric
+      @tokens: Numeric
 
-      @last_refill: ::Numeric
+      @last_refill: Numeric
 
-      attr_reader rate: ::Float | ::Integer
+      attr_reader rate: Float | Integer
 
-      attr_reader max_tokens: ::Numeric
+      attr_reader max_tokens: Numeric
 
-      attr_reader last_refill: ::Numeric
+      attr_reader last_refill: Numeric
 
-      def initialize: (::Float | ::Integer rate, ::Numeric max_tokens) -> void
+      def initialize: (Float | Integer rate, Numeric max_tokens) -> void
 
-      def available_tokens: () -> ::Numeric
+      def available_tokens: () -> Numeric
 
       private
 
       def refill: () -> void
 
-      def refill_tokens: (::Numeric size) -> void
+      def refill_tokens: (Numeric size) -> void
     end
   end
 end

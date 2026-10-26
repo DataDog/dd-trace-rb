@@ -3,11 +3,11 @@ module Datadog
     class BorrowingTokenBucket
       include RefillableBucket
 
-      def initialize: (::Float | ::Integer rate, ?max_tokens: ::Numeric) -> void
+      def initialize: (Float | Integer rate, ?max_tokens: Numeric) -> void
 
       def available?: () -> bool
 
-      def consume: (?size: ::Numeric) -> void
+      def consume: (?size: Numeric) -> void
     end
   end
 end

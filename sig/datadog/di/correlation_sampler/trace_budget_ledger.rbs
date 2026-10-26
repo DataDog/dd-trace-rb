@@ -2,17 +2,17 @@ module Datadog
   module DI
     class CorrelationSampler
       class TraceBudgetLedger
-        @sweep_threshold: ::Integer
+        @sweep_threshold: Integer
 
-        @entries: ::Hash[::Integer, Entry]
+        @entries: Hash[Integer, Entry]
 
-        @live_count: ::Integer
+        @live_count: Integer
 
-        def initialize: (::Integer sweep_threshold) -> void
+        def initialize: (Integer sweep_threshold) -> void
 
-        attr_reader sweep_threshold: ::Integer
+        attr_reader sweep_threshold: Integer
 
-        attr_reader entries: ::Hash[::Integer, Entry]
+        attr_reader entries: Hash[Integer, Entry]
 
         def fetch: (Datadog::Tracing::TraceOperation trace) -> TraceBudget?
 
@@ -20,9 +20,9 @@ module Datadog
 
         private
 
-        attr_reader live_count: ::Integer
+        attr_reader live_count: Integer
 
-        def sweep_bound: () -> ::Integer
+        def sweep_bound: () -> Integer
 
         def sweep: () -> void
 
