@@ -73,7 +73,7 @@ module Datadog
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
-      # @return [Float] Conformance ratio, between +[0,1]
+      # @return [Float] Conformance ratio, between +[0,1]+
       def effective_rate
         return 0.0 if @rate.zero?
         return 1.0 if @rate < 0 || @total_messages.zero?
@@ -92,7 +92,7 @@ module Datadog
       #
       # Returns +1.0+ when no messages have been checked yet.
       #
-      # @return [Float] Conformance ratio, between +[0,1]
+      # @return [Float] Conformance ratio, between +[0,1]+
       def current_window_rate
         return 1.0 if @total_messages.zero?
 
