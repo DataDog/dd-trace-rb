@@ -15,7 +15,7 @@
 
 #ifdef __linux__
 static void test_mapping_name(const char *name, const char *expected_name) {
-  void *allocation = miteruby_allocator_malloc(32, name);
+  void *allocation = miteruby_allocator_alloc(32, name);
   assert(allocation != NULL);
 
   FILE *maps = fopen("/proc/self/maps", "r");
@@ -39,7 +39,7 @@ static void test_mapping_name(const char *name, const char *expected_name) {
 
 static void test_allocation(size_t size) {
   size_t before = miteruby_allocator_requested_bytes();
-  unsigned char *allocation = miteruby_allocator_malloc(size, "test");
+  unsigned char *allocation = miteruby_allocator_alloc(size, "test");
   assert(allocation != NULL);
   assert(miteruby_allocator_requested_bytes() == before + size);
   assert((uintptr_t)allocation % 16 == 0);
@@ -61,13 +61,13 @@ static void test_allocation(size_t size) {
 }
 
 static void test_accounting(void) {
-  void *first = miteruby_allocator_malloc(17, "test");
-  void *second = miteruby_allocator_malloc(1000, "test");
+  void *first = miteruby_allocator_alloc(17, "test");
+  void *second = miteruby_allocator_alloc(1000, "test");
   assert(first != NULL && second != NULL);
   assert(miteruby_allocator_requested_bytes() == 1017);
-  assert(miteruby_allocator_malloc(0, "test") == NULL);
-  assert(miteruby_allocator_malloc(SIZE_MAX, "test") == NULL);
-  assert(miteruby_allocator_malloc(32, NULL) == NULL);
+  assert(miteruby_allocator_alloc(0, "test") == NULL);
+  assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
+  assert(miteruby_allocator_alloc(32, NULL) == NULL);
   miteruby_allocator_free(NULL, 0);
   assert(miteruby_allocator_requested_bytes() == 1017);
   miteruby_allocator_free(first, 17);
@@ -83,7 +83,7 @@ typedef struct {
 static void *allocate_in_thread(void *arg) {
   thread_allocations *state = arg;
   for (size_t i = 0; i < 64; i++) {
-    state->allocations[i] = miteruby_allocator_malloc(32, "test");
+    state->allocations[i] = miteruby_allocator_alloc(32, "test");
     assert(state->allocations[i] != NULL);
   }
   return NULL;
@@ -107,21 +107,21 @@ static void test_concurrent_accounting(void) {
 }
 
 static void corrupt_magic(void) {
-  unsigned char *allocation = miteruby_allocator_malloc(32, "test");
+  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
   assert(allocation != NULL);
   allocation[-16] = 'X';
   miteruby_allocator_free(allocation, 32);
 }
 
 static void corrupt_size(void) {
-  unsigned char *allocation = miteruby_allocator_malloc(32, "test");
+  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
   assert(allocation != NULL);
   memset(allocation - 8, 0, 8);
   miteruby_allocator_free(allocation, 32);
 }
 
 static void wrong_size(void) {
-  void *allocation = miteruby_allocator_malloc(32, "test");
+  void *allocation = miteruby_allocator_alloc(32, "test");
   assert(allocation != NULL);
   miteruby_allocator_free(allocation, 31);
 }
@@ -150,10 +150,10 @@ int main(void) {
   for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) test_allocation(sizes[i]);
 
   errno = 0;
-  assert(miteruby_allocator_malloc(0, "test") == NULL);
+  assert(miteruby_allocator_alloc(0, "test") == NULL);
   assert(errno == EINVAL);
   errno = 0;
-  assert(miteruby_allocator_malloc(SIZE_MAX, "test") == NULL);
+  assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
   assert(errno == ENOMEM);
   miteruby_allocator_free(NULL, 0);
 
