@@ -2208,11 +2208,44 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(instrumenter.send(:emit?, probe)).to be(true)
         end
 
-        it "applies the sampler's drop to a correlated hit" do
+        it "applies the sampler's drop to a correlated hit and records the skip metric" do
           # The first hit establishes the trace's unit and admits; the second
           # is dropped once PER_PROBE_BUDGET is spent.
           expect(instrumenter.send(:emit?, probe)).to be(true)
+          expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
           expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+
+        it "records the global skip metric when TOP denies a new trace's top probe" do
+          # TOP admits TOP_RATE traces; the next trace's top probe is refused
+          # at the TOP gate and the trace is marked starved.
+          1.upto(Datadog::DI::CorrelationSampler::TOP_RATE) do
+            established = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+            allow(Datadog::DI).to receive(:active_trace).and_return(established)
+            expect(instrumenter.send(:emit?, probe)).to be(true)
+          end
+
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+          starved = instance_double(Datadog::Tracing::TraceOperation, id: 2)
+          allow(Datadog::DI).to receive(:active_trace).and_return(starved)
+          expect(instrumenter.send(:emit?, probe)).to be(false)
+        end
+
+        it "records the trace-budget skip metric for a starved trace's correlated hit" do
+          starving = described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+            guardrails_telemetry: guardrails_telemetry,
+            capture_expression_evaluator: capture_expression_evaluator,
+            correlation_sampler: Datadog::DI::CorrelationSampler.new(top_rate: 0),)
+          trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+          allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+
+          # top_rate 0 refuses the top probe and marks the trace starved.
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+          expect(starving.send(:emit?, probe)).to be(false)
+
+          # The starved trace's correlated hit drops at its zeroed budget.
+          expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+          expect(starving.send(:emit?, probe)).to be(false)
         end
       end
 
@@ -2239,6 +2272,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log, capture_snapshot: true, rate_limit: 1)
 
           expect(instrumenter.send(:emit?, limited_probe)).to be(true)
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
           expect(instrumenter.send(:emit?, limited_probe)).to be(false)
         end
 
@@ -2249,6 +2283,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             correlation_sampler: Datadog::DI::CorrelationSampler.new(global_rate: 1),)
 
           expect(drained.send(:emit?, probe)).to be(true)
+          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
           expect(drained.send(:emit?, probe)).to be(false)
         end
       end
@@ -2270,7 +2305,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it "fails open through the probe's own rate limit and reports telemetry" do
           allow(logger).to receive(:debug)
-          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
 
           expect(probe.rate_limiter).to receive(:allow?).and_return(true)
           expect(telemetry).to receive(:report) do |exc, description:|
@@ -2282,7 +2317,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "re-raises fatal exceptions" do
-          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(SystemExit)
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
 
           expect { instrumenter.send(:emit?, probe) }.to raise_error(SystemExit)
         end
@@ -2302,7 +2337,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "records the per-probe skip metric when the fail-open limiter denies" do
           allow(logger).to receive(:debug)
           allow(telemetry).to receive(:report)
-          expect(instrumenter.correlation_sampler).to receive(:emit?).and_raise(StandardError, "gate boom")
+          expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
           expect(probe.rate_limiter).to receive(:allow?).and_return(false)
 
           expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
@@ -2358,6 +2393,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           expect(HookTestClass.new.hook_test_method).to eq 42
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(observed_calls.length).to eq 1
@@ -2551,6 +2587,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           HookLineTestClass.new.test_method
+          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "snapshot", probe_id: 1)
           HookLineTestClass.new.test_method
 
           expect(observed_calls.length).to eq 1

@@ -61,12 +61,15 @@ module Datadog
         @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
       end
 
-      # Decides whether this capturing probe hit emits a snapshot.
+      # Decides whether this capturing probe hit emits a snapshot, and names
+      # the drop decision for a denial.
       #
       # @param probe [Datadog::DI::Probe]
       # @param trace [Datadog::Tracing::TraceOperation, nil]
-      # @return [Boolean]
-      def emit?(probe, trace)
+      # @return [Array(Boolean, Symbol, nil)] the admitted flag, and the drop
+      #   decision naming the denying limit: +:own_rate_limit+,
+      #   +:global_budget+, +:top_gate+ or +:trace_budget+, nil when admitted
+      def emit_with_reason?(probe, trace)
         lock.synchronize do
           return emit_uncorrelated?(probe) if trace.nil?
 
@@ -77,6 +80,16 @@ module Datadog
             emit_top?(trace, probe)
           end
         end
+      end
+
+      # Decides whether this capturing probe hit emits a snapshot.
+      #
+      # @param probe [Datadog::DI::Probe]
+      # @param trace [Datadog::Tracing::TraceOperation, nil]
+      # @return [Boolean]
+      def emit?(probe, trace)
+        admitted, = emit_with_reason?(probe, trace)
+        admitted
       end
 
       # Rebuilds the process-scoped state for a freshly forked child. The
@@ -145,13 +158,14 @@ module Datadog
       # without a check. Must hold the lock.
       #
       # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
+      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
+      #   decision, nil when admitted
       def emit_uncorrelated?(probe)
-        return false unless probe.own_rate_limit_allows?
-        return false unless global_limiter.available?
+        return [false, :own_rate_limit] unless probe.own_rate_limit_allows?
+        return [false, :global_budget] unless global_limiter.available?
 
         global_limiter.consume
-        true
+        [true, nil]
       end
 
       # Returns the trace's budget; nil when the trace has no established
@@ -171,17 +185,20 @@ module Datadog
       #
       # @param trace [Datadog::Tracing::TraceOperation]
       # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
+      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
+      #   decision, nil when admitted
       def emit_top?(trace, probe)
         unless global_limiter.available? && top_limiter.allow?
           store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
-          return false
+          return [false, :top_gate]
         end
 
         global_limiter.consume
         budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
         store(trace, budget)
-        budget.admit(probe.id)
+        return [false, :trace_budget] unless budget.admit(probe.id)
+
+        [true, nil]
       end
 
       # A capturing probe firing inside an established unit. Bounded by the
@@ -189,12 +206,13 @@ module Datadog
       #
       # @param budget [TraceBudget]
       # @param probe [Datadog::DI::Probe]
-      # @return [Boolean]
+      # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
+      #   decision, nil when admitted
       def emit_correlated?(budget, probe)
-        return false unless budget.admit(probe.id)
+        return [false, :trace_budget] unless budget.admit(probe.id)
 
         global_limiter.consume
-        true
+        [true, nil]
       end
 
       # Stores the trace's budget in the ledger. Must hold the lock.

@@ -15,6 +15,8 @@ module Datadog
 
       GLOBAL_LOG_RATE_LIMIT: ::Integer
 
+      CORRELATION_DROP_SKIP_REASONS: Hash[Symbol, String]
+
       @settings: Datadog::Core::Configuration::Settings
 
       @serializer: Serializer
@@ -62,6 +64,8 @@ module Datadog
       attr_reader correlation_sampler: CorrelationSampler
 
       def record_rate_limit_skip: (String reason, Probe probe) -> void
+
+      def rate_limit_skip_limit: (String reason) -> String
 
       def hook_method: (Probe probe, untyped responder) -> void
 

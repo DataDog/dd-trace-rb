@@ -16,6 +16,10 @@ module Datadog
         # process-wide rate limiter.
         RATE_LIMIT_GLOBAL = "rateLimitGlobal"
 
+        # Skip reason emitted when a capturing probe firing is rejected by
+        # the per-trace emission counters of the coordinated sampling gate.
+        RATE_LIMIT_TRACE_BUDGET = "rateLimitTraceBudget"
+
         # Skip reason emitted when a capture expression evaluation exceeds
         # the capture time budget.
         EVALUATION_TIMEOUT = "evaluationTimeout"
@@ -78,8 +82,8 @@ module Datadog
         OTHER = "other"
 
         # The skip reasons the events.skipped metric tags with the firing
-        # probe's id; every other skip reason names a process-wide
-        # decision and carries no probe id.
+        # probe's id; every other skip reason names a decision shared across
+        # probes, process-wide or per-trace, and carries no probe id.
         PROBE_SCOPED_REASONS = [RATE_LIMIT_PROBE, EVALUATION_TIMEOUT].freeze
       end
     end

@@ -78,6 +78,16 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
+      # Canonical guardrails skip reason recorded for each correlation sampler
+      # drop decision.
+      # @return [Hash{Symbol => String}]
+      CORRELATION_DROP_SKIP_REASONS = {
+        own_rate_limit: GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
+        global_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        top_gate: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
+      }.freeze
+
       # Initializes the instrumenter with its per-probe hard rate limiters
       # and the coordination gate.
       #
@@ -145,9 +155,9 @@ module Datadog
       # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
       # @return [void]
       def record_rate_limit_skip(reason, probe)
+        limit = rate_limit_skip_limit(reason)
         logger.trace do
-          "di: #{probe.type} probe #{probe.id}: skipping due to " \
-            "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
+          "di: #{probe.type} probe #{probe.id}: skipping due to #{limit}" \
             " (#{reason})"
         end
         guardrails_telemetry.skipped(
@@ -155,6 +165,24 @@ module Datadog
           probe: probe,
         )
         nil
+      end
+
+      # Names the rejecting limit each rate-limit skip reason reports.
+      #
+      # @param reason [String] a GuardrailsTelemetry::Reason rate-limit constant
+      # @return [String] the limit the reason names
+      # @raise [ArgumentError] when the reason is no known rate-limit constant
+      private def rate_limit_skip_limit(reason)
+        case reason
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE
+          "per-probe rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL
+          "global rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET
+          "per-trace snapshot budget"
+        else
+          raise ArgumentError, "Unknown rate limit skip reason: #{reason}"
+        end
       end
 
       # This is a substitute for Thread::Backtrace::Location
@@ -502,16 +530,18 @@ module Datadog
       # Coordinated sampling gate. A capturing probe delegates the whole
       # decision to the correlation sampler: correlated hits get the trace's
       # unit decision, uncorrelated hits the probe's own rate limit plus the
-      # sampler's GLOBAL budget. A gate error fails open to the probe's own
-      # rate limiter. A non-capturing hit consults the probe's own rate
-      # limiter and then the process-wide hard limiter for its category.
+      # sampler's GLOBAL budget, and every denial is recorded as the
+      # canonical rate-limit skip metric. A gate error fails open to the
+      # probe's own rate limiter. A non-capturing hit consults the probe's
+      # own rate limiter and then the process-wide hard limiter for its
+      # category.
       #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
       # @return [Boolean]
       def emit?(probe)
         if probe.capturing?
           begin
-            return correlation_sampler.emit?(probe, current_trace)
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, current_trace)
           rescue Exception => exc # standard:disable Lint/RescueException
             reraise_per_policy(exc)
 
@@ -519,6 +549,14 @@ module Datadog
             telemetry&.report(exc, description: "Error in DI correlation gate")
             return own_rate_limit_admits?(probe)
           end
+
+          unless admitted
+            # A denial always carries its drop decision; Steep cannot infer
+            # the pairing between the returned tuple's elements.
+            # @type var drop_reason: Symbol
+            record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+          end
+          return admitted
         end
 
         return false unless own_rate_limit_admits?(probe)

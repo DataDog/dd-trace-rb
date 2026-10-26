@@ -232,6 +232,54 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     end
   end
 
+  describe "#emit_with_reason?" do
+    context "no active trace" do
+      it "pairs an own-rate-limit denial with its drop decision" do
+        expect(correlation.emit_with_reason?(probe("a", own_rate_limit_allows: false), nil))
+          .to eq([false, :own_rate_limit])
+      end
+
+      it "pairs a GLOBAL denial with its drop decision" do
+        # global_rate 1 fills GLOBAL with one token; the first uncorrelated
+        # admit consumes it, the second consults a non-positive balance.
+        sampler = described_class.new(global_rate: 1)
+        expect(sampler.emit_with_reason?(probe("a"), nil)).to eq([true, nil])
+        expect(sampler.emit_with_reason?(probe("a"), nil)).to eq([false, :global_budget])
+      end
+    end
+
+    context "top probe" do
+      it "pairs a TOP or GLOBAL refusal with its drop decision" do
+        # top_rate 1 admits the first trace's top probe and exhausts TOP.
+        sampler = described_class.new(top_rate: 1)
+        expect(sampler.emit_with_reason?(probe("a"), trace)).to eq([true, nil])
+        expect(sampler.emit_with_reason?(probe("a"), trace)).to eq([false, :top_gate])
+      end
+
+      it "pairs a seeded-budget denial with its drop decision" do
+        sampler = described_class.new(all_budget: 0)
+        expect(sampler.emit_with_reason?(probe("a"), trace)).to eq([false, :trace_budget])
+      end
+    end
+
+    context "correlated probe" do
+      it "pairs a counter denial with its drop decision" do
+        sampler = described_class.new(per_probe_budget: 1)
+        first = trace
+        expect(sampler.emit_with_reason?(probe("a"), first)).to eq([true, nil])
+        expect(sampler.emit_with_reason?(probe("a"), first)).to eq([false, :trace_budget])
+      end
+
+      it "pairs a starved trace's denial with its drop decision" do
+        # top_rate 0 refuses every top probe, marking every trace starved.
+        sampler = described_class.new(top_rate: 0)
+        first = trace
+        expect(sampler.emit_with_reason?(probe("a"), first)).to eq([false, :top_gate])
+        expect(sampler.emit_with_reason?(probe("b"), first)).to eq([false, :trace_budget])
+      end
+    end
+  end
+
   describe Datadog::DI::CorrelationSampler::TraceBudgetLedger do
     subject(:ledger) { described_class.new(sweep_threshold) }
 

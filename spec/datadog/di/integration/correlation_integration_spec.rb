@@ -263,7 +263,7 @@ RSpec.describe "Correlation integration" do
 
     it "still emits when the gate raises" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-      expect(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
+      expect(component.correlation_sampler).to receive(:emit_with_reason?).and_raise("gate boom")
 
       CorrelationIntegrationTestClass.new.inner
       flush
@@ -298,7 +298,7 @@ RSpec.describe "Correlation integration" do
 
     it "re-raises the gate error to the caller" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
-      expect(component.correlation_sampler).to receive(:emit?).and_raise("gate boom")
+      expect(component.correlation_sampler).to receive(:emit_with_reason?).and_raise("gate boom")
 
       expect { CorrelationIntegrationTestClass.new.inner }.to raise_error(RuntimeError, /gate boom/)
     end

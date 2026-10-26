@@ -31,6 +31,8 @@ module Datadog
 
       def initialize: (?sweep_threshold: Integer, ?top_rate: (Float | Integer), ?global_rate: (Float | Integer), ?per_probe_budget: Integer, ?all_budget: Integer) -> void
 
+      def emit_with_reason?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> [bool, Symbol?]
+
       def emit?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> bool
 
       def after_fork!: () -> void
@@ -55,13 +57,13 @@ module Datadog
 
       attr_reader global_rate: (Float | Integer)
 
-      def emit_uncorrelated?: (Probe probe) -> bool
+      def emit_uncorrelated?: (Probe probe) -> [bool, Symbol?]
 
       def touch_budget: (Datadog::Tracing::TraceOperation trace) -> TraceBudget?
 
-      def emit_top?: (Datadog::Tracing::TraceOperation trace, Probe probe) -> bool
+      def emit_top?: (Datadog::Tracing::TraceOperation trace, Probe probe) -> [bool, Symbol?]
 
-      def emit_correlated?: (TraceBudget budget, Probe probe) -> bool
+      def emit_correlated?: (TraceBudget budget, Probe probe) -> [bool, Symbol?]
 
       def store: (Datadog::Tracing::TraceOperation trace, TraceBudget budget) -> void
     end
