@@ -2,7 +2,6 @@ module Datadog
   module DI
     class CorrelationSampler
       class TraceBudgetLedger
-        # One retained budget and the weak reference to its trace.
         class Entry
           @trace_ref: WeakRef[Datadog::Tracing::TraceOperation]
 
