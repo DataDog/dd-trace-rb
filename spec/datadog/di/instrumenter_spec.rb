@@ -51,11 +51,15 @@ RSpec.describe Datadog::DI::Instrumenter do
       guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
   end
 
+  let(:telemetry) { nil }
+
+  let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new }
+
   let(:instrumenter) do
-    described_class.new(settings, serializer, logger, code_tracker: code_tracker,
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,
       capture_expression_evaluator: capture_expression_evaluator,
-      correlation_sampler: Datadog::DI::CorrelationSampler.new,)
+      correlation_sampler: correlation_sampler,)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -1973,12 +1977,6 @@ RSpec.describe Datadog::DI::Instrumenter do
   describe "telemetry reporting" do
     let(:propagate_all_exceptions) { false }
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-    let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry,
-        capture_expression_evaluator: capture_expression_evaluator,
-        correlation_sampler: Datadog::DI::CorrelationSampler.new)
-    end
 
     describe "method probe condition evaluation failed callback exceptions" do
       before do
@@ -2153,13 +2151,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
     end
 
-    let(:instrumenter) do
-      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry,
-        capture_expression_evaluator: capture_expression_evaluator,
-        correlation_sampler: Datadog::DI::CorrelationSampler.new,)
-    end
-
     # Asserts the guardrails skip metric emission for a rejected probe
     # firing.
     def expect_rate_limit_skip_metric(reason:, event_type:, probe_id: nil)
@@ -2180,13 +2171,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
           id: 1, type: :log, capture_snapshot: true, rate_limit: 5000)
-      end
-
-      let(:instrumenter) do
-        described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-          guardrails_telemetry: guardrails_telemetry,
-          capture_expression_evaluator: capture_expression_evaluator,
-          correlation_sampler: Datadog::DI::CorrelationSampler.new,)
       end
 
       context "with an active trace" do
@@ -2225,21 +2209,21 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(instrumenter.send(:emit?, probe)).to be(false)
         end
 
-        it "records the trace-budget skip metric for a starved trace's correlated hit" do
-          starving = described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-            guardrails_telemetry: guardrails_telemetry,
-            capture_expression_evaluator: capture_expression_evaluator,
-            correlation_sampler: Datadog::DI::CorrelationSampler.new(top_rate: 0),)
-          trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
-          allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+        context "with a TOP rate of 0" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
 
-          # top_rate 0 refuses the top probe and marks the trace starved.
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-          expect(starving.send(:emit?, probe)).to be(false)
+          it "records the trace-budget skip metric for a starved trace's correlated hit" do
+            trace = instance_double(Datadog::Tracing::TraceOperation, id: 1)
+            allow(Datadog::DI).to receive(:active_trace).and_return(trace)
 
-          # The starved trace's correlated hit drops at its zeroed budget.
-          expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
-          expect(starving.send(:emit?, probe)).to be(false)
+            # top_rate 0 refuses the top probe and marks the trace starved.
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+
+            # The starved trace's correlated hit drops at its zeroed budget.
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+          end
         end
       end
 
@@ -2266,28 +2250,20 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(instrumenter.send(:emit?, limited_probe)).to be(false)
         end
 
-        it "drops an uncorrelated capturing hit when the sampler's GLOBAL is exhausted" do
-          drained = described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-            guardrails_telemetry: guardrails_telemetry,
-            capture_expression_evaluator: capture_expression_evaluator,
-            correlation_sampler: Datadog::DI::CorrelationSampler.new(global_rate: 1),)
+        context "with a GLOBAL rate of 1" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(global_rate: 1) }
 
-          expect(drained.send(:emit?, probe)).to be(true)
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-          expect(drained.send(:emit?, probe)).to be(false)
+          it "drops an uncorrelated capturing hit when the sampler's GLOBAL is exhausted" do
+            expect(instrumenter.send(:emit?, probe)).to be(true)
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect(instrumenter.send(:emit?, probe)).to be(false)
+          end
         end
       end
 
       context "when the correlation gate raises" do
         let(:propagate_all_exceptions) { false }
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-
-        let(:instrumenter) do
-          described_class.new(settings, serializer, logger, code_tracker: code_tracker,
-            guardrails_telemetry: guardrails_telemetry,
-            capture_expression_evaluator: capture_expression_evaluator,
-            correlation_sampler: Datadog::DI::CorrelationSampler.new, telemetry: telemetry,)
-        end
 
         before do
           stub_active_trace(123)
