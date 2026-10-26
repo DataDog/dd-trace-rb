@@ -8,8 +8,8 @@ module Datadog
   module DI
     class CorrelationSampler
       # Store of per-trace budgets, keyed by the trace object and bound to its
-      # lifetime: an entry dies with its trace, so a live trace's budgets are
-      # never evicted. Dead entries are dropped by a lazy sweep once the entry
+      # lifetime: an entry dies with its trace, and a live trace keeps its
+      # entry. Dead entries are dropped by a lazy sweep once the entry
       # count passes the sweep high-water mark.
       #
       # @api private
