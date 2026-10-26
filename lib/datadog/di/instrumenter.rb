@@ -526,18 +526,29 @@ module Datadog
       # own rate limiter and then the process-wide hard limiter for its
       # category.
       #
+      # An admitted hit yields the active trace for the snapshot envelope:
+      # the gate's own resolution for a capturing hit, reused by the
+      # envelope capture, and a fresh resolution for a non-capturing hit or
+      # for a gate error that failed open.
+      #
       # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @yieldparam trace [Datadog::Tracing::TraceOperation, nil] the trace
+      #   active when the hit was admitted
       # @return [Boolean]
       def emit?(probe)
         if probe.capturing?
           begin
-            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, current_trace)
+            trace = current_trace
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
           rescue Exception => exc # standard:disable Lint/RescueException
             reraise_per_policy(exc)
 
             logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
             telemetry&.report(exc, description: "Error in DI correlation gate")
-            return own_rate_limit_admits?(probe)
+            return false unless own_rate_limit_admits?(probe)
+
+            yield(active_trace_at_admission) if block_given?
+            return true
           end
 
           unless admitted
@@ -545,13 +556,19 @@ module Datadog
             # the pairing between the returned tuple's elements.
             # @type var drop_reason: Symbol
             record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+            return false
           end
-          return admitted
+
+          yield(trace) if block_given?
+          true
+        else
+          return false unless own_rate_limit_admits?(probe)
+
+          return false unless global_rate_limit_allows?(probe)
+
+          yield(active_trace_at_admission) if block_given?
+          true
         end
-
-        return false unless own_rate_limit_admits?(probe)
-
-        global_rate_limit_allows?(probe)
       end
 
       # The active APM trace, or nil when no trace is active.
@@ -668,6 +685,16 @@ module Datadog
         return yield unless probe.enabled?
 
         DI.enter_probe
+        # The trace is captured at admission, before the customer method
+        # runs: a method that finishes the active trace or starts a new one
+        # must not relabel the snapshot away from the trace whose budget the
+        # gate consumed, nor pair that trace with a span of the replacement
+        # trace. The gate passes its own resolution to the block, so an
+        # admitted capturing hit resolves the trace once. The declaration sits
+        # above the begin/ensure body: steep drops @type var annotations
+        # inside a body that has an ensure clause.
+        # @type var admission_trace: Datadog::Tracing::TraceOperation?
+        admission_trace = nil
         begin
           di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -718,12 +745,7 @@ module Datadog
             end
           end
 
-          admitted = continue && emit?(probe)
-          # Captured before the customer method runs: a method that finishes
-          # the active trace or starts a new one must not relabel the
-          # snapshot away from the trace whose budget the gate consumed, nor
-          # pair that trace with a span of the replacement trace.
-          admission_trace = active_trace_at_admission if admitted
+          admitted = continue && emit?(probe) { |trace| admission_trace = trace }
           admission_span = active_span_at_admission if admitted
           if admitted
             # Arguments may be mutated by the method, therefore

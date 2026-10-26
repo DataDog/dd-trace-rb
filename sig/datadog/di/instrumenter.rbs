@@ -90,7 +90,7 @@ module Datadog
 
       attr_reader lock: Thread::Mutex
 
-      def emit?: (Probe probe) -> bool
+      def emit?: (Probe probe) ?{ (Datadog::Tracing::TraceOperation? trace) -> void } -> bool
 
       def current_trace: () -> Datadog::Tracing::TraceOperation?
 

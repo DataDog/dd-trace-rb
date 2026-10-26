@@ -262,10 +262,10 @@ RSpec.describe "Correlation integration" do
     it "labels the snapshot with the trace and span active at admission, not at build" do
       trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
       span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
-      # The gate and the admission captures read the trace and the span; by
-      # the time the builder runs, the probed method has finished the trace
-      # and no span is active.
-      allow(Datadog::DI).to receive(:active_trace).and_return(trace, trace, nil)
+      # The gate reads the trace once, for its decision and the admission
+      # capture; by the time the builder runs, the probed method has finished
+      # the trace and no span is active.
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace, nil)
       allow(Datadog::DI).to receive(:active_span).and_return(span, nil)
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
@@ -283,11 +283,11 @@ RSpec.describe "Correlation integration" do
       span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
       replacement_trace = instance_double(Datadog::Tracing::TraceOperation, id: 999)
       replacement_span = instance_double(Datadog::Tracing::SpanOperation, id: 222)
-      # The gate and the admission captures read trace A and its span; the
-      # probed method then starts trace B, whose trace and span are active
-      # when the builder runs. The envelope keeps reporting the admission
-      # pair, so its trace id and span id describe one trace.
-      allow(Datadog::DI).to receive(:active_trace).and_return(trace, trace, replacement_trace)
+      # The gate reads trace A once, for its decision and the admission
+      # capture; the probed method then starts trace B, whose trace and span
+      # are active when the builder runs. The envelope keeps reporting the
+      # admission pair, so its trace id and span id describe one trace.
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace, replacement_trace)
       allow(Datadog::DI).to receive(:active_span).and_return(span, replacement_span)
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
