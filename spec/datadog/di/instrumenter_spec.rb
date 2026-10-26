@@ -2310,7 +2310,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         # `arg.filter(@it >= 0).length > 0` over the argument of
         # HookLineLoadTestClass#test_method_with_arg, whose line 34 the
         # probe hooks. With a zero evaluation budget the cooperative
-        # deadline inside #filter fires immediately.
+        # check inside #filter raises immediately.
         let(:probe) do
           src, regexps = Datadog::DI::EL::Compiler.new.compile(
             "gt" => [
