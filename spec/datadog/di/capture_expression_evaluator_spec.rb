@@ -16,9 +16,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
   before do
     allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(200)
-    # Default to no evaluation deadline so existing capture-expression specs
-    # preserve their pre-timeout behavior; the deadline context below
-    # overrides this with a real value.
     allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(nil)
   end
 
