@@ -167,8 +167,8 @@ module Datadog
       attr_reader :condition_evaluation_failed_rate_limiter
 
       # Monotonic clock deadline until which condition evaluation is skipped
-      # at probe entry after a condition evaluation timeout, or nil when the
-      # probe's condition has never timed out.
+      # at probe entry after a condition evaluation timeout, or nil when no
+      # condition evaluation timeout has occurred.
       attr_reader :condition_error_throttled_until
 
       # Opens the condition-error skip window: condition evaluation is
