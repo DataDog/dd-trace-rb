@@ -380,7 +380,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       expect(correlation.emit?(probe("next"), trace)).to be(false)
     end
 
-    it "serves a child whose inherited mutex was held at fork time" do
+    it "admits a probe hit in a child whose inherited mutex was held at fork time" do
       # A parent thread holds the sampler lock across the fork, as a probe
       # hit in the parent would; the inherited mutex stays locked forever
       # in the child, so the rebuild must replace it without acquiring it.
@@ -409,7 +409,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       end
     end
 
-    it "serves a child after the parent exhausted the process-wide buckets" do
+    it "admits a probe hit in a child after the parent exhausted the process-wide buckets" do
       # Exhaust TOP and GLOBAL in the parent.
       1.upto(top_rate) { correlation.emit?(probe("a"), trace) }
       expect(correlation.emit?(probe("a"), trace)).to be(false)
