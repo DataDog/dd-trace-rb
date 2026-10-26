@@ -6,6 +6,12 @@
 # on a recycled referent rather than returning nil, which is why the ledger
 # guards it with `weakref_alive?`.
 #
+# `weakref_alive?` is not Boolean on the supported Rubies (verified on 2.6
+# through 4.0): it returns true while the referent is alive, nil once an
+# ordinary referent is collected, and the String "instance-variable" for
+# true/false/nil referents, whose storage branch the implementation checks
+# with `defined?`.
+#
 # Lives under `vendor/rbs/ruby/` (auto-loaded by the Steepfile's `vendor/rbs`
 # repo loop, same mechanism as `vendor/rbs/jruby`) because it augments a
 # stdlib type rather than mirroring a `lib/` file.
@@ -14,5 +20,5 @@ class WeakRef[T]
 
   def __getobj__: () -> T
 
-  def weakref_alive?: () -> bool
+  def weakref_alive?: () -> (true | String?)
 end
