@@ -20,6 +20,7 @@ module Datadog
         # @param sweep_threshold [Integer] lower bound on the entry count that
         #   triggers a sweep of dead entries
         # @raise [ArgumentError] when sweep_threshold is not a positive Integer
+        # @return [void]
         def initialize(sweep_threshold)
           unless sweep_threshold.is_a?(Integer) && sweep_threshold.positive?
             raise ArgumentError, "sweep_threshold must be a positive Integer: #{sweep_threshold}"

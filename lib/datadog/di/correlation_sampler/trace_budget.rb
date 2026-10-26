@@ -16,6 +16,7 @@ module Datadog
         # @param all_budget [Integer] all-probe counter start value
         # @raise [ArgumentError] when either budget is negative or
         #   non-Integer
+        # @return [void]
         def initialize(per_probe_budget:, all_budget:)
           unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
             raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"

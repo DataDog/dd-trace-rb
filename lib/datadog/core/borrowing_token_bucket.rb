@@ -18,6 +18,7 @@ module Datadog
       # @param max_tokens [Numeric] ceiling the balance refills toward
       # @raise [ArgumentError] when rate or max_tokens is negative, or when
       #   either is not a number
+      # @return [void]
       def initialize(rate, max_tokens: rate)
         super(rate, max_tokens)
 

@@ -7,6 +7,38 @@ module Datadog
     #
     # @api private
     class Context
+      # Initializes the context with the probe hit's state.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being
+      #   evaluated
+      # @param settings [Datadog::Core::Configuration::Settings] the current
+      #   configuration settings
+      # @param serializer [Datadog::DI::Serializer] the serializer for
+      #   captured values
+      # @param locals [Hash{Symbol => Object}, nil] local variables captured
+      #   at the probe hit
+      # @param target_self [Object, nil] the object the instrumented method
+      #   runs on
+      # @param path [String, nil] actual path of the instrumented file
+      # @param caller_locations [Array<Thread::Backtrace::Location>, nil]
+      #   stack frames captured at the probe hit
+      # @param serialized_entry_args [Hash{Symbol => Object}, nil] entry
+      #   arguments of the instrumented method, in serialized form
+      # @param entry_capture_expressions [Hash{String => Object}, nil] entry
+      #   capture expressions, in serialized form
+      # @param entry_capture_evaluation_errors [Array<Datadog::DI::EvaluationFailure>, nil]
+      #   failures from evaluating the entry capture expressions
+      # @param admission_trace [Datadog::Tracing::TraceOperation, nil] the
+      #   APM trace active when the sampling gate admitted the probe hit
+      # @param admission_span [Datadog::Tracing::SpanOperation, nil] the APM
+      #   span active when the sampling gate admitted the probe hit
+      # @param return_value [Object, nil] the instrumented method's return
+      #   value, for a method probe
+      # @param duration [Float, nil] the instrumented method's execution
+      #   time, in seconds, for a method probe
+      # @param exception [Exception, nil] the exception raised by the
+      #   instrumented method, for a method probe
+      # @return [void]
       def initialize(probe:, settings:, serializer:, locals: nil,
         # In Ruby everything is a method, therefore we should always have
         # a target self. However, if we are not capturing a snapshot,

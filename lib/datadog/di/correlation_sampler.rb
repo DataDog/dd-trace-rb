@@ -41,6 +41,7 @@ module Datadog
       # @raise [ArgumentError] when sweep_threshold is zero, negative, or
       #   non-Integer, or when per_probe_budget or all_budget is negative
       #   or non-Integer
+      # @return [void]
       def initialize(sweep_threshold: DEFAULT_SWEEP_THRESHOLD, top_rate: TOP_RATE,
         global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
         all_budget: ALL_BUDGET)

@@ -22,6 +22,7 @@ module Datadog
           #
           # @param trace_ref [WeakRef] weak reference to the entry's trace
           # @param budget [TraceBudget] the trace's budget
+          # @return [void]
           def initialize(trace_ref:, budget:)
             @trace_ref = trace_ref
             @budget = budget
