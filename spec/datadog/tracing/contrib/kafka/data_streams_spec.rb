@@ -226,6 +226,35 @@ RSpec.describe "Kafka Data Streams instrumentation" do
     end
   end
 
+  describe "producer wrapper signature parity with ruby-kafka" do
+    before { require "kafka" }
+
+    let(:instance_methods) { Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer::InstanceMethods }
+
+    it "wraps #deliver_messages compatibly with Kafka::Producer#deliver_messages",
+      skip: "Remove skip once #6060 merges" do
+      # Fetching the UnboundMethod via Kafka::Producer (rather than the InstanceMethods module
+      # directly) is required for `super_method` to work below -- a method obtained straight from
+      # the module has no ancestor chain to walk. Since :kafka is already instrumented by the outer
+      # `before` block, this resolves to the prepended wrapper, not the real method.
+      wrapper_method = Kafka::Producer.instance_method(:deliver_messages)
+      # `super_method` follows the lookup chain past the wrapper to the real gem method underneath.
+      real_method = wrapper_method.super_method
+
+      expect(wrapper_method).to be_signature_compatible_with(real_method)
+    end
+
+    # send_messages has no matching public method on Kafka::Producer; there's no real
+    # signature to compare against, so this only guards against it accepting an
+    # unexpected extra param (empty **kwargs forwarded through bare `super` raises
+    # ArgumentError, regardless of Ruby implementation).
+    it "wraps #send_messages without a keyword splat",
+      skip: "Remove skip once #6060 merges" do
+      wrapper_params = instance_methods.instance_method(:send_messages).parameters
+
+      expect(wrapper_params).not_to include([:keyrest, :kwargs])
+    end
+  end
   # Regression: the wrappers must not add `**kwargs`. On Ruby 2.5 and Ruby 2.6 an
   # empty `**kwargs` forwarded through `super` becomes a positional hash and raises ArgumentError.
   describe "argument forwarding to wrapped ruby-kafka methods" do
