@@ -238,11 +238,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     context "with no deadline" do
       let(:collection) { Array.new(1000) { |i| i } }
 
-      it "#filter returns the selected items (behavior unchanged)" do
+      it "#filter returns the selected items" do
         expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq((500..999).to_a)
       end
 
-      it "#filter returns the selected entries of a Hash (behavior unchanged)" do
+      it "#filter returns the selected entries of a Hash" do
         expect(filter_hash_expr.evaluate(
           context_with({"a" => 1, "b" => 2, "c" => -1}),
           deadline: nil,
