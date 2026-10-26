@@ -602,9 +602,9 @@ module Datadog
         nil
       end
 
-      # Re-raises a gate error per the DI error policy: fatal exceptions
-      # always, every exception when the customer opted into propagation.
-      # Called from rescue blocks only.
+      # Re-raises a gate error: fatal exceptions always, every exception
+      # when the customer opted into propagation. Called from rescue blocks
+      # only.
       #
       # @param exc [Exception] the in-flight exception
       # @return [void]
