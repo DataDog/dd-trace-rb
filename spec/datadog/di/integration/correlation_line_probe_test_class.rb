@@ -7,7 +7,7 @@
 # load time would leave the iseq untracked, and reloading it through
 # remove_const would leak the stale class and its iseqs into the object
 # space beside the reloaded definition. The comment-anchored line numbers
-# are load-bearing for the line-probe example.
+# must stay accurate for the line-probe example, which targets line 18.
 class CorrelationLineProbeTestClass
   def loop_n(n)
     n.times { inner } # line 13
