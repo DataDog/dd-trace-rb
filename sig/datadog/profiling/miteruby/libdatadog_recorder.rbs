@@ -1,0 +1,25 @@
+module Datadog
+  module Profiling
+    module Miteruby
+      class LibdatadogRecorder
+        type serialized_profile_data = [Time, Time, EncodedProfile, Hash[Symbol, Integer]]
+
+        def initialize: () -> void
+
+        def serialize: () -> serialized_profile_data?
+
+        def serialize!: () -> EncodedProfile
+
+        def reset_after_fork: () -> true
+
+        def stats: () -> Hash[Symbol, (Integer | Float)?]
+
+        def self._native_serialize: (LibdatadogRecorder recorder) -> ([:ok, serialized_profile_data] | [:error, String])
+
+        def self._native_reset_after_fork: (LibdatadogRecorder recorder) -> true
+
+        def self._native_stats: (LibdatadogRecorder recorder) -> Hash[Symbol, (Integer | Float)?]
+      end
+    end
+  end
+end
