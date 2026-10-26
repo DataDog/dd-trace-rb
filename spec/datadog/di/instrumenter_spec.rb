@@ -2193,10 +2193,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         before do
           stub_active_trace(123)
 
-          # Freeze the time provider so the sampler's buckets do not
-          # refill mid-example.
-          frozen_time = Datadog::Core::Utils::Time.get_time
-          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+          freeze_rate_limiter_clock
         end
 
         it "does not consult the instrumenter's hard log limiter for a correlated hit" do
@@ -2250,10 +2247,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         before do
           stub_no_trace
 
-          # Freeze the time provider so the sampler's buckets do not
-          # refill between the calls below.
-          frozen_time = Datadog::Core::Utils::Time.get_time
-          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+          freeze_rate_limiter_clock
         end
 
         it "admits an uncorrelated capturing hit through the sampler" do

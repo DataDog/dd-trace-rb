@@ -108,10 +108,7 @@ RSpec.describe "Correlation integration" do
       end
 
       it "drops the condition-error snapshot once the GLOBAL budget is exhausted" do
-        # Freeze the time provider so the drain below is deterministic and
-        # GLOBAL does not refill mid-example.
-        frozen_time = Datadog::Core::Utils::Time.get_time
-        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+        freeze_rate_limiter_clock
 
         # Drain GLOBAL with uncorrelated capturing hits, with the probe's
         # own limit raised so GLOBAL is the only bound.
@@ -136,10 +133,7 @@ RSpec.describe "Correlation integration" do
     end
 
     it "starves the next trace's capturing probes once TOP_RATE traces have established units" do
-      # Freeze the time provider so the process-wide TOP bucket does not
-      # refill while this example drives its traces.
-      frozen_time = Datadog::Core::Utils::Time.get_time
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+      freeze_rate_limiter_clock
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
       probe_manager.add_probe(method_probe("p-alpha", "alpha"))
@@ -237,9 +231,7 @@ RSpec.describe "Correlation integration" do
     end
 
     it "shares the process-wide GLOBAL budget with correlated traffic" do
-      # Freeze the time provider so GLOBAL does not refill mid-example.
-      frozen_time = Datadog::Core::Utils::Time.get_time
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+      freeze_rate_limiter_clock
 
       # The probe's own limit is raised so GLOBAL is the only bound.
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))

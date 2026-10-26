@@ -271,6 +271,15 @@ module DIHelpers
       allow(Datadog::DI).to receive(:active_trace).and_return(nil)
       allow(Datadog::DI).to receive(:active_span).and_return(nil)
     end
+
+    # Freeze the time provider the rate limiters refill from, so their
+    # buckets hold a fixed balance for the rest of the example: the current
+    # time is captured before the stub takes effect, so every refill adds
+    # zero tokens.
+    def freeze_rate_limiter_clock
+      frozen_time = Datadog::Core::Utils::Time.get_time
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+    end
   end
 end
 
