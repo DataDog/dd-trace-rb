@@ -117,31 +117,6 @@ module Datadog
       end
     end
 
-    # Stores context using thread-local variables, which are shared
-    # across all Fibers running on the same Thread.
-    #
-    # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-thread_variable_get
-    class ThreadScope < ContextScope
-      def current=(context)
-        Thread.current.thread_variable_set(@key, context)
-      end
-
-      protected
-
-      def get_current
-        Thread.current.thread_variable_get(@key) || (self.current = Context.new(otel_thread_context: @otel_thread_context))
-      end
-
-      def get_current_for(thread)
-        context = thread.thread_variable_get(@key)
-        return context if context
-
-        context = Context.new(otel_thread_context: @otel_thread_context)
-        thread.thread_variable_set(@key, context)
-        context
-      end
-    end
-
     # Stores a different context for each Fiber.
     # There's no context inheritance between Fibers, as the
     # implementation is unrelated to `Fiber#storage`.

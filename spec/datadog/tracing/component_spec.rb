@@ -543,22 +543,6 @@ RSpec.describe Datadog::Tracing::Component do
       end
 
       context "with context_scope" do
-        context "set to 'thread'" do
-          before do
-            settings.tracing.context_scope = "thread"
-          end
-
-          it "builds tracer with ThreadScope-based context provider" do
-            tracer = build_tracer
-            provider = tracer.instance_variable_get(:@provider)
-
-            expect(provider).to be_a(Datadog::Tracing::DefaultContextProvider)
-            expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::ThreadScope)
-          ensure
-            tracer.shutdown!
-          end
-        end
-
         context "set to 'fiber_isolated' (default)" do
           it "builds tracer with FiberIsolatedScope-based context provider" do
             tracer = build_tracer

@@ -57,14 +57,10 @@ module Datadog
       end
 
       def build_context_provider(settings, otel_thread_context)
-        scope = case settings.tracing.context_scope
-        when "thread"
-          Tracing::ThreadScope.new(otel_thread_context: otel_thread_context)
-        else
-          Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context)
-        end
-
-        Tracing::DefaultContextProvider.new(otel_thread_context: otel_thread_context, scope: scope)
+        Tracing::DefaultContextProvider.new(
+          otel_thread_context: otel_thread_context,
+          scope: Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context),
+        )
       end
 
       def build_trace_flush(settings)

@@ -23,14 +23,6 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
         expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberIsolatedScope)
       end
     end
-
-    context "with scope: ThreadScope.new" do
-      let(:options) { {scope: Datadog::Tracing::ThreadScope.new} }
-
-      it "uses ThreadScope" do
-        expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::ThreadScope)
-      end
-    end
   end
 
   describe "#context=" do
@@ -184,22 +176,6 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
     end
   end
 
-  context "with ThreadScope" do
-    let(:options) { {scope: Datadog::Tracing::ThreadScope.new} }
-
-    it "shares context across fibers" do
-      ctx = provider.context = Datadog::Tracing::Context.new
-      expect(provider.context).to be(ctx)
-
-      fiber_context = nil
-      Fiber.new do
-        fiber_context = provider.context
-      end.resume
-
-      expect(fiber_context).to be(ctx)
-    end
-  end
-
   context "with FiberIsolatedScope" do
     let(:options) { {scope: Datadog::Tracing::FiberIsolatedScope.new} }
 
@@ -343,114 +319,6 @@ RSpec.describe Datadog::Tracing::FiberIsolatedScope do
       expect { set_current }.to_not(change { fiber_contexts.size })
 
       expect(fiber_isolated_scope.current).to eq(context)
-    end
-  end
-end
-
-RSpec.describe Datadog::Tracing::ThreadScope do
-  subject(:thread_scope) { described_class.new }
-
-  it "is a subclass of ContextScope" do
-    expect(described_class).to be < Datadog::Tracing::ContextScope
-  end
-
-  describe "#initialize" do
-    it "creates one thread-local variable" do
-      expect { thread_scope }.to change { Thread.current.thread_variables.size }.by(1)
-    end
-  end
-
-  def thread_contexts
-    Thread.current.thread_variables.select { |k| k.to_s.start_with?("datadog_context_") }
-  end
-
-  describe "#current" do
-    subject(:current) { thread_scope.current }
-
-    context "with a second ThreadScope" do
-      let(:thread_scope2) { described_class.new }
-
-      it "does not interfere with other ThreadScope" do
-        local_context = thread_scope.current
-        local_context2 = thread_scope2.current
-
-        expect(local_context).to_not eq(local_context2)
-        expect(thread_scope.current).to eq(local_context)
-        expect(thread_scope2.current).to eq(local_context2)
-      end
-    end
-
-    context "in another fiber" do
-      it "shares the same context across fibers" do
-        main_fiber_context = thread_scope.current
-        other_fiber_context = nil
-
-        Fiber.new do
-          other_fiber_context = thread_scope.current
-        end.resume
-
-        expect(other_fiber_context).to be_a Datadog::Tracing::Context
-        expect(other_fiber_context).to eq(main_fiber_context)
-      end
-    end
-
-    context "in another thread" do
-      it "creates one thread-local variable per thread" do
-        main_thread_context = thread_scope.current
-        other_thread_context = nil
-
-        Thread.new do
-          expect { other_thread_context = thread_scope.current }
-            .to change { thread_contexts.size }.from(0).to(1)
-        end.join
-
-        expect(other_thread_context).to be_a Datadog::Tracing::Context
-        expect(other_thread_context).to_not eq(main_thread_context)
-      end
-    end
-
-    context "given a thread" do
-      subject(:current) { thread_scope.current(thread) }
-
-      let(:queue) { Queue.new }
-      let(:thread) { Thread.new { queue.pop } }
-
-      after do
-        queue << :done
-        thread.join
-      end
-
-      it "retrieves the context for the provided thread" do
-        is_expected.to be_a_kind_of(Datadog::Tracing::Context)
-        expect(current).to_not be(thread_scope.current)
-        expect(thread_scope.current(thread)).to be(current)
-      end
-    end
-  end
-
-  describe "#current=" do
-    subject(:set_current) { thread_scope.current = context }
-
-    let(:context) { double }
-
-    before { thread_scope } # Force initialization
-
-    it "overrides thread-local variable" do
-      expect { set_current }.to_not(change { thread_contexts.size })
-
-      expect(thread_scope.current).to eq(context)
-    end
-
-    it "shares the same context across fibers" do
-      new_context = Datadog::Tracing::Context.new
-      thread_scope.current = new_context
-
-      fiber_context = nil
-      Fiber.new do
-        fiber_context = thread_scope.current
-      end.resume
-
-      expect(fiber_context).to be(new_context)
     end
   end
 end
