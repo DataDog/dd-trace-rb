@@ -143,6 +143,85 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     end
   end
 
+  describe "bounded payloads" do
+    let(:limit) { 5 * 1024 * 1024 }
+
+    [:raise, :kill].each do |interrupt|
+      it "delivers every completed payload report before propagating #{interrupt}" do
+        spans = Array.new(3) { make_span(resource: "x" * (2 * 1024 * 1024)) }
+        entered = Queue.new
+        release = Queue.new
+        reports = Queue.new
+        returned = Queue.new
+        errors = Queue.new
+        failure = RuntimeError.new("asynchronous interruption")
+        sender = Thread.new do
+          exporter._native_send_traces(spans.zip, false) do |report|
+            if reports.empty?
+              entered << true
+              release.pop
+            end
+            reports << report
+          end
+          returned << true
+        rescue => error
+          errors << error
+        end
+        Timeout.timeout(5) { entered.pop }
+        (interrupt == :raise) ? sender.raise(failure) : sender.kill
+        release << true
+        expect(sender.join(5)).to eq(sender)
+
+        expect(reports.size).to eq(2)
+        expect(2.times.sum { reports.pop.fetch(:chunks_sent) }).to eq(3)
+        expect(returned).to be_empty
+        if interrupt == :raise
+          expect(errors.size).to eq(1)
+          expect(errors.pop).to equal(failure)
+        else
+          expect(errors).to be_empty
+        end
+      ensure
+        release << true if release
+        sender&.kill
+        sender&.join(5)
+      end
+    end
+
+    it "splits large batches into bounded requests with per-payload results" do
+      spans = Array.new(3) { |i| make_span("job.#{i}", resource: "x" * (2 * 1024 * 1024)) }
+      reports = []
+      responses = exporter._native_send_traces(spans.zip, false) { |report| reports << report }
+      requests = mock_agent.requests.select { |request| request[:request_line].include?("/v0.4/traces") }
+
+      expect(requests.length).to be > 1
+      expect(requests.map { |request| request[:body].bytesize }).to all(be <= limit)
+      expect(responses.length).to eq(requests.length)
+      expect(responses).to all(be_ok)
+      expect(responses.map(&:trace_count).sum).to eq(3)
+      expect(reports.map { |report| report.fetch(:requests_count) }.sum).to eq(requests.length)
+      expect(reports.map { |report| report.fetch(:bytes_sent) }).to eq(requests.map { |request| request[:body].bytesize })
+      sent = requests.flat_map { |request| MessagePack.unpack(request[:body]).flatten }
+      expect(sent.map { |span| span.fetch("span_id") }).to eq(spans.map(&:id))
+    end
+
+    it "drops an oversized trace without discarding its neighbours" do
+      first = make_span("first")
+      oversized = make_span("oversized", resource: "x" * (limit + 1))
+      last = make_span("last")
+      reports = []
+      responses = exporter._native_send_traces([[first], [oversized], [last]], false) { |report| reports << report }
+      requests = mock_agent.requests.select { |request| request[:request_line].include?("/v0.4/traces") }
+
+      expect(responses).to all(be_ok)
+      expect(responses.map(&:trace_count).sum).to eq(2)
+      expect(reports.sum { |report| report.fetch(:chunks_dropped_payload_too_large, 0) }).to eq(1)
+      expect(reports.sum { |report| report.fetch(:spans_dropped_payload_too_large, 0) }).to eq(1)
+      sent = requests.flat_map { |request| MessagePack.unpack(request[:body]).flatten }
+      expect(sent.map { |span| span.fetch("span_id") }).to eq([first.id, last.id])
+    end
+  end
+
   describe "with a single trace containing one span" do
     it "exposes a complete send report after reacquiring the GVL" do
       observations = nil
