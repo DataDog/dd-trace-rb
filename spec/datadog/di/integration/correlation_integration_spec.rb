@@ -49,7 +49,7 @@ RSpec.describe "Correlation integration" do
 
   let(:component) do
     Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
-      raise "Component failed to create; see the DI log entries for the reason" if component.nil?
+      raise "Component failed to create" if component.nil?
       component.start!
     end
   end
