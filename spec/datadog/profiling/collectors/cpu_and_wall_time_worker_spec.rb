@@ -93,7 +93,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
 
-        expect(miteruby_recorder).to be_a(Datadog::Profiling::StackRecorder)
+        expect(miteruby_recorder).to be_a(Datadog::Profiling::Miteruby::LibdatadogRecorder)
         expect(miteruby_recorder).to_not equal(stack_recorder)
         expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
       end
@@ -2048,7 +2048,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe "miteruby consumer" do
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
-    let(:miteruby_recorder) { Datadog::Profiling::StackRecorder.for_testing }
+    let(:miteruby_recorder) { Datadog::Profiling::Miteruby::LibdatadogRecorder.new }
 
     before do
       allow(cpu_and_wall_time_worker).to receive(:create_miteruby_consumer)
