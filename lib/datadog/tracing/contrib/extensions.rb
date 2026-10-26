@@ -178,7 +178,7 @@ module Datadog
             def instrument(integration_name, options = {}, &block)
               integration = fetch_integration(integration_name)
 
-              unless integration.nil? || !(integration.default_configuration.enabled || reenabling?(integration_name, options))
+              if integration && (integration.default_configuration.enabled || options[:enabled])
                 configuration_name = options[:describes] || :default
                 filtered_options = options.reject { |k, _v| k == :describes }
                 integration.configure(configuration_name, filtered_options, &block)
@@ -192,15 +192,6 @@ module Datadog
               end
 
               integration
-            end
-
-            # An integration that was already instrumented and later disabled with
-            # `enabled: false` can be turned back on with an explicit `enabled: true`.
-            # Integrations disabled before instrumentation (e.g. via `DD_TRACE_<INTEGRATION>_ENABLED`)
-            # were never instrumented, so they stay disabled.
-            # @!visibility private
-            def reenabling?(integration_name, options)
-              options[:enabled] == true && instrumented_integrations.key?(integration_name)
             end
 
             # For the provided `integration_name`, resolves a matching configuration

@@ -277,10 +277,18 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             context "before it was instrumented" do
               before { integration.default_configuration.enabled = false }
 
-              it "does not configure or instrument it, even with enabled: true" do
+              it "enables it when given enabled: true" do
+                settings.send(:instrument, integration_name, enabled: true)
+
+                expect(settings.instrumented_integrations).to include(integration_name => integration)
+                expect(settings.integrations_pending_activation).to include(integration)
+                expect(integration.default_configuration.enabled).to be true
+              end
+
+              it "does not configure or instrument it without an explicit enabled option" do
                 expect(integration).to_not receive(:configure)
 
-                settings.send(:instrument, integration_name, enabled: true)
+                settings.send(:instrument, integration_name, service_name: "other")
 
                 expect(settings.instrumented_integrations).to_not include(integration_name)
                 expect(integration.default_configuration.enabled).to be false
@@ -293,7 +301,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
                 settings.send(:instrument, integration_name, enabled: false)
               end
 
-              it "re-enables it when given enabled: true" do
+              it "enables it when given enabled: true" do
                 settings.send(:instrument, integration_name, enabled: true)
 
                 expect(integration.default_configuration.enabled).to be true
