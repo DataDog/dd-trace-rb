@@ -307,7 +307,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -360,7 +359,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -437,7 +435,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -488,6 +485,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     it "reports the probed method name under the Logs standard attribute logger.method_name" do
       expect(payload[:logger]).to include(method_name: "test_method")
       expect(payload[:logger]).not_to have_key(:method)
+    end
+
+    it "reports name, method_name, thread_name and thread_id in logger" do
+      expect(payload[:logger].keys).to contain_exactly(:name, :method_name, :thread_name, :thread_id)
     end
 
     context "when the capture time budget is exhausted" do
