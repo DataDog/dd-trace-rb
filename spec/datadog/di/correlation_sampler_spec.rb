@@ -262,7 +262,10 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     end
 
     it "keeps live entries beyond any count" do
-      10.times { ledger.store(Object.new, budget) }
+      # The stored traces are held strongly, so no garbage collection during
+      # the stores can collect them and make a sweep evict the entries.
+      traces = Array.new(10) { Object.new }
+      traces.each { |trace| ledger.store(trace, budget) }
       expect(ledger.entries.size).to eq(10)
     end
 
