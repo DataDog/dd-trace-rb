@@ -2,6 +2,7 @@
 #include "consumer_recorder.h"
 #include "consumer_stack_dedup.h"
 #include "buffer_marking.h"
+#include "allocator.h"
 
 #include "../datadog_ruby_common.h"
 #include "../setup_signal_handler.h"
@@ -11,19 +12,20 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ruby/thread.h>
 #include <threads.h>
 
 static size_t objects_to_mark_allocated_bytes = 0;
 
 static void *objects_to_mark_calloc(size_t size) {
-  void *allocation = calloc(1, size);
+  void *allocation = miteruby_allocator_alloc(size, "objects_to_mark");
   if (allocation != NULL) objects_to_mark_allocated_bytes += size;
   return allocation;
 }
 
 static void objects_to_mark_free(void *allocation, size_t size) {
-  free(allocation);
+  miteruby_allocator_free(allocation, size);
   objects_to_mark_allocated_bytes -= size;
 }
 
@@ -137,9 +139,9 @@ void miteruby_consumer_init(void) {
   mutex_lock(&consumed_events_mutex);
   mutex_lock(&objects_to_mark_mutex);
 
-  miteruby_event_deduped_sample_t *new_buffer = calloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY, sizeof(*new_buffer));
+  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
   if (new_buffer == NULL) rb_bug("Failed to allocate miteruby consumed events buffer");
-  free(consumed_events_buffer);
+  miteruby_allocator_free(consumed_events_buffer, consumed_events_capacity * sizeof(*consumed_events_buffer));
   consumed_events_buffer = new_buffer;
   consumed_events_count = 0;
   consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
@@ -268,8 +270,10 @@ static void buffer_event(const miteruby_event_header_t *header) {
     if (consumed_events_capacity > SIZE_MAX / sizeof(*consumed_events_buffer) - CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY)
       rb_bug("Miteruby consumed events buffer size overflow");
     size_t new_capacity = consumed_events_capacity + CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
-    miteruby_event_deduped_sample_t *new_buffer = realloc(consumed_events_buffer, new_capacity * sizeof(*new_buffer));
+    miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(new_capacity * sizeof(*new_buffer), "consumed_events_buffer");
     if (new_buffer == NULL) rb_bug("Failed to grow miteruby consumed events buffer");
+    memcpy(new_buffer, consumed_events_buffer, consumed_events_count * sizeof(*new_buffer));
+    miteruby_allocator_free(consumed_events_buffer, consumed_events_capacity * sizeof(*consumed_events_buffer));
     consumed_events_buffer = new_buffer;
     consumed_events_capacity = new_capacity;
   }
