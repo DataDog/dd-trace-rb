@@ -107,8 +107,8 @@ module Datadog
       # negative balance), the inherited ledger holds entries for traces
       # that do not exist in the child, and a mutex held by a parent thread
       # at fork time stays locked forever in the child. The rebuild replaces
-      # the objects rather than mutating them, so it never acquires the
-      # inherited mutex; it must run while the child is single-threaded,
+      # the objects rather than mutating them, so it leaves the inherited
+      # mutex untouched; it must run while the child is single-threaded,
       # which the at-fork hook calling it guarantees.
       #
       # @return [void]
