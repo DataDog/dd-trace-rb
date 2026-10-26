@@ -65,7 +65,7 @@ module Datadog
 
       def touch_budget: (Datadog::Tracing::TraceOperation trace) -> TraceBudget?
 
-      def emit_top?: (Datadog::Tracing::TraceOperation trace, Probe probe) -> [bool, Symbol?]
+      def emit_top?: (Probe probe, Datadog::Tracing::TraceOperation trace) -> [bool, Symbol?]
 
       def emit_correlated?: (TraceBudget budget, Probe probe) -> [bool, Symbol?]
 

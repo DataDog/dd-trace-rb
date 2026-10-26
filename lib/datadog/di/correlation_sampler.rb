@@ -74,7 +74,7 @@ module Datadog
           if budget
             emit_correlated?(budget, probe)
           else
-            emit_top?(trace, probe)
+            emit_top?(probe, trace)
           end
         end
       end
@@ -203,11 +203,11 @@ module Datadog
       # the check, so a hit the TOP gate refuses still spends one GLOBAL
       # token, and GLOBAL refills once per hit. Must hold the lock.
       #
-      # @param trace [Datadog::Tracing::TraceOperation]
       # @param probe [Datadog::DI::Probe]
+      # @param trace [Datadog::Tracing::TraceOperation]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
       #   decision, nil when admitted
-      def emit_top?(trace, probe)
+      def emit_top?(probe, trace)
         unless global_limiter.try_consume && top_limiter.allow?
           store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return [false, :top_gate]
