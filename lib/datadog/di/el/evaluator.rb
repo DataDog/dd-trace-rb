@@ -330,8 +330,6 @@ module Datadog
           def filter_hash(collection, deadline, &block)
             i = 0
             result = {}
-            # A compare_by_identity source hash can hold distinct-but-eql?
-            # keys; the result keeps the same key semantics.
             result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
             HASH_EACH.bind(collection).call do |key, value|
               raise_if_evaluation_deadline_exceeded(i, deadline)
