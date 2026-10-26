@@ -5,7 +5,7 @@
 
 #include "../datadog_ruby_common.h"
 #include "../setup_signal_handler.h"
-#include "../stack_recorder.h"
+#include "libdatadog_recorder.h"
 #include "../time_helpers.h"
 
 #include <pthread.h>
@@ -217,7 +217,7 @@ void miteruby_consumer_consume(miteruby_buffer_t *buffer) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE recorder_instance) {
-  enforce_recorder_instance(recorder_instance);
+  miteruby_libdatadog_recorder_enforce_available(recorder_instance);
   mutex_lock(&consumed_events_mutex);
   rb_ensure(prepare_serialize_locked, recorder_instance, prepare_serialize_unlock_ensure, Qnil);
 }
