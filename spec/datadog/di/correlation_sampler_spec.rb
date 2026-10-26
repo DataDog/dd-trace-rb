@@ -16,8 +16,6 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   let(:per_probe_budget) { 5 }
   let(:all_budget) { 20 }
 
-  # Freeze the clock so the process-wide buckets hold a fixed balance
-  # for each example.
   before do
     allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
   end
