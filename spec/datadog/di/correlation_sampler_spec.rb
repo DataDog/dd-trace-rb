@@ -334,13 +334,19 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       end
       held.pop
 
-      expect_in_fork(timeout_seconds: 10) do
-        correlation.after_fork!
-        expect(correlation.emit?(probe("a"), Object.new)).to be(true)
+      begin
+        expect_in_fork(timeout_seconds: 10) do
+          correlation.after_fork!
+          expect(correlation.emit?(probe("a"), Object.new)).to be(true)
+        end
+      ensure
+        # Release and join the holder on every path: expect_in_fork raises
+        # when the forked assertions fail, and the holder thread would
+        # otherwise stay blocked on release.pop while holding the sampler
+        # mutex.
+        release << true
+        holder.join
       end
-
-      release << true
-      holder.join
     end
 
     it "serves a child after the parent exhausted the process-wide buckets" do
