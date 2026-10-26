@@ -99,11 +99,7 @@ module Datadog
           @stale_emitted = false
           @stale_pending = false
         end
-        begin
-          Datadog.logger.debug("Feature Flags: provider initialization started") if Datadog.logger.debug?
-        rescue
-          nil
-        end
+        Datadog.logger.debug { "Feature Flags: provider initialization started" }
         ready_handler_installed = install_initialization_ready_handler
 
         component, failure = OpenFeature.activate_provider(self)
@@ -122,11 +118,7 @@ module Datadog
         case wait_result
         when Component::CONFIGURATION_READY
           @initialization_mutex.synchronize { @initializing = false } unless ready_handler_installed
-          begin
-            Datadog.logger.debug("Feature Flags: provider initialized successfully") if Datadog.logger.debug?
-          rescue
-            nil
-          end
+          Datadog.logger.debug { "Feature Flags: provider initialized successfully" }
         when Component::CONFIGURATION_TIMEOUT
           message = "Feature Flags provider initialization timed out while waiting for configuration"
           Datadog.logger.error(message)
@@ -174,11 +166,7 @@ module Datadog
           )
         end
         OpenFeature.deactivate_provider(self)
-        begin
-          Datadog.logger.debug("Feature Flags: provider shut down") if Datadog.logger.debug?
-        rescue
-          nil
-        end
+        Datadog.logger.debug { "Feature Flags: provider shut down" }
       end
 
       def hooks
@@ -239,11 +227,7 @@ module Datadog
         prepare_initialization_failure(component)
         cancel_initialization_if_shutdown!
         # Non-blocking set_provider surfaces this only as a PROVIDER_ERROR event.
-        begin
-          Datadog.logger.debug("Feature Flags: provider failed to initialize: #{message}") if Datadog.logger.debug?
-        rescue
-          nil
-        end
+        Datadog.logger.debug { "Feature Flags: provider failed to initialize: #{message}" }
         raise message.to_s
       end
 
@@ -414,17 +398,15 @@ module Datadog
 
       def log_state_event(event_type)
         logger = Datadog.logger
-        return unless logger.debug?
-
-        availability = case event_type
-        when ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
-          "; configuration is available"
-        when ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
-          "; configuration is no longer available"
+        logger.debug do
+          availability = case event_type
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            "; configuration is available"
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+            "; configuration is no longer available"
+          end
+          "Feature Flags: provider emitted #{event_type}#{availability}"
         end
-        logger.debug("Feature Flags: provider emitted #{event_type}#{availability}")
-      rescue
-        nil
       end
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
@@ -543,15 +525,11 @@ module Datadog
       # No component means no DebugLoggingHook and no raw-data warning, so only non-raw fields are logged.
       def log_component_not_configured(flag_key, expected_type)
         logger = Datadog.logger
-        return unless logger.debug?
-
-        logger.debug(
+        logger.debug do
           "Feature Flags: provider returned the default value for #{flag_key.inspect} (type=#{expected_type}): " \
             "the Feature Flags component is not active; see the provider initialization logs " \
             "(error_code=#{Ext::PROVIDER_FATAL})"
-        )
-      rescue
-        nil
+        end
       end
 
       def component_not_configured_default(value, eval_time_ms)

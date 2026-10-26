@@ -99,7 +99,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
       it "logs the received path and version" do
         messages = []
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(component).to receive(:reconfigure!)
 
         receiver.call(repository, transaction)
@@ -185,7 +185,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
       it "logs the received deletion" do
         messages = []
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(component).to receive(:reconfigure!)
 
         receiver.call(repository, transaction)
@@ -217,7 +217,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
       it "logs that the change was ignored" do
         messages = []
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(telemetry).to receive(:error)
 
         receiver.call(repository, changes)

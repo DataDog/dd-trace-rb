@@ -100,11 +100,7 @@ module Datadog
           return unless @providers.empty?
           if @delivery_source == Configuration::Source::REMOTE_CONFIG && @delivery_started
             # Remote Configuration is process-scoped and may already hold configuration needed by the next provider.
-            begin
-              @logger.debug("Feature Flags: provider detached; process-scoped Remote Configuration remains active") if @logger.debug?
-            rescue
-              nil
-            end
+            @logger.debug { "Feature Flags: provider detached; process-scoped Remote Configuration remains active" }
             [nil, nil]
           else
             previous_source = @configuration_source
@@ -154,24 +150,14 @@ module Datadog
         @activated = true
         unless resolution.enabled?
           @failure = "Feature Flags are disabled"
-          begin
-            if @logger.debug?
-              @logger.debug(
-                "Feature Flags: disabled (feature_flags.enabled=#{@settings.feature_flags.enabled}, " \
-                  "configuration source=#{resolution.source})"
-              )
-            end
-          rescue
-            nil
+          @logger.debug do
+            "Feature Flags: disabled (feature_flags.enabled=#{@settings.feature_flags.enabled}, " \
+              "configuration source=#{resolution.source})"
           end
           return
         end
 
-        begin
-          @logger.debug("Feature Flags: configuration source is #{resolution.source}") if @logger.debug?
-        rescue
-          nil
-        end
+        @logger.debug { "Feature Flags: configuration source is #{resolution.source}" }
         component = Component.build(
           @settings,
           @agent_settings,
@@ -251,18 +237,12 @@ module Datadog
 
         @configuration_source = configuration_source
 
-        begin
-          if @logger.debug?
-            agentless = @settings.feature_flags.agentless
-            requested_env = endpoint.managed? ? (@settings.env || "unset") : "not sent (custom endpoint)"
-            @logger.debug(
-              "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
-                "(sdk_env=#{@settings.env || "unset"}, requested_env=#{requested_env}, " \
-                "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
-            )
-          end
-        rescue
-          nil
+        @logger.debug do
+          agentless = @settings.feature_flags.agentless
+          requested_env = endpoint.managed? ? (@settings.env || "unset") : "not sent (custom endpoint)"
+          "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
+            "(sdk_env=#{@settings.env || "unset"}, requested_env=#{requested_env}, " \
+            "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
         end
 
         started = configuration_source.start
@@ -292,15 +272,9 @@ module Datadog
           receivers: receivers,
         )
         remote.start
-        begin
-          if @logger.debug?
-            @logger.debug(
-              "Feature Flags: started Remote Configuration source (sdk_env=#{@settings.env || "unset"}); " \
-                "configuration arrives through the Datadog Agent"
-            )
-          end
-        rescue
-          nil
+        @logger.debug do
+          "Feature Flags: started Remote Configuration source (sdk_env=#{@settings.env || "unset"}); " \
+            "configuration arrives through the Datadog Agent"
         end
         true
       end

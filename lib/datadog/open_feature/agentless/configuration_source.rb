@@ -92,11 +92,7 @@ module Datadog
           end
 
           super
-          begin
-            @logger.debug("Feature Flags: stopped agentless configuration polling") if @logger.debug?
-          rescue
-            nil
-          end
+          @logger.debug { "Feature Flags: stopped agentless configuration polling" }
           true
         end
 
@@ -128,11 +124,7 @@ module Datadog
             end
 
             delay = retry_delay(attempt)
-            begin
-              @logger.debug("Feature Flags: retrying agentless configuration poll in #{delay.round(1)}s") if @logger.debug?
-            rescue
-              nil
-            end
+            @logger.debug { "Feature Flags: retrying agentless configuration poll in #{delay.round(1)}s" }
             return if wait_before_retry(delay)
 
             attempt += 1
@@ -155,22 +147,20 @@ module Datadog
         end
 
         def log_poll_attempt(response, attempt)
-          return unless @logger.debug?
-
-          outcome = case response.status
-          when nil
-            "failed: #{request_error_class(response)}"
-          when 304
-            "returned HTTP 304 (unchanged)"
-          when 200
-            etag = response.etag.to_s.strip
-            etag.empty? ? "returned HTTP 200" : "returned HTTP 200 (ETag #{etag})"
-          else
-            "returned HTTP #{response.status}"
+          @logger.debug do
+            outcome = case response.status
+            when nil
+              "failed: #{request_error_class(response)}"
+            when 304
+              "returned HTTP 304 (unchanged)"
+            when 200
+              etag = response.etag.to_s.strip
+              etag.empty? ? "returned HTTP 200" : "returned HTTP 200 (ETag #{etag})"
+            else
+              "returned HTTP #{response.status}"
+            end
+            "Feature Flags: agentless configuration poll attempt #{attempt}/#{MAX_ATTEMPTS} #{outcome}"
           end
-          @logger.debug("Feature Flags: agentless configuration poll attempt #{attempt}/#{MAX_ATTEMPTS} #{outcome}")
-        rescue
-          nil
         end
 
         def retryable?(response)
@@ -236,15 +226,9 @@ module Datadog
             warn_once(:malformed) do
               @logger.error("Feature Flags agentless endpoint returned malformed UFC payload")
             end
-            begin
-              if @logger.debug?
-                @logger.debug(
-                  "Feature Flags: ignored malformed agentless configuration payload; " \
-                    "the previously applied configuration, if any, stays active"
-                )
-              end
-            rescue
-              nil
+            @logger.debug do
+              "Feature Flags: ignored malformed agentless configuration payload; " \
+                "the previously applied configuration, if any, stays active"
             end
             return
           end
@@ -280,11 +264,7 @@ module Datadog
         def report_poll_failure(category, message)
           @failed_polls += 1
           if @warned[category]
-            begin
-              @logger.debug(message) if @logger.debug?
-            rescue
-              nil
-            end
+            @logger.debug { message }
           else
             warn_once(category) { @logger.warn(message) }
           end
@@ -295,9 +275,7 @@ module Datadog
 
           failed_polls = @failed_polls
           @failed_polls = 0
-          @logger.debug("Feature Flags: agentless configuration delivery recovered after #{failed_polls} failed poll(s)") if @logger.debug?
-        rescue
-          nil
+          @logger.debug { "Feature Flags: agentless configuration delivery recovered after #{failed_polls} failed poll(s)" }
         end
 
         # Class only: transport error messages can embed endpoint details.

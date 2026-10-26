@@ -4,6 +4,14 @@ require "spec_helper"
 require "datadog/open_feature/transport"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
+  let(:debug_messages) { [] }
+
+  before do
+    allow(logger).to receive(:debug) do |message, &block|
+      debug_messages << (block ? block.call : message) if logger.debug?
+    end
+  end
+
   after do
     worker.stop(true, 0.1)
     worker.join
@@ -51,18 +59,20 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   describe "#enqueue" do
     it "rejects a closed buffer without claiming the exposure was queued" do
       worker.buffer.close
-      expect(logger).to receive(:debug).with("Feature Flags: exposure not queued: buffer closed")
       expect(worker.enqueue(event)).to be(false)
       expect(worker.buffer).to be_empty
+
+      expect(debug_messages).to include("Feature Flags: exposure not queued: buffer closed")
     end
 
     it "reports older queued exposures evicted by a full buffer" do
       allow(worker).to receive(:start)
       allow(transport).to receive(:send_exposures).and_return(response)
       3.times { expect(worker.enqueue(event)).to be(true) }
-      expect(logger).to receive(:debug).with("Feature Flags: dropped 1 older queued exposure event(s) because the exposure buffer was full")
-      expect(logger).to receive(:debug).with("Feature Flags: flushing 2 exposure event(s) to the Datadog Agent")
       worker.send(:send_events, *worker.dequeue)
+
+      expect(debug_messages).to include("Feature Flags: dropped 1 older queued exposure event(s) because the exposure buffer was full")
+      expect(debug_messages).to include("Feature Flags: flushing 2 exposure event(s) to the Datadog Agent")
     end
 
     context "when worker is not started" do
@@ -107,12 +117,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       before { allow(transport).to receive(:send_exposures).and_return(response) }
 
       it "logs that the Datadog Agent accepted the events" do
-        expect(logger).to receive(:debug).with("Feature Flags: sent 1 exposure event(s) to the Datadog Agent")
-
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
         worker.flush
+
+        expect(debug_messages).to include("Feature Flags: sent 1 exposure event(s) to the Datadog Agent")
       end
     end
 
@@ -122,12 +132,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { nil }
 
       it "logs debug message" do
-        expect(logger).to receive(:debug).with(/exposure upload response was not OK; dropping 1 exposure event\(s\) without retry/)
-
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
         worker.flush
+
+        expect(debug_messages).to include(/exposure upload response was not OK; dropping 1 exposure event\(s\) without retry/)
       end
     end
 
@@ -137,12 +147,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: false) }
 
       it "logs debug message" do
-        expect(logger).to receive(:debug).with(/exposure upload response was not OK; dropping 1 exposure event\(s\) without retry/)
-
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
         worker.flush
+
+        expect(debug_messages).to include(/exposure upload response was not OK; dropping 1 exposure event\(s\) without retry/)
       end
     end
 
@@ -153,7 +163,6 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
       it "logs debug message and swallows the error" do
         expect(telemetry).to receive(:report).with(error, description: /Failed to flush resolution details events/)
-        expect(logger).to receive(:debug).with(/failed to flush exposure events; dropping 1 exposure event\(s\) without retry: StandardError: Ooops/)
 
         worker.enqueue(event)
         try_wait_until { worker.running? }
@@ -161,6 +170,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
         expect { worker.perform }.not_to raise_error
 
         worker.flush
+
+        expect(debug_messages).to include(/failed to flush exposure events; dropping 1 exposure event\(s\) without retry: StandardError: Ooops/)
       end
     end
   end
@@ -178,10 +189,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0, 100)
       allow(worker).to receive(:sleep)
       allow(worker).to receive(:stop).and_wrap_original { |method, force| method.call(force, 0) }
-      expect(logger).to receive(:debug).with("Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=true, wait_budget=5.1s; no queued exposure events remain; the in-flight upload may still report sent or dropping during shutdown; if forcibly terminated, its outcome will not be reported").ordered
-      expect(logger).to receive(:debug).with("Feature Flags: exposure worker stopped").ordered
       worker.graceful_shutdown
       expect(worker).not_to be_running
+      expect(debug_messages.last(2)).to eq([
+        "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=true, wait_budget=5.1s; no queued exposure events remain; the in-flight upload may still report sent or dropping during shutdown; if forcibly terminated, its outcome will not be reported",
+        "Feature Flags: exposure worker stopped",
+      ])
     ensure
       release << true
     end
@@ -203,9 +216,9 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
         method.call(*args)
       end
       worker.graceful_shutdown
-      expect(logger).to have_received(:debug).with("Feature Flags: sent 1 exposure event(s) to the Datadog Agent").once
+      expect(debug_messages.count("Feature Flags: sent 1 exposure event(s) to the Datadog Agent")).to eq(1)
       expect(worker.buffer.length).to eq(1)
-      expect(logger).to have_received(:debug).with("Feature Flags: exposure worker stopped")
+      expect(debug_messages).to include("Feature Flags: exposure worker stopped")
       expect(worker).not_to be_running
     ensure
       release << response
@@ -247,7 +260,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
       it "logs that no queued events remain" do
         messages = Queue.new
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(transport).to receive(:send_exposures).and_return(response)
 
         worker.enqueue(event)
@@ -261,7 +274,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
       it "logs queued events that were not sent before the deadline" do
         messages = Queue.new
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(worker).to receive(:start)
 
         worker.enqueue(event)
@@ -275,7 +288,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
       it "logs evicted events that were never flushed" do
         messages = Queue.new
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         allow(worker).to receive(:start)
 
         3.times { worker.enqueue(event) }

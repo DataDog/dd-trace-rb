@@ -29,19 +29,13 @@ module Datadog
           event = Event.build(result, flag_key: flag_key, context: context)
           return false unless @worker.enqueue(event)
 
-          begin
-            if @logger.debug?
-              @logger.debug(
-                "Feature Flags: queued exposure for #{flag_key.inspect} (allocation=#{result.allocation_key.inspect}, " \
-                  "variant=#{result.variant.inspect}, targeting_key=#{context.targeting_key.inspect})"
-              )
-            end
-          rescue
-            nil
+          @logger.debug do
+            "Feature Flags: queued exposure for #{flag_key.inspect} (allocation=#{result.allocation_key.inspect}, " \
+              "variant=#{result.variant.inspect}, targeting_key=#{context.targeting_key.inspect})"
           end
           true
         rescue => e
-          @logger.debug("OpenFeature: Failed to report resolution details: #{e.class}: #{e.message}") if @logger.debug?
+          @logger.debug { "OpenFeature: Failed to report resolution details: #{e.class}: #{e.message}" }
           @telemetry.report(e, description: "OpenFeature: Failed to report resolution details")
 
           false
@@ -50,9 +44,7 @@ module Datadog
         private
 
         def skip(flag_key, reason)
-          @logger.debug("Feature Flags: exposure for #{flag_key.inspect} not recorded: #{reason}") if @logger.debug?
-          false
-        rescue
+          @logger.debug { "Feature Flags: exposure for #{flag_key.inspect} not recorded: #{reason}" }
           false
         end
       end

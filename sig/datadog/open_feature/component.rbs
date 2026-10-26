@@ -89,8 +89,6 @@ module Datadog
 
       def configuration_shutdown?: () -> bool
 
-      def debug_logging?: () -> bool
-
       def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 
       def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?

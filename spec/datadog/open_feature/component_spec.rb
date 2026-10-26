@@ -174,16 +174,21 @@ RSpec.describe Datadog::OpenFeature::Component do
       expect(component.debug_logging_hook).to be_nil
     end
 
-    it "is withheld when the logger fails" do
-      allow(logger).to receive(:debug?).and_raise(IOError, "closed stream")
-
-      expect(component.debug_logging_hook).to be_nil
-    end
-
     it "reuses one hook across evaluations" do
       allow(logger).to receive(:debug?).and_return(true)
 
       expect(component.debug_logging_hook).to be(component.debug_logging_hook)
+    end
+
+    it "withholds an existing hook when debug logging is disabled later" do
+      allow(logger).to receive(:debug?).and_return(true)
+      hook = component.debug_logging_hook
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(logger).to receive(:debug?).and_return(true)
+      expect(component.debug_logging_hook).to be(hook)
     end
 
     it "is built once the OpenFeature SDK loads after the component" do
@@ -242,13 +247,6 @@ RSpec.describe Datadog::OpenFeature::Component do
       component.debug_logging_hook
 
       expect(logger).to have_received(:warn).with(raw_data_warning).once
-    end
-
-    it "still builds when the logger fails to warn" do
-      allow(logger).to receive(:debug?).and_return(true)
-      allow(logger).to receive(:warn).and_raise(IOError, "closed stream")
-
-      expect(component).to be_a(described_class)
     end
   end
 
@@ -320,27 +318,6 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!("configuration") }
           .to change(component, :configuration_received?).from(false).to(true)
-        expect(on_configuration_change).to have_received(:call).with(:ready)
-      end
-
-      it "marks an applied configuration as received when the logger fails" do
-        evaluator = instance_double(Datadog::OpenFeature::NativeEvaluator)
-        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).with("configuration").and_return(evaluator)
-        component
-        allow(logger).to receive(:debug?).and_return(true)
-        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
-
-        expect { component.reconfigure!("configuration") }
-          .to change(component, :configuration_received?).from(false).to(true)
-        expect(on_configuration_change).to have_received(:call).with(:ready)
-      end
-
-      it "notifies readiness even when diagnostic formatting fails" do
-        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
-        allow(logger).to receive(:debug?).and_return(true)
-        allow(component.engine).to receive(:configuration_summary).and_raise("cannot format")
-        component.reconfigure!("configuration")
-        expect(component.configuration_received?).to be(true)
         expect(on_configuration_change).to have_received(:call).with(:ready)
       end
 

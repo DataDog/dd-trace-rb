@@ -21,10 +21,8 @@ module Datadog
         end
 
         def finally(hook_context:, evaluation_details:, **_opts)
-          return unless @logger.debug?
-
-          evaluation_context = hook_context.evaluation_context
-          @logger.debug(
+          @logger.debug do
+            evaluation_context = hook_context.evaluation_context
             "Feature Flags: evaluated #{hook_context.flag_key.inspect} (" \
               "type=#{hook_context.flag_value_type}, " \
               "default=#{hook_context.default_value.inspect}, " \
@@ -37,18 +35,14 @@ module Datadog
               "targeting_key=#{evaluation_context&.targeting_key.inspect}, " \
               "attributes=#{attributes(evaluation_context).inspect}, " \
               "flag_metadata=#{evaluation_details.flag_metadata.inspect})"
-          )
-        rescue
-          nil
+          end
         end
 
         private
 
         def extract_allocation_key(evaluation_details)
           metadata = evaluation_details.flag_metadata
-          return unless metadata.is_a?(Hash)
-
-          metadata[Ext::METADATA_ALLOCATION_KEY]
+          metadata&.[](Ext::METADATA_ALLOCATION_KEY)
         end
 
         def attributes(evaluation_context)

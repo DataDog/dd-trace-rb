@@ -4,6 +4,14 @@ require "spec_helper"
 require "datadog/open_feature/evaluation_engine"
 
 RSpec.describe Datadog::OpenFeature::EvaluationEngine do
+  let(:debug_messages) { [] }
+
+  before do
+    allow(logger).to receive(:debug) do |message, &block|
+      debug_messages << (block ? block.call : message) if logger.debug?
+    end
+  end
+
   before do
     allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator)
     allow(evaluator).to receive(:observe_full_evaluation_data).and_return(false)
@@ -138,7 +146,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it "logs the raw failure after the raw-data warning" do
         messages = []
         allow(logger).to receive(:warn) { |message| messages << message }
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
         result
 
@@ -256,7 +264,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it "logs the raw provider resolution while debug logging is enabled" do
         allow(reporter).to receive(:report)
         messages = []
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
         result
 
@@ -266,18 +274,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         )
       end
 
-      it "returns the resolution when the logger fails" do
-        allow(reporter).to receive(:report)
-        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
-
-        expect(result.value).to eq("hello")
-      end
-
       it "warns once about raw evaluation data before the first raw provider resolution" do
         allow(reporter).to receive(:report)
         messages = []
         allow(logger).to receive(:warn) { |message| messages << message }
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
         resolution_message = 'Feature Flags: provider resolved "test": type=string, value="hello", variant="blue", ' \
           'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil'
 
@@ -315,6 +316,46 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe "#reconfigure!" do
+    context "when debug logging is disabled" do
+      let(:logger) { Datadog::Core::Logger.new(StringIO.new) }
+
+      before { allow(logger).to receive(:debug).and_call_original }
+
+      it "does not parse the configuration for a diagnostic summary" do
+        expect(engine).not_to receive(:configuration_summary)
+
+        engine.reconfigure!(configuration)
+
+        expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
+      end
+    end
+
+    context "when configuration is malformed" do
+      before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
+        allow(logger).to receive(:error)
+        allow(telemetry).to receive(:report)
+        allow(reporter).to receive(:report)
+        engine.reconfigure!(configuration)
+      end
+
+      [true, false].each do |debug_enabled|
+        ["[]", "{"].each do |invalid_configuration|
+          it "rejects #{invalid_configuration.inspect} and keeps the previous configuration with debug #{debug_enabled}" do
+            allow(logger).to receive(:debug?).and_return(debug_enabled)
+
+            expect { engine.reconfigure!(invalid_configuration) }
+              .to raise_error(described_class::ReconfigurationError)
+
+            result = engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string)
+            expect(result.value).to eq("hello")
+            expect(result.error_code).to be_nil
+            expect(telemetry).to have_received(:report).once
+          end
+        end
+      end
+    end
+
     [true, false].each do |include_valid|
       it "accepts invalid flags alongside #{include_valid ? "valid flags" : "no valid flags"} and reports per-flag errors" do
         allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
@@ -341,7 +382,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     end
 
     context "with debug logging enabled" do
-      before { allow(logger).to receive(:debug) { |message| message } }
+      before { allow(logger).to receive(:debug) { |message, &block| block ? block.call : message } }
 
       it "applies the configuration" do
         expect { engine.reconfigure!(configuration) }.not_to raise_error
@@ -351,32 +392,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       it "summarizes the applied configuration" do
         messages = []
-        allow(logger).to receive(:debug) { |message| messages << message }
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
         engine.reconfigure!(configuration)
 
         expect(messages).to eq(
           ["Feature Flags: configuration applied (1 flag(s) received; per-flag validity is checked at evaluation, delivered_env=test, created_at=2024-04-17T19:40:53.716Z)"]
         )
-      end
-
-      ["[]", "{"].each do |unsummarizable_configuration|
-        it "applies #{unsummarizable_configuration.inspect} even though it cannot be summarized" do
-          expect { engine.reconfigure!(unsummarizable_configuration) }.not_to raise_error
-
-          expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(unsummarizable_configuration)
-        end
-      end
-    end
-
-    context "when the logger fails" do
-      before { allow(logger).to receive(:debug).and_raise(IOError, "closed stream") }
-
-      it "keeps the applied configuration without reporting a failure" do
-        expect(telemetry).not_to receive(:report)
-
-        expect { engine.reconfigure!(configuration) }.not_to raise_error
-        expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
       end
     end
 

@@ -109,7 +109,7 @@ module Datadog
       # Checked per evaluation so the SDK skips hook dispatch unless debug logging is on. Built lazily
       # because Remote Configuration can build this component before the OpenFeature SDK loads.
       def debug_logging_hook
-        return unless debug_logging?
+        return unless @logger.debug?
 
         @engine.warn_raw_data_logging
         @debug_logging_hook ||= create_debug_logging_hook
@@ -117,11 +117,7 @@ module Datadog
 
       def wait_for_configuration(&cancelled)
         timeout_ms = @settings.feature_flags.initialization_timeout_ms
-        begin
-          @logger.debug("Feature Flags: waiting up to #{timeout_ms}ms for configuration") if @logger.debug?
-        rescue
-          nil
-        end
+        @logger.debug { "Feature Flags: waiting up to #{timeout_ms}ms for configuration" }
         deadline = Core::Utils::Time.get_time + timeout_ms / 1000.0
 
         @configuration_mutex.synchronize do
@@ -163,13 +159,6 @@ module Datadog
 
       def configuration_shutdown?
         @configuration_mutex.synchronize { @configuration_shutdown }
-      end
-
-      # The SDK calls Provider#hooks outside its hook error handling, so this must not raise.
-      def debug_logging?
-        @logger.debug?
-      rescue
-        false
       end
 
       def create_flag_eval_metrics_hook

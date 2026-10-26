@@ -81,13 +81,9 @@ module Datadog
           return @evaluator = NoopEvaluator.new(configuration)
         end
 
-        @evaluator = NativeEvaluator.new(configuration)
-        # A raise here would report the already-applied configuration as rejected.
-        begin
-          @logger.debug("Feature Flags: configuration applied (#{configuration_summary(configuration)})") if @logger.debug?
-        rescue
-          nil
-        end
+        evaluator = NativeEvaluator.new(configuration)
+        @logger.debug { "Feature Flags: configuration applied (#{configuration_summary(configuration)})" }
+        @evaluator = evaluator
       rescue => e
         message = "OpenFeature: Failed to reconfigure, reverting to the previous configuration"
 
@@ -102,50 +98,38 @@ module Datadog
         return unless @logger.debug?
 
         @raw_data_warning.run { @logger.warn(RAW_DATA_WARNING) }
-      rescue
-        nil
       end
 
       private
 
       # The SDK can still replace this result, for example on a type mismatch; DebugLoggingHook logs the final one.
       def log_resolution(flag_key, expected_type, result)
-        return unless @logger.debug?
-
-        warn_raw_data_logging
-        @logger.debug(
+        @logger.debug do
+          warn_raw_data_logging
           "Feature Flags: provider resolved #{flag_key.inspect}: type=#{expected_type}, " \
             "value=#{result.value.inspect}, variant=#{result.variant.inspect}, reason=#{result.reason.inspect}, " \
             "allocation=#{result.allocation_key.inspect}, serial_id=#{result.serial_id.inspect}, " \
             "error_code=#{result.error_code.inspect}, error_message=#{result.error_message.inspect}"
-        )
-      rescue
-        nil
+        end
       end
 
       def log_resolution_failure(flag_key, error)
-        return unless @logger.debug?
-
-        warn_raw_data_logging
-        @logger.debug(
+        @logger.debug do
+          warn_raw_data_logging
           "Feature Flags: provider failed to resolve #{flag_key.inspect}: #{error.class}: #{error.message}; " \
             "returning the default value"
-        )
-      rescue
-        nil
+        end
       end
 
       def configuration_summary(configuration)
         ufc = JSON.parse(configuration)
-        return "unrecognized format" unless ufc.is_a?(Hash)
+        raise ArgumentError, "Feature Flags configuration must be a JSON object" unless ufc.is_a?(Hash)
 
         flags = ufc["flags"]
         environment = ufc["environment"]
         environment_name = environment["name"] if environment.is_a?(Hash)
         "#{flags.is_a?(Hash) ? flags.size : 0} flag(s) received; per-flag validity is checked at evaluation, " \
           "delivered_env=#{environment_name || "unknown"}, created_at=#{ufc["createdAt"] || "unknown"}"
-      rescue JSON::ParserError
-        "unrecognized format"
       end
 
       # Stamps observe_full_evaluation_data onto the result metadata so the hook

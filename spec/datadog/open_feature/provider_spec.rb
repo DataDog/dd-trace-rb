@@ -194,14 +194,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(component).to have_received(:wait_for_configuration)
     end
 
-    it "initializes and shuts down when the logger fails" do
-      allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
-
-      expect { provider.init }.not_to raise_error
-      expect { provider.shutdown }.not_to raise_error
-      expect(Datadog::OpenFeature).to have_received(:deactivate_provider).with(provider)
-    end
-
     it "installs the initialization ready handler once" do
       configuration = ::OpenFeature::SDK::Configuration.new
       provider.send(:attach, configuration)
@@ -500,7 +492,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       messages = []
       allow(logger).to receive(:debug?).and_return(true)
       configuration.set_provider_and_wait(provider)
-      allow(logger).to receive(:debug) { |message| messages << message }
+      allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
       provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
       provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
@@ -552,7 +544,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         provider.fetch_boolean_value(flag_key: "flag", default_value: false)
 
-        expect(logger).to have_received(:debug).with(
+        expect(logger).to have_lazy_debug_logged(
           'Feature Flags: provider returned the default value for "flag" (type=boolean): ' \
             "the Feature Flags component is not active; see the provider initialization logs " \
             "(error_code=PROVIDER_FATAL)"

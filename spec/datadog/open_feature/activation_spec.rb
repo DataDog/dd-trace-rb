@@ -5,6 +5,14 @@ require "datadog/open_feature/activation"
 require "datadog/open_feature/provider"
 
 RSpec.describe Datadog::OpenFeature::Activation do
+  let(:debug_messages) { [] }
+
+  before do
+    allow(logger).to receive(:debug) do |message, &block|
+      debug_messages << (block ? block.call : message) if logger.debug?
+    end
+  end
+
   subject(:activation) do
     described_class.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)
   end
@@ -139,11 +147,9 @@ RSpec.describe Datadog::OpenFeature::Activation do
     end
 
     it "starts agentless delivery with debug logging enabled" do
-      allow(logger).to receive(:debug) { |message| message }
-
       expect(activation.activate(provider)).to be(component)
       expect(configuration_source).to have_received(:start).once
-      expect(logger).to have_received(:debug).with(include("sdk_env=unset, requested_env=unset"))
+      expect(debug_messages).to include(include("sdk_env=unset, requested_env=unset"))
     end
 
     context "with a custom endpoint and debug logging enabled" do
@@ -156,11 +162,10 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
       it "starts agentless delivery" do
         settings.env = "production"
-        allow(logger).to receive(:debug) { |message| message }
 
         expect(activation.activate(provider)).to be(component)
         expect(configuration_source).to have_received(:start).once
-        expect(logger).to have_received(:debug).with(include("sdk_env=production, requested_env=not sent (custom endpoint)"))
+        expect(debug_messages).to include(include("sdk_env=production, requested_env=not sent (custom endpoint)"))
       end
     end
 
@@ -211,7 +216,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
         activation.start!
 
-        expect(logger).to have_received(:debug).with(
+        expect(debug_messages).to include(
           "Feature Flags: started Remote Configuration source (sdk_env=production); " \
             "configuration arrives through the Datadog Agent"
         )

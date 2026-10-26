@@ -5,6 +5,14 @@ require "open_feature/sdk"
 require "datadog/open_feature/exposures/reporter"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
+  let(:debug_messages) { [] }
+
+  before do
+    allow(logger).to receive(:debug) do |message, &block|
+      debug_messages << (block ? block.call : message) if logger.debug?
+    end
+  end
+
   before do
     allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator)
   end
@@ -47,12 +55,13 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it "logs the queued exposure" do
         allow(worker).to receive(:enqueue).and_return(true)
-        expect(logger).to receive(:debug).with(
+
+        reporter.report(result, flag_key: "feature_flag", context: context)
+
+        expect(debug_messages).to include(
           'Feature Flags: queued exposure for "feature_flag" (allocation="4-for-john-doe", variant="4", ' \
             'targeting_key="john-doe")'
         )
-
-        reporter.report(result, flag_key: "feature_flag", context: context)
       end
 
       it "does not claim a rejected exposure was queued" do
@@ -71,11 +80,11 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       end
 
       it "logs why the exposure was not recorded" do
-        expect(logger).to receive(:debug).with(
+        reporter.report(result, flag_key: "feature_flag", context: context)
+
+        expect(debug_messages).to include(
           'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject'
         )
-
-        reporter.report(result, flag_key: "feature_flag", context: context)
       end
     end
 
@@ -89,8 +98,9 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it "returns false and logs debug message" do
         expect(telemetry).to receive(:report).with(error, description: /Failed to report resolution details/)
-        expect(logger).to receive(:debug).with(/Failed to report resolution details: StandardError: Oops/)
         expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(false)
+
+        expect(debug_messages).to include(/Failed to report resolution details: StandardError: Oops/)
       end
     end
 
@@ -113,12 +123,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       end
 
       it "logs why the exposure was not recorded" do
-        expect(logger).to receive(:debug).with(
+        reporter.report(result, flag_key: "feature_flag", context: context)
+
+        expect(debug_messages).to include(
           'Feature Flags: exposure for "feature_flag" not recorded: ' \
             "the evaluation result is not marked for exposure logging"
         )
-
-        reporter.report(result, flag_key: "feature_flag", context: context)
       end
     end
 
@@ -165,24 +175,9 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       end
 
       it "logs why the exposure was not recorded" do
-        expect(logger).to receive(:debug).with('Feature Flags: exposure for "feature_flag" not recorded: no evaluation context')
-
         reporter.report(result, flag_key: "feature_flag", context: nil)
-      end
-    end
 
-    context "when the logger fails" do
-      let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
-
-      before do
-        allow(logger).to receive(:debug).and_raise(IOError, "closed stream")
-        allow(deduplicator).to receive(:duplicate?).and_return(false)
-      end
-
-      it "still enqueues the event" do
-        expect(worker).to receive(:enqueue).and_return(true)
-
-        expect(reporter.report(result, flag_key: "feature_flag", context: context)).to be(true)
+        expect(debug_messages).to include('Feature Flags: exposure for "feature_flag" not recorded: no evaluation context')
       end
     end
   end
