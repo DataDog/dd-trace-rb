@@ -180,7 +180,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   end
 
   describe "#filter, #all, #any evaluation deadline" do
-    # `collection.all(@it >= 0)` and `collection.any(@it >= 0)` exercise #all/#any.
     let(:all_expr) do
       compile_expr("collection.all(@it >= 0)",
         "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
