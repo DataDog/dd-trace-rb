@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       expect(bucket.available_tokens).to eq(15)
     end
 
-    it "drives the balance below zero" do
+    it "takes the balance below zero" do
       25.times { bucket.consume }
       expect(bucket.available_tokens).to eq(-5)
       expect(bucket.available?).to be(false)

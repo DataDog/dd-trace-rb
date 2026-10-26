@@ -31,8 +31,8 @@ module Datadog
         available_tokens > 0
       end
 
-      # Removes +size+ tokens, driving the balance negative when the bucket is
-      # short.
+      # Removes +size+ tokens; the balance goes below zero when +size+
+      # exceeds the available tokens.
       #
       # @param size [Numeric] tokens to remove
       # @return [void]
