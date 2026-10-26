@@ -70,7 +70,7 @@ module Datadog
         lock.synchronize do
           return emit_uncorrelated?(probe) if trace.nil?
 
-          budget = touch_budget(trace)
+          budget = trace_budgets.fetch(trace)
           if budget
             emit_correlated?(budget, probe)
           else
@@ -184,15 +184,6 @@ module Datadog
         return [false, :global_budget] unless global_limiter.try_consume
 
         [true, nil]
-      end
-
-      # Returns the trace's budget; nil when the trace has no established
-      # unit yet. Must hold the lock.
-      #
-      # @param trace [Datadog::Tracing::TraceOperation]
-      # @return [TraceBudget, nil]
-      def touch_budget(trace)
-        trace_budgets.fetch(trace)
       end
 
       # First capturing probe in the trace. Passes the process-wide GLOBAL and
