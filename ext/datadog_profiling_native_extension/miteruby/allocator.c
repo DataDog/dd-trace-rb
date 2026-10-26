@@ -30,7 +30,7 @@ size_t miteruby_allocator_requested_bytes(void) {
   return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
 }
 
-void *miteruby_allocator_malloc(size_t size, const char *name) {
+void *miteruby_allocator_alloc(size_t size, const char *name) {
   if (size == 0 || name == NULL) {
     errno = EINVAL;
     return NULL;

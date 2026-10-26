@@ -1,4 +1,5 @@
 #include "consumer_stack_dedup.h"
+#include "allocator.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -55,13 +56,13 @@ static bool stack_key_equal(stack_key left, stack_key right) {
 }
 
 static void *unique_stacks_calloc(size_t size) {
-  void *allocation = calloc(1, size);
+  void *allocation = miteruby_allocator_alloc(size, "unique_stacks_map");
   if (allocation != NULL) unique_stacks_map_allocated_bytes += size;
   return allocation;
 }
 
 static void unique_stacks_free(void *allocation, size_t size) {
-  free(allocation);
+  miteruby_allocator_free(allocation, size);
   unique_stacks_map_allocated_bytes -= size;
 }
 
