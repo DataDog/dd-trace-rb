@@ -153,7 +153,7 @@ RSpec.describe ReleasePrep::Fragment do
 
     it "does not match a lowercase term inside a code span, where the code fixes the casing" do
       path = write_fragment("1.json",
-        valid_entry("message" => "Deprecate the `appsec.track_user_events` setting.",))
+        valid_entry("message" => "Deprecate the `appsec.track_user_events` setting."))
 
       expect(described_class.read(path).errors).to eq([])
     end

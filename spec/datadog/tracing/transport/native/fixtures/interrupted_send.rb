@@ -44,7 +44,7 @@ begin
     raise "sender did not terminate" unless sender.join(5)
     puts JSON.generate(native: native, reports: reports, returned: returned,
       same_exception: received.equal?(failure), backtrace: received&.backtrace,
-      error: received && "#{received.class}: #{received.message}",)
+      error: received && "#{received.class}: #{received.message}")
   end
 ensure
   release_write.close
