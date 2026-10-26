@@ -96,8 +96,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         sampler = described_class.new(global_rate: 1)
         expect(sampler.emit?(probe("a"), nil)).to be(true)
 
-        # GLOBAL is at zero: the next trace's top probe starves instead of
-        # drawing from a second, uncorrelated-only budget.
+        # GLOBAL is at zero: the next trace's top probe starves.
         expect(sampler.emit?(probe("a"), trace)).to be(false)
       end
     end

@@ -240,8 +240,7 @@ RSpec.describe "Correlation integration" do
       flush
 
       # GLOBAL is at zero: the uncorrelated loop stops at its process-wide
-      # budget, and a traced request's top probe starves instead of drawing
-      # from a second, uncorrelated-only budget.
+      # budget.
       stub_active_trace(987)
       CorrelationIntegrationTestClass.new.inner
       flush
