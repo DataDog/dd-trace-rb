@@ -5,8 +5,8 @@ RSpec.describe Datadog::DI do
   di_test
 
   # The probe-path trace and span reads share one lookup contract: the
-  # component tree is never initialized by the read, and the read is nil
-  # when tracing is absent.
+  # read skips component-tree initialization, and the read is nil when
+  # tracing is absent.
   shared_examples "a non-initializing active read" do |read|
     context "with components" do
       it "returns the tracer's value" do
