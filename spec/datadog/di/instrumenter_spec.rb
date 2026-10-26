@@ -2342,7 +2342,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
         end
 
-        it "invokes the condition evaluation failed callback with the timeout instead of the executed callback" do
+        it "invokes the condition evaluation failed callback with the timeout" do
           allow(logger).to receive(:debug)
 
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
