@@ -262,7 +262,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     context "with the deadline crossed midway through the collection" do
       let(:collection) { Array.new(1000) { |i| i } }
 
-      # The cooperative check fires every EVALUATION_DEADLINE_CHECK_INTERVAL items.
+      # The cooperative check runs every EVALUATION_DEADLINE_CHECK_INTERVAL items.
       # Stub Process.clock_gettime so the first check (i=0) is before the
       # deadline and the second check (i=64) is after it, proving the timeout
       # raises at the second check, in mid-iteration.
