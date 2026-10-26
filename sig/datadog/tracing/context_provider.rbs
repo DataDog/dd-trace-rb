@@ -40,5 +40,14 @@ module Datadog
       def get_current: () -> Context
       def get_current_for: (_StorageLike storage) -> Context
     end
+
+    class FiberInheritedScope < FiberIsolatedScope
+      def current=: (Context? ctx) -> Context?
+
+      private
+      def get_current: () -> Context
+
+      def inherited_context: () -> Context?
+    end
   end
 end

@@ -154,7 +154,7 @@ module Datadog
           context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
-            start_trace(continue_from: continue_from)
+            start_trace(continue_from: continue_from || context.inherited_digest)
           else
             active_trace
           end

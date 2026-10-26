@@ -150,10 +150,11 @@ module Datadog
               # This changes the trace continuity when spans are created in different Fibers or Threads.
               #
               # The available options, and how active trace is bound:
-              # * `'fiber_isolated'` (default): Bound to `Fiber.current`.
-              #
-              # DEV: `Fiber#storage` might be required, depending on how Ruby usage of Fibers evolves.
-              # DEV: * `:fiber_storage`: Bound to `Fiber.storage`. The active trace is inherited by child Fibers, unless storage is [explicitly not inherited on Fiber creation](https://docs.ruby-lang.org/en/master/Fiber.html#method-c-new).
+              # * `'fiber_isolated'` (default): Bound to `Fiber.current`. A new Fiber starts without an active trace.
+              # * `'fiber_inherited'`: Bound to `Fiber.current`, but spans created in a new Fiber (e.g. `Enumerator#next`, `Async` tasks)
+              #   continue the trace active in the Fiber that created it, unless the new Fiber was created with
+              #   [`storage: nil`](https://docs.ruby-lang.org/en/master/Fiber.html#method-c-new). New Threads start without an active trace.
+              #   Requires Ruby 3.2+; falls back to `'fiber_isolated'` on older Rubies.
               #
               # @default `DD_TRACE_CONTEXT_SCOPE` environment variable, otherwise `'fiber_isolated'`
               # @return [String]
@@ -162,10 +163,10 @@ module Datadog
                 o.default "fiber_isolated"
                 o.type :string
                 o.after_set do |value|
-                  unless ["fiber_isolated"].include?(value)
+                  unless ["fiber_isolated", "fiber_inherited"].include?(value)
                     Datadog.logger.warn(
                       "Invalid value '#{value}' for context_scope. " \
-                      "Valid options are: 'fiber_isolated'. Using default 'fiber_isolated'."
+                      "Valid options are: 'fiber_isolated', 'fiber_inherited'. Using default 'fiber_isolated'."
                     )
                   end
                 end

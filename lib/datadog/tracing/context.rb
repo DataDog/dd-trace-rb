@@ -23,11 +23,14 @@ module Datadog
       attr_writer \
         :otel_thread_context
 
+      # @param parent the context of the Fiber that created this context's Fiber
       def initialize(
         trace: nil,
-        otel_thread_context: nil
+        otel_thread_context: nil,
+        parent: nil
       )
         @otel_thread_context = otel_thread_context
+        @parent = parent
         @active_trace = nil
         activate!(trace)
       end
@@ -57,15 +60,27 @@ module Datadog
         end
       end
 
+      # Digest of the closest ancestor context's active trace, for a new trace in this context to continue from.
+      def inherited_digest
+        context = @parent
+        context = context.parent while context && context.active_trace.nil?
+        context&.active_trace&.to_digest
+      end
+
       # Creates a copy of the context, when forked.
       def fork_clone
         forked_trace = @active_trace&.fork_clone
 
         self.class.new(
           trace: forked_trace,
-          otel_thread_context: @otel_thread_context
+          otel_thread_context: @otel_thread_context,
+          parent: @parent
         )
       end
+
+      protected
+
+      attr_reader :parent
 
       private
 

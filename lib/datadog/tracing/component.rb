@@ -43,7 +43,7 @@ module Datadog
         otel_thread_context = OTelThreadContext.build(settings.tracing)
 
         Tracing::Tracer.new(
-          context_provider: build_context_provider(settings, otel_thread_context),
+          context_provider: build_context_provider(settings, otel_thread_context, logger),
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
@@ -56,11 +56,19 @@ module Datadog
         )
       end
 
-      def build_context_provider(settings, otel_thread_context)
-        Tracing::DefaultContextProvider.new(
-          otel_thread_context: otel_thread_context,
-          scope: Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context),
-        )
+      def build_context_provider(settings, otel_thread_context, logger)
+        scope = if settings.tracing.context_scope == "fiber_inherited"
+          if Fiber.respond_to?(:[])
+            Tracing::FiberInheritedScope.new(otel_thread_context: otel_thread_context)
+          else
+            logger.warn("context_scope 'fiber_inherited' requires Ruby 3.2+. Using 'fiber_isolated'.")
+            Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context)
+          end
+        else
+          Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context)
+        end
+
+        Tracing::DefaultContextProvider.new(otel_thread_context: otel_thread_context, scope: scope)
       end
 
       def build_trace_flush(settings)

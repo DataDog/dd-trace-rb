@@ -292,6 +292,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to eq "fiber_isolated" }
         end
 
+        context "is set to fiber_inherited" do
+          let(:scope) { "fiber_inherited" }
+
+          it { is_expected.to eq "fiber_inherited" }
+        end
+
         context "is set to an invalid value" do
           let(:scope) { "invalid" }
 
@@ -304,12 +310,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       describe "#context_scope=" do
         it "updates the #context_scope setting" do
-          allow(Datadog.logger).to receive(:warn)
-
-          expect { settings.tracing.context_scope = "invalid" }
+          expect { settings.tracing.context_scope = "fiber_inherited" }
             .to change { settings.tracing.context_scope }
             .from("fiber_isolated")
-            .to("invalid")
+            .to("fiber_inherited")
         end
       end
     end

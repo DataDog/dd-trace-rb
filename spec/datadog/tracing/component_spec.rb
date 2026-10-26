@@ -549,9 +549,43 @@ RSpec.describe Datadog::Tracing::Component do
             provider = tracer.instance_variable_get(:@provider)
 
             expect(provider).to be_a(Datadog::Tracing::DefaultContextProvider)
-            expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberIsolatedScope)
+            expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberIsolatedScope)
           ensure
             tracer.shutdown!
+          end
+        end
+
+        context "set to 'fiber_inherited'" do
+          before do
+            settings.tracing.context_scope = "fiber_inherited"
+          end
+
+          context "when Fiber storage is supported" do
+            before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
+
+            it "builds tracer with FiberInheritedScope-based context provider" do
+              tracer = build_tracer
+              provider = tracer.instance_variable_get(:@provider)
+
+              expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberInheritedScope)
+            ensure
+              tracer.shutdown!
+            end
+          end
+
+          context "when Fiber storage is not supported" do
+            before { allow(Fiber).to receive(:respond_to?).with(:[]).and_return(false) }
+
+            it "falls back to FiberIsolatedScope with a warning" do
+              expect(logger).to receive(:warn).with(/'fiber_inherited' requires Ruby 3.2\+/)
+
+              tracer = build_tracer
+              provider = tracer.instance_variable_get(:@provider)
+
+              expect(provider.instance_variable_get(:@context)).to be_instance_of(Datadog::Tracing::FiberIsolatedScope)
+            ensure
+              tracer.shutdown!
+            end
           end
         end
       end

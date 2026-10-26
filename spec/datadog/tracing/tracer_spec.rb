@@ -1464,6 +1464,94 @@ RSpec.describe Datadog::Tracing::Tracer do
       expect(root_span.get_tag("baggage.foo")).to be_nil
     end
   end
+
+  describe "spans created in a new Fiber" do
+    let(:spans) { writer.spans }
+    let(:parent) { spans.find { |s| s.name == "parent" } }
+    let(:child) { spans.find { |s| s.name == "child" } }
+
+    def trace_in_enumerator
+      tracer.trace("parent") do
+        Enumerator.new do |y|
+          tracer.trace("child") {}
+          y << 1
+        end.next
+      end
+    end
+
+    context "with the default context provider" do
+      it "starts a new trace" do
+        trace_in_enumerator
+
+        expect(child.trace_id).to_not eq(parent.trace_id)
+        expect(child.parent_id).to eq(0)
+      end
+    end
+
+    context "with a FiberInheritedScope context provider" do
+      let(:tracer_options) do
+        {context_provider: Datadog::Tracing::DefaultContextProvider.new(scope: Datadog::Tracing::FiberInheritedScope.new)}
+      end
+
+      before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
+
+      it "continues the trace active in the creating Fiber" do
+        trace_in_enumerator
+
+        expect(child.trace_id).to eq(parent.trace_id)
+        expect(child.parent_id).to eq(parent.id)
+      end
+
+      it "does not change the active span of the creating Fiber" do
+        tracer.trace("parent") do
+          stream = Enumerator.new do |y|
+            tracer.trace("child") do
+              y << 1
+              y << 2
+            end
+          end
+
+          stream.next
+          tracer.trace("sibling") {}
+          stream.next
+        end
+
+        sibling = spans.find { |s| s.name == "sibling" }
+        expect(sibling.parent_id).to eq(parent.id)
+      end
+
+      it "keeps interleaved Fibers in separate traces" do
+        fibers = ["a", "b"].map do |name|
+          Fiber.new do
+            tracer.trace("request_#{name}") do
+              Fiber.yield
+              tracer.trace("query_#{name}") {}
+            end
+          end
+        end
+
+        fibers.each(&:resume)
+        fibers.each(&:resume)
+
+        ["a", "b"].each do |name|
+          request = spans.find { |s| s.name == "request_#{name}" }
+          query = spans.find { |s| s.name == "query_#{name}" }
+
+          expect(request.parent_id).to eq(0)
+          expect(query.parent_id).to eq(request.id)
+        end
+      end
+
+      it "does not continue the trace in a new Thread" do
+        tracer.trace("parent") do
+          Thread.new { tracer.trace("child") {} }.join
+        end
+
+        expect(child.trace_id).to_not eq(parent.trace_id)
+        expect(child.parent_id).to eq(0)
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::Tracer::TraceCompleted do
