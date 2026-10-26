@@ -194,7 +194,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     context "with the deadline already in the past" do
       let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
 
-      # The abort fires at i == 0, before the predicate block runs, so the
+      # The abort raises at i == 0, before the predicate block runs, so the
       # @it predicate is never invoked on the Hash branch.
       context "over an Array collection" do
         let(:collection) { Array.new(1000) { |i| i } }
