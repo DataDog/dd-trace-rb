@@ -404,7 +404,6 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     end
 
     it "admits a probe hit in a child after the parent exhausted the process-wide buckets" do
-      # Exhaust TOP and GLOBAL in the parent.
       1.upto(top_rate) { correlation.emit?(probe("a"), trace) }
       expect(correlation.emit?(probe("a"), trace)).to be(false)
 
