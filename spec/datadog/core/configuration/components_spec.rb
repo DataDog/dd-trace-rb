@@ -882,6 +882,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     it "does not raise when dynamic_instrumentation is nil" do
       allow(components).to receive(:dynamic_instrumentation).and_return(nil)
+      expect(symbol_database).to receive(:after_fork!)
 
       expect { after_fork }.not_to raise_error
     end
