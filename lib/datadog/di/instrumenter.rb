@@ -517,14 +517,12 @@ module Datadog
 
       attr_reader :lock
 
-      # Coordinated sampling gate. A capturing probe delegates the whole
-      # decision to the correlation sampler: correlated hits get the trace's
-      # unit decision, uncorrelated hits the probe's own rate limit plus the
-      # sampler's GLOBAL budget, and every denial is recorded as the
-      # canonical rate-limit skip metric. A gate error fails open to the
-      # probe's own rate limiter. A non-capturing hit consults the probe's
-      # own rate limiter and then the process-wide hard limiter for its
-      # category.
+      # Decides whether a probe hit is admitted for emission. A capturing
+      # hit delegates the whole decision to the correlation sampler, and
+      # every denial is recorded as the canonical rate-limit skip metric.
+      # A gate error fails open to the probe's own rate limiter. A
+      # non-capturing hit consults the probe's own rate limiter and then
+      # the process-wide log rate limiter.
       #
       # An admitted hit yields the active trace for the snapshot envelope:
       # the gate's own resolution for a capturing hit, reused by the
