@@ -47,7 +47,8 @@ module Datadog
       # to the returned errors.
       #
       # An expression whose evaluation exceeds the deadline
-      # is reported as an evaluation error.
+      # is reported as an evaluation error and increments the
+      # `evaluation_timeouts` telemetry counter.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
@@ -91,6 +92,9 @@ module Datadog
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
+            if exc.is_a?(DI::Error::EvaluationTimeout)
+              telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+            end
             evaluation_errors << EvaluationFailure.new(expr: name, message: "#{exc.class}: #{exc.message}")
             logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"

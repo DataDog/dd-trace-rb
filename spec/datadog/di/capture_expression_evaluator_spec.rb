@@ -159,6 +159,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(result.errors.first.expr).to eq("filtered")
         expect(result.errors.first.message).to include("EvaluationTimeout")
       end
+
+      it "increments the evaluation_timeouts telemetry counter" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        evaluator.evaluate(probe, context)
+      end
     end
 
     context "expression evaluation raises a non-StandardError" do
