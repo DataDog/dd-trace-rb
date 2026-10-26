@@ -22,7 +22,7 @@ module Datadog
 
       def self.build_span_sampler: (Core::Configuration::Settings settings) -> untyped
 
-      def self.build_context_provider: (Core::Configuration::Settings settings, OTelThreadContext? otel_thread_context) -> DefaultContextProvider
+      def self.build_context_provider: (Core::Configuration::Settings settings, OTelThreadContext? otel_thread_context, Core::Logger logger) -> DefaultContextProvider
 
       private
 

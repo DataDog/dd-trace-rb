@@ -322,3 +322,76 @@ RSpec.describe Datadog::Tracing::FiberIsolatedScope do
     end
   end
 end
+
+RSpec.describe Datadog::Tracing::FiberInheritedScope do
+  subject(:fiber_inherited_scope) { described_class.new }
+
+  before { skip "Requires Fiber storage (Ruby 3.2+)" unless Fiber.respond_to?(:[]) }
+
+  let(:digest) { instance_double(Datadog::Tracing::TraceDigest) }
+  let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false, to_digest: digest) }
+
+  before { fiber_inherited_scope.current.activate!(trace) }
+
+  describe "#current" do
+    context "in another fiber" do
+      it "creates a context that inherits from the creating fiber's context" do
+        main_fiber_context = fiber_inherited_scope.current
+
+        other_fiber_context = Fiber.new { fiber_inherited_scope.current }.resume
+
+        expect(other_fiber_context).to_not be(main_fiber_context)
+        expect(other_fiber_context.active_trace).to be nil
+        expect(other_fiber_context.inherited_digest).to be digest
+      end
+
+      it "inherits through fibers that never accessed the context" do
+        nested_fiber_context = Fiber.new { Fiber.new { fiber_inherited_scope.current }.resume }.resume
+
+        expect(nested_fiber_context.inherited_digest).to be digest
+      end
+    end
+
+    context "with an OTel thread context" do
+      subject(:fiber_inherited_scope) { described_class.new(otel_thread_context: otel_thread_context) }
+
+      let(:otel_thread_context) { instance_spy(Datadog::Tracing::OTelThreadContext) }
+
+      it "passes it to the context created in another fiber" do
+        child_trace = instance_double(Datadog::Tracing::TraceOperation, finished?: false)
+
+        Fiber.new { fiber_inherited_scope.current.activate!(child_trace) }.resume
+
+        expect(otel_thread_context).to have_received(:update_from_trace_op).with(child_trace)
+      end
+    end
+
+    context "in a fiber created with storage: nil" do
+      it "creates a context without inheritance" do
+        other_fiber_context = Fiber.new(storage: nil) { fiber_inherited_scope.current }.resume
+
+        expect(other_fiber_context.inherited_digest).to be nil
+      end
+    end
+
+    context "in another thread" do
+      it "creates a context without inheritance" do
+        other_thread_context = Thread.new { fiber_inherited_scope.current }.value
+
+        expect(other_thread_context.inherited_digest).to be nil
+      end
+    end
+  end
+
+  describe "#current=" do
+    it "is inherited by fibers created afterwards" do
+      new_context = Datadog::Tracing::Context.new
+      fiber_inherited_scope.current = new_context
+
+      other_fiber_context = Fiber.new { fiber_inherited_scope.current }.resume
+
+      expect(fiber_inherited_scope.current).to be(new_context)
+      expect(other_fiber_context.inherited_digest).to be nil
+    end
+  end
+end

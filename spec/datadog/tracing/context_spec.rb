@@ -266,8 +266,51 @@ RSpec.describe Datadog::Tracing::Context do
     end
   end
 
+  describe "#inherited_digest" do
+    subject(:inherited_digest) { context.inherited_digest }
+
+    let(:digest) { instance_double(Datadog::Tracing::TraceDigest) }
+    let(:parent_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false, to_digest: digest) }
+
+    context "without a parent" do
+      it { is_expected.to be nil }
+    end
+
+    context "with a parent" do
+      let(:options) { {parent: parent} }
+
+      context "that has an active trace" do
+        let(:parent) { described_class.new(trace: parent_trace) }
+
+        it { is_expected.to be digest }
+      end
+
+      context "that has no active trace" do
+        let(:parent) { described_class.new }
+
+        it { is_expected.to be nil }
+
+        context "but whose parent has an active trace" do
+          let(:parent) { described_class.new(parent: described_class.new(trace: parent_trace)) }
+
+          it { is_expected.to be digest }
+        end
+      end
+    end
+  end
+
   describe "#fork_clone" do
     subject(:fork_clone) { context.fork_clone }
+
+    context "with a parent" do
+      let(:options) { {parent: described_class.new(trace: parent_trace)} }
+      let(:parent_trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: false, to_digest: digest) }
+      let(:digest) { instance_double(Datadog::Tracing::TraceDigest) }
+
+      it "keeps the parent" do
+        expect(fork_clone.inherited_digest).to be digest
+      end
+    end
 
     context "when a trace is active" do
       let(:trace) do

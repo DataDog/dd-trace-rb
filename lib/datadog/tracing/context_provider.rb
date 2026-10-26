@@ -137,5 +137,34 @@ module Datadog
         storage[@key] ||= Context.new(otel_thread_context: @otel_thread_context)
       end
     end
+
+    # Stores a different context for each Fiber, like {FiberIsolatedScope},
+    # but a Fiber's new trace continues from the active trace of the Fiber that created it
+    # (e.g. an `Enumerator` or an `Async` task), as a separate trace chunk.
+    # Threads do not inherit the active trace.
+    #
+    # Requires `Fiber[]` (Ruby 3.2+).
+    #
+    # @see https://docs.ruby-lang.org/en/master/Fiber.html#class-Fiber-label-Fiber+Storage
+    class FiberInheritedScope < FiberIsolatedScope
+      def current=(context)
+        # Ruby also copies Fiber storage into new Threads, so record the owner Thread.
+        Fiber[@key] = [Thread.current, context].freeze
+        super
+      end
+
+      protected
+
+      def get_current
+        Thread.current[@key] || (self.current = Context.new(otel_thread_context: @otel_thread_context, parent: inherited_context))
+      end
+
+      private
+
+      def inherited_context
+        thread, context = Fiber[@key]
+        context if thread.equal?(Thread.current)
+      end
+    end
   end
 end
