@@ -102,14 +102,8 @@ module Datadog
         end
       end
 
-      # Rebuilds the process-scoped state for a freshly forked child. The
-      # inherited buckets can be depleted (GLOBAL carries any borrowed,
-      # negative balance), the inherited ledger holds entries for traces
-      # that do not exist in the child, and a mutex held by a parent thread
-      # at fork time stays locked forever in the child. The rebuild replaces
-      # the objects rather than mutating them, so it leaves the inherited
-      # mutex untouched; it must run while the child is single-threaded,
-      # which the at-fork hook calling it guarantees.
+      # Rebuilds the process-scoped state for a freshly forked child. Must
+      # run while the child is single-threaded.
       #
       # @return [void]
       def after_fork!
