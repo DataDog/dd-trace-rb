@@ -44,7 +44,7 @@ module Datadog
         attr_reader :regexps
 
         # Raises DI::Error::EvaluationTimeout when the evaluation deadline
-        # has been crossed, aborting collection-operator iteration
+        # has been exceeded, aborting collection-operator iteration
         # cooperatively.
         #
         # @param item_index [Integer] zero-based index of the collection
@@ -53,7 +53,7 @@ module Datadog
         #   threaded from the compiled #evaluate into the operator calls;
         #   nil leaves evaluation unbounded.
         # @return [void]
-        # @raise [DI::Error::EvaluationTimeout] the deadline has been crossed.
+        # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
         def raise_if_evaluation_deadline_exceeded(item_index, deadline)
           if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 &&
               self.class.evaluation_deadline_exceeded?(deadline)
@@ -81,7 +81,7 @@ module Datadog
         #
         # @param deadline [Float, nil] the deadline to check; nil means no
         #   deadline is set, leaving evaluation unbounded.
-        # @return [Boolean] whether the deadline has been crossed.
+        # @return [Boolean] whether the deadline has been exceeded.
         def self.evaluation_deadline_exceeded?(deadline)
           !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
         end
@@ -240,7 +240,7 @@ module Datadog
         #   nil leaves evaluation unbounded.
         # @return [Boolean] whether the block is satisfied by every element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
-        #   crossed mid-iteration.
+        #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
         def all(collection, deadline, &block)
@@ -274,7 +274,7 @@ module Datadog
         #   nil leaves evaluation unbounded.
         # @return [Boolean] whether the block is satisfied by any element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
-        #   crossed mid-iteration.
+        #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
         def any(collection, deadline, &block)
@@ -352,7 +352,7 @@ module Datadog
         #   nil leaves evaluation unbounded.
         # @return [Array, Hash] the selected elements.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
-        #   crossed mid-iteration.
+        #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
         def filter(collection, deadline, &block)

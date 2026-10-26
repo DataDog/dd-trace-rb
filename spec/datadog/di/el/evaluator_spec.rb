@@ -259,7 +259,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
     end
 
-    context "with the deadline crossed midway through the collection" do
+    context "with the deadline exceeded midway through the collection" do
       let(:collection) { Array.new(1000) { |i| i } }
 
       # The cooperative check runs every EVALUATION_DEADLINE_CHECK_INTERVAL items.
