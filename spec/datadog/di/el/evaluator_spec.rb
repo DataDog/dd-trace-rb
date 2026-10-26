@@ -401,7 +401,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
     context "over a Hash whose keys raise from hash and eql?" do
       # The two keys hash to distinct values unarmed, so the selected
-      # entries never collide in the result and eql? stays uncalled;
+      # entries occupy distinct buckets in the result and eql? stays uncalled;
       # Ruby 3.1+'s Hash#select compares colliding keys through eql?.
       let(:raising_key_class) do
         Class.new do
