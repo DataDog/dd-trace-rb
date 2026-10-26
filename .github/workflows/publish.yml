@@ -390,4 +390,5 @@ jobs:
           fetch-depth: 0
       # The documentation website is sourced from this branch, so it must
       # always mirror the released state, not merge it in.
-      - run: git push --force-with-lease origin "v${GEM_VERSION}":refs/heads/release
+      # ^{commit} peels the annotated tag. Branch refs can only point at commits.
+      - run: git push --force-with-lease origin "v${GEM_VERSION}^{commit}":refs/heads/release
