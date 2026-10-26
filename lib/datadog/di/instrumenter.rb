@@ -575,9 +575,8 @@ module Datadog
         Datadog::DI.active_trace
       end
 
-      # The trace active when the gate admitted a hit, for the snapshot
-      # envelope. A resolution failure returns nil, leaving the envelope's
-      # trace to the builder's own read; the error policy is still honored.
+      # Returns the trace active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
       #
       # @return [Datadog::Tracing::TraceOperation, nil]
       def active_trace_at_admission
