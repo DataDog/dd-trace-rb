@@ -13,7 +13,7 @@ module Datadog
         # @rbs @start_stop_mutex: ::Thread::Mutex
         # @rbs @idle_sampling_helper: IdleSamplingHelper
         # @rbs @worker_state: WorkerState
-        # @rbs @miteruby_recorder: Datadog::Profiling::StackRecorder?
+        # @rbs @miteruby_recorder: Datadog::Profiling::Miteruby::LibdatadogRecorder?
         # @rbs @miteruby_consumer_thread: Thread?
 
         # @rbs gc_profiling_enabled: bool
@@ -86,7 +86,7 @@ module Datadog
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
           @worker_state = WorkerState.new
-          @miteruby_recorder = miteruby_enabled ? StackRecorder.for_testing : nil
+          @miteruby_recorder = miteruby_enabled ? Miteruby::LibdatadogRecorder.new : nil
           @miteruby_consumer_thread = nil
         end
 
@@ -151,7 +151,7 @@ module Datadog
           end
         end
 
-        # @rbs return: Datadog::Profiling::StackRecorder
+        # @rbs return: Datadog::Profiling::StackRecorder | Datadog::Profiling::Miteruby::LibdatadogRecorder
         def prepare_serialize
           recorder = self.class._native_prepare_serialize(self)
           miteruby_recorder = @miteruby_recorder
@@ -164,6 +164,7 @@ module Datadog
 
         #: () -> true
         def reset_after_fork
+          @miteruby_recorder&.reset_after_fork
           self.class._native_reset_after_fork(self)
         end
 

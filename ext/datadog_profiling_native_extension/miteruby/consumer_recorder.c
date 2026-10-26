@@ -4,7 +4,7 @@
 
 #include "../datadog_ruby_common.h"
 #include "../private_vm_api_access.h"
-#include "../stack_recorder.h"
+#include "libdatadog_recorder.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -27,7 +27,7 @@ static st_table *thread_contexts;
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
-static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
+static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
@@ -51,7 +51,7 @@ void miteruby_consumer_record_stack_sample(
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
-  sample_values values = sample_values_for(thread, event->header.timestamp, event->header.cpu_time);
+  miteruby_sample_values values = sample_values_for(thread, event->header.timestamp, event->header.cpu_time);
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[THREAD_ID_LIMIT_CHARS];
@@ -67,11 +67,6 @@ void miteruby_consumer_record_stack_sample(
     {.key = DDOG_CHARSLICE_C("thread name"), .str = thread_name_label(thread, thread_name, fallback_name, sizeof(fallback_name))},
     {.key = DDOG_CHARSLICE_C("state"), .str = DDOG_CHARSLICE_C("had cpu")},
     {.key = DDOG_CHARSLICE_C("miteruby"), .num = 1},
-  };
-  sample_labels sample_label_values = {
-    .labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])},
-    .state_label = &labels[2],
-    .end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns),
   };
 
   uint16_t count = event->header.frame_count;
@@ -123,14 +118,18 @@ void miteruby_consumer_record_stack_sample(
       };
     }
   }
-  record_sample(recorder_instance, (ddog_prof_Slice_Location) {.ptr = locations, .len = location_count}, values, sample_label_values);
+  miteruby_libdatadog_recorder_record_sample(
+    recorder_instance, (ddog_prof_Slice_Location) {.ptr = locations, .len = location_count}, values,
+    (ddog_prof_Slice_Label) {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])},
+    monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns)
+  );
   RB_GC_GUARD(thread_name);
 }
 
-static sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
+static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
   consumer_thread_context *context = thread_context_for(thread, monotonic_time, cpu_time);
 
-  sample_values values = {
+  miteruby_sample_values values = {
     .cpu_time_ns = update_and_get_time_since_previous_sample(context, cpu_time),
     .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
     .cpu_or_wall_samples = 1,
