@@ -251,7 +251,7 @@ RSpec.describe "Correlation integration" do
   end
 
   context "trace finishes inside the probed method" do
-    it "labels the snapshot with the trace and span active at admission, not at build" do
+    it "labels the snapshot with the trace and span captured at admission" do
       trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
       span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
       # The gate reads the trace once, for its decision and the admission
