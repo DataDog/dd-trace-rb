@@ -84,8 +84,8 @@ module Datadog
         trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
       }.freeze
 
-      # Initializes the instrumenter with its hard rate limiter and the
-      # coordination gate.
+      # Initializes the instrumenter with its process-wide hard rate
+      # limiter and the coordination gate.
       #
       # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings
       # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots
