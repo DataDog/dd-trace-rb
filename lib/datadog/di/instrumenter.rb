@@ -585,6 +585,20 @@ module Datadog
         nil
       end
 
+      # The span active when the gate admitted a hit, for the snapshot
+      # envelope. A resolution failure returns nil, leaving the envelope's
+      # span to the builder's own read; the error policy is still honored.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span_at_admission
+        Datadog::DI.active_span
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission span capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
       # Re-raises a gate error per the DI error policy: fatal exceptions
       # always, every exception when the customer opted into propagation.
       # Called from rescue blocks only.
@@ -717,8 +731,10 @@ module Datadog
           admitted = continue && emit?(probe)
           # Captured before the customer method runs: a method that finishes
           # the active trace or starts a new one must not relabel the
-          # snapshot away from the trace whose budget the gate consumed.
+          # snapshot away from the trace whose budget the gate consumed, nor
+          # pair that trace with a span of the replacement trace.
           admission_trace = active_trace_at_admission if admitted
+          admission_span = active_span_at_admission if admitted
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -819,6 +835,7 @@ module Datadog
               entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
               admission_trace: admission_trace,
+              admission_span: admission_span,
               return_value: rv, duration: duration, exception: exc,)
 
             begin

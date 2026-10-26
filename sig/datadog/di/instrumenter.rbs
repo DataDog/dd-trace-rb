@@ -102,6 +102,8 @@ module Datadog
 
       def active_trace_at_admission: () -> Datadog::Tracing::TraceOperation?
 
+      def active_span_at_admission: () -> Datadog::Tracing::SpanOperation?
+
       def reraise_per_policy: (Exception exc) -> void
 
       def own_rate_limit_admits?: (Probe probe) -> bool

@@ -17,6 +17,7 @@ module Datadog
         entry_capture_expressions: nil,
         entry_capture_evaluation_errors: nil,
         admission_trace: nil,
+        admission_span: nil,
         return_value: nil, duration: nil, exception: nil)
         @probe = probe
         @settings = settings
@@ -29,6 +30,7 @@ module Datadog
         @entry_capture_expressions = entry_capture_expressions
         @entry_capture_evaluation_errors = entry_capture_evaluation_errors
         @admission_trace = admission_trace
+        @admission_span = admission_span
         @return_value = return_value
         @duration = duration
         @exception = exception
@@ -58,6 +60,11 @@ module Datadog
       # sampling gate, for a method probe; nil when the hit carried no
       # admission trace.
       attr_reader :admission_trace
+
+      # The APM span active when the probe's hit was admitted by the
+      # sampling gate, for a method probe; nil when the hit carried no
+      # admission span.
+      attr_reader :admission_span
 
       # Return value for the method, for a method probe
       attr_reader :return_value

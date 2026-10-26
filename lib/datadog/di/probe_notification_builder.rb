@@ -384,9 +384,8 @@ module Datadog
           # Per-process identity, distinguishing snapshots before and after a
           # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
-          # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": envelope_trace(context)&.id&.to_s,
-          "dd.span_id": active_span&.id&.to_s,
+          "dd.span_id": envelope_span(context)&.id&.to_s,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -447,6 +446,17 @@ module Datadog
       # @return [Datadog::Tracing::TraceOperation, nil]
       def envelope_trace(context)
         context.admission_trace || active_trace
+      end
+
+      # Returns the span the envelope's correlation fields report: the span
+      # captured when the gate admitted the hit, when the context carries
+      # one (method probes), otherwise the span active when the snapshot is
+      # built (line probes, condition failures).
+      #
+      # @param context [Context] the context of the probe hit
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def envelope_span(context)
+        context.admission_span || active_span
       end
 
       # Returns the active APM trace supplying the snapshot's trace id,

@@ -81,7 +81,7 @@ RSpec.describe "Correlation integration" do
   context "active APM trace" do
     before { stub_active_trace(trace_id, span_id: span_id) }
 
-    it "emits a nested capturing chain together, sharing the trace id" do
+    it "emits a nested capturing chain together, sharing the trace and span ids" do
       probe_manager.add_probe(method_probe("p-alpha", "alpha"))
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
@@ -90,6 +90,7 @@ RSpec.describe "Correlation integration" do
 
       expect(snapshots.size).to eq(2)
       expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
+      expect(snapshots.map { |s| s[:"dd.span_id"] }.uniq).to eq([span_id.to_s])
     end
 
     context "with the condition-error limiter exhausted" do
@@ -240,11 +241,14 @@ RSpec.describe "Correlation integration" do
   end
 
   context "trace finishes inside the probed method" do
-    it "labels the snapshot with the trace active at admission, not at build" do
+    it "labels the snapshot with the trace and span active at admission, not at build" do
       trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
-      # The gate and the admission capture read the trace; by the time the
-      # builder runs, the probed method has finished it.
+      span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
+      # The gate and the admission captures read the trace and the span; by
+      # the time the builder runs, the probed method has finished the trace
+      # and no span is active.
       allow(Datadog::DI).to receive(:active_trace).and_return(trace, trace, nil)
+      allow(Datadog::DI).to receive(:active_span).and_return(span, nil)
 
       probe_manager.add_probe(method_probe("p-inner", "inner"))
 
@@ -253,6 +257,29 @@ RSpec.describe "Correlation integration" do
 
       expect(snapshots.size).to eq(1)
       expect(snapshots[0][:"dd.trace_id"]).to eq("789")
+      expect(snapshots[0][:"dd.span_id"]).to eq("111")
+    end
+
+    it "labels the snapshot with the admission pair when the method starts a new trace" do
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: 789)
+      span = instance_double(Datadog::Tracing::SpanOperation, id: 111)
+      replacement_trace = instance_double(Datadog::Tracing::TraceOperation, id: 999)
+      replacement_span = instance_double(Datadog::Tracing::SpanOperation, id: 222)
+      # The gate and the admission captures read trace A and its span; the
+      # probed method then starts trace B, whose trace and span are active
+      # when the builder runs. The envelope keeps reporting the admission
+      # pair, so its trace id and span id describe one trace.
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace, trace, replacement_trace)
+      allow(Datadog::DI).to receive(:active_span).and_return(span, replacement_span)
+
+      probe_manager.add_probe(method_probe("p-inner", "inner"))
+
+      CorrelationIntegrationTestClass.new.inner
+      flush
+
+      expect(snapshots.size).to eq(1)
+      expect(snapshots[0][:"dd.trace_id"]).to eq("789")
+      expect(snapshots[0][:"dd.span_id"]).to eq("111")
     end
   end
 
