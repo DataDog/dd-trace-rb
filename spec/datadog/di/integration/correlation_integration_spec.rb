@@ -337,23 +337,21 @@ RSpec.describe "Correlation integration" do
     before do
       stub_active_trace(trace_id, span_id: span_id)
       # Line probes can only resolve code that is loaded while code tracking
-      # is active. The fixture class was already required at spec load time,
-      # before `with_code_tracking` activated tracking for this example, so
-      # remove the constant and load the fixture again to make line 13
-      # trackable by the probe below.
-      if Object.const_defined?(:CorrelationIntegrationTestClass)
-        Object.send(:remove_const, :CorrelationIntegrationTestClass)
-      end
-      load File.join(File.dirname(__FILE__), "correlation_integration_test_class.rb")
+      # is active. The fixture is loaded here, inside the with_code_tracking
+      # around hook, rather than at spec load time, and its class is uniquely
+      # named for this context, so no remove_const reload is needed and no
+      # stale class or stale iseq leaks into the object space beside the
+      # loaded definition.
+      load File.join(File.dirname(__FILE__), "correlation_line_probe_test_class.rb")
     end
 
     it "bounds a capturing line probe to the per-probe counter within a trace" do
       probe = Datadog::DI::Probe.new(id: "p-line", type: :log,
-        file: "correlation_integration_test_class.rb", line_no: 13,
+        file: "correlation_line_probe_test_class.rb", line_no: 18,
         capture_snapshot: true, rate_limit: 5000,)
       probe_manager.add_probe(probe)
 
-      CorrelationIntegrationTestClass.new.loop_n(25)
+      CorrelationLineProbeTestClass.new.loop_n(25)
       flush
 
       expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::PER_PROBE_BUDGET)
