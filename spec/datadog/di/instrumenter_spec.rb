@@ -2159,7 +2159,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).and_return(0)
       end
 
-      # `arg1.filter(@it >= 0).length > 0` — a collection filter over the
+      # `arg1.filter(@it >= 0).length > 0`: a collection filter over the
       # first positional argument. With a zero evaluation budget the
       # cooperative deadline inside #filter fires immediately, aborting
       # condition evaluation before any capture happens.
