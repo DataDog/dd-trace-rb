@@ -266,7 +266,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       # Stub Process.clock_gettime so the first check (i=0) is before the
       # deadline and the second check (i=64) is after it, proving the timeout
       # raises at the second check, in mid-iteration.
-      it "#filter raises after the first interval's worth of items" do
+      it "#filter raises after the first check interval" do
         deadline = 1.0
         checks = 0
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do

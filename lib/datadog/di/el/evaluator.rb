@@ -19,8 +19,8 @@ module Datadog
         # evaluation-deadline checks. Reading the thread CPU clock
         # once per item would dominate the per-item block call work for
         # large collections; checking every N items keeps clock reads to
-        # ~1/N of iterations while still bounding evaluation within one
-        # interval's worth of items past the deadline.
+        # ~1/N of iterations while limiting the deadline overshoot to one
+        # check interval.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
         # Message of DI::Error::EvaluationTimeout, raised by the
