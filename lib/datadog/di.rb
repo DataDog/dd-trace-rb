@@ -135,11 +135,9 @@ module Datadog
       end
 
       # Returns the tracer of the built component tree, or nil when tracing
-      # is not loaded or the tree is not built. The lookup passes
-      # +allow_initialization: false+ and reads existing components: this
-      # runs on the application thread inside the probe wrapper and the
-      # line-probe TracePoint callback, where an initializing lookup would
-      # build the tree from the customer's call stack.
+      # is not loaded or the tree is not built. The component lookup skips
+      # initialization because initialization would run from the customer's
+      # call stack.
       #
       # @return [Datadog::Tracing::Tracer, nil]
       private def built_tracer
