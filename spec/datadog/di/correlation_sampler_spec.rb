@@ -378,9 +378,6 @@ RSpec.describe Datadog::DI::CorrelationSampler do
     end
 
     it "admits a probe hit in a child whose inherited mutex was held at fork time" do
-      # A parent thread holds the sampler lock across the fork, as a probe
-      # hit in the parent would; the inherited mutex stays locked forever
-      # in the child, so the rebuild must replace it without acquiring it.
       held = Queue.new
       release = Queue.new
       holder = Thread.new do
