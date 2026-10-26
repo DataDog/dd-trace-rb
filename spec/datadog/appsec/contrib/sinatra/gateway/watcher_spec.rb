@@ -3,6 +3,7 @@
 require "datadog/appsec/spec_helper"
 require "datadog/appsec/contrib/sinatra/gateway/watcher"
 require "datadog/appsec/contrib/sinatra/gateway/request"
+require "libddwaf"
 require "rack"
 
 RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
@@ -204,6 +205,127 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).not_to have_received(:run_waf)
+      end
+    end
+  end
+
+  describe ".watch_response_body_json" do
+    before do
+      described_class.watch_response_body_json(gateway)
+      allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(7)
+    end
+
+    let(:container) do
+      Datadog::AppSec::Instrumentation::Gateway::DataContainer.new('{"x":1}', context: context)
+    end
+
+    it "passes marked JSON at the byte limit to the WAF" do
+      gateway.push("sinatra.response.body.json", container)
+
+      expect(context).to have_received(:run_waf).with(
+        {
+          "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
+          "server.response.body.byte_length" => 7,
+        }, {}, anything,
+      )
+    end
+
+    it "does not parse JSON in Ruby" do
+      expect(JSON).not_to receive(:parse)
+
+      gateway.push("sinatra.response.body.json", container)
+    end
+
+    context "when the response exceeds the byte limit" do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(6) }
+
+      it "sends the byte length without wrapping the body" do
+        expect(Datadog::AppSec::WAF::JSONString).not_to receive(:new)
+
+        gateway.push("sinatra.response.body.json", container)
+
+        expect(context).to have_received(:run_waf).with(
+          {"server.response.body.byte_length" => 7}, {}, anything,
+        )
+      end
+    end
+
+    context "when the response contains multibyte characters" do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(3) }
+
+      let(:container) do
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new('"é"', context: context)
+      end
+
+      it "compares bytes rather than characters" do
+        expect(Datadog::AppSec::WAF::JSONString).not_to receive(:new)
+
+        gateway.push("sinatra.response.body.json", container)
+
+        expect(context).to have_received(:run_waf).with(
+          {"server.response.body.byte_length" => 4}, {}, anything,
+        )
+      end
+    end
+
+    context "when body collection is disabled" do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+      it "sends only the byte length" do
+        gateway.push("sinatra.response.body.json", container)
+
+        expect(context).to have_received(:run_waf).with(
+          {"server.response.body.byte_length" => 7}, {}, anything,
+        )
+      end
+    end
+
+    context "when the limit is negative" do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(-1) }
+
+      it "sends only the byte length" do
+        gateway.push("sinatra.response.body.json", container)
+
+        expect(context).to have_received(:run_waf).with(
+          {"server.response.body.byte_length" => 7}, {}, anything,
+        )
+      end
+    end
+
+    context "when native JSON conversion fails" do
+      before do
+        allow(context).to receive(:run_waf).and_raise(Datadog::AppSec::WAF::ConversionError, "Could not convert JSON string")
+      end
+
+      it "continues the gateway stack" do
+        expect(
+          gateway.push("sinatra.response.body.json", container) { :response },
+        ).to eq([:response, nil])
+      end
+    end
+
+    context "when the downstream callback raises a conversion error" do
+      before do
+        allow(callback).to receive(:call)
+          .and_raise(Datadog::AppSec::WAF::ConversionError, "downstream failure")
+      end
+
+      let(:callback) { instance_double(Proc) }
+
+      it "propagates the error without retrying the callback" do
+        expect { gateway.push("sinatra.response.body.json", container) { callback.call } }
+          .to raise_error(Datadog::AppSec::WAF::ConversionError, "downstream failure")
+
+        expect(callback).to have_received(:call)
+      end
+    end
+
+    context "when WAF raises an unrelated error" do
+      before { allow(context).to receive(:run_waf).and_raise(ArgumentError, "unexpected error") }
+
+      it "propagates the error" do
+        expect { gateway.push("sinatra.response.body.json", container) }
+          .to raise_error(ArgumentError, "unexpected error")
       end
     end
   end

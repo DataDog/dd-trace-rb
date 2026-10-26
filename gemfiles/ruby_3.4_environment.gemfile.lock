@@ -1,11 +1,11 @@
 PATH
   remote: ..
   specs:
-    datadog (2.46.0.dev)
+    datadog (2.48.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.6)
-      libdatadog (~> 46.0.0.1.1)
-      libddwaf (~> 1.30.0.0.0)
+      libdatadog (~> 46.1.0.1.1)
+      libddwaf (~> 1.30.0.1.0)
       logger
       msgpack
 
@@ -80,19 +80,19 @@ GEM
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
-    libdatadog (46.0.0.1.1)
-    libdatadog (46.0.0.1.1-aarch64-linux)
-    libdatadog (46.0.0.1.1-arm64-darwin)
-    libdatadog (46.0.0.1.1-x86_64-linux)
-    libddwaf (1.30.0.0.2)
+    libdatadog (46.1.0.1.1)
+    libdatadog (46.1.0.1.1-aarch64-linux)
+    libdatadog (46.1.0.1.1-arm64-darwin)
+    libdatadog (46.1.0.1.1-x86_64-linux)
+    libddwaf (1.30.0.1.0)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.2-aarch64-linux)
+    libddwaf (1.30.0.1.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.2-arm64-darwin)
+    libddwaf (1.30.0.1.0-arm64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.2-x86_64-darwin)
+    libddwaf (1.30.0.1.0-x86_64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.2-x86_64-linux)
+    libddwaf (1.30.0.1.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memoist3 (1.0.0)
@@ -233,7 +233,7 @@ CHECKSUMS
   cucumber-html-formatter (22.3.0) sha256=f9768ed05588dbd73a5f3824c2cc648bd86b00206e6972d743af8051281d0729
   cucumber-messages (31.2.0) sha256=8f835164cab1c3e3363a1295634ce799eedf338496ab4624e2065e8a42ec5fd4
   cucumber-tag-expressions (8.1.0) sha256=9bd8c4b6654f8e5bf2a9c99329b6f32136a75e50cd39d4cfb3927d0fa9f52e21
-  datadog (2.46.0.dev)
+  datadog (2.48.0.dev)
   datadog-ruby_core_source (3.5.6) sha256=07d8909b9314af709da80966cf7e160da19ca1c396a8f45d175615f675a89569
   debug (1.11.1) sha256=2e0b0ac6119f2207a6f8ac7d4a73ca8eb4e440f64da0a3136c30343146e952b6
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
@@ -252,15 +252,15 @@ CHECKSUMS
   io-console (0.9.4) sha256=a403304f32928ee85e56d457b4612ca43f2703b561a3258844992bd24085fbb1
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
-  libdatadog (46.0.0.1.1) sha256=f22ee4da91046bc32a6bb62de30381f0c50595c32909abe709dabdb3e4a1452d
-  libdatadog (46.0.0.1.1-aarch64-linux) sha256=77db04cdf7c3875984756ab178ac89ed8f41c0fcba0085d2723552824b5c50ab
-  libdatadog (46.0.0.1.1-arm64-darwin) sha256=dc8c648d0123cba0d8432ccb7fa2f80b66c6cf1028ccd0ed42a5ddc04ee595c7
-  libdatadog (46.0.0.1.1-x86_64-linux) sha256=426d9ddc5993b5f6d41713f50f617f236fb987c45d6b143ac5ef6d23461eacdc
-  libddwaf (1.30.0.0.2) sha256=f6dd8d70f1925acce795ad0e974b12cb532c958056ac14e497f13d8c1af143d2
-  libddwaf (1.30.0.0.2-aarch64-linux) sha256=f4d8498cce66cb30d81f46bb046b11c3a2202e21ca73c9edb80c3a37939a3dc2
-  libddwaf (1.30.0.0.2-arm64-darwin) sha256=cbbec7eee8fe7dbdc6c11bf1429fcfc217fad84e822fc6f252cb1c45daf663cc
-  libddwaf (1.30.0.0.2-x86_64-darwin) sha256=3fb97292a9e6eb4b50d48ed0805c48278a261744ce6944e0ded73144a0395060
-  libddwaf (1.30.0.0.2-x86_64-linux) sha256=d6f628bfb91a7f89a4ef702c3fce3991ec0678c50031128b70799fde8362111d
+  libdatadog (46.1.0.1.1) sha256=0129262ca0595292716140e330f9e68d9aa3a047804918ab15a209273adee03e
+  libdatadog (46.1.0.1.1-aarch64-linux) sha256=0fded57652e5a7edeb95ca7ce9679c1e47cf97afa2ffce09b80ec5b09663731c
+  libdatadog (46.1.0.1.1-arm64-darwin) sha256=8696975b4397932011b033b082b6daa20fba6bec94d7cad6b8b9336e0c3b9bd0
+  libdatadog (46.1.0.1.1-x86_64-linux) sha256=a57573ebc623fcdd5ee991da293257d6e342378000e33d327c395304c98249ca
+  libddwaf (1.30.0.1.0) sha256=331632114ef21cc2538d93335ad0b1a6f37de448b5ce9d091a690eec321308d3
+  libddwaf (1.30.0.1.0-aarch64-linux) sha256=c36650249bbbcaf81f0a0715e021d3db37fb1df989390f2744f445d1032d4314
+  libddwaf (1.30.0.1.0-arm64-darwin) sha256=68a67d0daf6bcd8f621fb4a5390c1c2c241433fd3b8aa1516b4ef7518d316c2c
+  libddwaf (1.30.0.1.0-x86_64-darwin) sha256=722b93006eeeaee42a3a5149bd0ab14bca1246524b87a1f40fb7bdbdfc42a624
+  libddwaf (1.30.0.1.0-x86_64-linux) sha256=5cd88c67ed8703cdc9878e089e4eea679d3825cec18de2a9b6093e489fa900eb
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   memoist3 (1.0.0) sha256=686e42402cf150a362050c23143dc57b0ef88f8c344943ff8b7845792b50d56f
   memory_profiler (0.9.14) sha256=de558cf6525d8d56d2c0ea465b1664517fbe45560f892dc7a898d3b8c2863b12
