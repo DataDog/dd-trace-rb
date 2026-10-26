@@ -1,6 +1,7 @@
 #include "allocator.h"
 
 #include <errno.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,12 @@ typedef struct {
 } allocation_header;
 
 __extension__ _Static_assert(sizeof(allocation_header) == 16, "Miteruby allocation header must be exactly 16 bytes");
+
+static atomic_size_t requested_bytes = 0;
+
+size_t miteruby_allocator_requested_bytes(void) {
+  return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
+}
 
 void *miteruby_allocator_malloc(size_t size) {
   if (size == 0) {
@@ -28,6 +35,7 @@ void *miteruby_allocator_malloc(size_t size) {
 
   memcpy(header->magic, "MITERUBY", sizeof(header->magic));
   header->size = size;
+  atomic_fetch_add_explicit(&requested_bytes, size, memory_order_relaxed);
   return header + 1;
 }
 
@@ -39,4 +47,5 @@ void miteruby_allocator_free(void *allocation, size_t size) {
       size == 0 || size > SIZE_MAX - sizeof(*header) || header->size != size) abort();
 
   if (munmap(header, size + sizeof(*header)) != 0) abort();
+  atomic_fetch_sub_explicit(&requested_bytes, size, memory_order_relaxed);
 }
