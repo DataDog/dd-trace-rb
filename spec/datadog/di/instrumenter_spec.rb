@@ -2170,9 +2170,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     describe "constants and limiters" do
-      it "builds token bucket limiters at those rates" do
-        expect(instrumenter.global_snapshot_rate_limiter).to be_a(Datadog::Core::TokenBucket)
-        expect(instrumenter.global_snapshot_rate_limiter.rate).to eq 20
+      it "builds the global log limiter at its rate" do
         expect(instrumenter.global_log_rate_limiter).to be_a(Datadog::Core::TokenBucket)
         expect(instrumenter.global_log_rate_limiter.rate).to eq 5000
       end
@@ -2201,8 +2199,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
         end
 
-        it "does not consult the instrumenter's hard limiters for a correlated hit" do
-          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+        it "does not consult the instrumenter's hard log limiter for a correlated hit" do
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           expect(instrumenter.send(:emit?, probe)).to be(true)
@@ -2260,7 +2257,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "admits an uncorrelated capturing hit through the sampler" do
-          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           expect(instrumenter.send(:emit?, probe)).to be(true)
@@ -2384,8 +2380,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log, capture_snapshot: true, rate_limit: 1,)
         end
 
-        it "bounds the hit to the probe's own limit without consulting the hard limiters" do
-          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
+        it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2577,9 +2572,8 @@ RSpec.describe Datadog::DI::Instrumenter do
             capture_snapshot: true, rate_limit: 1,)
         end
 
-        it "bounds the hit to the probe's own limit without consulting the hard limiters" do
+        it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
-          expect(instrumenter.global_snapshot_rate_limiter).not_to receive(:allow?)
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_line(probe) do |payload|
@@ -2720,7 +2714,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           probe_notifier_worker, logger, probe_repository, guardrails_telemetry: guardrails_telemetry)
       end
 
-      context "when the global snapshot limit admits a condition error" do
+      context "when the process-wide GLOBAL budget admits a condition error" do
         let(:snapshot) { double("snapshot") }
 
         before do
@@ -2737,9 +2731,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "when the global snapshot limit rejects a condition error" do
+      context "when the process-wide GLOBAL budget rejects a condition error" do
         before do
-          expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
+          expect(instrumenter.correlation_sampler).to receive(:admit_process_wide_snapshot?).and_return(false)
         end
 
         it "does not emit the condition error snapshot and emits the rateLimitGlobal skip metric" do
@@ -2765,7 +2759,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not emit the condition error snapshot and emits no events.skipped metric" do
-          expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
+          expect(instrumenter.correlation_sampler).not_to receive(:admit_process_wide_snapshot?)
           expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
           expect(probe_notifier_worker).not_to receive(:add_snapshot)
           expect(telemetry).not_to receive(:inc)

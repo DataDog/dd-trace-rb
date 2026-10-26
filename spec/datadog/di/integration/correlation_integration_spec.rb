@@ -68,10 +68,10 @@ RSpec.describe "Correlation integration" do
     end
   end
 
-  def method_probe(id, method_name, capture_snapshot: true, rate_limit: nil)
+  def method_probe(id, method_name, capture_snapshot: true, rate_limit: nil, condition: nil)
     Datadog::DI::Probe.new(id: id, type: :log,
       type_name: "CorrelationIntegrationTestClass", method_name: method_name,
-      capture_snapshot: capture_snapshot, rate_limit: rate_limit,)
+      capture_snapshot: capture_snapshot, rate_limit: rate_limit, condition: condition,)
   end
 
   def flush
@@ -93,27 +93,45 @@ RSpec.describe "Correlation integration" do
       expect(snapshots.map { |s| s[:"dd.span_id"] }.uniq).to eq([span_id.to_s])
     end
 
-    context "with the condition-error limiter exhausted" do
-      before do
-        # Freeze the rate limiter clock so the drain below is deterministic.
+    context "condition evaluation failures" do
+      let(:propagate_all_exceptions) { false }
+
+      it "emits the condition-error snapshot while the GLOBAL budget admits" do
+        probe_manager.add_probe(method_probe("p-cond", "inner",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")))
+
+        CorrelationIntegrationTestClass.new.inner
+        flush
+
+        expect(snapshots.size).to eq(1)
+        expect(snapshots[0][:"dd.trace_id"]).to eq(trace_id.to_s)
+      end
+
+      it "drops the condition-error snapshot once the GLOBAL budget is exhausted" do
+        # Freeze the time provider so the drain below is deterministic and
+        # GLOBAL does not refill mid-example.
         frozen_time = Datadog::Core::Utils::Time.get_time
         allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
 
-        Datadog::DI::Instrumenter::GLOBAL_SNAPSHOT_RATE_LIMIT.times do
-          component.instrumenter.global_snapshot_rate_limiter.allow?
-        end
-        expect(component.instrumenter.global_snapshot_rate_limiter.allow?).to be(false)
-      end
+        # Drain GLOBAL with uncorrelated capturing hits, with the probe's
+        # own limit raised so GLOBAL is the only bound.
+        stub_no_trace
+        probe_manager.add_probe(method_probe("p-drain", "inner", rate_limit: 5000))
+        CorrelationIntegrationTestClass.new.loop_n(Datadog::DI::CorrelationSampler::GLOBAL_RATE)
+        flush
+        expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::GLOBAL_RATE)
+        snapshots.clear
 
-      it "emits a nested capturing chain past the exhausted limiter" do
-        probe_manager.add_probe(method_probe("p-alpha", "alpha"))
-        probe_manager.add_probe(method_probe("p-inner", "inner"))
+        stub_active_trace(trace_id, span_id: span_id)
+        probe_manager.add_probe(method_probe("p-cond", "inner",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")))
 
-        CorrelationIntegrationTestClass.new.alpha
+        CorrelationIntegrationTestClass.new.inner
         flush
 
-        expect(snapshots.size).to eq(2)
-        expect(snapshots.map { |s| s[:"dd.trace_id"] }.uniq).to eq([trace_id.to_s])
+        # The condition-error payload shares the process-wide budget with
+        # capturing emits, so the exhausted GLOBAL drops it.
+        expect(snapshots).to be_empty
       end
     end
 

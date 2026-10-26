@@ -35,6 +35,8 @@ module Datadog
 
       def emit?: (Probe probe, Datadog::Tracing::TraceOperation? trace) -> bool
 
+      def admit_process_wide_snapshot?: () -> bool
+
       def after_fork!: () -> void
 
       private

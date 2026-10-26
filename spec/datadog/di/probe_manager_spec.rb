@@ -518,13 +518,13 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
     end
 
-    context "when both the per-probe and global limiters admit" do
-      let(:global_limiter) do
-        instance_double(Datadog::Core::TokenBucket, allow?: true)
+    context "when both the per-probe limiter and the GLOBAL budget admit" do
+      let(:correlation_sampler) do
+        instance_double(Datadog::DI::CorrelationSampler, admit_process_wide_snapshot?: true)
       end
 
       before do
-        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+        expect(instrumenter).to receive(:correlation_sampler).and_return(correlation_sampler)
       end
 
       it "builds and enqueues the condition error snapshot" do
@@ -542,8 +542,8 @@ RSpec.describe Datadog::DI::ProbeManager do
         instance_double(Datadog::Core::TokenBucket, allow?: false)
       end
 
-      it "does not consult the global limiter and enqueues nothing" do
-        expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
+      it "does not consult the GLOBAL budget and enqueues nothing" do
+        expect(instrumenter).not_to receive(:correlation_sampler)
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
@@ -567,13 +567,13 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
     end
 
-    context "when the global limiter rejects" do
-      let(:global_limiter) do
-        instance_double(Datadog::Core::TokenBucket, allow?: false)
+    context "when the GLOBAL budget rejects" do
+      let(:correlation_sampler) do
+        instance_double(Datadog::DI::CorrelationSampler, admit_process_wide_snapshot?: false)
       end
 
       before do
-        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+        expect(instrumenter).to receive(:correlation_sampler).and_return(correlation_sampler)
       end
 
       it "does not build or enqueue a snapshot and emits the rateLimitGlobal skip metric" do

@@ -327,8 +327,9 @@ module Datadog
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
       # Rate-limited to 1 notification per second per probe, and subject to
-      # the process-wide global snapshot rate limit, to avoid flooding the
-      # backend when conditions fail repeatedly.
+      # the process-wide GLOBAL snapshot budget the correlation sampler
+      # holds, shared with capturing emits, to avoid flooding the backend
+      # when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [EL::Expression] The condition expression that failed
@@ -338,7 +339,7 @@ module Datadog
         probe = context.probe
         rate_limiter = probe.condition_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
-          if instrumenter.global_snapshot_rate_limiter.allow?
+          if instrumenter.correlation_sampler.admit_process_wide_snapshot?
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload, probe: probe)
           else

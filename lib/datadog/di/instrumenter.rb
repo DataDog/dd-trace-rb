@@ -70,10 +70,6 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      # Maximum number of capturing-probe snapshots admitted per second across the
-      # whole process.
-      GLOBAL_SNAPSHOT_RATE_LIMIT = 20
-
       # Maximum number of non-capturing probe emissions admitted per second across
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
@@ -88,8 +84,8 @@ module Datadog
         trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
       }.freeze
 
-      # Initializes the instrumenter with its per-probe hard rate limiters
-      # and the coordination gate.
+      # Initializes the instrumenter with its hard rate limiter and the
+      # coordination gate.
       #
       # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings
       # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots
@@ -112,7 +108,6 @@ module Datadog
         @guardrails_telemetry = guardrails_telemetry
         @capture_expression_evaluator = capture_expression_evaluator
         @code_tracker = code_tracker
-        @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
         @correlation_sampler = correlation_sampler
 
@@ -140,11 +135,6 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
-      # Process-wide limiter bounding condition-evaluation-failure
-      # notifications; capturing-probe emission volume is bounded by the
-      # correlation sampler's GLOBAL budget instead.
-      # @return [Datadog::Core::TokenBucket]
-      attr_reader :global_snapshot_rate_limiter
       # Process-wide log rate limiter.
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter

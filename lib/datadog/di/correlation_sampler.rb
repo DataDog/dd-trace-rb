@@ -92,6 +92,23 @@ module Datadog
         admitted
       end
 
+      # Consumes one GLOBAL token for a snapshot payload the coordinated
+      # emit path does not gate, such as a condition-evaluation-failure
+      # notification. GLOBAL is consulted, not borrowed: the payload is
+      # admitted only while the balance is positive, matching the
+      # uncorrelated emit path, so condition-error payloads and capturing
+      # emits share one process-wide snapshot budget.
+      #
+      # @return [Boolean] true when the process-wide budget admits the payload
+      def admit_process_wide_snapshot?
+        lock.synchronize do
+          return false unless global_limiter.available?
+
+          global_limiter.consume
+          true
+        end
+      end
+
       # Rebuilds the process-scoped state for a freshly forked child. The
       # inherited buckets can be depleted (GLOBAL carries any borrowed,
       # negative balance), the inherited ledger holds entries for traces
