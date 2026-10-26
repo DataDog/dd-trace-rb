@@ -380,7 +380,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
         let(:mode) { selected_mode }
 
         ["\xFF".b, (+"\xFF").force_encoding(Encoding::UTF_8),
-          "2026-10-01T00:00:00Z".encode(Encoding::UTF_16LE)].each do |timestamp|
+          "2026-10-01T00:00:00Z".encode(Encoding::UTF_16LE),
+          "2026-\u00a010-01T00:00:00Z"].each do |timestamp|
           it "rejects invalid native timestamp bytes #{timestamp.inspect} only when enabled" do
             context = ::OpenFeature::SDK::EvaluationContext.new(
               "targeting_key" => "subject", "dd_experimentation_opt_out_at" => timestamp,
@@ -392,7 +393,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           end
         end
 
-        ["2026-10-01T00:00:00Z".b, "2026-10-01T00:00:00Z", "2026-\u00a010-01T00:00:00Z"].each do |timestamp|
+        ["2026-10-01T00:00:00Z".b, "2026-10-01T00:00:00Z"].each do |timestamp|
           it "preserves valid native timestamp bytes #{timestamp.inspect}" do
             context = ::OpenFeature::SDK::EvaluationContext.new(
               "targeting_key" => "subject", "dd_experimentation_opt_out_at" => timestamp,
