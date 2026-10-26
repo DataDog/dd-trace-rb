@@ -38,8 +38,9 @@ module Datadog
       #   each trace's budget
       # @param all_budget [Integer] all-probe counter start value for each
       #   trace's budget
-      # @raise [ArgumentError] when sweep_threshold is not a positive Integer,
-      #   or per_probe_budget or all_budget is not a non-negative Integer
+      # @raise [ArgumentError] when sweep_threshold is zero, negative, or
+      #   non-Integer, or when per_probe_budget or all_budget is negative
+      #   or non-Integer
       def initialize(sweep_threshold: DEFAULT_SWEEP_THRESHOLD, top_rate: TOP_RATE,
         global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
         all_budget: ALL_BUDGET)
