@@ -172,9 +172,10 @@ module Datadog
 
       # Decides a hit with no active trace through the probe's own rate limit
       # and the process-wide GLOBAL budget, so uncorrelated and correlated
-      # traffic share one process-wide bound. GLOBAL must hold a positive
-      # balance to admit: only correlated probes of an admitted trace
-      # consume GLOBAL without a check. Must hold the lock.
+      # traffic share one process-wide bound. Uncorrelated hits consume
+      # GLOBAL after checking its balance; correlated probes of an admitted
+      # trace consume it directly, borrowing into the deficit. Must hold
+      # the lock.
       #
       # @param probe [Datadog::DI::Probe]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
