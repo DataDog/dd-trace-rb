@@ -139,6 +139,46 @@ module Datadog
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
 
+      # Decides whether a condition-evaluation-failure notification may
+      # emit, after the probe's own condition-error limiter admitted it. A
+      # capturing probe's notification inside an active trace takes the
+      # correlation sampler's coordinated decision, consuming the trace's
+      # per-trace budget; every other notification, one with no active
+      # trace or from a non-capturing probe, consumes one GLOBAL token.
+      # Denials record the canonical rate-limit skip metric. A gate error
+      # fails open; the probe's condition-error limiter is the remaining
+      # throttle.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose condition evaluation failed
+      # @return [Boolean] true when the notification may emit
+      def admit_condition_error_snapshot?(probe)
+        begin
+          trace = current_trace
+          if trace && probe.capturing?
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
+          else
+            admitted = correlation_sampler.admit_process_wide_snapshot?
+            drop_reason = :global_budget
+          end
+        rescue Exception => exc # standard:disable Lint/RescueException
+          reraise_per_policy(exc)
+
+          logger.debug { "[di-correlation] gate error, failing open to the probe's condition-error limiter: #{exc.class}: #{exc.message}" }
+          telemetry&.report(exc, description: "Error in DI correlation gate")
+          return true
+        end
+
+        unless admitted
+          # A denial always carries its drop decision; Steep cannot infer
+          # the pairing between the returned tuple's elements.
+          # @type var drop_reason: Symbol
+          record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+          return false
+        end
+
+        true
+      end
+
       # Emits the canonical rate-limit skip metric for a probe.
       #
       # @param probe [Probe] the probe being skipped

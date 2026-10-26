@@ -27,18 +27,16 @@ module Datadog
       # @param probe_notifier_worker [ProbeNotifierWorker] worker that sends the built payloads
       # @param logger [DI::Logger] logger for probe manager diagnostics
       # @param probe_repository [ProbeRepository] repository of installed probes
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical condition-error skip metric
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component probe manager errors are reported through
       # @return [void]
       def initialize(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, probe_repository, guardrails_telemetry:, telemetry: nil)
+        probe_notifier_worker, logger, probe_repository, telemetry: nil)
         @settings = settings
         @instrumenter = instrumenter
         @probe_notification_builder = probe_notification_builder
         @probe_notifier_worker = probe_notifier_worker
         @logger = logger
         @telemetry = telemetry
-        @guardrails_telemetry = guardrails_telemetry
         @probe_repository = probe_repository
 
         @definition_trace_point = TracePoint.new(:end) do |tp|
@@ -53,9 +51,6 @@ module Datadog
 
       attr_reader :logger
       attr_reader :telemetry
-      # The guardrails metric emitter.
-      # @return [GuardrailsTelemetry]
-      attr_reader :guardrails_telemetry
       attr_reader :probe_repository
 
       # Stops the probe manager without permanently releasing resources.
@@ -326,10 +321,11 @@ module Datadog
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
-      # Rate-limited to 1 notification per second per probe, and subject to
-      # the process-wide GLOBAL snapshot budget the correlation sampler
-      # holds, shared with capturing emits, to avoid flooding the backend
-      # when conditions fail repeatedly.
+      # Rate-limited to 1 notification per second per probe. Once the per-probe
+      # throttle admits, the instrumenter's admission gate applies the trace
+      # sampling decision to a capturing probe's notification inside an active
+      # trace, and the process-wide GLOBAL token to every other notification,
+      # to avoid flooding the backend when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [EL::Expression] The condition expression that failed
@@ -339,15 +335,9 @@ module Datadog
         probe = context.probe
         rate_limiter = probe.condition_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
-          if instrumenter.correlation_sampler.admit_process_wide_snapshot?
+          if instrumenter.admit_condition_error_snapshot?(probe)
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
             probe_notifier_worker.add_snapshot(payload, probe: probe)
-          else
-            logger.trace do
-              "di: #{probe.type} probe #{probe.id}: skipping condition error snapshot due to global rate limit" \
-                " (#{GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL})"
-            end
-            record_condition_error_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
           end
         elsif rate_limiter
           logger.trace do
@@ -369,20 +359,6 @@ module Datadog
       def probe_disabled_callback(probe, duration)
         payload = probe_notification_builder.build_disabled(probe, duration)
         probe_notifier_worker.add_status(payload, probe: probe)
-      end
-
-      # Emits the canonical skip metric for a condition evaluation failure
-      # notification rejected by a rate limiter.
-      #
-      # @param probe [Probe] the probe whose condition evaluation failed
-      # @param reason [String] the GuardrailsTelemetry::Reason constant for the rejecting limit
-      # @return [void]
-      def record_condition_error_skip(reason, probe)
-        guardrails_telemetry.skipped(
-          reason: reason,
-          probe: probe,
-        )
-        nil
       end
 
       # Class/module definition trace point (:end type).

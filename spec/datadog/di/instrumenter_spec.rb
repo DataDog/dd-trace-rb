@@ -2663,6 +2663,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+          capture_snapshot: true,
           condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
         )
       end
@@ -2681,65 +2682,205 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:manager) do
         Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
-          probe_notifier_worker, logger, probe_repository, guardrails_telemetry: guardrails_telemetry)
+          probe_notifier_worker, logger, probe_repository)
       end
 
-      context "when the process-wide GLOBAL budget admits a condition error" do
-        let(:snapshot) { double("snapshot") }
+      let(:snapshot) { double("snapshot") }
 
-        before do
-          allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
-            .and_return(snapshot)
-        end
-
-        it "emits the condition error snapshot through the probe manager" do
-          expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
-
-          instrumenter.hook_method(probe, manager)
-
-          expect(DITestClass.new.test_method(42)).to eq 43
-        end
+      before do
+        allow(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+          .and_return(snapshot)
       end
 
-      context "when the process-wide GLOBAL budget rejects a condition error" do
+      context "with no active trace" do
         before do
-          expect(instrumenter.correlation_sampler).to receive(:admit_process_wide_snapshot?).and_return(false)
+          stub_no_trace
         end
 
-        it "does not emit the condition error snapshot and emits the rateLimitGlobal skip metric" do
-          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
-          expect(probe_notifier_worker).not_to receive(:add_snapshot)
-          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-            tags: {reason: "rateLimitGlobal", event_type: "log"},)
+        context "when the process-wide GLOBAL budget admits a condition error" do
+          it "emits the condition error snapshot through the probe manager" do
+            # The condition-error path must not draw the probe's base rate
+            # limit: evaluation errors must not consume the probe's snapshot
+            # allowance.
+            expect(probe.rate_limiter).not_to receive(:allow?)
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
-          instrumenter.hook_method(probe, manager)
+            instrumenter.hook_method(probe, manager)
 
-          expect(DITestClass.new.test_method(42)).to eq 43
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
 
-          expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+        context "when the process-wide GLOBAL budget rejects a condition error" do
+          before do
+            expect(instrumenter.correlation_sampler).to receive(:admit_process_wide_snapshot?).and_return(false)
+          end
+
+          it "does not emit the condition error snapshot and emits the rateLimitGlobal skip metric" do
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+            expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+              tags: {reason: "rateLimitGlobal", event_type: "snapshot"},)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+
+            expect(logger).to have_received(:trace) do |&block|
+              expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+            end
+          end
+
+          context "when emitting the skip metric raises" do
+            let(:telemetry) { telemetry_double_raising_on_inc }
+
+            it "completes the probed method and logs the telemetry failure" do
+              expect_lazy_log(logger, :debug,
+                /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+
+              instrumenter.hook_method(probe, manager)
+
+              expect(DITestClass.new.test_method(42)).to eq 43
+            end
+          end
+        end
+
+        context "when the per-probe limiter rejects a condition error" do
+          before do
+            allow(probe).to receive(:condition_evaluation_failed_rate_limiter)
+              .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
+          end
+
+          it "does not emit the condition error snapshot and emits no events.skipped metric" do
+            expect(instrumenter).not_to receive(:admit_condition_error_snapshot?)
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+            expect(telemetry).not_to receive(:inc)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+
+            expect(logger).to have_received(:trace) do |&block|
+              expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+            end
           end
         end
       end
 
-      context "when the per-probe limiter rejects a condition error" do
+      context "with an active trace" do
         before do
-          allow(probe).to receive(:condition_evaluation_failed_rate_limiter)
-            .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
+          stub_active_trace(123)
         end
 
-        it "does not emit the condition error snapshot and emits no events.skipped metric" do
-          expect(instrumenter.correlation_sampler).not_to receive(:admit_process_wide_snapshot?)
-          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
-          expect(probe_notifier_worker).not_to receive(:add_snapshot)
-          expect(telemetry).not_to receive(:inc)
+        context "when the trace's budget admits the condition error" do
+          it "emits the condition error snapshot through the trace's coordinated decision" do
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
-          instrumenter.hook_method(probe, manager)
+            instrumenter.hook_method(probe, manager)
 
-          expect(DITestClass.new.test_method(42)).to eq 43
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
 
-          expect(logger).to have_received(:trace) do |&block|
-            expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+          it "charges the condition error emission to the trace's per-probe budget" do
+            rate_limiter_time = Datadog::Core::Utils::Time.get_time
+            allow(Datadog::Core::Utils::Time).to receive(:get_time) { rate_limiter_time }
+            allow(probe_notifier_worker).to receive(:add_snapshot)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+            expect(probe_notification_builder).to have_received(:build_condition_evaluation_failed).once
+            expect(probe_notifier_worker).to have_received(:add_snapshot).once
+
+            # Advance past the per-probe condition-error limiter's one-second
+            # window; the trace's emission counters hold their consumed state.
+            rate_limiter_time += 2
+
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+            expect(probe_notification_builder).to have_received(:build_condition_evaluation_failed).once
+            expect(probe_notifier_worker).to have_received(:add_snapshot).once
+          end
+        end
+
+        context "when the trace is starved" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
+
+          let(:starving_probe) do
+            Datadog::DI::Probe.new(
+              id: 2, type: :log, type_name: "DITestClass", method_name: "test_method",
+              capture_snapshot: true
+            )
+          end
+
+          after do
+            instrumenter.unhook(starving_probe)
+          end
+
+          it "emits no condition error snapshot and records the trace-budget skip metric" do
+            instrumenter.hook_method(probe, manager)
+            # Hooked last, the starving probe's wrapper runs first: its
+            # capturing hit meets the TOP gate, which refuses at rate 0 and
+            # starves the trace, so the condition error then meets the
+            # starved budget.
+            instrumenter.hook_method(starving_probe, manager)
+
+            expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
+            expect_rate_limit_skip_metric(reason: "rateLimitTraceBudget", event_type: "snapshot")
+            expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+            expect(probe_notification_builder).not_to receive(:build_executed)
+            expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
+
+        context "when a non-capturing probe's condition fails" do
+          let(:correlation_sampler) { Datadog::DI::CorrelationSampler.new(top_rate: 0) }
+
+          let(:probe) do
+            Datadog::DI::Probe.new(
+              id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
+              condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+            )
+          end
+
+          it "admits the condition error through the process-wide GLOBAL token" do
+            # TOP at rate 0 starves every capturing trace; a non-capturing
+            # probe is exempt from coordination, so its condition error draws
+            # the GLOBAL token instead of the trace decision.
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+        end
+
+        context "when the admission gate raises" do
+          it "fails open, emits the condition error and reports the gate error" do
+            allow(logger).to receive(:debug)
+            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(StandardError, "gate boom")
+            expect(telemetry).to receive(:report) do |exc, description:|
+              expect(exc).to be_a(StandardError)
+              expect(exc.message).to eq("gate boom")
+              expect(description).to eq("Error in DI correlation gate")
+            end
+            expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect(DITestClass.new.test_method(42)).to eq 43
+          end
+
+          it "re-raises fatal gate exceptions out of the probed method" do
+            expect(instrumenter.correlation_sampler).to receive(:emit_with_reason?).and_raise(SystemExit)
+
+            instrumenter.hook_method(probe, manager)
+
+            expect { DITestClass.new.test_method(42) }.to raise_error(SystemExit)
           end
         end
       end

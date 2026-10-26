@@ -88,7 +88,8 @@ module Datadog
 
       # Consumes one GLOBAL token for a snapshot payload the coordinated
       # emit path does not gate, such as a condition-evaluation-failure
-      # notification. GLOBAL admits the payload only while the balance is
+      # notification with no active trace or from a non-capturing probe.
+      # GLOBAL admits the payload only while the balance is
       # positive, matching the uncorrelated emit path, so condition-error
       # payloads and capturing emits share one process-wide snapshot budget.
       #

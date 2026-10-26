@@ -57,6 +57,8 @@ module Datadog
 
       attr_reader correlation_sampler: CorrelationSampler
 
+      def admit_condition_error_snapshot?: (Probe probe) -> bool
+
       def record_rate_limit_skip: (String reason, Probe probe) -> void
 
       def rate_limit_skip_limit: (String reason) -> String

@@ -130,6 +130,33 @@ RSpec.describe "Correlation integration" do
         # capturing emits, so the exhausted GLOBAL drops it.
         expect(snapshots).to be_empty
       end
+
+      it "drops the condition-error snapshot in a trace the sampler starved" do
+        freeze_rate_limiter_clock
+
+        probe_manager.add_probe(method_probe("p-alpha", "alpha"))
+        probe_manager.add_probe(method_probe("p-inner", "inner"))
+
+        # One emitting hit per trace consumes TOP; with TOP_RATE traces
+        # established, the next trace's capturing hit starves the trace.
+        1.upto(Datadog::DI::CorrelationSampler::TOP_RATE) do |trace_index|
+          stub_active_trace(trace_index, span_id: span_id)
+          CorrelationIntegrationTestClass.new.inner
+        end
+
+        starved_trace_id = Datadog::DI::CorrelationSampler::TOP_RATE + 1
+        stub_active_trace(starved_trace_id, span_id: span_id)
+        probe_manager.add_probe(method_probe("p-cond", "inner",
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")))
+
+        # alpha's capturing hit meets the exhausted TOP gate and starves the
+        # trace; inner's condition error then meets the starved budget.
+        CorrelationIntegrationTestClass.new.alpha
+        flush
+
+        expect(snapshots.size).to eq(Datadog::DI::CorrelationSampler::TOP_RATE)
+        expect(snapshots.map { |snapshot| snapshot[:"dd.trace_id"] }).to_not include(starved_trace_id.to_s)
+      end
     end
 
     it "starves the next trace's capturing probes once TOP_RATE traces have established units" do
