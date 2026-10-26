@@ -44,8 +44,8 @@ module Datadog
             return unless Datadog::DataStreams.enabled?
 
             begin
-              @datadog_pathway_context_before_job = Datadog::DataStreams.pathway_context
-              @datadog_pathway_context_restore_pending = true
+              # false stands in for "thread had no context", leaving nil to mean nothing to restore.
+              @datadog_pathway_context_before_job = Datadog::DataStreams.pathway_context || false
               # A headerless job would otherwise checkpoint into, and mutate, the saved context.
               Datadog::DataStreams.pathway_context = nil
               Datadog::DataStreams.set_consume_checkpoint(
@@ -65,12 +65,9 @@ module Datadog
           def perform_now
             super
           ensure
-            # A flag rather than `if @datadog_pathway_context_before_job`: nil is a valid saved
-            # context (the thread had none) and must still be restored.
-            if @datadog_pathway_context_restore_pending
+            unless @datadog_pathway_context_before_job.nil?
               begin
-                @datadog_pathway_context_restore_pending = false
-                context_before_job = @datadog_pathway_context_before_job
+                context_before_job = @datadog_pathway_context_before_job || nil
                 @datadog_pathway_context_before_job = nil
                 Datadog::DataStreams.pathway_context = context_before_job
               rescue => e

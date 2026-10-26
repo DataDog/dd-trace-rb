@@ -16,9 +16,7 @@ module Datadog
 
           def serialize: () -> ::Hash[::String, any]
 
-          @datadog_pathway_context_before_job: Datadog::DataStreams::PathwayContext?
-
-          @datadog_pathway_context_restore_pending: bool?
+          @datadog_pathway_context_before_job: (Datadog::DataStreams::PathwayContext | false)?
 
           def deserialize: (::Hash[::String, any] job_data) -> void
 
