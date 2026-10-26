@@ -120,9 +120,10 @@ module Datadog
       private
 
       # Process-wide mutex guarding trace_budgets and the shared limiters; every
-      # capturing fire serializes here, a conscious trade-off for O(1) critical
-      # sections. The lock is required for uncorrelated hits too: their GLOBAL
-      # check-and-consume must be atomic with the correlated hits' consumption.
+      # capturing fire serializes here, and each critical section is O(1),
+      # bounding the hold time. The lock is required for uncorrelated hits too:
+      # their GLOBAL check-and-consume must be atomic with the correlated hits'
+      # consumption.
       # @return [Thread::Mutex]
       attr_reader :lock
 
