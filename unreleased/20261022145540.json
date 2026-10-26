@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "AppSec",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6548",
-  "message": "Update `libddwaf` to 1.30.0.1.0."
-}
