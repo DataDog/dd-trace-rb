@@ -263,9 +263,9 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:collection) { Array.new(1000) { |i| i } }
 
       # The cooperative check fires every EVALUATION_DEADLINE_CHECK_INTERVAL items.
-      # Drive Process.clock_gettime so the first check (i=0) is before the
-      # deadline and the second check (i=64) is after it, proving the bound
-      # engages mid-iteration rather than at the first item.
+      # Stub Process.clock_gettime so the first check (i=0) is before the
+      # deadline and the second check (i=64) is after it, proving the timeout
+      # raises at the second check, in mid-iteration.
       it "#filter raises after the first interval's worth of items" do
         deadline = 1.0
         checks = 0
