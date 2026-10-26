@@ -151,8 +151,8 @@ module Datadog
         unless resolution.enabled?
           @failure = "Feature Flags are disabled"
           @logger.debug do
-            "Feature Flags: disabled (feature_flags.enabled=#{@settings.feature_flags.enabled}, " \
-              "configuration source=#{resolution.source})"
+            reason = @settings.feature_flags.enabled ? "the resolved configuration source is offline" : "feature_flags.enabled is false"
+            "Feature Flags: disabled because #{reason}"
           end
           return
         end
@@ -239,9 +239,14 @@ module Datadog
 
         @logger.debug do
           agentless = @settings.feature_flags.agentless
-          requested_env = endpoint.managed? ? (@settings.env || "unset") : "not sent (custom endpoint)"
+          sdk_env = @settings.env ? "sdk_env=#{@settings.env.inspect}" : "sdk_env is unset"
+          requested_env = if endpoint.managed?
+            @settings.env ? "requested_env=#{@settings.env.inspect}" : "requested_env is unset"
+          else
+            "requested_env is not sent (custom endpoint)"
+          end
           "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
-            "(sdk_env=#{@settings.env || "unset"}, requested_env=#{requested_env}, " \
+            "(#{sdk_env}, #{requested_env}, " \
             "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
         end
 
@@ -273,8 +278,8 @@ module Datadog
         )
         remote.start
         @logger.debug do
-          "Feature Flags: started Remote Configuration source (sdk_env=#{@settings.env || "unset"}); " \
-            "configuration arrives through the Datadog Agent"
+          sdk_env = @settings.env ? "sdk_env=#{@settings.env.inspect}" : "sdk_env is unset"
+          "Feature Flags: started Remote Configuration source (#{sdk_env}) using Datadog Agent"
         end
         true
       end

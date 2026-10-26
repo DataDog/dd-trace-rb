@@ -81,9 +81,8 @@ module Datadog
           return @evaluator = NoopEvaluator.new(configuration)
         end
 
-        evaluator = NativeEvaluator.new(configuration)
-        @logger.debug { "Feature Flags: configuration applied (#{configuration_summary(configuration)})" }
-        @evaluator = evaluator
+        @evaluator = NativeEvaluator.new(configuration)
+        @logger.debug { "Feature Flags: configuration applied; #{configuration_summary(configuration)}" }
       rescue => e
         message = "OpenFeature: Failed to reconfigure, reverting to the previous configuration"
 
@@ -122,14 +121,24 @@ module Datadog
       end
 
       def configuration_summary(configuration)
-        ufc = JSON.parse(configuration)
-        raise ArgumentError, "Feature Flags configuration must be a JSON object" unless ufc.is_a?(Hash)
+        payload = begin
+          JSON.parse(configuration)
+        rescue JSON::NestingError
+          # Native parsing accepts deeper JSON than Ruby's default nesting limit.
+          return "received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"
+        end
+        return "received payload metadata unavailable: expected a JSON object" unless payload.is_a?(Hash)
 
-        flags = ufc["flags"]
-        environment = ufc["environment"]
+        flags = payload["flags"]
+        environment = payload["environment"]
         environment_name = environment["name"] if environment.is_a?(Hash)
-        "#{flags.is_a?(Hash) ? flags.size : 0} flag(s) received; per-flag validity is checked at evaluation, " \
-          "delivered_env=#{environment_name || "unknown"}, created_at=#{ufc["createdAt"] || "unknown"}"
+        flag_count = flags.is_a?(Hash) ? "flag_count=#{flags.size}" : "flag_count is not specified"
+        environment_summary = environment_name ? "environment=#{environment_name.inspect}" : "environment is not specified"
+        created_at = payload["createdAt"]
+        creation_summary = created_at ? "created_at=#{created_at.inspect}" : "created_at is not specified"
+
+        "received payload: #{flag_count}, #{environment_summary}, #{creation_summary}; " \
+          "individual flags may still fail evaluation"
       end
 
       # Stamps observe_full_evaluation_data onto the result metadata so the hook

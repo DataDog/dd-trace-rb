@@ -37,7 +37,7 @@ module Datadog
 
       def log_resolution_failure: (String flag_key, StandardError error) -> void
 
-      def configuration_summary: (::String configuration) -> ::String
+      def configuration_summary: (String configuration) -> String
 
       def with_observe_full_evaluation_data: (
         ResolutionDetails result,

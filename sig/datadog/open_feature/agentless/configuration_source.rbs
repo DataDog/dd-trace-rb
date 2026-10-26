@@ -80,6 +80,8 @@ module Datadog
 
         def log_poll_attempt: (Response response, Integer attempt) -> void
 
+        def http_failure_reason: (Integer status) -> String
+
         def retryable?: (Response response) -> bool
 
         def retryable_status?: (Integer status) -> bool

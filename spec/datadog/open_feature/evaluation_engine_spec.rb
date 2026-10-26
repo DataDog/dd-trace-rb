@@ -319,10 +319,8 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     context "when debug logging is disabled" do
       let(:logger) { Datadog::Core::Logger.new(StringIO.new) }
 
-      before { allow(logger).to receive(:debug).and_call_original }
-
-      it "does not parse the configuration for a diagnostic summary" do
-        expect(engine).not_to receive(:configuration_summary)
+      it "does not parse the configuration for diagnostics" do
+        expect(JSON).not_to receive(:parse)
 
         engine.reconfigure!(configuration)
 
@@ -364,6 +362,10 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         payload["flags"].clear unless include_valid
         payload["flags"]["invalid"] = {}
         engine.reconfigure!(JSON.generate(payload))
+        expect(debug_messages).to eq(
+          ["Feature Flags: configuration applied; received payload: flag_count=#{include_valid ? 2 : 1}, " \
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
+        )
         result = engine.fetch_value("invalid", default_value: "fallback", expected_type: :string)
         expect(result.value).to eq("fallback")
         expect(result.error_code).to eq("PARSE_ERROR")
@@ -390,15 +392,64 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(Datadog::OpenFeature::NativeEvaluator).to have_received(:new).with(configuration)
       end
 
-      it "summarizes the applied configuration" do
+      it "logs the received metadata when the configuration has been applied" do
         messages = []
         allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
 
         engine.reconfigure!(configuration)
 
         expect(messages).to eq(
-          ["Feature Flags: configuration applied (1 flag(s) received; per-flag validity is checked at evaluation, delivered_env=test, created_at=2024-04-17T19:40:53.716Z)"]
+          ["Feature Flags: configuration applied; received payload: flag_count=1, " \
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
         )
+      end
+
+      it "identifies missing metadata without reporting a zero flag count" do
+        messages = []
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+
+        engine.reconfigure!("{}")
+
+        expect(messages).to eq(
+          ["Feature Flags: configuration applied; received payload: flag_count is not specified, " \
+            "environment is not specified, created_at is not specified; individual flags may still fail evaluation"]
+        )
+      end
+
+      it "installs the evaluator before logging successful application" do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
+        allow(reporter).to receive(:report)
+        value_when_logged = nil
+        allow(logger).to receive(:debug) do |message, &block|
+          message = block.call if block
+          if message.start_with?("Feature Flags: configuration applied;")
+            value_when_logged = engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string).value
+          end
+        end
+
+        engine.reconfigure!(configuration)
+
+        expect(value_when_logged).to eq("hello")
+      end
+
+      it "keeps an accepted configuration that exceeds the diagnostic parser's nesting limit" do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_call_original
+        allow(reporter).to receive(:report)
+        payload = JSON.parse(configuration)
+        nested_metadata = {}
+        101.times { nested_metadata = {"nested" => nested_metadata} }
+        payload["extra"] = nested_metadata
+        deeply_nested_configuration = JSON.generate(payload, max_nesting: false)
+        messages = []
+        allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+
+        expect { JSON.parse(deeply_nested_configuration) }.to raise_error(JSON::NestingError)
+        expect { engine.reconfigure!(deeply_nested_configuration) }.not_to raise_error
+
+        expect(messages).to eq(
+          ["Feature Flags: configuration applied; received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"]
+        )
+        expect(engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string).value).to eq("hello")
       end
     end
 
@@ -413,6 +464,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
         expect { engine.reconfigure!("{}") }.to raise_error(described_class::ReconfigurationError, "StandardError: Ooops")
+        expect(debug_messages).to be_empty
       end
     end
   end

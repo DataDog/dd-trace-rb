@@ -2895,50 +2895,7 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
-#### Debugging Feature Flags
-
-Set `DD_TRACE_DEBUG=true` before starting the application. Require `datadog`, `open_feature/sdk`,
-and `datadog/open_feature/provider`, configure Datadog, then register `Datadog::OpenFeature::Provider.new`
-with `OpenFeature::SDK.set_provider_and_wait` before evaluating flags. Select `agentless` or
-`remote_config` with `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE`. `remote_config` requires a Datadog Agent.
-
-When Feature Flags debug logging is enabled, a startup warning explains that raw targeting keys,
-evaluation context attributes, flag values, and default values may contain personal or sensitive
-information. Unset `DD_TRACE_DEBUG` after you finish troubleshooting.
-
-Logs go to `stderr` by default. If you configure `c.logger.instance`, configure that logger and any downstream
-handlers to allow DEBUG output. `DD_TRACE_DEBUG` sets the Datadog logger's level to DEBUG.
-
-Collect every line that contains `Feature Flags` or `OpenFeature`, along with the following lines:
-
-- **Remote Configuration**: `remote:`, `remote worker`, `agent unreachable`
-- **Transport**: `send_request`, `Internal error during`
-- **Worker shutdown**: `Timeout while waiting for worker`
-
-Some warnings, such as `Feature Flags agentless endpoint returned HTTP 401`, have no colon after the prefix.
-Filtering for evaluation lines only excludes configuration delivery and exposure failures.
-
-Application hooks and OpenFeature event handlers report failures through the
-OpenFeature SDK's own logger, which is unset by default. To see these failures, set the OpenFeature SDK logger:
-
-```ruby
-OpenFeature::SDK.configure { |config| config.logger = Logger.new($stderr) }
-```
-
-Configuration logs include these environment fields:
-
-- `sdk_env`: the application's Datadog environment, configured through `DD_ENV` or `c.env`; `unset` if not configured.
-- `requested_env`: the environment sent as `dd_env` to the managed agentless endpoint; `unset` if not configured.
-  For custom endpoints, this is `not sent (custom endpoint)` because the SDK preserves the URL without adding `dd_env`.
-- `delivered_env`: the environment name in the received flag configuration; `unknown` if the configuration omits it.
-
-Compare these fields with the environment whose flags you expect to evaluate. If `sdk_env` is wrong, check `DD_ENV`
-and `c.env`. If `delivered_env` differs from the intended environment, check the selected configuration source
-and, for a custom endpoint, the URL and the configuration it serves. `not sent (custom endpoint)` is expected
-for custom endpoints; `unknown` means the configuration does not identify its environment.
-
-An exposure that the Datadog Agent accepts might not reach Datadog. Check the Agent
-logs for later delivery failures.
+Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
 
 ### Profiling
 

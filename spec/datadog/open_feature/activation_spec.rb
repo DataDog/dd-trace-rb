@@ -149,7 +149,21 @@ RSpec.describe Datadog::OpenFeature::Activation do
     it "starts agentless delivery with debug logging enabled" do
       expect(activation.activate(provider)).to be(component)
       expect(configuration_source).to have_received(:start).once
-      expect(debug_messages).to include(include("sdk_env=unset, requested_env=unset"))
+      expect(debug_messages).to include(
+        "Feature Flags: starting agentless configuration source at https://example.test " \
+          "(sdk_env is unset, requested_env is unset, poll interval 30s, request timeout 5s)"
+      )
+    end
+
+    it "distinguishes an environment named unset from a missing environment" do
+      settings.env = "unset"
+
+      activation.activate(provider)
+
+      expect(debug_messages).to include(
+        "Feature Flags: starting agentless configuration source at https://example.test " \
+          '(sdk_env="unset", requested_env="unset", poll interval 30s, request timeout 5s)'
+      )
     end
 
     context "with a custom endpoint and debug logging enabled" do
@@ -165,7 +179,10 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
         expect(activation.activate(provider)).to be(component)
         expect(configuration_source).to have_received(:start).once
-        expect(debug_messages).to include(include("sdk_env=production, requested_env=not sent (custom endpoint)"))
+        expect(debug_messages).to include(
+          "Feature Flags: starting agentless configuration source at https://example.test " \
+            '(sdk_env="production", requested_env is not sent (custom endpoint), poll interval 30s, request timeout 5s)'
+        )
       end
     end
 
@@ -217,8 +234,15 @@ RSpec.describe Datadog::OpenFeature::Activation do
         activation.start!
 
         expect(debug_messages).to include(
-          "Feature Flags: started Remote Configuration source (sdk_env=production); " \
-            "configuration arrives through the Datadog Agent"
+          'Feature Flags: started Remote Configuration source (sdk_env="production") using Datadog Agent'
+        )
+      end
+
+      it "logs when the SDK environment is unset" do
+        activation.start!
+
+        expect(debug_messages).to include(
+          "Feature Flags: started Remote Configuration source (sdk_env is unset) using Datadog Agent"
         )
       end
 
@@ -268,6 +292,31 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(activation.activate(provider)).to be_nil
         expect(activation.failure).to eq("Feature Flags are disabled")
         expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+        expect(debug_messages).to eq(["Feature Flags: disabled because feature_flags.enabled is false"])
+      end
+    end
+
+    context "when the configuration source resolves to offline" do
+      ["offline", "unsupported"].each do |source|
+        it "explains why delivery is disabled for #{source} even though Feature Flags are enabled" do
+          settings.feature_flags.configuration_source = source
+
+          expect(activation.activate(provider)).to be_nil
+
+          expect(settings.feature_flags.enabled).to be(true)
+          expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+          expect(debug_messages).to eq(["Feature Flags: disabled because the resolved configuration source is offline"])
+        end
+      end
+
+      it "explains why the legacy setting disables delivery" do
+        settings.open_feature.enabled = false
+
+        expect(activation.activate(provider)).to be_nil
+
+        expect(settings.feature_flags.enabled).to be(true)
+        expect(Datadog::OpenFeature::Component).not_to have_received(:build)
+        expect(debug_messages).to eq(["Feature Flags: disabled because the resolved configuration source is offline"])
       end
     end
 
