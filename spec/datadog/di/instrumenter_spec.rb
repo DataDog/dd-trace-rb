@@ -2189,7 +2189,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
         end
 
-        it "invokes the condition evaluation failed callback with the timeout" do
+        it "invokes the condition evaluation failed callback with the timeout and the customer method runs normally" do
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
           expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
 
@@ -2200,8 +2200,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           begin
             instrumenter.hook_method(probe, responder)
-            # The condition timeout is contained by DI; the customer method
-            # runs normally.
             expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
           ensure
             instrumenter.unhook_method(probe)
