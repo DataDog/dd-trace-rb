@@ -2607,6 +2607,76 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.length).to eq 1
         end
       end
+
+      context "re-entrancy guard" do
+        it "holds the guard while processing a hit" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |_payload|
+            observed_calls << Datadog::DI.in_probe?
+          end
+
+          HookLineTestClass.new.test_method
+
+          expect(observed_calls).to eq([true])
+        end
+
+        it "keeps a pre-held guard set for a hit nested in other DI processing" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+
+          hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          begin
+            HookLineTestClass.new.test_method
+          ensure
+            expect(Datadog::DI.in_probe?).to be(true)
+            Datadog::DI.leave_probe
+          end
+
+          expect(observed_calls.length).to eq 1
+          expect(Datadog::DI.in_probe?).to be(false)
+        end
+
+        it "short-circuits a method probe nested in the callback's dispatches" do
+          expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
+          stub_active_trace(123)
+
+          capturing_line_probe = Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
+            id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000,)
+          hook_line(capturing_line_probe) do |payload|
+            observed_calls << payload
+          end
+
+          # The gate of a second hit in the same trace reads the stored
+          # budget through WeakRef#weakref_alive?, a stdlib method the
+          # nested method probe below targets. Under the guard the nested
+          # wrapper must short-circuit; unguarded, it fires.
+          weakref_probe = Datadog::DI::Probe.new(type_name: "WeakRef",
+            method_name: "weakref_alive?", id: "p-weakref", type: :log,
+            capture_snapshot: true, rate_limit: 5000,)
+          weakref_probe_calls = []
+          hook_method(weakref_probe) do |payload|
+            weakref_probe_calls << payload
+          end
+
+          begin
+            HookLineTestClass.new.test_method
+            HookLineTestClass.new.test_method
+            expect(weakref_probe_calls).to be_empty
+
+            expect(WeakRef.new(Object.new).weakref_alive?).to be(true)
+          ensure
+            instrumenter.unhook(capturing_line_probe)
+            instrumenter.unhook(weakref_probe)
+          end
+
+          expect(weakref_probe_calls.length).to eq 1
+          expect(observed_calls.length).to eq 1
+        end
+      end
     end
 
     describe "condition error enforcement" do

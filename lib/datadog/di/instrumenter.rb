@@ -939,86 +939,100 @@ module Datadog
         # Check if probe is enabled before doing any processing
         return unless probe.enabled?
 
-        # If trace point is not targeted, we must verify that the invocation
-        # is the file & line that we want, because untargeted trace points
-        # are invoked for *each* line of Ruby executed.
-        # TODO find out exactly when the path in trace point is relative.
-        # Looks like this is the case when line trace point is not targeted?
-        unless iseq
-          return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
-            probe.file == tp.path || probe.file_matches?(tp.path)
-          )
-        end
-
-        # We set the trace point on :return to be able to instrument
-        # 'end' lines. This also causes the trace point to be invoked on
-        # non-'end' lines when a line raises an exception, since the
-        # exception causes the method to stop executing and stack unwends.
-        # We do not want two invocations of the trace point.
-        # Therefore, if a trace point is invoked with a :line event,
-        # mark it as such and ignore subsequent :return events.
-        if probe.executed_on_line?
-          return unless tp.event == :line
-        else
-          _ = 42 # stop standard from changing this code
-
-          if tp.event == :line
-            probe.executed_on_line!
+        # Re-entrancy guard, mirroring the method-probe wrapper: the
+        # processing below dispatches interceptable stdlib methods
+        # (Kernel#send, Mutex#synchronize, WeakRef methods), and a nested
+        # method-probe firing during this callback must short-circuit
+        # instead of consuming rate-limit tokens and snapshotting
+        # DI-internal arguments. The prior guard state is restored so a
+        # hit nested inside other DI processing does not clear the outer
+        # guard.
+        was_in_probe = DI.in_probe?
+        DI.enter_probe unless was_in_probe
+        begin
+          # If trace point is not targeted, we must verify that the invocation
+          # is the file & line that we want, because untargeted trace points
+          # are invoked for *each* line of Ruby executed.
+          # TODO find out exactly when the path in trace point is relative.
+          # Looks like this is the case when line trace point is not targeted?
+          unless iseq
+            return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
+              probe.file == tp.path || probe.file_matches?(tp.path)
+            )
           end
-        end
 
-        if condition = probe.condition
-          begin
-            context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
-          rescue Exception => exc # standard:disable Lint/RescueException
-            Datadog::DI.reraise_if_fatal(exc)
-            # Evaluation error exception can be raised for "expected"
-            # errors, we probably need another setting to control whether
-            # these exceptions are propagated.
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-              !exc.is_a?(DI::Error::ExpressionEvaluationError)
+          # We set the trace point on :return to be able to instrument
+          # 'end' lines. This also causes the trace point to be invoked on
+          # non-'end' lines when a line raises an exception, since the
+          # exception causes the method to stop executing and stack unwends.
+          # We do not want two invocations of the trace point.
+          # Therefore, if a trace point is invoked with a :line event,
+          # mark it as such and ignore subsequent :return events.
+          if probe.executed_on_line?
+            return unless tp.event == :line
+          else
+            _ = 42 # stop standard from changing this code
 
-            if context
-              # We want to report evaluation errors for conditions
-              # as probe snapshots. However, if we failed to create
-              # the context, we won't be able to report anything as
-              # the probe notifier builder requires a context.
-              begin
-                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue Exception => nested_exc # standard:disable Lint/RescueException
-                Datadog::DI.reraise_if_fatal(nested_exc)
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-              end
-
-              return
-            else
-              _ = 42 # stop standard from wrecking this code
-
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
-              telemetry&.report(exc, description: "Error evaluating condition without context")
-              # If execution gets here, there is probably a bug in the tracer.
+            if tp.event == :line
+              probe.executed_on_line!
             end
           end
+
+          if condition = probe.condition
+            begin
+              context = build_trace_point_context(probe, tp)
+              return unless condition.satisfied?(context)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                end
+
+                return
+              else
+                _ = 42 # stop standard from wrecking this code
+
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
+              end
+            end
+          end
+
+          return unless emit?(probe)
+
+          # The context creation is relatively expensive and we don't
+          # want to run it if the callback won't be executed due to the
+          # rate limit.
+          # Thus the copy-paste of the creation call here.
+          context ||= build_trace_point_context(probe, tp)
+
+          responder.probe_executed_callback(context)
+
+          check_and_disable_if_exceeded(probe, responder, di_start_time)
+          nil
+        ensure
+          DI.leave_probe unless was_in_probe
         end
-
-        return unless emit?(probe)
-
-        # The context creation is relatively expensive and we don't
-        # want to run it if the callback won't be executed due to the
-        # rate limit.
-        # Thus the copy-paste of the creation call here.
-        context ||= build_trace_point_context(probe, tp)
-
-        responder.probe_executed_callback(context)
-
-        check_and_disable_if_exceeded(probe, responder, di_start_time)
-        nil
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
