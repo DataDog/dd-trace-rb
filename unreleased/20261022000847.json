@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "Dynamic Instrumentation",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6541",
-  "message": "Remove the `logger.version` attribute, which always held `2`, from snapshots."
-}
