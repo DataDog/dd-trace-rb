@@ -398,10 +398,10 @@ RSpec.describe Datadog::DI::Component do
 
   describe "#after_fork" do
     let(:settings) do
-      settings = Datadog::Core::Configuration::Settings.new
-      settings.dynamic_instrumentation.internal.development = true
-      settings.remote.enabled = true
-      settings
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.dynamic_instrumentation.internal.development = true
+        settings.remote.enabled = true
+      end
     end
 
     let(:agent_settings) do
