@@ -2161,7 +2161,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       # `arg1.filter(@it >= 0).length > 0`: a collection filter over the
       # first positional argument. With a zero evaluation budget the
-      # cooperative deadline inside #filter fires immediately, aborting
+      # cooperative check inside #filter raises immediately, aborting
       # condition evaluation before any capture happens.
       let(:probe) do
         src, regexps = Datadog::DI::EL::Compiler.new.compile(
