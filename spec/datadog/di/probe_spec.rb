@@ -313,11 +313,9 @@ RSpec.describe Datadog::DI::Probe do
       end
 
       context "without a rate limiter" do
-        before do
-          allow(probe).to receive(:rate_limiter).and_return(nil)
-        end
-
         it "admits" do
+          expect(probe).to receive(:rate_limiter).and_return(nil)
+
           expect(probe.own_rate_limit_allows?).to be true
         end
       end
