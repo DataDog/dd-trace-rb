@@ -66,6 +66,8 @@ module Datadog
       # The APM span active when the probe's hit was admitted by the
       # sampling gate, for a method probe; nil when the hit carried no
       # admission span.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
       attr_reader :admission_span
 
       # Return value for the method, for a method probe
