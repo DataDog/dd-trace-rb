@@ -43,14 +43,14 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         .to raise_error(ArgumentError, /sweep_threshold must be a positive Integer/)
     end
 
-    it "rejects a per_probe_budget that is not a non-negative Integer" do
+    it "rejects a negative or non-Integer per_probe_budget" do
       expect { described_class.new(per_probe_budget: -1) }
         .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
       expect { described_class.new(per_probe_budget: 1.5) }
         .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
     end
 
-    it "rejects an all_budget that is not a non-negative Integer" do
+    it "rejects a negative or non-Integer all_budget" do
       expect { described_class.new(all_budget: -1) }
         .to raise_error(ArgumentError, /all_budget must be a non-negative Integer/)
       expect { described_class.new(all_budget: 2.5) }
@@ -446,7 +446,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       expect(budget.all_remaining).to eq(99)
     end
 
-    it "rejects a budget that is not a non-negative Integer" do
+    it "rejects a negative or non-Integer budget" do
       expect { described_class.new(per_probe_budget: -1, all_budget: 20) }
         .to raise_error(ArgumentError, /per_probe_budget must be a non-negative Integer/)
       expect { described_class.new(per_probe_budget: 1.5, all_budget: 20) }
