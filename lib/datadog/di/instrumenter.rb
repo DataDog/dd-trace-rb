@@ -588,9 +588,8 @@ module Datadog
         nil
       end
 
-      # The span active when the gate admitted a hit, for the snapshot
-      # envelope. A resolution failure returns nil, leaving the envelope's
-      # span to the builder's own read; the error policy is still honored.
+      # Returns the span active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
       #
       # @return [Datadog::Tracing::SpanOperation, nil]
       def active_span_at_admission
