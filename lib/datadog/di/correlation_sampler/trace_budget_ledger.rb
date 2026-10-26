@@ -2,6 +2,8 @@
 
 require "weakref"
 
+require_relative "trace_budget_ledger/entry"
+
 module Datadog
   module DI
     class CorrelationSampler
@@ -12,30 +14,6 @@ module Datadog
       #
       # @api private
       class TraceBudgetLedger
-        # One retained budget and the weak reference to its trace.
-        #
-        # @api private
-        class Entry
-          # Weak reference to the trace the budget belongs to.
-          #
-          # @return [WeakRef]
-          attr_reader :trace_ref
-
-          # The trace's budget.
-          #
-          # @return [TraceBudget]
-          attr_reader :budget
-
-          # Initializes the entry.
-          #
-          # @param trace_ref [WeakRef] weak reference to the entry's trace
-          # @param budget [TraceBudget] the trace's budget
-          def initialize(trace_ref:, budget:)
-            @trace_ref = trace_ref
-            @budget = budget
-          end
-        end
-
         # Initializes the ledger with +sweep_threshold+ as the floor of the
         # sweep high-water mark.
         #

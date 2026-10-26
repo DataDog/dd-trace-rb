@@ -1,0 +1,20 @@
+module Datadog
+  module DI
+    class CorrelationSampler
+      class TraceBudgetLedger
+        # One retained budget and the weak reference to its trace.
+        class Entry
+          @trace_ref: WeakRef[Datadog::Tracing::TraceOperation]
+
+          @budget: TraceBudget
+
+          def initialize: (trace_ref: WeakRef[Datadog::Tracing::TraceOperation], budget: TraceBudget) -> void
+
+          attr_reader trace_ref: WeakRef[Datadog::Tracing::TraceOperation]
+
+          attr_reader budget: TraceBudget
+        end
+      end
+    end
+  end
+end
