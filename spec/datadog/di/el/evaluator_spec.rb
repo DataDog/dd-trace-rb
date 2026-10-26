@@ -269,8 +269,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           checks += 1
           (checks <= 1) ? deadline - 0.001 : deadline + 0.001
         end
-        # The two-phase stub makes the first check pass and the second fail,
-        # so the raise happens at the second check, in mid-iteration.
         expect do
           filter_expr.satisfied?(context_with(collection), deadline: deadline)
         end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
