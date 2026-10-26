@@ -134,20 +134,37 @@ module Datadog
         end
       end
 
-      # Returns the active APM trace, or nil when tracing is not loaded or no
-      # trace is active. The +defined?+ guard is evaluated per call because DI
-      # may be loaded before Datadog::Tracing. The component lookup does not
-      # initialize the component tree: this runs on the application thread
-      # inside the probe wrapper and the line-probe TracePoint callback, where
-      # the constructive default would build the whole tree from the
+      # Returns the tracer of the built component tree, or nil when tracing
+      # is not loaded or the tree is not built. The +defined?+ guard is
+      # evaluated per call because DI may be loaded before
+      # Datadog::Tracing. The lookup does not initialize the component
+      # tree: the probe-path reads run on the application thread inside
+      # the probe wrapper and the line-probe TracePoint callback, where the
+      # constructive default would build the whole tree from the
       # customer's call stack.
+      #
+      # @return [Datadog::Tracing::Tracer, nil]
+      private def built_tracer
+        if defined?(Datadog::Tracing)
+          components = Datadog.send(:components, allow_initialization: false)
+          components&.tracer
+        end
+      end
+
+      # Returns the active APM trace, or nil when tracing is not loaded or
+      # no trace is active.
       #
       # @return [Datadog::Tracing::TraceOperation, nil]
       def active_trace
-        if defined?(Datadog::Tracing)
-          components = Datadog.send(:components, allow_initialization: false)
-          components&.tracer&.active_trace
-        end
+        built_tracer&.active_trace
+      end
+
+      # Returns the active APM span, or nil when tracing is not loaded or no
+      # span is active.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span
+        built_tracer&.active_span
       end
 
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).

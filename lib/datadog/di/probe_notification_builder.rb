@@ -457,10 +457,14 @@ module Datadog
         Datadog::DI.active_trace
       end
 
+      # Returns the active APM span, or nil when no span is active. The
+      # lookup does not initialize the component tree, for the same reason
+      # as {active_trace}: it runs on the application thread inside the
+      # probe wrapper and the line-probe TracePoint callback.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
       def active_span
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_span
-        end
+        Datadog::DI.active_span
       end
     end
   end
