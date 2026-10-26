@@ -3,9 +3,19 @@
 #include <errno.h>
 #include <stdatomic.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+
+#ifdef __linux__
+  #include <sys/prctl.h>
+
+  #ifndef PR_SET_VMA
+    #define PR_SET_VMA 0x53564d41
+    #define PR_SET_VMA_ANON_NAME 0
+  #endif
+#endif
 
 typedef struct {
   char magic[8];
@@ -20,8 +30,8 @@ size_t miteruby_allocator_requested_bytes(void) {
   return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
 }
 
-void *miteruby_allocator_malloc(size_t size) {
-  if (size == 0) {
+void *miteruby_allocator_malloc(size_t size, const char *name) {
+  if (size == 0 || name == NULL) {
     errno = EINVAL;
     return NULL;
   }
@@ -30,12 +40,20 @@ void *miteruby_allocator_malloc(size_t size) {
     return NULL;
   }
 
-  allocation_header *header = mmap(NULL, size + sizeof(*header), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  size_t mapping_size = size + sizeof(allocation_header);
+  char mapping_name[80];
+  snprintf(mapping_name, sizeof(mapping_name), "miteruby.%s", name);
+
+  allocation_header *header = mmap(NULL, mapping_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (header == MAP_FAILED) return NULL;
 
   memcpy(header->magic, "MITERUBY", sizeof(header->magic));
   header->size = size;
   atomic_fetch_add_explicit(&requested_bytes, size, memory_order_relaxed);
+  #ifdef __linux__
+    // Naming is best-effort, shows up under /proc/pid/maps and may not be supported by current kernel, so we ignore any failures
+    (void)prctl(PR_SET_VMA, (unsigned long)PR_SET_VMA_ANON_NAME, header, mapping_size, mapping_name);
+  #endif
   return header + 1;
 }
 

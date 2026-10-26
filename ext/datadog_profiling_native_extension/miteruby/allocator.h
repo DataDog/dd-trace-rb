@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 // Simple memory allocator, directly backed by mmap (does not rely on libc malloc)
-void *miteruby_allocator_malloc(size_t size);
+// Naming is only used in Linux (best-effort, shows up under /proc/pid/maps)
+void *miteruby_allocator_malloc(size_t size, const char *name);
 void miteruby_allocator_free(void *allocation, size_t size);
 size_t miteruby_allocator_requested_bytes(void);
