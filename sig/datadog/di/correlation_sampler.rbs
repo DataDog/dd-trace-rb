@@ -59,6 +59,8 @@ module Datadog
 
       attr_reader global_rate: (Float | Integer)
 
+      def rebuild_state: () -> void
+
       def emit_uncorrelated?: (Probe probe) -> [bool, Symbol?]
 
       def touch_budget: (Datadog::Tracing::TraceOperation trace) -> TraceBudget?

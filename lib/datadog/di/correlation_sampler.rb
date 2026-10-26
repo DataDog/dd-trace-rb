@@ -55,10 +55,7 @@ module Datadog
         @sweep_threshold = sweep_threshold
         @top_rate = top_rate
         @global_rate = global_rate
-        @lock = Mutex.new
-        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
-        @top_limiter = Core::TokenBucket.new(top_rate)
-        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+        rebuild_state
       end
 
       # Decides whether this capturing probe hit emits a snapshot, and names
@@ -116,10 +113,7 @@ module Datadog
       #
       # @return [void]
       def after_fork!
-        @lock = Mutex.new
-        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
-        @top_limiter = Core::TokenBucket.new(top_rate)
-        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+        rebuild_state
         nil
       end
 
@@ -163,6 +157,18 @@ module Datadog
       # GLOBAL rate this sampler rebuilds its GLOBAL bucket with.
       # @return [Numeric]
       attr_reader :global_rate
+
+      # Builds the process-scoped state objects: the mutex, the per-trace
+      # budget ledger and the TOP/GLOBAL buckets at the configured rates.
+      #
+      # @return [void]
+      def rebuild_state
+        @lock = Mutex.new
+        @trace_budgets = TraceBudgetLedger.new(sweep_threshold)
+        @top_limiter = Core::TokenBucket.new(top_rate)
+        @global_limiter = Core::BorrowingTokenBucket.new(global_rate)
+        nil
+      end
 
       # Decides a hit with no active trace through the probe's own rate limit
       # and the process-wide GLOBAL budget, so uncorrelated and correlated
