@@ -281,11 +281,14 @@ RSpec.describe Datadog::DI::CorrelationSampler do
       end.join
       GC.start
 
-      5.times { ledger.store(Object.new, budget) }
+      # The filler traces are held strongly, so only the two thread traces
+      # are dead when the sweeps run.
+      survivors = 5.times.map { Object.new }
+      survivors.each { |trace| ledger.store(trace, budget) }
 
       # Nine stores minus the two dead entries: seven retained.
       expect(ledger.entries.size).to eq(7)
-      expect(retained.all? { |trace| ledger.fetch(trace) }).to be(true)
+      expect((retained + survivors).all? { |trace| ledger.fetch(trace) }).to be(true)
     end
   end
 
