@@ -39,7 +39,7 @@ module Datadog
       def serialization_deadline: () -> Float
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
-      def self.register: (?condition: Proc?) {
+      def self.register: (condition: Proc) {
         (Serializer serializer, any value, name: Symbol?, depth: Integer, deadline: Float) -> untyped } -> void
 
       private

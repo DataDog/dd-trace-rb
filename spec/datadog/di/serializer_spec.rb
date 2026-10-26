@@ -212,12 +212,18 @@ RSpec.describe Datadog::DI::Serializer do
         .to include(notSerializedReason: "Arrgh!")
     end
 
-    it "emits the timeout reason when the capture budget is exhausted" do
-      allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0, 2.0)
-      expect_capture_incomplete("timeout")
-      expect(serializer.serialize_value([1], name: :x,
-        deadline: serializer.serialization_deadline)).to include(notCapturedReason: "timeout")
+    context "when the capture budget is exhausted" do
+      before do
+        allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      stub_cpu_clock([1.0, 2.0])
+
+      it "emits the timeout reason" do
+        expect_capture_incomplete("timeout")
+        expect(serializer.serialize_value([1], name: :x,
+          deadline: serializer.serialization_deadline)).to include(notCapturedReason: "timeout")
+      end
     end
   end
 
@@ -546,15 +552,15 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     context "configured budget" do
+      stub_cpu_clock([1.0])
+
       it "resolves a configured budget above the default unchanged" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(500)
-        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
         expect(serializer.serialization_deadline).to eq(1.0 + 500 / 1000.0)
       end
 
       it "resolves a configured budget below the default unchanged" do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
-        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0)
         expect(serializer.serialization_deadline).to eq(1.0 + 100 / 1000.0)
       end
     end
@@ -562,8 +568,9 @@ RSpec.describe Datadog::DI::Serializer do
     context "budget already exhausted before serialization starts" do
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
-        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1.0, 2.0)
       end
+
+      stub_cpu_clock([1.0, 2.0])
 
       it "returns a timeout stub for the top-level value and stops there" do
         expect(
@@ -591,7 +598,7 @@ RSpec.describe Datadog::DI::Serializer do
       first_elt = 0.0
       second_elt = 0.0
       third_elt = 0.2  # 100ms budget crossed here
-      stub_monotonic_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt])
+      stub_cpu_clock([deadline_calc, top_level_check, first_elt, second_elt, third_elt])
 
       it "captures earlier elements, stops at the first timed-out one, and marks the collection" do
         result = serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
@@ -622,7 +629,7 @@ RSpec.describe Datadog::DI::Serializer do
       deadline_calc = 0.0
       first_var = 0.0
       second_var = 0.2  # past the deadline
-      stub_monotonic_clock([deadline_calc, first_var, second_var])
+      stub_cpu_clock([deadline_calc, first_var, second_var])
 
       it "times out later variables once the shared deadline passes" do
         expect(serializer.serialize_vars({a: 1, b: 2}, deadline: serializer.serialization_deadline)).to eq(
@@ -645,7 +652,7 @@ RSpec.describe Datadog::DI::Serializer do
       first_elt = 0.0
       second_elt = 0.0
       third_elt = 0.2  # 100ms budget crossed inside the custom subtree
-      stub_monotonic_clock([deadline_calc, outer_value_check, inner_top_check, first_elt, second_elt, third_elt])
+      stub_cpu_clock([deadline_calc, outer_value_check, inner_top_check, first_elt, second_elt, third_elt])
 
       it "times out the custom-serialized values once the shared deadline passes" do
         Datadog::DI::Serializer.register(condition: lambda { |value| value == :subtree }) do |serializer, value, name:, depth:, deadline:|
@@ -675,7 +682,7 @@ RSpec.describe Datadog::DI::Serializer do
       first_value = 0.0
       second_key = 0.0
       second_value = 0.2  # 100ms budget crossed at the second value
-      stub_monotonic_clock([deadline_calc, top_level_check, first_key, first_value, second_key, second_value])
+      stub_cpu_clock([deadline_calc, top_level_check, first_key, first_value, second_key, second_value])
 
       it "captures earlier pairs, stops at the first timed-out value, and marks the hash" do
         result = serializer.serialize_value({a: 1, b: 2}, name: :x, deadline: serializer.serialization_deadline)
@@ -698,7 +705,7 @@ RSpec.describe Datadog::DI::Serializer do
       deadline_calc = 0.0
       top_level_check = 0.0
       key_read = 0.2  # 100ms budget crossed at the key
-      stub_monotonic_clock([deadline_calc, top_level_check, key_read])
+      stub_cpu_clock([deadline_calc, top_level_check, key_read])
 
       it "stops without the pair and marks the hash" do
         result = serializer.serialize_value({"k" => 1}, name: :x, deadline: serializer.serialization_deadline)
@@ -719,7 +726,7 @@ RSpec.describe Datadog::DI::Serializer do
       top_level_check = 0.0
       first_ivar = 0.0
       second_ivar = 0.2  # 100ms budget crossed here
-      stub_monotonic_clock([deadline_calc, top_level_check, first_ivar, second_ivar])
+      stub_cpu_clock([deadline_calc, top_level_check, first_ivar, second_ivar])
 
       it "captures earlier fields, stops at the first timed-out one, and marks the object" do
         result = serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"), name: :x,
@@ -990,6 +997,46 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized).to include(type: "String")
         expect(serialized[:notSerializedReason]).to include("unknown keyword")
       end
+    end
+  end
+
+  context "when registering a custom serializer without a condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context "when registering a custom serializer with an explicitly nil condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: nil) { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context "when registering a custom serializer with an Integer condition" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: 42) { |*args| }
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context "when registering a custom serializer without a block" do
+    with_di_registry_change
+
+    it "raises ArgumentError" do
+      expect {
+        Datadog::DI::Serializer.register(condition: ->(value) { true })
+      }.to raise_error(ArgumentError)
     end
   end
 

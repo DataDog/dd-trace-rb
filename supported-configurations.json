@@ -408,6 +408,14 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.evaluation_telemetry_per_subject_opt_out_enabled"],
+        "default": "false"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -1650,6 +1658,14 @@
         "version": "A",
         "type": "string",
         "default": "400-499"
+      }
+    ],
+    "DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["tracing.http_client_resource_name_quantize"],
+        "default": "false"
       }
     ],
     "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [

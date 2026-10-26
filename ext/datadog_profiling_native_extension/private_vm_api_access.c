@@ -1136,7 +1136,7 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
       // We use "Foo#bar (block)" because it's much faster and looks better in the UI.
       const rb_iseq_t* method_iseq = ISEQ_BODY(iseq)->local_iseq;
 
-      static const char suffix[] = " (block)";
+      static const char suffix[] = DDTRACE_BLOCK_SUFFIX;
       size_t suffix_len = sizeof(suffix) - 1;
 
       // Only use the result if there is enough space for both parts

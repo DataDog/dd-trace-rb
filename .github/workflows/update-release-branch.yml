@@ -1,0 +1,40 @@
+name: Update release branch
+
+# Manual unblock tool for when the publish workflow's update-release-branch
+# job failed after the gem was already released. Job reruns reuse the original
+# workflow file, so fixes on master cannot be picked up there.
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released gem version to point 'release' at (no 'v' prefix)
+        required: true
+        type: string
+
+concurrency: rubygems # Only one release-branch update at a time
+
+permissions: {}
+
+jobs:
+  update-release-branch:
+    if: github.repository == 'DataDog/dd-trace-rb' && github.ref == 'refs/heads/master'
+    name: Point 'release' branch at the released tag
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    env:
+      GEM_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
+        id: generate-token
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.update-release-branch
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # required for `git` operations (push) at later steps
+          token: ${{ steps.generate-token.outputs.token }}
+          fetch-depth: 0
+      # ^{commit} peels the annotated tag. Branch refs can only point at commits.
+      - run: git push --force-with-lease origin "v${GEM_VERSION}^{commit}":refs/heads/release

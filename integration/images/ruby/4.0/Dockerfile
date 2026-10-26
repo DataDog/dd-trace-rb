@@ -13,7 +13,8 @@ RUN set -ex && \
         apt-get install -y --no-install-recommends nodejs && \
         \
         echo "===> Installing Yarn" && \
-        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/yarn-keyring.gpg && \
+        curl -fsSL --retry 5 --retry-delay 2 -o /tmp/yarn-pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg && \
+        gpg --dearmor -o /etc/apt/keyrings/yarn-keyring.gpg /tmp/yarn-pubkey.gpg && rm /tmp/yarn-pubkey.gpg && \
         echo "deb [signed-by=/etc/apt/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
         apt-get install -y --no-install-recommends yarn && \

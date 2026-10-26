@@ -18,6 +18,8 @@ module Datadog
 
         attr_reader capabilities: Capabilities
 
+        attr_reader pending_initial_reconcile: bool
+
 	attr_reader settings: untyped
 
 	attr_reader logger: Core::Logger
@@ -42,8 +44,8 @@ module Datadog
         def native_platform: () -> ::String
         def ruby_engine_version: () -> ::String
 
-	def process_response: (untyped response) -> untyped
-	def apply_config: (untyped paths, untyped targets, untyped contents) -> untyped
+	def process_response: (Transport::Config::Response response) -> Configuration::Repository::ChangeSet
+	def apply_config: (Array[Configuration::Path] paths, Configuration::TargetMap targets, Configuration::ContentList contents) -> Configuration::Repository::ChangeSet
 
         class GemSpecificationFallback
           def initialize: (::String?, ::String?) -> void

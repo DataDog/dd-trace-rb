@@ -96,8 +96,25 @@ module Datadog
       # hex string, or UTF-8 with replacement characters) before returning
       # it from the custom serializer.
       @@flat_registry = []
-      def self.register(condition: nil, &block)
+      # Registers a custom serializer. The block serializes each value
+      # for which +condition+ returns a truthy value.
+      #
+      # @param condition [Proc] receives the value being serialized and
+      #   returns whether this serializer applies to it
+      # @param block [Proc] serializer for the values +condition+ accepts
+      # @raise [ArgumentError] if +condition+ is not a Proc or +block+ is absent
+      # @return [void]
+      def self.register(condition:, &block)
+        unless condition.is_a?(Proc)
+          raise ArgumentError, "Serializer.register condition must be a Proc, got #{condition.class}"
+        end
+
+        unless block
+          raise ArgumentError, "Serializer.register requires a serializer block"
+        end
+
         @@flat_registry << {condition: condition, proc: block}
+        nil
       end
 
       # Initializes the serializer.
@@ -159,7 +176,7 @@ module Datadog
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_self [any] receiver of the probed method invocation
-      # @param deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol => Hash}] serialized arguments keyed by argument name
       def serialize_args(args, kwargs, target_self,
         deadline:,
@@ -178,7 +195,7 @@ module Datadog
       # of executed code.
       #
       # @param vars [Hash{Symbol => Object}] variables to serialize, keyed by variable name
-      # @param deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol => Hash}] serialized variables keyed by variable name
       def serialize_vars(vars,
         deadline:,
@@ -207,7 +224,7 @@ module Datadog
       #
       # @param value [any] value to serialize
       # @param name [Symbol, String, nil] name the value is bound to, used for redaction
-      # @param deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol => Object}] serialized value; the {type:, notCapturedReason: "timeout"} stub when the deadline is exceeded
       def serialize_value(value, deadline:,
         name: nil,
@@ -541,21 +558,20 @@ module Datadog
         "#<#{class_name(value.class)}: serialization error>"
       end
 
-      # Computes the absolute monotonic deadline (in seconds) for a capture
-      # point from max_time_to_serialize_ms. Resolve once per capture point and
-      # share across all values serialized on the built-in paths so the
-      # budget is not exceeded.
+      # Computes the absolute thread CPU time deadline (in seconds) for a
+      # capture point from max_time_to_serialize_ms.
       #
-      # @return [Float] absolute monotonic clock reading, in seconds, at
+      # @return [Float] absolute thread CPU clock reading, in seconds, at
       #   which the capture budget is exhausted
       def serialization_deadline
-        Core::Utils::Time.get_time + settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) +
+          settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
       end
 
       private
 
       def deadline_exceeded?(deadline)
-        Core::Utils::Time.get_time >= deadline
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
       end
 
       MAX_MESSAGE_COLLECTION_SIZE = 3
