@@ -94,18 +94,14 @@ module Datadog
 
       # Consumes one GLOBAL token for a snapshot payload the coordinated
       # emit path does not gate, such as a condition-evaluation-failure
-      # notification. GLOBAL is consulted, not borrowed: the payload is
-      # admitted only while the balance is positive, matching the
-      # uncorrelated emit path, so condition-error payloads and capturing
-      # emits share one process-wide snapshot budget.
+      # notification. GLOBAL admits the payload only while the balance is
+      # positive, matching the uncorrelated emit path, so condition-error
+      # payloads and capturing emits share one process-wide snapshot budget.
       #
       # @return [Boolean] true when the process-wide budget admits the payload
       def admit_process_wide_snapshot?
         lock.synchronize do
-          return false unless global_limiter.available?
-
-          global_limiter.consume
-          true
+          global_limiter.try_consume
         end
       end
 
@@ -170,18 +166,17 @@ module Datadog
 
       # Decides a hit with no active trace through the probe's own rate limit
       # and the process-wide GLOBAL budget, so uncorrelated and correlated
-      # traffic share one process-wide bound. GLOBAL is consulted, not
-      # borrowed: only correlated probes of an admitted trace consume GLOBAL
-      # without a check. Must hold the lock.
+      # traffic share one process-wide bound. GLOBAL must hold a positive
+      # balance to admit: only correlated probes of an admitted trace
+      # consume GLOBAL without a check. Must hold the lock.
       #
       # @param probe [Datadog::DI::Probe]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
       #   decision, nil when admitted
       def emit_uncorrelated?(probe)
         return [false, :own_rate_limit] unless probe.own_rate_limit_allows?
-        return [false, :global_budget] unless global_limiter.available?
+        return [false, :global_budget] unless global_limiter.try_consume
 
-        global_limiter.consume
         [true, nil]
       end
 
@@ -198,19 +193,20 @@ module Datadog
       # TOP gates to emit and seed the trace counters; on either gate's refusal,
       # or when the seeded budget denies the top probe itself, marks the trace
       # starved so every correlated probe in it also drops without re-querying
-      # the process-wide gates. Must hold the lock.
+      # the process-wide gates. The GLOBAL gate consumes its token as part of
+      # the check, so a hit the TOP gate refuses still spends one GLOBAL
+      # token, and GLOBAL refills once per hit. Must hold the lock.
       #
       # @param trace [Datadog::Tracing::TraceOperation]
       # @param probe [Datadog::DI::Probe]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
       #   decision, nil when admitted
       def emit_top?(trace, probe)
-        unless global_limiter.available? && top_limiter.allow?
+        unless global_limiter.try_consume && top_limiter.allow?
           store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return [false, :top_gate]
         end
 
-        global_limiter.consume
         budget = TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: all_budget)
         store(trace, budget)
         return [false, :trace_budget] unless budget.admit(probe.id)

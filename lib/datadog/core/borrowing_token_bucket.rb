@@ -45,6 +45,18 @@ module Datadog
         @tokens = available_tokens - size
         nil
       end
+
+      # Removes one token when the balance is positive after a refill, so a
+      # check-and-consume reads the clock and runs the refill arithmetic once.
+      #
+      # @return [Boolean] whether a token was consumed
+      def try_consume
+        refill
+        return false unless available_tokens > 0
+
+        @tokens = available_tokens - 1
+        true
+      end
     end
   end
 end

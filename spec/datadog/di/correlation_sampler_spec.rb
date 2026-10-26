@@ -109,6 +109,18 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         expect(correlation.emit?(probe("a"), trace)).to be(true)
       end
 
+      it "spends one GLOBAL token for a hit the TOP gate refuses" do
+        # The GLOBAL gate consumes its token as part of the check, so a hit
+        # TOP refuses still spends its GLOBAL token: with GLOBAL holding two
+        # tokens and TOP one, the refused top hit leaves nothing for an
+        # uncorrelated hit.
+        sampler = described_class.new(top_rate: 1, global_rate: 2)
+        expect(sampler.emit?(probe("a"), trace)).to be(true)
+        expect(sampler.emit?(probe("a"), trace)).to be(false)
+
+        expect(sampler.emit?(probe("a"), nil)).to be(false)
+      end
+
       context "when TOP is exhausted" do
         let(:top_rate) { 1 }
 

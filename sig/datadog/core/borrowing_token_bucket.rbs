@@ -8,6 +8,8 @@ module Datadog
       def available?: () -> bool
 
       def consume: (?size: Numeric) -> void
+
+      def try_consume: () -> bool
     end
   end
 end

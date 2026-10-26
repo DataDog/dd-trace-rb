@@ -75,6 +75,43 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
     end
   end
 
+  describe "#try_consume" do
+    it "consumes one token while the balance is positive" do
+      expect(bucket.try_consume).to be(true)
+      expect(bucket.available_tokens).to eq(19)
+    end
+
+    it "refuses without consuming once the balance reaches zero" do
+      20.times { bucket.try_consume }
+
+      expect(bucket.try_consume).to be(false)
+      expect(bucket.available_tokens).to eq(0)
+    end
+
+    it "refuses without consuming while a borrowed balance is negative" do
+      25.times { bucket.consume }
+
+      expect(bucket.try_consume).to be(false)
+      expect(bucket.available_tokens).to eq(-5)
+    end
+
+    it "refills once before deciding" do
+      20.times { bucket.try_consume }
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.5)
+
+      expect(bucket.try_consume).to be(true)
+      expect(bucket.available_tokens).to eq(9)
+    end
+
+    it "reads the clock once per call" do
+      bucket # force the lazy subject's construction, which reads the clock once
+
+      expect(Datadog::Core::Utils::Time).to receive(:get_time).once.and_return(0)
+
+      expect(bucket.try_consume).to be(true)
+    end
+  end
+
   describe "refill" do
     it "recovers a negative balance by rate * elapsed" do
       30.times { bucket.consume }
