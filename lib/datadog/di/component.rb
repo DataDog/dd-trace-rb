@@ -209,8 +209,7 @@ module Datadog
       end
 
       # Rebuilds the process-scoped coordinated-sampling state after the
-      # process forks, so the child starts with fresh budgets and cannot
-      # inherit a sampler mutex held by a parent thread.
+      # process forks, so the child starts with fresh budgets.
       #
       # @return [void]
       def after_fork
