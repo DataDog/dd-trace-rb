@@ -292,12 +292,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to eq "fiber_isolated" }
         end
 
-        context "is set to thread" do
-          let(:scope) { "thread" }
-
-          it { is_expected.to eq "thread" }
-        end
-
         context "is set to an invalid value" do
           let(:scope) { "invalid" }
 
@@ -310,10 +304,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       describe "#context_scope=" do
         it "updates the #context_scope setting" do
-          expect { settings.tracing.context_scope = "thread" }
+          allow(Datadog.logger).to receive(:warn)
+
+          expect { settings.tracing.context_scope = "invalid" }
             .to change { settings.tracing.context_scope }
             .from("fiber_isolated")
-            .to("thread")
+            .to("invalid")
         end
       end
     end

@@ -33,14 +33,6 @@ module Datadog
       def get_current_for: (::Object storage) -> Context
     end
 
-    class ThreadScope < ContextScope
-      def current=: (Context? ctx) -> Context?
-
-      private
-      def get_current: () -> Context
-      def get_current_for: (Thread thread) -> Context
-    end
-
     class FiberIsolatedScope < ContextScope
       def current=: (Context? ctx) -> Context?
 
