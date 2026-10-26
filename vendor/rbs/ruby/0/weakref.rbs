@@ -1,6 +1,5 @@
 # Weak reference to an object of type `T`; a vendored shim for the stdlib
-# type missing from the rbs bundled with Steep. The generic parameter
-# relates the constructor argument to `__getobj__`'s return.
+# type missing from the rbs bundled with Steep.
 #
 # `weakref_alive?` is not Boolean on the supported Rubies (verified on 2.6
 # through 4.0): it returns true while the referent is alive, nil once an
