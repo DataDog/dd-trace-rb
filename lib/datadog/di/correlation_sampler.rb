@@ -45,12 +45,7 @@ module Datadog
       def initialize(sweep_threshold: DEFAULT_SWEEP_THRESHOLD, top_rate: TOP_RATE,
         global_rate: GLOBAL_RATE, per_probe_budget: PER_PROBE_BUDGET,
         all_budget: ALL_BUDGET)
-        unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
-          raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"
-        end
-        unless all_budget.is_a?(Integer) && all_budget >= 0
-          raise ArgumentError, "all_budget must be a non-negative Integer: #{all_budget}"
-        end
+        TraceBudget.validate_budgets!(per_probe_budget: per_probe_budget, all_budget: all_budget)
 
         @per_probe_budget = per_probe_budget
         @all_budget = all_budget

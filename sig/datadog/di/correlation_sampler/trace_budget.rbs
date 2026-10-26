@@ -8,6 +8,8 @@ module Datadog
 
         @per_probe: Hash[String, Integer]
 
+        def self.validate_budgets!: (per_probe_budget: Integer, all_budget: Integer) -> void
+
         def initialize: (per_probe_budget: Integer, all_budget: Integer) -> void
 
         attr_reader all_remaining: Integer

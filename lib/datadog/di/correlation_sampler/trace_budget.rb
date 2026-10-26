@@ -9,6 +9,22 @@ module Datadog
       #
       # @api private
       class TraceBudget
+        # Validates the budget arguments, raising ArgumentError when either
+        # is negative or non-Integer.
+        #
+        # @param per_probe_budget [Integer] per-probe counter start value
+        # @param all_budget [Integer] all-probe counter start value
+        # @return [void]
+        def self.validate_budgets!(per_probe_budget:, all_budget:)
+          unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
+            raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"
+          end
+          unless all_budget.is_a?(Integer) && all_budget >= 0
+            raise ArgumentError, "all_budget must be a non-negative Integer: #{all_budget}"
+          end
+          nil
+        end
+
         # Initializes the all-probe counter to +all_budget+ with each probe's
         # counter starting at +per_probe_budget+.
         #
@@ -18,12 +34,7 @@ module Datadog
         #   non-Integer
         # @return [void]
         def initialize(per_probe_budget:, all_budget:)
-          unless per_probe_budget.is_a?(Integer) && per_probe_budget >= 0
-            raise ArgumentError, "per_probe_budget must be a non-negative Integer: #{per_probe_budget}"
-          end
-          unless all_budget.is_a?(Integer) && all_budget >= 0
-            raise ArgumentError, "all_budget must be a non-negative Integer: #{all_budget}"
-          end
+          TraceBudget.validate_budgets!(per_probe_budget: per_probe_budget, all_budget: all_budget)
 
           @all_remaining = all_budget
           @per_probe_budget = per_probe_budget
