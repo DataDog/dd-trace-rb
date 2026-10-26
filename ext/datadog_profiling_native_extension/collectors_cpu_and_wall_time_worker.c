@@ -17,6 +17,7 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
+#include "miteruby/allocator.h"
 #include "miteruby/buffer.h"
 #include "miteruby/consumer.h"
 #include "miteruby/sample_event.h"
@@ -338,7 +339,7 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
-static miteruby_buffer_t miteruby_buffer;
+static miteruby_buffer_t *miteruby_buffer;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -355,8 +356,15 @@ __thread uint64_t allocation_count = 0;
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
-  if (miteruby_buffer_init(&miteruby_buffer) != 0) raise_syserr(errno, "Failed to initialize miteruby buffer");
-  miteruby_consumer_marking_init(&miteruby_buffer);
+  miteruby_buffer = miteruby_allocator_alloc(sizeof(*miteruby_buffer), "buffer");
+  if (miteruby_buffer == NULL) raise_syserr(errno, "Failed to allocate miteruby buffer");
+  if (miteruby_buffer_init(miteruby_buffer) != 0) {
+    int error = errno;
+    miteruby_allocator_free(miteruby_buffer, sizeof(*miteruby_buffer));
+    miteruby_buffer = NULL;
+    raise_syserr(error, "Failed to initialize miteruby buffer");
+  }
+  miteruby_consumer_marking_init(miteruby_buffer);
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
@@ -772,7 +780,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   // TODO: Event will get marked as coming from the signal handler even if we were called from simulate_sampling_signal_delivery
   if (state->miteruby_enabled) {
-    if (!rb_during_gc()) miteruby_sample_event_publish_sighandler(&miteruby_buffer);
+    if (!rb_during_gc()) miteruby_sample_event_publish_sighandler(miteruby_buffer);
     return;
   }
 
@@ -1229,13 +1237,13 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
 }
 
 static VALUE _native_miteruby_consumer_consume(DDTRACE_UNUSED VALUE self) {
-  miteruby_consumer_consume(&miteruby_buffer);
+  miteruby_consumer_consume(miteruby_buffer);
   return Qnil;
 }
 
 // TODO: Enforce there's only one thread running a consumer loop + handle forking.
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self) {
-  miteruby_consumer_consume_loop(&miteruby_buffer);
+  miteruby_consumer_consume_loop(miteruby_buffer);
   return Qnil;
 }
 
@@ -1245,30 +1253,30 @@ static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE se
 }
 
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self) {
-  return miteruby_sample_event_publish_mask(&miteruby_buffer, &sigprof_signal_mask) ? Qtrue : Qfalse;
+  return miteruby_sample_event_publish_mask(miteruby_buffer, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_wake_reader(DDTRACE_UNUSED VALUE self) {
-  miteruby_buffer_wake_consumer(&miteruby_buffer);
+  miteruby_buffer_wake_consumer(miteruby_buffer);
   return Qnil;
 }
 
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread) {
   ENFORCE_THREAD(thread);
-  return miteruby_sample_event_publish_thread(&miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
+  return miteruby_sample_event_publish_thread(miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns) {
   ENFORCE_THREAD(thread);
   return miteruby_sample_event_publish_testing(
-    &miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask, (cpu_time_t) {.ns = NUM2LONG(cpu_time_ns)}
+    miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask, (cpu_time_t) {.ns = NUM2LONG(cpu_time_ns)}
   ) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
   VALUE headers = rb_ary_new();
   while (true) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(&miteruby_buffer, NULL);
+    miteruby_buffer_record_t record = miteruby_buffer_read(miteruby_buffer, NULL);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
       return headers;
