@@ -164,9 +164,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
   end
 
-  # `collection.filter(@value >= 0)`, the Hash filter shape, where the
-  # predicate must use @value because @it is a key-value pair array on
-  # the Hash branch.
   let(:filter_hash_expr) do
     compile_expr("collection.filter(@value >= 0)",
       "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
