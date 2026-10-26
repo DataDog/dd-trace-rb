@@ -299,8 +299,8 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
 
     context "with a nested evaluation of the same expression mid-iteration" do
-      # The first collection item gates a nested evaluate call on the same
-      # Expression: isUndefined invokes nil? on the item, and the gate's
+      # The first collection item triggers a nested evaluate call on the same
+      # Expression: isUndefined invokes nil? on the item, and the trigger's
       # nil? reenters evaluation. This reproduces on one thread the state
       # sharing that occurs when two threads evaluate the same probe
       # concurrently.
@@ -317,12 +317,12 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           ])
       end
 
-      let(:gate) do
+      let(:trigger) do
         nested_expr = filter_with_refs_expr
         nested_context = context_with_marker([1, 2, 3], "inner")
         nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
-        gate = Object.new
-        gate.define_singleton_method(:nil?) do
+        trigger = Object.new
+        trigger.define_singleton_method(:nil?) do
           begin
             nested_expr.evaluate(nested_context, deadline: nested_deadline)
           rescue Datadog::DI::Error::EvaluationTimeout
@@ -330,7 +330,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           end
           false
         end
-        gate
+        trigger
       end
 
       def context_with_marker(collection, marker)
@@ -341,14 +341,14 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
 
       it "reads locals from the invoking evaluation's context" do
-        result = filter_with_refs_expr.evaluate(context_with_marker([gate, 2], "outer"), deadline: nil)
-        expect(result).to eq([gate, 2])
+        result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
+        expect(result).to eq([trigger, 2])
       end
 
       it "keeps the invoking evaluation's deadline" do
         # More than EVALUATION_DEADLINE_CHECK_INTERVAL items, so a deadline
-        # check runs after the gate item at index 0.
-        collection = [gate] + Array.new(70) { |i| i + 1 }
+        # check runs after the trigger item at index 0.
+        collection = [trigger] + Array.new(70) { |i| i + 1 }
         deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
         result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
         expect(result).to eq(collection)
