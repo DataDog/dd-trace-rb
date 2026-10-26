@@ -71,7 +71,7 @@ module Datadog
           if budget
             emit_correlated?(budget, probe)
           else
-            emit_top?(probe, trace)
+            emit_first_probe?(probe, trace)
           end
         end
       end
@@ -183,7 +183,7 @@ module Datadog
       # @param trace [Datadog::Tracing::TraceOperation]
       # @return [Array(Boolean, Symbol, nil)] the admitted flag and the drop
       #   decision, nil when admitted
-      def emit_top?(probe, trace)
+      def emit_first_probe?(probe, trace)
         unless global_limiter.try_consume && top_limiter.allow?
           store(trace, TraceBudget.new(per_probe_budget: per_probe_budget, all_budget: 0))
           return [false, :top_gate]
