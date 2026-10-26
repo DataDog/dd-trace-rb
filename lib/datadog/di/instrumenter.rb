@@ -946,6 +946,17 @@ module Datadog
         # Check if probe is enabled before doing any processing
         return unless probe.enabled?
 
+        # If trace point is not targeted, we must verify that the invocation
+        # is the file & line that we want, because untargeted trace points
+        # are invoked for *each* line of Ruby executed.
+        # TODO find out exactly when the path in trace point is relative.
+        # Looks like this is the case when line trace point is not targeted?
+        unless iseq
+          return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
+            probe.file == tp.path || probe.file_matches?(tp.path)
+          )
+        end
+
         # Re-entrancy guard, mirroring the method-probe wrapper: the
         # processing below dispatches interceptable stdlib methods
         # (Kernel#send, Mutex#synchronize, WeakRef methods), and a nested
@@ -953,21 +964,13 @@ module Datadog
         # instead of consuming rate-limit tokens and snapshotting
         # DI-internal arguments. The prior guard state is restored so a
         # hit nested inside other DI processing does not clear the outer
-        # guard.
+        # guard. The guard starts after the untargeted match check above:
+        # an untargeted trace point invokes this callback for every line
+        # executed in the process, so the unmatched-line return would
+        # otherwise run the fiber-local guard round trip on each of them.
         was_in_probe = DI.in_probe?
         DI.enter_probe unless was_in_probe
         begin
-          # If trace point is not targeted, we must verify that the invocation
-          # is the file & line that we want, because untargeted trace points
-          # are invoked for *each* line of Ruby executed.
-          # TODO find out exactly when the path in trace point is relative.
-          # Looks like this is the case when line trace point is not targeted?
-          unless iseq
-            return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
-              probe.file == tp.path || probe.file_matches?(tp.path)
-            )
-          end
-
           # We set the trace point on :return to be able to instrument
           # 'end' lines. This also causes the trace point to be invoked on
           # non-'end' lines when a line raises an exception, since the
