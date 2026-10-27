@@ -77,7 +77,7 @@ void miteruby_buffer_destroy(miteruby_buffer_t *buffer);
 // The set must remain valid and unchanged until this call returns.
 // Successful and rejected writes both unblock every signal in the set,
 // including signals already blocked on entry. Signals outside it are untouched.
-// Mask-operation and semaphore-post failures abort.
+// Mask-operation and semaphore-post failures are fatal.
 bool miteruby_buffer_try_write(miteruby_buffer_t *buffer, const uint64_t *data, uint16_t length_words,
                               const sigset_t *signal_mask);
 // Call once, after ALL producers (including handlers) have finished writing.
