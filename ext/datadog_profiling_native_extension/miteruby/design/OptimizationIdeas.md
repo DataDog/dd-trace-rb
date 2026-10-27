@@ -24,18 +24,3 @@ to profile and don't often change", we could better use Ruby's generational GC a
 on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
-
-## Better memory reporting and limits due to verstable.h
-
-The hash table we're using allows us to have fine-grained control over how/when it allocates and what to do then.
-
-Thus, rather than backing it with regular calloc/free, we could:
-
-* Back it with a named memory location (using anonymous mmap + prctl naming OR memfd mmap, like OTel process context does)
-* Force it to only grow up to some size, and stop profiling if we'd need to go over
-
-This would allow us to:
-
-* Accurately report how much memory we actually use
-* Avoid any negative interactions with whatever memory allocator is in use for the rest of the app -- no more dealing with heap corruption, fragmentation, etc
-* Be able to promise and keep to a memory budget!

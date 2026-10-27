@@ -9,51 +9,55 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Configure capacity in bytes. The default data ring occupies 1 MiB.
+// TODO: Currently buffer capacity is fixed, we should consider making it configurable
 #define MITERUBY_BUFFER_CAPACITY_BYTES (1024U * 1024U)
 
-_Static_assert(MITERUBY_BUFFER_CAPACITY_BYTES % sizeof(uint64_t) == 0,
-               "buffer capacity must be divisible by 8 bytes");
-_Static_assert(MITERUBY_BUFFER_CAPACITY_BYTES >= 16U,
-               "buffer capacity must be at least 16 bytes");
-_Static_assert((MITERUBY_BUFFER_CAPACITY_BYTES & (MITERUBY_BUFFER_CAPACITY_BYTES - 1U)) == 0,
-               "buffer capacity must be a power of two");
+_Static_assert(MITERUBY_BUFFER_CAPACITY_BYTES % sizeof(uint64_t) == 0, "buffer capacity must be divisible by 8 bytes");
+_Static_assert(MITERUBY_BUFFER_CAPACITY_BYTES >= 16U, "buffer capacity must be at least 16 bytes");
+_Static_assert((MITERUBY_BUFFER_CAPACITY_BYTES & (MITERUBY_BUFFER_CAPACITY_BYTES - 1U)) == 0, "buffer capacity must be a power of two");
 
-// Multiple producers, exactly one consumer. Initialize before starting any.
+// Multiple producers, exactly one consumer.
 // Producers are serialized by a CAS spinlock. The consumer never takes it.
-// Normal code passes a signal set to block before locking and unblock after
-// unlocking. Handlers pass NULL and must prevent nested producer handlers.
+// Inspired by Go's CPU profiler and its `profBuf` buffer. See `design/BufferDesign.md` for details.
+//
+// On the producer side, this is designed to be used from both signal handlers and normal code:
+// * Normal code passes a signal set to block before locking and unblock after unlocking (so as to not get interrupted)
+// * Signal handlers pass NULL and must prevent nested producer handlers.
+//
 // Fields are exposed for stack allocation, not for concurrent caller access.
 typedef struct {
-    _Atomic uint32_t producer_lock;
-    // Borrowed from the current producer and protected by producer_lock.
-    // NULL means no mask operations on unlock.
-    const sigset_t *locked_signal_mask;
-    _Atomic uint64_t read_position;  // Published boundary of reusable words.
-    _Atomic uint64_t write_state;    // Low 32 bits: position; high bits: flags.
-    _Atomic uint64_t rejected_count; // Pending rejected attempts, out of band.
-    _Atomic bool closed;
-    uint64_t data[MITERUBY_BUFFER_CAPACITY_BYTES / sizeof(uint64_t)];
-    // Consumer-owned boundary; published on the next read to release the item.
-    uint32_t next_read_position;
-#ifndef __APPLE__
-    sem_t consumer_wakeup;          // Replacement for Go's runtime note.
-#endif
+  _Atomic uint32_t producer_lock;
+
+  // Borrowed from the current producer and protected by producer_lock.
+  // NULL means no mask operations on unlock.
+  const sigset_t *locked_signal_mask;
+
+  _Atomic uint64_t read_position;  // Published boundary of reusable words.
+  _Atomic uint64_t write_state;    // Low 32 bits: position; high bits: flags.
+  _Atomic uint64_t rejected_count; // Pending rejected attempts, out of band.
+  _Atomic bool closed;
+
+  // Consumer-owned boundary; published on the next read to release the item.
+  uint32_t next_read_position;
+  #ifndef __APPLE__
+      sem_t consumer_wakeup;
+  #endif
+
+  uint64_t data[MITERUBY_BUFFER_CAPACITY_BYTES / sizeof(uint64_t)];
 } miteruby_buffer_t;
 
 typedef struct {
-    // Borrowed until the next read. Non-NULL also identifies a zero-length item.
-    const uint64_t *data;
-    uint16_t length; // Payload word count, excluding the one-word length prefix.
-    uint64_t rejected_count; // Failed write attempts, not necessarily lost items.
-    bool end_of_stream;
-    bool interrupted;
+  // Borrowed until the next read. Non-NULL also identifies a zero-length item.
+  const uint64_t *data;
+  uint16_t length; // Payload word count, excluding the one-word length prefix.
+  uint64_t rejected_count; // Failed write attempts, not necessarily lost items.
+  bool end_of_stream;
+  bool interrupted;
 } miteruby_buffer_record_t;
 
 // Returns 0 on success, -1 with errno set if semaphore initialization fails.
-// Atomic lock-freedom is checked at compile time.
-// Destroy only after all producers and the consumer have stopped.
 int miteruby_buffer_init(miteruby_buffer_t *buffer);
+// Destroy only after all producers and the consumer have stopped.
 void miteruby_buffer_destroy(miteruby_buffer_t *buffer);
 
 // May spin/yield for the producer lock, but never waits for buffer space.
