@@ -7,6 +7,13 @@
 #define UNIQUE_STACKS_ARRAY_CHUNK_SIZE (1024U * 1024U)
 
 typedef struct {
+  uint16_t frame_count;
+  miteruby_event_frame_refs_t refs[];
+} miteruby_stack_t;
+
+_Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
+
+typedef struct {
   uint64_t hash;
   struct {
     union {
