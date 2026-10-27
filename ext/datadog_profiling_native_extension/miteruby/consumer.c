@@ -1,6 +1,6 @@
 #include "consumer.h"
 #include "consumer_recorder.h"
-#include "consumer_stack_dedup.h"
+#include "stack_dedup.h"
 #include "buffer_marking.h"
 #include "allocator.h"
 
@@ -110,7 +110,7 @@ static size_t consumer_size(const void *data) {
   mutex_lock(&objects_to_mark_mutex);
   size_t size = sizeof(*consumer_state) + sizeof(*consumer_state->buffer) +
     consumed_events_capacity * sizeof(*consumed_events_buffer) +
-    objects_to_mark_allocated_bytes + miteruby_consumer_stack_dedup_size();
+    objects_to_mark_allocated_bytes + miteruby_stack_dedup_size();
   mutex_unlock(&objects_to_mark_mutex);
   mutex_unlock(&consumed_events_mutex);
   return size;
@@ -129,7 +129,7 @@ void miteruby_consumer_marking_init(miteruby_buffer_t *buffer) {
   call_once(&mutexes_initialized, initialize_mutexes);
   state.buffer = buffer;
   verstable_objects_to_mark_set_init(&state.objects_to_mark);
-  miteruby_consumer_stack_dedup_init();
+  miteruby_stack_dedup_init();
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &consumer_typed_data, &state);
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
   rb_gc_register_mark_object(wrapper);
@@ -146,7 +146,7 @@ void miteruby_consumer_init(void) {
   consumed_events_count = 0;
   consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
 
-  miteruby_consumer_stack_dedup_reset();
+  miteruby_stack_dedup_reset();
 
   verstable_objects_to_mark_set_clear(&state.objects_to_mark);
 
@@ -228,7 +228,7 @@ static VALUE prepare_serialize_locked(VALUE recorder_instance) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   for (size_t i = 0; i < consumed_events_count; i++) {
     const miteruby_event_deduped_sample_t *event = &consumed_events_buffer[i];
-    miteruby_event_stack_sample_view_t view = miteruby_consumer_stack_dedup_get(event->stack_id);
+    miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(event->stack_id);
     miteruby_consumer_record_stack_sample(recorder_instance, event, view, &time_converter);
   }
   consumed_events_count = 0;
@@ -257,7 +257,7 @@ static void buffer_event(const miteruby_event_header_t *header) {
     .frame_count = header->frame_count,
   };
   bool inserted;
-  miteruby_stack_dedup_id_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(view, &inserted);
+  miteruby_stack_dedup_id_t stack_id = miteruby_stack_dedup_get_or_insert(view, &inserted);
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&objects_to_mark_mutex);
