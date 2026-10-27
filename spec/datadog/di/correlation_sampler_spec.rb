@@ -219,6 +219,21 @@ RSpec.describe Datadog::DI::CorrelationSampler do
         expect(correlation.emit?(probe("a"), trace)).to be(true)
         expect(correlation.emit?(probe("a"), first)).to be(false)
       end
+
+      it "gives a continued trace with the same trace id its own unit" do
+        # Datadog::Tracing.continue_trace! builds a new TraceOperation for
+        # the same trace id, so the continuation is a distinct trace object.
+        parent = Datadog::Tracing::TraceOperation.new(id: 1)
+        continuation = Datadog::Tracing::TraceOperation.new(id: 1)
+        p = probe("a")
+
+        expect(correlation.emit?(p, parent)).to be(true)
+        expect(correlation.emit?(p, parent)).to be(false)
+
+        expect(correlation.emit?(p, continuation)).to be(true)
+        expect(correlation.emit?(p, continuation)).to be(false)
+        expect(correlation.emit?(p, parent)).to be(false)
+      end
     end
 
     context "starvation persistence" do

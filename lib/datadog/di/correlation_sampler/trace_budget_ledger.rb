@@ -12,6 +12,11 @@ module Datadog
       # entry. Dead entries are dropped by a lazy sweep once the entry
       # count passes the sweep high-water mark.
       #
+      # A continued trace is a distinct trace object and establishes its own
+      # unit. Datadog::Tracing.continue_trace! builds a new TraceOperation
+      # for the same trace id, and the ledger keys that object as a separate
+      # trace with its own budget.
+      #
       # @api private
       class TraceBudgetLedger
         # Initializes the ledger with +sweep_threshold+ as the floor of the
