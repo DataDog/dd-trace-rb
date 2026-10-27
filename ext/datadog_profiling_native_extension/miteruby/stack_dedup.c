@@ -1,4 +1,4 @@
-#include "consumer_stack_dedup.h"
+#include "stack_dedup.h"
 #include "allocator.h"
 
 #include <stdlib.h>
@@ -20,7 +20,7 @@ typedef struct {
       // Used at insertion time to point to input data
       const miteruby_event_stack_sample_view_t *view;
 
-      // Stored IDs survive array relocation and can be resolved with miteruby_consumer_stack_dedup_get.
+      // Stored IDs survive array relocation and can be resolved with miteruby_stack_dedup_get.
       miteruby_stack_dedup_id_t stack_id;
     } as;
   } location;
@@ -84,7 +84,7 @@ typedef struct {
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
 static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
-  return key.view_borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.stack_id);
+  return key.view_borrowed ? *key.location.as.view : miteruby_stack_dedup_get(key.location.as.stack_id);
 }
 
 static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
@@ -119,12 +119,12 @@ static void unique_stacks_free(void *allocation, size_t size) {
   stack_dedup_state.unique_stacks_set_allocated_bytes -= size;
 }
 
-void miteruby_consumer_stack_dedup_init(void) {
+void miteruby_stack_dedup_init(void) {
   verstable_unique_stacks_set_init(&stack_dedup_state.unique_stacks);
-  miteruby_consumer_stack_dedup_reset();
+  miteruby_stack_dedup_reset();
 }
 
-void miteruby_consumer_stack_dedup_reset(void) {
+void miteruby_stack_dedup_reset(void) {
   uint8_t *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_CHUNK_SIZE, "unique_stacks_array");
   if (new_array == NULL) rb_bug("Failed to allocate miteruby unique stacks array");
 
@@ -136,11 +136,11 @@ void miteruby_consumer_stack_dedup_reset(void) {
   stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
 }
 
-size_t miteruby_consumer_stack_dedup_size(void) {
+size_t miteruby_stack_dedup_size(void) {
   return sizeof(stack_dedup_state.unique_stacks) + stack_dedup_state.unique_stacks_size + stack_dedup_state.unique_stacks_set_allocated_bytes;
 }
 
-miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
+miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
   return (miteruby_event_stack_sample_view_t) {
     .refs = stack->refs,
@@ -149,7 +149,7 @@ miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(miteruby_st
   };
 }
 
-miteruby_stack_dedup_id_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
+miteruby_stack_dedup_id_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
   size_t previous_count = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks);
 
   verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
@@ -185,7 +185,7 @@ miteruby_stack_dedup_id_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_e
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = view.frame_count;
   if (view.frame_count > 0) {
-    miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(next_stack_id);
+    miteruby_event_stack_sample_view_t stored = miteruby_stack_dedup_get(next_stack_id);
     memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
