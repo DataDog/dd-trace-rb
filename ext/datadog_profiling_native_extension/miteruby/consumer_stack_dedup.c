@@ -34,6 +34,36 @@ static void unique_stacks_free(void *allocation, size_t size);
 #define FREE_FN unique_stacks_free
 #include "verstable.h"
 
+// Stack deduping design
+//
+// We keep two data structures:
+//
+// * `unique_stacks_array`: Contiguous storage of stacks in a very similar format as the sample event
+// (Currently: frame_count, then CME, ISEQ for all frames and then the bytecode positions)
+// Padding keeps each stack record and its CME/ISEQ pairs aligned to 8-byte boundaries.
+//
+// * `verstable_unique_stacks_map`: A map of "stack" (actually hash+offset or hash+view) to "position in unique stacks array".
+//
+// Here's how it looks as an example (each letter is a CME/ISEQ pair):
+// * Input:
+//   * Event 1: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
+//   * Event 2: [E, F, 0, 1] (frame_count: 2)
+//   * Event 3: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
+//
+// * Unique stacks array:
+//   [ frame_count: 4 | padding | A | B | C | D | 0 | 1 | 2 | 3 | frame_count: 2 | padding | E | F | 0 | 1 | padding ]
+//     ^                                                          ^
+//     |                                                          |
+//     Events 1 and 3                                             Event 2
+//
+// * Unique stacks map:
+//   TODO
+//
+// Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
+// we want to manage them carefully.
+//
+// Even though conceptually CME and ISEQs are VALUEs that need marking for Ruby GC, the consumer tracks them separately
+// in `verstable_objects_to_mark_set` so we don't need to mark them again here.
 
 typedef struct {
   verstable_unique_stacks_map unique_stacks;
