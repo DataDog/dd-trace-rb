@@ -20,7 +20,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     let(:capture_expression_evaluator) do
       Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,)
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     let(:builder) do
@@ -43,7 +43,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       double("di settings").tap do |settings|
         stub_di_settings(settings,
           max_capture_string_length: 20,
-          max_capture_collection_size: 20,)
+          max_capture_collection_size: 20)
         allow(settings).to receive(:untargeted_trace_points).and_return(false)
       end
     end

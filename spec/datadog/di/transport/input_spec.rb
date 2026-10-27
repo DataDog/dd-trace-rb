@@ -16,7 +16,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:transport) do
     Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry,
-      guardrails_telemetry: guardrails_telemetry,)
+      guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
@@ -187,7 +187,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be > 100
         end
         expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-          tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+          tags: {reason: "payloadTooLarge", event_type: "snapshot"})
         expect_lazy_log(logger, :debug,
           "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
@@ -200,7 +200,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         it "tags the drop metric with the log event type" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "log"},)
+            tags: {reason: "payloadTooLarge", event_type: "log"})
           expect_lazy_log(logger, :debug,
             "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
           expect(transport).not_to receive(:send_input_chunk)
@@ -224,7 +224,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         it "drops the snapshot measured in bytes" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect_lazy_log(logger, :debug,
             "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
           expect(transport).not_to receive(:send_input_chunk)

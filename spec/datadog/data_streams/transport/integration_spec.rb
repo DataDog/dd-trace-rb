@@ -37,7 +37,7 @@ RSpec.describe Datadog::DataStreams::Transport do
       partition: 0,
       offset: 0,
       timestamp: Time.now,
-      timestamp_sec: 1,)
+      timestamp_sec: 1)
     processor.send(:flush_stats)
     expect(received_requests.length).to be 1
     req = received_requests.first

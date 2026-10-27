@@ -76,11 +76,10 @@ class ProfilerSampleLoopBenchmark
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
-      Datadog::Profiling::Collectors::ThreadContext.for_testing(
+      collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
         native_filenames_enabled: false
       )
-      collector_without_native_filenames = collector
     end
 
     Benchmark.ips do |x|

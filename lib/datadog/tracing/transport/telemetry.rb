@@ -50,7 +50,7 @@ module Datadog
           responses = observations.fetch(:responses_count, 0)
           if responses > 0
             client.inc("tracers", "trace_api.responses", responses,
-              tags: @source_tags + ["status_code:#{observations.fetch(:status_code)}"],)
+              tags: @source_tags + ["status_code:#{observations.fetch(:status_code)}"])
           end
           nil
         rescue

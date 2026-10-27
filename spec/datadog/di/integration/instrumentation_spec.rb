@@ -172,7 +172,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "invokes probe" do
@@ -213,7 +213,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "installs probe which then is invoked and creates expected snapshot" do
@@ -262,7 +262,7 @@ RSpec.describe "Instrumentation integration" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
                 type_name: "InstrumentationDelayedDerivedTestClass", method_name: "test_method",
-                capture_snapshot: false,)
+                capture_snapshot: false)
             end
 
             it "invokes probe and creates expected snapshot" do
@@ -307,7 +307,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedPartialTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -354,7 +354,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationVirtualTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -398,7 +398,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -460,7 +460,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -502,7 +502,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "exception_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           it "populates throwable in captures" do
@@ -533,7 +533,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "ivar_mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -871,7 +871,7 @@ RSpec.describe "Instrumentation integration" do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
             capture_snapshot: true,
-            max_capture_string_length: 4,)
+            max_capture_string_length: 4)
         end
 
         it "truncates strings in entry args, return value, and self to the probe-level limit" do
@@ -902,7 +902,7 @@ RSpec.describe "Instrumentation integration" do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "collection_method",
             capture_snapshot: true,
-            max_capture_collection_size: 2,)
+            max_capture_collection_size: 2)
         end
 
         it "truncates arrays in entry args, return value, and self ivar to the probe-level limit" do
@@ -1202,7 +1202,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         before do
@@ -1302,7 +1302,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 42,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           include_examples "simple log probe"
@@ -1312,7 +1312,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe" do
@@ -1382,7 +1382,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 64,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -1396,7 +1396,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 66,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -1410,7 +1410,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 70,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           # We currently are not told that the line is not executable.
@@ -1424,7 +1424,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           before do
@@ -1458,7 +1458,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -1522,7 +1522,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 27,
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -1550,7 +1550,7 @@ RSpec.describe "Instrumentation integration" do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 40,
               capture_snapshot: true,
-              max_capture_collection_size: 1,)
+              max_capture_collection_size: 1)
           end
 
           it "truncates the redacted hash local to the probe-level limit" do
@@ -1581,7 +1581,7 @@ RSpec.describe "Instrumentation integration" do
 
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: "instrumentation_integration_test_class_2.rb", line_no: 10,)
+              file: "instrumentation_integration_test_class_2.rb", line_no: 10)
           end
 
           it "instruments file when it is loaded" do
@@ -1613,7 +1613,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points enabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_3.rb", line_no: 10,)
+                file: "instrumentation_integration_test_class_3.rb", line_no: 10)
             end
 
             before do
@@ -1650,7 +1650,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points disabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_4.rb", line_no: 20,)
+                file: "instrumentation_integration_test_class_4.rb", line_no: 20)
             end
 
             before do
@@ -1687,7 +1687,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "notifies agent that probe is emitting" do
@@ -2000,7 +2000,7 @@ RSpec.describe "Instrumentation integration" do
 
       it "drops the overflowing snapshot and emits the canonical queueFull drop metric" do
         expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-          tags: {reason: "queueFull", event_type: "snapshot"},)
+          tags: {reason: "queueFull", event_type: "snapshot"})
         expect(input_transport).not_to receive(:send_input)
 
         probe_manager.add_probe(probe)
@@ -2053,7 +2053,7 @@ RSpec.describe "Instrumentation integration" do
       shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metric" do
         it "drops the snapshot, keeps the probe enabled and emits the canonical drop metric" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect_lazy_log(logger, :debug,
             "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
 
