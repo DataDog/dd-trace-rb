@@ -2,6 +2,7 @@
 #include "allocator.h"
 
 #include "../datadog_ruby_common.h"
+#include "../helpers.h"
 #include "../private_vm_api_access.h"
 #include "libdatadog_recorder.h"
 
@@ -13,6 +14,7 @@
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define MITERUBY_DEBUG_SIGHANDLER_FRAME true
 #define MITERUBY_DEBUG_ROOT_FRAME true
+#define THREAD_CONTEXTS_MAX_CAPACITY MiB_AS_BYTES(16)
 
 typedef struct {
   cpu_time_t cpu_time_at_previous_sample;
@@ -20,6 +22,7 @@ typedef struct {
 } consumer_thread_context;
 
 static void *thread_contexts_alloc(size_t size) {
+  if (size > THREAD_CONTEXTS_MAX_CAPACITY) return NULL;
   return miteruby_allocator_alloc(size, "thread_contexts");
 }
 
@@ -43,7 +46,7 @@ static bool thread_contexts_initialized = false;
 // Declared in Ruby's private iseq.h; redeclared here to avoid importing VM internals.
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
-static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
+static miteruby_sample_values sample_values_for(consumer_thread_context *context, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
@@ -67,7 +70,9 @@ void miteruby_consumer_record_stack_sample(
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
-  miteruby_sample_values values = sample_values_for(thread, event->header.timestamp, event->header.cpu_time);
+  consumer_thread_context *context = thread_context_for(thread, event->header.timestamp, event->header.cpu_time);
+  if (context == NULL) rb_raise(rb_eRuntimeError, "Miteruby thread contexts map is full");
+  miteruby_sample_values values = sample_values_for(context, event->header.timestamp, event->header.cpu_time);
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[THREAD_ID_LIMIT_CHARS];
@@ -142,9 +147,7 @@ void miteruby_consumer_record_stack_sample(
   RB_GC_GUARD(thread_name);
 }
 
-static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
-  consumer_thread_context *context = thread_context_for(thread, monotonic_time, cpu_time);
-
+static miteruby_sample_values sample_values_for(consumer_thread_context *context, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
   miteruby_sample_values values = {
     .cpu_time_ns = update_and_get_time_since_previous_sample(context, cpu_time),
     .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
@@ -163,7 +166,7 @@ static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_
       .monotonic_time_at_previous_sample = monotonic_time,
     }
   );
-  if (verstable_thread_contexts_map_is_end(entry)) rb_bug("Failed to grow miteruby thread contexts map");
+  if (verstable_thread_contexts_map_is_end(entry)) return NULL;
   return &entry.data->val;
 }
 
