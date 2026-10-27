@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define UNIQUE_STACKS_ARRAY_MAX_SIZE MiB_AS_BYTES(16)
+#define UNIQUE_STACKS_SET_MAX_CAPACITY MiB_AS_BYTES(16)
 
 typedef struct {
   uint16_t frame_count;
@@ -109,6 +110,7 @@ static bool stack_key_equal(stack_key left, stack_key right) {
 }
 
 static void *unique_stacks_calloc(size_t size) {
+  if (size > UNIQUE_STACKS_SET_MAX_CAPACITY) return NULL;
   void *allocation = miteruby_allocator_alloc(size, "unique_stacks_set");
   if (allocation != NULL) stack_dedup_state.unique_stacks_set_allocated_bytes += size;
   return allocation;
@@ -191,4 +193,13 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
   return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true}};
+}
+
+void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
+  verstable_unique_stacks_set_erase(&stack_dedup_state.unique_stacks, (stack_key) {
+    .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),
+    .location.as.stack_id = stack_id,
+    .view_borrowed = false,
+  });
+  stack_dedup_state.unique_stacks_pos = stack_id.offset;
 }
