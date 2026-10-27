@@ -17,6 +17,8 @@
 #include <ruby/thread.h>
 #include <threads.h>
 
+#define OBJECTS_TO_MARK_MAX_CAPACITY MiB_AS_BYTES(16)
+
 static void *objects_to_mark_calloc(size_t size);
 static void objects_to_mark_free(void *allocation, size_t size);
 
@@ -58,6 +60,7 @@ typedef enum {
   MITERUBY_CONSUMER_END_OF_STREAM,
   MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
   MITERUBY_CONSUMER_EVENTS_BUFFER_FULL,
+  MITERUBY_CONSUMER_OBJECTS_TO_MARK_FULL,
 } miteruby_consumer_exit_reason_t;
 
 static VALUE consume_loop_body(VALUE args);
@@ -70,6 +73,7 @@ static VALUE prepare_serialize_unlock_ensure(VALUE unused);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
 static void *objects_to_mark_calloc(size_t size) {
+  if (size > OBJECTS_TO_MARK_MAX_CAPACITY) return NULL;
   void *allocation = miteruby_allocator_alloc(size, "objects_to_mark");
   if (allocation != NULL) consumer_state.objects_to_mark_allocated_bytes += size;
   return allocation;
@@ -187,6 +191,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   // TODO: Maybe in the future we want to more gracefully recover, e.g. maybe clear all the state and start accumulating again?
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
   if (reason == MITERUBY_CONSUMER_EVENTS_BUFFER_FULL) rb_raise(rb_eRuntimeError, "Miteruby consumed events buffer is full");
+  if (reason == MITERUBY_CONSUMER_OBJECTS_TO_MARK_FULL) rb_raise(rb_eRuntimeError, "Miteruby objects_to_mark set is full");
 
   return Qnil;
 }
@@ -248,10 +253,8 @@ static VALUE prepare_serialize_unlock_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-static void retain_object(VALUE object) {
-  if (verstable_objects_to_mark_set_is_end(verstable_objects_to_mark_set_get_or_insert(&consumer_state.objects_to_mark, object))) {
-    rb_bug("Failed to grow miteruby objects_to_mark set");
-  }
+static bool retain_object(VALUE object) {
+  return !verstable_objects_to_mark_set_is_end(verstable_objects_to_mark_set_get_or_insert(&consumer_state.objects_to_mark, object));
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
@@ -270,14 +273,19 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&consumer_state.objects_to_mark_mutex);
-  retain_object(event->thread.value);
+  bool retained = retain_object(event->thread.value);
   if (result.ok.inserted) {
-    for (uint16_t i = 0; i < header->frame_count; i++) {
-      if (event->refs[i].cme != NULL) retain_object((VALUE) event->refs[i].cme);
-      if (event->refs[i].iseq != NULL) retain_object((VALUE) event->refs[i].iseq);
+    for (uint16_t i = 0; retained && i < header->frame_count; i++) {
+      retained = (event->refs[i].cme == NULL || retain_object((VALUE) event->refs[i].cme)) &&
+        (event->refs[i].iseq == NULL || retain_object((VALUE) event->refs[i].iseq));
     }
   }
   mutex_unlock(&consumer_state.objects_to_mark_mutex);
+
+  if (!retained) {
+    if (result.ok.inserted) miteruby_stack_dedup_rollback_insert(result.ok.id);
+    return MITERUBY_CONSUMER_OBJECTS_TO_MARK_FULL;
+  }
 
   miteruby_event_deduped_sample_t *deduped = &consumer_state.consumed_events_buffer[consumer_state.consumed_events_count++];
   *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = result.ok.id};
