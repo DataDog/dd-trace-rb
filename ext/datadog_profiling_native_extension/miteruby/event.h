@@ -67,11 +67,6 @@ typedef struct {
 } miteruby_event_deduped_sample_t;
 
 typedef struct {
-  uint16_t frame_count;
-  miteruby_event_frame_refs_t refs[];
-} miteruby_stack_t;
-
-typedef struct {
   miteruby_event_frame_refs_t *refs;
   miteruby_event_frame_position_t *positions;
   uint16_t frame_count;
@@ -91,4 +86,3 @@ _Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_fra
 _Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, refs) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
 _Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
 _Static_assert(sizeof(miteruby_event_deduped_sample_t) == 40, "miteruby_event_deduped_sample_t must be 40 bytes");
-_Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
