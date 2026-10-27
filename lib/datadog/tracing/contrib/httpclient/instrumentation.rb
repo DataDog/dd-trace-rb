@@ -80,7 +80,7 @@ module Datadog
               span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
                 http_method,
                 path,
-                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
               )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)

@@ -402,16 +402,16 @@ RSpec.describe "Native transport wire-level conformance" do
           trace_id: (0x1234 << 64) | 0x5678,
           span_id: 0x9abc,
           trace_sampling_priority: 1,
-          trace_state: "vendor=value"
+          trace_state: "vendor=value",
         ),
-        attributes: {"operation" => "receive", "batch" => [1, true]}
+        attributes: {"operation" => "receive", "batch" => [1, true]},
       )
       second = Datadog::Tracing::SpanLink.new(
         Datadog::Tracing::TraceDigest.new(
           trace_id: 22,
           span_id: 33,
-          trace_sampling_priority: 0
-        )
+          trace_sampling_priority: 0,
+        ),
       )
       trace = make_trace([{name: "consumer", links: [first, second]}])
 
@@ -437,7 +437,7 @@ RSpec.describe "Native transport wire-level conformance" do
             "span_id" => 33,
             "flags" => 0x8000_0000,
           },
-        ]
+        ],
       )
     end
 
@@ -478,7 +478,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "span_id" => 2,
         "attributes" => {"operation" => "receive"},
         "tracestate" => "vendor=value",
-        "flags" => 0x8000_0001
+        "flags" => 0x8000_0001,
       )
     end
 
@@ -507,7 +507,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "name" => "n" * 512,
         "service" => "s" * 512,
         "resource" => "r" * 512,
-        "type" => "t" * 512
+        "type" => "t" * 512,
       )
     end
 
@@ -516,9 +516,9 @@ RSpec.describe "Native transport wire-level conformance" do
         Datadog::Tracing::TraceDigest.new(
           trace_id: 5,
           span_id: 6,
-          trace_sampling_priority: 0
+          trace_sampling_priority: 0,
         ),
-        attributes: {"empty" => ""}
+        attributes: {"empty" => ""},
       )
       trace = make_trace([{name: "consumer", links: [link]}])
 
@@ -529,7 +529,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "trace_id_high" => 0,
         "span_id" => 6,
         "attributes" => {"empty" => ""},
-        "flags" => 0x8000_0000
+        "flags" => 0x8000_0000,
       )
     end
   end

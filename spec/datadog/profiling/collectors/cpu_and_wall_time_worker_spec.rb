@@ -1063,7 +1063,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "removes live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id),
               ).to be false
             end
           end
@@ -1073,7 +1073,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             it "does not remove live heap objects after GCs" do
               expect(
-                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id),
               ).to be true
             end
           end
@@ -1085,14 +1085,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           it "does not remove live heap objects after minor GCs" do
             # The object is still being tracked!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id),
             ).to be true
 
             # Sanity checking: It stops being tracked after a serialization, proving it was indeed dead, we just hadn't
             # updated our state yet
             recorder.serialize!
             expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id)
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_record_id),
             ).to be false
           end
         end
@@ -1257,7 +1257,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             failure_exception = cpu_and_wall_time_worker.send(:failure_exception)
             "Profiler failed to run cleanly, failure_exception: #{failure_exception.inspect}\n" \
               "#{failure_exception&.backtrace&.join("\n")}"
-          }
+          },
         )
 
         samples = samples_from_pprof(profile).select do |sample|

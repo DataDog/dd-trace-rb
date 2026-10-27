@@ -141,7 +141,7 @@ module Datadog
               span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
                 method,
                 path,
-                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
               )
 
               if datadog_configuration[:peer_service]

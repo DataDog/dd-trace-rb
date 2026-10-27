@@ -147,7 +147,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
             "doLog" => true,
           },
           log?: true,
-          error?: false
+          error?: false,
         )
       end
 

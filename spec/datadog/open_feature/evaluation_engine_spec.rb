@@ -108,7 +108,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         Datadog::OpenFeature::ResolutionDetails.build_error(
           value: "fallback",
           error_code: Datadog::OpenFeature::Ext::PARSE_ERROR,
-          error_message: "invalid configuration"
+          error_message: "invalid configuration",
         )
       end
 

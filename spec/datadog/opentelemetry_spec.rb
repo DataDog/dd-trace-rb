@@ -412,7 +412,7 @@ RSpec.describe Datadog::OpenTelemetry do
                 tracestate: "otel=blahxd",
                 flags: 0x8000_0001,
               },
-            ]
+            ],
           )
         end
       end

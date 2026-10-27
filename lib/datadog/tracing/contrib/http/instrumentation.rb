@@ -38,7 +38,7 @@ module Datadog
                 span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
                   req.method,
                   quantize_resource ? request_uri_path(req) : nil,
-                  enabled: quantize_resource
+                  enabled: quantize_resource,
                 )
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(

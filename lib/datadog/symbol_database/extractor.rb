@@ -527,7 +527,7 @@ module Datadog
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
           scopes: method_scopes,
-          symbols: extract_scope_symbols(klass)
+          symbols: extract_scope_symbols(klass),
         )
       end
 

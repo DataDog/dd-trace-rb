@@ -1277,7 +1277,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             sample(allow_exception: true)
 
             expect(sample_for_thread(samples, t1).values.fetch(:"wall-time")).to eq(
-              (@on_gvl_waiting_at - @wall_time_at_context_creation) + one_hour_in_ns
+              (@on_gvl_waiting_at - @wall_time_at_context_creation) + one_hour_in_ns,
             )
 
             expect(per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)).to eq gvl_waiting_at_for(t1)

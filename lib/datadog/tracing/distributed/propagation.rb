@@ -149,7 +149,7 @@ module Datadog
                 trace_otel_random_value: tracecontext_digest.trace_otel_random_value,
                 trace_otel_threshold: tracecontext_digest.trace_otel_threshold,
                 trace_otel_unknown_fields: tracecontext_digest.trace_otel_unknown_fields,
-                trace_distributed_tags: distributed_tags
+                trace_distributed_tags: distributed_tags,
               )
             end
           rescue => e

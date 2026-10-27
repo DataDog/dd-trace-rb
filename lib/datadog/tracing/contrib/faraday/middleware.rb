@@ -109,7 +109,7 @@ module Datadog
             Contrib::Utils::Quantization::HTTP.client_resource(
               env[:method].to_s.upcase,
               path,
-              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
             )
           end
 

@@ -389,7 +389,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       def sample_allocation(obj)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
           Thread.current, stack_recorder, metric_values, labels, numeric_labels,
-          heap_sample: {new_object: obj, alloc_class: obj.class.name},
+          heap_sample: {new_object: obj, alloc_class: obj.class.name}
         )
         # Heap recordings are deferred and need to be committed after the sample is recorded
         described_class::Testing._native_commit_heap_recordings(stack_recorder)
@@ -684,7 +684,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           def sample_allocation_expecting_failure
             Datadog::Profiling::Collectors::Stack::Testing._native_sample(
               Thread.current, stack_recorder, metric_values, labels, numeric_labels,
-              heap_sample: {new_object: Object.new, alloc_class: "Object"},
+              heap_sample: {new_object: Object.new, alloc_class: "Object"}
             )
           end
 
@@ -717,7 +717,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           def sample_allocation_without_commit(obj)
             Datadog::Profiling::Collectors::Stack::Testing._native_sample(
               Thread.current, stack_recorder, metric_values, labels, numeric_labels,
-              heap_sample: {new_object: obj, alloc_class: obj.class.name},
+              heap_sample: {new_object: obj, alloc_class: obj.class.name}
             )
           end
 
@@ -1075,7 +1075,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       def sample_allocation(obj)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
           Thread.current, stack_recorder, {"alloc-samples" => 1}, [], [],
-          heap_sample: {new_object: obj, alloc_class: obj.class.name},
+          heap_sample: {new_object: obj, alloc_class: obj.class.name}
         )
         # Heap recordings are deferred and need to be committed after the sample is recorded
         described_class::Testing._native_commit_heap_recordings(stack_recorder)

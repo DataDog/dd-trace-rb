@@ -85,7 +85,7 @@ module Datadog
             outbound_random_value = reconcile_random_value(
               random_value_for(trace_id),
               outbound_threshold,
-              !!trace_kept
+              !!trace_kept,
             )
             self.class.new(
               random_value: format_random_value(outbound_random_value),

@@ -228,7 +228,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
 
       guardrails_telemetry.dropped(
         reason: described_class::Reason::PAYLOAD_TOO_LARGE,
-        event_type: "snapshot", bytes: 2048,
+        event_type: "snapshot", bytes: 2048
       )
     end
 
@@ -247,7 +247,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
       it "emits no metric and returns nil" do
         expect(guardrails_telemetry.dropped(
           reason: described_class::Reason::QUEUE_FULL,
-          event_type: "snapshot", bytes: 2048,
+          event_type: "snapshot", bytes: 2048
         )).to be_nil
       end
     end

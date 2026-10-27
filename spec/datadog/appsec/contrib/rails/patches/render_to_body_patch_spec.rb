@@ -287,7 +287,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
           expect(callback.calls).to eq(1)
           expect(serializer.calls).to eq(1)
           expect(gateway).to have_received(:push).with(
-            "rails.response.body.json", have_attributes(data: a_string_including("app.callback")),
+            "rails.response.body.json", have_attributes(data: a_string_including("app.callback"))
           )
         end
       end
@@ -300,7 +300,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
         expect(render_to_body).to eq('{"x":1}')
         expect(serializer.calls).to eq(1)
         expect(gateway).to have_received(:push).with(
-          "rails.response.body.json", have_attributes(data: '{"x":1}'),
+          "rails.response.body.json", have_attributes(data: '{"x":1}')
         )
       end
     end
@@ -357,7 +357,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
         expect(controller.render_calls).to eq(1)
         expect(serializer.calls).to eq(0)
         expect(gateway).to have_received(:push).with(
-          "rails.response.body.json", have_attributes(data: '{"custom":true}', context: context),
+          "rails.response.body.json", have_attributes(data: '{"custom":true}', context: context)
         )
       end
     end
@@ -382,7 +382,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
       it "passes the same string without copying the response" do
         expect(render_to_body).to equal(response_body)
         expect(gateway).to have_received(:push).with(
-          "rails.response.body.json", have_attributes(data: equal(response_body)),
+          "rails.response.body.json", have_attributes(data: equal(response_body))
         )
       end
     end

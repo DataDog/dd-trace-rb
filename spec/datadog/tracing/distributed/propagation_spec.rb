@@ -598,7 +598,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
                 "reason" => "propagation_behavior_extract",
                 "context_headers" => "datadog",
               },
-              flags: 0x8000_0001
+              flags: 0x8000_0001,
             )
           end
 
@@ -644,7 +644,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
           context "with an inbound `ot=` member" do
             let(:data) do
               super().merge(
-                prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668"
+                prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668",
               )
             end
 

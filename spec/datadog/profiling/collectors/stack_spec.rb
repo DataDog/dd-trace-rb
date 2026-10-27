@@ -885,7 +885,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             ),
             binding,
             filename,
-            123456
+            123456,
           )
           # rubocop:enable Security/Eval
           # rubocop:enable Style/EvalWithLocation
@@ -897,7 +897,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(
               path: filename,
               label: end_with("_app_views_layouts_explore_html_haml (block)"),
-            )
+            ),
           )
         end
 
@@ -909,7 +909,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
               have_attributes(
                 path: filename,
                 label: end_with("_app_views_layouts_explore_html_haml"),
-              )
+              ),
             )
           end
         end
@@ -929,7 +929,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
                 end
               ),
               filename,
-              123456
+              123456,
             )
             # rubocop:enable Style/DocumentDynamicEvalDefinition
             # rubocop:enable Style/EvalWithLocation
@@ -943,7 +943,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
               have_attributes(
                 path: filename,
                 label: "DummyTemplateClass#_app_views_layouts_explore_html_haml (block)",
-              )
+              ),
             )
           end
         end

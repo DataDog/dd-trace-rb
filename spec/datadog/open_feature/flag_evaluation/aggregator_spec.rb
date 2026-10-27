@@ -178,7 +178,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, reasons = described_class.bounded_context_snapshot(
-        {"root" => {"k" * 10_000 => "value"}}
+        {"root" => {"k" * 10_000 => "value"}},
       )
 
       expect(snapshot).to eq({})
@@ -259,7 +259,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
 
       snapshot, = described_class.bounded_context_snapshot(
-        {custom_string.new("key") => custom_string.new("value")}
+        {custom_string.new("key") => custom_string.new("value")},
       )
       expect(snapshot).to eq("key" => "value")
     end
@@ -336,7 +336,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         snapshot, reasons = described_class.bounded_context_snapshot(attrs)
 
         expect(described_class::MAX_VISITED_NODES).to eq(
-          described_class::MAX_CONTEXT_FIELDS * (described_class::MAX_SNAPSHOT_DEPTH + 1)
+          described_class::MAX_CONTEXT_FIELDS * (described_class::MAX_SNAPSHOT_DEPTH + 1),
         )
         expect(visited).to be <= described_class::MAX_VISITED_NODES
         expect(snapshot).to eq({})
@@ -412,12 +412,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
       it "coalesces runtime defaults with different variants and allocations" do
         aggregator.record(
-          **base_event.merge(variant: "a", allocation_key: "alloc-a", runtime_default: true)
+          **base_event.merge(variant: "a", allocation_key: "alloc-a", runtime_default: true),
         )
         aggregator.record(
           **base_event.merge(
-            variant: "b", allocation_key: "alloc-b", runtime_default: true, eval_time_ms: 2000
-          )
+            variant: "b", allocation_key: "alloc-b", runtime_default: true, eval_time_ms: 2000,
+          ),
         )
 
         snapshot = aggregator.flush_and_reset
@@ -523,13 +523,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       it "AND-folds mixed consent in a degraded bucket" do
         degraded_aggregator = described_class.new(global_cap: 0, per_flag_cap: 10, degraded_cap: 10)
         degraded_aggregator.record(
-          **base_event.merge(observe_full_evaluation_data: true)
+          **base_event.merge(observe_full_evaluation_data: true),
         )
         degraded_aggregator.record(
           **base_event.merge(
             targeting_key: "user-456", eval_time_ms: 1_700_000_000_001,
             observe_full_evaluation_data: false
-          )
+          ),
         )
 
         entries = degraded_aggregator.flush_and_reset[:degraded]

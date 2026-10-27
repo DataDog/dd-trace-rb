@@ -11,7 +11,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -40,7 +40,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
           Datadog::AIGuard::Evaluation::Message.new(
             role: :assistant,
             content: "Account 123",
-            tool_calls: tool_calls
+            tool_calls: tool_calls,
           ),
         ]
       end
@@ -102,7 +102,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
             content: [
               Datadog::AIGuard::Evaluation::ContentPart::Text.new("Card 4111111111111111"),
               Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/image.png"),
-            ]
+            ],
           ),
         ]
       end
@@ -141,14 +141,14 @@ RSpec.describe Datadog::AIGuard::Redaction do
               Datadog::AIGuard::Evaluation::ToolCall.new(
                 "send_email",
                 id: "call-1",
-                arguments: '{"to":"person@example.com"}'
+                arguments: '{"to":"person@example.com"}',
               ),
               Datadog::AIGuard::Evaluation::ToolCall.new(
                 "lookup_user",
                 id: "call-2",
-                arguments: '{"email":"person@example.com"}'
+                arguments: '{"email":"person@example.com"}',
               ),
-            ]
+            ],
           ),
         ]
       end
@@ -199,15 +199,15 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :system,
-            content: "Contact ops@example.com"
+            content: "Contact ops@example.com",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :assistant,
-            content: "How can I help?"
+            content: "How can I help?",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -242,7 +242,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "Nothing sensitive"
+            content: "Nothing sensitive",
           ),
         ]
       end
@@ -256,11 +256,11 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :system,
-            content: "You are a helpful assistant"
+            content: "You are a helpful assistant",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -294,7 +294,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
             content: [
               Datadog::AIGuard::Evaluation::ContentPart::Text.new("Card 4111111111111111"),
               Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/image.png"),
-            ]
+            ],
           ),
         ]
       end
@@ -326,9 +326,9 @@ RSpec.describe Datadog::AIGuard::Redaction do
               Datadog::AIGuard::Evaluation::ToolCall.new(
                 "send_email",
                 id: "call-1",
-                arguments: '{"to":"person@example.com"}'
+                arguments: '{"to":"person@example.com"}',
               ),
-            ]
+            ],
           ),
         ]
       end
@@ -355,7 +355,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -381,7 +381,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -411,7 +411,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -443,7 +443,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
             content: [
               Datadog::AIGuard::Evaluation::ContentPart::Text.new("Card 4111111111111111"),
               Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/image.png"),
-            ]
+            ],
           ),
         ]
       end
@@ -469,7 +469,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -502,11 +502,11 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "Email person@example.com"
+            content: "Email person@example.com",
           ),
         ]
       end
@@ -544,11 +544,11 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :system,
-            content: "Contact ops@example.com"
+            content: "Contact ops@example.com",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -588,15 +588,15 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "Contact ops@example.com"
+            content: "Contact ops@example.com",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :assistant,
-            content: "How can I help?"
+            content: "How can I help?",
           ),
         ]
       end
@@ -635,11 +635,11 @@ RSpec.describe Datadog::AIGuard::Redaction do
         [
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "Contact ops@example.com"
+            content: "Contact ops@example.com",
           ),
           Datadog::AIGuard::Evaluation::Message.new(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end

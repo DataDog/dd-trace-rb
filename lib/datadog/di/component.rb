@@ -96,7 +96,7 @@ module Datadog
           guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
         @capture_expression_evaluator = CaptureExpressionEvaluator.new(
           settings: settings, serializer: serializer, logger: logger,
-          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry
         )
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
@@ -110,12 +110,12 @@ module Datadog
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
           telemetry: telemetry,
-          guardrails_telemetry: guardrails_telemetry,
+          guardrails_telemetry: guardrails_telemetry
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
-          guardrails_telemetry: guardrails_telemetry,
+          guardrails_telemetry: guardrails_telemetry
         )
         # @started transitions are serialized by @lifecycle_mutex so that
         # concurrent RC callbacks (which run on the remote-config thread)

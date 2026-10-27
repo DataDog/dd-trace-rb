@@ -11,7 +11,7 @@ class CallbackFailure < Exception; end # rubocop:disable Lint/InheritException
 url, interrupt, callback_failure, shape = ARGV
 exporter = Datadog::Tracing::Transport::Native::TraceExporter._native_new(
   url: url, tracer_version: nil, language: nil, language_version: nil,
-  language_interpreter: nil, hostname: nil, env: nil, service: nil, version: nil,
+  language_interpreter: nil, hostname: nil, env: nil, service: nil, version: nil
 )
 ready_read, ready_write = IO.pipe
 release_read, release_write = IO.pipe

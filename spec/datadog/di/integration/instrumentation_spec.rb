@@ -2029,7 +2029,7 @@ RSpec.describe "Instrumentation integration" do
       let(:agent_settings) do
         instance_double(
           Datadog::Core::Configuration::AgentSettings,
-          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false
+          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false,
         )
       end
 

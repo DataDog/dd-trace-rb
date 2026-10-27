@@ -574,7 +574,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "returns a timeout stub for the top-level value and stops there" do
         expect(
-          serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
+          serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline),
         ).to eq(
           type: "Array", notCapturedReason: "timeout",
         )
@@ -582,7 +582,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "increments the timeout telemetry counter" do
         expect(telemetry).to receive(:inc).with(
-          "debugger", "serialized_values_skipped_by_timeout", 1,
+          "debugger", "serialized_values_skipped_by_timeout", 1
         ).at_least(:once)
         serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
       end
@@ -615,7 +615,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "increments the timeout telemetry counter once for the stopped element" do
         expect(telemetry).to receive(:inc).with(
-          "debugger", "serialized_values_skipped_by_timeout", 1,
+          "debugger", "serialized_values_skipped_by_timeout", 1
         ).once
         serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
       end
@@ -987,7 +987,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "reports a serialization error for the value the block handles" do
         expect(guardrails_telemetry).to receive(:capture_incomplete).with(
-          reason: "runtimeError", event_type: "snapshot"
+          reason: "runtimeError", event_type: "snapshot",
         )
         described_class.register(condition: lambda { |value| String === value }) do |serializer, value, name:, depth:|
           {type: "String", value: "old signature"}

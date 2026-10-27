@@ -561,7 +561,7 @@ module Datadog
           flag_metadata: {
             "dd.eval.timestamp_ms" => eval_time_ms,
             Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
-          }
+          },
         )
       end
     end

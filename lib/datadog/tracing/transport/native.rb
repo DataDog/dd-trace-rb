@@ -104,7 +104,7 @@ module Datadog
               env: env,
               service: service,
               version: version,
-              client_computed_stats: !Datadog.configuration.apm.tracing.enabled
+              client_computed_stats: !Datadog.configuration.apm.tracing.enabled,
             )
             @exporter = exporter
 

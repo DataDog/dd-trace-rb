@@ -152,7 +152,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(observations).to eq(
         requests_count: 1, responses_count: 1, status_code: 200,
         chunks_sent: 1, spans_enqueued_for_serialization: 1,
-        bytes_sent: request.fetch(:body).bytesize,
+        bytes_sent: request.fetch(:body).bytesize
       )
       expect(mock_agent.requests.none? { |entry| entry[:request_line].include?("telemetry") }).to be true
     end
@@ -429,7 +429,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "bools" => [true, false],
             "ints" => [-1, 2],
             "doubles" => [1.25, 2.5],
-          }
+          },
         ),
         Datadog::Tracing::SpanEvent.new("second", time_unix_nano: 456),
       ]
@@ -460,7 +460,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(event.dig("attributes", "attempt")).to eq("type" => 2, "int_value" => 2)
       expect(event.dig("attributes", "exception.type")).to eq(
         "type" => 0,
-        "string_value" => "StandardError"
+        "string_value" => "StandardError",
       )
     end
 
@@ -469,7 +469,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       span.events = [Datadog::Tracing::SpanEvent.new(
         "empty",
         time_unix_nano: 123,
-        attributes: {"values" => []}
+        attributes: {"values" => []},
       )]
 
       responses = exporter._native_send_traces([[span]], true)
@@ -478,7 +478,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       payload = last_payload
       expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
         "type" => 4,
-        "array_value" => {"values" => []}
+        "array_value" => {"values" => []},
       )
     end
   end
@@ -501,7 +501,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         requests_count: attempts, errors_status_code: 1,
         responses_count: 1, status_code: 500,
         chunks_dropped_send_failure: 1,
-        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1,
+        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1
       )
     end
   end

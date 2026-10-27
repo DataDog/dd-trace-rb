@@ -60,7 +60,7 @@ RSpec.describe "typing stats comparison" do
 
   def run_script(script, environment, working_directory: Dir.pwd)
     environment = environment.merge(
-      "BUNDLE_GEMFILE" => Bundler.default_gemfile.expand_path.to_s
+      "BUNDLE_GEMFILE" => Bundler.default_gemfile.expand_path.to_s,
     )
 
     output, status = Open3.capture2e(

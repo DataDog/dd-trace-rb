@@ -123,7 +123,7 @@ module Datadog
             span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
               http_method,
               path,
-              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize
+              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
             )
             span.service = service_name(datum[:host], @options)
             span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)

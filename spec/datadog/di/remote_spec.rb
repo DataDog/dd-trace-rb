@@ -347,7 +347,7 @@ RSpec.describe Datadog::DI::Remote do
           guardrails_telemetry: guardrails_telemetry,
           capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
             settings: settings, serializer: serializer, logger: logger,
-            guardrails_telemetry: guardrails_telemetry, telemetry: nil,
+            guardrails_telemetry: guardrails_telemetry, telemetry: nil
           ))
       end
 

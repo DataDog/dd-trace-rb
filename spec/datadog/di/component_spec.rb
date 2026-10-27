@@ -480,7 +480,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/carrier/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
         let(:unrelated_content) do
@@ -488,7 +488,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/unrelated/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
 
@@ -555,7 +555,7 @@ RSpec.describe Datadog::DI::Component do
             expect(component.rc_enablement_signal_withdrawn?([])).to be true
 
             expect(messages).to eq(
-              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"]
+              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"],
             )
           end
 

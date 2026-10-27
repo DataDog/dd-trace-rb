@@ -480,7 +480,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           target_self: target_self,
           serialized_entry_args: {},
-          return_value: 42, duration: 0.1,
+          return_value: 42, duration: 0.1
         )
       end
 
@@ -965,7 +965,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           probe: probe, target_self: nil,
           entry_capture_expressions: {},
-          entry_capture_evaluation_errors: [Datadog::DI::EvaluationFailure.new(expr: "x", message: "NameError: badvar")],
+          entry_capture_evaluation_errors: [Datadog::DI::EvaluationFailure.new(expr: "x", message: "NameError: badvar")]
         )
         payload = builder.build_snapshot(context)
         errors = payload[:debugger][:snapshot][:evaluationErrors]

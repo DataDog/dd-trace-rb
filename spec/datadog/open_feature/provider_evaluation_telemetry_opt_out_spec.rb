@@ -34,7 +34,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
   let(:metric_reader) { OpenTelemetry::SDK::Metrics::Export::InMemoryMetricPullExporter.new }
   let(:span_hook) do
     Datadog::OpenFeature::Hooks::SpanEnrichmentHook.new(
-      Datadog::OpenFeature::Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new, logger: logger,
+      Datadog::OpenFeature::Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new, logger: logger
     )
   end
   let(:trace) { Datadog::Tracing::TraceOperation.new }
@@ -162,7 +162,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
         flag_key: "flag", default_value: "fallback",
         evaluation_context: OpenFeature::SDK::EvaluationContext.new(
           targeting_key: "subject", dd_telemetry_opt_out: true, ddEvaluationTelemetryOptOut: true,
-        ),
+        )
       )
     end
 
@@ -302,7 +302,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
         evaluate("invalid", "true")
         client.fetch_string_value(
           flag_key: "flag", default_value: "fallback",
-          evaluation_context: OpenFeature::SDK::EvaluationContext.new(targeting_key: "missing"),
+          evaluation_context: OpenFeature::SDK::EvaluationContext.new(targeting_key: "missing")
         )
       end
 

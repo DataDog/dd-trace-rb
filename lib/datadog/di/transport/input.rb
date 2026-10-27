@@ -118,7 +118,7 @@ module Datadog
             dropped_events.each do |event, bytes|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                event_type: event.event_type, bytes: bytes,
+                event_type: event.event_type, bytes: bytes
               )
             end
 

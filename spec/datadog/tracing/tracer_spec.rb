@@ -231,7 +231,7 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: span.id,
-                local_root_span_id: span.id
+                local_root_span_id: span.id,
               )
             end
           end
@@ -354,13 +354,13 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: child.id,
-                local_root_span_id: parent.id
+                local_root_span_id: parent.id,
               ).once
 
               expect(otel_thread_context).to receive(:set).with(
                 trace_id: trace_op.id,
                 span_id: parent.id,
-                local_root_span_id: parent.id
+                local_root_span_id: parent.id,
               ).once
 
               child.finish
@@ -903,7 +903,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(otel_thread_context).to have_received(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
-              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID,
             ).once
           end
         end
@@ -913,7 +913,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(otel_thread_context).to receive(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
-              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID,
             ).once
 
             tracer.trace("span") {}
@@ -1085,7 +1085,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             sampling_priority: digest.trace_sampling_priority,
             trace_state: an_object_having_attributes(
               unknown_vendors: "my-state",
-              datadog: an_object_having_attributes(unknown_fields: "any;field")
+              datadog: an_object_having_attributes(unknown_fields: "any;field"),
             ),
           )
           expect(digest.span_remote).to be true

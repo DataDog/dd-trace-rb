@@ -288,7 +288,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         [
           Datadog::AIGuard.message(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -331,7 +331,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         [
           Datadog::AIGuard.message(
             role: :user,
-            content: "Nothing sensitive"
+            content: "Nothing sensitive",
           ),
         ]
       end
@@ -352,7 +352,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         [
           Datadog::AIGuard.message(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end
@@ -393,7 +393,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         [
           Datadog::AIGuard.message(
             role: :user,
-            content: "My SSN is 123-45-6789"
+            content: "My SSN is 123-45-6789",
           ),
         ]
       end

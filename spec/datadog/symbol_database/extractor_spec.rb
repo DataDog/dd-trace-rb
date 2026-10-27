@@ -1280,7 +1280,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
         guardrails_telemetry: guardrails,
         capture_expression_evaluator: Datadog::DI::CaptureExpressionEvaluator.new(
           settings: settings, serializer: nil, logger: logger,
-          guardrails_telemetry: guardrails, telemetry: nil,
+          guardrails_telemetry: guardrails, telemetry: nil
         ))
     end
     let(:probes) do

@@ -130,7 +130,7 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
       context = described_class.new(
         hash_value: 424242,
         pathway_start: Time.at(1786000000.123),
-        current_edge_start: Time.at(1786000005.456)
+        current_edge_start: Time.at(1786000005.456),
       )
 
       expect(context.encode_b64).to eq(go_encoded_fixture)

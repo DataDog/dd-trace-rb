@@ -637,7 +637,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.value).to eq("default" => true)
         expect(result.reason).to eq("ERROR")
         expect(result.flag_metadata).to include(
-          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
         )
       end
     end
@@ -919,7 +919,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         ))
 
         result = client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         expect(result).to eq("enabled")
@@ -971,7 +971,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           allow(engine).to receive(:fetch_value).and_return(result)
 
           client.fetch_string_value(
-            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context
+            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context,
           )
 
           writer.send(:drain_and_flush)
@@ -979,7 +979,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             expect(payload["flagEvaluations"].size).to eq(1)
             row = payload["flagEvaluations"].first
             expect(row["targeting_key"]).to eq(
-              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b",
             )
             expect(row).not_to have_key("context")
             expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("user-1")
@@ -1024,7 +1024,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)

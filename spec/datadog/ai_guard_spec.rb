@@ -178,7 +178,7 @@ RSpec.describe Datadog::AIGuard do
           expect(message.role).to eq(:user)
           expect(message.content[0].to_h).to eq(type: "text", text: "What's in this image?")
           expect(message.content[1].to_h).to eq(
-            type: "image_url", image_url: {url: "https://example.com/img.png"}
+            type: "image_url", image_url: {url: "https://example.com/img.png"},
           )
         end
       end
@@ -246,7 +246,7 @@ RSpec.describe Datadog::AIGuard do
         aggregate_failures "returned message" do
           expect(message.content[0].to_h).to eq(type: "text", text: "Inspect this image")
           expect(message.content[1].to_h).to eq(
-            type: "image_url", image_url: {url: "https://example.com/img.png"}
+            type: "image_url", image_url: {url: "https://example.com/img.png"},
           )
           expect(message.tool_calls[0].tool_name).to eq("inspect")
           expect(message.tool_calls[0].id).to eq("42")

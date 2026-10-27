@@ -140,7 +140,7 @@ module Datadog
                 error_message: error_message,
                 targeting_key: targeting_key,
                 context_attrs: observe_full_evaluation_data ? attrs : nil,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                observe_full_evaluation_data: observe_full_evaluation_data,
               )
               @full[full_key] = entry
               @global_count += 1
@@ -433,7 +433,7 @@ module Datadog
             evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
-            observe_full_evaluation_data: observe_full_evaluation_data
+            observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
       end

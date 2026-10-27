@@ -1279,7 +1279,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:condition) do
           Datadog::DI::EL::Expression.new(
             "(expression)",
-            "unknown_function('kwarg') == 42"
+            "unknown_function('kwarg') == 42",
           )
         end
 
@@ -1287,7 +1287,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           observed = []
           responder = Datadog::DI::ProcResponder.new(
             proc { |context| observed << [:executed, context] },
-            proc { |context, exc| observed << [:failed, context, exc] }
+            proc { |context, exc| observed << [:failed, context, exc] },
           )
           instrumenter.hook_method(probe, responder)
 

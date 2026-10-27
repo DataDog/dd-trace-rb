@@ -80,7 +80,7 @@ module Datadog
         @otel_thread_context = otel_thread_context
 
         @provider = context_provider || DefaultContextProvider.new(
-          otel_thread_context: otel_thread_context
+          otel_thread_context: otel_thread_context,
         )
       end
 

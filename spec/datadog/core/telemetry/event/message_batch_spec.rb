@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
         [
           Datadog::Core::Telemetry::Event::AppClientConfigurationChange.new(
             [["DD_TRACE_HEADER_TAGS", ["X-Test-Header:test_header_rc", "Content-Length:"]]],
-            "remote_config"
+            "remote_config",
           ),
         ]
       end
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
                 ],
               },
             },
-          ]
+          ],
         )
       end
     end
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
         [
           Datadog::Core::Telemetry::Event::AppClientConfigurationChange.new(
             [["DD_TRACE_SAMPLE_RATE", 0.2]],
-            "remote_config"
+            "remote_config",
           ),
         ]
       end
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
                 ],
               },
             },
-          ]
+          ],
         )
       end
     end

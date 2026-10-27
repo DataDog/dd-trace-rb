@@ -368,7 +368,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     let(:probe_notification_builder) do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
-        capture_expression_evaluator: capture_expression_evaluator,
+        capture_expression_evaluator: capture_expression_evaluator
       )
     end
 

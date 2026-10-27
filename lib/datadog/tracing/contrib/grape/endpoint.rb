@@ -75,7 +75,7 @@ module Datadog
                   # here we are removing the format from the path:
                   # e.g. /path/to/resource(.json) => /path/to/resource
                   # e.g. /path/to/resource(.:format) => /path/to/resource
-                  route_path&.gsub(FORMAT_SEGMENT, "")
+                  route_path&.gsub(FORMAT_SEGMENT, ""),
                 )
 
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env["SCRIPT_NAME"])

@@ -362,7 +362,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).not_to include(
         lambda { |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
-        }
+        },
       )
     end
   end

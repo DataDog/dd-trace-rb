@@ -112,7 +112,7 @@ RSpec.describe Datadog::AppSec::Response do
             expect(response.body[0]).to start_with("<!DOCTYPE html><html")
             expect(response.body[0]).not_to include("\n")
             expect(response.body[0]).to match(
-              /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/
+              /<p class="security-response-id">.*: 00000000-0000-0000-0000-000000000000/,
             )
           end
         end

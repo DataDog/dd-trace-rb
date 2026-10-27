@@ -539,7 +539,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         trace.spans.first.events << Datadog::Tracing::SpanEvent.new(
           "manual",
           time_unix_nano: 123,
-          attributes: {"count" => 2}
+          attributes: {"count" => 2},
         )
         trace
       end
@@ -559,7 +559,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
         expect(sent_span.fetch("span_events").first).to include(
           "name" => "manual",
-          "time_unix_nano" => 123
+          "time_unix_nano" => 123,
         )
         expect(sent_span.dig("meta", "events")).to eq("existing")
       end
@@ -617,7 +617,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       it "retries after a failed capability fetch" do
         allow(agent_info).to receive(:fetch).and_invoke(
           proc {},
-          proc { instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: true) }
+          proc { instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: true) },
         )
 
         expect(transport.send_traces([trace_with_event]).first).to be_ok
@@ -688,13 +688,13 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         trace = make_trace_segment("web.request")
         trace.spans.first.links << Datadog::Tracing::SpanLink.new(
           Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
-          attributes: {"invalid" => "\xff".b}
+          attributes: {"invalid" => "\xff".b},
         )
 
         responses = transport.send_traces([trace])
 
         expect(responses).to contain_exactly(
-          an_instance_of(native_module::InternalErrorResponse)
+          an_instance_of(native_module::InternalErrorResponse),
         )
         expect(responses.first.trace_count).to eq(0)
       end
@@ -720,7 +720,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
       it "does not warn when a span carries span links" do
         link = Datadog::Tracing::SpanLink.new(
-          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
         )
         trace = trace_with { |span| span.links << link }
 

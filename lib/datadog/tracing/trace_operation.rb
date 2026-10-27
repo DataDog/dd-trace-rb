@@ -460,7 +460,7 @@ module Datadog
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent,
-          distributed_sampling_priority: @distributed_sampling_priority
+          distributed_sampling_priority: @distributed_sampling_priority,
         )
       end
 

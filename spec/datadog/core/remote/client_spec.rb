@@ -250,7 +250,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:capabilities) do
     capabilities = Datadog::Core::Remote::Client::Capabilities.new(
       settings,
-      telemetry: instance_double(Datadog::Core::Telemetry::Component)
+      telemetry: instance_double(Datadog::Core::Telemetry::Component),
     )
     capabilities.send(:register_products, ["ASM_DATA", "ASM_DD", "ASM"])
 
@@ -397,14 +397,14 @@ RSpec.describe Datadog::Core::Remote::Client do
       let(:test_receiver) do
         Datadog::Core::Remote::Dispatcher::Receiver.new(
           Datadog::Core::Remote::Dispatcher::Matcher::Product.new(receiver_products),
-          initial_reconcile: true
+          initial_reconcile: true,
         ) { |_repository, changes| invocations << changes }
       end
 
       let(:capabilities) do
         capabilities = Datadog::Core::Remote::Client::Capabilities.new(
           settings,
-          telemetry: instance_double(Datadog::Core::Telemetry::Component)
+          telemetry: instance_double(Datadog::Core::Telemetry::Component),
         )
         capabilities.send(:register_receivers, [test_receiver])
 
@@ -430,7 +430,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)
 
           allow(http_connection).to receive(:request).and_return(
-            instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code),
           )
           client.sync
 
@@ -441,7 +441,7 @@ RSpec.describe Datadog::Core::Remote::Client do
       context "the first response carries no targets" do
         before do
           allow(http_connection).to receive(:request).and_return(
-            instance_double(::Net::HTTPResponse, body: "{}", code: response_code)
+            instance_double(::Net::HTTPResponse, body: "{}", code: response_code),
           )
         end
 
@@ -456,7 +456,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           client.sync
 
           allow(http_connection).to receive(:request).and_return(
-            instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+            instance_double(::Net::HTTPResponse, body: response_body, code: response_code),
           )
           client.sync
 
@@ -471,7 +471,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           client.sync
 
           expect(invocations).to contain_exactly(
-            [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+            [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
           )
         end
       end

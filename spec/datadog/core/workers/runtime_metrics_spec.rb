@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
           started?: true,
           forked?: false,
           fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
-          result: nil
+          result: nil,
         )
       end
     end

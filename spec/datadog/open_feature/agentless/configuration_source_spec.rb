@@ -346,7 +346,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       expect { 3.times { perform_iteration.call } }.not_to raise_error
       expect(request_count).to eq(3)
       expect(logger).to have_received(:error).once.with(
-        "Feature Flags agentless poll failed with TypeError; polling continues"
+        "Feature Flags agentless poll failed with TypeError; polling continues",
       )
     end
   end

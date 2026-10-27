@@ -2225,7 +2225,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           before do
             trace_op.set_tag(
               Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-              Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE
+              Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE,
             )
           end
 
@@ -2241,9 +2241,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_state: Datadog::Tracing::Distributed::TraceState.new(
                 open_telemetry: Datadog::Tracing::Distributed::TraceState::OpenTelemetry.new(
                   random_value: "abcabcabcabcab",
-                  threshold: "7"
-                )
-              )
+                  threshold: "7",
+                ),
+              ),
             )
           end
 
