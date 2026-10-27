@@ -203,21 +203,6 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-void miteruby_consumer_consume(miteruby_buffer_t *buffer) {
-  mutex_lock(&consumed_events_mutex);
-
-  for (;;) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(buffer, NULL);
-    if (record.data == NULL) {
-      if (record.rejected_count != 0) continue;
-      break;
-    }
-
-    buffer_event((const miteruby_event_header_t *)record.data);
-  }
-  mutex_unlock(&consumed_events_mutex);
-}
-
 void miteruby_consumer_prepare_serialize(VALUE recorder_instance) {
   miteruby_libdatadog_recorder_enforce_available(recorder_instance);
   mutex_lock(&consumed_events_mutex);
