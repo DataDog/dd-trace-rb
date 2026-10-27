@@ -62,13 +62,21 @@ typedef struct {
   atomic_bool interrupted;
 } consumer_consume_loop_args;
 
+typedef enum {
+  MITERUBY_CONSUMER_OK = 0,
+  MITERUBY_CONSUMER_INTERRUPTED,
+  MITERUBY_CONSUMER_END_OF_STREAM,
+  MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
+} miteruby_consumer_exit_reason_t;
+
 static VALUE consume_loop_body(VALUE args);
 static VALUE consume_loop_ensure(VALUE args);
 static void *consume_without_gvl(void *args);
+static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_consume_loop_args *args);
 static void consume_unblock(void *args);
 static VALUE prepare_serialize_locked(VALUE recorder_instance);
 static VALUE prepare_serialize_unlock_ensure(VALUE unused);
-static void buffer_event(const miteruby_event_header_t *header);
+static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
 static void mutex_lock(mtx_t *mutex) {
   if (mtx_lock(mutex) != thrd_success) rb_bug("Failed to lock miteruby consumer mutex");
@@ -166,7 +174,12 @@ void miteruby_consumer_consume_loop(miteruby_buffer_t *buffer) {
 static VALUE consume_loop_body(VALUE args_ptr) {
   consumer_consume_loop_args *args = (consumer_consume_loop_args *) args_ptr;
 
-  rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
+  miteruby_consumer_exit_reason_t reason = (miteruby_consumer_exit_reason_t) (uintptr_t)
+    rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
+
+  // TODO: Maybe in the future we want to more gracefully recover, e.g. maybe clear all the state and start accumulating again?
+  if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
+
   return Qnil;
 }
 
@@ -177,19 +190,26 @@ static void consume_unblock(void *args_ptr) {
 }
 
 static void *consume_without_gvl(void *args_ptr) {
-  consumer_consume_loop_args *args = args_ptr;
+  return (void *) (uintptr_t) consume_without_gvl_internal(args_ptr);
+}
+
+static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_consume_loop_args *args) {
   // TODO: We toggle this here directly as existing helper assumes GVL
   if (pthread_sigmask(SIG_BLOCK, &sigprof_signal_mask, NULL) != 0) rb_bug("Failed to block SIGPROF in miteruby consumer");
 
   for (;;) {
     miteruby_buffer_record_t record = miteruby_buffer_read(args->buffer, &args->interrupted);
-    if (record.interrupted || record.end_of_stream) return NULL;
+
+    if (record.interrupted) return MITERUBY_CONSUMER_INTERRUPTED;
+    if (record.end_of_stream) return MITERUBY_CONSUMER_END_OF_STREAM;
     if (record.data == NULL) continue;
 
     // The borrowed event stays in shared-buffer marking until the next read, after this transfer completes.
     mutex_lock(&consumed_events_mutex);
-    buffer_event((const miteruby_event_header_t *)record.data);
+    miteruby_consumer_exit_reason_t reason = buffer_event((const miteruby_event_header_t *)record.data);
     mutex_unlock(&consumed_events_mutex);
+
+    if (reason != MITERUBY_CONSUMER_OK) return reason;
   }
 }
 
@@ -226,9 +246,9 @@ static void retain_object(VALUE object) {
   }
 }
 
-static void buffer_event(const miteruby_event_header_t *header) {
+static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
   // TODO: Handle overflow and other kinds of events
-  if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return;
+  if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return MITERUBY_CONSUMER_OK;
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
   miteruby_event_stack_sample_view_t view = {
@@ -237,7 +257,7 @@ static void buffer_event(const miteruby_event_header_t *header) {
     .frame_count = header->frame_count,
   };
   miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
-  if (result.error_storage_full) rb_bug("Failed to deduplicate miteruby stack"); // TODO: Better handle storage full
+  if (result.error_storage_full) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&objects_to_mark_mutex);
@@ -265,4 +285,5 @@ static void buffer_event(const miteruby_event_header_t *header) {
   *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = result.ok.id};
   deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
   deduped->header.size_bytes = sizeof(*deduped);
+  return MITERUBY_CONSUMER_OK;
 }
