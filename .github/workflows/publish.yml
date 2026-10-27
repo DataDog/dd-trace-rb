@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+      - uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
           ruby-version: "4.0.1"
 
@@ -187,7 +187,7 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.publish
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
@@ -244,7 +244,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
@@ -264,7 +264,7 @@ jobs:
       id-token: write
     needs:
       - update-gem-version
-    uses: ./.github/workflows/bump-gem-version.yml
+    uses: $/.github/workflows/bump-gem-version.yml
     with:
       version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
@@ -368,14 +368,12 @@ jobs:
 
   update-release-branch:
     if: github.ref_name == 'master'
-    name: Pull request to update 'release' branch
+    name: Point 'release' branch at the released tag
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     permissions:
-      issues: write
-      pull-requests: write
       id-token: write
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
@@ -390,19 +388,7 @@ jobs:
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
-      - env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEMP_BRANCH="update-document-v${GEM_VERSION}"
-
-          # Create and checkout a new branch from the tag
-          git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
-          git push origin "${TEMP_BRANCH}"
-
-          gh pr create \
-            --base release \
-            --head "${TEMP_BRANCH}" \
-            --title "Update document v${GEM_VERSION}" \
-          --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
-            --label "docs"
+      # The documentation website is sourced from this branch, so it must
+      # always mirror the released state, not merge it in.
+      # ^{commit} peels the annotated tag. Branch refs can only point at commits.
+      - run: git push --force-with-lease origin "v${GEM_VERSION}^{commit}":refs/heads/release

@@ -36,32 +36,32 @@ module Datadog
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: "RECEIVED",)
+          status: "RECEIVED")
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: "INSTALLED",)
+          status: "INSTALLED")
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: "EMITTING",)
+          status: "EMITTING")
       end
 
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
           status: "ERROR",
-          exception: exc,)
+          exception: exc)
       end
 
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: "ERROR",)
+          status: "ERROR")
       end
 
       # Duration is in seconds.
@@ -85,10 +85,11 @@ module Datadog
         capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
           snapshot_limits = probe.snapshot_serializer_limits(settings)
+          serialization_deadline = serializer.serialization_deadline
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
-              self: serializer.serialize_value(context.target_self, **snapshot_limits),
+              "@return": serializer.serialize_value(context.return_value, deadline: serialization_deadline, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits),
             }
             {
               entry: {
@@ -101,10 +102,10 @@ module Datadog
             }
           elsif probe.line?
             {
-              lines: (locals = context.serialized_locals) && {
+              lines: (locals = context.serialized_locals(serialization_deadline: serialization_deadline)) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
+                  arguments: {self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits)},
                 },
               },
             }
@@ -148,7 +149,7 @@ module Datadog
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
-          captures: captures,)
+          captures: captures)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)

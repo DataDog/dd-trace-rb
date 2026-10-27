@@ -3,6 +3,7 @@
 require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
+require_relative "hooks/evaluation_telemetry_opt_out_hook"
 require "open_feature/sdk"
 
 module Datadog
@@ -67,7 +68,15 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize
+      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+        @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
+        when nil
+          Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
+        when true, false
+          enable_evaluation_telemetry_opt_out_parameter
+        else
+          raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
+        end
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -171,11 +180,15 @@ module Datadog
 
       def hooks
         component = Datadog.send(:components).open_feature
-        [
+        telemetry_hooks = [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
-          component&.debug_logging_hook,
         ].compact
+        if @enable_evaluation_telemetry_opt_out_parameter
+          telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
+        end
+
+        [*telemetry_hooks, component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -433,7 +446,9 @@ module Datadog
         # Drive APM span enrichment directly from the evaluation path. This is the only reliable
         # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
         # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
-        enrich_span(flag_key, result, evaluation_context)
+        unless evaluation_telemetry_opted_out?(evaluation_context)
+          enrich_span(flag_key, result, evaluation_context)
+        end
 
         sdk_success_details(result, flag_meta)
       rescue => e
@@ -530,6 +545,11 @@ module Datadog
             "the Feature Flags component is not active; see the provider initialization logs " \
             "(error_code=#{Ext::PROVIDER_FATAL})"
         end
+      end
+
+      def evaluation_telemetry_opted_out?(evaluation_context)
+        @enable_evaluation_telemetry_opt_out_parameter &&
+          Hooks::EvaluationTelemetryOptOutHook.opted_out?(evaluation_context)
       end
 
       def component_not_configured_default(value, eval_time_ms)

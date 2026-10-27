@@ -445,6 +445,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               },
             },
           ],
+          processors: [],
         }
       end
 
@@ -457,7 +458,34 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
           expect(diagnostics.dig("actions", "loaded")).to eq(%w[block-sqli])
           expect(diagnostics.dig("actions", "errors")).to be_empty
+
+          expect(diagnostics.dig("processors", "errors")).to eq({})
         end
+      end
+
+      it "does not fall back when an individual processor fails to load" do
+        config = asm_dd_config.merge(processors: [{id: "invalid-processor"}])
+
+        expect(telemetry).to receive(:error).with("missing key 'generator': [invalid-processor]")
+
+        diagnostics = engine.add_or_update_config(config, path: "datadog/603646/ASM_DD/latest/config")
+
+        expect(diagnostics.dig("processors", "failed")).to eq(%w[invalid-processor])
+        expect(diagnostics["ruleset_version"]).to eq("1.0.0")
+      end
+
+      it "reloads default rules without conflicts when the processor section fails to load" do
+        appsec_settings.ruleset = asm_dd_config
+
+        expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
+
+        diagnostics = engine.add_or_update_config(
+          asm_dd_config.merge(processors: ""),
+          path: "datadog/603646/ASM_DD/latest/config",
+        )
+
+        expect(diagnostics.dig("rules", "loaded")).to eq(%w[rasp-003-001])
+        expect(diagnostics.dig("rules", "errors")).to be_empty
       end
 
       it "removes default config before adding new config" do

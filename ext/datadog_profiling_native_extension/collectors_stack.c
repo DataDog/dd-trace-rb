@@ -41,7 +41,7 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
+static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -438,7 +438,7 @@ void sample_thread(
       frame_name = name_slice;
     }
 
-    maybe_trim_template_random_ids(&frame_name, &filename_slice);
+    maybe_trim_template_random_ids(&frame_name, name_slice, filename_slice);
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -548,33 +548,50 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 //  the extra "_".)
 //
 // This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
-static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice) {
+//
+// We match on `method_name` because it always ends with the ids, while `frame_name` can have DDTRACE_BLOCK_SUFFIX
+// after them ("Foo#_app_views_articles_index_html_erb__123_456 (block)"); in that case we move the suffix left over
+// the ids. A `frame_name` that is a Ruby String ends with the ids we just matched, so that write only ever lands on
+// a name we composed in the sample's own buffer.
+static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename) {
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
-  if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
+  if (filename.len < 3 || memcmp(filename.ptr + filename.len - 3, ".rb", 3) == 0) return;
 
-  if (name_slice->len > 1024) return;
-  if (name_slice->len == 0) return;
+  if (method_name.len > 1024) return;
+  if (method_name.len == 0) return;
 
-  int pos = ((int) name_slice->len) - 1;
+  int pos = ((int) method_name.len) - 1;
 
   // Let's match on something__number_number:
   // Find start of id suffix from the end...
-  if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
+  if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
 
   // ...now match a bunch of numbers and interspersed underscores
   for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
-    if (name_slice->ptr[pos] == '_') underscores++;
-    else if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
+    if (method_name.ptr[pos] == '_') underscores++;
+    else if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
   }
 
   // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
-  if (pos <= 0 || name_slice->ptr[pos] != '_') return;
+  if (pos <= 0 || method_name.ptr[pos] != '_') return;
 
   // Does it have the optional third underscore? If so, remove it as well
-  if (pos > 1 && name_slice->ptr[pos-1] == '_') pos--;
+  if (pos > 1 && method_name.ptr[pos-1] == '_') pos--;
 
-  // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
-  name_slice->len = pos;
+  // If we got here, we matched on our pattern. Let's remove the ids from the end of the frame name.
+  size_t random_ids_len = method_name.len - pos;
+
+  static const char block_suffix[] = DDTRACE_BLOCK_SUFFIX;
+  size_t block_suffix_len = sizeof(block_suffix) - 1;
+
+  if (
+    frame_name->len >= random_ids_len + block_suffix_len &&
+    memcmp(frame_name->ptr + frame_name->len - block_suffix_len, block_suffix, block_suffix_len) == 0
+  ) {
+    memcpy((char *) frame_name->ptr + frame_name->len - block_suffix_len - random_ids_len, block_suffix, block_suffix_len);
+  }
+
+  frame_name->len -= random_ids_len;
 }
 
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {

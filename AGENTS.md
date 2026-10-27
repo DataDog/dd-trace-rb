@@ -137,6 +137,8 @@ no external grant needed. No local trigger otherwise.
 
 Tests must be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`, because most suites require specific Gemfiles and the rake task selects the correct one. The `test:main` task uses the default Gemfile; its specs and specs under `spec/datadog/profiling` may be run directly with `bundle exec rspec`.
 
+Canonical FFE fixtures for OpenFeature are not checked in. `bundle exec rake fixtures:ffe:download` downloads the pinned corpus from `DataDog/ffe-system-test-data` into `tmp/`, and `rake test:open_feature` warms that cache automatically. Each pinned commit needs one network download.
+
 ## Finding the right rake task
 
 1. Identify the component from the changed path under `lib/datadog/` or `spec/datadog/` (for example, `appsec`, `profiling`, `redis`, or `sinatra`).
@@ -169,7 +171,7 @@ docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 
 - Push branches to `DataDog/dd-trace-rb`, not forks.
 - Use `--repo DataDog/dd-trace-rb` with `gh` commands; defaults are unreliable.
-- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` as the starting point for PR descriptions. Follow the write-pull-request skill (`.agents/skills/write-pull-request/`).
 - Write concisely for the developer performing code review, using one sentence per relevant summary or motivation point.
 - Write changelog entries for customers. Customer-visible changes need a changelog fragment in `unreleased/`; write it with the write-changelog skill (`.agents/skills/write-changelog/`). Internal CI, tooling, and tracer telemetry consumed only by Datadog engineering need no fragment.
 - Telemetry that powers customer-facing Datadog product features, such as DI autocomplete, profiling, or AppSec, needs a customer-facing changelog fragment even though its data flows through the Datadog backend.
@@ -202,6 +204,7 @@ When creating or modifying workflows in `.github/workflows/`:
 - Quote `$GITHUB_OUTPUT`: `echo "key=value" >> "$GITHUB_OUTPUT"`.
 - Group multiple redirects: `{ echo "a"; echo "b"; } >> "$GITHUB_OUTPUT"`.
 - Avoid heredocs; use echo grouping instead.
+- `curl` must fail on HTTP errors and retry: `curl -fsSL --retry 5 --retry-delay 2`.
 
 ## Validation
 
@@ -216,6 +219,7 @@ StandardRB enforces style: `bundle exec rake standard:fix`.
 
 Additional team preferences:
 - Use trailing commas in multi-line arrays, hashes, and arguments.
+Do not use trailing comma when the next token is a closing parenthesis with no token separator.
 - Mirror the `lib/` structure in RBS definitions under `sig/`.
 - Use `Type?` over `(nil | Type)`.
 - Type a value with its specific concrete type when it has one, rather than `untyped` or `any`.

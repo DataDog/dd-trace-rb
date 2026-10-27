@@ -187,8 +187,11 @@ FileUtils.rm_r(
 # some Rubies, leaving the object files, the duplicate compiled libraries and
 # the `.sitearchdir` install timestamps behind; RubyGems 3.5+ runs a final
 # `make clean`. Strip the leftovers from every gem home; on Rubies whose
-# RubyGems already cleans up, the globs match nothing.
-%w[*.o *.so .sitearchdir*].flat_map do |build_product|
+# RubyGems already cleans up, the globs match nothing. The Makefile glob
+# matches on every Ruby: mkmf generates the Makefiles per gem home with
+# that home's paths, and the SSI package dedup requires the gem copies to
+# differ only in their per-version `.so` files.
+%w[*.o *.so .sitearchdir* Makefile].flat_map do |build_product|
   Dir.glob(versioned_path.join("gems/*/ext/**/#{build_product}"))
 end.each { |path| FileUtils.rm(path, verbose: true) }
 

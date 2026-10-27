@@ -37,15 +37,17 @@ module Datadog
 
       @shutdown: bool
 
+      @enable_evaluation_telemetry_opt_out_parameter: bool
+
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
-      def initialize: () -> void
+      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?) -> void
 
       def init: () -> void
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::DebugLoggingHook]
+      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,
@@ -84,6 +86,8 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private
+
+      def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 
       def after_fork: (Component? component) -> void
 

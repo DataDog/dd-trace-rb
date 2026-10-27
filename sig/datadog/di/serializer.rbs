@@ -6,7 +6,7 @@ module Datadog
       SERIALIZABLE_FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
       REDACTED_VALUE_FOR_MESSAGE: ::String
 
-      @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped}]
+      @@flat_registry: Array[{condition: Proc?, proc: ^(Serializer serializer, any value, name: Symbol?, depth: Integer, deadline: Float) -> untyped}]
 
       @settings: Datadog::Core::Configuration::Settings
 
@@ -33,15 +33,17 @@ module Datadog
       def record_capture_incomplete: (String reason) -> void
 
       def combine_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, Object target_self) -> Hash[Symbol, untyped]
-      def serialize_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, untyped target_self, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, untyped]
-      def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?) -> Hash[Symbol, untyped]
-      def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?) -> Hash[Symbol, untyped]
+      def serialize_args: (Array[untyped] args, Hash[Symbol, untyped] kwargs, untyped target_self, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, deadline: Float) -> Hash[Symbol, untyped]
+      def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, deadline: Float) -> Hash[Symbol, untyped]
+      def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?, deadline: Float) -> Hash[Symbol, untyped]
+      def serialization_deadline: () -> Float
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
-      def self.register: (?condition: Proc?) {
-        (Serializer serializer, any value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped } -> void
+      def self.register: (condition: Proc) {
+        (Serializer serializer, any value, name: Symbol?, depth: Integer, deadline: Float) -> untyped } -> void
 
       private
+      def deadline_exceeded?: (Float deadline) -> bool
       def max_capture_collection_size_for_message: () -> Integer
 
       def max_capture_attribute_count_for_message: () -> Integer

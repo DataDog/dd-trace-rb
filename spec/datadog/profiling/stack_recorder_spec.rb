@@ -422,6 +422,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             @num_allocations += 1
             GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
           end
+          allocations.clear
           nil # to avoid Thread#value to hold onto allocations
         end.join
 
@@ -1083,18 +1084,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it "includes heap recorder snapshot" do
         live_objects = []
 
-        # NOTE: We've seen some flakiness in this spec on Ruby 3.3 when the `dead_heap_samples` were allocated after
-        # the `live_heap_samples`. Our working theory is that this is something like
-        # https://bugs.ruby-lang.org/issues/19460 biting us again (e.g. search for this URL on this file and you'll see
-        # a similar comment). Specifically, it looks like in some situations Ruby still keeps a reference to the last
-        # allocated object _somewhere_, which makes the GC not collect that object, even though there are no actual
-        # references to it. Because the GC doesn't clean the object, the heap recorder still keeps its record alive,
-        # and so the test causes flakiness.
-        # See also the discussion on commit 2fc03d5ae5860d4e9a75ce3825fba95ed288a1 for an earlier attempt at fixing this.
+        # Use the `Thread.new { allocations; nil }.join; GC.start` trick to reliably GC the allocations
         dead_heap_samples = 10
-        dead_heap_samples.times do |i|
-          sample_allocation([i])
-        end
+        Thread.new do
+          dead_heap_samples.times do |i|
+            sample_allocation([i])
+          end
+          nil
+        end.join
 
         live_heap_samples = 6
         live_heap_samples.times do |i|

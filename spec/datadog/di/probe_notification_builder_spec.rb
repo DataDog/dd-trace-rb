@@ -53,7 +53,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,)
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   let(:builder) do
@@ -376,7 +376,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
-          capture_snapshot: true,)
+          capture_snapshot: true)
       end
 
       let(:context) do
@@ -448,6 +448,57 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(payload).to be_a(Hash)
         expect(payload).to match(expected)
       end
+
+      context "when the capture time budget is exhausted" do
+        before do
+          allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+        end
+
+        it "reports notCapturedReason timeout for the captured local" do
+          captured = payload[:debugger][:snapshot][:captures][:lines][1]
+          expect(captured[:locals][:foo]).to eq(
+            type: "Integer", notCapturedReason: "timeout",
+          )
+        end
+      end
+    end
+  end
+
+  describe "#build_executed for method probe" do
+    let(:probe) do
+      Datadog::DI::Probe.new(id: "123", type: :log,
+        type_name: "TestClass", method_name: "test_method",
+        capture_snapshot: true)
+    end
+
+    let(:target_self) { Object.new }
+
+    context "when the capture time budget is exhausted" do
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: 42, duration: 0.1,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
+      end
+
+      it "reports notCapturedReason timeout for the return value and self" do
+        return_arguments = payload[:debugger][:snapshot][:captures][:return][:arguments]
+        expect(return_arguments[:@return]).to eq(
+          type: "Integer", notCapturedReason: "timeout",
+        )
+        expect(return_arguments[:self]).to eq(
+          type: "Object", notCapturedReason: "timeout",
+        )
+      end
     end
   end
 
@@ -455,7 +506,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:target_self) { Object.new }
