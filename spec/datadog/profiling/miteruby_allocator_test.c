@@ -1,5 +1,7 @@
 #include "allocator.h"
 
+#include <ruby.h>
+#undef NDEBUG
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -117,6 +119,14 @@ static void corrupt_magic(void) {
   miteruby_allocator_free(allocation);
 }
 
+static void invalid_mapping_size(void) {
+  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
+  assert(allocation != NULL);
+  uint64_t size = SIZE_MAX - 15;
+  memcpy(allocation - 8, &size, sizeof(size));
+  miteruby_allocator_free(allocation);
+}
+
 static void expect_abort(void (*test)(void)) {
   pid_t child = fork();
   assert(child >= 0);
@@ -130,7 +140,10 @@ static void expect_abort(void (*test)(void)) {
   assert(WTERMSIG(status) == SIGABRT);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+  ruby_sysinit(&argc, &argv);
+  RUBY_INIT_STACK;
+  ruby_init();
   assert(miteruby_allocator_requested_bytes() == 0);
   struct rlimit core_limit = {0, 0};
   assert(setrlimit(RLIMIT_CORE, &core_limit) == 0);
@@ -162,5 +175,6 @@ int main(void) {
 #endif
 
   expect_abort(corrupt_magic);
-  return 0;
+  expect_abort(invalid_mapping_size);
+  return ruby_cleanup(0);
 }
