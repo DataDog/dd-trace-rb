@@ -5,6 +5,7 @@
 #include "allocator.h"
 
 #include "../datadog_ruby_common.h"
+#include "../helpers.h"
 #include "../setup_signal_handler.h"
 #include "libdatadog_recorder.h"
 #include "../time_helpers.h"
@@ -27,7 +28,7 @@ static void objects_to_mark_free(void *allocation, size_t size);
 #define FREE_FN objects_to_mark_free
 #include "verstable.h"
 
-#define CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY (1024U * 1024U / sizeof(miteruby_event_deduped_sample_t))
+#define CONSUMED_EVENTS_BUFFER_MAX_CAPACITY (MiB_AS_BYTES(16) / sizeof(miteruby_event_deduped_sample_t))
 
 typedef struct {
   miteruby_buffer_t *buffer;
@@ -56,6 +57,7 @@ typedef enum {
   MITERUBY_CONSUMER_INTERRUPTED,
   MITERUBY_CONSUMER_END_OF_STREAM,
   MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
+  MITERUBY_CONSUMER_EVENTS_BUFFER_FULL,
 } miteruby_consumer_exit_reason_t;
 
 static VALUE consume_loop_body(VALUE args);
@@ -143,7 +145,7 @@ void miteruby_consumer_init(miteruby_buffer_t *buffer) {
 }
 
 void miteruby_consumer_reset(void) {
-  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
+  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_MAX_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
   if (new_buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.consumed_events_buffer");
 
   mutex_lock(&consumer_state.consumed_events_mutex);
@@ -159,7 +161,7 @@ void miteruby_consumer_reset(void) {
   miteruby_allocator_free(consumer_state.consumed_events_buffer);
   consumer_state.consumed_events_buffer = new_buffer;
   consumer_state.consumed_events_count = 0;
-  consumer_state.consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
+  consumer_state.consumed_events_capacity = CONSUMED_EVENTS_BUFFER_MAX_CAPACITY;
 
   verstable_objects_to_mark_set_clear(&consumer_state.objects_to_mark);
 
@@ -184,6 +186,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
 
   // TODO: Maybe in the future we want to more gracefully recover, e.g. maybe clear all the state and start accumulating again?
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
+  if (reason == MITERUBY_CONSUMER_EVENTS_BUFFER_FULL) rb_raise(rb_eRuntimeError, "Miteruby consumed events buffer is full");
 
   return Qnil;
 }
@@ -254,6 +257,7 @@ static void retain_object(VALUE object) {
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
   // TODO: Handle overflow and other kinds of events
   if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return MITERUBY_CONSUMER_OK;
+  if (consumer_state.consumed_events_count == consumer_state.consumed_events_capacity) return MITERUBY_CONSUMER_EVENTS_BUFFER_FULL;
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
   miteruby_event_stack_sample_view_t view = {
@@ -275,17 +279,6 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   }
   mutex_unlock(&consumer_state.objects_to_mark_mutex);
 
-  if (consumer_state.consumed_events_count == consumer_state.consumed_events_capacity) {
-    if (consumer_state.consumed_events_capacity > SIZE_MAX / sizeof(*consumer_state.consumed_events_buffer) - CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY)
-      rb_bug("Miteruby consumed events buffer size overflow");
-    size_t new_capacity = consumer_state.consumed_events_capacity + CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
-    miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(new_capacity * sizeof(*new_buffer), "consumed_events_buffer");
-    if (new_buffer == NULL) rb_bug("Failed to grow miteruby consumed events buffer");
-    memcpy(new_buffer, consumer_state.consumed_events_buffer, consumer_state.consumed_events_count * sizeof(*new_buffer));
-    miteruby_allocator_free(consumer_state.consumed_events_buffer);
-    consumer_state.consumed_events_buffer = new_buffer;
-    consumer_state.consumed_events_capacity = new_capacity;
-  }
   miteruby_event_deduped_sample_t *deduped = &consumer_state.consumed_events_buffer[consumer_state.consumed_events_count++];
   *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = result.ok.id};
   deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
