@@ -364,7 +364,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     miteruby_buffer = NULL;
     raise_syserr(error, "Failed to initialize miteruby buffer");
   }
-  miteruby_consumer_marking_init(miteruby_buffer);
+  miteruby_consumer_init(miteruby_buffer);
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
@@ -620,7 +620,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   //
   // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
-  miteruby_consumer_init();
+  miteruby_consumer_reset();
   thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
