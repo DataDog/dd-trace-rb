@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 
 #ifdef __linux__
+  // For naming the allocation with prctl
   #include <sys/prctl.h>
 
   #ifndef PR_SET_VMA
@@ -30,13 +31,13 @@ size_t miteruby_allocator_requested_bytes(void) {
   return atomic_load_explicit(&requested_bytes, memory_order_relaxed);
 }
 
+// Allocates space for `size` bytes.
+//
+// We allocate a bit of extra space at the beginning of the allocation to place the `allocation_header` so we can identify our own
+// allocations.
 void *miteruby_allocator_alloc(size_t size, const char *name) {
-  if (size == 0 || name == NULL) {
+  if (size == 0 || name == NULL || size > SIZE_MAX - sizeof(allocation_header)) {
     errno = EINVAL;
-    return NULL;
-  }
-  if (size > SIZE_MAX - sizeof(allocation_header)) {
-    errno = ENOMEM;
     return NULL;
   }
 
@@ -49,21 +50,27 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
 
   memcpy(header->magic, "MITERUBY", sizeof(header->magic));
   header->size = size;
+
   atomic_fetch_add_explicit(&requested_bytes, size, memory_order_relaxed);
+
   #ifdef __linux__
-    // Naming is best-effort, shows up under /proc/pid/maps and may not be supported by current kernel, so we ignore any failures
-    (void)prctl(PR_SET_VMA, (unsigned long)PR_SET_VMA_ANON_NAME, header, mapping_size, mapping_name);
+    // Try to name the allocation (shows up under /proc/pid/maps).
+    // Not all Linux kernels support this feature (it's optional), so we ignore any failures.
+    (void) prctl(PR_SET_VMA, (unsigned long) PR_SET_VMA_ANON_NAME, header, mapping_size, mapping_name);
   #endif
-  return header + 1;
+
+  return header + 1; // Return pointer to memory just after the header
 }
 
 void miteruby_allocator_free(void *allocation, size_t size) {
   if (allocation == NULL) return;
 
+  // Find header before allocation pointer
   allocation_header *header = (allocation_header *)allocation - 1;
-  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0 ||
-      size == 0 || size > SIZE_MAX - sizeof(*header) || header->size != size) abort();
 
-  if (munmap(header, size + sizeof(*header)) != 0) abort();
+  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0 || header->size != size) abort();
+
+  if (munmap(header, size + sizeof(allocation_header)) != 0) abort();
+
   atomic_fetch_sub_explicit(&requested_bytes, size, memory_order_relaxed);
 }
