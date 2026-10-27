@@ -28,7 +28,7 @@ static miteruby_event_frame_position_t *positions_for(miteruby_event_stack_sampl
 
 static void assert_allocation_accounting(void) {
   assert(miteruby_allocator_requested_bytes() ==
-    objects_to_mark_allocated_bytes + unique_stacks_map_allocated_bytes +
+    objects_to_mark_allocated_bytes + stack_dedup_state.unique_stacks_map_allocated_bytes +
     consumed_events_capacity * sizeof(*consumed_events_buffer));
 }
 
@@ -44,7 +44,7 @@ static void test_identity_and_collisions(void) {
   bool inserted;
   size_t first = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted && first == 0);
-  size_t used = unique_stacks_pos;
+  size_t used = stack_dedup_state.unique_stacks_pos;
   sample_storage duplicate = storage;
   duplicate.event.header.timestamp.ns = 123;
   duplicate.event.header.cpu_time.ns = 456;
@@ -52,7 +52,7 @@ static void test_identity_and_collisions(void) {
   duplicate.event.thread.value = Qtrue;
   ((char *)duplicate.event.refs)[stack_data_size(2)] = 0xff;
   assert(miteruby_consumer_stack_dedup_get_or_insert(duplicate.event.refs, duplicate.event.header.frame_count, &inserted) == first && !inserted);
-  assert(unique_stacks_pos == used);
+  assert(stack_dedup_state.unique_stacks_pos == used);
 
   positions_for(event)[0].value++;
   size_t other_position = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
@@ -79,7 +79,7 @@ static void test_identity_and_collisions(void) {
   size_t empty = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
   assert(inserted);
   assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == empty && !inserted);
-  assert(unique_stacks_pos > empty);
+  assert(stack_dedup_state.unique_stacks_pos > empty);
 }
 
 static void test_growth_and_relocation(void) {
@@ -94,24 +94,24 @@ static void test_growth_and_relocation(void) {
     assert(inserted);
     assert(ids[i] % 8 == 0);
   }
-  assert(unique_stacks_size > UNIQUE_STACKS_ARRAY_CHUNK_SIZE);
-  assert(unique_stacks_map_allocated_bytes > 0);
+  assert(stack_dedup_state.unique_stacks_size > UNIQUE_STACKS_ARRAY_CHUNK_SIZE);
+  assert(stack_dedup_state.unique_stacks_map_allocated_bytes > 0);
   assert_allocation_accounting();
 
-  char *relocated = malloc(unique_stacks_size);
-  assert(relocated != NULL && relocated != unique_stacks_array);
-  memcpy(relocated, unique_stacks_array, unique_stacks_pos);
-  free(unique_stacks_array);
-  unique_stacks_array = relocated;
+  char *relocated = malloc(stack_dedup_state.unique_stacks_size);
+  assert(relocated != NULL && relocated != stack_dedup_state.unique_stacks_array);
+  memcpy(relocated, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
+  free(stack_dedup_state.unique_stacks_array);
+  stack_dedup_state.unique_stacks_array = relocated;
 
-  size_t used = unique_stacks_pos;
+  size_t used = stack_dedup_state.unique_stacks_pos;
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
     assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == ids[i] && !inserted);
   }
-  assert(unique_stacks_pos == used);
+  assert(stack_dedup_state.unique_stacks_pos == used);
   for (
-    verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_first(&unique_stacks);
+    verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_first(&stack_dedup_state.unique_stacks);
     !verstable_unique_stacks_map_is_end(entry);
     entry = verstable_unique_stacks_map_next(entry)
   ) {
@@ -140,7 +140,7 @@ static void test_compact_events_and_reset(void) {
     event->header.timestamp.ns = 123 + i;
     buffer_event(&event->header);
   }
-  assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 3);
   assert(consumed_events_count == 30000);
   assert(consumed_events_capacity > CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY);
@@ -168,17 +168,17 @@ static void test_compact_events_and_reset(void) {
   consumed_events_count = 0;
   event->thread.value = Qtrue;
   buffer_event(&event->header);
-  assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 4);
 
   miteruby_consumer_init();
   assert_allocation_accounting();
-  assert(consumed_events_count == 0 && unique_stacks_pos == 0);
-  assert(unique_stacks_size == 0 && unique_stacks_array == NULL);
-  assert(verstable_unique_stacks_map_size(&unique_stacks) == 0);
+  assert(consumed_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
+  assert(stack_dedup_state.unique_stacks_size == 0 && stack_dedup_state.unique_stacks_array == NULL);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 0);
   buffer_event(&event->header);
-  assert(verstable_unique_stacks_map_size(&unique_stacks) == 1);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
   assert(consumed_events_buffer[0].stack_id == 0);
 }
 
@@ -200,10 +200,10 @@ int main(void) {
   test_growth_and_relocation();
   test_compact_events_and_reset();
   test_objects_to_mark_growth();
-  verstable_unique_stacks_map_cleanup(&unique_stacks);
+  verstable_unique_stacks_map_cleanup(&stack_dedup_state.unique_stacks);
   verstable_objects_to_mark_set_cleanup(&state.objects_to_mark);
-  assert(unique_stacks_map_allocated_bytes == 0 && objects_to_mark_allocated_bytes == 0);
-  free(unique_stacks_array);
+  assert(stack_dedup_state.unique_stacks_map_allocated_bytes == 0 && objects_to_mark_allocated_bytes == 0);
+  free(stack_dedup_state.unique_stacks_array);
   miteruby_allocator_free(consumed_events_buffer, consumed_events_capacity * sizeof(*consumed_events_buffer));
   assert(miteruby_allocator_requested_bytes() == 0);
   mtx_destroy(&consumed_events_mutex);
