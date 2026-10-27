@@ -62,14 +62,15 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
   return header + 1; // Return pointer to memory just after the header
 }
 
-void miteruby_allocator_free(void *allocation, size_t size) {
+void miteruby_allocator_free(void *allocation) {
   if (allocation == NULL) return;
 
   // Find header before allocation pointer
   allocation_header *header = (allocation_header *)allocation - 1;
 
-  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0 || header->size != size) abort();
+  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0) abort();
 
+  size_t size = header->size;
   if (munmap(header, size + sizeof(allocation_header)) != 0) abort();
 
   atomic_fetch_sub_explicit(&requested_bytes, size, memory_order_relaxed);

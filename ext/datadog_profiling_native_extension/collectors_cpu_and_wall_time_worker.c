@@ -360,7 +360,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   if (miteruby_buffer == NULL) raise_syserr(errno, "Failed to allocate miteruby buffer");
   if (miteruby_buffer_init(miteruby_buffer) != 0) {
     int error = errno;
-    miteruby_allocator_free(miteruby_buffer, sizeof(*miteruby_buffer));
+    miteruby_allocator_free(miteruby_buffer);
     miteruby_buffer = NULL;
     raise_syserr(error, "Failed to initialize miteruby buffer");
   }

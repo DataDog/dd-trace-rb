@@ -74,7 +74,7 @@ static void *objects_to_mark_calloc(size_t size) {
 }
 
 static void objects_to_mark_free(void *allocation, size_t size) {
-  miteruby_allocator_free(allocation, size);
+  miteruby_allocator_free(allocation);
   consumer_state.objects_to_mark_allocated_bytes -= size;
 }
 
@@ -152,11 +152,11 @@ void miteruby_consumer_reset(void) {
   if (!miteruby_stack_dedup_reset()) {
     mutex_unlock(&consumer_state.objects_to_mark_mutex);
     mutex_unlock(&consumer_state.consumed_events_mutex);
-    miteruby_allocator_free(new_buffer, CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer));
+    miteruby_allocator_free(new_buffer);
     rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_reset");
   }
 
-  miteruby_allocator_free(consumer_state.consumed_events_buffer, consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
+  miteruby_allocator_free(consumer_state.consumed_events_buffer);
   consumer_state.consumed_events_buffer = new_buffer;
   consumer_state.consumed_events_count = 0;
   consumer_state.consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
@@ -282,7 +282,7 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(new_capacity * sizeof(*new_buffer), "consumed_events_buffer");
     if (new_buffer == NULL) rb_bug("Failed to grow miteruby consumed events buffer");
     memcpy(new_buffer, consumer_state.consumed_events_buffer, consumer_state.consumed_events_count * sizeof(*new_buffer));
-    miteruby_allocator_free(consumer_state.consumed_events_buffer, consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
+    miteruby_allocator_free(consumer_state.consumed_events_buffer);
     consumer_state.consumed_events_buffer = new_buffer;
     consumer_state.consumed_events_capacity = new_capacity;
   }

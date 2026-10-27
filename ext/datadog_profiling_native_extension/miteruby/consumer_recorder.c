@@ -23,13 +23,17 @@ static void *thread_contexts_alloc(size_t size) {
   return miteruby_allocator_alloc(size, "thread_contexts");
 }
 
+static void thread_contexts_free(void *allocation, DDTRACE_UNUSED size_t _size) {
+  miteruby_allocator_free(allocation);
+}
+
 #define NAME verstable_thread_contexts_map
 #define KEY_TY VALUE
 #define VAL_TY consumer_thread_context
 #define HASH_FN vt_hash_integer
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN thread_contexts_alloc
-#define FREE_FN miteruby_allocator_free
+#define FREE_FN thread_contexts_free
 #include "verstable.h"
 
 // Ruby thread keys are marked and pinned via objects_to_mark.
