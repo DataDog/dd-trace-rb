@@ -254,19 +254,21 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     end
   end
 
-  describe "with an interrupt after native completion" do
+  shared_context "with a native barrier" do
     before do
       skip "Requires Linux symbol interposition" unless RUBY_PLATFORM.include?("linux")
     end
 
     let(:fixture_dir) { File.expand_path("fixtures", __dir__) }
+    let(:barrier) { "send_barrier" }
+    let(:shape) { "1" }
 
     def interrupted_send(interrupt, callback_failure = "none")
       Dir.mktmpdir("observations-interrupt") do |dir|
-        library = File.join(dir, "send_barrier.so")
+        library = File.join(dir, "#{barrier}.so")
         includes = File.expand_path("../../include", Libdatadog.pkgconfig_folder)
         command = Shellwords.split(RbConfig::CONFIG.fetch("CC")) + [
-          "-shared", "-fPIC", "-o", library, File.join(fixture_dir, "send_barrier.c"), "-I#{includes}", "-ldl",
+          "-shared", "-fPIC", "-o", library, File.join(fixture_dir, "#{barrier}.c"), "-I#{includes}", "-ldl",
         ]
         output, status = Open3.capture2e(*command)
         expect(status.success?).to be(true), output
@@ -278,7 +280,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         stderr = File.join(dir, "stderr")
         pid = Process.spawn(env, RbConfig.ruby, "-Ilib",
           File.join(fixture_dir, "interrupted_send.rb"), "http://127.0.0.1:#{mock_agent.port}",
-          interrupt, callback_failure, out: stdout, err: stderr)
+          interrupt, callback_failure, shape, out: stdout, err: stderr)
         begin
           status = Timeout.timeout(30) { Process.wait2(pid).last }
           pid = nil
@@ -290,6 +292,10 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         end
       end
     end
+  end
+
+  describe "with an interrupt after native completion" do
+    include_context "with a native barrier"
 
     it "forwards observations in the uninterrupted control" do
       result = interrupted_send("none")
@@ -332,6 +338,65 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
           expect(result.fetch("same_exception")).to be true if interrupt == "raise"
           expect(result.fetch("error")).to be_nil if interrupt == "kill"
         end
+      end
+    end
+  end
+
+  describe "with an interrupt before native dispatch" do
+    include_context "with a native barrier"
+
+    let(:barrier) { "dispatch_barrier" }
+    let(:shape) { "2,1" }
+
+    def trace_requests
+      mock_agent.requests.select { |entry| entry[:request_line].include?("/v0.4/traces") }
+    end
+
+    it "sends and reports normally in the uninterrupted control" do
+      result = interrupted_send("none")
+      expect(trace_requests.length).to eq(1)
+      expect(result.fetch("reports")).to eq(
+        [
+          {
+            "requests_count" => 1, "responses_count" => 1, "status_code" => 200,
+            "chunks_sent" => 2, "spans_enqueued_for_serialization" => 3,
+            "bytes_sent" => trace_requests.first.fetch(:body).bytesize,
+          },
+        ]
+      )
+      expect(result.fetch("returned")).to be true
+    end
+
+    ["none", "standard", "fatal", "break"].each do |callback_failure|
+      it "reports cancelled drops on raise (callback: #{callback_failure})" do
+        result = interrupted_send("raise", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }]
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("same_exception")).to be true
+        expect(result.fetch("backtrace")).to eq(["original:1"])
+        expect(trace_requests).to be_empty
+      end
+
+      it "reports cancelled drops on kill (callback: #{callback_failure})" do
+        result = interrupted_send("kill", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }]
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("error")).to be_nil
+        expect(trace_requests).to be_empty
       end
     end
   end
