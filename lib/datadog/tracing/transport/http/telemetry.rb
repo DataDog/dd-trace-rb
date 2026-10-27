@@ -36,7 +36,7 @@ module Datadog
 
             def serialization_failed
               @reporter.record(chunks_dropped_serialization_error: @remaining_chunks,
-                spans_dropped_serialization_error: @remaining_spans,)
+                spans_dropped_serialization_error: @remaining_spans)
             end
 
             def sent(request, response, chunks, spans, bytes, fallback:)
