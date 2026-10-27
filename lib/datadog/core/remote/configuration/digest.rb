@@ -12,13 +12,7 @@ module Datadog
         class DigestList < Array
           class << self
             def parse(hash)
-              new.concat(hash.map do |type, hexdigest|
-                unless hexdigest.is_a?(String)
-                  raise Configuration::Error.invalid_data_type(hexdigest, field: "hexdigest", expected_type: String)
-                end
-
-                Digest.new(type, hexdigest)
-              end)
+              new.concat(hash.map { |type, hexdigest| Digest.new(type, hexdigest) })
             end
           end
 

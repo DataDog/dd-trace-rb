@@ -14,11 +14,11 @@ module Datadog
 
           attr_reader type: ::Symbol
 
-          attr_reader hexdigest: ::String
+          attr_reader hexdigest: Datadog::Helpers::json
 
           def self.hexdigest: (Symbol type, String data) -> String
 
-          def initialize: (::String type, ::String hexdigest) -> void
+          def initialize: (::String type, Datadog::Helpers::json hexdigest) -> void
 
           def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
         end
