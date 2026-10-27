@@ -38,16 +38,17 @@ RSpec.describe Datadog::OpenFeature::Transport::Agentless do
   end
 
   it "uses v2 when it is the only compatible route" do
-    info["endpoints"] = ["/evp_proxy/v2"]
+    info["endpoints"] = ["/evp_proxy/v2/"]
     transport.send_exposures(payload)
     expect(client).to have_received(:request).with("/evp_proxy/v2/api/v2/exposures",
       payload: encoded, direct: false, timeout: 2).once
   end
 
   [nil, {}, {"endpoints" => ["/evp_proxy/v4"]},
+    {"endpoints" => ["/" * 60_000 + "x"], "evp_proxy_allowed_headers" => ["dd-evp-origin", "dd-evp-origin-version"]},
     {"endpoints" => ["/evp_proxy/v4"], "evp_proxy_allowed_headers" => ["DD-EVP-ORIGIN"]},
     {"endpoints" => "/evp_proxy/v4", "evp_proxy_allowed_headers" => "DD-EVP-ORIGIN"}].each do |invalid_info|
-    context "with incompatible discovery #{invalid_info.inspect}" do
+    context "with incompatible discovery #{invalid_info.inspect[0, 150]}" do
       let(:info) { invalid_info }
 
       it "selects sticky direct for both signals" do

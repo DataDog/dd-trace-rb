@@ -95,8 +95,7 @@ module Datadog
           headers = headers.grep(String).map { |header| header.strip.downcase }
           return unless HTTPClient::IDENTITY_HEADERS.keys.all? { |name| headers.include?(name.downcase) }
 
-          endpoints = endpoints.grep(String).map { |path| path.sub(%r{/+\z}, "") }
-          LOCAL_ROUTES.find { |path| endpoints.include?(path) }
+          LOCAL_ROUTES.find { |path| endpoints.include?(path) || endpoints.include?(path + "/") }
         end
 
         def leave_local(route)
