@@ -3,6 +3,7 @@
 require_relative "path"
 require_relative "digest"
 require_relative "error"
+require_relative "json_coercion"
 
 module Datadog
   module Core
@@ -22,8 +23,7 @@ module Datadog
               opaque_backend_state = opaque_backend_state.is_a?(String) ? opaque_backend_state : nil
               # The version appears to be optional to the rest of this class,
               # and we have tests that do not provide it.
-              version = signed["version"]
-              version = version.is_a?(Integer) ? version : nil
+              version = JSONCoercion.coerce_integer(signed["version"])
 
               map = new
 
@@ -61,16 +61,18 @@ module Datadog
         class Target
           class << self
             def parse(hash)
-              length = hash.fetch("length")
-              raise Configuration::Error.invalid_data_type(length, field: "length", expected_type: Integer) unless length.is_a?(Integer)
+              raw_length = hash.fetch("length")
+              length = JSONCoercion.coerce_integer(raw_length)
+              raise Configuration::Error.invalid_data_type(raw_length, field: "length", expected_type: Integer) if length.nil?
 
               hashes = hash.fetch("hashes")
               raise Configuration::Error.invalid_data_type(hashes, field: "hashes", expected_type: Hash) unless hashes.is_a?(Hash)
               digests = Configuration::DigestList.parse(hashes)
 
               custom = hash["custom"]
-              version = custom.is_a?(Hash) ? custom["v"] : nil
-              raise Configuration::Error.invalid_data_type(version, field: "custom.v", expected_type: Integer) unless version.is_a?(Integer)
+              raw_version = custom.is_a?(Hash) ? custom["v"] : nil
+              version = JSONCoercion.coerce_integer(raw_version)
+              raise Configuration::Error.invalid_data_type(raw_version, field: "custom.v", expected_type: Integer) if version.nil?
 
               new(digests: digests, length: length, version: version)
             end

@@ -231,6 +231,26 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         )
       end
     end
+
+    context "with version that is a base-10 integer String" do
+      it "coerces the version to an Integer" do
+        data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("version" => "46761194")
+        )
+
+        expect(described_class.parse(data).version).to eq(46761194)
+      end
+    end
+
+    context "with version that is neither an Integer nor an integer String" do
+      it "yields no version" do
+        data = raw_target_map.merge(
+          "signed" => raw_target_map["signed"].merge("version" => "not a number")
+        )
+
+        expect(described_class.parse(data).version).to be_nil
+      end
+    end
   end
 
   describe Datadog::Core::Remote::Configuration::Target do
@@ -261,10 +281,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         end
       end
 
-      context "with length that is not an Integer" do
+      context "with length that is a base-10 integer String" do
+        it "coerces the length to an Integer" do
+          expect(described_class.parse(raw_target.merge("length" => "645")).length).to eq(645)
+        end
+      end
+
+      context "with length that is neither an Integer nor an integer String" do
         it "raises Configuration::Error" do
-          expect { described_class.parse(raw_target.merge("length" => "645")) }.to raise_error(
-            Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "645"'
+          expect { described_class.parse(raw_target.merge("length" => "not a number")) }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "not a number"'
           )
         end
       end
@@ -277,11 +303,17 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         end
       end
 
-      context "with custom.v that is not an Integer" do
+      context "with custom.v that is a base-10 integer String" do
+        it "coerces the version to an Integer" do
+          expect(described_class.parse(raw_target.merge("custom" => {"v" => "21"})).version).to eq(21)
+        end
+      end
+
+      context "with custom.v that is neither an Integer nor an integer String" do
         it "raises Configuration::Error" do
           expect do
-            described_class.parse(raw_target.merge("custom" => {"v" => "21"}))
-          end.to raise_error(Datadog::Core::Remote::Configuration::Error, 'Invalid type for custom.v: expected Integer: "21"')
+            described_class.parse(raw_target.merge("custom" => {"v" => "not a number"}))
+          end.to raise_error(Datadog::Core::Remote::Configuration::Error, 'Invalid type for custom.v: expected Integer: "not a number"')
         end
       end
     end

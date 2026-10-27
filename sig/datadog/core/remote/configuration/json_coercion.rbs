@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        module JSONCoercion
+          def self?.coerce_integer: (Datadog::Helpers::json value) -> ::Integer?
+        end
+      end
+    end
+  end
+end
