@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define MiB_AS_BYTES(VALUE) ((VALUE) * 1024ULL * 1024ULL)
+
 // @ivoanjo: After trying to read through https://stackoverflow.com/questions/3437404/min-and-max-in-c I decided I
 // don't like C and I just implemented this as a function.
 static inline uint64_t uint64_max_of(uint64_t a, uint64_t b) { return a > b ? a : b; }
