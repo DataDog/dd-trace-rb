@@ -88,10 +88,7 @@ _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must b
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
 _Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_frame_position_t must be 2 bytes");
-_Static_assert(
-  sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, refs) == 32,
-  "miteruby_event_stack_sample_t frames must start after a 32-byte prefix"
-);
+_Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, refs) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
 _Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
 _Static_assert(sizeof(miteruby_event_deduped_sample_t) == 40, "miteruby_event_deduped_sample_t must be 40 bytes");
 _Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
