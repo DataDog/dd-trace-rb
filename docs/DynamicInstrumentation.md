@@ -382,7 +382,10 @@ To minimize performance impact, probes have default rate limits:
   traces per second per process start emitting. Inside a trace, the
   per-trace budgets bound emission.
 
-These limits can be configured per probe in the probe definition.
+These limits can be configured per probe in the probe definition via the
+`sampling.snapshotsPerSecond` setting. Fractional values are supported:
+for example, `0.5` allows at most one snapshot every two seconds, and
+`0.1` at most one snapshot every ten seconds.
 
 ### Circuit Breaker
 
