@@ -90,6 +90,12 @@ end
 
 Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 
+if have_func("ddog_mutable_metadata_set_identity", "datadog/common.h") &&
+    have_func("ddog_trace_exporter_shutdown", "datadog/data-pipeline.h") &&
+    have_func("ddog_trace_exporter_discard", "datadog/data-pipeline.h")
+  $defs << "-DDD_NATIVE_TELEMETRY"
+end
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.

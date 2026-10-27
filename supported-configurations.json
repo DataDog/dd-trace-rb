@@ -451,6 +451,14 @@
         "default": "false"
       }
     ],
+    "DD_EXPERIMENTAL_NATIVE_EXPORTER_TELEMETRY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true",
+        "propertyKeys": ["telemetry.native_exporter_enabled"]
+      }
+    ],
     "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
         "__comment": "Default is true on CRuby 4.0.0 and later",
