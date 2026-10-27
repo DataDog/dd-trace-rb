@@ -33,7 +33,7 @@ static void test_mapping_name(const char *name, const char *expected_name) {
   }
   assert(fclose(maps) == 0);
   assert(found);
-  miteruby_allocator_free(allocation, 32);
+  miteruby_allocator_free(allocation);
 }
 #endif
 
@@ -51,13 +51,17 @@ static void test_allocation(size_t size) {
   for (size_t i = 0; i < size; i++) assert(allocation[i] == 0);
   memset(allocation, 0xa5, size);
   for (size_t i = 0; i < size; i++) assert(allocation[i] == 0xa5);
-  miteruby_allocator_free(allocation, size);
+  miteruby_allocator_free(allocation);
   assert(miteruby_allocator_requested_bytes() == before);
 
   unsigned char residency;
-  errno = 0;
-  assert(mincore(allocation - 16, 1, (void *)&residency) == -1);
-  assert(errno == ENOMEM);
+  long page_size = sysconf(_SC_PAGESIZE);
+  assert(page_size > 0);
+  for (size_t offset = 0; offset < size + 16; offset += page_size) {
+    errno = 0;
+    assert(mincore(allocation - 16 + offset, 1, (void *)&residency) == -1);
+    assert(errno == ENOMEM);
+  }
 }
 
 static void test_accounting(void) {
@@ -68,11 +72,11 @@ static void test_accounting(void) {
   assert(miteruby_allocator_alloc(0, "test") == NULL);
   assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
   assert(miteruby_allocator_alloc(32, NULL) == NULL);
-  miteruby_allocator_free(NULL, 0);
+  miteruby_allocator_free(NULL);
   assert(miteruby_allocator_requested_bytes() == 1017);
-  miteruby_allocator_free(first, 17);
+  miteruby_allocator_free(first);
   assert(miteruby_allocator_requested_bytes() == 1000);
-  miteruby_allocator_free(second, 1000);
+  miteruby_allocator_free(second);
   assert(miteruby_allocator_requested_bytes() == 0);
 }
 
@@ -91,7 +95,7 @@ static void *allocate_in_thread(void *arg) {
 
 static void *free_in_thread(void *arg) {
   thread_allocations *state = arg;
-  for (size_t i = 0; i < 64; i++) miteruby_allocator_free(state->allocations[i], 32);
+  for (size_t i = 0; i < 64; i++) miteruby_allocator_free(state->allocations[i]);
   return NULL;
 }
 
@@ -110,20 +114,7 @@ static void corrupt_magic(void) {
   unsigned char *allocation = miteruby_allocator_alloc(32, "test");
   assert(allocation != NULL);
   allocation[-16] = 'X';
-  miteruby_allocator_free(allocation, 32);
-}
-
-static void corrupt_size(void) {
-  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
-  assert(allocation != NULL);
-  memset(allocation - 8, 0, 8);
-  miteruby_allocator_free(allocation, 32);
-}
-
-static void wrong_size(void) {
-  void *allocation = miteruby_allocator_alloc(32, "test");
-  assert(allocation != NULL);
-  miteruby_allocator_free(allocation, 31);
+  miteruby_allocator_free(allocation);
 }
 
 static void expect_abort(void (*test)(void)) {
@@ -154,8 +145,8 @@ int main(void) {
   assert(errno == EINVAL);
   errno = 0;
   assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
-  assert(errno == ENOMEM);
-  miteruby_allocator_free(NULL, 0);
+  assert(errno == EINVAL);
+  miteruby_allocator_free(NULL);
 
   test_accounting();
   test_concurrent_accounting();
@@ -171,7 +162,5 @@ int main(void) {
 #endif
 
   expect_abort(corrupt_magic);
-  expect_abort(corrupt_size);
-  expect_abort(wrong_size);
   return 0;
 }
