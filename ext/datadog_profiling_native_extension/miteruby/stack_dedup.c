@@ -115,7 +115,7 @@ static void *unique_stacks_calloc(size_t size) {
 }
 
 static void unique_stacks_free(void *allocation, size_t size) {
-  miteruby_allocator_free(allocation, size);
+  miteruby_allocator_free(allocation);
   stack_dedup_state.unique_stacks_set_allocated_bytes -= size;
 }
 
@@ -129,7 +129,7 @@ bool miteruby_stack_dedup_reset(void) {
   if (new_array == NULL) return false;
 
   verstable_unique_stacks_set_clear(&stack_dedup_state.unique_stacks);
-  miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
+  miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
 
   stack_dedup_state.unique_stacks_array = new_array;
   stack_dedup_state.unique_stacks_pos = 0;
