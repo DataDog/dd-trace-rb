@@ -287,7 +287,7 @@ static void test_fixed_array_capacity(void) {
 }
 
 static void test_compact_events_and_reset(void) {
-  miteruby_consumer_init();
+  miteruby_consumer_reset();
   assert_allocation_accounting();
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
@@ -337,7 +337,7 @@ static void test_compact_events_and_reset(void) {
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == 4);
 
-  miteruby_consumer_init();
+  miteruby_consumer_reset();
   assert_allocation_accounting();
   assert(consumer_state.consumed_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
   assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);

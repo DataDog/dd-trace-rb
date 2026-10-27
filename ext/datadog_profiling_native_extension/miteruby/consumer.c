@@ -128,7 +128,7 @@ static const rb_data_type_t consumer_typed_data = {
   },
 };
 
-void miteruby_consumer_marking_init(miteruby_buffer_t *buffer) {
+void miteruby_consumer_init(miteruby_buffer_t *buffer) {
   if (mtx_init(&consumer_state.consumed_events_mutex, mtx_recursive) != thrd_success)
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.consumed_events_mutex");
   if (mtx_init(&consumer_state.objects_to_mark_mutex, mtx_recursive) != thrd_success)
@@ -142,7 +142,7 @@ void miteruby_consumer_marking_init(miteruby_buffer_t *buffer) {
   rb_gc_register_mark_object(wrapper);
 }
 
-void miteruby_consumer_init(void) {
+void miteruby_consumer_reset(void) {
   mutex_lock(&consumer_state.consumed_events_mutex);
   mutex_lock(&consumer_state.objects_to_mark_mutex);
 
