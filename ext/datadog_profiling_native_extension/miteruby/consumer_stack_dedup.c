@@ -35,10 +35,11 @@ static void unique_stacks_free(void *allocation, size_t size);
 
 typedef struct {
   verstable_unique_stacks_map unique_stacks;
+  size_t unique_stacks_map_allocated_bytes;
+
   char *unique_stacks_array;
   size_t unique_stacks_pos;
   size_t unique_stacks_size;
-  size_t unique_stacks_map_allocated_bytes;
 } miteruby_stack_dedup_state_t;
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
@@ -73,14 +74,19 @@ static void unique_stacks_free(void *allocation, size_t size) {
 
 void miteruby_consumer_stack_dedup_init(void) {
   verstable_unique_stacks_map_init(&stack_dedup_state.unique_stacks);
+  miteruby_consumer_stack_dedup_reset();
 }
 
 void miteruby_consumer_stack_dedup_reset(void) {
+  char *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_CHUNK_SIZE, "unique_stacks_array");
+  if (new_array == NULL) rb_bug("Failed to allocate miteruby unique stacks array");
+
   verstable_unique_stacks_map_clear(&stack_dedup_state.unique_stacks);
-  free(stack_dedup_state.unique_stacks_array);
-  stack_dedup_state.unique_stacks_array = NULL;
+  miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
+
+  stack_dedup_state.unique_stacks_array = new_array;
   stack_dedup_state.unique_stacks_pos = 0;
-  stack_dedup_state.unique_stacks_size = 0;
+  stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
 }
 
 size_t miteruby_consumer_stack_dedup_size(void) {
@@ -103,8 +109,10 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   while (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < record_size) {
     if (stack_dedup_state.unique_stacks_size > SIZE_MAX - UNIQUE_STACKS_ARRAY_CHUNK_SIZE) rb_bug("Miteruby unique stacks array size overflow");
     size_t new_size = stack_dedup_state.unique_stacks_size + UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
-    char *new_array = realloc(stack_dedup_state.unique_stacks_array, new_size);
+    char *new_array = miteruby_allocator_alloc(new_size, "unique_stacks_array");
     if (new_array == NULL) rb_bug("Failed to grow miteruby unique stacks array");
+    memcpy(new_array, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
+    miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
     stack_dedup_state.unique_stacks_array = new_array;
     stack_dedup_state.unique_stacks_size = new_size;
   }
