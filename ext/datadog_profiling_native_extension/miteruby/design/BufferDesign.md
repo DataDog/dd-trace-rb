@@ -71,8 +71,8 @@ Go's CPU profiler and its `profBuf` buffer were the starting point.
 ## Constraints
 
 - The caller owns the ring storage.
-  The `uint16_t length_words` argument permits a maximum payload of 65,535
-  words, or 512 KiB with the prefix. An empty ring can reject a record if the
+  The `uint16_t length_words` argument permits a maximum payload of 512 KiB
+  with the prefix. An empty ring can reject a record if the
   record and skipped tail occupy more words than its capacity.
 
 - Writes reject records when space is not sufficient, but can wait without a
@@ -92,9 +92,6 @@ Go's CPU profiler and its `profBuf` buffer were the starting point.
   The caller must stop all producers before close and stop the consumer before
   destruction. Close does not prevent subsequent writes.
 
-- Compile-time assertions reject atomic implementations that can use hidden
-  locks. Such locks can deadlock in a handler. Library calls must also be safe
-  in handlers.
+- Library calls must also be safe in signal handlers.
   The producer path uses Linux/glibc's signal-safety guarantee for
-  `sched_yield`. For other libc implementations, including macOS, validation is
-  necessary.
+  `sched_yield`.
