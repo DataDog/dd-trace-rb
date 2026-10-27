@@ -219,6 +219,7 @@ StandardRB enforces style: `bundle exec rake standard:fix`.
 
 Additional team preferences:
 - Use trailing commas in multi-line arrays, hashes, and arguments.
+Do not use trailing comma when the next token is a closing parenthesis.
 - Mirror the `lib/` structure in RBS definitions under `sig/`.
 - Use `Type?` over `(nil | Type)`.
 - Type a value with its specific concrete type when it has one, rather than `untyped` or `any`.
