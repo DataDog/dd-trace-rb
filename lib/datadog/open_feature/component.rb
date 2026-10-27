@@ -14,6 +14,7 @@ require_relative "flag_evaluation/writer"
 require_relative "hooks/flag_eval_metrics_hook"
 require_relative "hooks/flag_eval_evp_hook"
 require_relative "hooks/span_enrichment_hook"
+require_relative "hooks/debug_logging_hook"
 
 module Datadog
   module OpenFeature
@@ -78,12 +79,15 @@ module Datadog
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
+        @debug_logging_hook = nil
 
         @configuration_mutex = Mutex.new
         @reconfiguration_mutex = Mutex.new
         @configuration_condition = ConditionVariable.new
         @configuration_received = false
         @configuration_shutdown = false
+
+        @engine.warn_raw_data_logging
       end
 
       def reconfigure!(configuration)
@@ -110,9 +114,19 @@ module Datadog
         @on_configuration_change&.call(event) if event
       end
 
+      # Checked per evaluation so the SDK skips hook dispatch unless debug logging is on. Built lazily
+      # because Remote Configuration can build this component before the OpenFeature SDK loads.
+      def debug_logging_hook
+        return unless @logger.debug?
+
+        @engine.warn_raw_data_logging
+        @debug_logging_hook ||= create_debug_logging_hook
+      end
+
       def wait_for_configuration(&cancelled)
-        timeout_seconds = @settings.feature_flags.initialization_timeout_ms / 1000.0
-        deadline = Core::Utils::Time.get_time + timeout_seconds
+        timeout_ms = @settings.feature_flags.initialization_timeout_ms
+        @logger.debug { "Feature Flags: waiting up to #{timeout_ms}ms for configuration" }
+        deadline = Core::Utils::Time.get_time + timeout_ms / 1000.0
 
         @configuration_mutex.synchronize do
           loop do
@@ -185,6 +199,12 @@ module Datadog
 
         store = Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new
         Hooks::SpanEnrichmentHook.new(store, logger: @logger)
+      end
+
+      def create_debug_logging_hook
+        return unless Hooks::DebugLoggingHook.available?
+
+        Hooks::DebugLoggingHook.new(@logger)
       end
     end
   end

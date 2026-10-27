@@ -36,6 +36,8 @@ module Datadog
 
       @span_enrichment_hook: Hooks::SpanEnrichmentHook?
 
+      @debug_logging_hook: Hooks::DebugLoggingHook?
+
       @configuration_mutex: ::Thread::Mutex
 
       @reconfiguration_mutex: ::Thread::Mutex
@@ -78,6 +80,8 @@ module Datadog
 
       def reconfigure!: (::String? configuration) -> void
 
+      def debug_logging_hook: () -> Hooks::DebugLoggingHook?
+
       def wait_for_configuration: () ?{ () -> bool } -> configuration_wait_result
 
       def wake_configuration_waiters: () -> void
@@ -93,6 +97,8 @@ module Datadog
       def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
 
       def create_span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
+
+      def create_debug_logging_hook: () -> Hooks::DebugLoggingHook?
     end
   end
 end

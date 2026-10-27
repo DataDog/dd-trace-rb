@@ -2913,6 +2913,8 @@ In agentless mode, exposures and flag evaluations share one delivery route. A co
 
 A local 404/405 or a proven failure before request transmission permits one direct replay. Other transport failures and local 403/429/5xx responses switch only future batches, avoiding duplicate delivery of possibly accepted events. Direct routing remains selected until the Feature Flags component is replaced; when neither route is available, local discovery can recover after a 30-second cooldown.
 
+Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
+
 #### Evaluation telemetry opt-out
 
 Set `dd_evaluation_telemetry_opt_out: true` in an evaluation context to suppress new flag evaluation events, `feature_flag.evaluations` metrics, and automatic flag span tags.

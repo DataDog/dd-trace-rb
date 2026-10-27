@@ -21,10 +21,12 @@ module Datadog
           chunks_dropped_serialization_error: ["trace_chunks_dropped", ["reason:serialization_error"]],
           chunks_dropped_send_failure: ["trace_chunks_dropped", ["reason:send_failure"]],
           chunks_dropped_payload_too_large: ["trace_chunks_dropped", ["reason:payload_too_large"]],
+          chunks_dropped_cancelled: ["trace_chunks_dropped", ["reason:cancelled"]],
           spans_enqueued_for_serialization: ["spans_enqueued_for_serialization", []],
           spans_dropped_serialization_error: ["spans_dropped", ["reason:serialization_error"]],
           spans_dropped_api_error: ["spans_dropped", ["reason:api_error"]],
           spans_dropped_payload_too_large: ["spans_dropped", ["reason:payload_too_large"]],
+          spans_dropped_cancelled: ["spans_dropped", ["reason:cancelled"]],
         }.freeze #: Hash[Symbol, [String, Array[String]]]
 
         attr_writer :client
@@ -50,7 +52,7 @@ module Datadog
           responses = observations.fetch(:responses_count, 0)
           if responses > 0
             client.inc("tracers", "trace_api.responses", responses,
-              tags: @source_tags + ["status_code:#{observations.fetch(:status_code)}"],)
+              tags: @source_tags + ["status_code:#{observations.fetch(:status_code)}"])
           end
           nil
         rescue

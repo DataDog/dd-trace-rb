@@ -56,7 +56,11 @@ module Datadog
           return false unless enabled?
 
           start if forked?
-          buffer.push(event)
+          unless buffer.push(event)
+            @logger.debug { "Feature Flags: exposure not queued: buffer closed" }
+            return false
+          end
+
           start unless running?
 
           true
@@ -73,7 +77,14 @@ module Datadog
 
         def graceful_shutdown
           buffer.close
-          stop(true, GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+          @logger.debug do
+            "Feature Flags: exposure worker stopping; queued=#{buffer.length}, " \
+              "upload_in_progress=#{!!in_iteration?}, wait_budget=#{GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS}s"
+          end
+          stopped = stop(true, GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+          log_shutdown_outcome(GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+          @logger.debug("Feature Flags: exposure worker stopped") unless running?
+          stopped
         ensure
           self.enabled = false
         end
@@ -94,22 +105,46 @@ module Datadog
           return if events.empty?
 
           if dropped.positive?
-            @logger.debug { "OpenFeature: Resolution details worker dropped #{dropped} event(s) due to full buffer" }
+            @logger.debug do
+              "Feature Flags: dropped #{dropped} older queued exposure event(s) because the exposure buffer was full"
+            end
           end
 
           payload = @batch_builder.payload_for(events)
+          @logger.debug { "Feature Flags: flushing #{events.size} exposure event(s) to Datadog" }
           response = @transport.send_exposures(payload)
 
-          unless response&.ok?
-            @logger.debug { "OpenFeature: Resolution details upload response was not OK: #{response.inspect}" }
+          if response&.ok?
+            @logger.debug { "Feature Flags: sent #{events.size} exposure event(s) to Datadog" }
+          else
+            @logger.debug do
+              "Feature Flags: exposure upload response was not OK; dropping #{events.size} exposure event(s) " \
+                "without retry: #{response.inspect}"
+            end
           end
 
           response
         rescue => e
-          @logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
+          @logger.debug do
+            "Feature Flags: failed to flush exposure events; dropping #{events.size} exposure event(s) " \
+              "without retry: #{e.class}: #{e.message}"
+          end
           @telemetry.report(e, description: "OpenFeature: Failed to flush resolution details events")
 
           nil
+        end
+
+        def log_shutdown_outcome(wait_time)
+          @logger.debug do
+            queued = buffer.length
+            evicted = buffer.pending_dropped_count
+            uploading = !!in_iteration?
+            remaining = queued.positive? ? "; #{queued} queued exposure event(s) will not be sent" : "; no queued exposure events remain"
+            remaining += "; #{evicted} exposure event(s) evicted from the full buffer were not sent" if evicted.positive?
+            outcome = uploading ? "; the in-flight upload may still report sent or dropping during shutdown; if forcibly terminated, its outcome will not be reported" : ""
+            "Feature Flags: exposure shutdown wait finished; queued=#{queued}, " \
+              "upload_in_progress=#{uploading}, wait_budget=#{wait_time}s#{remaining}#{outcome}"
+          end
         end
       end
     end

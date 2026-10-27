@@ -100,10 +100,10 @@ module Datadog
         )
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
-          capture_expression_evaluator: capture_expression_evaluator,)
+          capture_expression_evaluator: capture_expression_evaluator)
         @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
-          capture_expression_evaluator: capture_expression_evaluator,)
+          capture_expression_evaluator: capture_expression_evaluator)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
