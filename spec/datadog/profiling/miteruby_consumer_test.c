@@ -458,8 +458,8 @@ int main(int argc, char **argv) {
   verstable_unique_stacks_set_cleanup(&stack_dedup_state.unique_stacks);
   verstable_objects_to_mark_set_cleanup(&consumer_state.objects_to_mark);
   assert(stack_dedup_state.unique_stacks_set_allocated_bytes == 0 && consumer_state.objects_to_mark_allocated_bytes == 0);
-  miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
-  miteruby_allocator_free(consumer_state.consumed_events_buffer, consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
+  miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
+  miteruby_allocator_free(consumer_state.consumed_events_buffer);
   assert(miteruby_allocator_requested_bytes() == 0);
   mtx_destroy(&consumer_state.consumed_events_mutex);
   mtx_destroy(&consumer_state.objects_to_mark_mutex);
