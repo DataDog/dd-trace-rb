@@ -13,11 +13,11 @@ typedef union {
   uint64_t words[16];
 } sample_storage;
 
-static stack_key key_for(const miteruby_event_stack_sample_t *event) {
+static stack_key key_for(const miteruby_event_stack_sample_view_t *view) {
   return (stack_key) {
-    .hash = vt_wyhash(event->refs, stack_data_size(event->header.frame_count)),
-    .location.as.refs = event->refs,
-    .frame_count = event->header.frame_count,
+    .hash = stack_view_hash(*view),
+    .location.as.view = view,
+    .frame_count = view->frame_count,
     .borrowed = true,
   };
 }
@@ -26,10 +26,43 @@ static miteruby_event_frame_position_t *positions_for(miteruby_event_stack_sampl
   return (miteruby_event_frame_position_t *)&event->refs[event->header.frame_count];
 }
 
+static miteruby_event_stack_sample_view_t view_for(miteruby_event_stack_sample_t *event) {
+  return (miteruby_event_stack_sample_view_t) {
+    .refs = event->refs,
+    .positions = positions_for(event),
+    .frame_count = event->header.frame_count,
+  };
+}
+
 static void assert_allocation_accounting(void) {
   assert(miteruby_allocator_requested_bytes() ==
     objects_to_mark_allocated_bytes + stack_dedup_state.unique_stacks_map_allocated_bytes + stack_dedup_state.unique_stacks_size +
     consumed_events_capacity * sizeof(*consumed_events_buffer));
+}
+
+static void test_empty_stack_before_nonempty(void) {
+  sample_storage storage = {0};
+  miteruby_event_stack_sample_t *event = &storage.event;
+  bool inserted;
+  assert(miteruby_consumer_stack_dedup_get_or_insert((miteruby_event_stack_sample_view_t) {0}, &inserted) == 0 && inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert((miteruby_event_stack_sample_view_t) {0}, &inserted) == 0 && !inserted);
+  assert(stack_dedup_state.unique_stacks_pos == 8);
+  assert(miteruby_consumer_stack_dedup_get(0).frame_count == 0);
+
+  event->header.frame_count = 1;
+  positions_for(event)[0].value = 7;
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == 8 && inserted);
+  assert(stack_dedup_state.unique_stacks_pos == 40);
+  miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(8);
+  assert(stored.frame_count == 1);
+  assert(stored.positions[0].value == 7);
+  assert(memcmp(stored.refs, event->refs, sizeof(*event->refs)) == 0);
+  assert(miteruby_consumer_stack_dedup_get_or_insert((miteruby_event_stack_sample_view_t) {0}, &inserted) == 0 && !inserted);
+  assert(miteruby_consumer_stack_dedup_get(0).frame_count == 0);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == 8 && !inserted);
+  assert(stack_dedup_state.unique_stacks_pos == 40);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
+  miteruby_consumer_stack_dedup_reset();
 }
 
 static void test_identity_and_collisions(void) {
@@ -42,30 +75,33 @@ static void test_identity_and_collisions(void) {
   positions_for(event)[1].value = UINT16_MAX;
 
   bool inserted;
-  size_t first = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t first = miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted);
   assert(inserted && first == 0);
   size_t used = stack_dedup_state.unique_stacks_pos;
+  assert(used == 48);
+  assert(memcmp(miteruby_consumer_stack_dedup_get(first).refs, event->refs, stack_data_size(2)) == 0);
   sample_storage duplicate = storage;
   duplicate.event.header.timestamp.ns = 123;
   duplicate.event.header.cpu_time.ns = 456;
   duplicate.event.header.flags = MITERUBY_EVENT_STACK_TRUNCATED | MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   duplicate.event.thread.value = Qtrue;
   ((char *)duplicate.event.refs)[stack_data_size(2)] = 0xff;
-  assert(miteruby_consumer_stack_dedup_get_or_insert(duplicate.event.refs, duplicate.event.header.frame_count, &inserted) == first && !inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(&duplicate.event), &inserted) == first && !inserted);
   assert(stack_dedup_state.unique_stacks_pos == used);
 
   positions_for(event)[0].value++;
-  size_t other_position = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t other_position = miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted);
   assert(inserted && other_position != first);
   event->refs[0].cme = NULL;
-  size_t other_cme = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  size_t other_cme = miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted);
   assert(inserted && other_cme != other_position);
   event->refs[0].iseq = NULL;
-  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != other_cme && inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) != other_cme && inserted);
   event->header.frame_count = 1;
-  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) != first && inserted);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) != first && inserted);
 
-  stack_key collision = key_for(event);
+  miteruby_event_stack_sample_view_t collision_view = view_for(event);
+  stack_key collision = key_for(&collision_view);
   collision.hash = 42;
   size_t collision_first = deduplicate_stack(collision, &inserted);
   assert(inserted);
@@ -76,10 +112,38 @@ static void test_identity_and_collisions(void) {
   assert(deduplicate_stack(collision, &inserted) == collision_first && !inserted);
 
   event->header.frame_count = 0;
-  size_t empty = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+  used = stack_dedup_state.unique_stacks_pos;
+  size_t empty = miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted);
+  assert(inserted && empty == used);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == empty && !inserted);
+  assert(stack_dedup_state.unique_stacks_pos == used + 8);
+  assert(miteruby_consumer_stack_dedup_get(empty).frame_count == 0);
+  assert(miteruby_consumer_stack_dedup_get(first).frame_count == 2);
+}
+
+static void test_separate_arrays(void) {
+  sample_storage storage = {0};
+  miteruby_event_stack_sample_t *event = &storage.event;
+  event->header.frame_count = 2;
+  event->refs[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
+  event->refs[1].iseq = (const rb_iseq_t *)&storage.words[15];
+  miteruby_event_frame_position_t positions[] = {{.value = 19}, {.value = 27}};
+  miteruby_event_stack_sample_view_t input = {.refs = event->refs, .positions = positions, .frame_count = 2};
+  bool inserted;
+  size_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(input, &inserted);
   assert(inserted);
-  assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == empty && !inserted);
-  assert(stack_dedup_state.unique_stacks_pos > empty);
+  miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(stack_id);
+  assert(stored.frame_count == 2);
+  assert(memcmp(stored.refs, input.refs, 2 * sizeof(*input.refs)) == 0);
+  assert(memcmp(stored.positions, positions, sizeof(positions)) == 0);
+
+  memcpy(positions_for(event), positions, sizeof(positions));
+  assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == stack_id && !inserted);
+  positions[0].value++;
+  assert(stored.positions[0].value == 19);
+  assert(miteruby_consumer_stack_dedup_get_or_insert(input, &inserted) != stack_id && inserted);
+  positions[0].value--;
+  assert(miteruby_consumer_stack_dedup_get_or_insert(input, &inserted) == stack_id && !inserted);
 }
 
 static void test_growth_and_relocation(void) {
@@ -90,7 +154,7 @@ static void test_growth_and_relocation(void) {
   bool inserted;
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
-    ids[i] = miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted);
+    ids[i] = miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted);
     assert(inserted);
     assert(ids[i] % 8 == 0);
   }
@@ -108,9 +172,15 @@ static void test_growth_and_relocation(void) {
   size_t used = stack_dedup_state.unique_stacks_pos;
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
-    assert(miteruby_consumer_stack_dedup_get_or_insert(event->refs, event->header.frame_count, &inserted) == ids[i] && !inserted);
+    assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == ids[i] && !inserted);
+    miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(ids[i]);
+    assert(stored.frame_count == 3);
+    assert(stored.positions[0].value == i);
+    assert(memcmp(stored.refs, event->refs, 3 * sizeof(*event->refs)) == 0);
   }
   assert(stack_dedup_state.unique_stacks_pos == used);
+  size_t empty = miteruby_consumer_stack_dedup_get_or_insert((miteruby_event_stack_sample_view_t) {0}, &inserted);
+  assert(!inserted && miteruby_consumer_stack_dedup_get(empty).frame_count == 0);
   for (
     verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_first(&stack_dedup_state.unique_stacks);
     !verstable_unique_stacks_map_is_end(entry);
@@ -199,7 +269,9 @@ int main(void) {
   miteruby_consumer_stack_dedup_init();
   assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_CHUNK_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert_allocation_accounting();
+  test_empty_stack_before_nonempty();
   test_identity_and_collisions();
+  test_separate_arrays();
   test_growth_and_relocation();
   test_compact_events_and_reset();
   test_objects_to_mark_growth();
