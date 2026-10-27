@@ -83,10 +83,6 @@ typedef struct {
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
-static size_t stack_data_size(uint16_t frame_count) {
-  return frame_count * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
-}
-
 static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
   return key.view_borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.offset);
 }
@@ -153,20 +149,30 @@ miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(size_t stac
   };
 }
 
-static size_t deduplicate_stack(stack_key key, bool *inserted) {
-  size_t stack_id = stack_dedup_state.unique_stacks_pos;
+size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
   size_t previous_count = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks);
-  verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(&stack_dedup_state.unique_stacks, key);
-  if (verstable_unique_stacks_set_is_end(entry)) rb_bug("Failed to grow miteruby unique stacks set");
-  *inserted = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) != previous_count;
-  if (!*inserted) return entry.data->key.location.as.offset;
 
-  miteruby_event_stack_sample_view_t view = stack_key_view(key);
-  size_t data_size = stack_data_size(view.frame_count);
-  size_t record_size = (sizeof(miteruby_stack_t) + data_size + 7) & ~(size_t) 7;
-  while (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < record_size) {
-    if (stack_dedup_state.unique_stacks_size > SIZE_MAX - UNIQUE_STACKS_ARRAY_CHUNK_SIZE) rb_bug("Miteruby unique stacks array size overflow");
-    size_t new_size = stack_dedup_state.unique_stacks_size + UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
+  verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
+    &stack_dedup_state.unique_stacks,
+    (stack_key) {
+      .hash = stack_view_hash(view),
+      .location.as.view = &view,
+      .view_borrowed = true,
+    }
+  );
+  if (verstable_unique_stacks_set_is_end(entry)) rb_bug("Failed to grow miteruby unique stacks set");
+
+  *inserted = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) != previous_count;
+  if (!*inserted) return entry.data->key.location.as.offset; // Existing stack
+
+  size_t data_size = view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
+  size_t stack_size = sizeof(miteruby_stack_t) + data_size;
+  size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
+
+  if (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < aligned_stack_size) {
+    size_t growth_size = aligned_stack_size > UNIQUE_STACKS_ARRAY_CHUNK_SIZE ? aligned_stack_size : UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
+    if (stack_dedup_state.unique_stacks_size > SIZE_MAX - growth_size) rb_bug("Miteruby unique stacks array size overflow");
+    size_t new_size = stack_dedup_state.unique_stacks_size + growth_size;
     uint8_t *new_array = miteruby_allocator_alloc(new_size, "unique_stacks_array");
     if (new_array == NULL) rb_bug("Failed to grow miteruby unique stacks array");
     memcpy(new_array, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
@@ -175,27 +181,18 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
     stack_dedup_state.unique_stacks_size = new_size;
   }
 
-  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id);
+  size_t next_stack_id = stack_dedup_state.unique_stacks_pos;
+  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id);
   stack->frame_count = view.frame_count;
   if (view.frame_count > 0) {
-    miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(stack_id);
+    miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(next_stack_id);
     memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
   // Preserve the key's hash and contents; offsets survive array growth without updating existing entries.
-  entry.data->key.location.as.offset = stack_id;
+  entry.data->key.location.as.offset = next_stack_id;
   entry.data->key.view_borrowed = false;
-  stack_dedup_state.unique_stacks_pos += record_size;
-  return entry.data->key.location.as.offset;
-}
+  stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
-size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
-  return deduplicate_stack(
-    (stack_key) {
-      .hash = stack_view_hash(view),
-      .location.as.view = &view,
-      .view_borrowed = true,
-    },
-    inserted
-  );
+  return entry.data->key.location.as.offset;
 }
