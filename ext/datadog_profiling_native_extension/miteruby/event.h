@@ -61,9 +61,14 @@ typedef struct {
 } miteruby_event_stack_sample_t;
 
 typedef struct {
+  // Byte offset into unique_stacks_array; zero is valid. Invalidated by a dedup reset.
+  size_t offset;
+} miteruby_stack_dedup_id_t;
+
+typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
-  size_t stack_id;
+  miteruby_stack_dedup_id_t stack_id;
 } miteruby_event_deduped_sample_t;
 
 typedef struct {
@@ -79,6 +84,7 @@ typedef struct {
 _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
 _Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");
 _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
+_Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
