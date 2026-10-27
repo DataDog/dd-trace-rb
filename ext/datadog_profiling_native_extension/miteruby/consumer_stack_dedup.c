@@ -17,7 +17,6 @@ typedef struct {
       size_t offset;
     } as;
   } location;
-  uint16_t frame_count;
   bool borrowed;
 } stack_key;
 
@@ -67,12 +66,13 @@ static uint64_t stack_key_hash(stack_key key) {
 }
 
 static bool stack_key_equal(stack_key left, stack_key right) {
-  if (left.hash != right.hash || left.frame_count != right.frame_count) return false;
-  if (left.frame_count == 0) return true;
+  if (left.hash != right.hash) return false;
   miteruby_event_stack_sample_view_t left_view = stack_key_view(left);
   miteruby_event_stack_sample_view_t right_view = stack_key_view(right);
-  return memcmp(left_view.refs, right_view.refs, left.frame_count * sizeof(*left_view.refs)) == 0 &&
-    memcmp(left_view.positions, right_view.positions, left.frame_count * sizeof(*left_view.positions)) == 0;
+  if (left_view.frame_count != right_view.frame_count) return false;
+  if (left_view.frame_count == 0) return true;
+  return memcmp(left_view.refs, right_view.refs, left_view.frame_count * sizeof(*left_view.refs)) == 0 &&
+    memcmp(left_view.positions, right_view.positions, left_view.frame_count * sizeof(*left_view.positions)) == 0;
 }
 
 static void *unique_stacks_calloc(size_t size) {
@@ -124,7 +124,8 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   *inserted = verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) != previous_count;
   if (!*inserted) return entry.data->val;
 
-  size_t data_size = stack_data_size(key.frame_count);
+  miteruby_event_stack_sample_view_t view = stack_key_view(key);
+  size_t data_size = stack_data_size(view.frame_count);
   size_t record_size = (sizeof(miteruby_stack_t) + data_size + 7) & ~(size_t) 7;
   while (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < record_size) {
     if (stack_dedup_state.unique_stacks_size > SIZE_MAX - UNIQUE_STACKS_ARRAY_CHUNK_SIZE) rb_bug("Miteruby unique stacks array size overflow");
@@ -138,11 +139,11 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   }
 
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id);
-  stack->frame_count = key.frame_count;
-  if (key.frame_count > 0) {
+  stack->frame_count = view.frame_count;
+  if (view.frame_count > 0) {
     miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(stack_id);
-    memcpy(stored.refs, key.location.as.view->refs, key.frame_count * sizeof(*stored.refs));
-    memcpy(stored.positions, key.location.as.view->positions, key.frame_count * sizeof(*stored.positions));
+    memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
+    memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
   // Preserve the key's hash and contents; offsets survive array growth without updating existing entries.
   entry.data->key.location.as.offset = stack_id;
@@ -158,7 +159,6 @@ size_t miteruby_consumer_stack_dedup_get_or_insert(
   stack_key key = {
     .hash = stack_view_hash(view),
     .location.as.view = &view,
-    .frame_count = view.frame_count,
     .borrowed = true,
   };
   return deduplicate_stack(key, inserted);
