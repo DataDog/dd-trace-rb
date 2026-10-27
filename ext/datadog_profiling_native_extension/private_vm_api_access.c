@@ -664,6 +664,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       stack_buffer[i].as.ruby_frame.iseq = iseq;
       stack_buffer[i].as.ruby_frame.caching_pc = (void *) pc;
       stack_buffer[i].cme = cme;
+      stack_buffer[i].cached_name_len = 0;
 
       // The topmost frame may not have an updated PC because the JIT
       // may not have set one.  The JIT compiler will update the PC
@@ -699,6 +700,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         }
 
         stack_buffer[i].cme = cme;
+        stack_buffer[i].cached_name_len = 0;
         stack_buffer[i].is_ruby_frame = false;
         i++;
       }

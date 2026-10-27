@@ -34,6 +34,10 @@ typedef struct {
       int line;
     } ruby_frame;
   } as;
+  // Length of the frame name cached for this slot in `sampling_buffer`, or 0 when there's none.
+  // ddtrace_rb_profile_frames() clears it when it replaces this frame, so a non-zero length always describes the
+  // cme and iseq currently here.
+  uint8_t cached_name_len;
   bool is_ruby_frame : 1;
   bool same_frame : 1;
 } frame_info;

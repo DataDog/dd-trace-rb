@@ -1017,6 +1017,54 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  # Qualified names get kept in the per-thread sampling buffer and reused while a frame stays in it, so sampling an
+  # unchanged stack repeatedly must keep reporting the same name, including when it's too long to be kept around.
+  context "when sampling an unchanged stack repeatedly" do
+    let(:show_classes) { true }
+    let(:class_name) { "ClassWithShortName" }
+
+    def sample_class_three_times(klass)
+      recorder = Datadog::Profiling::StackRecorder.for_testing
+      thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
+        recorder: recorder, show_classes: show_classes
+      )
+
+      3.times do
+        klass.new.method_being_sampled do
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+        end
+      end
+
+      samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current).map do |captured|
+        captured.locations.find { |frame| frame.label.end_with?("#method_being_sampled") }&.label
+      end
+    end
+
+    it "reports the same name for every sample" do
+      klass = stub_const(class_name, Class.new do
+        def method_being_sampled
+          yield
+        end
+      end)
+
+      expect(sample_class_three_times(klass)).to eq(["#{class_name}#method_being_sampled"] * 3)
+    end
+
+    context "when the name is longer than what the sampling buffer keeps" do
+      let(:class_name) { "ClassWith#{"AVeryLongName" * 10}" }
+
+      it "reports the same name for every sample" do
+        klass = stub_const(class_name, Class.new do
+          def method_being_sampled
+            yield
+          end
+        end)
+
+        expect(sample_class_three_times(klass)).to eq(["#{class_name}#method_being_sampled"] * 3)
+      end
+    end
+  end
+
   context "when sampling inside a Ruby::Box", if: RubyVersion.is?(">= 4.0") do
     it "reports the class name of a core class the box monkey patched" do
       skip "https://bugs.ruby-lang.org/issues/22339" if asan_build?

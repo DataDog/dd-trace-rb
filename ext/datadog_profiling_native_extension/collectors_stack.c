@@ -180,7 +180,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   sample_locations locations;
   sample_locations_initialize(&locations, max_frames_requested, show_classes == Qtrue);
   sampling_buffer buffer;
-  sampling_buffer_initialize(&buffer, max_frames_requested);
+  sampling_buffer_initialize(&buffer, max_frames_requested, show_classes == Qtrue);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -354,19 +354,34 @@ void sample_thread(
       );
     }
 
-    VALUE name = ddtrace_location_base_label(cme, iseq);
+    // This frame kept the name we composed for it in an earlier sample, so there's nothing to compose or trim again
+    char *cached_name = show_classes ? buffer->cached_names + (i * MAX_CACHED_FRAME_NAME) : NULL;
+    bool name_is_cached = cached_name != NULL && frame.cached_name_len > 0;
+
     // TODO: name_slice is currently the unqualified method name
     // because we don't always use qualified method names yet, so we don't always compute it,
     // and checks below need to compare to something stable until we always qualified method names.
-    ddog_CharSlice name_slice = (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+    ddog_CharSlice name_slice = DDOG_CHARSLICE_C("");
+    // The state checks below are the only use of the unqualified name when we already have the qualified one cached
+    if (!name_is_cached || (top_of_the_stack && only_wall_time)) {
+      VALUE name = ddtrace_location_base_label(cme, iseq);
+      if (name != Qfalse) name_slice = char_slice_from_ruby_string(name);
+    }
 
     ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
-    if (show_classes) {
+    // We only keep a name we managed to compose: ddtrace_location_label() also fails when this stack used up the
+    // scratch buffer, and keeping the unqualified name it falls back to would stick to the frame even once there's
+    // room for it again.
+    bool name_is_cacheable = false;
+    if (name_is_cached) {
+      qualified_name = (ddog_CharSlice) {.ptr = cached_name, .len = frame.cached_name_len};
+    } else if (show_classes) {
       ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
       if (written > 0) {
         qualified_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
         qualified_name_buf += written;
         qualified_name_buf_size -= written;
+        name_is_cacheable = true;
       } else {
         qualified_name = name_slice; // just the method name
       }
@@ -438,7 +453,15 @@ void sample_thread(
       frame_name = name_slice;
     }
 
-    maybe_trim_template_random_ids(&frame_name, name_slice, filename_slice);
+    if (!name_is_cached) {
+      maybe_trim_template_random_ids(&frame_name, name_slice, filename_slice);
+
+      // Keep this name for as long as the frame stays in the buffer
+      if (cached_name != NULL && name_is_cacheable && frame_name.len <= MAX_CACHED_FRAME_NAME) {
+        memcpy(cached_name, frame_name.ptr, frame_name.len);
+        buffer->stack_buffer[i].cached_name_len = frame_name.len;
+      }
+    }
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -697,7 +720,7 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, bool cache_names) {
   sampling_buffer_check_max_frames(max_frames);
 
   buffer->max_frames = max_frames;
@@ -705,16 +728,19 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
+  buffer->cached_names = cache_names ? ruby_xcalloc(max_frames, MAX_CACHED_FRAME_NAME) : NULL;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
   ruby_xfree(buffer->stack_buffer);
+  ruby_xfree(buffer->cached_names);
 
   buffer->max_frames = 0;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
+  buffer->cached_names = NULL;
 }
 
 void sampling_buffer_mark(sampling_buffer *buffer) {
