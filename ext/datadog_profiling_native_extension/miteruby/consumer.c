@@ -34,7 +34,6 @@ typedef struct {
   verstable_objects_to_mark_set objects_to_mark;
   size_t objects_to_mark_allocated_bytes;
 
-  once_flag mutexes_initialized;
   // Lock order: consumed_events_mutex, then objects_to_mark_mutex. Recursive locking allows same-thread re-entry:
   // marking and memory accounting can run while the owning thread holds both locks.
   mtx_t consumed_events_mutex;
@@ -45,7 +44,7 @@ typedef struct {
   size_t consumed_events_capacity;
 } miteruby_consumer_state_t;
 
-static miteruby_consumer_state_t consumer_state = {.mutexes_initialized = ONCE_FLAG_INIT};
+static miteruby_consumer_state_t consumer_state = {0};
 
 typedef struct {
   miteruby_buffer_t *buffer;
@@ -85,11 +84,6 @@ static void mutex_lock(mtx_t *mutex) {
 
 static void mutex_unlock(mtx_t *mutex) {
   if (mtx_unlock(mutex) != thrd_success) rb_bug("Failed to unlock miteruby consumer mutex");
-}
-
-static void initialize_mutexes(void) {
-  if (mtx_init(&consumer_state.consumed_events_mutex, mtx_recursive) != thrd_success) rb_bug("Failed to initialize miteruby consumer mutex");
-  if (mtx_init(&consumer_state.objects_to_mark_mutex, mtx_recursive) != thrd_success) rb_bug("Failed to initialize miteruby consumer mutex");
 }
 
 static void consumer_mark(void *data) {
@@ -135,7 +129,11 @@ static const rb_data_type_t consumer_typed_data = {
 };
 
 void miteruby_consumer_marking_init(miteruby_buffer_t *buffer) {
-  call_once(&consumer_state.mutexes_initialized, initialize_mutexes);
+  if (mtx_init(&consumer_state.consumed_events_mutex, mtx_recursive) != thrd_success)
+    rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.consumed_events_mutex");
+  if (mtx_init(&consumer_state.objects_to_mark_mutex, mtx_recursive) != thrd_success)
+    rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.objects_to_mark_mutex");
+
   consumer_state.buffer = buffer;
   verstable_objects_to_mark_set_init(&consumer_state.objects_to_mark);
   miteruby_stack_dedup_init();
