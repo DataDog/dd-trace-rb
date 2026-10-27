@@ -1,0 +1,59 @@
+module Datadog
+  module OpenFeature
+    module Transport
+      class Agentless
+        type route = :direct | String
+
+        DISCOVERY_TIMEOUT_SECONDS: Integer
+
+        REQUEST_TIMEOUT_SECONDS: Integer
+
+        RECOVERY_INTERVAL_SECONDS: Integer
+
+        LOCAL_ROUTES: Array[String]
+
+        @client: HTTPClient
+
+        @logger: Core::Logger
+
+        @mutex: Thread::Mutex
+
+        @route: route?
+
+        @recover_at: Float
+
+        @pid: Integer
+
+        @closed: bool
+
+        @shutdown_deadline: Float?
+
+        def initialize: (agent_settings: Core::Configuration::AgentSettings, site: String?, api_key: String?, logger: Core::Logger) -> void
+
+        def send_exposures: (Hash[Symbol, untyped]) -> Response
+
+        def send_flag_evaluations: (Hash[String, untyped]) -> Response
+
+        def shutdown!: (timeout: (Integer | Float)) -> void
+
+        def close: () -> void
+
+        private
+
+        def send_batch: (String, Hash[Symbol, untyped] | Hash[String, untyped]) -> Response
+
+        def send_once: (route, String, String) -> Response
+
+        def select_route: () -> route?
+
+        def compatible_route: (Hash[String, untyped]?) -> String?
+
+        def leave_local: (route) -> bool
+
+        def remaining: (Integer) -> (Integer | Float)
+
+        def reset_after_fork: () -> void
+      end
+    end
+  end
+end

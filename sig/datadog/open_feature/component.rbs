@@ -26,6 +26,8 @@ module Datadog
 
       @worker: Exposures::Worker
 
+      @event_transport: Transport::Agentless?
+
       @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
@@ -67,6 +69,7 @@ module Datadog
         Core::Configuration::Settings settings,
         Core::Configuration::AgentSettings agent_settings,
         ?on_configuration_change: (^(configuration_event) -> void)?,
+        ?resolution: Configuration::Source::Resolution,
         logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> void

@@ -15,8 +15,7 @@ module Datadog
         include Core::Workers::Queue
         include Core::Workers::Polling
 
-        GRACEFUL_SHUTDOWN_EXTRA_SECONDS = 5
-        GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS = 0.5
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 3
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -54,6 +53,9 @@ module Datadog
         end
 
         def enqueue(event)
+          return false unless enabled?
+
+          start if forked?
           buffer.push(event)
           start unless running?
 
@@ -70,21 +72,20 @@ module Datadog
         end
 
         def graceful_shutdown
-          return false unless enabled? || !run_loop?
-
+          buffer.close
+          stop(true, GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+        ensure
           self.enabled = false
+        end
 
-          started = Core::Utils::Time.get_time
-          wait_time = loop_base_interval + GRACEFUL_SHUTDOWN_EXTRA_SECONDS
+        def work_pending?
+          !buffer.empty?
+        end
 
-          loop do
-            break if buffer.empty? && !in_iteration?
+        protected
 
-            sleep(GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS)
-            break if Core::Utils::Time.get_time - started > wait_time
-          end
-
-          stop(true)
+        def after_fork
+          self.buffer = Buffer.new(@buffer_limit)
         end
 
         private

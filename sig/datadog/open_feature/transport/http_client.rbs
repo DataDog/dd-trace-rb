@@ -1,0 +1,37 @@
+module Datadog
+  module OpenFeature
+    module Transport
+      class HTTPClient
+        MAX_INFO_BYTES: Integer
+
+        IDENTITY_HEADERS: Hash[String, String]
+
+        @agent_settings: Core::Configuration::AgentSettings
+
+        @prefix: String
+
+        @direct_host: String?
+
+        @api_key: String?
+
+        def initialize: (agent_settings: Core::Configuration::AgentSettings, site: String?, api_key: String?) -> void
+
+        def direct?: () -> bool
+
+        def request: (String path, ?payload: String?, ?direct: bool, timeout: (Integer | Float)) -> Response
+
+        private
+
+        def connection: (bool direct) -> Net::HTTP
+
+        def direct_connection: () -> Net::HTTP
+
+        def read_info: (Net::HTTPResponse) -> Hash[String, untyped]?
+
+        def direct_host: (String?) -> String?
+
+        def local_prefix: () -> String
+      end
+    end
+  end
+end

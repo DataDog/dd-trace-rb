@@ -2907,7 +2907,11 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 `DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED` and `c.open_feature.enabled` are deprecated. When neither stable setting is explicitly configured, the legacy value `true` selects `remote_config` and `false` disables Feature Flags.
 
-The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
+Configuration polling sends the API key only to the managed Datadog endpoint. A custom agentless configuration URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
+
+In agentless mode, exposures and flag evaluations share one delivery route. A compatible local Agent or serverless relay is preferred; otherwise events use `https://event-platform-intake.<DD_SITE>` with `DD_API_KEY`. Direct delivery supports Ruby's standard HTTP proxy settings, `https_proxy` / `HTTPS_PROXY`, and `no_proxy` / `NO_PROXY`; redirects are refused. Remote Configuration continues to deliver events only through the Agent.
+
+A local 404/405 or a proven failure before request transmission permits one direct replay. Other transport failures and local 403/429/5xx responses switch only future batches, avoiding duplicate delivery of possibly accepted events. Direct routing remains selected until the Feature Flags component is replaced; when neither route is available, local discovery can recover after a 30-second cooldown.
 
 #### Evaluation telemetry opt-out
 

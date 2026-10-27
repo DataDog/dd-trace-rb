@@ -46,7 +46,7 @@ module Datadog
 
         TARGETING_KEY_HASH_PREFIX: ::String
 
-        @transport: Transport::HTTP
+        @transport: Transport::HTTP | Transport::Agentless
 
         @logger: Core::Logger
 
@@ -77,7 +77,7 @@ module Datadog
         attr_reader dropped_queue_overflow: ::Integer
 
         def initialize: (
-          transport: Transport::HTTP,
+          transport: Transport::HTTP | Transport::Agentless,
           logger: Core::Logger,
           ?telemetry: Core::Telemetry::Component?
         ) -> void

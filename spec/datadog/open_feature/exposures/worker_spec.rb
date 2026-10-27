@@ -136,11 +136,44 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 
+  it "discards inherited pending exposures and delivers child events after fork" do
+    sent = []
+    allow(transport).to receive(:send_exposures) { |payload|
+      sent << payload
+      response
+    }
+    worker.send(:loop_base_interval=, 30)
+    worker.enqueue(event)
+    try_wait_until { sent.size == 1 }
+    worker.buffer.push(event.merge(subject: {id: "parent-pending"}))
+    expect_in_fork do
+      sent.clear
+      worker.enqueue(event.merge(subject: {id: "child"}))
+      worker.graceful_shutdown
+      expect(sent.flat_map { |payload| payload[:exposures].map { |exposure| exposure[:subject][:id] } }).to eq(["child"])
+    end
+  end
+
   describe "#graceful_shutdown" do
+    it "bounds shutdown even when a delivery cannot finish" do
+      stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS", 0.1)
+      entered = Queue.new
+      allow(transport).to receive(:send_exposures) do
+        entered << true
+        sleep 10
+      end
+      worker.enqueue(event)
+      entered.pop
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      worker.graceful_shutdown
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 1
+      expect(worker).not_to be_running
+      expect(worker.enqueue(event)).to be(false)
+    end
+
     context "when buffer contains events" do
       before do
-        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_EXTRA_SECONDS", 0.1)
-        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS", 0.1)
+        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS", 0.2)
       end
 
       let(:event_2) do

@@ -21,7 +21,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
@@ -30,6 +30,37 @@ RSpec.describe Datadog::OpenFeature::Component do
     Datadog::OpenFeature::Configuration::Source::Resolution.new("agentless", enabled: true)
   end
   let(:on_configuration_change) { instance_double(Proc, call: nil) }
+
+  describe "production event transport ownership" do
+    it "constructs both writers with the same agentless selector, scoped to the component" do
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+      settings.feature_flags.enabled = true
+      exposure_transports = []
+      evaluation_transports = []
+      allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_wrap_original do |constructor, **options|
+        exposure_transports << options[:transport]
+        constructor.call(**options)
+      end
+      allow(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).and_wrap_original do |constructor, **options|
+        evaluation_transports << options[:transport]
+        constructor.call(**options)
+      end
+      components = 2.times.map do
+        described_class.build(settings, agent_settings, resolution: resolution,
+          on_configuration_change: on_configuration_change, logger: logger, telemetry: telemetry)
+      end
+      expect(exposure_transports.size).to eq(2)
+      expect(evaluation_transports.size).to eq(2)
+      expect(exposure_transports.first).to be_a(Datadog::OpenFeature::Transport::Agentless)
+      expect(evaluation_transports.first).to equal(exposure_transports.first)
+      expect(evaluation_transports.last).to equal(exposure_transports.last)
+      expect(exposure_transports.first).not_to equal(exposure_transports.last)
+      expect(Datadog::OpenFeature::Transport::HTTP).not_to have_received(:build)
+      expect(Datadog::OpenFeature::Transport::HTTP).not_to have_received(:build_flagevaluations)
+    ensure
+      components&.each(&:shutdown!)
+    end
+  end
 
   describe ".build" do
     subject(:component) do

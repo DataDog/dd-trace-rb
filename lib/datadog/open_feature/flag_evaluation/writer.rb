@@ -108,8 +108,12 @@ module Datadog
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
           }
-          @queue.push(bounded_event, true)
-          @stop_mutex.synchronize { @stop_cond.signal }
+          @stop_mutex.synchronize do
+            return if @stopped
+
+            @queue.push(bounded_event, true)
+            @stop_cond.signal
+          end
           start_background_thread unless running?
         rescue ThreadError
           # Report queue backpressure on the next flush.

@@ -87,7 +87,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(elapsed).to be < 9
     end
 
-    it "flushes an event enqueued after stop starts but before the final drain" do
+    it "rejects an event enqueued after stop starts" do
       drain_started = Queue.new
       release_drain = Queue.new
       received = Queue.new
@@ -116,8 +116,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       release_drain << true
       stop_thread.join
 
-      payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
-      expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("late-shutdown-flag")
+      expect(received).to be_empty
     ensure
       release_drain << true if release_drain&.empty?
       stop_thread&.join
