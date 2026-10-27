@@ -48,6 +48,16 @@ RSpec.describe Datadog::Tracing::Transport::Native::Telemetry do
     end
   end
 
+  it "reports chunks cancelled before dispatch without trace API metrics" do
+    expect(client).to receive(:inc).with("tracers", "trace_chunks_dropped", 2,
+      tags: ["src_library:libdatadog", "reason:cancelled"],)
+    expect(client).to receive(:inc).with("tracers", "spans_enqueued_for_serialization", 3, tags: [])
+    expect(client).to receive(:inc).with("tracers", "spans_dropped", 3, tags: ["reason:cancelled"])
+    expect(client).not_to receive(:distribution)
+
+    reporter.record(chunks_dropped_cancelled: 2, spans_dropped_cancelled: 3, spans_enqueued_for_serialization: 3)
+  end
+
   it "suppresses zero values and disabled telemetry" do
     expect(client).not_to receive(:inc)
     expect(client).not_to receive(:distribution)
