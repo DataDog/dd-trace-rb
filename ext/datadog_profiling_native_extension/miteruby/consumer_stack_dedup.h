@@ -4,6 +4,8 @@
 
 #include "../private_vm_api_access.h"
 
+// Deduped stack storage for the miteruby consumer
+
 // Except for startup initialization, callers hold consumer's consumed_events_mutex.
 void miteruby_consumer_stack_dedup_init(void);
 void miteruby_consumer_stack_dedup_reset(void);
