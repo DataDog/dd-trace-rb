@@ -118,6 +118,9 @@ no external grant needed. No local trigger otherwise.
 - Follow the `write-comment` skill (`.agents/skills/write-comment/SKILL.md`) for when a comment earns its place; default to no comment otherwise.
 - Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
+- Calls to `logger` or `Datadog.logger` to log a message,
+`telemetry.report`, `telemetry.inc` and similar metric reporting may not raise
+exceptions. Callers may not blanket-rescue solely from such calls.
 
 ## Documentation
 
