@@ -264,6 +264,15 @@ static void test_fixed_array_capacity(void) {
   assert(stack_dedup_state.unique_stacks_array == array);
   assert_failed_dedup((miteruby_event_stack_sample_view_t) {0});
 
+  sample_storage storage = {0};
+  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
+  storage.event.thread.value = Qtrue;
+  size_t previous_events_count = consumed_events_count;
+  size_t previous_objects_count = verstable_objects_to_mark_set_size(&state.objects_to_mark);
+  assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL);
+  assert(consumed_events_count == previous_events_count);
+  assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == previous_objects_count);
+
   view.frame_count = 1024;
   assert_failed_dedup(view);
   positions[0].value = 0;
@@ -295,7 +304,7 @@ static void test_compact_events_and_reset(void) {
   event->refs[0].iseq = (const rb_iseq_t *)&storage.words[15];
   for (size_t i = 0; i < 30000; i++) {
     event->header.timestamp.ns = 123 + i;
-    buffer_event(&event->header);
+    assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   }
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 3);
@@ -316,15 +325,15 @@ static void test_compact_events_and_reset(void) {
 
   miteruby_event_overflow_t overflow = {.header = {.type = MITERUBY_EVENT_OVERFLOW, .size_bytes = sizeof(overflow)}};
   size_t previous_count = consumed_events_count;
-  buffer_event(&overflow.header);
+  assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
   assert(consumed_events_count == previous_count);
   overflow.header.type = MITERUBY_EVENT_INVALID;
-  buffer_event(&overflow.header);
+  assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
   assert(consumed_events_count == previous_count);
 
   consumed_events_count = 0;
   event->thread.value = Qtrue;
-  buffer_event(&event->header);
+  assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 4);
 
@@ -334,7 +343,7 @@ static void test_compact_events_and_reset(void) {
   assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 0);
-  buffer_event(&event->header);
+  assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(consumed_events_buffer[0].stack_id.offset == 0);
 }
