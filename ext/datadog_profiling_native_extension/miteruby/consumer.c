@@ -58,6 +58,7 @@ typedef enum {
   MITERUBY_CONSUMER_OK = 0,
   MITERUBY_CONSUMER_INTERRUPTED,
   MITERUBY_CONSUMER_END_OF_STREAM,
+  MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR,
   MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
   MITERUBY_CONSUMER_EVENTS_BUFFER_FULL,
   MITERUBY_CONSUMER_OBJECTS_TO_MARK_FULL,
@@ -189,6 +190,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
     rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
 
   // TODO: Maybe in the future we want to more gracefully recover, e.g. maybe clear all the state and start accumulating again?
+  if (reason == MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR) rb_raise(rb_eRuntimeError, "Miteruby buffer internal error");
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
   if (reason == MITERUBY_CONSUMER_EVENTS_BUFFER_FULL) rb_raise(rb_eRuntimeError, "Miteruby consumed events buffer is full");
   if (reason == MITERUBY_CONSUMER_OBJECTS_TO_MARK_FULL) rb_raise(rb_eRuntimeError, "Miteruby objects_to_mark set is full");
@@ -213,6 +215,7 @@ static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_con
   for (;;) {
     miteruby_buffer_record_t record = miteruby_buffer_read(args->buffer, &args->interrupted);
 
+    if (record.internal_error) return MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR;
     if (record.interrupted) return MITERUBY_CONSUMER_INTERRUPTED;
     if (record.end_of_stream) return MITERUBY_CONSUMER_END_OF_STREAM;
     if (record.data == NULL) continue;
