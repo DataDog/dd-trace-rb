@@ -2909,11 +2909,15 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 Configuration polling sends the API key only to the managed Datadog endpoint. A custom agentless configuration URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
-In agentless mode, exposures and flag evaluations share one delivery route. A compatible local Agent or serverless relay is preferred; otherwise events use `https://event-platform-intake.<DD_SITE>` with `DD_API_KEY`. Direct delivery supports Ruby's standard HTTP proxy settings, `https_proxy` / `HTTPS_PROXY`, and `no_proxy` / `NO_PROXY`; redirects are refused. Remote Configuration continues to deliver events only through the Agent.
-
-A local 404/405 or a proven failure before request transmission permits one direct replay. Other transport failures and local 403/429/5xx responses switch only future batches, avoiding duplicate delivery of possibly accepted events. Direct routing remains selected until the Feature Flags component is replaced; when neither route is available, local discovery can recover after a 30-second cooldown.
-
 Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
+
+#### Event delivery with agentless configuration
+
+When `c.feature_flags.configuration_source` is `agentless`, exposures and flag evaluations share one delivery route. The library prefers a compatible local Agent or serverless relay. If neither is available, the library sends events directly to `https://event-platform-intake.<DD_SITE>`, authenticated with `DD_API_KEY`. Direct delivery supports `https_proxy` or `HTTPS_PROXY` and `no_proxy` or `NO_PROXY`, with Ruby's standard HTTP proxy settings used when neither HTTPS proxy variable is set. It does not follow redirects. When `c.feature_flags.configuration_source` is `remote_config`, events are delivered only through the Agent.
+
+If the local route returns a 404 or 405 response, or a request fails before it is sent, the library resends that batch directly to Datadog one time, provided direct delivery is configured. If the local route returns a 403, 429, or 5xx response, or encounters another transport error, the library sends only later batches directly, so events the local route may have accepted are not duplicated.
+
+After switching to direct delivery, the library keeps using it in that process until you reconfigure the library with `Datadog.configure`. If no compatible local route is available and direct delivery is not configured, the library drops the batch and retries local discovery on the next batch after a 30-second cooldown.
 
 #### Evaluation telemetry opt-out
 
