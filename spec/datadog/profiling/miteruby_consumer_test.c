@@ -35,7 +35,7 @@ static miteruby_event_stack_sample_view_t view_for(miteruby_event_stack_sample_t
 
 static void assert_allocation_accounting(void) {
   assert(miteruby_allocator_requested_bytes() ==
-    objects_to_mark_allocated_bytes + stack_dedup_state.unique_stacks_map_allocated_bytes + stack_dedup_state.unique_stacks_size +
+    objects_to_mark_allocated_bytes + stack_dedup_state.unique_stacks_set_allocated_bytes + stack_dedup_state.unique_stacks_size +
     consumed_events_capacity * sizeof(*consumed_events_buffer));
 }
 
@@ -60,7 +60,7 @@ static void test_empty_stack_before_nonempty(void) {
   assert(miteruby_consumer_stack_dedup_get(0).frame_count == 0);
   assert(miteruby_consumer_stack_dedup_get_or_insert(view_for(event), &inserted) == 8 && !inserted);
   assert(stack_dedup_state.unique_stacks_pos == 40);
-  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 2);
   miteruby_consumer_stack_dedup_reset();
 }
 
@@ -165,7 +165,7 @@ static void test_growth_and_relocation(void) {
     assert(ids[i] % 8 == 0);
   }
   assert(stack_dedup_state.unique_stacks_size > UNIQUE_STACKS_ARRAY_CHUNK_SIZE);
-  assert(stack_dedup_state.unique_stacks_map_allocated_bytes > 0);
+  assert(stack_dedup_state.unique_stacks_set_allocated_bytes > 0);
   assert_allocation_accounting();
 
   uint8_t *relocated = miteruby_allocator_alloc(stack_dedup_state.unique_stacks_size, "unique_stacks_array");
@@ -188,12 +188,12 @@ static void test_growth_and_relocation(void) {
   size_t empty = miteruby_consumer_stack_dedup_get_or_insert((miteruby_event_stack_sample_view_t) {0}, &inserted);
   assert(!inserted && miteruby_consumer_stack_dedup_get(empty).frame_count == 0);
   for (
-    verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_first(&stack_dedup_state.unique_stacks);
-    !verstable_unique_stacks_map_is_end(entry);
-    entry = verstable_unique_stacks_map_next(entry)
+    verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_first(&stack_dedup_state.unique_stacks);
+    !verstable_unique_stacks_set_is_end(entry);
+    entry = verstable_unique_stacks_set_next(entry)
   ) {
     assert(!entry.data->key.view_borrowed);
-    assert(entry.data->key.location.as.offset == entry.data->val);
+    assert(entry.data->key.location.as.offset < used);
   }
 }
 
@@ -217,7 +217,7 @@ static void test_compact_events_and_reset(void) {
     event->header.timestamp.ns = 123 + i;
     buffer_event(&event->header);
   }
-  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 3);
   assert(consumed_events_count == 30000);
   assert(consumed_events_capacity > CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY);
@@ -245,17 +245,17 @@ static void test_compact_events_and_reset(void) {
   consumed_events_count = 0;
   event->thread.value = Qtrue;
   buffer_event(&event->header);
-  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 4);
 
   miteruby_consumer_init();
   assert_allocation_accounting();
   assert(consumed_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
   assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_CHUNK_SIZE && stack_dedup_state.unique_stacks_array != NULL);
-  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 0);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_objects_to_mark_set_size(&state.objects_to_mark) == 0);
   buffer_event(&event->header);
-  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(consumed_events_buffer[0].stack_id == 0);
 }
 
@@ -281,9 +281,9 @@ int main(void) {
   test_growth_and_relocation();
   test_compact_events_and_reset();
   test_objects_to_mark_growth();
-  verstable_unique_stacks_map_cleanup(&stack_dedup_state.unique_stacks);
+  verstable_unique_stacks_set_cleanup(&stack_dedup_state.unique_stacks);
   verstable_objects_to_mark_set_cleanup(&state.objects_to_mark);
-  assert(stack_dedup_state.unique_stacks_map_allocated_bytes == 0 && objects_to_mark_allocated_bytes == 0);
+  assert(stack_dedup_state.unique_stacks_set_allocated_bytes == 0 && objects_to_mark_allocated_bytes == 0);
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
   miteruby_allocator_free(consumed_events_buffer, consumed_events_capacity * sizeof(*consumed_events_buffer));
   assert(miteruby_allocator_requested_bytes() == 0);
