@@ -69,7 +69,7 @@ typedef struct {
   verstable_unique_stacks_map unique_stacks;
   size_t unique_stacks_map_allocated_bytes;
 
-  char *unique_stacks_array;
+  uint8_t *unique_stacks_array;
   size_t unique_stacks_pos;
   size_t unique_stacks_size;
 } miteruby_stack_dedup_state_t;
@@ -122,7 +122,7 @@ void miteruby_consumer_stack_dedup_init(void) {
 }
 
 void miteruby_consumer_stack_dedup_reset(void) {
-  char *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_CHUNK_SIZE, "unique_stacks_array");
+  uint8_t *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_CHUNK_SIZE, "unique_stacks_array");
   if (new_array == NULL) rb_bug("Failed to allocate miteruby unique stacks array");
 
   verstable_unique_stacks_map_clear(&stack_dedup_state.unique_stacks);
@@ -160,7 +160,7 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   while (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < record_size) {
     if (stack_dedup_state.unique_stacks_size > SIZE_MAX - UNIQUE_STACKS_ARRAY_CHUNK_SIZE) rb_bug("Miteruby unique stacks array size overflow");
     size_t new_size = stack_dedup_state.unique_stacks_size + UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
-    char *new_array = miteruby_allocator_alloc(new_size, "unique_stacks_array");
+    uint8_t *new_array = miteruby_allocator_alloc(new_size, "unique_stacks_array");
     if (new_array == NULL) rb_bug("Failed to grow miteruby unique stacks array");
     memcpy(new_array, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
     miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);

@@ -168,7 +168,7 @@ static void test_growth_and_relocation(void) {
   assert(stack_dedup_state.unique_stacks_map_allocated_bytes > 0);
   assert_allocation_accounting();
 
-  char *relocated = miteruby_allocator_alloc(stack_dedup_state.unique_stacks_size, "unique_stacks_array");
+  uint8_t *relocated = miteruby_allocator_alloc(stack_dedup_state.unique_stacks_size, "unique_stacks_array");
   assert(relocated != NULL && relocated != stack_dedup_state.unique_stacks_array);
   memcpy(relocated, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
