@@ -1,10 +1,10 @@
 #include "allocator.h"
 
+#include <ruby.h>
 #include <errno.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 
@@ -68,10 +68,12 @@ void miteruby_allocator_free(void *allocation) {
   // Find header before allocation pointer
   allocation_header *header = (allocation_header *)allocation - 1;
 
-  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0) abort();
+  if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0)
+    rb_bug("Invalid miteruby allocation header at %p", (void *) header);
 
   size_t size = header->size;
-  if (munmap(header, size + sizeof(allocation_header)) != 0) abort();
+  if (munmap(header, size + sizeof(allocation_header)) != 0)
+    rb_bug("Failed to unmap miteruby allocation at %p (size=%zu, errno=%d)", (void *) header, size, errno);
 
   atomic_fetch_sub_explicit(&requested_bytes, size, memory_order_relaxed);
 }
