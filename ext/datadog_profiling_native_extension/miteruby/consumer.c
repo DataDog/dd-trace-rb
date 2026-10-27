@@ -228,9 +228,8 @@ static VALUE prepare_serialize_locked(VALUE recorder_instance) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   for (size_t i = 0; i < consumed_events_count; i++) {
     const miteruby_event_deduped_sample_t *event = &consumed_events_buffer[i];
-    const miteruby_stack_t *stack = miteruby_consumer_stack_dedup_get(event->stack_id);
-    const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&stack->refs[event->header.frame_count];
-    miteruby_consumer_record_stack_sample(recorder_instance, event, stack->refs, positions, &time_converter);
+    miteruby_event_stack_sample_view_t view = miteruby_consumer_stack_dedup_get(event->stack_id);
+    miteruby_consumer_record_stack_sample(recorder_instance, event, view, &time_converter);
   }
   consumed_events_count = 0;
   return Qnil;
@@ -252,8 +251,13 @@ static void buffer_event(const miteruby_event_header_t *header) {
   if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return;
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
+  miteruby_event_stack_sample_view_t view = {
+    .refs = (miteruby_event_frame_refs_t *)event->refs,
+    .positions = (miteruby_event_frame_position_t *)&event->refs[header->frame_count],
+    .frame_count = header->frame_count,
+  };
   bool inserted;
-  size_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(event->refs, header->frame_count, &inserted);
+  size_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(view, &inserted);
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&objects_to_mark_mutex);

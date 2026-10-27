@@ -14,7 +14,6 @@ void miteruby_consumer_recorder_init(void);
 void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_deduped_sample_t *event,
-  const miteruby_event_frame_refs_t *refs,
-  const miteruby_event_frame_position_t *positions,
+  miteruby_event_stack_sample_view_t view,
   monotonic_to_system_epoch_state *time_converter
 );
