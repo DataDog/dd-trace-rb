@@ -501,22 +501,36 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(result.fetch("returned")).to be true
     end
 
-    ["raise", "kill"].each do |interrupt|
-      ["none", "standard", "fatal", "break"].each do |callback_failure|
-        it "reports every chunk as cancelled before #{interrupt} with #{callback_failure} callback failure" do
-          result = interrupted_send(interrupt, callback_failure)
-          expect(result.fetch("reports")).to eq(
-            [{"chunks_dropped_cancelled" => 2, "spans_dropped_cancelled" => 3, "spans_enqueued_for_serialization" => 3}]
-          )
-          expect(result.fetch("returned")).to be false
-          if interrupt == "raise"
-            expect(result.fetch("same_exception")).to be true
-            expect(result.fetch("backtrace")).to eq(["original:1"])
-          else
-            expect(result.fetch("error")).to be_nil
-          end
-          expect(trace_requests).to be_empty
-        end
+    ["none", "standard", "fatal", "break"].each do |callback_failure|
+      it "reports cancelled drops on raise (callback: #{callback_failure})" do
+        result = interrupted_send("raise", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }]
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("same_exception")).to be true
+        expect(result.fetch("backtrace")).to eq(["original:1"])
+        expect(trace_requests).to be_empty
+      end
+
+      it "reports cancelled drops on kill (callback: #{callback_failure})" do
+        result = interrupted_send("kill", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }]
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("error")).to be_nil
+        expect(trace_requests).to be_empty
       end
     end
   end
