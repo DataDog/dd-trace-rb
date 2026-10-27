@@ -17,7 +17,7 @@ typedef struct {
       size_t offset;
     } as;
   } location;
-  bool borrowed;
+  bool view_borrowed;
 } stack_key;
 
 static uint64_t stack_key_hash(stack_key key);
@@ -51,7 +51,7 @@ static size_t stack_data_size(uint16_t frame_count) {
 }
 
 static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
-  return key.borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.offset);
+  return key.view_borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.offset);
 }
 
 static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
@@ -147,7 +147,7 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   }
   // Preserve the key's hash and contents; offsets survive array growth without updating existing entries.
   entry.data->key.location.as.offset = stack_id;
-  entry.data->key.borrowed = false;
+  entry.data->key.view_borrowed = false;
   stack_dedup_state.unique_stacks_pos += record_size;
   return entry.data->val;
 }
@@ -159,7 +159,7 @@ size_t miteruby_consumer_stack_dedup_get_or_insert(
   stack_key key = {
     .hash = stack_view_hash(view),
     .location.as.view = &view,
-    .borrowed = true,
+    .view_borrowed = true,
   };
   return deduplicate_stack(key, inserted);
 }
