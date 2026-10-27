@@ -1724,6 +1724,9 @@ static int check_if_pending_exception(void) {
  *
  * Returns one response per completed native payload, retaining partial successes.
  *
+ * The optional block receives each completed report and a separate local-drop
+ * report. In-flight cancellation is uncertain and is not a confirmed drop.
+ *
  * The chunk-building loop calls into Ruby (ENFORCE_TYPE,
  * convert_ruby_span_to_rust) which may raise.  We use rb_ensure so
  * that the Rust-allocated chunks are freed if an exception fires
@@ -1736,6 +1739,7 @@ typedef struct {
   VALUE                     traces;
   VALUE                     native_events_supported;
   long                      trace_count;
+  size_t                    span_count;
   raw_span_owner            span_owner;
   ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
   ddog_TraceExporterBatch    *batch;
@@ -1758,12 +1762,30 @@ typedef struct {
   const ddog_TraceExporterObservations *report;
   size_t oversized_chunks;
   size_t oversized_spans;
+  size_t cancelled_chunks;
+  size_t cancelled_spans;
+  size_t unconfirmed_spans;
+} send_outcome;
+
+typedef struct {
+  const send_outcome *outcome;
   VALUE block;
 } observations_callback_args;
 
+/* Only for chunks never handed to an HTTP attempt: a cancelled in-flight
+ * request may still have been received, so it must not be reported here. */
+static void add_cancelled_drop(VALUE values, size_t chunks, size_t spans) {
+  if (chunks == 0) return;
+  rb_hash_aset(values, ID2SYM(rb_intern_const("chunks_dropped_cancelled")), SIZET2NUM(chunks));
+  if (spans == 0) return;
+  rb_hash_aset(values, ID2SYM(rb_intern_const("spans_dropped_cancelled")), SIZET2NUM(spans));
+  VALUE enqueued = ID2SYM(rb_intern_const("spans_enqueued_for_serialization"));
+  rb_hash_aset(values, enqueued, ULL2NUM(NUM2ULL(rb_hash_lookup2(values, enqueued, INT2FIX(0))) + spans));
+}
+
 static VALUE yield_observations(VALUE arg) {
   observations_callback_args *callback = (observations_callback_args *)arg;
-  const ddog_TraceExporterObservations *report = callback->report;
+  const ddog_TraceExporterObservations *report = callback->outcome->report;
   VALUE values = rb_hash_new();
 #define ADD_OBSERVATION(field) if (report != NULL && report->field > 0) rb_hash_aset(values, ID2SYM(rb_intern_const(#field)), ULL2NUM(report->field))
   ADD_OBSERVATION(requests_count);
@@ -1780,11 +1802,16 @@ static VALUE yield_observations(VALUE arg) {
   ADD_OBSERVATION(responses_count);
   ADD_OBSERVATION(status_code);
 #undef ADD_OBSERVATION
-  if (callback->oversized_chunks > 0) {
-    rb_hash_aset(values, ID2SYM(rb_intern_const("chunks_dropped_payload_too_large")), SIZET2NUM(callback->oversized_chunks));
-    rb_hash_aset(values, ID2SYM(rb_intern_const("spans_dropped_payload_too_large")), SIZET2NUM(callback->oversized_spans));
-    rb_hash_aset(values, ID2SYM(rb_intern_const("spans_enqueued_for_serialization")), SIZET2NUM(callback->oversized_spans));
+  if (callback->outcome->oversized_chunks > 0) {
+    rb_hash_aset(values, ID2SYM(rb_intern_const("chunks_dropped_payload_too_large")), SIZET2NUM(callback->outcome->oversized_chunks));
+    rb_hash_aset(values, ID2SYM(rb_intern_const("spans_dropped_payload_too_large")), SIZET2NUM(callback->outcome->oversized_spans));
   }
+  size_t local_spans = callback->outcome->oversized_spans + callback->outcome->unconfirmed_spans;
+  if (local_spans > 0) {
+    VALUE enqueued = ID2SYM(rb_intern_const("spans_enqueued_for_serialization"));
+    rb_hash_aset(values, enqueued, ULL2NUM(NUM2ULL(rb_hash_lookup2(values, enqueued, INT2FIX(0))) + local_spans));
+  }
+  add_cancelled_drop(values, callback->outcome->cancelled_chunks, callback->outcome->cancelled_spans);
   return rb_proc_call_with_block(callback->block, 1, &values, Qnil);
 }
 
@@ -1792,12 +1819,9 @@ static VALUE ignore_observation_error(DDTRACE_UNUSED VALUE arg, DDTRACE_UNUSED V
   return Qnil;
 }
 
-static VALUE forward_payload_observations(const ddog_TraceExporterObservations *report,
-    size_t oversized_chunks, size_t oversized_spans, VALUE block) {
+static VALUE forward_payload_observations(const send_outcome *outcome, VALUE block) {
   observations_callback_args callback = {
-    .report = report,
-    .oversized_chunks = oversized_chunks,
-    .oversized_spans = oversized_spans,
+    .outcome = outcome,
     .block = block,
   };
   VALUE result = rb_rescue2(yield_observations, (VALUE)&callback,
@@ -1808,6 +1832,8 @@ static VALUE forward_payload_observations(const ddog_TraceExporterObservations *
 
 typedef struct {
   const ddog_TraceExporterBatch *batch;
+  size_t cancelled_chunks;
+  size_t cancelled_spans;
   VALUE block;
 } batch_observations_args;
 
@@ -1821,21 +1847,37 @@ static VALUE forward_batch_observations(RB_BLOCK_CALL_FUNC_ARGLIST(yielded, arg)
   ddog_TraceExporterBatchSummary summary = ddog_trace_exporter_batch_summary(batch);
   for (size_t i = 0; i < summary.payload_count; i++) {
     ddog_TraceExporterBatchPayload payload = ddog_trace_exporter_batch_payload(batch, i);
-    forward_payload_observations(&payload.observations, 0, 0, args->block);
+    send_outcome outcome = {.report = &payload.observations};
+    forward_payload_observations(&outcome, args->block);
   }
-  if (summary.oversized_chunks > 0) {
-    forward_payload_observations(NULL, summary.oversized_chunks, summary.oversized_spans, args->block);
+  ddog_TraceExporterObservations failed = {0};
+  if (!summary.operation_cancelled) {
+    failed.chunks_dropped_send_failure = summary.unattempted_chunks;
+    failed.spans_dropped_api_error = summary.unattempted_spans;
+    failed.spans_enqueued_for_serialization = summary.unattempted_spans;
+  }
+  send_outcome remainder = {
+    .report = &failed,
+    .oversized_chunks = summary.oversized_chunks,
+    .oversized_spans = summary.oversized_spans,
+    .cancelled_chunks = (summary.operation_cancelled ? summary.unattempted_chunks : 0) + args->cancelled_chunks,
+    .cancelled_spans = (summary.operation_cancelled ? summary.unattempted_spans : 0) + args->cancelled_spans,
+    .unconfirmed_spans = summary.in_flight_spans,
+  };
+  if (remainder.oversized_chunks > 0 || remainder.cancelled_chunks > 0 || remainder.unconfirmed_spans > 0 || failed.chunks_dropped_send_failure > 0) {
+    forward_payload_observations(&remainder, args->block);
   }
   return Qnil;
 }
 
 static VALUE forward_observations(VALUE arg) {
-  batch_observations_args args = {.batch = (const ddog_TraceExporterBatch *)arg, .block = rb_block_proc()};
+  batch_observations_args *args = (batch_observations_args *)arg;
+  args->block = rb_block_proc();
   /* Defer asynchronous interruption until every completed payload report has
    * been delivered; each callback still has its own StandardError containment. */
   VALUE result = rb_block_call(rb_cThread, id_handle_interrupt, 1, &observation_interrupt_mask,
-      forward_batch_observations, (VALUE)&args);
-  RB_GC_GUARD(args.block);
+      forward_batch_observations, arg);
+  RB_GC_GUARD(args->block);
   return result;
 }
 
@@ -1863,6 +1905,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     ENFORCE_TYPE(chunk_spans, T_ARRAY);
 
     long span_count = RARRAY_LEN(chunk_spans);
+    ctx->span_count += (size_t)span_count;
     /* Propagate a begin_chunk failure instead of swallowing it: continuing
      * would build an incomplete payload and still report success. rb_ensure
      * frees chunks on the raise. Today this only fails for an absurd
@@ -1938,13 +1981,19 @@ static VALUE build_and_send_traces(VALUE arg) {
   if (!pending_exception) {
     pending_exception = check_if_pending_exception();
   }
-  if (args.send_ran && rb_block_given_p()) {
+  if (rb_block_given_p()) {
+    /* A send that never ran left only an interrupt, and the chunks are freed unsent. */
+    batch_observations_args outcome = {
+      .batch = args.batch,
+      .cancelled_chunks = args.send_ran ? 0 : (size_t)ctx->trace_count,
+      .cancelled_spans = args.send_ran ? 0 : ctx->span_count,
+    };
     if (pending_exception) {
       /* rb_ensure preserves Thread#kill's fatal sentinel, which rb_set_errinfo cannot restore. */
       rb_ensure(rethrow_interrupt, INT2FIX(pending_exception),
-          ensure_observations, (VALUE)args.batch);
+          ensure_observations, (VALUE)&outcome);
     } else {
-      forward_observations((VALUE)args.batch);
+      forward_observations((VALUE)&outcome);
     }
   }
   if (pending_exception) {

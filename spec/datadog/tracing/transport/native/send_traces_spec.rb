@@ -32,9 +32,10 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   class MockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port, :requests
 
-    def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
+    def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}', before_response: nil)
       @status = status
       @body = body
+      @before_response = before_response
       @requests = []
       @server = TCPServer.new("127.0.0.1", 0)
       @port = @server.addr[1]
@@ -79,6 +80,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       body = (body_len > 0) ? client.read(body_len) : ""
 
       @requests << {request_line: request_line.strip, headers: headers, body: body}
+      @before_response&.call if request_line.start_with?("POST ")
 
       response_body = @body
       client.print "HTTP/1.1 #{@status} OK\r\n"
@@ -145,6 +147,59 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
   describe "bounded payloads" do
     let(:limit) { 5 * 1024 * 1024 }
+
+    context "when a later payload is interrupted" do
+      let(:entered) { Queue.new }
+      let(:release) { Queue.new }
+      let(:mock_agent) do
+        requests = 0
+        MockAgent.new(before_response: proc do
+          requests += 1
+          if requests == 2
+            entered << true
+            release.pop
+          end
+        end)
+      end
+
+      [:raise, :kill].each do |interrupt|
+        it "counts unsent drops separately from unknown delivery after #{interrupt}" do
+          spans = Array.new(3) { make_span(resource: "x" * (3 * 1024 * 1024)) }
+          spans.insert(1, make_span(resource: "x" * (limit + 1)))
+          reports = []
+          errors = Queue.new
+          failure = RuntimeError.new("cancel split batch")
+          sender = Thread.new do
+            exporter._native_send_traces(spans.zip, false) { |report| reports << report }
+          rescue => error
+            errors << error
+          end
+          Timeout.timeout(5) { entered.pop }
+          (interrupt == :raise) ? sender.raise(failure) : sender.kill
+          expect(sender.join(5)).to eq(sender)
+          expect(reports.sum { |r| r.fetch(:chunks_sent, 0) }).to eq(1)
+          expect(reports.sum { |r| r.fetch(:chunks_dropped_cancelled, 0) }).to eq(1)
+          expect(reports.sum { |r| r.fetch(:spans_dropped_cancelled, 0) }).to eq(1)
+          expect(reports.sum { |r| r.fetch(:chunks_dropped_payload_too_large, 0) }).to eq(1)
+          expect(reports.sum { |r| r.fetch(:spans_enqueued_for_serialization, 0) }).to eq(4)
+          expect(reports.sum { |r| r.fetch(:chunks_dropped_send_failure, 0) }).to eq(0)
+          expect(reports.sum { |r| r.fetch(:spans_dropped_api_error, 0) }).to eq(0)
+          expect(reports.sum { |r| r.fetch(:requests_count, 0) }).to eq(1)
+          expect(reports.sum { |r| r.fetch(:responses_count, 0) }).to eq(1)
+          expect(reports.flat_map(&:keys).map(&:to_s).grep(/\Aerrors_/)).to be_empty
+          if interrupt == :raise
+            expect(errors.size).to eq(1)
+            expect(errors.pop).to equal(failure)
+          else
+            expect(errors).to be_empty
+          end
+        ensure
+          release << true
+          sender&.kill
+          sender&.join(5)
+        end
+      end
+    end
 
     [:raise, :kill].each do |interrupt|
       it "delivers every completed payload report before propagating #{interrupt}" do
@@ -333,19 +388,21 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     end
   end
 
-  describe "with an interrupt after native completion" do
+  shared_context "with a native barrier" do
     before do
       skip "Requires Linux symbol interposition" unless RUBY_PLATFORM.include?("linux")
     end
 
     let(:fixture_dir) { File.expand_path("fixtures", __dir__) }
+    let(:barrier) { "send_barrier" }
+    let(:shape) { "1" }
 
     def interrupted_send(interrupt, callback_failure = "none")
       Dir.mktmpdir("observations-interrupt") do |dir|
-        library = File.join(dir, "send_barrier.so")
+        library = File.join(dir, "#{barrier}.so")
         includes = File.expand_path("../../include", Libdatadog.pkgconfig_folder)
         command = Shellwords.split(RbConfig::CONFIG.fetch("CC")) + [
-          "-shared", "-fPIC", "-o", library, File.join(fixture_dir, "send_barrier.c"), "-I#{includes}", "-ldl",
+          "-shared", "-fPIC", "-o", library, File.join(fixture_dir, "#{barrier}.c"), "-I#{includes}", "-ldl",
         ]
         output, status = Open3.capture2e(*command)
         expect(status.success?).to be(true), output
@@ -357,7 +414,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         stderr = File.join(dir, "stderr")
         pid = Process.spawn(env, RbConfig.ruby, "-Ilib",
           File.join(fixture_dir, "interrupted_send.rb"), "http://127.0.0.1:#{mock_agent.port}",
-          interrupt, callback_failure, out: stdout, err: stderr,)
+          interrupt, callback_failure, shape, out: stdout, err: stderr,)
         begin
           status = Timeout.timeout(30) { Process.wait2(pid).last }
           pid = nil
@@ -369,6 +426,10 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         end
       end
     end
+  end
+
+  describe "with an interrupt after native completion" do
+    include_context "with a native barrier"
 
     it "forwards observations in the uninterrupted control" do
       result = interrupted_send("none")
@@ -410,6 +471,51 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
           expect(result.fetch("returned")).to be false
           expect(result.fetch("same_exception")).to be true if interrupt == "raise"
           expect(result.fetch("error")).to be_nil if interrupt == "kill"
+        end
+      end
+    end
+  end
+
+  describe "with an interrupt before native dispatch" do
+    include_context "with a native barrier"
+
+    let(:barrier) { "dispatch_barrier" }
+    let(:shape) { "2,1" }
+
+    def trace_requests
+      mock_agent.requests.select { |entry| entry[:request_line].include?("/v0.4/traces") }
+    end
+
+    it "sends and reports normally in the uninterrupted control" do
+      result = interrupted_send("none")
+      expect(trace_requests.length).to eq(1)
+      expect(result.fetch("reports")).to eq(
+        [
+          {
+            "requests_count" => 1, "responses_count" => 1, "status_code" => 200,
+            "chunks_sent" => 2, "spans_enqueued_for_serialization" => 3,
+            "bytes_sent" => trace_requests.first.fetch(:body).bytesize,
+          },
+        ]
+      )
+      expect(result.fetch("returned")).to be true
+    end
+
+    ["raise", "kill"].each do |interrupt|
+      ["none", "standard", "fatal", "break"].each do |callback_failure|
+        it "reports every chunk as cancelled before #{interrupt} with #{callback_failure} callback failure" do
+          result = interrupted_send(interrupt, callback_failure)
+          expect(result.fetch("reports")).to eq(
+            [{"chunks_dropped_cancelled" => 2, "spans_dropped_cancelled" => 3, "spans_enqueued_for_serialization" => 3}]
+          )
+          expect(result.fetch("returned")).to be false
+          if interrupt == "raise"
+            expect(result.fetch("same_exception")).to be true
+            expect(result.fetch("backtrace")).to eq(["original:1"])
+          else
+            expect(result.fetch("error")).to be_nil
+          end
+          expect(trace_requests).to be_empty
         end
       end
     end

@@ -323,6 +323,27 @@ RSpec.describe "Native transport fork safety and cancellation" do
       end
     end
 
+    it "reports failed setup as unsent API errors rather than cancellation" do
+      skip "File descriptor limits are unavailable" unless defined?(::Process::RLIMIT_NOFILE)
+
+      expect_in_fork do
+        exporter._native_before_fork
+        spans = build_trace(name: "failed.setup").spans
+        reports = []
+        soft, hard = Process.getrlimit(:NOFILE)
+        begin
+          Process.setrlimit(:NOFILE, 0, hard)
+          expect { exporter._native_after_fork_in_child }.to raise_error(RuntimeError, /Failed to restore after fork/)
+          responses = exporter._native_send_traces([spans], false) { |report| reports << report }
+          expect(responses.first).to be_internal_error
+        ensure
+          Process.setrlimit(:NOFILE, soft, hard)
+        end
+        expect(reports).to eq([{chunks_dropped_send_failure: 1, spans_dropped_api_error: 1, spans_enqueued_for_serialization: 1}])
+        exporter._native_after_fork_in_child
+      end
+    end
+
     context "after resetting component fork hooks" do
       reset_at_fork_monkey_patch_for_components!
 
