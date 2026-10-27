@@ -1,6 +1,5 @@
 #include "consumer_recorder.h"
-
-#include <ruby/st.h>
+#include "allocator.h"
 
 #include "../datadog_ruby_common.h"
 #include "../private_vm_api_access.h"
@@ -20,23 +19,37 @@ typedef struct {
   monotonic_time_t monotonic_time_at_previous_sample;
 } consumer_thread_context;
 
+static void *thread_contexts_alloc(size_t size) {
+  return miteruby_allocator_alloc(size, "thread_contexts");
+}
+
+#define NAME verstable_thread_contexts_map
+#define KEY_TY VALUE
+#define VAL_TY consumer_thread_context
+#define HASH_FN vt_hash_integer
+#define CMPR_FN vt_cmpr_integer
+#define MALLOC_FN thread_contexts_alloc
+#define FREE_FN miteruby_allocator_free
+#include "verstable.h"
+
 // Ruby thread keys are marked and pinned via objects_to_mark.
-static st_table *thread_contexts;
+static verstable_thread_contexts_map thread_contexts;
+static bool thread_contexts_initialized = false;
 
 // Declared in Ruby's private iseq.h; redeclared here to avoid importing VM internals.
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
-static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused);
 static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time);
 static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time);
 static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback, size_t fallback_size);
 
 void miteruby_consumer_recorder_init(void) {
-  if (thread_contexts == NULL) {
-    thread_contexts = st_init_numtable();
+  if (!thread_contexts_initialized) {
+    verstable_thread_contexts_map_init(&thread_contexts);
+    thread_contexts_initialized = true;
   } else {
-    st_foreach(thread_contexts, free_thread_context, 0);
+    verstable_thread_contexts_map_clear(&thread_contexts);
   }
 }
 
@@ -138,16 +151,16 @@ static miteruby_sample_values sample_values_for(VALUE thread, monotonic_time_t m
 }
 
 static consumer_thread_context *thread_context_for(VALUE thread, monotonic_time_t monotonic_time, cpu_time_t cpu_time) {
-  st_data_t existing_context;
-  if (st_lookup(thread_contexts, (st_data_t) thread, &existing_context)) return (consumer_thread_context *) existing_context;
-
-  consumer_thread_context *context = ruby_xmalloc(sizeof(*context));
-  *context = (consumer_thread_context) {
-    .cpu_time_at_previous_sample = cpu_time,
-    .monotonic_time_at_previous_sample = monotonic_time,
-  };
-  st_insert(thread_contexts, (st_data_t) thread, (st_data_t) context);
-  return context;
+  verstable_thread_contexts_map_itr entry = verstable_thread_contexts_map_get_or_insert(
+    &thread_contexts,
+    thread,
+    (consumer_thread_context) {
+      .cpu_time_at_previous_sample = cpu_time,
+      .monotonic_time_at_previous_sample = monotonic_time,
+    }
+  );
+  if (verstable_thread_contexts_map_is_end(entry)) rb_bug("Failed to grow miteruby thread contexts map");
+  return &entry.data->val;
 }
 
 static long update_and_get_time_since_previous_sample(consumer_thread_context *context, cpu_time_t current_time) {
@@ -175,9 +188,4 @@ static ddog_CharSlice thread_name_label(VALUE thread, VALUE name, char *fallback
 
   snprintf(fallback, fallback_size, "%s:%d", path, line);
   return (ddog_CharSlice) {.ptr = fallback, .len = strlen(fallback)};
-}
-
-static int free_thread_context(DDTRACE_UNUSED st_data_t thread, st_data_t context, DDTRACE_UNUSED st_data_t unused) {
-  ruby_xfree((void *) context);
-  return ST_DELETE;
 }
