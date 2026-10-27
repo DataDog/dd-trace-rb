@@ -2329,6 +2329,33 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(samples.first.values.fetch(:"cpu-time")).to eq(80)
     end
 
+    it "preserves independent thread baselines as more threads are recorded" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      finish = Queue.new
+      threads = Array.new(64) { Thread.new { finish.pop } }
+
+      threads.each_with_index do |thread, index|
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(thread, 100 + index)).to be true
+      end
+      consume_miteruby
+      first_samples = recorded_miteruby_samples
+
+      threads.each_with_index do |thread, index|
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(thread, 1000 + 2 * index)).to be true
+      end
+      consume_miteruby
+      next_samples = recorded_miteruby_samples
+
+      threads.each_with_index do |thread, index|
+        expect(samples_for_thread(first_samples, thread).map(&:values)).to contain_exactly(include("cpu-time": 0, "wall-time": 0))
+        expect(samples_for_thread(next_samples, thread).map(&:values)).to contain_exactly(include("cpu-time": 900 + index))
+      end
+    ensure
+      threads&.each { finish << true }
+      threads&.each(&:join)
+    end
+
     it "resets both baselines when the worker starts a new profiling session" do
       2.times do
         capture_miteruby { 2.times { publish_miteruby_sample } }
