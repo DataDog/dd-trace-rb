@@ -257,7 +257,7 @@ static void buffer_event(const miteruby_event_header_t *header) {
     .frame_count = header->frame_count,
   };
   bool inserted;
-  size_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(view, &inserted);
+  miteruby_stack_dedup_id_t stack_id = miteruby_consumer_stack_dedup_get_or_insert(view, &inserted);
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&objects_to_mark_mutex);
