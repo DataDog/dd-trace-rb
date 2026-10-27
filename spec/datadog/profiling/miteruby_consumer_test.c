@@ -17,7 +17,6 @@ static stack_key key_for(const miteruby_event_stack_sample_view_t *view) {
   return (stack_key) {
     .hash = stack_view_hash(*view),
     .location.as.view = view,
-    .frame_count = view->frame_count,
     .borrowed = true,
   };
 }
@@ -109,6 +108,13 @@ static void test_identity_and_collisions(void) {
   size_t collision_second = deduplicate_stack(collision, &inserted);
   assert(inserted && collision_first != collision_second);
   positions_for(event)[0].value--;
+  assert(deduplicate_stack(collision, &inserted) == collision_first && !inserted);
+
+  collision_view.frame_count = 0;
+  size_t collision_empty = deduplicate_stack(collision, &inserted);
+  assert(inserted && collision_empty != collision_first && collision_empty != collision_second);
+  assert(deduplicate_stack(collision, &inserted) == collision_empty && !inserted);
+  collision_view.frame_count = 1;
   assert(deduplicate_stack(collision, &inserted) == collision_first && !inserted);
 
   event->header.frame_count = 0;
