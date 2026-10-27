@@ -39,7 +39,7 @@ module Datadog
             if !appsec.track_user_events.options[:mode].default_precedence? &&
                 appsec.auto_user_instrumentation.options[:mode].default_precedence?
               return TRACK_USER_EVENTS_CONVERSION_RULES.fetch(
-                appsec.track_user_events.mode, appsec.auto_user_instrumentation.mode
+                appsec.track_user_events.mode, appsec.auto_user_instrumentation.mode,
               )
             end
 

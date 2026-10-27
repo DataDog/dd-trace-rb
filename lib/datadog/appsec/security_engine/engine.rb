@@ -163,7 +163,7 @@ module Datadog
           if diagnostics["error"]
             telemetry.inc(
               Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
-              tags: common_tags.merge(scope: "top-level")
+              tags: common_tags.merge(scope: "top-level"),
             )
 
             telemetry.error(diagnostics["error"])
@@ -178,7 +178,7 @@ module Datadog
 
               telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
-                tags: common_tags.merge(config_key: config_key, scope: "top-level")
+                tags: common_tags.merge(config_key: config_key, scope: "top-level"),
               )
             elsif config_diagnostics["errors"]
               config_diagnostics["errors"].each do |error, config_ids|
@@ -187,7 +187,7 @@ module Datadog
 
               telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", config_diagnostics["errors"].count,
-                tags: common_tags.merge(config_key: config_key, scope: "item")
+                tags: common_tags.merge(config_key: config_key, scope: "item"),
               )
             end
           end

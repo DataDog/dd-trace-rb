@@ -118,14 +118,14 @@ module Datadog
             dropped_events.each do |event, bytes|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                event_type: event.event_type, bytes: bytes
+                event_type: event.event_type, bytes: bytes,
               )
             end
 
             return payload if encoded_snapshots.empty?
 
             Datadog::Core::Chunker.chunk_by_size(
-              encoded_snapshots, DEFAULT_CHUNK_SIZE
+              encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
               # We drop snapshots that are too big earlier.
               # The limit on chunked payload length here is greater

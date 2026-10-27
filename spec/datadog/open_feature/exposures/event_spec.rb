@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   let(:serial_id) { nil }
   let(:context) do
     instance_double(
-      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
     )
   end
   let(:result) do
@@ -69,7 +69,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
     context "when context does not contain extra fields" do
       let(:context) do
         instance_double(
-          OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+          OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
         )
       end
       let(:expected) do

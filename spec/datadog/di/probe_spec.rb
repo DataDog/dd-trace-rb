@@ -218,7 +218,7 @@ RSpec.describe Datadog::DI::Probe do
       let(:probe) do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
-          capture_expressions: [capture_expression]
+          capture_expressions: [capture_expression],
         )
       end
 
@@ -236,7 +236,7 @@ RSpec.describe Datadog::DI::Probe do
       let(:probe) do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
-          capture_expressions: []
+          capture_expressions: [],
         )
       end
 
@@ -250,7 +250,7 @@ RSpec.describe Datadog::DI::Probe do
         described_class.new(
           id: "42", type: :log, type_name: "Foo", method_name: "bar",
           capture_expressions: [capture_expression],
-          rate_limit: 42
+          rate_limit: 42,
         )
       end
 

@@ -120,7 +120,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher service" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new, sample_rate: sample_rate
+                  Datadog::Tracing::Sampling::Span::Matcher.new, sample_rate: sample_rate,
                 ),
               )
             end
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher service" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new, rate_limit: max_per_second
+                  Datadog::Tracing::Sampling::Span::Matcher.new, rate_limit: max_per_second,
                 ),
               )
             end

@@ -96,7 +96,7 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
       let(:downstream_response_store) do
         Datadog::AppSec::Metrics::Collector::DownstreamResponseStore.new(
           content_type_invalid: 0, content_length_missing: 0,
-          content_length_too_big: 0, content_exceed_content_length: 0
+          content_length_too_big: 0, content_exceed_content_length: 0,
         )
       end
 

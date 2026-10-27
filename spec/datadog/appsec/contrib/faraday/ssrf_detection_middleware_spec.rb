@@ -19,7 +19,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
   end
   let(:metrics) do
     instance_double(
-      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil
+      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil,
     )
   end
 
@@ -170,7 +170,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
 
     it "excludes body from ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
     end
   end
@@ -181,7 +181,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
 
       it "includes parsed body in ephemeral data" do
         expect(context).to have_received(:run_rasp).with(
-          "ssrf", {}, hash_including("server.io.net.request.body" => {"key" => "value"}), anything, phase: "request"
+          "ssrf", {}, hash_including("server.io.net.request.body" => {"key" => "value"}), anything, phase: "request",
         )
       end
     end
@@ -217,7 +217,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
 
     it "includes response body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response"
+        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
     end
 
@@ -242,7 +242,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
 
     it "includes parsed body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_including("server.io.net.request.body" => {"key" => "value", "foo" => "bar"}), anything, phase: "request"
+        "ssrf", {}, hash_including("server.io.net.request.body" => {"key" => "value", "foo" => "bar"}), anything, phase: "request",
       )
     end
   end
@@ -253,7 +253,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
     it "includes parsed body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with("ssrf", {}, anything, anything, phase: "request")
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response"
+        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
     end
 
@@ -267,7 +267,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
 
     it "includes parsed body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response"
+        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
     end
   end
@@ -280,7 +280,7 @@ RSpec.describe "AppSec Faraday SSRF detection middleware" do
         "ssrf", {},
         hash_including("server.io.net.response.body" => {"key" => "value", "foo" => "bar"}),
         anything,
-        phase: "response"
+        phase: "response",
       )
     end
   end

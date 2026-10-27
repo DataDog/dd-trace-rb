@@ -362,7 +362,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key, _observe_full_evaluation_data = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full
+              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
             )
             events << event
           end
@@ -372,7 +372,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_dimension = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded
+              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
             )
             events << event
           end

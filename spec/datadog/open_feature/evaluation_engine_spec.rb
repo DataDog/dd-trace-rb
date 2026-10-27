@@ -114,7 +114,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       it "preserves the error and stamps the evaluation metadata" do
         expect(reporter).to receive(:report).with(
-          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil
+          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil,
         )
 
         expect(result.error_code).to eq("PARSE_ERROR")
@@ -249,7 +249,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
       let(:result) do
         engine.fetch_value(
-          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context
+          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context,
         )
       end
 

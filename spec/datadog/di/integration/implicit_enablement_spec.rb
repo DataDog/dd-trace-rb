@@ -707,14 +707,14 @@ RSpec.describe "DI implicit enablement integration" do
       instance_double(
         Datadog::Core::Remote::Component,
         start: nil, started?: false, shutdown!: nil,
-        add_products: nil, remove_products: nil
+        add_products: nil, remove_products: nil,
       )
     end
     let(:rebuild_telemetry) do
       instance_double(
         Datadog::Core::Telemetry::Component,
         start: nil, enabled: false, shutdown!: nil, emit_closing!: nil,
-        integrations_change!: nil
+        integrations_change!: nil,
       )
     end
     # Both trees share this double so the old tree's shutdown sees the

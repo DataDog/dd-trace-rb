@@ -83,7 +83,7 @@ module Datadog
         probe_id = probe.id if Reason::PROBE_SCOPED_REASONS.include?(reason)
         inc_metric(
           DI::TELEMETRY_NAMESPACE, EVENTS_SKIPPED, 1,
-          tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id)
+          tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id),
         )
         nil
       end
@@ -112,7 +112,7 @@ module Datadog
       def capture_incomplete(reason:, event_type:)
         inc_metric(
           DI::TELEMETRY_NAMESPACE, CAPTURE_INCOMPLETE, 1,
-          tags: capture_incomplete_tags(reason, event_type)
+          tags: capture_incomplete_tags(reason, event_type),
         )
         nil
       end

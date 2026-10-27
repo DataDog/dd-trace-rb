@@ -528,7 +528,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         degraded_aggregator.record(
           **base_event.merge(
             targeting_key: "user-456", eval_time_ms: 1_700_000_000_001,
-            observe_full_evaluation_data: false
+            observe_full_evaluation_data: false,
           ),
         )
 
@@ -565,7 +565,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it "resets full and degraded maps after flush" do
       aggregator.record(
         flag_key: "f", variant: "v", allocation_key: "",
-        targeting_key: "", eval_time_ms: 1000, attrs: {}
+        targeting_key: "", eval_time_ms: 1000, attrs: {},
       )
       aggregator.flush_and_reset
       snapshot2 = aggregator.flush_and_reset
@@ -589,7 +589,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       aggregator_small.record(flag_key: "f", variant: "v", allocation_key: "", targeting_key: "", eval_time_ms: 2, attrs: {"x" => 2}, observe_full_evaluation_data: true)
       aggregator_small.record(
         flag_key: "f", variant: "v", allocation_key: "", error_message: "boom",
-        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true
+        targeting_key: "", eval_time_ms: 3, attrs: {"x" => 3}, observe_full_evaluation_data: true,
       )
 
       snapshot = aggregator_small.flush_and_reset

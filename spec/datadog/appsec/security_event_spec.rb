@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          keep: true, input_truncated: false
+          keep: true, input_truncated: false,
         )
       end
 
@@ -27,7 +27,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          keep: false, input_truncated: false
+          keep: false, input_truncated: false,
         )
       end
 

@@ -460,7 +460,7 @@ module Datadog
         )
         error_flag_meta = flag_meta
         error_flag_meta ||= build_flag_metadata(
-          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i,
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)

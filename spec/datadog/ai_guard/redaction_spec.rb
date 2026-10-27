@@ -77,7 +77,7 @@ RSpec.describe Datadog::AIGuard::Redaction do
       let(:tool_calls) do
         [
           Datadog::AIGuard::Evaluation::ToolCall.new(
-            "lookup_account", id: "call-1", arguments: '{"account":"123"}'
+            "lookup_account", id: "call-1", arguments: '{"account":"123"}',
           ),
         ]
       end

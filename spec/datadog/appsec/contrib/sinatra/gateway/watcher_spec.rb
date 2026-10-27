@@ -55,7 +55,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
         )
       end
 
@@ -76,7 +76,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, {}, anything
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, {}, anything,
         )
       end
     end
@@ -99,7 +99,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
           gateway.push("sinatra.request.dispatch", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything
+            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
           )
         end
       end
@@ -114,7 +114,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
           gateway.push("sinatra.request.dispatch", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}}, {}, anything
+            {"server.request.body" => {"name" => "john"}}, {}, anything,
           )
         end
       end
@@ -161,7 +161,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.request.dispatch", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body.byte_length" => 9}, {}, anything
+          {"server.request.body.byte_length" => 9}, {}, anything,
         )
       end
 
@@ -226,7 +226,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         {
           "server.response.body" => an_instance_of(Datadog::AppSec::WAF::JSONString).and(eq('{"x":1}')),
           "server.response.body.byte_length" => 7,
-        }, {}, anything
+        }, {}, anything,
       )
     end
 
@@ -245,7 +245,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything
+          {"server.response.body.byte_length" => 7}, {}, anything,
         )
       end
     end
@@ -263,7 +263,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 4}, {}, anything
+          {"server.response.body.byte_length" => 4}, {}, anything,
         )
       end
     end
@@ -275,7 +275,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything
+          {"server.response.body.byte_length" => 7}, {}, anything,
         )
       end
     end
@@ -287,7 +287,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push("sinatra.response.body.json", container)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.response.body.byte_length" => 7}, {}, anything
+          {"server.response.body.byte_length" => 7}, {}, anything,
         )
       end
     end

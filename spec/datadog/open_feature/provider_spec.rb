@@ -627,7 +627,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         Datadog::OpenFeature::ResolutionDetails.new(
           value: "{}", reason: "MATCH", variant: "blue",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "joe", extra_logging: {}, log?: true, error?: false
+          allocation_key: "joe", extra_logging: {}, log?: true, error?: false,
         )
       end
 
@@ -722,7 +722,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes provider success details to the EVP hook after SDK finalization" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -743,7 +743,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final type mismatch details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -765,7 +765,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final after-hook failure details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       failing_after_hook = double("FailingAfterHook", before: nil, error: nil, finally: nil)
       allow(failing_after_hook).to receive(:after).and_raise(RuntimeError, "after boom")
@@ -794,7 +794,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "nope", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -940,7 +940,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -966,7 +966,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           result = Datadog::OpenFeature::ResolutionDetails.new(
             value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
             flag_metadata: {},
-            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false
+            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false,
           )
           allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -993,7 +993,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -1019,7 +1019,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
           error_message: "flag user-1 was not found", flag_metadata: {
             Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true
+          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -1051,7 +1051,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: {"existing" => "kept"}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -1067,7 +1067,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: metadata, allocation_key: "alloc-9", extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -1085,7 +1085,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "d", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "missing", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 

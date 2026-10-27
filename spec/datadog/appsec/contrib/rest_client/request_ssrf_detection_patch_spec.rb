@@ -18,7 +18,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
   let(:metrics) do
     instance_double(
-      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil
+      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil,
     )
   end
 
@@ -215,7 +215,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
 
     it "excludes body from ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
     end
   end
@@ -226,7 +226,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
 
       it "does not include request body in ephemeral data" do
         expect(context).to have_received(:run_rasp).with(
-          "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
+          "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request",
         )
       end
     end
@@ -261,7 +261,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
 
     it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
     end
   end
@@ -282,7 +282,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
 
     it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request",
       )
     end
   end
@@ -293,7 +293,7 @@ RSpec.describe "RestClient::Request patch for SSRF detection" do
     it "includes parsed body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with("ssrf", {}, anything, anything, phase: "request")
       expect(context).to have_received(:run_rasp).with(
-        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response"
+        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response",
       )
     end
 

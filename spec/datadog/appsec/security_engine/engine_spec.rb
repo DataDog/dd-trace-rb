@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "1.0.0",
             success: "true",
-          }
+          },
         )
 
         engine
@@ -101,7 +101,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.init metric once with correct tags" do
         expect(telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(telemetry).to receive(:inc).with(
@@ -109,7 +109,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
             success: "false",
-          }
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -165,7 +165,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.init metric once with correct tags" do
         expect(telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(telemetry).to receive(:inc).with(
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
             success: "false",
-          }
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -709,7 +709,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
           event_rules_version: "1.0.0",
           success: "true",
-        }
+        },
       )
 
       engine.reconfigure!
@@ -748,7 +748,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.updates metric with success: false" do
         expect(Datadog::AppSec.telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.updates", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(Datadog::AppSec.telemetry).to receive(:inc).with(
@@ -757,7 +757,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "2.0.0",
             success: "false",
-          }
+          },
         )
 
         engine.reconfigure!

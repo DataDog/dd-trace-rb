@@ -18,7 +18,7 @@ module Datadog
         class Spec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
-              :post, "/evp_proxy/v2/api/v2/exposures"
+              :post, "/evp_proxy/v2/api/v2/exposures",
             )
           end
 
@@ -43,7 +43,7 @@ module Datadog
         class FlagevaluationsSpec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
-              :post, "/evp_proxy/v2/api/v2/flagevaluation"
+              :post, "/evp_proxy/v2/api/v2/flagevaluation",
             )
           end
 

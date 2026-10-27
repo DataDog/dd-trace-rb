@@ -419,7 +419,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         inc
 
         expect(metrics_manager).to have_received(:inc).with(
-          namespace, metric_name, value, tags: tags, common: common
+          namespace, metric_name, value, tags: tags, common: common,
         )
       end
     end
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         dec
 
         expect(metrics_manager).to have_received(:dec).with(
-          namespace, metric_name, value, tags: tags, common: common
+          namespace, metric_name, value, tags: tags, common: common,
         )
       end
     end
@@ -443,7 +443,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         gauge
 
         expect(metrics_manager).to have_received(:gauge).with(
-          namespace, metric_name, value, tags: tags, common: common
+          namespace, metric_name, value, tags: tags, common: common,
         )
       end
     end
@@ -455,7 +455,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         rate
 
         expect(metrics_manager).to have_received(:rate).with(
-          namespace, metric_name, value, tags: tags, common: common
+          namespace, metric_name, value, tags: tags, common: common,
         )
       end
     end
@@ -467,7 +467,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         distribution
 
         expect(metrics_manager).to have_received(:distribution).with(
-          namespace, metric_name, value, tags: tags, common: common
+          namespace, metric_name, value, tags: tags, common: common,
         )
       end
     end

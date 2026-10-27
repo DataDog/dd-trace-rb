@@ -27,7 +27,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     let(:waf_metrics) do
       Datadog::AppSec::Metrics::Collector::Store.new(
         evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0,
-        inputs_truncated: 0, downstream_requests: 0
+        inputs_truncated: 0, downstream_requests: 0,
       )
     end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
           block_failure: "false",
           rate_limited: "false",
           input_truncated: "false",
-        }
+        },
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -54,7 +54,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(rule_triggered: "true")
+        tags: hash_including(rule_triggered: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -65,7 +65,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(waf_error: "true")
+        tags: hash_including(waf_error: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -76,7 +76,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(waf_timeout: "true")
+        tags: hash_including(waf_timeout: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -87,7 +87,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(input_truncated: "true")
+        tags: hash_including(input_truncated: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -98,7 +98,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(request_blocked: "true")
+        tags: hash_including(request_blocked: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -109,7 +109,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
       expect(Datadog::AppSec.telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
-        tags: hash_including(rate_limited: "true")
+        tags: hash_including(rate_limited: "true"),
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
@@ -125,7 +125,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     it "increases api_security.request.schema metric when schema was extracted" do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.schema", 1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
 
       context.state[:schema_extracted] = true
@@ -136,7 +136,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     it "increases api_security.request.no_schema metric when schema was not extracted" do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.no_schema", 1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
 
       context.state[:schema_extracted] = false
@@ -154,7 +154,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     it "increases api_security.missing_route metric when http.route tag is missing on the context span" do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.missing_route", 1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
 
       context.state[:web_framework] = "rails"
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     it "does not increase api_security.missing_route metric when http.route tag is present on the context span" do
       expect(telemetry).not_to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.missing_route", 1,
-        tags: {framework: "rails"}
+        tags: {framework: "rails"},
       )
 
       span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE, "/foo")

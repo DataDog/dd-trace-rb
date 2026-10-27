@@ -229,7 +229,7 @@ module Datadog
               Datadog::SymbolDatabase::Component.build(
                 settings, agent_settings, @logger,
                 telemetry: telemetry,
-                di_active: -> { dynamic_instrumentation&.started? || false }
+                di_active: -> { dynamic_instrumentation&.started? || false },
               )
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)

@@ -209,7 +209,7 @@ module Datadog
           return if trace.profiling_enabled.nil?
 
           root_span.set_tag(
-            Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0
+            Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0,
           )
         end
 

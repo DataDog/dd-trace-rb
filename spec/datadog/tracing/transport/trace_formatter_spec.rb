@@ -615,7 +615,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     context "when APM tracing is disabled and the chunk contains its root span" do
       let(:trace) do
         Datadog::Tracing::TraceSegment.new(
-          spans, root_span_id: spans[1].id, apm_tracing_enabled: false, id: trace_id
+          spans, root_span_id: spans[1].id, apm_tracing_enabled: false, id: trace_id,
         )
       end
 
@@ -625,7 +625,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     context "when APM tracing is disabled and the chunk has no root span (partial flush)" do
       let(:trace) do
         Datadog::Tracing::TraceSegment.new(
-          spans, root_span_id: Datadog::Tracing::Utils.next_id, apm_tracing_enabled: false, id: trace_id
+          spans, root_span_id: Datadog::Tracing::Utils.next_id, apm_tracing_enabled: false, id: trace_id,
         )
       end
 
@@ -635,7 +635,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     context "when APM tracing is enabled" do
       let(:trace) do
         Datadog::Tracing::TraceSegment.new(
-          spans, root_span_id: spans[1].id, apm_tracing_enabled: true, id: trace_id
+          spans, root_span_id: spans[1].id, apm_tracing_enabled: true, id: trace_id,
         )
       end
 

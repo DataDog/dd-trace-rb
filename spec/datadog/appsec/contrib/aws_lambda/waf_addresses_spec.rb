@@ -210,7 +210,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         result
 
         expect(Datadog::AppSec.telemetry).to have_received(:report).with(
-          kind_of(ArgumentError), description: "AppSec: Failed to decode base64 body"
+          kind_of(ArgumentError), description: "AppSec: Failed to decode base64 body",
         )
       end
     end

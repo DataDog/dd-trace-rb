@@ -1993,7 +1993,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
         )
       end
 
@@ -2042,7 +2042,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-          capture_snapshot: false
+          capture_snapshot: false,
         )
       end
 
@@ -2112,7 +2112,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, file: "hook_line_load.rb", line_no: 30,
-          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
         )
       end
 
@@ -2501,7 +2501,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+          condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
         )
       end
 

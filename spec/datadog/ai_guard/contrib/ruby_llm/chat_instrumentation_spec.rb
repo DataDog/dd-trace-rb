@@ -170,7 +170,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Describe this",
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
         ],
       )
@@ -293,7 +293,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: nil,
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
         ],
       )

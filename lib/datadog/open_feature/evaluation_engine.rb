@@ -50,7 +50,7 @@ module Datadog
 
         context = evaluation_context&.fields.to_h
         result = evaluator.get_assignment(
-          flag_key, default_value: default_value, context: context, expected_type: expected_type
+          flag_key, default_value: default_value, context: context, expected_type: expected_type,
         )
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)

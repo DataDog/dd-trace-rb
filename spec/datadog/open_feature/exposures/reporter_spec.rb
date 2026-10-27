@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
   let(:context) do
     instance_double(
-      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
     )
   end
   let(:result) do

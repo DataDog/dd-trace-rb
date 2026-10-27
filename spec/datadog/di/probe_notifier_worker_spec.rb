@@ -58,7 +58,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,
       probe_repository: default_probe_repository,
-      probe_notification_builder: default_probe_notification_builder
+      probe_notification_builder: default_probe_notification_builder,
     )
   end
 
@@ -92,13 +92,13 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   describe "#snapshot_transport" do
     let(:agent_settings) do
       Datadog::Core::Configuration::AgentSettingsResolver.call(
-        Datadog::Core::Configuration::Settings.new, logger: nil
+        Datadog::Core::Configuration::Settings.new, logger: nil,
       )
     end
 
     let(:logger) do
       Datadog::DI::Logger.new(
-        Datadog::Core::Configuration::Settings.new, Logger.new(File::NULL)
+        Datadog::Core::Configuration::Settings.new, Logger.new(File::NULL),
       )
     end
 
@@ -439,7 +439,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           telemetry: telemetry,
           guardrails_telemetry: guardrails_telemetry,
           probe_repository: probe_repository,
-          probe_notification_builder: probe_notification_builder
+          probe_notification_builder: probe_notification_builder,
         )
       end
 
@@ -542,7 +542,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           telemetry: nil,
           guardrails_telemetry: guardrails_telemetry,
           probe_repository: real_probe_repository,
-          probe_notification_builder: error_probe_notification_builder
+          probe_notification_builder: error_probe_notification_builder,
         )
       end
 

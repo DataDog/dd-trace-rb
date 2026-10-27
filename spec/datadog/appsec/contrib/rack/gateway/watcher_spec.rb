@@ -50,7 +50,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
         gateway.push("rack.request.body", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
         )
       end
     end
@@ -65,7 +65,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
         gateway.push("rack.request.body", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, {}, anything
+          {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 42}, {}, anything,
         )
       end
     end
@@ -88,7 +88,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
           gateway.push("rack.request.body", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything
+            {"server.request.body" => {"name" => "john"}, "server.request.body.byte_length" => 9}, {}, anything,
           )
         end
       end
@@ -103,7 +103,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
           gateway.push("rack.request.body", gateway_request)
 
           expect(context).to have_received(:run_waf).with(
-            {"server.request.body" => {"name" => "john"}}, {}, anything
+            {"server.request.body" => {"name" => "john"}}, {}, anything,
           )
         end
       end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
         gateway.push("rack.request.body", gateway_request)
 
         expect(context).to have_received(:run_waf).with(
-          {"server.request.body.byte_length" => 9}, {}, anything
+          {"server.request.body.byte_length" => 9}, {}, anything,
         )
       end
 

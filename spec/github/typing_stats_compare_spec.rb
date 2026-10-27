@@ -66,7 +66,7 @@ RSpec.describe "typing stats comparison" do
     output, status = Open3.capture2e(
       environment,
       "bundle", "exec", "ruby", File.expand_path(script),
-      chdir: working_directory
+      chdir: working_directory,
     )
     raise output unless status.success?
 

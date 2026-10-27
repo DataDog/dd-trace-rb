@@ -18,7 +18,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
 
     it "raises an ArgumentError when :tool_calls is not an array" do
       expect { described_class.new(role: :assistant, tool_calls: "ls -la") }.to raise_error(
-        ArgumentError, "Tool calls must be an Array"
+        ArgumentError, "Tool calls must be an Array",
       )
     end
 

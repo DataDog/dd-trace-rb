@@ -582,7 +582,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "increments the timeout telemetry counter" do
         expect(telemetry).to receive(:inc).with(
-          "debugger", "serialized_values_skipped_by_timeout", 1
+          "debugger", "serialized_values_skipped_by_timeout", 1,
         ).at_least(:once)
         serializer.serialize_value([1, 2, 3], name: :x, deadline: serializer.serialization_deadline)
       end
@@ -615,7 +615,7 @@ RSpec.describe Datadog::DI::Serializer do
 
       it "increments the timeout telemetry counter once for the stopped element" do
         expect(telemetry).to receive(:inc).with(
-          "debugger", "serialized_values_skipped_by_timeout", 1
+          "debugger", "serialized_values_skipped_by_timeout", 1,
         ).once
         serializer.serialize_value([10, 20, 30, 40], name: :x, deadline: serializer.serialization_deadline)
       end

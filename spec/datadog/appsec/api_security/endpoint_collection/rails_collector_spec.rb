@@ -12,7 +12,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
     it "serializes Rails dispatcher routes" do
       route = instance_double(
         "ActionDispatch::Journey::Route", dispatcher?: true, verb: "GET",
-        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events")
+        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events"),
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
     it "serializes Rails dispatcher routes that support multiple methods" do
       route = instance_double(
         "ActionDispatch::Journey::Route", dispatcher?: true, verb: "GET|POST",
-        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events")
+        path: instance_double("ActionDispatch::Journey::Path::Pattern", spec: "/events"),
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)

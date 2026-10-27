@@ -68,7 +68,7 @@ module Datadog
               end
 
               gateway_response = Gateway::Response.new(
-                http_response[2], http_response[0], http_response[1], context: ctx
+                http_response[2], http_response[0], http_response[1], context: ctx,
               )
 
               Instrumentation.gateway.push("rack.request.finish", gateway_request)
@@ -182,7 +182,7 @@ module Datadog
             if span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
               # always collect client ip, as this is part of AppSec provided functionality
               Datadog::Tracing::ClientIp.set_client_ip_tag!(
-                span, headers: headers, remote_ip: env["REMOTE_ADDR"]
+                span, headers: headers, remote_ip: env["REMOTE_ADDR"],
               )
             end
           end
@@ -192,7 +192,7 @@ module Datadog
             return unless span
 
             AppSec::DefaultHeaderTags.tag_response(
-              span, Datadog::Core::HeaderCollection.from_hash(response.headers)
+              span, Datadog::Core::HeaderCollection.from_hash(response.headers),
             )
 
             unless response.headers.key?("content-length")

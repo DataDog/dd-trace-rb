@@ -152,7 +152,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(observations).to eq(
         requests_count: 1, responses_count: 1, status_code: 200,
         chunks_sent: 1, spans_enqueued_for_serialization: 1,
-        bytes_sent: request.fetch(:body).bytesize
+        bytes_sent: request.fetch(:body).bytesize,
       )
       expect(mock_agent.requests.none? { |entry| entry[:request_line].include?("telemetry") }).to be true
     end
@@ -501,7 +501,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         requests_count: attempts, errors_status_code: 1,
         responses_count: 1, status_code: 500,
         chunks_dropped_send_failure: 1,
-        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1
+        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1,
       )
     end
   end

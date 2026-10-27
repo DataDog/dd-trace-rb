@@ -213,7 +213,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
 
       it "traces dynamic method with custom span name" do
         Datadog::Kit::Tracing::MethodTracer.trace_method(
-          Dummy, :dynamic_method, span_name: "custom_dynamic_span", dynamic: true
+          Dummy, :dynamic_method, span_name: "custom_dynamic_span", dynamic: true,
         )
 
         result = Datadog::Tracing.trace("wrapper") do

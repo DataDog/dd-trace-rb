@@ -89,7 +89,7 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is not supported" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/xml"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/xml",
           )
         end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is text/html" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/html"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/html",
           )
         end
 
@@ -121,7 +121,7 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is application/json" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/json"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "application/json",
           )
         end
 
@@ -135,7 +135,7 @@ RSpec.describe Datadog::AppSec::Response do
       context "when Accept header value is text/plain" do
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain",
           )
         end
 
@@ -165,7 +165,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         let(:response) do
           described_class.from_interrupt_params(
-            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain"
+            {"security_response_id" => "00000000-0000-0000-0000-000000000000"}, "text/plain",
           )
         end
 

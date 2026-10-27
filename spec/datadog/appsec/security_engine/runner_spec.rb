@@ -191,7 +191,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         let(:waf_result) do
           instance_double(
             Datadog::AppSec::WAF::Result, status: :ok, events: [], actions: {}, attributes: {},
-            duration: 10, timeout?: false, keep?: false, input_truncated?: true
+            duration: 10, timeout?: false, keep?: false, input_truncated?: true,
           )
         end
 
@@ -210,7 +210,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
       let(:waf_result) do
         instance_double(
-          Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout?: false, input_truncated?: false
+          Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout?: false, input_truncated?: false,
         )
       end
 
@@ -224,7 +224,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       context "when WAF::Result#input_truncated? is true" do
         let(:waf_result) do
           instance_double(
-            Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout?: true, input_truncated?: true
+            Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout?: true, input_truncated?: true,
           )
         end
 

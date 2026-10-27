@@ -48,12 +48,12 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
 
       it "excludes advisories listed in ignore" do
         all = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: []
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
         )
         ignored_id = all.first.id
 
         remaining = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id]
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [ignored_id],
         )
 
         expect(remaining.map(&:id)).not_to include(ignored_id)
@@ -61,13 +61,13 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
 
       it "excludes findings matching an entry in ignore_gem_versions" do
         all = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: []
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
         )
         target = all.first
 
         remaining = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
-          ignore_gem_versions: [{"gem" => target.gem, "version" => target.version}]
+          ignore_gem_versions: [{"gem" => target.gem, "version" => target.version}],
         )
 
         expect(remaining).not_to include(target)
@@ -75,13 +75,13 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
 
       it "does not exclude a finding when only the gem matches but not the version" do
         all = described_class.findings(
-          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: []
+          ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
         )
         target = all.first
 
         remaining = described_class.findings(
           ["#{fixtures}/vulnerable.gemfile.lock"], database: database, ignore: [],
-          ignore_gem_versions: [{"gem" => target.gem, "version" => "not-the-real-version"}]
+          ignore_gem_versions: [{"gem" => target.gem, "version" => "not-the-real-version"}],
         )
 
         expect(remaining).to include(target)

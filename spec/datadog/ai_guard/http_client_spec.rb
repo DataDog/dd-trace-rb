@@ -119,7 +119,7 @@ RSpec.describe Datadog::AIGuard::HTTPClient do
 
       it "raises Datadog::AIGuard::AIGuardClientError" do
         expect { post }.to raise_error(
-          Datadog::AIGuard::AIGuardClientError, "Redirects for AI Guard API are not supported"
+          Datadog::AIGuard::AIGuardClientError, "Redirects for AI Guard API are not supported",
         )
       end
     end

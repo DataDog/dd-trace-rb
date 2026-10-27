@@ -297,7 +297,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
       it "propagates changes to the dispatcher" do
         expect_any_instance_of(Datadog::Core::Remote::Dispatcher).to receive(:dispatch).with(
-          instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet), repository
+          instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet), repository,
         )
         client.sync
       end
@@ -568,7 +568,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
         it "raises a transport error" do
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/
+            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/,
           )
         end
       end
@@ -578,7 +578,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/
+            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/,
           )
         end
       end
