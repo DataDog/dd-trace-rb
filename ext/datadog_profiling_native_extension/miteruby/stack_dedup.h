@@ -17,8 +17,8 @@ typedef struct {
 } miteruby_stack_dedup_result_t;
 
 // Except for startup initialization, callers hold consumer's consumed_events_mutex.
-void miteruby_stack_dedup_init(void);
-void miteruby_stack_dedup_reset(void);
+bool miteruby_stack_dedup_init(void);
+bool miteruby_stack_dedup_reset(void);
 size_t miteruby_stack_dedup_size(void);
 // Returned views borrow storage until the next reset; callers must not modify it.
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
