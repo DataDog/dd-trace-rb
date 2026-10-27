@@ -1,11 +1,37 @@
 #include "buffer.h"
 
+#include <ruby.h>
+#undef NDEBUG
 #include <assert.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
 #include <threads.h>
 #include <unistd.h>
+#include <errno.h>
+
+static unsigned wait_failures;
+#ifdef __APPLE__
+static int test_nanosleep(const struct timespec *delay, struct timespec *remaining) {
+    if (wait_failures == 0) return nanosleep(delay, remaining);
+    errno = --wait_failures ? EINTR : EINVAL;
+    return -1;
+}
+#define nanosleep test_nanosleep
+#else
+static int test_sem_wait(sem_t *semaphore) {
+    if (wait_failures == 0) return sem_wait(semaphore);
+    errno = --wait_failures ? EINTR : EINVAL;
+    return -1;
+}
+#define sem_wait test_sem_wait
+#endif
+#include "../../../ext/datadog_profiling_native_extension/miteruby/buffer.c"
+#ifdef __APPLE__
+#undef nanosleep
+#else
+#undef sem_wait
+#endif
 
 static miteruby_buffer_t buffer;
 static volatile sig_atomic_t signal_delivered;
@@ -122,8 +148,48 @@ static void test_interruptible_read(void)
     assert(miteruby_buffer_read(&buffer, NULL).data == NULL);
 }
 
-int main(void)
+static void test_internal_errors(void)
 {
+    const uint32_t capacity = MITERUBY_BUFFER_CAPACITY_BYTES / sizeof(uint64_t);
+    const struct {
+        uint32_t position;
+        uint32_t available;
+        uint64_t length;
+    } cases[] = {
+        {capacity - 1, 1, 0},
+        {capacity - 1, 2, 0},
+        {0, UINT16_MAX + 2U, UINT16_MAX + 2U},
+        {0, 1, 2},
+        {capacity - 1, 2, 2},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        assert(miteruby_buffer_init(&buffer) == 0);
+        buffer.next_read_position = cases[i].position;
+        buffer.data[0] = 0;
+        buffer.data[cases[i].position] = cases[i].length;
+        atomic_store(&buffer.write_state, cases[i].position + cases[i].available);
+        miteruby_buffer_record_t record = miteruby_buffer_read(&buffer, NULL);
+        assert(record.internal_error && record.data == NULL);
+        assert(!record.interrupted && !record.end_of_stream && record.rejected_count == 0);
+        assert(buffer.next_read_position == cases[i].position);
+        miteruby_buffer_destroy(&buffer);
+    }
+
+    assert(miteruby_buffer_init(&buffer) == 0);
+    atomic_bool interrupted = false;
+    wait_failures = 2;
+    miteruby_buffer_record_t record = miteruby_buffer_read(&buffer, &interrupted);
+    assert(wait_failures == 0);
+    assert(record.internal_error && record.data == NULL);
+    assert(!record.interrupted && !record.end_of_stream);
+    miteruby_buffer_destroy(&buffer);
+}
+
+int main(int argc, char **argv)
+{
+    ruby_sysinit(&argc, &argv);
+    RUBY_INIT_STACK;
+    ruby_init();
     alarm(10);
     assert(miteruby_buffer_init(&buffer) == 0);
     sigset_t mask, original_mask, current_mask;
@@ -186,6 +252,7 @@ int main(void)
     miteruby_buffer_close(&buffer, NULL);
     assert(miteruby_buffer_read(&buffer, NULL).end_of_stream);
     miteruby_buffer_destroy(&buffer);
+    test_internal_errors();
     alarm(0);
-    return 0;
+    return ruby_cleanup(0);
 }
