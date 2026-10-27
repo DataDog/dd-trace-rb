@@ -359,7 +359,8 @@ static void test_objects_to_mark_growth(void) {
 }
 
 int main(void) {
-  initialize_mutexes();
+  assert(mtx_init(&consumer_state.consumed_events_mutex, mtx_recursive) == thrd_success);
+  assert(mtx_init(&consumer_state.objects_to_mark_mutex, mtx_recursive) == thrd_success);
   verstable_objects_to_mark_set_init(&consumer_state.objects_to_mark);
   miteruby_stack_dedup_init();
   assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
