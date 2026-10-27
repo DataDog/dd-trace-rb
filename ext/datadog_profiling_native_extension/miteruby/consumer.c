@@ -166,11 +166,7 @@ void miteruby_consumer_consume_loop(miteruby_buffer_t *buffer) {
 static VALUE consume_loop_body(VALUE args_ptr) {
   consumer_consume_loop_args *args = (consumer_consume_loop_args *) args_ptr;
 
-  for (;;) {
-    atomic_store(&args->interrupted, false);
-    bool interrupted = (bool) rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
-    if (!interrupted) break;
-  }
+  rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
   return Qnil;
 }
 
@@ -187,8 +183,7 @@ static void *consume_without_gvl(void *args_ptr) {
 
   for (;;) {
     miteruby_buffer_record_t record = miteruby_buffer_read(args->buffer, &args->interrupted);
-    if (record.interrupted) return (void *) true;
-    if (record.end_of_stream) return (void *) false;
+    if (record.interrupted || record.end_of_stream) return NULL;
     if (record.data == NULL) continue;
 
     // The borrowed event stays in shared-buffer marking until the next read, after this transfer completes.
