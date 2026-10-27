@@ -18,6 +18,8 @@ module Datadog
 
         @mutex: Thread::Mutex
 
+        @fork_mutex: Thread::Mutex
+
         @route: route?
 
         @recover_at: Float

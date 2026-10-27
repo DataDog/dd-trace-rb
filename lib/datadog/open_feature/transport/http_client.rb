@@ -25,7 +25,7 @@ module Datadog
           @agent_settings = agent_settings
           @prefix = local_prefix
           @direct_host = direct_host(site)
-          @api_key = api_key&.dup&.freeze
+          @api_key = api_key.to_s.strip.freeze
         end
 
         def direct?
@@ -37,7 +37,7 @@ module Datadog
           return Response.new if timeout <= 0
 
           connected = false
-          Timeout.timeout(timeout) do
+          Timeout.timeout(timeout, Timeout::Error) do
             http = connection(direct)
             http.max_retries = 0
             http.open_timeout = http.read_timeout = timeout
@@ -99,6 +99,8 @@ module Datadog
           proxy_url = DATADOG_ENV["https_proxy"] || DATADOG_ENV["HTTPS_PROXY"]
           return Net::HTTP.new(@direct_host.to_s, 443) unless proxy_url
 
+          return Net::HTTP.new(@direct_host.to_s, 443, nil) if proxy_url.empty?
+
           proxy_url = "http://#{proxy_url}" unless proxy_url.include?("://")
           proxy = URI.parse("https://#{@direct_host}").find_proxy(
             "https_proxy" => proxy_url,
@@ -140,7 +142,7 @@ module Datadog
           return "" unless raw_url
 
           uri = URI.parse(raw_url)
-          return "" unless uri.is_a?(URI::HTTP) && uri.hostname == @agent_settings.hostname &&
+          return "" unless uri.is_a?(URI::HTTP) && uri.hostname.to_s.downcase == @agent_settings.hostname.to_s.downcase &&
             uri.port == @agent_settings.port && (uri.scheme == "https") == @agent_settings.ssl
 
           uri.path.to_s.sub(%r{/+\z}, "").sub(%r{/v(?:0\.[45]|1\.0)/traces\z}, "").freeze

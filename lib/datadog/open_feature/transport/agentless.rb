@@ -19,6 +19,7 @@ module Datadog
           @client = HTTPClient.new(agent_settings: agent_settings, site: site, api_key: api_key)
           @logger = logger
           @mutex = Mutex.new
+          @fork_mutex = Mutex.new
           @route = nil
           @recover_at = 0.0
           @pid = Process.pid
@@ -35,6 +36,7 @@ module Datadog
         end
 
         def shutdown!(timeout:)
+          reset_after_fork
           @shutdown_deadline = Core::Utils::Time.get_time + timeout
         end
 
@@ -120,11 +122,15 @@ module Datadog
         def reset_after_fork
           return if @pid == Process.pid
 
-          @mutex = Mutex.new
-          @route = nil
-          @recover_at = 0.0
-          @shutdown_deadline = nil
-          @pid = Process.pid
+          @fork_mutex.synchronize do
+            return if @pid == Process.pid
+
+            @mutex = Mutex.new
+            @route = nil
+            @recover_at = 0.0
+            @shutdown_deadline = nil
+            @pid = Process.pid
+          end
         end
       end
     end

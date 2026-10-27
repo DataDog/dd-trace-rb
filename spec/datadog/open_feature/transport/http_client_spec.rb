@@ -12,7 +12,35 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
   end
   let(:site) { "datadoghq.com" }
   let(:direct_url) { "https://event-platform-intake.datadoghq.com/api/v2/exposures" }
-  let(:identity) { described_class::IDENTITY_HEADERS }
+  let(:identity) { {"DD-EVP-ORIGIN" => "dd-trace-rb", "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING} }
+
+  around do |example|
+    ClimateControl.modify("http_proxy" => nil, "HTTP_PROXY" => nil, "https_proxy" => nil,
+      "HTTPS_PROXY" => nil, "no_proxy" => nil, "NO_PROXY" => nil) { example.run }
+  end
+
+  %w[https_proxy HTTPS_PROXY].each do |name|
+    it "treats empty #{name} as disabled proxying" do
+      ClimateControl.modify(name => "") do
+        expect(client.send(:connection, true).proxy?).to be(false)
+      end
+    end
+  end
+
+  it "normalizes API keys like agentless configuration delivery" do
+    sender = described_class.new(agent_settings: agent_settings, site: site, api_key: " secret-test-key\n")
+    direct = stub_request(:post, direct_url).with(headers: {"DD-API-KEY" => "secret-test-key"}).to_return(status: 202)
+    expect(sender).to be_direct
+    expect(sender.request("/api/v2/exposures", payload: "{}", direct: true, timeout: 1)).to be_ok
+    expect(direct).to have_been_requested.once
+  end
+
+  [nil, "", " \n", "secret\nother", "secret\rother"].each do |invalid_key|
+    it "rejects an empty or embedded-newline API key #{invalid_key.inspect}" do
+      sender = described_class.new(agent_settings: agent_settings, site: site, api_key: invalid_key)
+      expect(sender).not_to be_direct
+    end
+  end
 
   it "isolates credentials, preserves identity and sends identical bytes on both routes" do
     payload = '{"events":[{"flag":"a"}]}'
@@ -61,6 +89,17 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
 
   it "preserves a configured prefix for discovery and delivery" do
     ClimateControl.modify("DD_TRACE_AGENT_URL" => "http://localhost:8126/gateway/v0.4/traces") do
+      info = stub_request(:get, "http://localhost:8126/gateway/info").to_return(body: '{"endpoints":[]}')
+      local = stub_request(:post, "http://localhost:8126/gateway/evp_proxy/v4/api/v2/exposures").to_return(status: 202)
+      expect(client.request("/info", timeout: 1).info).to eq("endpoints" => [])
+      client.request("/evp_proxy/v4/api/v2/exposures", payload: "{}", timeout: 1)
+      expect(info).to have_been_requested.once
+      expect(local).to have_been_requested.once
+    end
+  end
+
+  it "retains the prefix when the resolved DNS hostname differs only in case" do
+    ClimateControl.modify("DD_TRACE_AGENT_URL" => "http://LOCALHOST:8126/gateway/v0.4/traces") do
       info = stub_request(:get, "http://localhost:8126/gateway/info").to_return(body: '{"endpoints":[]}')
       local = stub_request(:post, "http://localhost:8126/gateway/evp_proxy/v4/api/v2/exposures").to_return(status: 202)
       expect(client.request("/info", timeout: 1).info).to eq("endpoints" => [])
@@ -173,6 +212,29 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
       expect(headers).to include("Proxy-Authorization: Basic ")
       expect(headers.downcase).not_to include("dd-api-key", "secret-test-key", "private-event", "dd-evp-origin")
     ensure
+      receiver&.kill
+      receiver&.join(1)
+    end
+
+    it "closes a connection that times out during TLS negotiation without waiting for GC" do
+      settings = Datadog::Core::Configuration::AgentSettings.new(adapter: :net_http,
+        hostname: "127.0.0.1", port: server.addr[1], ssl: true)
+      sender = described_class.new(agent_settings: settings, site: nil, api_key: nil)
+      receiver = Thread.new do
+        socket = server.accept
+        begin
+          socket.read
+        rescue Errno::ECONNRESET
+          nil
+        ensure
+          socket.close
+        end
+      end
+      previously_disabled = GC.disable
+      expect(sender.request("/info", timeout: 0.1)).to be_internal_error
+      expect(receiver.join(1)).to eq(receiver)
+    ensure
+      GC.enable unless previously_disabled
       receiver&.kill
       receiver&.join(1)
     end
