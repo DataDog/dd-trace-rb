@@ -1973,7 +1973,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         consumer.kill
         expect(consumer.join(5)).to equal(consumer)
-        expect { described_class::Testing._native_miteruby_consumer_consume }.to_not raise_error
       end
 
       it "preserves references while consuming concurrently with GC and serialization" do
@@ -2062,7 +2061,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def consume_miteruby
-      described_class::Testing._native_miteruby_consumer_consume
+      consumer = Thread.new { described_class._native_miteruby_consumer_consume_loop }
+      loop_until do
+        described_class::Testing._native_miteruby_wake_reader
+        Thread.pass
+        described_class::Testing._native_miteruby_buffer_empty?
+      end
+    ensure
+      consumer&.kill&.join
     end
 
     def capture_miteruby

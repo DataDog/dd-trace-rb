@@ -271,7 +271,7 @@ static VALUE safely_call(
   VALUE (*handle_sampling_failure)(VALUE, VALUE)
 );
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
-static VALUE _native_miteruby_consumer_consume(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_buffer_empty(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
@@ -424,7 +424,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
   rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
-  rb_define_singleton_method(testing_module, "_native_miteruby_consumer_consume", _native_miteruby_consumer_consume, 0);
+  rb_define_singleton_method(testing_module, "_native_miteruby_buffer_empty?", _native_miteruby_buffer_empty, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_wake_reader", _native_miteruby_wake_reader, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
@@ -1236,9 +1236,10 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
   return Qtrue;
 }
 
-static VALUE _native_miteruby_consumer_consume(DDTRACE_UNUSED VALUE self) {
-  miteruby_consumer_consume(miteruby_buffer);
-  return Qnil;
+static VALUE _native_miteruby_buffer_empty(DDTRACE_UNUSED VALUE self) {
+  uint32_t write_position = (uint32_t) atomic_load(&miteruby_buffer->write_state);
+  // read_position advances only after the consumer finishes copying the borrowed record.
+  return atomic_load(&miteruby_buffer->read_position) == write_position ? Qtrue : Qfalse;
 }
 
 // TODO: Enforce there's only one thread running a consumer loop + handle forking.
