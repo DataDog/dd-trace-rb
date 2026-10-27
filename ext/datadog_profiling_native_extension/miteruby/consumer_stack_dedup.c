@@ -20,8 +20,8 @@ typedef struct {
       // Used at insertion time to point to input data
       const miteruby_event_stack_sample_view_t *view;
 
-      // Keys already in the set point to an offset directly (and can build a view from calling `miteruby_consumer_stack_dedup_get` with it)
-      size_t offset;
+      // Stored IDs survive array relocation and can be resolved with miteruby_consumer_stack_dedup_get.
+      miteruby_stack_dedup_id_t stack_id;
     } as;
   } location;
   bool view_borrowed;
@@ -84,7 +84,7 @@ typedef struct {
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
 static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
-  return key.view_borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.offset);
+  return key.view_borrowed ? *key.location.as.view : miteruby_consumer_stack_dedup_get(key.location.as.stack_id);
 }
 
 static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
@@ -140,8 +140,8 @@ size_t miteruby_consumer_stack_dedup_size(void) {
   return sizeof(stack_dedup_state.unique_stacks) + stack_dedup_state.unique_stacks_size + stack_dedup_state.unique_stacks_set_allocated_bytes;
 }
 
-miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(size_t stack_id) {
-  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id);
+miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
+  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
   return (miteruby_event_stack_sample_view_t) {
     .refs = stack->refs,
     .positions = (miteruby_event_frame_position_t *)&stack->refs[stack->frame_count],
@@ -149,7 +149,7 @@ miteruby_event_stack_sample_view_t miteruby_consumer_stack_dedup_get(size_t stac
   };
 }
 
-size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
+miteruby_stack_dedup_id_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
   size_t previous_count = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks);
 
   verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
@@ -163,7 +163,7 @@ size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_v
   if (verstable_unique_stacks_set_is_end(entry)) rb_bug("Failed to grow miteruby unique stacks set");
 
   *inserted = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) != previous_count;
-  if (!*inserted) return entry.data->key.location.as.offset; // Existing stack
+  if (!*inserted) return entry.data->key.location.as.stack_id; // Existing stack
 
   size_t data_size = view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
   size_t stack_size = sizeof(miteruby_stack_t) + data_size;
@@ -181,8 +181,8 @@ size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_v
     stack_dedup_state.unique_stacks_size = new_size;
   }
 
-  size_t next_stack_id = stack_dedup_state.unique_stacks_pos;
-  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id);
+  miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
+  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = view.frame_count;
   if (view.frame_count > 0) {
     miteruby_event_stack_sample_view_t stored = miteruby_consumer_stack_dedup_get(next_stack_id);
@@ -190,9 +190,9 @@ size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_v
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
   // Preserve the key's hash and contents; offsets survive array growth without updating existing entries.
-  entry.data->key.location.as.offset = next_stack_id;
+  entry.data->key.location.as.stack_id = next_stack_id;
   entry.data->key.view_borrowed = false;
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
-  return entry.data->key.location.as.offset;
+  return entry.data->key.location.as.stack_id;
 }
