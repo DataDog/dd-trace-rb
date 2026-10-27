@@ -64,7 +64,9 @@ static void unique_stacks_free(void *allocation, size_t size);
 //     Events 1 and 3                                             Event 2
 //
 // * Unique stacks map:
-//   TODO
+//   Stored key (view_borrowed = false)           Value (byte offset)
+//   [ hash(A B C D; 0 1 2 3) | offset:  0 ] --->  0  (Events 1 and 3)
+//   [ hash(E F; 0 1)         | offset: 80 ] ---> 80  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
