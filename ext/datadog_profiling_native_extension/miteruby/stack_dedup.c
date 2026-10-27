@@ -1,10 +1,11 @@
 #include "stack_dedup.h"
 #include "allocator.h"
+#include "../helpers.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-#define UNIQUE_STACKS_ARRAY_CHUNK_SIZE (1024U * 1024U)
+#define UNIQUE_STACKS_ARRAY_MAX_SIZE MiB_AS_BYTES(16)
 
 typedef struct {
   uint16_t frame_count;
@@ -20,7 +21,6 @@ typedef struct {
       // Used at insertion time to point to input data
       const miteruby_event_stack_sample_view_t *view;
 
-      // Stored IDs survive array relocation and can be resolved with miteruby_stack_dedup_get.
       miteruby_stack_dedup_id_t stack_id;
     } as;
   } location;
@@ -125,7 +125,7 @@ void miteruby_stack_dedup_init(void) {
 }
 
 void miteruby_stack_dedup_reset(void) {
-  uint8_t *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_CHUNK_SIZE, "unique_stacks_array");
+  uint8_t *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_MAX_SIZE, "unique_stacks_array");
   if (new_array == NULL) rb_bug("Failed to allocate miteruby unique stacks array");
 
   verstable_unique_stacks_set_clear(&stack_dedup_state.unique_stacks);
@@ -133,7 +133,7 @@ void miteruby_stack_dedup_reset(void) {
 
   stack_dedup_state.unique_stacks_array = new_array;
   stack_dedup_state.unique_stacks_pos = 0;
-  stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
+  stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_MAX_SIZE;
 }
 
 size_t miteruby_stack_dedup_size(void) {
@@ -149,7 +149,7 @@ miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup
   };
 }
 
-miteruby_stack_dedup_id_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view) {
   size_t previous_count = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks);
 
   verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
@@ -160,25 +160,20 @@ miteruby_stack_dedup_id_t miteruby_stack_dedup_get_or_insert(miteruby_event_stac
       .view_borrowed = true,
     }
   );
-  if (verstable_unique_stacks_set_is_end(entry)) rb_bug("Failed to grow miteruby unique stacks set");
+  if (verstable_unique_stacks_set_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
 
-  *inserted = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) != previous_count;
-  if (!*inserted) return entry.data->key.location.as.stack_id; // Existing stack
+  if (verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == previous_count) {
+    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->key.location.as.stack_id, .inserted = false}};
+  }
 
   size_t data_size = view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
   size_t stack_size = sizeof(miteruby_stack_t) + data_size;
   size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
 
   if (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < aligned_stack_size) {
-    size_t growth_size = aligned_stack_size > UNIQUE_STACKS_ARRAY_CHUNK_SIZE ? aligned_stack_size : UNIQUE_STACKS_ARRAY_CHUNK_SIZE;
-    if (stack_dedup_state.unique_stacks_size > SIZE_MAX - growth_size) rb_bug("Miteruby unique stacks array size overflow");
-    size_t new_size = stack_dedup_state.unique_stacks_size + growth_size;
-    uint8_t *new_array = miteruby_allocator_alloc(new_size, "unique_stacks_array");
-    if (new_array == NULL) rb_bug("Failed to grow miteruby unique stacks array");
-    memcpy(new_array, stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_pos);
-    miteruby_allocator_free(stack_dedup_state.unique_stacks_array, stack_dedup_state.unique_stacks_size);
-    stack_dedup_state.unique_stacks_array = new_array;
-    stack_dedup_state.unique_stacks_size = new_size;
+    // The newly inserted key borrows the local view, so it must not survive this call.
+    verstable_unique_stacks_set_erase_itr(&stack_dedup_state.unique_stacks, entry);
+    return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
@@ -189,10 +184,10 @@ miteruby_stack_dedup_id_t miteruby_stack_dedup_get_or_insert(miteruby_event_stac
     memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
-  // Preserve the key's hash and contents; offsets survive array growth without updating existing entries.
+  // Switching to owned storage must preserve the key's hash and contents.
   entry.data->key.location.as.stack_id = next_stack_id;
   entry.data->key.view_borrowed = false;
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
-  return entry.data->key.location.as.stack_id;
+  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true}};
 }
