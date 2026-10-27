@@ -5,6 +5,14 @@ module Datadog
         module Instrumentation
           def self?.detect_sql_injection: (::String sql, ::String adapter_name) -> void
 
+          module PreprocessQueryAdapterPatch
+            def adapter_name: () -> String
+
+            private
+
+            def preprocess_query: (String sql) -> String
+          end
+
           module InternalExecQueryAdapterPatch
             def internal_exec_query: (::String sql, *untyped args, **untyped rest) -> untyped
 
