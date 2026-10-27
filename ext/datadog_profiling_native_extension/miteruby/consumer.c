@@ -136,24 +136,30 @@ void miteruby_consumer_init(miteruby_buffer_t *buffer) {
 
   consumer_state.buffer = buffer;
   verstable_objects_to_mark_set_init(&consumer_state.objects_to_mark);
-  miteruby_stack_dedup_init();
+  if (!miteruby_stack_dedup_init()) rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_init");
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &consumer_typed_data, &consumer_state);
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
   rb_gc_register_mark_object(wrapper);
 }
 
 void miteruby_consumer_reset(void) {
+  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
+  if (new_buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.consumed_events_buffer");
+
   mutex_lock(&consumer_state.consumed_events_mutex);
   mutex_lock(&consumer_state.objects_to_mark_mutex);
 
-  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
-  if (new_buffer == NULL) rb_bug("Failed to allocate miteruby consumed events buffer");
+  if (!miteruby_stack_dedup_reset()) {
+    mutex_unlock(&consumer_state.objects_to_mark_mutex);
+    mutex_unlock(&consumer_state.consumed_events_mutex);
+    miteruby_allocator_free(new_buffer, CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY * sizeof(*new_buffer));
+    rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_reset");
+  }
+
   miteruby_allocator_free(consumer_state.consumed_events_buffer, consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
   consumer_state.consumed_events_buffer = new_buffer;
   consumer_state.consumed_events_count = 0;
   consumer_state.consumed_events_capacity = CONSUMED_EVENTS_BUFFER_CHUNK_CAPACITY;
-
-  miteruby_stack_dedup_reset();
 
   verstable_objects_to_mark_set_clear(&consumer_state.objects_to_mark);
 
