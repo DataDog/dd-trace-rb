@@ -31,8 +31,28 @@ module Datadog
       #                       and other attributes
       #
       # @return [ResolutionDetails] The assignment for the flag
-      def get_assignment(flag_key, default_value:, expected_type:, context:)
-        result = @configuration.get_assignment(flag_key, expected_type, context)
+      def get_assignment(flag_key, default_value:, expected_type:, context:, experimentation_opt_out_mode: :disabled)
+        if experimentation_opt_out_mode != :disabled && context.key?("dd_experimentation_opt_out_at")
+          timestamp = context["dd_experimentation_opt_out_at"]
+          # The C binding omits unsupported types and uses NUL-terminated strings.
+          # Reject invalid opt-out values before that conversion loses information.
+          unless valid_native_timestamp?(timestamp)
+            return ResolutionDetails.build_error(
+              value: default_value, error_code: Ext::INVALID_CONTEXT,
+              error_message: "dd_experimentation_opt_out_at must be an RFC3339 timestamp string; " \
+                "supply a valid timestamp to opt out, or omit the attribute to permit experimentation"
+            )
+          end
+        end
+
+        result = case experimentation_opt_out_mode
+        when :immediate
+          @configuration.get_assignment_with_options(flag_key, expected_type, context, true)
+        when :future_experiments_only
+          @configuration.get_assignment_with_opt_out_mode(flag_key, expected_type, context, :future_experiments_only)
+        else
+          @configuration.get_assignment(flag_key, expected_type, context)
+        end
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 
@@ -40,6 +60,13 @@ module Datadog
       end
 
       private
+
+      def valid_native_timestamp?(timestamp)
+        return false unless timestamp.is_a?(String)
+
+        native_timestamp = timestamp.dup.force_encoding(Encoding::UTF_8)
+        native_timestamp.valid_encoding? && !native_timestamp.include?("\0")
+      end
 
       def build_resolution_details(result, default_value)
         ResolutionDetails.new(

@@ -51,6 +51,32 @@ RSpec.describe FfeFixtures do
     stub_const("FfeFixtures::COMMIT_SHA", commit)
   end
 
+  describe ".applicable?" do
+    it "includes cases without a platform filter" do
+      expect(described_class.applicable?({}, platform: "ruby")).to be(true)
+    end
+
+    it "excludes cases that skip Ruby" do
+      test_case = {"_skip" => [{"platform" => "ruby", "reason" => "unsupported"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(false)
+    end
+
+    it "includes cases that skip another platform" do
+      test_case = {"_skip" => [{"platform" => "php"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(true)
+    end
+
+    it "includes cases explicitly including Ruby" do
+      test_case = {"_include" => [{"platform" => "php"}, {"platform" => "ruby"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(true)
+    end
+
+    it "excludes cases that only include another platform" do
+      test_case = {"_include" => [{"platform" => "php"}]}
+      expect(described_class.applicable?(test_case, platform: "ruby")).to be(false)
+    end
+  end
+
   describe ".download" do
     it "pins a full upstream commit" do
       pin = File.read(File.expand_path("../../tasks/lib/fixtures/ffe/version", __dir__))

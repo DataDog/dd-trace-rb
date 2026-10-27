@@ -97,6 +97,8 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 have_func("rb_iseq_type")
+have_func("ddog_ffe_get_assignment_with_options", ["datadog/common.h", "datadog/ffe.h"])
+have_func("ddog_ffe_get_assignment_with_opt_out_mode", ["datadog/common.h", "datadog/ffe.h"])
 
 $defs << "-DHAVE_RB_IMEMO_NAME" if RUBY_VERSION >= "3.0"
 $defs << "-DHAVE_SHIFTED_IMEMO_MASK" if RUBY_VERSION >= "4.1"

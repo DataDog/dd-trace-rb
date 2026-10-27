@@ -54,6 +54,26 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
   end
 
   describe "feature_flags" do
+    describe "#experimentation_opt_out_mode" do
+      subject(:mode) { settings.feature_flags.experimentation_opt_out_mode }
+
+      context "when unset" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => nil
+        it { is_expected.to eq("disabled") }
+      end
+
+      context "when set in the environment" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => "immediate"
+        it { is_expected.to eq("immediate") }
+      end
+
+      context "when explicitly disabled" do
+        with_env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE" => "immediate"
+        before { settings.feature_flags.experimentation_opt_out_mode = "disabled" }
+        it { is_expected.to eq("disabled") }
+      end
+    end
+
     describe "#evaluation_telemetry_per_subject_opt_out_enabled" do
       subject(:enabled) { settings.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled }
 

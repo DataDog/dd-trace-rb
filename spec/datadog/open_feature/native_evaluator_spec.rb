@@ -136,4 +136,95 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       it { is_expected.to be(false) }
     end
   end
+
+  describe "opt-out context validation" do
+    [:immediate, :future_experiments_only].product(
+      [nil, true, false, 123, [], {}, "2026-10-01T00:00:00Z\0suffix", "\xFF".b,
+        (+"\xFF").force_encoding(Encoding::UTF_8), "2026-10-01T00:00:00Z".encode(Encoding::UTF_16LE)]
+    ).each do |mode, invalid_value|
+      it "rejects #{invalid_value.inspect} before native context conversion in #{mode}" do
+        result = evaluator.get_assignment(
+          flag_key, default_value: false, expected_type: expected_type,
+          context: context.merge("dd_experimentation_opt_out_at" => invalid_value),
+          experimentation_opt_out_mode: mode
+        )
+
+        expect(result.value).to be(false)
+        expect(result.error_code).to eq("INVALID_CONTEXT")
+        expect(result.error_message).to include("supply a valid timestamp", "omit the attribute")
+        expect(result.error_message).not_to include("suffix")
+        expect(result.log?).to be(false)
+        expect(configuration).not_to have_received(:get_assignment)
+      end
+    end
+  end
+end
+
+RSpec.describe Datadog::OpenFeature::NativeEvaluator, "shared opt-out policy" do
+  cases = File.readlines(File.join(__dir__, "fixtures", "experimentation-opt-out-policy.jsonl"))
+    .map { |line| JSON.parse(line) }
+  raise "Expected all 90 shared policy cases" unless cases.size == 90
+
+  subject(:evaluator) { described_class.new(JSON.generate(configuration)) }
+
+  before do
+    unless Datadog::Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+      skip "Requires a libdatadog build with opt-out modes"
+    end
+  end
+
+  let(:configuration) do
+    {
+      "createdAt" => "2026-01-01T00:00:00Z", "environment" => {"name" => "test"},
+      "flags" => {"feature" => {
+        "key" => "feature", "enabled" => true, "variationType" => "STRING",
+        "variations" => {
+          "experiment" => {"key" => "experiment", "value" => "experiment"},
+          "ordinary" => {"key" => "ordinary", "value" => "ordinary"},
+        },
+        "allocations" => [
+          {"key" => "candidate", "doLog" => false, "splits" => [{"variationKey" => "experiment", "shards" => []}]},
+          {"key" => "fallback", "doLog" => false, "splits" => [{"variationKey" => "ordinary", "shards" => []}]},
+        ],
+      }},
+    }
+  end
+
+  cases.each do |test_case|
+    it "evaluates #{test_case.fetch("id")} through the native extension" do
+      args = test_case.fetch("args")
+      expected = test_case.fetch("expected")
+      allocation = configuration["flags"]["feature"]["allocations"].first
+      allocation["doLog"] = args.fetch("doLog")
+      activation = {
+        "missing" => nil, "invalid" => "invalid", "before" => "2025-12-31T23:59:59.999999999Z",
+        "equal" => "2026-01-01T00:00:00Z", "after" => "2026-01-01T00:00:00.000000001Z",
+      }.fetch(args.fetch("activation"))
+      allocation["randomizationActivatedAt"] = activation unless activation.nil?
+      context = {"targeting_key" => "subject"}
+      case args.fetch("attribute")
+      when "valid" then context["dd_experimentation_opt_out_at"] = "2026-01-01T00:00:00Z"
+      when "invalid" then context["dd_experimentation_opt_out_at"] = true
+      end
+
+      result = evaluator.get_assignment(
+        "feature", default_value: "default", expected_type: :string, context: context,
+        experimentation_opt_out_mode: args.fetch("mode").to_sym,
+      )
+      if expected.fetch("error") == "NONE"
+        variant = expected.fetch("exclude") ? "ordinary" : "experiment"
+        expect(result.value).to eq(variant)
+        expect(result.variant).to eq(variant)
+        expect(result.allocation_key).to eq(expected.fetch("exclude") ? "fallback" : "candidate")
+        expect(result.error_code).to be_nil
+        expect(result.log?).to eq(args.fetch("doLog") && !expected.fetch("exclude"))
+      else
+        expect(result.value).to eq("default")
+        expect(result.error_code).to eq(expected.fetch("error"))
+        expect(result.variant).to be_nil
+        expect(result.allocation_key).to be_nil
+        expect(result.log?).to be(false)
+      end
+    end
+  end
 end
