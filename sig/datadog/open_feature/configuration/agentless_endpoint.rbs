@@ -22,6 +22,8 @@ module Datadog
 
         def managed?: () -> bool
 
+        def origin: () -> String
+
         private
 
         def self.build_custom: (String base_url, Datadog::Core::Logger logger) -> AgentlessEndpoint?

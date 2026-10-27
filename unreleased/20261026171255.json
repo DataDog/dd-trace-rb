@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6519",
+  "message": "Add onboarding diagnostics for configuration delivery, provider readiness, flag evaluations, and exposures with `DD_TRACE_DEBUG=true`. Evaluation logs include raw data that may contain personal or sensitive information."
+}
