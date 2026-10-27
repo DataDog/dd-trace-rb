@@ -2045,6 +2045,26 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_and_wall_time_worker.prepare_serialize.serialize!).to_not be_nil
       end
 
+      it "stops with an exception when the consumed events buffer fills and still serializes collected samples" do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        consumer = consumer_threads.pop
+
+        500.times do
+          1000.times { described_class::Testing._native_miteruby_sample_event_publish_mask }
+          described_class::Testing._native_miteruby_wake_reader
+          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_buffer_empty? }
+          break unless consumer.alive?
+        end
+
+        expect(consumer.join(5)).to equal(consumer)
+        error = cpu_and_wall_time_worker.send(:failure_exception)
+        expect(error).to be_a(RuntimeError)
+        expect(error.message).to eq("Miteruby consumed events buffer is full")
+        GC.start
+        expect(cpu_and_wall_time_worker.prepare_serialize.serialize!).to_not be_nil
+      end
+
       it "drains into the worker's recorder and manages the consumer across starts and stops" do
         started = Queue.new
         consumers = []
