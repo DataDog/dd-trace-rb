@@ -189,14 +189,13 @@ static size_t deduplicate_stack(stack_key key, bool *inserted) {
   return entry.data->key.location.as.offset;
 }
 
-size_t miteruby_consumer_stack_dedup_get_or_insert(
-  miteruby_event_stack_sample_view_t view,
-  bool *inserted
-) {
-  stack_key key = {
-    .hash = stack_view_hash(view),
-    .location.as.view = &view,
-    .view_borrowed = true,
-  };
-  return deduplicate_stack(key, inserted);
+size_t miteruby_consumer_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view, bool *inserted) {
+  return deduplicate_stack(
+    (stack_key) {
+      .hash = stack_view_hash(view),
+      .location.as.view = &view,
+      .view_borrowed = true,
+    },
+    inserted
+  );
 }
