@@ -4,6 +4,8 @@ module Datadog
 
       MIN_SEND_INTERVAL: 1
 
+      EVENT_TYPES: Array[[Symbol, String]]
+
       @settings: Datadog::Core::Configuration::Settings
 
       @status_queue: Array[Hash[Symbol, untyped]]
@@ -22,9 +24,11 @@ module Datadog
 
       @stop_requested: bool
 
+      @last_sent: Float?
+
       @sleep_remaining: Numeric?
 
-      @wake_scheduled: bool
+      @wake_scheduled: bool?
 
       @pid: Integer?
 
@@ -85,9 +89,11 @@ module Datadog
 
       def snapshot_transport: () -> DI::Transport::Input::Transport
 
+      def snapshot_event_type_tag: (DI::Probe? probe) -> String
+
       def do_send_status: (Array[Hash[Symbol, untyped]] batch) -> void
 
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+      def do_send_snapshot: (Array[SnapshotEvent] batch) -> void
 
       def handle_serialization_error: (String probe_id, Exception exception) -> void
 
