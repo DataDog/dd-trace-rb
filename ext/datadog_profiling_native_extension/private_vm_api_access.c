@@ -1036,15 +1036,22 @@ static bool is_metaclass(VALUE mod, VALUE* attached) {
 }
 
 VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
-#ifdef NO_ALLOC_FREE_MOD_NAME
+// Reading the field is what rb_mod_name() does (MRI: classname()), minus the cross-library call, which shows up in
+// profiles as we do this for every frame. See has_permanent_classpath() below for why RCLASS_EXT_PRIME.
+#if defined(RCLASS_EXT_PRIME) // 4.0+
+  VALUE name = RCLASS_EXT_PRIME(mod)->classpath;
+#elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
+  VALUE name = RCLASS_EXT(mod)->classpath;
+#elif defined(NO_ALLOC_FREE_MOD_NAME) // 2.6 and older
   VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
-#else
+#else // 2.7 - 3.2
   VALUE name = rb_mod_name(mod);
 #endif
+  // `classpath` is Qfalse, not Qnil, for a module that has no name.
   // While Module#const_set rejects empty strings,
   // an empty String is possible if `rb_const_set(mod, "", val)` was used
   // but that's not understandable so consider those anonymous too.
-  if (name == Qnil || RSTRING_LEN(name) == 0) {
+  if (name == Qfalse || name == Qnil || RSTRING_LEN(name) == 0) {
     return Qnil;
   } else {
     return name;
