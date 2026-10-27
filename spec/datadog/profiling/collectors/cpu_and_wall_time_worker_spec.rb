@@ -1959,13 +1959,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
       end
 
-      it "allows GC and serialization while idle" do
+      it "allows GC and serialization while idle, then exits when killed" do
         cpu_and_wall_time_worker.start
         wait_until_running
         consumer = consumer_threads.pop
         loop_until { consumer.status == "sleep" }
 
-        consumer.wakeup
         GC.start
         GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
         cpu_and_wall_time_worker.prepare_serialize
@@ -1973,6 +1972,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         consumer.kill
         expect(consumer.join(5)).to equal(consumer)
+        expect(cpu_and_wall_time_worker.send(:failure_exception)).to be_nil
       end
 
       it "preserves references while consuming concurrently with GC and serialization" do
@@ -2006,6 +2006,43 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(consumer.join(5)).to equal(consumer)
         expect(cpu_and_wall_time_worker.send(:failure_exception)).to equal(error)
         expect { described_class::Testing._native_miteruby_read_sample_headers }.to_not raise_error
+      end
+
+      it "stops with an exception when dedup storage fills and still serializes collected samples" do
+        cleanup = Queue.new
+        allow(described_class).to receive(:_native_miteruby_consumer_consume_loop).and_wrap_original do |original|
+          consumer_threads << Thread.current
+          original.call
+        ensure
+          cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
+        end
+
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        consumer = consumer_threads.pop
+        sample = lambda do |depth|
+          if depth.zero?
+            described_class::Testing._native_miteruby_sample_event_publish_mask
+          else
+            sample.call(depth - 1)
+          end
+        end
+
+        4096.times do
+          # Keep each eval's distinct ISEQ among the oldest frames retained by truncation.
+          expect(eval("sample.call(350)", binding, __FILE__, __LINE__)).to be true
+          described_class::Testing._native_miteruby_wake_reader
+          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_buffer_empty? }
+          break unless consumer.alive?
+        end
+
+        expect(consumer.join(5)).to equal(consumer)
+        error = cpu_and_wall_time_worker.send(:failure_exception)
+        expect(error).to be_a(RuntimeError)
+        expect(error.message).to eq("Miteruby stack dedup storage is full")
+        expect(cleanup.pop).to be false
+        GC.start
+        expect(cpu_and_wall_time_worker.prepare_serialize.serialize!).to_not be_nil
       end
 
       it "drains into the worker's recorder and manages the consumer across starts and stops" do
