@@ -198,7 +198,7 @@ miteruby_buffer_record_t miteruby_buffer_read(
         uint32_t skipped_words = MITERUBY_BUFFER_CAPACITY_WORDS - offset;
         // The writer publishes a rewind together with a complete record.
         if (skipped_words >= available_count)
-          abort();
+          return (miteruby_buffer_record_t){.internal_error = true};
         read_position = miteruby_buffer_advance_position(read_position, skipped_words);
         available_count -= skipped_words;
         offset = 0;
@@ -206,7 +206,7 @@ miteruby_buffer_record_t miteruby_buffer_read(
       }
       if (record_length == 0 || record_length > UINT16_MAX + 1U ||
         record_length > available_count || record_length > MITERUBY_BUFFER_CAPACITY_WORDS - offset)
-        abort();
+        return (miteruby_buffer_record_t){.internal_error = true};
       buffer->next_read_position = miteruby_buffer_advance_position(
         read_position, (uint32_t)record_length);
       return (miteruby_buffer_record_t){
@@ -241,7 +241,7 @@ miteruby_buffer_record_t miteruby_buffer_read(
     // Sleep only while empty: this API returns one record per call.
     const struct timespec delay = {.tv_nsec = 100 * 1000 * 1000};
     if (nanosleep(&delay, NULL) != 0 && errno != EINTR)
-      abort();
+      return (miteruby_buffer_record_t){.internal_error = true};
 #else
     // If the producer publishes data/EOF/rejections first, this CAS fails
     // and we look again. If we win, the producer inherits the obligation
@@ -252,7 +252,7 @@ miteruby_buffer_record_t miteruby_buffer_read(
     if (atomic_load(interrupted))
       return (miteruby_buffer_record_t){.interrupted = true};
     if (sem_wait(&buffer->consumer_wakeup) != 0 && errno != EINTR)
-      abort();
+      return (miteruby_buffer_record_t){.internal_error = true};
 #endif
   }
 }

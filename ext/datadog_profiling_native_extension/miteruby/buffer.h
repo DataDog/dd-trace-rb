@@ -53,6 +53,7 @@ typedef struct {
   uint64_t rejected_count; // Failed write attempts, not necessarily lost items.
   bool end_of_stream;
   bool interrupted;
+  bool internal_error;
 } miteruby_buffer_record_t;
 
 // Returns 0 on success, -1 with errno set if semaphore initialization fails.
@@ -76,7 +77,7 @@ void miteruby_buffer_destroy(miteruby_buffer_t *buffer);
 // The set must remain valid and unchanged until this call returns.
 // Successful and rejected writes both unblock every signal in the set,
 // including signals already blocked on entry. Signals outside it are untouched.
-// Mask-operation failures abort, like semaphore failures.
+// Mask-operation and semaphore-post failures abort.
 bool miteruby_buffer_try_write(miteruby_buffer_t *buffer, const uint64_t *data, uint16_t length_words,
                               const sigset_t *signal_mask);
 // Call once, after ALL producers (including handlers) have finished writing.
@@ -96,6 +97,7 @@ void miteruby_buffer_close(miteruby_buffer_t *buffer, const sigset_t *signal_mas
 // Otherwise reads block until data, EOF, or interruption. Keep the flag alive throughout the read;
 // to interrupt, set it to true before calling miteruby_buffer_wake_consumer.
 // Interruption leaves unread records available for a later read.
+// internal_error means invalid framing or a failed wait; the consumer must stop reading.
 // On macOS, blocking reads poll every 100 ms while empty; available items
 // return immediately. Other platforms use semaphore notifications.
 // EOF follows all items and rejection reports.
