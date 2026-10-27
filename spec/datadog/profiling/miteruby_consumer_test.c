@@ -17,7 +17,7 @@ static stack_key key_for(const miteruby_event_stack_sample_view_t *view) {
   return (stack_key) {
     .hash = stack_view_hash(*view),
     .location.as.view = view,
-    .borrowed = true,
+    .view_borrowed = true,
   };
 }
 
@@ -192,7 +192,7 @@ static void test_growth_and_relocation(void) {
     !verstable_unique_stacks_map_is_end(entry);
     entry = verstable_unique_stacks_map_next(entry)
   ) {
-    assert(!entry.data->key.borrowed);
+    assert(!entry.data->key.view_borrowed);
     assert(entry.data->key.location.as.offset == entry.data->val);
   }
 }
