@@ -138,7 +138,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
   context "with a custom adapter response" do
     let(:adapter_response) do
       double("adapter response", payload: "{}", ok?: true, not_found?: false,
-        unsupported?: false, client_error?: false, server_error?: false, internal_error?: false,)
+        unsupported?: false, client_error?: false, server_error?: false, internal_error?: false)
     end
 
     before do

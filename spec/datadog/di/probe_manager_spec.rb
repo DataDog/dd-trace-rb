@@ -499,7 +499,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     let(:manager) do
       described_class.new(settings, instrumenter, probe_notification_builder,
         probe_notifier_worker, logger, probe_repository, telemetry: telemetry,
-        guardrails_telemetry: guardrails_telemetry,)
+        guardrails_telemetry: guardrails_telemetry)
     end
 
     let(:exc) { StandardError.new("boom") }
@@ -580,7 +580,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
         expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "rateLimitGlobal", event_type: "log"},)
+          tags: {reason: "rateLimitGlobal", event_type: "log"})
 
         manager.probe_condition_evaluation_failed_callback(context, expr, exc)
 
