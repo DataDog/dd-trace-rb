@@ -451,7 +451,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       [before_fork, child_report, send_report.call].each do |report|
         expect(report).to include(requests_count: 1, responses_count: 1, status_code: 200,
-          chunks_sent: 1, spans_enqueued_for_serialization: 1,)
+          chunks_sent: 1, spans_enqueued_for_serialization: 1)
         expect(report.fetch(:bytes_sent)).to be > 0
       end
     ensure

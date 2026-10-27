@@ -48,7 +48,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil)
   end
 
   let(:telemetry) { nil }
@@ -2157,7 +2157,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       tags = {reason: reason, event_type: event_type}
       tags[:probe_id] = probe_id if probe_id
       expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-        tags: tags,)
+        tags: tags)
     end
 
     describe "constants and limiters" do
@@ -2347,7 +2347,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when an uncorrelated capturing probe hits its own rate limit" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-            id: 1, type: :log, capture_snapshot: true, rate_limit: 1,)
+            id: 1, type: :log, capture_snapshot: true, rate_limit: 1)
         end
 
         it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
@@ -2368,7 +2368,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the per-probe limit rejects" do
         let(:probe) do
           Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "hook_test_method",
-            id: 1, type: :log, rate_limit: 0,)
+            id: 1, type: :log, rate_limit: 0)
         end
 
         it "does not consult the global limiter" do
@@ -2488,7 +2488,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when the per-probe limit rejects" do
         let(:probe) do
           Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
-            rate_limit: 0,)
+            rate_limit: 0)
         end
 
         it "does not consult the global limiter" do
@@ -2539,7 +2539,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "when an uncorrelated capturing line probe hits its own rate limit" do
         let(:probe) do
           Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3, id: 1, type: :log,
-            capture_snapshot: true, rate_limit: 1,)
+            capture_snapshot: true, rate_limit: 1)
         end
 
         it "bounds the hit to the probe's own limit without consulting the hard log limiter" do
@@ -2720,7 +2720,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
             expect(probe_notifier_worker).not_to receive(:add_snapshot)
             expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-              tags: {reason: "rateLimitGlobal", event_type: "snapshot"},)
+              tags: {reason: "rateLimitGlobal", event_type: "snapshot"})
 
             instrumenter.hook_method(probe, manager)
 
@@ -2913,7 +2913,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "DIGuardrailsTestClass",
-          method_name: "deep_arg_method", capture_snapshot: true,)
+          method_name: "deep_arg_method", capture_snapshot: true)
       end
 
       after do
@@ -2922,7 +2922,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       it "still captures the truncated snapshot and emits the capture.incomplete metric" do
         expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
-          tags: {reason: "depth", event_type: "snapshot"},)
+          tags: {reason: "depth", event_type: "snapshot"})
 
         hook_method(probe) { |payload| observed_calls << payload }
 
@@ -2946,7 +2946,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "DIGuardrailsTestClass",
           method_name: "deep_arg_method", capture_snapshot: false, evaluate_at: :entry,
-          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)],)
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: nil)])
       end
 
       after do
@@ -2955,7 +2955,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       it "skips the capture expression and emits the evaluationTimeout skip metric" do
         expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1},)
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
 
         hook_method(probe) { |payload| observed_calls << payload }
 

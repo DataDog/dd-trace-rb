@@ -53,7 +53,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,)
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   let(:builder) do
@@ -376,7 +376,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
-          capture_snapshot: true,)
+          capture_snapshot: true)
       end
 
       let(:context) do
@@ -468,7 +468,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:target_self) { Object.new }
@@ -506,7 +506,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:target_self) { Object.new }

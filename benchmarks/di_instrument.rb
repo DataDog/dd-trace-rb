@@ -238,7 +238,7 @@ class DIInstrumentBenchmark
       hook: :hook_method,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
         type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-        rate_limit: 1_000_000,),
+        rate_limit: 1_000_000),
     ) { Target.new.test_method }
 
     if calls < 1
@@ -255,7 +255,7 @@ class DIInstrumentBenchmark
       hook: :hook_method,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
         type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-        rate_limit: 1,),
+        rate_limit: 1),
     ) { Target.new.test_method }
 
     if calls < 1
@@ -277,7 +277,7 @@ class DIInstrumentBenchmark
       hook: :hook_method,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
         type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-        rate_limit: 1_000_000,),
+        rate_limit: 1_000_000),
     ) { Target.new.test_method }
 
     if calls != 0
@@ -302,7 +302,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - untargeted - rate_limit=1M (firing)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: file, line_no: line + 1, rate_limit: 1_000_000,),
+        file: file, line_no: line + 1, rate_limit: 1_000_000),
     ) { Target.new.test_method_for_line_probe }
 
     if calls < 1
@@ -318,7 +318,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - untargeted - rate_limit=1 (skip)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: file, line_no: line + 1, rate_limit: 1,),
+        file: file, line_no: line + 1, rate_limit: 1),
     ) { Target.new.test_method_for_line_probe }
 
     if calls < 1
@@ -336,7 +336,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - untargeted - rate_limit=1M (global reject)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: file, line_no: line + 1, rate_limit: 1_000_000,),
+        file: file, line_no: line + 1, rate_limit: 1_000_000),
     ) { Target.new.test_method_for_line_probe }
 
     if calls != 0
@@ -368,7 +368,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - targeted - rate_limit=1M (firing)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,),
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000),
     ) { DITarget.new.test_method_for_line_probe }
 
     if calls < 1
@@ -384,7 +384,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - targeted - rate_limit=1 (skip)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,),
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1),
     ) { DITarget.new.test_method_for_line_probe }
 
     if calls < 1
@@ -402,7 +402,7 @@ class DIInstrumentBenchmark
       report: "line instrumentation - targeted - rate_limit=1M (global reject)",
       hook: :hook_line,
       probe: Datadog::DI::Probe.new(id: 1, type: :log,
-        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,),
+        file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000),
     ) { DITarget.new.test_method_for_line_probe }
 
     if calls != 0

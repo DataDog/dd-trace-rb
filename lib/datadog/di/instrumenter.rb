@@ -788,7 +788,7 @@ module Datadog
             serialized_entry_args = if probe.capture_snapshot?
               serializer.serialize_args(args, kwargs, target_self,
                 deadline: serializer.serialization_deadline,
-                **probe.snapshot_serializer_limits(settings),)
+                **probe.snapshot_serializer_limits(settings))
             end
 
             entry_capture_expressions = nil
@@ -883,7 +883,7 @@ module Datadog
               caller_locations: caller_locs,
               admission_trace: admission_trace,
               admission_span: admission_span,
-              return_value: rv, duration: duration, exception: exc,)
+              return_value: rv, duration: duration, exception: exc)
 
             begin
               responder.probe_executed_callback(context)

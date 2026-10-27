@@ -47,7 +47,7 @@ module SerializerHelper
           max_capture_depth: 2,
           max_capture_attribute_count: 10,
           max_capture_collection_size: 10,
-          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*],)
+          redacted_type_names: %w[DISerializerSpecSensitiveType DISerializerSpecWildCard*])
       end
     end
   end

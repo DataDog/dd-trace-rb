@@ -278,7 +278,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
         stderr = File.join(dir, "stderr")
         pid = Process.spawn(env, RbConfig.ruby, "-Ilib",
           File.join(fixture_dir, "interrupted_send.rb"), "http://127.0.0.1:#{mock_agent.port}",
-          interrupt, callback_failure, out: stdout, err: stderr,)
+          interrupt, callback_failure, out: stdout, err: stderr)
         begin
           status = Timeout.timeout(30) { Process.wait2(pid).last }
           pid = nil
@@ -306,7 +306,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
           expect(result.fetch("native")).to include("requests" => 1, "chunks_sent" => 1)
           expect(result.fetch("reports").length).to eq(1)
           expect(result.fetch("reports").first).to include("requests_count" => 1, "chunks_sent" => 1,
-            "bytes_sent" => result.fetch("native").fetch("bytes_sent"),)
+            "bytes_sent" => result.fetch("native").fetch("bytes_sent"))
           expect(result.fetch("returned")).to be false
           if interrupt == "raise"
             expect(result.fetch("same_exception")).to be true
@@ -327,7 +327,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
           expect(result.fetch("native").fetch("chunks_dropped")).to eq(1)
           expect(result.fetch("reports").length).to eq(1)
           expect(result.fetch("reports").first).to include("errors_status_code" => 1,
-            "chunks_dropped_send_failure" => 1, "status_code" => 500,)
+            "chunks_dropped_send_failure" => 1, "status_code" => 500)
           expect(result.fetch("returned")).to be false
           expect(result.fetch("same_exception")).to be true if interrupt == "raise"
           expect(result.fetch("error")).to be_nil if interrupt == "kill"

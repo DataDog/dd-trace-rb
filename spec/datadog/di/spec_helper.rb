@@ -36,7 +36,7 @@ module DIHelpers
         roots: [],
         targets: targets,
         target_files: target_files,
-        client_configs: client_configs,)
+        client_configs: client_configs)
     end
 
     private
