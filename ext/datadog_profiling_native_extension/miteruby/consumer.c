@@ -256,13 +256,13 @@ static void buffer_event(const miteruby_event_header_t *header) {
     .positions = (miteruby_event_frame_position_t *)&event->refs[header->frame_count],
     .frame_count = header->frame_count,
   };
-  bool inserted;
-  miteruby_stack_dedup_id_t stack_id = miteruby_stack_dedup_get_or_insert(view, &inserted);
+  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
+  if (result.error_storage_full) rb_bug("Failed to deduplicate miteruby stack"); // TODO: Better handle storage full
 
   // Retain references before the next buffer read releases the record's GC protection.
   mutex_lock(&objects_to_mark_mutex);
   retain_object(event->thread.value);
-  if (inserted) {
+  if (result.ok.inserted) {
     for (uint16_t i = 0; i < header->frame_count; i++) {
       if (event->refs[i].cme != NULL) retain_object((VALUE) event->refs[i].cme);
       if (event->refs[i].iseq != NULL) retain_object((VALUE) event->refs[i].iseq);
@@ -282,7 +282,7 @@ static void buffer_event(const miteruby_event_header_t *header) {
     consumed_events_capacity = new_capacity;
   }
   miteruby_event_deduped_sample_t *deduped = &consumed_events_buffer[consumed_events_count++];
-  *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = stack_id};
+  *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = result.ok.id};
   deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
   deduped->header.size_bytes = sizeof(*deduped);
 }
