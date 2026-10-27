@@ -1,10 +1,10 @@
 #include "buffer.h"
 
+#include <ruby.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -34,8 +34,9 @@ static void miteruby_buffer_producer_lock_sighandler(miteruby_buffer_t *buffer) 
 }
 
 static void miteruby_buffer_producer_lock_mask(miteruby_buffer_t *buffer, const sigset_t *signal_mask) {
-  if (pthread_sigmask(SIG_BLOCK, signal_mask, NULL) != 0)
-    abort();
+  int error = pthread_sigmask(SIG_BLOCK, signal_mask, NULL);
+  if (error != 0)
+    rb_bug("Failed to block signals for miteruby buffer producer lock (error=%d)", error);
   miteruby_buffer_producer_lock_internal(buffer, signal_mask);
 }
 
@@ -45,8 +46,11 @@ static void miteruby_buffer_producer_unlock(miteruby_buffer_t *buffer) {
   const sigset_t *signal_mask = buffer->locked_signal_mask;
   // A pending handler may run inside pthread_sigmask, so release first.
   atomic_store(&buffer->producer_lock, 0);
-  if (signal_mask != NULL && pthread_sigmask(SIG_UNBLOCK, signal_mask, NULL) != 0)
-    abort();
+  if (signal_mask != NULL) {
+    int error = pthread_sigmask(SIG_UNBLOCK, signal_mask, NULL);
+    if (error != 0)
+      rb_bug("Failed to unblock signals after miteruby buffer producer unlock (error=%d)", error);
+  }
 }
 
 static uint32_t miteruby_buffer_position_from_state(uint64_t state) {
@@ -70,7 +74,7 @@ void miteruby_buffer_wake_consumer(miteruby_buffer_t *buffer) {
   // Unlike a condition-variable signal, a semaphore remembers a wakeup that
   // arrives between the consumer setting its sleeping flag and sem_wait.
   if (sem_post(&buffer->consumer_wakeup) != 0)
-    abort();
+    rb_bug("Failed to wake miteruby buffer consumer (errno=%d)", errno);
 #endif
 }
 
@@ -108,7 +112,7 @@ void miteruby_buffer_destroy(miteruby_buffer_t *buffer) {
   (void)buffer;
 #else
   if (sem_destroy(&buffer->consumer_wakeup) != 0)
-    abort();
+    rb_bug("Failed to destroy miteruby buffer semaphore (errno=%d)", errno);
 #endif
 }
 
