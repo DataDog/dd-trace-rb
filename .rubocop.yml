@@ -69,10 +69,14 @@ CustomCops/TimeNowUsageCop:
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.
 
-# Require a comma in multiline method calls. This avoids a comma immediately
-# before a closing parenthesis when the final argument shares a line.
 Style/TrailingCommaInArguments:
-  EnforcedStyleForMultiline: comma
+  Enabled: false
+
+CustomCops/TrailingCommaInArgumentsCop:
+  Enabled: true
+  EnforcedStyleForMultiline: diff_comma
+  SupportedStylesForMultiline:
+    - diff_comma
 
 # Require a comma in array and hash literals when the closing delimiter is on
 # its own line.
