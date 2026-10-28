@@ -44,6 +44,7 @@ static void test_allocation(size_t size) {
   unsigned char *allocation = miteruby_allocator_alloc(size, "test");
   assert(allocation != NULL);
   assert(miteruby_allocator_requested_bytes() == before + size);
+  assert(miteruby_allocator_alloc_size(allocation) == size);
   assert((uintptr_t)allocation % 16 == 0);
   assert(memcmp(allocation - 16, "MITERUBY", 8) == 0);
   uint64_t stored_size;
@@ -53,6 +54,7 @@ static void test_allocation(size_t size) {
   for (size_t i = 0; i < size; i++) assert(allocation[i] == 0);
   memset(allocation, 0xa5, size);
   for (size_t i = 0; i < size; i++) assert(allocation[i] == 0xa5);
+  assert(miteruby_allocator_alloc_size(allocation) == size);
   miteruby_allocator_free(allocation);
   assert(miteruby_allocator_requested_bytes() == before);
 
@@ -70,6 +72,8 @@ static void test_accounting(void) {
   void *first = miteruby_allocator_alloc(17, "test");
   void *second = miteruby_allocator_alloc(1000, "test");
   assert(first != NULL && second != NULL);
+  assert(miteruby_allocator_alloc_size(first) == 17);
+  assert(miteruby_allocator_alloc_size(second) == 1000);
   assert(miteruby_allocator_requested_bytes() == 1017);
   assert(miteruby_allocator_alloc(0, "test") == NULL);
   assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
@@ -119,6 +123,13 @@ static void corrupt_magic(void) {
   miteruby_allocator_free(allocation);
 }
 
+static void alloc_size_with_corrupt_magic(void) {
+  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
+  assert(allocation != NULL);
+  allocation[-16] = 'X';
+  miteruby_allocator_alloc_size(allocation);
+}
+
 static void invalid_mapping_size(void) {
   unsigned char *allocation = miteruby_allocator_alloc(32, "test");
   assert(allocation != NULL);
@@ -160,6 +171,7 @@ int main(int argc, char **argv) {
   assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
   assert(errno == EINVAL);
   miteruby_allocator_free(NULL);
+  assert(miteruby_allocator_alloc_size(NULL) == 0);
 
   test_accounting();
   test_concurrent_accounting();
@@ -175,6 +187,7 @@ int main(int argc, char **argv) {
 #endif
 
   expect_abort(corrupt_magic);
+  expect_abort(alloc_size_with_corrupt_magic);
   expect_abort(invalid_mapping_size);
   return ruby_cleanup(0);
 }
