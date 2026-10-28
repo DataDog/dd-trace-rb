@@ -9,16 +9,20 @@ module Datadog
     module Metrics
       # For defining and adding default options to metrics
       module Options
-        DEFAULT = {
-          tags: DEFAULT_TAGS = [
-            "#{Ext::TAG_LANG}:#{Environment::Identity.lang}",
-            "#{Ext::TAG_LANG_INTERPRETER}:#{Environment::Identity.lang_interpreter}",
-            "#{Ext::TAG_LANG_VERSION}:#{Environment::Identity.lang_version}",
-            # TODO: Technically not accurate, if tracing version diverges from datadog gem version
-            #       If we extract tracing to its own gem, this needs to be updated.
-            "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.gem_datadog_version}",
-          ].freeze,
-        }.freeze
+        DEFAULT_TAGS = [
+          "#{Ext::TAG_LANG}:#{Environment::Identity.lang}",
+          "#{Ext::TAG_LANG_INTERPRETER}:#{Environment::Identity.lang_interpreter}",
+          "#{Ext::TAG_LANG_VERSION}:#{Environment::Identity.lang_version}",
+          # TODO: Technically not accurate, if tracing version diverges from datadog gem version
+          #       If we extract tracing to its own gem, this needs to be updated.
+          "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.gem_datadog_version}",
+        ].freeze
+
+        # @type var defaults: { tags: Array[String] }
+        defaults = {
+          tags: DEFAULT_TAGS,
+        }
+        DEFAULT = defaults.freeze
 
         def metric_options(options = nil)
           return default_metric_options if options.nil?

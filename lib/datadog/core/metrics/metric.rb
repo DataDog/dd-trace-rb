@@ -6,7 +6,7 @@ module Datadog
       # A real class (not a Struct constant with a block) so Steep associates
       # the body with the Metric declaration in the signature.
       class Metric < Struct.new(:type, :name, :value, :options)
-        def initialize(*args)
+        def initialize(type, name, value, options = nil)
           super
           self.options = options || {}
         end

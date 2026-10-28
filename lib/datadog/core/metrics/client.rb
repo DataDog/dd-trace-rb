@@ -157,6 +157,7 @@ module Datadog
           return yield unless send_stats?
 
           # Calculate time, send it as a distribution.
+          # @type var start: Float?
           start = Utils::Time.get_time
           yield
         ensure

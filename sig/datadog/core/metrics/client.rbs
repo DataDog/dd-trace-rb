@@ -10,6 +10,8 @@ module Datadog
 
         @logger: Core::Logger
 
+        @enabled: bool
+
         @dogstatsd_version: Gem::Version?
 
         attr_reader statsd: untyped

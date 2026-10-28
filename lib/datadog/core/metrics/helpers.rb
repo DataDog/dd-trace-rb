@@ -18,8 +18,8 @@ module Datadog
           # respond to the metric methods being generated.
           define_method(metric_type) do |name, stat|
             name = name.to_sym
-            define_method(name) do |*args, &block| # steep:ignore NoMethod
-              send(metric_type, stat, *args, &block) # steep:ignore NoMethod
+            define_method(name) do |*args, &block| # steep:ignore NoMethod, FallbackAny
+              send(metric_type, stat, *args, &block) # steep:ignore NoMethod, FallbackAny
             end
           end
         end

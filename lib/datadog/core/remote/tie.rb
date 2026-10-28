@@ -11,13 +11,15 @@ module Datadog
         end
 
         def self.boot
-          return if Datadog::Core::Remote.active_remote.nil?
+          # Hoisted so the nil guard narrows the component for the calls below.
+          remote = Datadog::Core::Remote.active_remote
+          return if remote.nil?
 
           # @type var barrier: Symbol?
           barrier = nil
 
           t = Datadog::Core::Utils::Time.measure do
-            barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+            barrier = remote.barrier(:once)
           end
 
           Boot.new(barrier, t)

@@ -48,11 +48,13 @@ module Datadog
 
         attr_reader tracer: untyped
 
-        attr_reader remote: Datadog::Core::Remote::Component
+        attr_reader remote: Datadog::Core::Remote::Component?
 
         attr_reader agent_info: Datadog::Core::Environment::AgentInfo
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
+
+        @environment_logger_extra: Hash[Symbol, untyped]
 
         def initialize: (Settings settings) -> void
 
