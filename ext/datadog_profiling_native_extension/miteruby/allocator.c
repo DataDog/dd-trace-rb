@@ -62,16 +62,21 @@ void *miteruby_allocator_alloc(size_t size, const char *name) {
   return header + 1; // Return pointer to memory just after the header
 }
 
-void miteruby_allocator_free(void *allocation) {
-  if (allocation == NULL) return;
+size_t miteruby_allocator_alloc_size(const void *allocation) {
+  if (allocation == NULL) return 0;
 
-  // Find header before allocation pointer
-  allocation_header *header = (allocation_header *)allocation - 1;
-
+  const allocation_header *header = (const allocation_header *)allocation - 1;
   if (memcmp(header->magic, "MITERUBY", sizeof(header->magic)) != 0)
     rb_bug("Invalid miteruby allocation header at %p", (void *) header);
 
-  size_t size = header->size;
+  return header->size;
+}
+
+void miteruby_allocator_free(void *allocation) {
+  if (allocation == NULL) return;
+
+  size_t size = miteruby_allocator_alloc_size(allocation);
+  allocation_header *header = (allocation_header *)allocation - 1;
   if (munmap(header, size + sizeof(allocation_header)) != 0)
     rb_bug("Failed to unmap miteruby allocation at %p (size=%zu, errno=%d)", (void *) header, size, errno);
 

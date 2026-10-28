@@ -17,5 +17,6 @@
 
 // Returns zero-initialized memory, directly backed by mmap (does not rely on libc malloc)
 void *miteruby_allocator_alloc(size_t size, const char *name);
+size_t miteruby_allocator_alloc_size(const void *allocation);
 void miteruby_allocator_free(void *allocation);
 size_t miteruby_allocator_requested_bytes(void);
