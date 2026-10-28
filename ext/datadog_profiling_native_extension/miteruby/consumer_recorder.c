@@ -60,6 +60,13 @@ void miteruby_consumer_recorder_init(void) {
   }
 }
 
+miteruby_consumer_recorder_stats_t miteruby_consumer_recorder_stats(void) {
+  return (miteruby_consumer_recorder_stats_t) {
+    .thread_contexts_max_size_bytes = THREAD_CONTEXTS_MAX_CAPACITY,
+    .thread_contexts_entries = thread_contexts_initialized ? verstable_thread_contexts_map_size(&thread_contexts) : 0,
+  };
+}
+
 // TODO: Replace the fixed "had cpu" state with real categorization.
 // TODO: Include capture-time trace identifiers and remove the temporary miteruby=1 label.
 // TODO: Cache thread labels instead of fetching them for every sample.
