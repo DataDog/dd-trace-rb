@@ -372,10 +372,7 @@ To minimize performance impact, probes have default rate limits:
 - **Non-capturing probes**: 5,000 invocations per second
 - **Capturing probes** (with snapshots): 1 invocation per second
 
-These limits can be configured per probe in the probe definition via the
-`sampling.snapshotsPerSecond` setting. Fractional values are supported:
-for example, `0.5` allows at most one snapshot every two seconds, and
-`0.1` at most one snapshot every ten seconds.
+These limits can be configured per probe in the probe definition.
 
 ### Circuit Breaker
 
