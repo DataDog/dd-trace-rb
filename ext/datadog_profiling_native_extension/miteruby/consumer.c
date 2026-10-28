@@ -140,7 +140,7 @@ static const rb_data_type_t consumer_typed_data = {
 };
 
 void miteruby_consumer_init(miteruby_buffer_t *buffer) {
-  if (mtx_init(&consumer_state.mutex, mtx_recursive) != thrd_success)
+  if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success)
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
 
   consumer_state.buffer = buffer;
