@@ -5,6 +5,8 @@ module Datadog
         class Boot < ::Struct[[Component::Barrier, Numeric]]
           def initialize: (Component::Barrier? barrier, Numeric? time) -> void
 
+          def self.new: (Component::Barrier? barrier, Numeric? time) -> instance
+
           attr_reader barrier: Component::Barrier
           attr_reader time: Numeric
         end

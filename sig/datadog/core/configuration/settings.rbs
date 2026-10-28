@@ -322,6 +322,16 @@ module Datadog
           include Options::_InstanceMethods
 
           def enabled: () -> bool
+
+          def partial_flush: () -> _ApmTracingPartialFlush
+        end
+
+        interface _ApmTracingPartialFlush
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def enabled=: (bool enabled) -> void
         end
 
         interface _DataStreams
