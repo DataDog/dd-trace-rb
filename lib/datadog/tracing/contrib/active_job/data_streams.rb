@@ -65,15 +65,20 @@ module Datadog
           def perform_now
             super
           ensure
-            unless @datadog_pathway_context_before_job.nil?
-              begin
-                context_before_job = @datadog_pathway_context_before_job || nil
-                @datadog_pathway_context_before_job = nil
-                Datadog::DataStreams.pathway_context = context_before_job
-              rescue => e
-                Datadog.logger.debug { "Error restoring DSM pathway context: #{e.class}: #{e.message}" }
-              end
-            end
+            restore_datadog_pathway_context
+          end
+
+          private
+
+          def restore_datadog_pathway_context
+            return if @datadog_pathway_context_before_job.nil?
+
+            # `|| nil` undoes the false sentinel set in `deserialize`.
+            context_before_job = @datadog_pathway_context_before_job || nil
+            @datadog_pathway_context_before_job = nil
+            Datadog::DataStreams.pathway_context = context_before_job
+          rescue => e
+            Datadog.logger.debug { "Error restoring DSM pathway context: #{e.class}: #{e.message}" }
           end
         end
       end
