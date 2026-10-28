@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Sampling
       class RuleSampler
+        @reconsider_sample_resource_enabled: bool
+
         attr_reader rules: untyped
 
         attr_reader rate_limiter: untyped

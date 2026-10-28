@@ -3,6 +3,10 @@ module Datadog
     module Sampling
       module Span
         class Rule
+          @sampler: Sampling::RateSampler
+
+          @rate_limiter: Core::TokenBucket
+
           attr_reader matcher: untyped
 
           attr_reader sample_rate: untyped

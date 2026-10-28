@@ -3,7 +3,7 @@ module Datadog
     module Component
       WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
 
-      def self.build_tracer: (untyped settings, untyped agent_settings, logger: untyped) -> untyped
+      def self?.build_tracer: (untyped settings, untyped agent_settings, logger: untyped) -> untyped
 
       def self?.bind_transport_telemetry: (untyped tracer, Core::Telemetry::Component telemetry) -> void
 

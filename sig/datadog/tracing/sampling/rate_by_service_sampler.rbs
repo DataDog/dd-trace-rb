@@ -4,6 +4,8 @@ module Datadog
       class RateByServiceSampler < RateByKeySampler
         DEFAULT_KEY: "service:,env:"
 
+        @env: (String | Proc)?
+
         def initialize: (?::Float default_rate, ?env: untyped?, ?decision: untyped) -> void
 
         def update: (untyped rate_by_service, ?decision: untyped?) -> untyped

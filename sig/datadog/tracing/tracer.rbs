@@ -3,6 +3,8 @@ module Datadog
     class Tracer
       @logger: Core::Logger
 
+      @otel_thread_context: OTelThreadContext?
+
       @trace_completed: untyped
 
       @profiling_enabled: bool?

@@ -45,8 +45,8 @@ module Datadog
       # its memory.
       def activate!(trace)
         if block_given?
+          original_trace = @active_trace
           begin
-            original_trace = @active_trace
             set_active_trace!(trace)
             yield
           ensure

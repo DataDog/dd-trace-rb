@@ -24,11 +24,13 @@ module Datadog
           # Encoder for IO-specific trace encoding
           # API compliant when used with {JSONEncoder}.
           module Encoder
-            ENCODED_IDS = [
+            # @type var encoded_ids: Array[:trace_id | :span_id | :parent_id]
+            encoded_ids = [
               :trace_id,
               :span_id,
               :parent_id,
-            ].freeze
+            ]
+            ENCODED_IDS = encoded_ids.freeze
 
             # Encodes a list of traces
             def encode_traces(traces)
