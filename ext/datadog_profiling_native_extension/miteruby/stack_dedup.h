@@ -5,6 +5,8 @@
 #include "../private_vm_api_access.h"
 
 // Deduped stack storage for the miteruby consumer
+//
+// None of this code is thread-safe, caller is expected to take care of that
 
 typedef struct {
   bool error_storage_full;
@@ -16,7 +18,6 @@ typedef struct {
   } ok;
 } miteruby_stack_dedup_result_t;
 
-// Except for startup initialization, callers hold consumer's consumed_events_mutex.
 bool miteruby_stack_dedup_init(void);
 bool miteruby_stack_dedup_reset(void);
 size_t miteruby_stack_dedup_size(void);
