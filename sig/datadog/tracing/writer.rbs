@@ -1,45 +1,58 @@
 module Datadog
   module Tracing
     class Writer
-      attr_reader logger: untyped
+      @logger: Datadog::Core::Logger
+      @buff_size: ::Integer
+      @flush_interval: ::Numeric
+      @agent_settings: untyped?
+      # Transport is duck-typed: callers pass custom transports responding to
+      # #send_traces, #stats, and optionally #close, so it stays untyped.
+      @transport: untyped
+      @shutdown_timeout: ::Numeric
+      @mutex_after_fork: ::Mutex
+      @pid: ::Integer?
+      @traces_flushed: ::Integer
+      @worker: Workers::AsyncTransport?
+      @stopped: bool
+      @events: Events
+      @trace_handler: (^(untyped, untyped) -> bool)?
+
+      attr_reader logger: Datadog::Core::Logger
 
       attr_reader transport: untyped
 
-      attr_reader worker: untyped
+      attr_reader worker: Workers::AsyncTransport?
 
-      attr_reader events: untyped
+      attr_reader events: Events
 
-      attr_reader agent_settings: untyped
+      attr_reader agent_settings: untyped?
 
       def initialize: (?::Hash[untyped, untyped] options) -> void
-      def start: () -> untyped
-
-      private
-      def start_worker: () -> untyped
 
       public
-      def stop: () -> untyped
 
-      private
+      def start: () -> bool?
+      def stop: () -> (nil | true)
 
-      def stop_worker: () -> (nil | true)
-
-      public
-      def send_spans: (untyped traces, untyped transport) -> (true | untyped)
+      def send_spans: (untyped traces, untyped transport) -> bool
       def write: (untyped trace) -> untyped
-      def stats: () -> { traces_flushed: untyped, transport: untyped }
+      def stats: () -> { traces_flushed: ::Integer, transport: untyped }
+
+      private
+
+      def start_worker: () -> untyped
+      def stop_worker: () -> (nil | true)
+      def reset_stats!: () -> void
+
       class Events
-        attr_reader after_send: untyped
+        attr_reader after_send: AfterSend
 
         def initialize: () -> void
+
         class AfterSend < Tracing::Event
           def initialize: () -> void
         end
       end
-
-      private
-
-      def reset_stats!: () -> untyped
     end
   end
 end
