@@ -12,6 +12,11 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
 - A **type assertion** trails an expression as `#: Type` – it narrows a value
   Steep infers too widely, most often an empty literal that has no element type
   to infer; NEVER assert to `untyped`
+- A trailing `#: Type` assertion comments out the rest of the line. NEVER
+  close parentheses after it: `super(&(block #: ^() -> void))` swallows
+  the closing parens and leaves the file unparseable. Steep reports a
+  FALSE GREEN on that broken file. Hoist to a local instead –
+  `# @type var wrapped: ^() -> void` above `wrapped = block`
 - An **annotation** sits on its own `# @type` line above the code it governs:
   `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block Steep
   cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
