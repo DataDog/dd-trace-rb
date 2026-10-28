@@ -41,7 +41,7 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
-static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename);
+static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice filename, bool frame_name_in_scratch_buffer);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -239,6 +239,12 @@ static VALUE native_sample_ensure(VALUE args) {
 
 #define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
 
+// The method name on its own, without any class/module name
+static inline ddog_CharSlice unqualified_name(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  VALUE name = ddtrace_location_base_label(cme, iseq);
+  return (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+}
+
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
 // could continue making progress while the sample was ingested into the profile.
 //
@@ -358,16 +364,6 @@ void sample_thread(
     char *cached_name = show_classes ? buffer->cached_names + (i * MAX_CACHED_FRAME_NAME) : NULL;
     bool name_is_cached = cached_name != NULL && frame.cached_name_len > 0;
 
-    // TODO: name_slice is currently the unqualified method name
-    // because we don't always use qualified method names yet, so we don't always compute it,
-    // and checks below need to compare to something stable until we always qualified method names.
-    ddog_CharSlice name_slice = DDOG_CHARSLICE_C("");
-    // The state checks below are the only use of the unqualified name when we already have the qualified one cached
-    if (!name_is_cached || (top_of_the_stack && only_wall_time)) {
-      VALUE name = ddtrace_location_base_label(cme, iseq);
-      if (name != Qfalse) name_slice = char_slice_from_ruby_string(name);
-    }
-
     ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
     // We only keep a name we managed to compose: ddtrace_location_label() also fails when this stack used up the
     // scratch buffer, and keeping the unqualified name it falls back to would stick to the frame even once there's
@@ -383,12 +379,17 @@ void sample_thread(
         qualified_name_buf_size -= written;
         name_is_cacheable = true;
       } else {
-        qualified_name = name_slice; // just the method name
+        qualified_name = unqualified_name(cme, iseq); // just the method name
       }
     }
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
+      // TODO: the checks below compare to the unqualified method name
+      // because we don't always use qualified method names yet,
+      // and they need something stable to compare to until we always do.
+      ddog_CharSlice name_slice = unqualified_name(cme, iseq);
+
       // Did the caller already provide the state?
       if (labels.is_gvl_waiting_state) {
         state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
@@ -450,11 +451,11 @@ void sample_thread(
     if (show_classes) {
       frame_name = qualified_name;
     } else {
-      frame_name = name_slice;
+      frame_name = unqualified_name(cme, iseq);
     }
 
     if (!name_is_cached) {
-      maybe_trim_template_random_ids(&frame_name, name_slice, filename_slice);
+      maybe_trim_template_random_ids(&frame_name, filename_slice, name_is_cacheable);
 
       // Keep this name for as long as the frame stays in the buffer
       if (cached_name != NULL && name_is_cacheable && frame_name.len <= MAX_CACHED_FRAME_NAME) {
@@ -572,49 +573,55 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 //
 // This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
 //
-// We match on `method_name` because it always ends with the ids, while `frame_name` can have DDTRACE_BLOCK_SUFFIX
-// after them ("Foo#_app_views_articles_index_html_erb__123_456 (block)"); in that case we move the suffix left over
-// the ids. A `frame_name` that is a Ruby String ends with the ids we just matched, so that write only ever lands on
-// a name we composed in the sample's own buffer.
-static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename) {
+// The ids end `frame_name`, or sit right before DDTRACE_BLOCK_SUFFIX
+// ("Foo#_app_views_articles_index_html_erb__123_456 (block)"); in that case we move the suffix left over the ids.
+// That write needs a name we composed ourselves, which is what `frame_name_in_scratch_buffer` tells us.
+static void maybe_trim_template_random_ids(
+  ddog_CharSlice *frame_name,
+  ddog_CharSlice filename,
+  bool frame_name_in_scratch_buffer
+) {
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename.len < 3 || memcmp(filename.ptr + filename.len - 3, ".rb", 3) == 0) return;
 
-  if (method_name.len > 1024) return;
-  if (method_name.len == 0) return;
-
-  int pos = ((int) method_name.len) - 1;
-
-  // Let's match on something__number_number:
-  // Find start of id suffix from the end...
-  if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
-
-  // ...now match a bunch of numbers and interspersed underscores
-  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
-    if (method_name.ptr[pos] == '_') underscores++;
-    else if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
-  }
-
-  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
-  if (pos <= 0 || method_name.ptr[pos] != '_') return;
-
-  // Does it have the optional third underscore? If so, remove it as well
-  if (pos > 1 && method_name.ptr[pos-1] == '_') pos--;
-
-  // If we got here, we matched on our pattern. Let's remove the ids from the end of the frame name.
-  size_t random_ids_len = method_name.len - pos;
+  if (frame_name->len > 1024) return;
+  if (frame_name->len == 0) return;
 
   static const char block_suffix[] = DDTRACE_BLOCK_SUFFIX;
   size_t block_suffix_len = sizeof(block_suffix) - 1;
 
-  if (
-    frame_name->len >= random_ids_len + block_suffix_len &&
-    memcmp(frame_name->ptr + frame_name->len - block_suffix_len, block_suffix, block_suffix_len) == 0
-  ) {
-    memcpy((char *) frame_name->ptr + frame_name->len - block_suffix_len - random_ids_len, block_suffix, block_suffix_len);
+  size_t len = frame_name->len;
+  bool has_block_suffix =
+    frame_name_in_scratch_buffer &&
+    len > block_suffix_len &&
+    memcmp(frame_name->ptr + len - block_suffix_len, block_suffix, block_suffix_len) == 0;
+  if (has_block_suffix) len -= block_suffix_len;
+
+  int pos = ((int) len) - 1;
+
+  // Let's match on something__number_number:
+  // Find start of id suffix from the end...
+  if (frame_name->ptr[pos] < '0' || frame_name->ptr[pos] > '9') return;
+
+  // ...now match a bunch of numbers and interspersed underscores
+  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
+    if (frame_name->ptr[pos] == '_') underscores++;
+    else if (frame_name->ptr[pos] < '0' || frame_name->ptr[pos] > '9') return;
   }
 
-  frame_name->len -= random_ids_len;
+  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
+  if (pos <= 0 || frame_name->ptr[pos] != '_') return;
+
+  // Does it have the optional third underscore? If so, remove it as well
+  if (pos > 1 && frame_name->ptr[pos-1] == '_') pos--;
+
+  // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
+  if (has_block_suffix) {
+    memcpy((char *) frame_name->ptr + pos, block_suffix, block_suffix_len);
+    frame_name->len = pos + block_suffix_len;
+  } else {
+    frame_name->len = pos;
+  }
 }
 
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
