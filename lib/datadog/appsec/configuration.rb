@@ -62,6 +62,7 @@ module Datadog
               end
 
               define_method(:instrument) do |integration_name|
+                # @type self: Datadog::Core::Configuration::Settings::_AppSec
                 if enabled
                   registered_integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]
                   if registered_integration
@@ -92,6 +93,7 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
+                  # @type var value: ::Array[::String]?
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
@@ -108,6 +110,7 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
+                  # @type var value: ::Array[::String]?
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
@@ -124,6 +127,7 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
+                  # @type var value: ::Array[::String]?
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
@@ -180,6 +184,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"
                     o.type :string, nilable: true
                     o.setter do |value|
+                      # @type var value: ::String?
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -195,6 +200,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"
                     o.type :string, nilable: true
                     o.setter do |value|
+                      # @type var value: ::String?
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -210,6 +216,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"
                     o.type :string, nilable: true
                     o.setter do |value|
+                      # @type var value: ::String?
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -246,6 +253,7 @@ module Datadog
                   o.default 32
 
                   o.setter do |value|
+                    # @type var value: ::Integer
                     value = 0 if value < 0
                     value
                   end
@@ -260,6 +268,7 @@ module Datadog
                   o.default 75
 
                   o.setter do |value|
+                    # @type var value: ::Integer
                     value = 100 if value > 100
                     value = 0 if value.negative?
                     value
@@ -277,6 +286,7 @@ module Datadog
                   o.default 2
 
                   o.setter do |value|
+                    # @type var value: ::Integer
                     value = 0 if value < 0
                     value
                   end
@@ -387,6 +397,7 @@ module Datadog
                   o.env "DD_API_SECURITY_SAMPLE_DELAY"
                   o.default 30
                   o.setter do |value|
+                    # @type var value: ::Integer | ::Float
                     value.to_i
                   end
                 end
@@ -397,6 +408,7 @@ module Datadog
                   o.env "DD_API_SECURITY_REQUEST_SAMPLE_RATE"
                   o.default 0.1
                   o.setter do |value|
+                    # @type var value: ::Numeric
                     value = 1 if value > 1
                     SampleRate.new(value)
                   end
