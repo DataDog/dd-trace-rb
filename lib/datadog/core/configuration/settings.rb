@@ -235,7 +235,7 @@ module Datadog
           option :instance do |o|
             # Telemetry for this option is manually modified and added in the AppStarted event.
             o.skip_telemetry true
-            o.after_set { |value| set_option(:level, value.level) unless value.nil? }
+            o.after_set { |value| set_option(:level, value.level) unless value.nil? } # steep:ignore NoMethod
           end
 
           # Log level for `Datadog.logger`.
@@ -570,6 +570,7 @@ module Datadog
                 end
               end
               o.setter do |value|
+                # @type var value: ::String | ::Symbol
                 if value == true
                   :both
                 elsif ["only", "both", :only, :both].include?(value)
@@ -703,6 +704,7 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
+            # @type var service_name: ::String
             Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
           end
 
@@ -710,6 +712,7 @@ module Datadog
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
+            # @type self: Datadog::Core::Configuration::Settings
             service_name = service
             service_name unless using_default?(:service)
           end
@@ -756,7 +759,7 @@ module Datadog
                 key, val = tag.split(/[:=]/, 2).map(&:strip)
                 val ||= ""
                 # maps OpenTelemetry semantic attributes to Datadog tags
-                key = case key.downcase
+                key = case key.downcase # steep:ignore NoMethod
                 when "deployment.environment.name"
                   result["env"] = val
                   nil
@@ -771,6 +774,9 @@ module Datadog
             result
           end
           o.setter do |new_value, old_value|
+            # @type self: Datadog::Core::Configuration::Settings
+            # @type var new_value: ::Hash[untyped, untyped]?
+            # @type var old_value: ::Hash[untyped, untyped]?
             raw_tags = new_value || {}
 
             env_value = env

@@ -4,6 +4,10 @@ module Datadog
       class Settings
         include Base
 
+        # The runtime does this in Base.included; RBS cannot model the hook,
+        # so the class-level settings DSL is declared directly.
+        extend Base::ClassMethods
+
         interface _Remote
           def enabled: () -> bool
 
@@ -398,21 +402,27 @@ module Datadog
 
         def initialize: (*untyped _) -> untyped
 
-        def env: -> String?
+        def env: () -> String?
 
-        def api_key: -> String?
+        def env=: (String? env) -> void
 
-        def hostname: -> String?
+        def api_key: () -> String?
 
-        def service: -> String?
+        def hostname: () -> String?
 
-        def site: -> String?
+        def service: () -> String?
 
-        def service_without_fallback: -> ::String?
+        def service=: (String? service) -> void
 
-        def version: -> String?
+        def site: () -> String?
 
-        def tags: -> ::Hash[::String, ::String]
+        def service_without_fallback: () -> ::String?
+
+        def version: () -> String?
+
+        def version=: (String? version) -> void
+
+        def tags: () -> ::Hash[::String, ::String]
 
         def experimental_propagate_process_tags_enabled: () -> bool
 
