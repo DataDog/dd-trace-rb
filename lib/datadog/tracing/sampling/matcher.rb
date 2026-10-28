@@ -103,7 +103,8 @@ module Datadog
             # Floats: Matching floating point values with a non-zero decimal part is not supported.
             # For floating point values with a non-zero decimal part, any all * pattern always returns true.
             # Other patterns always return false.
-            return false if tag.is_a?(Float) && tag.truncate != tag && matcher != MATCH_ALL
+            # Interfaces cannot carry Object protocol, so the != comparison carries a scoped ignore.
+            return false if tag.is_a?(Float) && tag.truncate != tag && matcher != MATCH_ALL # steep:ignore NoMethod
 
             # Format metrics as strings, to allow for partial number matching (/4.*/ matching '400', '404', etc.).
             # Because metrics are floats, we use the '%g' format specifier to avoid trailing zeros, which
