@@ -1,10 +1,38 @@
 module Datadog
   module Tracing
     class Tracer
-
       @logger: Core::Logger
 
       attr_reader logger: Core::Logger
+
+      attr_reader trace_flush: untyped
+
+      attr_reader provider: untyped
+
+      attr_reader sampler: untyped
+
+      attr_reader span_sampler: untyped
+
+      attr_reader tags: untyped
+
+      attr_accessor default_service: untyped
+
+      attr_accessor enabled: untyped
+
+      attr_accessor writer: untyped
+
+      def initialize: (
+        ?trace_flush: untyped trace_flush,
+        ?context_provider: untyped? context_provider,
+        ?default_service: untyped default_service,
+        ?enabled: untyped enabled,
+        ?logger: Core::Logger logger,
+        ?otel_thread_context: untyped? otel_thread_context,
+        ?sampler: untyped sampler,
+        ?span_sampler: untyped span_sampler,
+        ?tags: Hash[untyped, untyped] tags,
+        writer: untyped writer
+      ) -> void
 
       def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
 

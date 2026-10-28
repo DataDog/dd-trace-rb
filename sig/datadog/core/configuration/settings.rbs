@@ -324,6 +324,16 @@ module Datadog
           def enabled: () -> bool
 
           def partial_flush: () -> _ApmTracingPartialFlush
+
+          def client_ip: () -> _ApmTracingClientIp
+        end
+
+        interface _ApmTracingClientIp
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def header_name: () -> String?
         end
 
         interface _ApmTracingPartialFlush

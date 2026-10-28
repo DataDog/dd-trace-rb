@@ -12,7 +12,7 @@ module Datadog
 
         def self.stripped_ip_from_request_headers: (_HeaderCollection? headers, ?ip_headers_to_check: Array[String] ip_headers_to_check) -> String?
 
-        def self.stripped_ip: (String ip) -> String?
+        def self.stripped_ip: (String? ip) -> String?
 
         private
 

@@ -1,11 +1,15 @@
 module Datadog
   module Tracing
     class Writer
+      attr_reader logger: untyped
+
       attr_reader transport: untyped
 
       attr_reader worker: untyped
 
       attr_reader events: untyped
+
+      attr_reader agent_settings: untyped
 
       def initialize: (?::Hash[untyped, untyped] options) -> void
       def start: () -> untyped

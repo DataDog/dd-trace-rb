@@ -65,6 +65,14 @@ module Datadog
 
       def finish!: -> void
 
+      def set_local_root_span!: (untyped span) -> void
+
+      def to_correlation: () -> Correlation::Identifier
+
+      def reset: () -> void
+
+      def reconsider_rule_sample?: () -> bool
+
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped
@@ -79,7 +87,7 @@ module Datadog
       def reconsider_resource_sample?: () -> bool
       def service: () -> untyped
       def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped
-      def build_span: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
+      def build_span: (untyped op_name, ?logger: untyped logger, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?, ?id: untyped? id) -> untyped
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
       def fork_clone: () -> untyped

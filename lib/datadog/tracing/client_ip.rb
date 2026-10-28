@@ -38,10 +38,11 @@ module Datadog
         end
 
         def extract_client_ip(headers, remote_ip)
-          if headers && configuration.header_name
+          header_name = configuration.header_name
+          if headers && header_name
             return Datadog::Core::Utils::Network.stripped_ip_from_request_headers(
               headers,
-              ip_headers_to_check: Array(configuration.header_name)
+              ip_headers_to_check: Array(header_name)
             )
           end
 

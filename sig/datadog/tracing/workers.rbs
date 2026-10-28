@@ -12,9 +12,11 @@ module Datadog
 
         BACK_OFF_MAX: 5
 
-        SHUTDOWN_TIMEOUT: 1
+        DEFAULT_SHUTDOWN_TIMEOUT: 1
 
         attr_reader trace_buffer: untyped
+
+        attr_reader logger: untyped
 
         def initialize: (?::Hash[untyped, untyped] options) -> void
         def callback_traces: () -> (true | untyped)
