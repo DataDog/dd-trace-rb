@@ -1,13 +1,131 @@
 module OpenTelemetry
-  class Context
-    def self.current: () -> instance
-    def ensure_trace: () -> Datadog::Tracing::TraceOperation?
-    def set_values: (Hash[Symbol, Hash[String, String] | String]) -> self
+  # This stub models the gem's Context class as the Datadog tracer
+  # leaves it: its own Context module prepended onto the gem class and
+  # its SingletonClass prepended onto the gem singleton. The stub is
+  # self-contained because library signatures cannot reference the
+  # project signatures that carry the same methods.
+  class Error < StandardError
   end
 
+  class Context
+    ROOT: OpenTelemetry::Context
+
+    def self.create_key: (String name) -> untyped
+
+    def self.current: () -> instance
+
+    def self.attach: (untyped context) -> untyped
+
+    def self.detach: (untyped token) -> untyped
+
+    def self.with_current: (instance ctx) ?{ (instance) -> untyped } -> untyped
+
+    def self.from_trace: (Datadog::Tracing::TraceOperation trace) -> Datadog::OpenTelemetry::API::Context
+
+    def initialize: (untyped entries, ?trace: Datadog::Tracing::TraceOperation? trace, ?baggage: untyped? baggage) -> void
+
+    def ensure_trace: () -> Datadog::Tracing::TraceOperation?
+
+    def value: (untyped key) -> untyped
+
+    alias [] value
+
+    def set_value: (untyped key, untyped value) -> untyped
+
+    def set_values: (Hash[untyped, untyped] values) -> OpenTelemetry::Context
+
+    def trace: () -> Datadog::Tracing::TraceOperation
+
+    class DetachError < Error
+    end
+
+    module Propagation
+      def self.text_map_getter: () -> untyped
+
+      def self.text_map_setter: () -> untyped
+    end
+
+    private
+
+    def self.stack: () -> Array[untyped]
+  end
+
+  module Common
+    module Propagation
+      def self.rack_env_getter: () -> untyped
+    end
+  end
+
+  def self?.handle_error: (?exception: untyped? exception, ?message: untyped? message) -> void
+
   module Baggage
+    BAGGAGE_KEY: untyped
   end
 
   module Trace
+    CURRENT_SPAN_KEY: untyped
+
+    # The Datadog tracer prepends its Span module onto this class; the
+    # accessors are redeclared here because library signatures cannot
+    # mixin project signatures.
+    class Span
+      attr_accessor datadog_span: untyped
+
+      attr_accessor datadog_trace: untyped
+
+      def context: () -> SpanContext
+    end
+
+    class Status
+      UNSET: 1
+
+      OK: 0
+
+      ERROR: 2
+
+      attr_reader code: Integer
+
+      attr_reader description: String
+
+      def ok?: () -> bool
+
+      def self.unset: (?String description) -> Status
+
+      def self.error: (?String description) -> Status
+    end
+
+    class TraceFlags
+      SAMPLED: untyped
+
+      DEFAULT: untyped
+
+      def self.from_byte: (untyped byte) -> instance
+
+      def sampled?: () -> bool
+    end
+
+    class Tracestate
+      DEFAULT: untyped
+
+      def to_s: () -> String
+    end
+
+    class SpanContext
+      def initialize: (?trace_id: untyped trace_id, ?span_id: untyped span_id, ?trace_flags: untyped trace_flags, ?tracestate: untyped tracestate, ?remote: bool remote) -> void
+
+      def hex_trace_id: () -> String
+
+      def hex_span_id: () -> String
+
+      def tracestate: () -> Tracestate?
+
+      def trace_flags: () -> TraceFlags
+
+      def remote?: () -> bool
+    end
+
+    def self.non_recording_span: (SpanContext span_context) -> OpenTelemetry::Trace::Span
+
+    def self.context_with_span: (untyped span, ?parent_context: untyped parent_context) -> untyped
   end
 end

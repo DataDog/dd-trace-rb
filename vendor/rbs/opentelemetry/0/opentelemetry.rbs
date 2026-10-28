@@ -15,6 +15,34 @@ module OpenTelemetry
   end
 
   module SDK
+    module Trace
+      class Span < OpenTelemetry::Trace::Span
+        attr_reader name: String
+
+        attr_reader status: OpenTelemetry::Trace::Status
+
+        attr_reader kind: Symbol
+
+        attr_reader links: Array[untyped]?
+
+        attr_reader start_timestamp: Integer
+
+        attr_reader end_timestamp: Integer
+
+        def attributes: () -> Hash[String, untyped]
+
+        def events: () -> Array[untyped]
+      end
+
+      module Export
+        SUCCESS: 0
+
+        FAILURE: 1
+
+        TIMEOUT: 2
+      end
+    end
+
     module Resources
       class Resource
         def self.create: (::Hash[::String, untyped] attributes) -> untyped

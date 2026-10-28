@@ -51,6 +51,7 @@ module Datadog
 
         # Captures changes to span error state.
         def status=(s)
+          # @type self: ::OpenTelemetry::SDK::Trace::Span & Datadog::OpenTelemetry::Trace::Span
           super
 
           return unless status # Return if status are currently disabled by OpenTelemetry.
@@ -121,6 +122,7 @@ module Datadog
 
         # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def datadog_set_attribute(key)
+          # @type self: ::OpenTelemetry::SDK::Trace::Span & Datadog::OpenTelemetry::Trace::Span
           # Return if attributes are currently disabled by OpenTelemetry.
           return unless defined?(@attributes) && @attributes
           return unless (span = datadog_span)

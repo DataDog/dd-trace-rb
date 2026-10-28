@@ -3,6 +3,9 @@ module Datadog
     class TraceOperation
       include Metadata::Tagging
 
+      # The runtime does this in the OpenTelemetry API extension.
+      include Datadog::OpenTelemetry::API::TraceOperation
+
       DEFAULT_MAX_LENGTH: ::Integer
       AUTO_SAMPLING_PRIORITIES: ::Array[::Integer]
       RECONSIDERABLE_DECISIONS: ::Array[::String]

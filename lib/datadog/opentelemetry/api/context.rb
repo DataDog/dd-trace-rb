@@ -123,6 +123,9 @@ module Datadog
           # @param [Context] context The new context
           # @return [Object] A token to be used when detaching
           def attach(context)
+            # The host is the OpenTelemetry Context singleton, which
+            # carries the gem's stack and this prepended module.
+            # @type self: singleton(OpenTelemetry::Context) & Datadog::OpenTelemetry::API::Context::SingletonClass
             previous_trace = Tracing.active_trace
             continue_trace!(context)
 
@@ -138,6 +141,7 @@ module Datadog
           # @param [Object] token The token provided by the matching call to attach
           # @return [Boolean] True if the calls matched, false otherwise
           def detach(token)
+            # @type self: singleton(OpenTelemetry::Context) & Datadog::OpenTelemetry::API::Context::SingletonClass
             s = stack
             calls_matched = (token == s.size)
             unless calls_matched
@@ -162,6 +166,7 @@ module Datadog
 
           # Creates a new {Context} associated with a {TraceOperation}.
           def from_trace(trace)
+            # @type self: singleton(OpenTelemetry::Context) & Datadog::OpenTelemetry::API::Context::SingletonClass
             new({}, trace: trace)
           end
 

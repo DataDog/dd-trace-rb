@@ -14,6 +14,10 @@ module Datadog
         def create_matching_datadog_span: (untyped span, untyped parent_context) -> untyped
 
         def start_datadog_span: (untyped span) -> untyped
+
+        def span_arguments: (untyped span, Hash[String, untyped] attributes) -> [String, Hash[Symbol, untyped]]
+
+        def ns_to_time: (untyped timestamp_ns) -> Time
       end
     end
   end
