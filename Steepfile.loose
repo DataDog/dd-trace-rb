@@ -1,0 +1,52 @@
+# Dev-only lenient target for the Steep tiering repair. Not wired to CI.
+# Covers all of lib/ with default diagnostics. Verify with:
+#   bundle exec steep check --steepfile Steepfile.loose --no-daemon
+# Keep the library/repo_path config in sync with the main Steepfile.
+target :loose do
+  signature "sig"
+  check "lib/"
+  check "lib/datadog/ruby_version.rb", inline: true
+  check "lib/datadog/profiling/encoded_profile.rb", inline: true
+  check "lib/datadog/profiling/exporter.rb", inline: true
+  check "lib/datadog/profiling/ext.rb", inline: true
+  check "lib/datadog/profiling/flush.rb", inline: true
+  check "lib/datadog/profiling/preload.rb", inline: true
+  check "lib/datadog/profiling/http_transport.rb", inline: true
+  check "lib/datadog/profiling/profiler.rb", inline: true
+  check "lib/datadog/profiling/collectors/code_provenance.rb", inline: true
+  check "lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb", inline: true
+  check "lib/datadog/profiling/collectors/dynamic_sampling_rate.rb", inline: true
+  check "lib/datadog/profiling/collectors/idle_sampling_helper.rb", inline: true
+  check "lib/datadog/profiling/collectors/info.rb", inline: true
+  check "lib/datadog/profiling/tasks/exec.rb", inline: true
+  check "lib/datadog/profiling/tasks/help.rb", inline: true
+  library "bundler"
+  library "pathname"
+  library "cgi"
+  library "logger", "monitor"
+  library "json"
+  library "ipaddr"
+  library "uri"
+  library "net-http"
+  library "socket"
+  library "openssl"
+  library "securerandom"
+  library "digest"
+  library "base64"
+  library "zlib"
+  library "time"
+  library "pp"
+  library "forwardable"
+  library "json"
+
+  # Load all dependency signatures from the `vendor/rbs` directory
+  repo_path "vendor/rbs"
+  Dir.children("vendor/rbs").each do |vendor_gem|
+    library vendor_gem
+  end
+
+  # ffi version 1.17 was shipped with invalid rbs types:
+  # https://github.com/ffi/ffi/issues/1107
+  library "libddwaf-stub"
+  library "libdatadog"
+end
