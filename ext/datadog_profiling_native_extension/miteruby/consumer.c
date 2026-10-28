@@ -139,6 +139,31 @@ static const rb_data_type_t consumer_typed_data = {
   },
 };
 
+void miteruby_consumer_stats(VALUE stats_as_hash) {
+  mutex_lock(&consumer_state.mutex);
+  size_t consumed_events_used_size = consumer_state.consumed_events_count * sizeof(*consumer_state.consumed_events_buffer);
+  size_t objects_to_mark_entries = verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark);
+  miteruby_stack_dedup_stats_t stack_dedup = miteruby_stack_dedup_stats();
+  miteruby_consumer_recorder_stats_t recorder = miteruby_consumer_recorder_stats();
+  mutex_unlock(&consumer_state.mutex);
+
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("miteruby_buffer_max_size_bytes")), SIZET2NUM(MITERUBY_BUFFER_CAPACITY_BYTES),
+    ID2SYM(rb_intern("miteruby_consumed_events_buffer_max_size_bytes")),
+      SIZET2NUM(CONSUMED_EVENTS_BUFFER_MAX_CAPACITY * sizeof(*consumer_state.consumed_events_buffer)),
+    ID2SYM(rb_intern("miteruby_consumed_events_buffer_used_size_bytes")), SIZET2NUM(consumed_events_used_size),
+    ID2SYM(rb_intern("miteruby_objects_to_mark_max_size_bytes")), SIZET2NUM(OBJECTS_TO_MARK_MAX_SIZE),
+    ID2SYM(rb_intern("miteruby_objects_to_mark_entries")), SIZET2NUM(objects_to_mark_entries),
+    ID2SYM(rb_intern("miteruby_unique_stacks_array_max_size_bytes")), SIZET2NUM(stack_dedup.array_max_size_bytes),
+    ID2SYM(rb_intern("miteruby_unique_stacks_array_used_size_bytes")), SIZET2NUM(stack_dedup.array_used_size_bytes),
+    ID2SYM(rb_intern("miteruby_unique_stacks_set_max_size_bytes")), SIZET2NUM(stack_dedup.set_max_size_bytes),
+    ID2SYM(rb_intern("miteruby_unique_stacks_set_entries")), SIZET2NUM(stack_dedup.set_entries),
+    ID2SYM(rb_intern("miteruby_thread_contexts_max_size_bytes")), SIZET2NUM(recorder.thread_contexts_max_size_bytes),
+    ID2SYM(rb_intern("miteruby_thread_contexts_entries")), SIZET2NUM(recorder.thread_contexts_entries),
+  };
+  for (size_t i = 0; i < sizeof(arguments) / sizeof(*arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
+}
+
 void miteruby_consumer_init(miteruby_buffer_t *buffer) {
   if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success)
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
