@@ -15,6 +15,11 @@ module OpenTelemetry
   end
 
   module SDK
+    # The configurator provides defaults and facilitates configuring the
+    # SDK for use.
+    class Configurator
+    end
+
     module Trace
       class Span < OpenTelemetry::Trace::Span
         attr_reader name: String
@@ -50,6 +55,11 @@ module OpenTelemetry
     end
 
     module Logs
+      # The ConfiguratorPatch implements a hook to configure the logs portion
+      # of the SDK.
+      module ConfiguratorPatch
+      end
+
       class LoggerProvider
         def initialize: (?resource: untyped) -> void
 
@@ -79,6 +89,11 @@ module OpenTelemetry
     end
 
     module Metrics
+      # The ConfiguratorPatch implements a hook to configure the metrics
+      # portion of the SDK.
+      module ConfiguratorPatch
+      end
+
       class MeterProvider
         def initialize: (?resource: untyped) -> void
 

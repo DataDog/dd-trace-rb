@@ -15,6 +15,9 @@ module Datadog
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES: ::Array[String]
 
+        # Set to nil by the OpenTelemetry SDK until attributes are enabled.
+        @attributes: ::Hash[String, untyped]?
+
         def self.enrich_name: (::Symbol kind, ::Hash[String, untyped] attrs) -> String
 
         private

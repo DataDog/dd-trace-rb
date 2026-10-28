@@ -124,18 +124,22 @@ module Datadog
         def datadog_set_attribute(key)
           # @type self: ::OpenTelemetry::SDK::Trace::Span & Datadog::OpenTelemetry::Trace::Span
           # Return if attributes are currently disabled by OpenTelemetry.
-          return unless defined?(@attributes) && @attributes
+          return unless defined?(@attributes)
           return unless (span = datadog_span)
 
           # DEV: Accesses `@attributes` directly, since using `#attributes`
           # DEV: clones the hash, causing unnecessary overhead.
-          if @attributes.key?(key)
+          # A guard cannot narrow the ivar, so hoist it into a local.
+          attributes = @attributes
+          return unless attributes
+
+          if attributes.key?(key)
             # Try to find a richer operation name, unless an explicit override was provided.
-            if !@attributes.key?("operation.name") && (rich_name = Span.enrich_name(kind, @attributes))
+            if !attributes.key?("operation.name") && (rich_name = Span.enrich_name(kind, attributes))
               span.name = rich_name.downcase
             end
 
-            Tracing::Utils.serialize_attribute(key, @attributes[key]).each do |new_key, value|
+            Tracing::Utils.serialize_attribute(key, attributes[key]).each do |new_key, value|
               override_datadog_values(span, new_key, value)
 
               # When an attribute is used to override a Datadog Span property,
