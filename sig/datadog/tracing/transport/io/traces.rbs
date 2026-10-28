@@ -11,6 +11,17 @@ module Datadog
             def initialize: (untyped result, ?::Integer trace_count) -> void
           end
           module Client
+            # Mirrors the runtime composition in traces.rb: Client includes
+            # Encoder, and hosts (IO::Client via IO::Client.include at the
+            # bottom of traces.rb) provide the request/writing contract.
+            include Encoder
+            interface _IOClientHost
+              def send_request: (untyped request) ?{ (untyped out, untyped request) -> untyped } -> untyped
+
+              def write_data: (untyped out, untyped data) -> untyped
+            end
+            include _IOClientHost
+
             def send_traces: (untyped traces) ?{ (untyped, untyped) -> untyped } -> ::Array[untyped]
           end
           module Encoder

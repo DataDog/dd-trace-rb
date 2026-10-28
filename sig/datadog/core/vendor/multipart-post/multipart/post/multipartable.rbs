@@ -4,9 +4,24 @@ module Datadog
       module Multipart
         module Post
           module Multipartable
+            # Hosts of Multipartable are Net::HTTP request classes
+            # (see net/http/post/multipart.rb); they provide the
+            # Net::HTTPGenericRequest/Net::HTTPHeader contract.
+            interface _HTTPRequestHost
+              def set_content_type: (untyped type, ?::Hash[untyped, untyped] params) -> void
+
+              def content_length=: (untyped len) -> void
+
+              def body_stream=: (untyped body_stream) -> void
+            end
+
+            include _HTTPRequestHost
+
             def self.secure_boundary: () -> ::String
 
             def initialize: (untyped path, untyped params, ?::Hash[untyped, untyped] headers, ?untyped boundary) -> void
+
+            attr_reader boundary: untyped
           end
         end
       end
