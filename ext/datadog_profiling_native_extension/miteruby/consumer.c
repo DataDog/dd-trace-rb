@@ -1,13 +1,13 @@
-#include "consumer.h"
-#include "consumer_recorder.h"
-#include "stack_dedup.h"
-#include "buffer_marking.h"
 #include "allocator.h"
+#include "buffer_marking.h"
+#include "consumer_recorder.h"
+#include "consumer.h"
+#include "libdatadog_recorder.h"
+#include "stack_dedup.h"
 
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
 #include "../setup_signal_handler.h"
-#include "libdatadog_recorder.h"
 #include "../time_helpers.h"
 
 #include <pthread.h>
@@ -17,7 +17,7 @@
 #include <ruby/thread.h>
 #include <threads.h>
 
-#define OBJECTS_TO_MARK_MAX_CAPACITY MiB_AS_BYTES(16)
+#define OBJECTS_TO_MARK_MAX_SIZE MiB_AS_BYTES(16)
 
 static void *objects_to_mark_calloc(size_t size);
 static void objects_to_mark_free(void *allocation, size_t size);
@@ -74,7 +74,7 @@ static VALUE prepare_serialize_unlock_ensure(VALUE unused);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
 static void *objects_to_mark_calloc(size_t size) {
-  if (size > OBJECTS_TO_MARK_MAX_CAPACITY) return NULL;
+  if (size > OBJECTS_TO_MARK_MAX_SIZE) return NULL;
   void *allocation = miteruby_allocator_alloc(size, "objects_to_mark");
   if (allocation != NULL) consumer_state.objects_to_mark_allocated_bytes += size;
   return allocation;
