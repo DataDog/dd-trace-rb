@@ -60,14 +60,17 @@ module Datadog
           callbacks = blocks_for(snapshot, stage)
           if stage == :before
             return callbacks.each do |callback|
-              started[callback.group] = true if started && callback.group
+              group = callback.group
+              started[group] = true if started && group
               callback.block.call
             end
           end
 
+          # @type var error: Exception?
           error = nil
           callbacks.each do |callback|
-            next if started && callback.group && !started.key?(callback.group)
+            group = callback.group
+            next if started && group && !started.key?(group)
 
             callback.block.call
           rescue Exception => e # rubocop:disable Lint/RescueException -- finish cleanup, then re-raise the first failure
@@ -170,7 +173,7 @@ module Datadog
             started = {}
 
             # If a block is provided, it must be wrapped to trigger callbacks.
-            # @type var child_block: (^() -> untyped)?
+            # @type var child_block: Proc?
             child_block = if block_given?
               proc do
                 AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)
@@ -185,7 +188,7 @@ module Datadog
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
 
               # Start fork. If a block is provided, use the wrapped version.
-              result = child_block.nil? ? super : super(&child_block)
+              result = child_block.nil? ? super : super(&(child_block #: ^() -> untyped))
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in
               # the parent. Restore any state set up by earlier callbacks.
