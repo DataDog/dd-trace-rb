@@ -1803,6 +1803,27 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "#stats" do
+    it "omits miteruby stats when disabled" do
+      expect(cpu_and_wall_time_worker.stats.keys.grep(/^miteruby_/)).to be_empty
+    end
+
+    context "when miteruby is enabled" do
+      let(:options) { {miteruby_enabled: true} }
+
+      it "exposes storage limits before starting the worker" do
+        expect(cpu_and_wall_time_worker.stats).to include(
+          miteruby_buffer_max_size_bytes: 1024 * 1024, # 1 MiB
+          miteruby_consumed_events_buffer_max_size_bytes: 16_777_200, # around 16 MiB, it rounds because records are 40 bytes
+          miteruby_objects_to_mark_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_unique_stacks_array_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_unique_stacks_set_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_thread_contexts_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+        )
+      end
+    end
+  end
+
   describe "#stats_reset_not_thread_safe" do
     let(:allocation_profiling_enabled) { true }
 
@@ -2147,6 +2168,47 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     def recorded_miteruby_samples
       described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
       samples_from_pprof(miteruby_recorder.serialize!)
+    end
+
+    it "tracks storage usage through consumption, serialization, and reset" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+
+      empty_usage = {
+        miteruby_consumed_events_buffer_used_size_bytes: 0,
+        miteruby_objects_to_mark_entries: 0,
+        miteruby_unique_stacks_array_used_size_bytes: 0,
+        miteruby_unique_stacks_set_entries: 0,
+        miteruby_thread_contexts_entries: 0,
+      }
+      expect(cpu_and_wall_time_worker.stats).to include(empty_usage)
+
+      2.times do
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
+      end
+      expect(cpu_and_wall_time_worker.stats).to include(empty_usage)
+
+      consume_miteruby
+      consumed_stats = cpu_and_wall_time_worker.stats.select { |key, _| key.to_s.start_with?("miteruby_") }
+      expect(consumed_stats).to include(
+        miteruby_consumed_events_buffer_used_size_bytes: 80,
+        miteruby_objects_to_mark_entries: be > 0,
+        miteruby_unique_stacks_array_used_size_bytes: be > 0,
+        miteruby_unique_stacks_set_entries: 1,
+        miteruby_thread_contexts_entries: 0,
+      )
+
+      cpu_and_wall_time_worker.stats_and_reset_not_thread_safe
+      expect(cpu_and_wall_time_worker.stats).to include(consumed_stats)
+
+      recorded_miteruby_samples
+      expect(cpu_and_wall_time_worker.stats).to include(
+        consumed_stats.merge(miteruby_consumed_events_buffer_used_size_bytes: 0, miteruby_thread_contexts_entries: 1)
+      )
+
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      expect(cpu_and_wall_time_worker.stats).to include(empty_usage)
     end
 
     it "keeps dynamically defined stacks alive in both buffers across GC and compaction" do
