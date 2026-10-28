@@ -71,6 +71,11 @@ Validate a new Steepfile or target with a deliberately broken scratch
 file, for example a planted `1 + "string"`, before trusting zero-error
 output.
 
+Constant errors that appear only in a scoped run may be phantom: scoped
+runs skip inline RBS entries (`inline: true`), so constants declared
+that way resolve only in full runs. Confirm with a full run before
+fixing.
+
 While iterating, scope the check to the edited file's Ruby source – a `sig/`
 path silently passes even on a broken signature:
 

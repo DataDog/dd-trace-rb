@@ -42,14 +42,25 @@ metrics = [] #: Array[String]
 metrics = []
 ```
 
-Annotate `self` for a DSL block Steep does not follow:
+Annotate `self` for a DSL block Steep does not follow, but only inside
+the block body. When the receiving method's signature declares the
+block's self type, an annotation above the call silently does nothing.
+Option DSL procs all declare block self, so their annotations go inside:
 
 ```ruby
 # Good – self is the settings context inside the block
 # @type self: Configuration::Options::_Settings
 apply_defaults { |name| set(name, defaults[name]) }
 
-# Bad – no self annotation; Steep resolves set/defaults on the wrong type and flags them
+# Good for signature-declared block self – annotate inside the body
+option :service do |o|
+  o.helper(:service_without_fallback) do
+    # @type self: Datadog::Core::Configuration::Settings
+    service_name = service
+  end
+end
+
+# Bad – no self annotation; Steep resolves set on the wrong type and flags it
 apply_defaults { |name| set(name, defaults[name]) }
 ```
 
