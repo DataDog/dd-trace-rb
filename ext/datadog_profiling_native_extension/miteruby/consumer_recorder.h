@@ -9,8 +9,14 @@
 // Given a miteruby stack sample, symbolicates it and places it inside libdatadog.
 // Also keeps track of time deltas between events in threads (TODO: This maybe should move elsewhere?).
 
+typedef struct {
+  size_t thread_contexts_max_size_bytes;
+  size_t thread_contexts_entries;
+} miteruby_consumer_recorder_stats_t;
+
 // Caller holds the main ractor's GVL and consumer's mutex.
 void miteruby_consumer_recorder_init(void);
+miteruby_consumer_recorder_stats_t miteruby_consumer_recorder_stats(void);
 void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_deduped_sample_t *event,
