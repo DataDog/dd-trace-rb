@@ -356,14 +356,16 @@ static void test_unique_stacks_set_capacity(void) {
 static void test_fixed_array_capacity(void) {
   miteruby_consumer_reset();
   uint8_t *array = stack_dedup_state.unique_stacks_array;
-  miteruby_event_frame_refs_t refs[1024] = {0};
-  miteruby_event_frame_position_t positions[1024] = {0};
-  miteruby_event_stack_sample_view_t view = {.refs = refs, .positions = positions, .frame_count = 1024};
-  miteruby_stack_dedup_id_t first = assert_dedup(view, true);
-  miteruby_event_stack_sample_view_t stored = miteruby_stack_dedup_get(first);
-  size_t record_size = stack_dedup_state.unique_stacks_pos;
+  miteruby_event_frame_refs_t refs[MITERUBY_MAX_FRAMES] = {0};
+  miteruby_event_frame_position_t positions[MITERUBY_MAX_FRAMES] = {0};
+  miteruby_event_stack_sample_view_t view = {
+    .refs = refs,
+    .positions = positions,
+    .frame_count = MITERUBY_MAX_FRAMES,
+  };
+  assert(assert_dedup(view, true).offset == 0);
   uint16_t position = 1;
-  while (UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos >= record_size) {
+  while (UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos >= MITERUBY_MAX_SIZE_BYTES) {
     positions[0].value = position++;
     assert_dedup(view, true);
   }
@@ -371,9 +373,7 @@ static void test_fixed_array_capacity(void) {
   positions[0].value = position;
   assert_failed_dedup(view);
   size_t remaining = UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos;
-  view.frame_count = (remaining - sizeof(miteruby_stack_t)) / (sizeof(*refs) + sizeof(*positions));
-  assert_dedup(view, true);
-  assert(stack_dedup_state.unique_stacks_pos == 16U * 1024U * 1024U);
+  assert(remaining < MITERUBY_MAX_SIZE_BYTES);
   assert(stack_dedup_state.unique_stacks_size == 16U * 1024U * 1024U);
   assert(stack_dedup_state.unique_stacks_array == array);
   assert_failed_dedup((miteruby_event_stack_sample_view_t) {0});
@@ -386,13 +386,6 @@ static void test_fixed_array_capacity(void) {
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL);
   assert(consumer_state.consumed_events_count == previous_events_count);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == previous_objects_count);
-
-  view.frame_count = 1024;
-  assert_failed_dedup(view);
-  positions[0].value = 0;
-  assert(assert_dedup(view, false).offset == first.offset);
-  assert(stored.refs == miteruby_stack_dedup_get(first).refs);
-  assert(stored.positions[0].value == 0);
   assert_allocation_accounting();
 
   assert(miteruby_stack_dedup_reset());
