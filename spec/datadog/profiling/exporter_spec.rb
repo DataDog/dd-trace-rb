@@ -84,6 +84,51 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(JSON.parse(flush.info_json, symbolize_names: true)).to eq(info)
     end
 
+    it "does not log stats when miteruby stats are absent" do
+      expect(logger).to_not receive(:info)
+
+      flush
+    end
+
+    context "when miteruby stats are present" do
+      let(:miteruby_stats) do
+        {
+          miteruby_consumed_events_buffer_max_size_bytes: 16_777_200,
+          miteruby_unique_stacks_set_entries: 42,
+        }
+      end
+      let(:worker_stats) { super().merge(miteruby_stats) }
+
+      it "logs only miteruby stats on each export and preserves them in the metadata" do
+        expect(logger).to receive(:info).with("Miteruby stats (export at #{finish}): #{miteruby_stats}").twice
+
+        2.times do
+          metadata = JSON.parse(exporter.flush.internal_metadata_json, symbolize_names: true)
+          expect(metadata.fetch(:worker_stats)).to include(miteruby_stats)
+        end
+      end
+
+      context "when the recorder has no data" do
+        let(:pprof_recorder_serialize) { nil }
+
+        it "does not log stats" do
+          expect(logger).to_not receive(:info)
+
+          flush
+        end
+      end
+
+      context "when the profile is too short to export" do
+        let(:finish) { start + 0.99 }
+
+        it "does not log stats" do
+          expect(logger).to_not receive(:info)
+
+          flush
+        end
+      end
+    end
+
     context "when automatic GC compaction is supported" do
       before do
         skip "Automatic GC compaction is only supported on Ruby >= 3.0" if RubyVersion.is?("< 3.0")
