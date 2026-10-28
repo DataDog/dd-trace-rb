@@ -1,6 +1,8 @@
 module Datadog
   module Profiling
     class EncodedProfile
+      def self.from_custom: (Time start, Time end_time, String bytes_string) -> EncodedProfile
+
       def _native_bytes: () -> String
     end
   end
