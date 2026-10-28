@@ -1,6 +1,0 @@
-{
-  "type": "Fixed",
-  "product": "Dynamic Instrumentation",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6580",
-  "message": "Fix probes with a fractional `snapshotsPerSecond` value never capturing snapshots; they now capture at the configured rate, for example one snapshot every two seconds with `0.5`."
-}
