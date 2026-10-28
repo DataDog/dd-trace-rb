@@ -332,6 +332,18 @@ module Datadog
           def interval: () -> ::Float
         end
 
+        interface _Crashtracking
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+        end
+
+        interface _Profiling
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+        end
+
         interface _OpenFeature
           def using_default?: (Symbol name) -> bool
 
@@ -457,6 +469,10 @@ module Datadog
         def apm: () -> _Apm
 
         def data_streams: () -> _DataStreams
+
+        def crashtracking: () -> _Crashtracking
+
+        def profiling: () -> _Profiling
 
         def tracing: () -> untyped
 
