@@ -123,15 +123,18 @@ module Datadog
         # Stop the background thread and flush remaining events. Wakes the worker out of its
         # interruptible wait so the drain + final flush happen immediately (no up-to-10s delay).
         def stop
-          @stop_mutex.synchronize do
-            @stopped = true
-            @stop_cond.broadcast
-          end
-
+          request_stop
           return true if join(SHUTDOWN_TIMEOUT_SECONDS)
 
           @logger.debug { "OpenFeature EVP: writer did not stop gracefully; terminating worker thread" }
           terminate
+        end
+
+        def request_stop
+          @stop_mutex.synchronize do
+            @stopped = true
+            @stop_cond.broadcast
+          end
         end
 
         protected

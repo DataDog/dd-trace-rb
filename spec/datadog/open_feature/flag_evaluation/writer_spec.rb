@@ -132,6 +132,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       expect(writer.stop).to be(true)
     end
+
+    it "requests a nonblocking final flush, rejects late events, and stops without sending twice" do
+      received = Queue.new
+      release_send = Queue.new
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.0)
+      allow(transport).to receive(:send_flag_evaluations) do |payload|
+        received << payload
+        release_send.pop
+      end
+      writer = described_class.new(transport: transport, logger: logger)
+      writer.enqueue(flag_key: "queued-before-stop", variant: "on", eval_time_ms: 1_000)
+
+      Timeout.timeout(1) { writer.request_stop }
+      payload = Timeout.timeout(1) { received.pop }
+      expect(writer).to be_running
+      expect(payload["flagEvaluations"].map { |event| event["flag"]["key"] }).to eq(["queued-before-stop"])
+      writer.enqueue(flag_key: "late-after-stop", variant: "off", eval_time_ms: 2_000)
+      Timeout.timeout(1) { writer.request_stop }
+      release_send << true
+
+      expect(writer.stop).to be(true)
+      expect(writer.stop).to be(true)
+      expect(writer).not_to be_running
+      expect(transport).to have_received(:send_flag_evaluations).once
+      expect(received).to be_empty
+    ensure
+      release_send << true if release_send
+      writer&.stop
+    end
   end
 
   describe "#background drain" do

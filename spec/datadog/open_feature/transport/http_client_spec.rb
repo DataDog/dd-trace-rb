@@ -12,7 +12,10 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
   end
   let(:site) { "datadoghq.com" }
   let(:direct_url) { "https://event-platform-intake.datadoghq.com/api/v2/exposures" }
-  let(:identity) { {"DD-EVP-ORIGIN" => "dd-trace-rb", "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING} }
+  let(:identity) do
+    {"DD-EVP-ORIGIN" => "dd-trace-rb", "DD-EVP-ORIGIN-VERSION" => Datadog::VERSION::STRING,
+     "DD-Internal-Untraced-Request" => "1"}
+  end
 
   around do |example|
     ClimateControl.modify("http_proxy" => nil, "HTTP_PROXY" => nil, "https_proxy" => nil,
@@ -53,6 +56,16 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
     expect(client.request("/api/v2/exposures", payload: payload, direct: true, timeout: 1)).to be_ok
     expect(local).to have_been_requested.once
     expect(direct).to have_been_requested.once
+  end
+
+  it "marks discovery untraced without intake credentials or routing headers" do
+    discovery = stub_request(:get, "http://localhost:8126/info")
+      .with(headers: identity)
+      .with { |request| !request.headers.key?("Dd-Api-Key") && !request.headers.key?("X-Datadog-Evp-Subdomain") }
+      .to_return(body: '{"endpoints":[]}')
+
+    expect(client.request("/info", timeout: 1).info).to eq("endpoints" => [])
+    expect(discovery).to have_been_requested.once
   end
 
   [301, 302, 307, 308].each do |status|
@@ -140,6 +153,12 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
     end
   end
 
+  it "refuses an HTTPS proxy URL without a host" do
+    ClimateControl.modify("HTTPS_PROXY" => "http://:8080") do
+      expect { client.send(:connection, true) }.to raise_error(ArgumentError, "Unsupported EVP proxy")
+    end
+  end
+
   it "uses the HTTPS proxy and honors its no_proxy exclusion" do
     ClimateControl.modify("HTTPS_PROXY" => "http://user:pass@proxy.invalid:8080", "no_proxy" => nil) do
       connection = client.send(:connection, true)
@@ -150,6 +169,31 @@ RSpec.describe Datadog::OpenFeature::Transport::HTTPClient, webmock: true do
         expect(client.send(:connection, true).proxy?).to be(false)
       end
     end
+  end
+
+  shared_examples "HTTPS proxy userinfo" do
+    [["us%40er:p%3Ass%25%2B+@", "us@er", "p:ss%++"],
+      ["user@", "user", nil], ["user:@", "user", ""], ["", nil, nil]].each do |userinfo, username, password|
+      it "preserves HTTPS proxy credentials for #{userinfo.inspect}" do
+        ClimateControl.modify("HTTPS_PROXY" => "http://#{userinfo}proxy.invalid:8080") do
+          connection = client.send(:connection, true)
+          expect(connection.proxy_user).to eq(username)
+          expect(connection.proxy_pass).to eq(password)
+        end
+      end
+    end
+  end
+
+  include_examples "HTTPS proxy userinfo"
+
+  context "when URI only exposes the RFC2396 parser as DEFAULT_PARSER" do
+    before do
+      stub_const("URI::DEFAULT_PARSER", URI::RFC2396_Parser.new)
+      hide_const("URI::RFC2396_PARSER")
+      allow(URI).to receive(:const_missing).with(:RFC2396_PARSER).and_raise(NameError, "missing URI parser")
+    end
+
+    include_examples "HTTPS proxy userinfo"
   end
 
   it "supports discovery and delivery over Unix domain sockets" do

@@ -97,6 +97,8 @@ module Datadog
 
         def stop: () -> bool
 
+        def request_stop: () -> void
+
         private
 
         def after_fork: () -> void

@@ -10,8 +10,8 @@ module Datadog
     module Transport
       # Component-owned route selection shared by both event writers.
       class Agentless
-        DISCOVERY_TIMEOUT_SECONDS = 1
-        REQUEST_TIMEOUT_SECONDS = 2
+        DISCOVERY_TIMEOUT_SECONDS = 5
+        REQUEST_TIMEOUT_SECONDS = 5
         RECOVERY_INTERVAL_SECONDS = 30
         LOCAL_ROUTES = ["/evp_proxy/v4", "/evp_proxy/v2"].freeze
 
@@ -22,6 +22,7 @@ module Datadog
           @fork_mutex = Mutex.new
           @route = nil
           @recover_at = 0.0
+          @unavailable_warning_logged = false
           @pid = Process.pid
           @closed = false
           @shutdown_deadline = nil
@@ -82,6 +83,8 @@ module Datadog
             info = @client.request("/info", timeout: remaining(DISCOVERY_TIMEOUT_SECONDS)).info
             @route = compatible_route(info)
             @route = :direct if !@route && @client.direct?
+            @route ||= local_route(info)
+            warn_unavailable unless @route
             @recover_at = Core::Utils::Time.get_time + RECOVERY_INTERVAL_SECONDS unless @route
             @route
           end
@@ -91,11 +94,17 @@ module Datadog
           return unless info
 
           headers = info["evp_proxy_allowed_headers"]
-          endpoints = info["endpoints"]
-          return unless headers.is_a?(Array) && endpoints.is_a?(Array)
+          return unless headers.is_a?(Array)
 
           headers = headers.grep(String).map { |header| header.strip.downcase }
           return unless HTTPClient::IDENTITY_HEADERS.keys.all? { |name| headers.include?(name.downcase) }
+
+          local_route(info)
+        end
+
+        def local_route(info)
+          endpoints = info && info["endpoints"]
+          return unless endpoints.is_a?(Array)
 
           LOCAL_ROUTES.find { |path| endpoints.include?(path) || endpoints.include?(path + "/") }
         end
@@ -106,10 +115,19 @@ module Datadog
 
             if @route == route
               @route = @client.direct? ? :direct : nil
+              warn_unavailable unless @route
               @recover_at = Core::Utils::Time.get_time + RECOVERY_INTERVAL_SECONDS unless @route
             end
             @route == :direct
           end
+        end
+
+        def warn_unavailable
+          return if @unavailable_warning_logged || remaining(REQUEST_TIMEOUT_SECONDS) <= 0
+
+          @unavailable_warning_logged = true
+          @logger.warn("Feature Flags exposures and flag evaluations are being dropped: " \
+            "no usable local Agent EVP route is available, and direct delivery requires DD_API_KEY and a valid DD_SITE.")
         end
 
         def remaining(limit)
@@ -128,6 +146,7 @@ module Datadog
             @mutex = Mutex.new
             @route = nil
             @recover_at = 0.0
+            @unavailable_warning_logged = false
             @shutdown_deadline = nil
             @pid = Process.pid
           end

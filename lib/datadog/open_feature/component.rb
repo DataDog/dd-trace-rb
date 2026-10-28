@@ -157,6 +157,7 @@ module Datadog
         end
 
         @event_transport&.shutdown!(timeout: 5)
+        @flag_eval_evp_writer&.request_stop
         @worker.graceful_shutdown
         @flag_eval_evp_writer&.stop
         @event_transport&.close

@@ -24,6 +24,8 @@ module Datadog
 
         @recover_at: Float
 
+        @unavailable_warning_logged: bool
+
         @pid: Integer
 
         @closed: bool
@@ -49,6 +51,10 @@ module Datadog
         def select_route: () -> route?
 
         def compatible_route: (Hash[String, untyped]?) -> String?
+
+        def local_route: (Hash[String, untyped]?) -> String?
+
+        def warn_unavailable: () -> void
 
         def leave_local: (route) -> bool
 

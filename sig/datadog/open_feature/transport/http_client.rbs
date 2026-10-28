@@ -26,6 +26,8 @@ module Datadog
 
         def direct_connection: () -> Net::HTTP
 
+        def unescape_userinfo: (String? value) -> String?
+
         def read_info: (Net::HTTPResponse) -> Hash[String, untyped]?
 
         def direct_host: (String?) -> String?

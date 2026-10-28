@@ -108,11 +108,17 @@ module Datadog
           )
           return Net::HTTP.new(@direct_host.to_s, 443, nil) unless proxy
 
-          raise ArgumentError, "Unsupported EVP proxy" unless proxy.is_a?(URI::HTTP) && proxy.scheme == "http" && proxy.hostname
+          raise ArgumentError, "Unsupported EVP proxy" unless proxy.is_a?(URI::HTTP) && proxy.scheme == "http" && !proxy.hostname.to_s.empty?
 
           Net::HTTP.new(@direct_host.to_s, 443, proxy.hostname, proxy.port,
-            proxy.user && URI::RFC2396_PARSER.unescape(proxy.user.to_s),
-            proxy.password && URI::RFC2396_PARSER.unescape(proxy.password.to_s))
+            unescape_userinfo(proxy.user), unescape_userinfo(proxy.password))
+        end
+
+        def unescape_userinfo(value)
+          return unless value
+
+          parser = defined?(URI::RFC2396_PARSER) ? URI::RFC2396_PARSER : URI::DEFAULT_PARSER
+          parser.unescape(value)
         end
 
         def read_info(response)
