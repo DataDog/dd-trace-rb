@@ -13,6 +13,7 @@ module Datadog
         module_function
 
         def hostname
+          # @type self: singleton(Datadog::Core::Environment::Socket)
           # Check if runtime has changed, e.g. forked.
           after_fork! { @hostname = ::Socket.gethostname.freeze }
 
@@ -23,6 +24,7 @@ module Datadog
         # the configured DD_HOSTNAME if set, otherwise the system hostname.
         # Returns nil when `report_hostname` is disabled or no hostname is available.
         def resolved_hostname(settings)
+          # @type self: singleton(Datadog::Core::Environment::Socket)
           return nil unless settings.tracing.report_hostname
 
           configured = settings.hostname

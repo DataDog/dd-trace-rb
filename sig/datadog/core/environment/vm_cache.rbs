@@ -1,3 +1,8 @@
+# RubyVM.stat is CRuby-only and missing from the bundled core signatures.
+class RubyVM < Object
+  def self.stat: () -> Hash[Symbol, untyped]
+end
+
 module Datadog
   module Core
     module Environment

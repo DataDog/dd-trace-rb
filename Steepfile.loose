@@ -42,6 +42,7 @@ target :loose do
   library "time"
   library "pp"
   library "forwardable"
+  library "etc"
   library "json"
 
   # Load all dependency signatures from the `vendor/rbs` directory

@@ -23,6 +23,7 @@ module Datadog
         @parent_runtime_id = DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         def id
+          # @type self: singleton(Datadog::Core::Environment::Identity)
           @id ||= ::SecureRandom.uuid.freeze
 
           after_fork! do
@@ -44,6 +45,7 @@ module Datadog
         end
 
         def runtime_propagation_envs
+          # @type self: singleton(Datadog::Core::Environment::Identity)
           {ENV_ROOT_SESSION_ID => root_runtime_id || id, ENV_PARENT_SESSION_ID => id}.freeze
         end
 
