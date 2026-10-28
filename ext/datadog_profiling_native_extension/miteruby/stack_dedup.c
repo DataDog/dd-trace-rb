@@ -146,6 +146,15 @@ size_t miteruby_stack_dedup_size(void) {
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets);
 }
 
+miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
+  return (miteruby_stack_dedup_stats_t) {
+    .array_max_size_bytes = UNIQUE_STACKS_ARRAY_MAX_SIZE,
+    .array_used_size_bytes = stack_dedup_state.unique_stacks_pos,
+    .set_max_size_bytes = UNIQUE_STACKS_SET_MAX_SIZE,
+    .set_entries = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks),
+  };
+}
+
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
 
