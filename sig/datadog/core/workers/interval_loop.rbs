@@ -36,7 +36,7 @@ module Datadog
         def loop_wait_time=: (untyped value) -> untyped
 
         def loop_back_off!: () -> untyped
-        def loop_wait_before_first_iteration?: () -> false
+        def loop_wait_before_first_iteration?: () -> bool
 
         attr_writer loop_back_off_max: untyped
 
