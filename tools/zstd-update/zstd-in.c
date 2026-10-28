@@ -45,9 +45,7 @@
 #undef  XXH_INLINE_ALL
 #define XXH_INLINE_ALL
 #define ZSTD_LEGACY_SUPPORT 0
-#ifndef __EMSCRIPTEN__
-#define ZSTD_MULTITHREAD
-#endif
+#undef ZSTD_MULTITHREAD
 #define ZSTD_TRACE 0
 /* TODO: Can't amalgamate ASM function */
 #define ZSTD_DISABLE_ASM 1
@@ -81,11 +79,6 @@
 #ifdef ZSTD_MULTITHREAD
 #include "compress/zstdmt_compress.c"
 #endif
-
-#include "decompress/huf_decompress.c"
-#include "decompress/zstd_ddict.c"
-#include "decompress/zstd_decompress.c"
-#include "decompress/zstd_decompress_block.c"
 
 #include "dictBuilder/cover.c"
 #include "dictBuilder/divsufsort.c"
