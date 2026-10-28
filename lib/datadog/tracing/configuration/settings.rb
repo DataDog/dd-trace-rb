@@ -60,6 +60,7 @@ module Datadog
                   ]
                 )
                 o.after_set do |styles|
+                  # @type var styles: Array[String]
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -81,6 +82,7 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                 ]
                 o.after_set do |styles|
+                  # @type var styles: Array[String]
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -100,6 +102,7 @@ module Datadog
                 o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles, _, precedence|
+                  # @type var styles: Array[String]
                   next if styles.empty?
 
                   # Make values case-insensitive
@@ -191,7 +194,10 @@ module Datadog
                 o.env Configuration::Ext::ENV_HEADER_TAGS
                 o.type :array
                 o.default []
-                o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
+                o.setter do |header_tags, _|
+                  # @type var header_tags: Array[String]
+                  Configuration::HTTP::HeaderTags.new(header_tags)
+                end
               end
 
               # Comma-separated list of baggage keys that should be converted to span tags.
@@ -386,7 +392,12 @@ module Datadog
                     when "parentbased_always_off"
                       0.0
                     when "parentbased_traceidratio"
-                      DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                      # The env value or the Float default; both convert.
+                      sampler_arg = DATADOG_ENV.fetch(
+                        Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG,
+                        1.0
+                      ) #: String | ::Float
+                      sampler_arg.to_f
                     else
                       value.to_f
                     end
@@ -593,6 +604,7 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
                   o.default 500..599
                   o.setter do |v|
+                    # @type var v: ::Integer | ::Range[::Integer] | ::Array[::Integer | ::Range[::Integer]] | nil
                     Tracing::Contrib::StatusRangeMatcher.new(v) if v
                   end
                   o.env_parser do |values|
@@ -611,6 +623,7 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
                   o.default 400..499
                   o.setter do |v|
+                    # @type var v: ::Integer | ::Range[::Integer] | ::Array[::Integer | ::Range[::Integer]] | nil
                     Tracing::Contrib::StatusRangeMatcher.new(v) if v
                   end
                   o.env_parser do |values|
