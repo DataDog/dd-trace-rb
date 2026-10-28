@@ -6,7 +6,13 @@ module Datadog
 
         def self.included: (::Module base) -> void
 
-        def self.extended: (::Module base) -> void
+        # Any object that extends Forking receives the instance methods as
+        # singleton methods, so the extending base answers update_fork_pid!.
+        interface _ExtendedBase
+          def update_fork_pid!: () -> void
+        end
+
+        def self.extended: (_ExtendedBase base) -> void
 
         def after_fork!: () { () -> untyped } -> bool
 

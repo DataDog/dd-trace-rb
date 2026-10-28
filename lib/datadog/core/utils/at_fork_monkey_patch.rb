@@ -73,7 +73,14 @@ module Datadog
           rescue Exception => e # rubocop:disable Lint/RescueException -- finish cleanup, then re-raise the first failure
             error ||= e
           end
-          raise error if error
+          # Hoisted out of the block-local `error` variable: Steep leaves
+          # variables written from inside a block untyped, and `raise` cannot
+          # resolve its overloads on an untyped argument.
+          # @type var first_error: Exception?
+          first_error = error
+          if first_error
+            raise first_error
+          end
         end
 
         def self.run_parent_cleanup(snapshot, started, fork_error)
@@ -163,6 +170,7 @@ module Datadog
             started = {}
 
             # If a block is provided, it must be wrapped to trigger callbacks.
+            # @type var child_block: (^() -> untyped)?
             child_block = if block_given?
               proc do
                 AtForkMonkeyPatch.run_at_fork_blocks(:child, snapshot: snapshot)

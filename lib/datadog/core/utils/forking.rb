@@ -49,11 +49,13 @@ module Datadog
           # This wrapper prevents this by initializing the fork PID when the object is created.
           if RubyVersion.is?(">= 3")
             def initialize(*args, **kwargs, &block)
+              # @type self: Object & ClassExtensions & Forking
               super
               update_fork_pid!
             end
           else
             def initialize(*args, &block)
+              # @type self: Object & ClassExtensions & Forking
               super
               update_fork_pid!
             end

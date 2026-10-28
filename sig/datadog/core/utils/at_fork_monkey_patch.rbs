@@ -5,6 +5,10 @@ module Datadog
       module AtForkMonkeyPatch
         @at_fork_blocks: Hash[Symbol, Array[Callback]]
 
+        EMPTY_AT_FORK_BLOCKS: Hash[Symbol, Array[Callback]]
+
+        AT_FORK_REGISTRY_MUTEX: Mutex
+
         class Callback
           attr_reader block: Proc
           attr_reader group: Object?
@@ -29,6 +33,8 @@ module Datadog
         def self.snapshot_at_fork_blocks: () -> Hash[Symbol, Array[Callback]]
 
         def self.replace_at_fork_blocks: (Hash[Symbol, Array[Callback]] snapshot) -> void
+
+        def self.blocks_for: (Hash[Symbol, Array[Callback]] snapshot, Symbol stage) -> Array[Callback]
 
         module KernelMonkeyPatch
           def fork: () ?{ () -> untyped } -> untyped
