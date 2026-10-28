@@ -26,6 +26,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
+            # @type self: Datadog::Core::Workers::IntervalLoop
             perform_loop do
               @in_iteration = true
               begin

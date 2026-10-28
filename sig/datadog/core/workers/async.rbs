@@ -10,6 +10,9 @@ module Datadog
           SHUTDOWN_TIMEOUT: 1
           MUTEX_INIT: untyped
 
+          # Hosts get these methods via prepend in Thread.included.
+          include PrependedMethods
+
           def self.included: (untyped base) -> untyped
           module PrependedMethods
             def perform: (*untyped args) -> (untyped | nil)
@@ -57,7 +60,7 @@ module Datadog
 
           def start_async: () ?{ () -> untyped } -> untyped
 
-          def start_worker: () { () -> untyped } -> nil
+          def start_worker: () ?{ () -> untyped } -> bool
 
           def stop_fork: () -> untyped
 

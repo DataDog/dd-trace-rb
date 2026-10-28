@@ -24,6 +24,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
+            # @type self: Datadog::Core::Workers::Queue
             if work_pending?
               work = dequeue
               super(*work)

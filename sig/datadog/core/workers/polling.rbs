@@ -4,6 +4,13 @@ module Datadog
       module Polling
         DEFAULT_SHUTDOWN_TIMEOUT: 1
 
+        # Mirrors the runtime hook: hosts of Polling get
+        # IntervalLoop and Async::Thread included by
+        # Polling.included, and Polling::PrependedMethods prepended.
+        include IntervalLoop
+        include Async::Thread
+        include PrependedMethods
+
         def self.included: (Class | Module base) -> void
 
         module PrependedMethods

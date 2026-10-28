@@ -9,9 +9,14 @@ module Datadog
         BASE_INTERVAL: 1
         MUTEX_INIT: untyped
 
+        # Hosts get these methods via prepend in IntervalLoop.included.
+        include PrependedMethods
+
         def self.included: (untyped base) -> untyped
         module PrependedMethods
           def perform: (*untyped args) -> untyped
+
+          def in_iteration?: () -> bool
         end
 
         def stop_loop: () -> (false | true)
@@ -44,8 +49,6 @@ module Datadog
         private
 
         def perform_loop: () { () -> untyped } -> (nil | untyped)
-	
-	def in_iteration?: () -> (true | false)
 
         def shutdown: () -> untyped
       end

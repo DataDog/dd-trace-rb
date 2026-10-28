@@ -29,6 +29,7 @@ module Datadog
           # Methods that must be prepended
           module PrependedMethods
             def perform(*args)
+              # @type self: Datadog::Core::Workers::Async::Thread
               unless started?
                 start_async do
                   self.result = super(*args)
