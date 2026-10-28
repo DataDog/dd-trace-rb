@@ -112,6 +112,14 @@ append_cflags "-Werror-implicit-function-declaration"
 # For more details see https://gcc.gnu.org/wiki/Visibility
 append_cflags "-fvisibility=hidden"
 
+# Let the linker discard unused native code and data, including bundled zstd APIs.
+if RUBY_PLATFORM.include?("linux")
+  append_cflags ["-ffunction-sections", "-fdata-sections"]
+  append_ldflags "-Wl,--gc-sections"
+elsif RUBY_PLATFORM.include?("darwin")
+  append_ldflags "-Wl,-dead_strip"
+end
+
 # Avoid legacy C definitions
 append_cflags "-Wold-style-definition"
 
