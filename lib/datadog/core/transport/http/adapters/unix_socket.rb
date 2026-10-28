@@ -48,6 +48,8 @@ module Datadog
             end
 
             # Re-implements Net:HTTP with underlying Unix socket
+            # The vendored stdlib signatures do not declare Net::HTTP#initialize, Net::HTTP#on_connect,
+            # or Net::BufferedIO. The scoped ignores below bridge those gaps.
             class HTTP < ::Net::HTTP
               DEFAULT_TIMEOUT = 30
 
@@ -58,7 +60,7 @@ module Datadog
               alias_method :uds_path, :filepath
 
               def initialize(uds_path, options = {})
-                super("localhost", 80)
+                super("localhost", 80) # steep:ignore UnexpectedPositionalArgument
                 @filepath = uds_path
                 @read_timeout = options.fetch(:read_timeout, DEFAULT_TIMEOUT)
                 @continue_timeout = options.fetch(:continue_timeout, DEFAULT_TIMEOUT)
@@ -67,12 +69,12 @@ module Datadog
 
               def connect
                 @unix_socket = UNIXSocket.open(uds_path)
-                @socket = ::Net::BufferedIO.new(@unix_socket).tap do |socket|
+                @socket = ::Net::BufferedIO.new(@unix_socket).tap do |socket| # steep:ignore UnknownConstant
                   socket.read_timeout = @read_timeout
                   socket.continue_timeout = @continue_timeout
                   socket.debug_output = @debug_output
                 end
-                on_connect
+                on_connect # steep:ignore NoMethod
               end
             end
           end

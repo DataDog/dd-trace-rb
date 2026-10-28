@@ -34,6 +34,8 @@ module Datadog
 
             def url: () -> ::String
 
+            def net_http_path_from_env: (untyped env) -> untyped
+
             class UnknownHTTPMethod < StandardError
               attr_reader verb: untyped
 
