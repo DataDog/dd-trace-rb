@@ -32,8 +32,8 @@ module Datadog
           @propagation_styles = propagation_styles
           @propagation_behavior_extract = propagation_behavior_extract
           @propagation_extract_first = propagation_extract_first
-          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
-          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
+          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }.compact
+          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }.compact
 
           # The baggage propagator is unique in that baggage should always be extracted, if present.
           # Therefore we remove it from the `propagation_style_extract` list.
@@ -66,12 +66,13 @@ module Datadog
             return nil
           end
 
-          digest = digest.to_digest if digest.respond_to?(:to_digest)
+          digest = digest.to_digest if digest.is_a?(TraceOperation)
           if digest.trace_id.nil? && digest.baggage.nil?
             ::Datadog.logger.debug("Cannot inject distributed trace data: digest.trace_id and digest.baggage are both nil.")
             return nil
           end
 
+          # @type var result: bool | nil
           result = false
 
           # Inject all configured propagation styles
@@ -110,6 +111,7 @@ module Datadog
           extracted_trace_digest = nil
           # Name of the propagation style that first produced a trace context.
           # Used as the `context_headers` span-link attribute when restarting a trace.
+          # @type var extracted_style_name: ::String?
           extracted_style_name = nil
 
           @propagation_style_extract.each do |propagator|
@@ -190,9 +192,12 @@ module Datadog
         private
 
         def propagate_baggage(data, extracted_trace_digest)
+          baggage_propagator = @baggage_propagator
+          return extracted_trace_digest unless baggage_propagator
+
           if extracted_trace_digest
             # Merge with baggage if present
-            digest = @baggage_propagator.extract(data)
+            digest = baggage_propagator.extract(data)
             if digest
               extracted_trace_digest.merge(
                 baggage: digest.baggage,
@@ -203,7 +208,7 @@ module Datadog
             end
           else
             # Baggage is the only style
-            @baggage_propagator.extract(data)
+            baggage_propagator.extract(data)
           end
         end
 

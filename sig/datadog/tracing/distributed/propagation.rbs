@@ -7,15 +7,22 @@ module Datadog
       end
 
       class Propagation
+        @propagation_styles: ::Hash[::String, _Propagator & ::Object]
+        @propagation_behavior_extract: ::String
+        @propagation_extract_first: bool
+        @propagation_style_inject: ::Array[_Propagator & ::Object]
+        @propagation_style_extract: ::Array[_Propagator & ::Object]
+        @baggage_propagator: (_Propagator & ::Object)?
+
         def initialize: (
-          propagation_styles: ::Hash[::String, _Propagator],
+          propagation_styles: ::Hash[::String, _Propagator & ::Object],
           propagation_style_inject: ::Array[::String],
           propagation_style_extract: ::Array[::String],
           propagation_extract_first: bool,
           propagation_behavior_extract: String
         ) -> void
-        def inject!: (untyped digest, untyped data) -> (nil | untyped)
-        def extract: (untyped data) -> untyped
+        def inject!: ((TraceDigest | TraceOperation)? digest, Hash[untyped, untyped] data) -> (bool | nil)
+        def extract: (Hash[untyped, untyped] data) -> TraceDigest?
 
         private
 
