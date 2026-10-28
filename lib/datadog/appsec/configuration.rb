@@ -93,8 +93,8 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # @type var value: ::Array[::String]?
-                  next value if value.nil? || value.empty?
+                  next value unless value.is_a?(::Array)
+                  next value if value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The ip_passlist setting is deprecated and will be removed in the next release. " \
@@ -110,8 +110,8 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # @type var value: ::Array[::String]?
-                  next value if value.nil? || value.empty?
+                  next value unless value.is_a?(::Array)
+                  next value if value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The ip_denylist setting is deprecated and will be removed in the next release. " \
@@ -127,8 +127,8 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # @type var value: ::Array[::String]?
-                  next value if value.nil? || value.empty?
+                  next value unless value.is_a?(::Array)
+                  next value if value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The user_id_denylist setting is deprecated and will be removed in the next release. " \
@@ -184,7 +184,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # @type var value: ::String?
+                      next value unless value.is_a?(::String)
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -200,7 +200,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # @type var value: ::String?
+                      next value unless value.is_a?(::String)
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -216,7 +216,7 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # @type var value: ::String?
+                      next value unless value.is_a?(::String)
                       if value
                         unless File.exist?(value)
                           raise(ArgumentError,
@@ -253,7 +253,7 @@ module Datadog
                   o.default 32
 
                   o.setter do |value|
-                    # @type var value: ::Integer
+                    next value unless value.is_a?(::Integer)
                     value = 0 if value < 0
                     value
                   end
@@ -268,7 +268,7 @@ module Datadog
                   o.default 75
 
                   o.setter do |value|
-                    # @type var value: ::Integer
+                    next value unless value.is_a?(::Integer)
                     value = 100 if value > 100
                     value = 0 if value.negative?
                     value
@@ -286,7 +286,7 @@ module Datadog
                   o.default 2
 
                   o.setter do |value|
-                    # @type var value: ::Integer
+                    next value unless value.is_a?(::Integer)
                     value = 0 if value < 0
                     value
                   end
@@ -397,8 +397,8 @@ module Datadog
                   o.env "DD_API_SECURITY_SAMPLE_DELAY"
                   o.default 30
                   o.setter do |value|
-                    # @type var value: ::Integer | ::Float
-                    value.to_i
+                    next value unless value.is_a?(::Numeric)
+                    value.to_int
                   end
                 end
 
@@ -408,7 +408,7 @@ module Datadog
                   o.env "DD_API_SECURITY_REQUEST_SAMPLE_RATE"
                   o.default 0.1
                   o.setter do |value|
-                    # @type var value: ::Numeric
+                    next value unless value.is_a?(::Numeric)
                     value = 1 if value > 1
                     SampleRate.new(value)
                   end
