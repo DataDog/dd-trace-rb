@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Buffer
       class ThreadSafe < Datadog::Core::Buffer::Random
+        @mutex: Mutex
+
         def synchronize: [T] () { () -> T } -> T
       end
     end

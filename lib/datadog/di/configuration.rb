@@ -160,7 +160,7 @@ module Datadog
                   end
                 end
                 o.setter do |value, _old|
-                  # @type var value: ::Integer
+                  next value unless value.is_a?(::Integer)
                   if value < 0
                     raise ArgumentError,
                       "The setting `dynamic_instrumentation.max_time_to_serialize_ms` must not be negative, " \

@@ -25,10 +25,15 @@ module Datadog
         # @param unit [Symbol] unit for the resulting value, same as ::Process#clock_gettime, defaults to :float_second
         # @return [Float|Integer] timestamp in the requested unit, since some unspecified starting point
         def self.get_time(unit = :float_second)
-          # The default never leaves `unit` nil. A caller passing nil
-          # violates the declared unit union.
-          # @type var unit: :float_second | :float_millisecond | :float_microsecond | :second | :millisecond | :microsecond | :nanosecond
-          original_clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          # The parameter is modeled as nilable because the Ruby default
+          # makes it optional for Steep. A nil unit is what clock_gettime
+          # itself treats as the default, so route it to the same literal.
+          # @type var unit: (:float_second | :float_millisecond | :float_microsecond | :second | :millisecond | :microsecond | :nanosecond)?
+          if unit.nil?
+            original_clock_gettime(MONOTONIC_CLOCK_ID, :float_second)
+          else
+            original_clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          end
         end
 
         # Current wall time.

@@ -54,7 +54,10 @@ module Datadog
               update_fork_pid!
             end
           else
-            def initialize(*args, &block)
+            # Ruby < 3 folds keyword arguments into *args, so this branch
+            # cannot carry the **kwargs parameter the signature declares;
+            # the signature matches the Ruby 3+ branch above.
+            def initialize(*args, &block) # steep:ignore MethodArityMismatch
               # @type self: Object & ClassExtensions & Forking
               super
               update_fork_pid!

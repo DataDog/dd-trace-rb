@@ -30,6 +30,8 @@ module Datadog
 
       @flush: Integer
 
+      @last_sent: Numeric?
+
       @status_transport: DI::Transport::Diagnostics::Transport?
 
       @snapshot_transport: DI::Transport::Input::Transport?

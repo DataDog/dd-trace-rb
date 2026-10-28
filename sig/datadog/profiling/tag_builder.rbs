@@ -1,6 +1,13 @@
 module Datadog
   module Profiling
     module TagBuilder
+      ALLOWED_TAGS: Set[String]
+
+      # Inherited from Ext::Transport::HTTP via include; declared here
+      # because the checker cannot resolve constants through included
+      # modules, and the including module's source is not inline-checked.
+      FORM_FIELD_TAG_PROFILER_VERSION: "profiler_version"
+
       def self.call: (
         settings: untyped,
         ?profiler_version: ::String,

@@ -58,20 +58,24 @@ module Datadog
         # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
         # successfully finish in the strict timeout.
         # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
+        # Assign +interrupted+ outside the begin so it is always set when the
+        # ensure block runs, including on the exception-before-assignment path
+        # the checker models.
         interrupted = true
-
-        flush_and_wait
-        interrupted = false
-      rescue Exception => e # rubocop:disable Lint/RescueException
-        Datadog.logger.warn(
-          "Profiling::Scheduler thread error. " \
-          "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
-        )
-        on_failure_proc&.call
-        Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
-        raise
-      ensure
-        Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
+        begin
+          flush_and_wait
+          interrupted = false
+        rescue Exception => e # rubocop:disable Lint/RescueException
+          Datadog.logger.warn(
+            "Profiling::Scheduler thread error. " \
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
+          on_failure_proc&.call
+          Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
+          raise
+        ensure
+          Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
+        end
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts

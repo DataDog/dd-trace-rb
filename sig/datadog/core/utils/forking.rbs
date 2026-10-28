@@ -24,6 +24,7 @@ module Datadog
 
         module ClassExtensions
           def initialize: (*untyped args) { () -> untyped } -> untyped
+                           | (*untyped args, **untyped kwargs) { () -> untyped } -> untyped
         end
       end
     end

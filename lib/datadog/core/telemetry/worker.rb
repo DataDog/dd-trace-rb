@@ -286,7 +286,7 @@ module Datadog
             # 2) don't want to keep a permanent reference to in any case.
             # Therefore we have this +reset!+ method that changes the
             # event type while keeping the payload.
-            @initial_event.reset! # steep:ignore NoMethod
+            @initial_event.reset!
           end
 
           if enabled? && !worker.nil?

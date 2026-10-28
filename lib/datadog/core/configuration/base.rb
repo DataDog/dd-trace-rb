@@ -57,7 +57,7 @@ module Datadog
             Class.new { include Configuration::Base }.tap do |klass|
               klass.instance_variable_set(:@settings_path, settings_path)
               klass.instance_eval(&block) if block # steep:ignore BlockTypeMismatch
-            end
+            end #: ::Class & ::Datadog::Core::Configuration::Options::_SettingsClass
           end
         end
 

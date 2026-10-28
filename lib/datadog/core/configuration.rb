@@ -231,7 +231,7 @@ module Datadog
         # Writes to @components should only happen through this proc. Because this proc is only accessible to callers of
         # safely_synchronize, this forces all writers to go through this method.
         # @type var write_components: ^(::Datadog::Core::Configuration::Components?) -> void
-        write_components = proc do |new_value|
+        write_components = ->(new_value) do
           COMPONENTS_READ_LOCK.synchronize { @components = new_value }
         end
 

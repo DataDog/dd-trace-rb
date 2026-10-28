@@ -91,6 +91,10 @@ module Datadog
             # If a flush was requested, send immediately and do not
             # wait for the cooldown period.
             if @lock.synchronize { @flush } == 0
+              # The local carries the previous iteration's value into the
+              # block, so it needs an explicit type to break the circular
+              # inference with the assignment below.
+              # @type var sleep_remaining: Numeric?
               sleep_remaining = @lock.synchronize do
                 if sleep_remaining && sleep_remaining > 0
                   # Recalculate how much sleep time is remaining, then sleep that long.
@@ -100,7 +104,7 @@ module Datadog
                 end
               end
 
-              if sleep_remaining > 0
+              if sleep_remaining && sleep_remaining > 0
                 # Do not need to update @wake_scheduled here because
                 # wake-up is already scheduled for the earliest possible time.
                 wake.wait(sleep_remaining)
@@ -118,7 +122,7 @@ module Datadog
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
-              @wake_scheduled = more
+              @wake_scheduled = !!more
             end
             wake.wait(more ? min_send_interval : nil)
           end
@@ -296,6 +300,7 @@ module Datadog
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
           # @type self: Datadog::DI::ProbeNotifierWorker
+          # @type var probe: DI::Probe?
           # Enqueueing reads DI configuration and writes debug/trace logs, both
           # of which can call stdlib methods (e.g. Set#include? via the
           # configuration layer's supported-configuration lookup). If a customer
