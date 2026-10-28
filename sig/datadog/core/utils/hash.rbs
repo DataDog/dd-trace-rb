@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Utils
+      module Hash
+        class CaseInsensitiveWrapper
+          @hash: ::Hash[untyped, untyped]
+
+          def initialize: (::Hash[untyped, untyped] hash) -> void
+
+          def []: (untyped key) -> untyped
+
+          def key?: (untyped key) -> bool
+
+          def empty?: () -> bool
+
+          def length: () -> ::Integer
+
+          def original_hash: () -> ::Hash[untyped, untyped]
+        end
+      end
+    end
+  end
+end
