@@ -60,7 +60,7 @@ module Datadog
                   ]
                 )
                 o.after_set do |styles|
-                  # @type var styles: Array[String]
+                  next unless styles.is_a?(::Array)
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -82,7 +82,7 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                 ]
                 o.after_set do |styles|
-                  # @type var styles: Array[String]
+                  next unless styles.is_a?(::Array)
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -102,7 +102,7 @@ module Datadog
                 o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles, _, precedence|
-                  # @type var styles: Array[String]
+                  next unless styles.is_a?(::Array)
                   next if styles.empty?
 
                   # Make values case-insensitive
@@ -195,7 +195,7 @@ module Datadog
                 o.type :array
                 o.default []
                 o.setter do |header_tags, _|
-                  # @type var header_tags: Array[String]
+                  next header_tags unless header_tags.is_a?(::Array)
                   Configuration::HTTP::HeaderTags.new(header_tags)
                 end
               end
@@ -604,8 +604,8 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
                   o.default 500..599
                   o.setter do |v|
-                    # @type var v: ::Integer | ::Range[::Integer] | ::Array[::Integer | ::Range[::Integer]] | nil
-                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                    next v unless v.is_a?(::Integer) || v.is_a?(::Range) || v.is_a?(::Array)
+                    Tracing::Contrib::StatusRangeMatcher.new(v)
                   end
                   o.env_parser do |values|
                     Tracing::Contrib::StatusRangeEnvParser.call(values)
@@ -623,8 +623,8 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
                   o.default 400..499
                   o.setter do |v|
-                    # @type var v: ::Integer | ::Range[::Integer] | ::Array[::Integer | ::Range[::Integer]] | nil
-                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                    next v unless v.is_a?(::Integer) || v.is_a?(::Range) || v.is_a?(::Array)
+                    Tracing::Contrib::StatusRangeMatcher.new(v)
                   end
                   o.env_parser do |values|
                     Tracing::Contrib::StatusRangeEnvParser.call(values)

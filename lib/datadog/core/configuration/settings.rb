@@ -570,11 +570,10 @@ module Datadog
                 end
               end
               o.setter do |value|
-                # @type var value: ::String | ::Symbol
                 if value == true
                   :both
-                elsif ["only", "both", :only, :both].include?(value)
-                  value.to_sym
+                elsif value.is_a?(::String) || value.is_a?(::Symbol)
+                  ["only", "both", :only, :both].include?(value) ? value.to_sym : false
                 else
                   false
                 end
@@ -704,7 +703,7 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
-            # @type var service_name: ::String
+            next unless service_name.is_a?(::String)
             Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
           end
 
@@ -775,9 +774,7 @@ module Datadog
           end
           o.setter do |new_value, old_value|
             # @type self: Datadog::Core::Configuration::Settings
-            # @type var new_value: ::Hash[untyped, untyped]?
-            # @type var old_value: ::Hash[untyped, untyped]?
-            raw_tags = new_value || {}
+            raw_tags = new_value.is_a?(::Hash) ? new_value : {}
 
             env_value = env
             version_value = version
@@ -804,7 +801,8 @@ module Datadog
             end
 
             # Merge with previous tags
-            (old_value || {}).merge(string_tags)
+            old_tags = old_value.is_a?(::Hash) ? old_value : {}
+            old_tags.merge(string_tags)
           end
         end
 
