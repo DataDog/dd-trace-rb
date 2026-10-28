@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define UNIQUE_STACKS_ARRAY_MAX_SIZE MiB_AS_BYTES(16)
-#define UNIQUE_STACKS_SET_MAX_CAPACITY MiB_AS_BYTES(16)
+#define UNIQUE_STACKS_SET_MAX_SIZE MiB_AS_BYTES(16)
 
 typedef struct {
   uint16_t frame_count;
@@ -25,7 +25,8 @@ typedef struct {
       miteruby_stack_dedup_id_t stack_id;
     } as;
   } location;
-  bool view_borrowed;
+
+  bool view_borrowed; // if false, the union has a stack_id
 } stack_key;
 
 static uint64_t stack_key_hash(stack_key key);
@@ -90,9 +91,10 @@ static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
 
 static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
   if (view.frame_count == 0) return 0;
+
   uint64_t refs_hash = vt_wyhash(view.refs, view.frame_count * sizeof(*view.refs));
   uint64_t positions_hash = vt_wyhash(view.positions, view.frame_count * sizeof(*view.positions));
-  return vt_hash_integer(refs_hash) ^ positions_hash;
+  return vt_wymix(refs_hash, positions_hash);
 }
 
 static uint64_t stack_key_hash(stack_key key) {
@@ -101,23 +103,29 @@ static uint64_t stack_key_hash(stack_key key) {
 
 static bool stack_key_equal(stack_key left, stack_key right) {
   if (left.hash != right.hash) return false;
+
   miteruby_event_stack_sample_view_t left_view = stack_key_view(left);
   miteruby_event_stack_sample_view_t right_view = stack_key_view(right);
+
   if (left_view.frame_count != right_view.frame_count) return false;
   if (left_view.frame_count == 0) return true;
+
   return memcmp(left_view.refs, right_view.refs, left_view.frame_count * sizeof(*left_view.refs)) == 0 &&
     memcmp(left_view.positions, right_view.positions, left_view.frame_count * sizeof(*left_view.positions)) == 0;
 }
 
 static void *unique_stacks_calloc(size_t size) {
-  if (size > UNIQUE_STACKS_SET_MAX_CAPACITY) return NULL;
+  if (size > UNIQUE_STACKS_SET_MAX_SIZE) return NULL;
+
   void *allocation = miteruby_allocator_alloc(size, "unique_stacks_set");
   if (allocation != NULL) stack_dedup_state.unique_stacks_set_allocated_bytes += size;
+
   return allocation;
 }
 
 static void unique_stacks_free(void *allocation, size_t size) {
   miteruby_allocator_free(allocation);
+
   stack_dedup_state.unique_stacks_set_allocated_bytes -= size;
 }
 
@@ -136,6 +144,7 @@ bool miteruby_stack_dedup_reset(void) {
   stack_dedup_state.unique_stacks_array = new_array;
   stack_dedup_state.unique_stacks_pos = 0;
   stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_MAX_SIZE;
+
   return true;
 }
 
@@ -145,6 +154,7 @@ size_t miteruby_stack_dedup_size(void) {
 
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
+
   return (miteruby_event_stack_sample_view_t) {
     .refs = stack->refs,
     .positions = (miteruby_event_frame_position_t *)&stack->refs[stack->frame_count],
@@ -168,6 +178,8 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   if (verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == previous_count) {
     return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->key.location.as.stack_id, .inserted = false}};
   }
+
+  // It's a new stack, let's try to commit it to storage
 
   size_t data_size = view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
   size_t stack_size = sizeof(miteruby_stack_t) + data_size;
