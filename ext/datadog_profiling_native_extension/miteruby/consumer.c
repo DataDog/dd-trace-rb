@@ -155,25 +155,30 @@ void miteruby_consumer_init(miteruby_buffer_t *buffer) {
 }
 
 void miteruby_consumer_reset(void) {
-  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_MAX_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
-  if (new_buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.consumed_events_buffer");
-
   mutex_lock(&consumer_state.mutex);
+
+  // Do this first so if we raise we don't leave weird intermediate state
+  consumer_state.consumed_events_count = 0;
 
   if (!miteruby_stack_dedup_reset()) {
     mutex_unlock(&consumer_state.mutex);
-    miteruby_allocator_free(new_buffer);
     rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_reset");
+  }
+
+  miteruby_event_deduped_sample_t *new_buffer = miteruby_allocator_alloc(CONSUMED_EVENTS_BUFFER_MAX_CAPACITY * sizeof(*new_buffer), "consumed_events_buffer");
+  if (new_buffer == NULL) {
+    mutex_unlock(&consumer_state.mutex);
+    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.consumed_events_buffer");
   }
 
   miteruby_allocator_free(consumer_state.consumed_events_buffer);
   consumer_state.consumed_events_buffer = new_buffer;
-  consumer_state.consumed_events_count = 0;
   consumer_state.consumed_events_capacity = CONSUMED_EVENTS_BUFFER_MAX_CAPACITY;
 
   verstable_objects_to_mark_set_clear(&consumer_state.objects_to_mark);
 
   miteruby_consumer_recorder_init();
+
   mutex_unlock(&consumer_state.mutex);
 }
 
@@ -244,12 +249,15 @@ void miteruby_consumer_prepare_serialize(VALUE recorder_instance) {
 
 static VALUE prepare_serialize_locked(VALUE recorder_instance) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+
   for (size_t i = 0; i < consumer_state.consumed_events_count; i++) {
     const miteruby_event_deduped_sample_t *event = &consumer_state.consumed_events_buffer[i];
     miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(event->stack_id);
     miteruby_consumer_record_stack_sample(recorder_instance, event, view, &time_converter);
   }
+
   consumer_state.consumed_events_count = 0;
+
   return Qnil;
 }
 
@@ -294,5 +302,6 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   *deduped = (miteruby_event_deduped_sample_t) {.header = *header, .thread = event->thread, .stack_id = result.ok.id};
   deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
   deduped->header.size_bytes = sizeof(*deduped);
+
   return MITERUBY_CONSUMER_OK;
 }
