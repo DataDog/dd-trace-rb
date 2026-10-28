@@ -526,11 +526,11 @@ static void test_retention_failure(size_t retained_objects, uint16_t frame_count
 static void test_objects_to_mark_capacity(void) {
   size_t initial_size = consumer_state.objects_to_mark_allocated_bytes;
   size_t count = 0;
-  size_t upper_bound = OBJECTS_TO_MARK_MAX_CAPACITY / sizeof(VALUE);
+  size_t upper_bound = OBJECTS_TO_MARK_MAX_SIZE / sizeof(VALUE);
   while (count < upper_bound && retain_object((VALUE)count)) count++;
   assert(count > 20000 && count < upper_bound);
   assert(consumer_state.objects_to_mark_allocated_bytes > initial_size);
-  assert(consumer_state.objects_to_mark_allocated_bytes <= OBJECTS_TO_MARK_MAX_CAPACITY);
+  assert(consumer_state.objects_to_mark_allocated_bytes <= OBJECTS_TO_MARK_MAX_SIZE);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == count);
   assert_allocation_accounting();
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
@@ -614,7 +614,7 @@ int main(int argc, char **argv) {
   test_compact_events_and_reset();
   test_reset_failure("consumed_events_buffer", "Failed to allocate miteruby.consumed_events_buffer");
   test_reset_failure("unique_stacks_array", "Failure during miteruby_stack_dedup_reset");
-  assert_allocator_limit(objects_to_mark_calloc, objects_to_mark_free, OBJECTS_TO_MARK_MAX_CAPACITY);
+  assert_allocator_limit(objects_to_mark_calloc, objects_to_mark_free, OBJECTS_TO_MARK_MAX_SIZE);
   assert_allocator_limit(unique_stacks_calloc, unique_stacks_free, UNIQUE_STACKS_SET_MAX_SIZE);
   assert_allocator_limit(thread_contexts_alloc, thread_contexts_free, THREAD_CONTEXTS_MAX_CAPACITY);
   test_retention_failure(7, 0);
