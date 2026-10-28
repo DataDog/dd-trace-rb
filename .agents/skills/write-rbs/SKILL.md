@@ -76,6 +76,22 @@ runs skip inline RBS entries (`inline: true`), so constants declared
 that way resolve only in full runs. Confirm with a full run before
 fixing.
 
+Known rbs 4.2.0 stdlib gaps, verified empirically. Prefer the listed
+workaround over a scoped ignore:
+
+- `Numeric#to_i` is not declared. Use `to_int`, which is behavior-
+  identical for every Numeric that has `to_i`
+- No core class implements `Time::_Timeout`, so `ConditionVariable#wait`
+  rejects any typed timeout, and `Numeric` lacks `*`. Keep timing
+  values `untyped`, as IntervalLoop already does
+- `Net::HTTP#initialize`, `#on_connect`, and `Net::BufferedIO` are
+  missing. See the scoped ignores in `unix_socket.rb`
+
+To test a Steep semantics hypothesis fast, append a scratch `.rbs`
+plus `.rb` probe pair to a file already in the checked target. Run the
+scoped check, then revert. One such run settled three interface
+questions at once.
+
 Pass explicit .rb file paths to `steep check`, never a directory. A
 directory argument silently checks zero files and prints a false green.
 Confirm the run by checking the file-count progress dots.

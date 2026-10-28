@@ -22,10 +22,18 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   `# @type var cb: ^(::String) -> void`. The parenthesized forms
   `# @type var klass: (::Class & _Iface)` and
   `# @type var cb: (^(::String) -> void)` fail to parse in Steep.
-- A guard (`if x`, `respond_to?`) narrows locals. It does not narrow a
-  fresh method call or an ivar. Hoist the guarded value to a local first,
-  for example `site = Datadog.configuration.site`. Fall back to a scoped
-  `steep:ignore` only when hoisting changes behavior.
+- A guard (`if x`, `is_a?`) narrows locals. It does not narrow a fresh
+  method call or an ivar, and ivar narrowing dies at ANY method call –
+  even an assignment followed directly by `@x.foo` can flag. Hoist the
+  value to a local first: `worker = @worker; worker.stop`. Prefer `&.`
+  only when nil is genuinely acceptable at that point
+- `respond_to?` narrows unreliably on union receivers; `is_a?(Class)`
+  narrows every time. Prefer `is_a?` in typed code
+- A block-parameter `# @type var` annotation sits in contravariant
+  position: the declared block type must be assignable INTO the
+  annotation. It can widen an `untyped` parameter, but never narrow a
+  generic one like `option_type`. To specialize a wide block input, use
+  an `is_a?` passthrough guard instead – no annotation can do it
 - `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
   (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
   `steep:ignore:start` / `steep:ignore:end`
@@ -34,6 +42,9 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   A standalone comment line above the code does not suppress the error
   and instead adds a `RedundantIgnoreComment` warning. Use the bare
   diagnostic name without the `Ruby::` prefix.
+- A local first assigned `nil` and only later given a value is typed
+  `nil` forever. Annotate before the first assignment:
+  `# @type var style_name: String?` then `style_name = nil`
 
 ## Examples
 
@@ -85,19 +96,39 @@ end
 apply_defaults { |name| set(name, defaults[name]) }
 ```
 
-Annotate a block parameter Steep infers too widely – an assertion cannot trail it:
+Annotate a block parameter Steep infers too widely – an assertion cannot trail it. This works only when the declared block parameter is `untyped` or the annotation accepts everything the caller may pass. When the block type is a wide generic such as `option_type`, no annotation can narrow it – guard instead:
 
 ```ruby
-# Good – names the block parameter to its real type
+# Good – the declared type is untyped, the annotation names the real one
 on_failure_proc: ->(log_failure: true) do
   # @type var log_failure: bool
   component_failed(:worker, log_failure: log_failure)
 end
 
-# Bad – no annotation; log_failure stays untyped and the call goes unchecked
-on_failure_proc: ->(log_failure: true) do
-  component_failed(:worker, log_failure: log_failure)
+# Bad – option_type is generic; this annotation errors under strict checking
+o.setter do |value|
+  # @type var value: ::Array[::String]?
+  next value if value.empty?
 end
+
+# Good – narrow a generic block input with a passthrough guard
+o.setter do |value|
+  next value unless value.is_a?(::Array)
+  next value if value.empty?
+end
+```
+
+When a value's static type is an interface, it loses `is_a?`, `==`,
+`class`, and `Hash#key`. Intersect with `Object` in the signature to
+restore them – `_Duck & Object` keeps the interface contract and grants
+Object's methods:
+
+```rbs
+# Good – class checks and Hash#key work on elements of this array
+@propagators: Array[_Propagator & Object]
+
+# Bad – is_a? on a plain interface type flags NoMethod
+@propagators: Array[_Propagator]
 ```
 
 When an escape hatch is unavoidable, scope it to the one diagnostic:
