@@ -1,5 +1,6 @@
 #include "stack_dedup.h"
 #include "allocator.h"
+#include "../datadog_ruby_common.h"
 #include "../helpers.h"
 
 #include <stdlib.h>
@@ -76,11 +77,9 @@ static void unique_stacks_free(void *allocation, size_t size);
 
 typedef struct {
   verstable_unique_stacks_set unique_stacks;
-  size_t unique_stacks_set_allocated_bytes;
 
   uint8_t *unique_stacks_array;
   size_t unique_stacks_pos;
-  size_t unique_stacks_size;
 } miteruby_stack_dedup_state_t;
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
@@ -117,16 +116,11 @@ static bool stack_key_equal(stack_key left, stack_key right) {
 static void *unique_stacks_calloc(size_t size) {
   if (size > UNIQUE_STACKS_SET_MAX_SIZE) return NULL;
 
-  void *allocation = miteruby_allocator_alloc(size, "unique_stacks_set");
-  if (allocation != NULL) stack_dedup_state.unique_stacks_set_allocated_bytes += size;
-
-  return allocation;
+  return miteruby_allocator_alloc(size, "unique_stacks_set");
 }
 
-static void unique_stacks_free(void *allocation, size_t size) {
+static void unique_stacks_free(void *allocation, DDTRACE_UNUSED size_t _size) {
   miteruby_allocator_free(allocation);
-
-  stack_dedup_state.unique_stacks_set_allocated_bytes -= size;
 }
 
 bool miteruby_stack_dedup_init(void) {
@@ -143,13 +137,13 @@ bool miteruby_stack_dedup_reset(void) {
 
   stack_dedup_state.unique_stacks_array = new_array;
   stack_dedup_state.unique_stacks_pos = 0;
-  stack_dedup_state.unique_stacks_size = UNIQUE_STACKS_ARRAY_MAX_SIZE;
 
   return true;
 }
 
 size_t miteruby_stack_dedup_size(void) {
-  return sizeof(stack_dedup_state.unique_stacks) + stack_dedup_state.unique_stacks_size + stack_dedup_state.unique_stacks_set_allocated_bytes;
+  return sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) +
+    miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets);
 }
 
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
@@ -163,7 +157,7 @@ miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup
 }
 
 miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view) {
-  if (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < MITERUBY_MAX_SIZE_BYTES) {
+  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < MITERUBY_MAX_SIZE_BYTES) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
