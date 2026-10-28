@@ -89,11 +89,9 @@ static void test_initialization_failure(void) {
   failed_allocation_name = NULL;
 }
 
-static int check_consumer_mutexes_unlocked(DDTRACE_UNUSED void *unused) {
-  assert(mtx_trylock(&consumer_state.consumed_events_mutex) == thrd_success);
-  assert(mtx_trylock(&consumer_state.objects_to_mark_mutex) == thrd_success);
-  assert(mtx_unlock(&consumer_state.objects_to_mark_mutex) == thrd_success);
-  assert(mtx_unlock(&consumer_state.consumed_events_mutex) == thrd_success);
+static int check_consumer_mutex_unlocked(DDTRACE_UNUSED void *unused) {
+  assert(mtx_trylock(&consumer_state.mutex) == thrd_success);
+  assert(mtx_unlock(&consumer_state.mutex) == thrd_success);
   return 0;
 }
 
@@ -127,7 +125,7 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert(result.ok.id.offset == buffer[0].stack_id.offset);
 
   thrd_t thread;
-  assert(thrd_create(&thread, check_consumer_mutexes_unlocked, NULL) == thrd_success);
+  assert(thrd_create(&thread, check_consumer_mutex_unlocked, NULL) == thrd_success);
   int result_code;
   assert(thrd_join(thread, &result_code) == thrd_success);
   assert(result_code == 0);
@@ -512,7 +510,7 @@ static void test_retention_failure(size_t retained_objects, uint16_t frame_count
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == 7);
   assert(assert_dedup((miteruby_event_stack_sample_view_t) {0}, false).offset == 0);
   thrd_t thread;
-  assert(thrd_create(&thread, check_consumer_mutexes_unlocked, NULL) == thrd_success);
+  assert(thrd_create(&thread, check_consumer_mutex_unlocked, NULL) == thrd_success);
   int result;
   assert(thrd_join(thread, &result) == thrd_success && result == 0);
 
@@ -636,8 +634,7 @@ int main(int argc, char **argv) {
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
   miteruby_allocator_free(consumer_state.consumed_events_buffer);
   assert(miteruby_allocator_requested_bytes() == 0);
-  mtx_destroy(&consumer_state.consumed_events_mutex);
-  mtx_destroy(&consumer_state.objects_to_mark_mutex);
+  mtx_destroy(&consumer_state.mutex);
   puts("Miteruby consumer tests passed");
   return ruby_cleanup(0);
 }
