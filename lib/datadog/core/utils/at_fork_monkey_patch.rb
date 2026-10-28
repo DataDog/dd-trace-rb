@@ -188,7 +188,14 @@ module Datadog
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
 
               # Start fork. If a block is provided, use the wrapped version.
-              result = child_block.nil? ? super : super(&(child_block #: ^() -> untyped))
+              result =
+                if child_block.nil?
+                  super
+                else
+                  # @type var wrapped_block: ^() -> untyped
+                  wrapped_block = child_block #: ^() -> untyped
+                  super(&wrapped_block)
+                end
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in
               # the parent. Restore any state set up by earlier callbacks.

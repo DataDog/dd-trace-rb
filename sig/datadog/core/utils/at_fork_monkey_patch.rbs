@@ -3,7 +3,7 @@ module Datadog
   module Core
     module Utils
       module AtForkMonkeyPatch
-        @at_fork_blocks: ::Hash[Symbol, Array[Callback]]
+        self.@at_fork_blocks: ::Hash[Symbol, Array[Callback]]
 
         EMPTY_AT_FORK_BLOCKS: ::Hash[Symbol, Array[Callback]]
 
@@ -20,7 +20,7 @@ module Datadog
 
         def self.apply!: () -> (false | true)
 
-        def self.run_at_fork_blocks: (Symbol stage, snapshot: ::Hash[Symbol, Array[Callback]], ?started: ::Hash[Object, bool]) -> void
+        def self.run_at_fork_blocks: (Symbol stage, snapshot: ::Hash[Symbol, Array[Callback]], ?started: ::Hash[Object, bool]?) -> void
 
         def self.run_parent_cleanup: (::Hash[Symbol, Array[Callback]] snapshot, ::Hash[Object, bool] started, Exception fork_error) -> void
 
