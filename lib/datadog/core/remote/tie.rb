@@ -13,6 +13,7 @@ module Datadog
         def self.boot
           return if Datadog::Core::Remote.active_remote.nil?
 
+          # @type var barrier: Symbol?
           barrier = nil
 
           t = Datadog::Core::Utils::Time.measure do

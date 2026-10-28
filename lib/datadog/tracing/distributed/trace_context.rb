@@ -39,12 +39,15 @@ module Datadog
         end
 
         def extract(data)
-          fetcher = @fetcher.new(data)
+          fetcher_class = @fetcher
+          return unless fetcher_class
 
-          # @type var sampled: ::Integer
-          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          fetcher = fetcher_class.new(data)
 
-          return unless trace_id # Could not parse traceparent
+          extracted = extract_traceparent(fetcher[@traceparent_key])
+          return unless extracted # Could not parse traceparent
+
+          trace_id, parent_id, sampled, trace_flags = extracted
 
           trace_state = TraceState.extract(fetcher[@tracestate_key])
           dd = trace_state.datadog
