@@ -96,6 +96,13 @@ static int check_consumer_mutex_unlocked(DDTRACE_UNUSED void *unused) {
 }
 
 static void test_reset_failure(const char *allocation, const char *message) {
+  miteruby_consumer_reset();
+  sample_storage storage = {0};
+  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
+  storage.event.header.frame_count = 1;
+  storage.event.thread.value = Qnil;
+  assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
+
   miteruby_event_deduped_sample_t *buffer = consumer_state.consumed_events_buffer;
   size_t events_count = consumer_state.consumed_events_count;
   size_t capacity = consumer_state.consumed_events_capacity;
@@ -107,28 +114,40 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert(events_count > 0 && stacks_count > 0 && objects_count > 0);
 
   failed_allocation_name = allocation;
-  if (strcmp(allocation, "unique_stacks_array") == 0) assert(!miteruby_stack_dedup_reset());
   assert_runtime_error(reset_consumer, message);
   failed_allocation_name = NULL;
 
   assert(consumer_state.consumed_events_buffer == buffer);
-  assert(consumer_state.consumed_events_count == events_count);
+  assert(consumer_state.consumed_events_count == 0);
   assert(consumer_state.consumed_events_capacity == capacity);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == objects_count);
-  assert(stack_dedup_state.unique_stacks_array == array);
-  assert(stack_dedup_state.unique_stacks_pos == pos);
-  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == stacks_count);
+  if (strcmp(allocation, "unique_stacks_array") == 0) {
+    assert(stack_dedup_state.unique_stacks_array == array);
+    assert(stack_dedup_state.unique_stacks_pos == pos);
+    assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == stacks_count);
+  } else {
+    assert(stack_dedup_state.unique_stacks_pos == 0);
+    assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
+  }
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
-  miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(buffer[0].stack_id);
-  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
-  assert(!result.error_storage_full && !result.ok.inserted);
-  assert(result.ok.id.offset == buffer[0].stack_id.offset);
+  assert_allocation_accounting();
 
   thrd_t thread;
   assert(thrd_create(&thread, check_consumer_mutex_unlocked, NULL) == thrd_success);
   int result_code;
   assert(thrd_join(thread, &result_code) == thrd_success);
   assert(result_code == 0);
+
+  assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
+  assert(consumer_state.consumed_events_count == 1);
+  miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(buffer[0].stack_id);
+  assert(view.frame_count == 1 && view.refs[0].cme == NULL && view.refs[0].iseq == NULL);
+
+  miteruby_consumer_reset();
+  assert(consumer_state.consumed_events_count == 0);
+  assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
+  assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == 0);
+  assert_allocation_accounting();
 }
 
 static miteruby_stack_dedup_id_t assert_dedup(miteruby_event_stack_sample_view_t view, bool inserted) {
