@@ -2017,9 +2017,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
         end
 
-        cpu_and_wall_time_worker.start
-        wait_until_running
-        consumer = consumer_threads.pop
+        consumer = start_miteruby_consumer_for_manual_samples
         sample = lambda do |depth|
           if depth.zero?
             described_class::Testing._native_miteruby_sample_event_publish_mask
@@ -2046,9 +2044,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "stops with an exception when the consumed events buffer fills and still serializes collected samples" do
-        cpu_and_wall_time_worker.start
-        wait_until_running
-        consumer = consumer_threads.pop
+        consumer = start_miteruby_consumer_for_manual_samples
 
         500.times do
           1000.times { described_class::Testing._native_miteruby_sample_event_publish_mask }
@@ -2514,6 +2510,22 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   def wait_until_running
     cpu_and_wall_time_worker.wait_until_running
+  end
+
+  def start_miteruby_consumer_for_manual_samples
+    sampling_threads = Queue.new
+    allow(described_class).to receive(:_native_sampling_loop).and_wrap_original do |original, worker|
+      sampling_threads << Thread.current
+      original.call(worker)
+    end
+
+    cpu_and_wall_time_worker.start
+    wait_until_running
+    sampling_thread = sampling_threads.pop
+    # A background sample arriving after a wakeup can stay below the buffer's notification threshold indefinitely.
+    described_class._native_stop(cpu_and_wall_time_worker, sampling_thread)
+    expect(sampling_thread.join(5)).to equal(sampling_thread)
+    consumer_threads.pop
   end
 
   # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having GC
