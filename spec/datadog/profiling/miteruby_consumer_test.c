@@ -335,7 +335,7 @@ static void test_unique_stacks_set_capacity(void) {
   miteruby_event_stack_sample_t *event = &storage.event;
   event->header.frame_count = 1;
   size_t count = 0;
-  size_t upper_bound = UNIQUE_STACKS_SET_MAX_CAPACITY / sizeof(stack_key);
+  size_t upper_bound = UNIQUE_STACKS_SET_MAX_SIZE / sizeof(stack_key);
   while (count < upper_bound) {
     event->refs[0].iseq = (const rb_iseq_t *)(uintptr_t)(count + 1);
     if (miteruby_stack_dedup_get_or_insert(view_for(event)).error_storage_full) break;
@@ -343,7 +343,7 @@ static void test_unique_stacks_set_capacity(void) {
   }
   assert(count > 20000 && count < upper_bound);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == count);
-  assert(stack_dedup_state.unique_stacks_set_allocated_bytes <= UNIQUE_STACKS_SET_MAX_CAPACITY);
+  assert(stack_dedup_state.unique_stacks_set_allocated_bytes <= UNIQUE_STACKS_SET_MAX_SIZE);
   assert(stack_dedup_state.unique_stacks_pos + 32 <= UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert_failed_dedup(view_for(event));
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
@@ -622,7 +622,7 @@ int main(int argc, char **argv) {
   test_reset_failure("consumed_events_buffer", "Failed to allocate miteruby.consumed_events_buffer");
   test_reset_failure("unique_stacks_array", "Failure during miteruby_stack_dedup_reset");
   assert_allocator_limit(objects_to_mark_calloc, objects_to_mark_free, OBJECTS_TO_MARK_MAX_CAPACITY);
-  assert_allocator_limit(unique_stacks_calloc, unique_stacks_free, UNIQUE_STACKS_SET_MAX_CAPACITY);
+  assert_allocator_limit(unique_stacks_calloc, unique_stacks_free, UNIQUE_STACKS_SET_MAX_SIZE);
   assert_allocator_limit(thread_contexts_alloc, thread_contexts_free, THREAD_CONTEXTS_MAX_CAPACITY);
   test_retention_failure(7, 0);
   test_retention_failure(7, 1);
