@@ -503,5 +503,128 @@ RSpec.describe Datadog::DataStreams::Processor do
         end
       end
     end
+
+    context "with a Bignum parent hash and kafka edge tags" do
+      let(:settings) { double("Settings", service: "test-service", env: "test", experimental_propagate_process_tags_enabled: process_tags_enabled) }
+      let(:process_tags_enabled) { false }
+      let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: checksum) }
+      let(:checksum) { nil }
+      let(:parent_hash) { 0xF234567890ABCDEF }
+      let(:tags) { ["direction:in", "topic:t", "type:kafka"] }
+
+      def uncached_pathway_hash(service:, env:, checksum:, parent_hash:, tags:)
+        bytes = service.bytes + env.bytes
+        bytes += [checksum].pack("Q<").bytes if checksum
+        tags.each { |tag| bytes += tag.bytes }
+        node_hash = Datadog::Core::Utils::FNV.fnv1_64(bytes.pack("C*"))
+        Datadog::Core::Utils::FNV.fnv1_64([node_hash, parent_hash].pack("QQ"))
+      end
+
+      it "matches the golden value when process tags are disabled" do
+        expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(0x919146e27feed0c7)
+      end
+
+      context "when process tags are enabled with a checksum" do
+        let(:process_tags_enabled) { true }
+        let(:checksum) { 1234567890 }
+
+        it "matches the golden value" do
+          expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(0x025881e69893ac17)
+        end
+
+        it "starts including the checksum once it becomes available" do
+          allow(agent_info).to receive(:propagation_checksum).and_return(nil)
+          expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(0x919146e27feed0c7)
+
+          allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
+          expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(0x025881e69893ac17)
+        end
+      end
+
+      it "returns the same value on repeated calls" do
+        first = processor.send(:compute_pathway_hash, parent_hash, tags)
+
+        expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(first)
+      end
+
+      it "does not recompute a cached pathway hash" do
+        processor.send(:compute_pathway_hash, parent_hash, tags)
+
+        expect(Datadog::Core::Utils::FNV).not_to receive(:fnv1_64)
+
+        expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(0x919146e27feed0c7)
+      end
+
+      it "reuses the node hash for a new parent hash on a known edge" do
+        processor.send(:compute_pathway_hash, parent_hash, tags)
+
+        expected = uncached_pathway_hash(service: "test-service", env: "test", checksum: nil, parent_hash: 0x42fc8338f4ba11f9, tags: tags)
+
+        expect(Datadog::Core::Utils::FNV).to receive(:fnv1_64).once.and_call_original
+
+        expect(processor.send(:compute_pathway_hash, 0x42fc8338f4ba11f9, tags)).to eq(expected)
+      end
+
+      it "uses the new service once the service changes" do
+        processor.send(:compute_pathway_hash, 0x42fc8338f4ba11f9, tags)
+
+        allow(settings).to receive(:service).and_return("other-service")
+
+        expect(processor.send(:compute_pathway_hash, 0x42fc8338f4ba11f9, tags)).to eq(0x392412f1bb1ffba4)
+      end
+
+      it "uses the new env once the env changes" do
+        processor.send(:compute_pathway_hash, parent_hash, tags)
+
+        allow(settings).to receive(:env).and_return("prod")
+
+        expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(
+          uncached_pathway_hash(service: "test-service", env: "prod", checksum: nil, parent_hash: parent_hash, tags: tags)
+        )
+      end
+
+      it "hashes non-ASCII service names the same way as the uncached computation" do
+        allow(settings).to receive(:service).and_return("sérvice-ü")
+
+        expect(processor.send(:compute_pathway_hash, parent_hash, tags)).to eq(
+          uncached_pathway_hash(service: "sérvice-ü", env: "test", checksum: nil, parent_hash: parent_hash, tags: tags)
+        )
+      end
+
+      it "is not affected by mutating the tags array passed in" do
+        mutable_tags = ["type:kafka"]
+        expect(processor.send(:compute_pathway_hash, 0, mutable_tags)).to eq(0x42fc8338f4ba11f9)
+
+        mutable_tags[0] = "type:sqs"
+        mutable_tags << "x"
+
+        expect(processor.send(:compute_pathway_hash, 0, ["type:kafka"])).to eq(0x42fc8338f4ba11f9)
+      end
+
+      context "when more than the maximum number of pathway hashes are cached" do
+        let(:max_cached) { described_class.const_get(:MAX_CACHED_PATHWAY_HASHES) }
+
+        it "keeps returning the uncached value, including for entries recomputed after a clear" do
+          parents = (0...(max_cached + 10)).map { |i| 0xF234567890ABCDEF - i }
+
+          2.times do
+            parents.each do |parent|
+              expect(processor.send(:compute_pathway_hash, parent, tags)).to eq(
+                uncached_pathway_hash(service: "test-service", env: "test", checksum: nil, parent_hash: parent, tags: tags)
+              )
+            end
+          end
+        end
+
+        it "bounds the number of cached pathway hashes" do
+          (0...(max_cached * 2 + 10)).each do |parent|
+            processor.send(:compute_pathway_hash, parent, tags)
+          end
+
+          cached = processor.instance_variable_get(:@pathway_hash_cache).sum { |_tags, (_node, hashes)| hashes.size }
+          expect(cached).to be <= max_cached
+        end
+      end
+    end
   end
 end
