@@ -106,6 +106,7 @@ module Datadog
             return nil
           end
 
+          # @type var extracted_trace_digest: Tracing::TraceDigest?
           extracted_trace_digest = nil
           # Name of the propagation style that first produced a trace context.
           # Used as the `context_headers` span-link attribute when restarting a trace.
@@ -162,7 +163,10 @@ module Datadog
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
           # Default mode: Current digest continues the upstream trace.
-          return extracted_trace_digest if @propagation_behavior_extract != Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART || extracted_trace_digest&.trace_id.nil?
+          if @propagation_behavior_extract != Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART ||
+              extracted_trace_digest.nil? || extracted_trace_digest.trace_id.nil?
+            return extracted_trace_digest
+          end
 
           # Restart mode: start a new local digest and create a Span Link on
           # the service-entry span with the original propagation data.
@@ -205,12 +209,13 @@ module Datadog
 
         def last_datadog_parent_id(headers, tracecontext_tags)
           dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }
-          if tracecontext_tags&.fetch(
+          tags = tracecontext_tags
+          if tags && tags.fetch(
             Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
             Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
           ) != Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
             # tracecontext headers contain a p value, ensure this value is sent to backend
-            tracecontext_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
+            tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
           elsif dd_propagator && (dd_digest = dd_propagator.extract(headers))
             # if p value is not present in tracestate, use the parent id from the datadog headers
             format("%016x", dd_digest.span_id)

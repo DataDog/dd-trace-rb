@@ -16,6 +16,12 @@ module Datadog
         ) -> void
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
         def extract: (untyped data) -> untyped
+
+        private
+
+        def propagate_baggage: (untyped data, TraceDigest? extracted_trace_digest) -> TraceDigest?
+
+        def last_datadog_parent_id: (untyped headers, Hash[String, String]? tracecontext_tags) -> String?
       end
     end
   end
