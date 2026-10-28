@@ -38,7 +38,9 @@ module Datadog
             #
             # This code checks that Datadog::CI is loaded and ci mode is enabled and adds
             # "-ci-X.Y.Z" suffix to the tracer version.
-            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled
+            # `ci` settings are only defined when the datadog-ci gem is loaded; the
+            # respond_to? guard covers that but Steep cannot narrow it.
+            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled # steep:ignore NoMethod
               tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
             end
 

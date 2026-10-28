@@ -62,6 +62,8 @@ module Datadog
 
         def shutdown!: (?untyped? replacement) -> untyped
 
+        def state: () -> ComponentsState
+
         def open_feature: () -> Datadog::OpenFeature::Component?
 
         private

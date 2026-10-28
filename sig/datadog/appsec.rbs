@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     def self.enabled?: () -> bool
 
-    def self.rasp_enabled?: () -> bool
+    def self.rasp_enabled?: () -> bool?
 
     def self.active_context: () -> Context?
 
