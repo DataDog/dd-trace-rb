@@ -7,6 +7,15 @@ module Datadog
         ENV_ROOT_SESSION_ID: String
         ENV_PARENT_SESSION_ID: String
 
+        # Module-body writes resolve through self.@, method bodies with an
+        # explicit module self-type through @. Declare both lenses.
+        @id: String?
+        @root_runtime_id: String?
+        @parent_runtime_id: String?
+        self.@id: String?
+        self.@root_runtime_id: String?
+        self.@parent_runtime_id: String?
+
         def self?.id: () -> String
 
         def self?.root_runtime_id: () -> String?

@@ -554,6 +554,7 @@ target :datadog do
   library "securerandom"
   library "digest"
   library "base64"
+  library "etc"
   library "zlib"
   library "time"
   library "pp"

@@ -24,16 +24,18 @@ module Datadog
 
         def id
           # @type self: singleton(Datadog::Core::Environment::Identity)
-          @id ||= ::SecureRandom.uuid.freeze
-
           after_fork! do
+            # @type self: Datadog::Core::Environment::Identity
             # Order matters: capture @id before overwriting
             @parent_runtime_id = @id
             @root_runtime_id ||= @id
             @id = ::SecureRandom.uuid.freeze
           end
 
-          @id
+          id = @id || ::SecureRandom.uuid.freeze
+          @id = id
+
+          id
         end
 
         def root_runtime_id
@@ -45,7 +47,7 @@ module Datadog
         end
 
         def runtime_propagation_envs
-          # @type self: singleton(Datadog::Core::Environment::Identity)
+          # @type self: Datadog::Core::Environment::Identity
           {ENV_ROOT_SESSION_ID => root_runtime_id || id, ENV_PARENT_SESSION_ID => id}.freeze
         end
 
