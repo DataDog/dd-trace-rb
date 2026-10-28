@@ -4,6 +4,11 @@
 # Keep the library/repo_path config in sync with the main Steepfile.
 target :loose do
   signature "sig"
+
+  Ruby = Steep::Diagnostic::Ruby
+  configure_code_diagnostics(Ruby.default) do |hash|
+    hash[Ruby::UnannotatedEmptyCollection] = :information
+  end
   check "lib/"
   check "lib/datadog/ruby_version.rb", inline: true
   check "lib/datadog/profiling/encoded_profile.rb", inline: true
