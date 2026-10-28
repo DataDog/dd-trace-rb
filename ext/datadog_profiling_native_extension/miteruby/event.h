@@ -60,6 +60,11 @@ typedef struct {
   miteruby_event_frame_refs_t refs[];
 } miteruby_event_stack_sample_t;
 
+#define MITERUBY_MAX_FRAMES 400
+#define MITERUBY_MAX_SIZE_BYTES \
+  ((sizeof(miteruby_event_stack_sample_t) + MITERUBY_MAX_FRAMES * \
+    (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t)) + 7) & ~(size_t) 7)
+
 typedef struct {
   // Byte offset into unique_stacks_array; zero is valid. Invalidated by a dedup reset.
   size_t offset;

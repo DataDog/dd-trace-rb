@@ -7,11 +7,6 @@
 #include <errno.h>
 #include <string.h>
 
-#define MAX_FRAMES 400
-#define MAX_SIZE_BYTES \
-  ((sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES * \
-    (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t)) + 7) & ~(size_t) 7)
-
 static bool miteruby_sample_event_publish_internal(
   miteruby_buffer_t *buffer, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 );
@@ -59,9 +54,9 @@ static bool miteruby_sample_event_publish_internal(
 ) {
   union {
     miteruby_event_stack_sample_t event;
-    uint64_t words[MAX_SIZE_BYTES / sizeof(uint64_t)];
+    uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
   } storage = {.words = {0}};
-  miteruby_event_frame_position_t positions[MAX_FRAMES];
+  miteruby_event_frame_position_t positions[MITERUBY_MAX_FRAMES];
   miteruby_event_stack_sample_t *event = &storage.event;
   miteruby_event_stack_sample_view_t view = {.refs = event->refs, .positions = positions};
 
@@ -69,7 +64,7 @@ static bool miteruby_sample_event_publish_internal(
   event->header.cpu_time = cpu_time;
   event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->thread = thread;
-  event->header.flags = miteruby_rb_profile_frames(event->thread.value, MAX_FRAMES, &view);
+  event->header.flags = miteruby_rb_profile_frames(event->thread.value, MITERUBY_MAX_FRAMES, &view);
   if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   event->header.frame_count = view.frame_count;
 
