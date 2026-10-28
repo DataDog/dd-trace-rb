@@ -364,23 +364,25 @@ void sample_thread(
     char *cached_name = show_classes ? buffer->cached_names + (i * MAX_CACHED_FRAME_NAME) : NULL;
     bool name_is_cached = cached_name != NULL && frame.cached_name_len > 0;
 
-    ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
+    ddog_CharSlice frame_name;
     // We only keep a name we managed to compose: ddtrace_location_label() also fails when this stack used up the
     // scratch buffer, and keeping the unqualified name it falls back to would stick to the frame even once there's
     // room for it again.
     bool name_is_cacheable = false;
     if (name_is_cached) {
-      qualified_name = (ddog_CharSlice) {.ptr = cached_name, .len = frame.cached_name_len};
+      frame_name = (ddog_CharSlice) {.ptr = cached_name, .len = frame.cached_name_len};
     } else if (show_classes) {
       ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
       if (written > 0) {
-        qualified_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
+        frame_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
         qualified_name_buf += written;
         qualified_name_buf_size -= written;
         name_is_cacheable = true;
       } else {
-        qualified_name = unqualified_name(cme, iseq); // just the method name
+        frame_name = unqualified_name(cme, iseq); // just the method name
       }
+    } else {
+      frame_name = unqualified_name(cme, iseq);
     }
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
@@ -445,13 +447,6 @@ void sample_thread(
           }
         #endif
       }
-    }
-
-    ddog_CharSlice frame_name;
-    if (show_classes) {
-      frame_name = qualified_name;
-    } else {
-      frame_name = unqualified_name(cme, iseq);
     }
 
     if (!name_is_cached) {
