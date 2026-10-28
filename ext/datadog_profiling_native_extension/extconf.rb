@@ -233,9 +233,10 @@ EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLAT
 # This gem ships source code copies of these VM headers for the different Ruby VM versions;
 # see https://github.com/DataDog/datadog-ruby_core_source for details
 
-$srcs = Dir["#{$srcdir}/*.c", "#{$srcdir}/miteruby/*.c"]
-$headers.concat(Dir["#{$srcdir}/miteruby/*.h"])
-$VPATH << "$(srcdir)/miteruby"
+$srcs = Dir["#{$srcdir}/*.c", "#{$srcdir}/miteruby/*.c", "#{$srcdir}/miteruby/pprof/*.c"]
+$headers.concat(Dir["#{$srcdir}/miteruby/*.h", "#{$srcdir}/miteruby/pprof/*.h"])
+$VPATH.concat(["$(srcdir)/miteruby", "$(srcdir)/miteruby/pprof"])
+$INCFLAGS << " -I$(srcdir)/miteruby/pprof"
 
 create_header
 
