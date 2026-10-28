@@ -79,8 +79,3 @@
 #ifdef ZSTD_MULTITHREAD
 #include "compress/zstdmt_compress.c"
 #endif
-
-#include "dictBuilder/cover.c"
-#include "dictBuilder/divsufsort.c"
-#include "dictBuilder/fastcover.c"
-#include "dictBuilder/zdict.c"
