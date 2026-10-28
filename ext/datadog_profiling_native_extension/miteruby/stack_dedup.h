@@ -20,8 +20,10 @@ typedef struct {
 bool miteruby_stack_dedup_init(void);
 bool miteruby_stack_dedup_reset(void);
 size_t miteruby_stack_dedup_size(void);
+
 // Returned views borrow storage until the next reset; callers must not modify it.
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
 miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view);
+
 // Only the latest newly inserted stack may be rolled back, before any sample references it.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id);
