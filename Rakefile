@@ -78,7 +78,7 @@ namespace :test do
 
       candidates.each_key do |group|
         env = if group.empty?
-          {}
+          {"BUNDLE_GEMFILE" => Bundler.default_gemfile.to_s}
         else
           gemfile = AppraisalConversion.to_bundle_gemfile(group)
           {"BUNDLE_GEMFILE" => gemfile}
