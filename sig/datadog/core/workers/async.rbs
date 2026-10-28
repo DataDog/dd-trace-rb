@@ -10,6 +10,15 @@ module Datadog
           SHUTDOWN_TIMEOUT: 1
           MUTEX_INIT: untyped
 
+          @run_async: bool
+          @mutex: ::Mutex?
+          @mutex_after_fork: ::Mutex?
+          @worker: ::Thread?
+          @pid: ::Integer?
+          @error: ::Exception?
+          @result: untyped
+          @fork_policy: (:stop | :restart)?
+
           # Hosts get these methods via prepend in Thread.included.
           include PrependedMethods
 
@@ -18,23 +27,23 @@ module Datadog
             def perform: (*untyped args) -> (untyped | nil)
           end
 
-          attr_reader error: untyped
+          attr_reader error: ::Exception?
 
           attr_reader result: untyped
 
           attr_writer fork_policy: untyped
 
-          def join: (?untyped? timeout) -> (true | untyped)
+          def join: (?untyped? timeout) -> bool
 
           def terminate: () -> (false | true)
 
-          def run_async?: () -> (false | untyped)
+          def run_async?: () -> bool
 
           def started?: () -> untyped
 
           def running?: () -> untyped
 
-          def error?: () -> (false | untyped)
+          def error?: () -> bool
 
           def completed?: () -> untyped
 
@@ -46,17 +55,17 @@ module Datadog
 
           attr_writer result: untyped
 
-          def mutex: () -> untyped
+          def mutex: () -> ::Mutex
 
           def after_fork: () -> nil
 
           private
 
-          attr_reader pid: untyped
+          attr_reader pid: ::Integer?
 
-          def mutex_after_fork: () -> untyped
+          def mutex_after_fork: () -> ::Mutex
 
-          def worker: () -> untyped
+          def worker: () -> ::Thread?
 
           def start_async: () ?{ () -> untyped } -> untyped
 

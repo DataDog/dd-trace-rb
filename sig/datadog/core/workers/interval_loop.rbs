@@ -9,11 +9,24 @@ module Datadog
         BASE_INTERVAL: 1
         MUTEX_INIT: untyped
 
+        @in_iteration: bool
+        @run_loop: bool
+        @loop_base_interval: untyped
+        @loop_back_off_ratio: ::Float
+        @loop_back_off_max: ::Integer
+        # rbs 4.2.0 lacks Numeric#* and Time::_Timeout, so wait timings stay
+        # untyped, matching the IntervalLoop precedent.
+        @loop_wait_time: untyped
+        @mutex: ::Mutex?
+        @shutdown: ::ConditionVariable?
+
         # Hosts get these methods via prepend in IntervalLoop.included.
         include PrependedMethods
 
         def self.included: (untyped base) -> untyped
         module PrependedMethods
+          @in_iteration: bool
+
           def perform: (*untyped args) -> untyped
 
           def in_iteration?: () -> bool
@@ -23,7 +36,7 @@ module Datadog
 
         def work_pending?: () -> untyped
 
-        def run_loop?: () -> (false | untyped)
+        def run_loop?: () -> bool
 
         def loop_base_interval: () -> untyped
 
@@ -44,13 +57,13 @@ module Datadog
 
         attr_writer loop_base_interval: untyped
 
-        def mutex: () -> untyped
+        def mutex: () -> ::Mutex
 
         private
 
         def perform_loop: () { () -> untyped } -> (nil | untyped)
 
-        def shutdown: () -> untyped
+        def shutdown: () -> ::ConditionVariable
       end
     end
   end
