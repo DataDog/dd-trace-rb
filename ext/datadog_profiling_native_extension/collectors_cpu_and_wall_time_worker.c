@@ -1387,6 +1387,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
 
   thread_context_collector_stats(state->thread_context_collector_instance, stats_as_hash);
+  if (state->miteruby_enabled) miteruby_consumer_stats(stats_as_hash);
 
   return stats_as_hash;
 }

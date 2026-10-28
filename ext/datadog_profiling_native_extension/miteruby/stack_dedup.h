@@ -22,6 +22,15 @@ bool miteruby_stack_dedup_init(void);
 bool miteruby_stack_dedup_reset(void);
 size_t miteruby_stack_dedup_size(void);
 
+typedef struct {
+  size_t array_max_size_bytes;
+  size_t array_used_size_bytes;
+  size_t set_max_size_bytes;
+  size_t set_entries;
+} miteruby_stack_dedup_stats_t;
+
+miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
+
 // Returned views borrow storage until the next reset; callers must not modify it.
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
 miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view);
