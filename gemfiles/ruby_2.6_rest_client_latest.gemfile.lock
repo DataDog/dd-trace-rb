@@ -64,8 +64,8 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2026.0922)
-    msgpack (1.8.5)
+    mime-types-data (3.2026.1020)
+    msgpack (1.8.6)
     netrc (0.11.0)
     os (1.1.4)
     pry (0.16.0)

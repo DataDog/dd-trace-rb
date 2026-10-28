@@ -87,7 +87,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     minitest (5.15.0)
-    msgpack (1.8.5)
+    msgpack (1.8.6)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)

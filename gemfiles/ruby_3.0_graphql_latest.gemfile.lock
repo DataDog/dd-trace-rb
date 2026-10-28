@@ -114,7 +114,7 @@ GEM
     google-protobuf (3.25.8-x86-linux)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
-    graphql (2.6.11)
+    graphql (2.6.13)
       base64
       fiber-storage
       logger
@@ -160,7 +160,7 @@ GEM
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
     minitest (5.26.1)
-    msgpack (1.8.5)
+    msgpack (1.8.6)
     net-imap (0.4.25)
       date
       net-protocol
