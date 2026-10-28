@@ -54,11 +54,15 @@ module Datadog
         end
 
         def default_hostname
-          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          # The env value or the String default, never the UNSET sentinel.
+          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST) #: String
         end
 
         def default_port
-          DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          # The env value is a String. The default is an Integer. Both
+          # convert to Integer.
+          port = DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT) #: String | Integer
+          port.to_i
         end
 
         def default_statsd_client
@@ -74,7 +78,9 @@ module Datadog
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          # Unreachable with a nil version: supported? rejects nil before
+          # default_statsd_client can run.
+          options = if dogstatsd_version >= Gem::Version.new("5.2") # steep:ignore NoMethod
             {single_thread: true}
           else
             {}
