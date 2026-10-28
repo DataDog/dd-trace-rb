@@ -163,7 +163,9 @@ miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup
 }
 
 miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view) {
-  size_t previous_count = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks);
+  if (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < MITERUBY_MAX_SIZE_BYTES) {
+    return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
+  }
 
   verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
     &stack_dedup_state.unique_stacks,
@@ -175,30 +177,23 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   );
   if (verstable_unique_stacks_set_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
 
-  if (verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == previous_count) {
+  if (!entry.data->key.view_borrowed) {
     return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->key.location.as.stack_id, .inserted = false}};
   }
 
-  // It's a new stack, let's try to commit it to storage
-
-  size_t data_size = view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
-  size_t stack_size = sizeof(miteruby_stack_t) + data_size;
+  size_t stack_size = sizeof(miteruby_stack_t) + view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
   size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
-
-  if (stack_dedup_state.unique_stacks_size - stack_dedup_state.unique_stacks_pos < aligned_stack_size) {
-    // The newly inserted key borrows the local view, so it must not survive this call.
-    verstable_unique_stacks_set_erase_itr(&stack_dedup_state.unique_stacks, entry);
-    return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
-  }
 
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = view.frame_count;
+
   if (view.frame_count > 0) {
     miteruby_event_stack_sample_view_t stored = miteruby_stack_dedup_get(next_stack_id);
     memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
+
   // Switching to owned storage must preserve the key's hash and contents.
   entry.data->key.location.as.stack_id = next_stack_id;
   entry.data->key.view_borrowed = false;
