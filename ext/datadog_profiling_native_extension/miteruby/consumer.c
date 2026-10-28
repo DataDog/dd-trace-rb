@@ -35,7 +35,6 @@ static void objects_to_mark_free(void *allocation, size_t size);
 typedef struct {
   miteruby_buffer_t *buffer;
   verstable_objects_to_mark_set objects_to_mark;
-  size_t objects_to_mark_allocated_bytes;
 
   // Lock order: consumed_events_mutex, then objects_to_mark_mutex. Recursive locking allows same-thread re-entry:
   // marking and memory accounting can run while the owning thread holds both locks.
@@ -75,14 +74,11 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
 static void *objects_to_mark_calloc(size_t size) {
   if (size > OBJECTS_TO_MARK_MAX_SIZE) return NULL;
-  void *allocation = miteruby_allocator_alloc(size, "objects_to_mark");
-  if (allocation != NULL) consumer_state.objects_to_mark_allocated_bytes += size;
-  return allocation;
+  return miteruby_allocator_alloc(size, "objects_to_mark");
 }
 
-static void objects_to_mark_free(void *allocation, size_t size) {
+static void objects_to_mark_free(void *allocation, DDTRACE_UNUSED size_t _size) {
   miteruby_allocator_free(allocation);
-  consumer_state.objects_to_mark_allocated_bytes -= size;
 }
 
 static void mutex_lock(mtx_t *mutex) {
@@ -119,8 +115,8 @@ static size_t consumer_size(const void *data) {
   mutex_lock(&consumer_state.consumed_events_mutex);
   mutex_lock(&consumer_state.objects_to_mark_mutex);
   size_t size = sizeof(*state) + sizeof(*state->buffer) +
-    consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer) +
-    consumer_state.objects_to_mark_allocated_bytes + miteruby_stack_dedup_size();
+    miteruby_allocator_alloc_size(state->consumed_events_buffer) +
+    miteruby_allocator_alloc_size(state->objects_to_mark.buckets) + miteruby_stack_dedup_size();
   mutex_unlock(&consumer_state.objects_to_mark_mutex);
   mutex_unlock(&consumer_state.consumed_events_mutex);
   return size;
