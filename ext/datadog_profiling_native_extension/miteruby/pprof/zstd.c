@@ -37,6 +37,7 @@
  * Note: multithreading is enabled for all platforms apart from Emscripten.
  */
 #define DEBUGLEVEL 0
+#define ZSTD_NO_INLINE
 #define MEM_MODULE
 #undef  XXH_NAMESPACE
 #define XXH_NAMESPACE ZSTD_
