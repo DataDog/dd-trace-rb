@@ -36,7 +36,7 @@ typedef struct {
   miteruby_buffer_t *buffer;
   verstable_objects_to_mark_set objects_to_mark;
 
-  // Recursive because Ruby calls during serialization can re-enter marking and memory accounting.
+  // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
   mtx_t mutex;
 
   miteruby_event_deduped_sample_t *consumed_events_buffer;
