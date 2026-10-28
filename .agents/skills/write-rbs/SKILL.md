@@ -76,6 +76,10 @@ runs skip inline RBS entries (`inline: true`), so constants declared
 that way resolve only in full runs. Confirm with a full run before
 fixing.
 
+Pass explicit .rb file paths to `steep check`, never a directory. A
+directory argument silently checks zero files and prints a false green.
+Confirm the run by checking the file-count progress dots.
+
 While iterating, scope the check to the edited file's Ruby source – a `sig/`
 path silently passes even on a broken signature:
 

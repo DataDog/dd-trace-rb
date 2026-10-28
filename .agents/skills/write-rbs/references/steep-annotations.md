@@ -29,6 +29,11 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
 - `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
   (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
   `steep:ignore:start` / `steep:ignore:end`
+- `steep:ignore` works in trailing form on the code line itself:
+  `result = super(*args) # steep:ignore UnexpectedPositionalArgument`.
+  A standalone comment line above the code does not suppress the error
+  and instead adds a `RedundantIgnoreComment` warning. Use the bare
+  diagnostic name without the `Ruby::` prefix.
 
 ## Examples
 
@@ -42,10 +47,15 @@ metrics = [] #: Array[String]
 metrics = []
 ```
 
-Annotate `self` for a DSL block Steep does not follow, but only inside
-the block body. When the receiving method's signature declares the
-block's self type, an annotation above the call silently does nothing.
-Option DSL procs all declare block self, so their annotations go inside:
+Annotate `self` where Steep resolves it wrong, but only inside the
+body. Two cases: a DSL block Steep does not follow, and a module
+method whose host contract it cannot see. When the receiving method's
+signature declares the
+block's self type, an annotation above the call does nothing. When a
+method is defined in a nested module that calls the parent module's
+methods, an annotation above the `def` does nothing. Option DSL procs
+and prepended-module
+methods both need the annotation as the first line inside the body:
 
 ```ruby
 # Good – self is the settings context inside the block
@@ -57,6 +67,17 @@ option :service do |o|
   o.helper(:service_without_fallback) do
     # @type self: Datadog::Core::Configuration::Settings
     service_name = service
+  end
+end
+
+# Good for a prepended module – the host includes the parent module,
+# which Steep cannot model; annotate inside the def body
+module PrependedMethods
+  def perform(*args)
+    # @type self: Datadog::Core::Workers::Queue
+    if work_pending?
+      super(*dequeue)
+    end
   end
 end
 
