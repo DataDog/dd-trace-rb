@@ -25,6 +25,7 @@ module Datadog
           # @param [Symbol] name option name. Methods will be created based on this name.
           def settings(name, &block)
             nested_settings_path = settings_path ? "#{settings_path}.#{name}" : name.to_s
+            # @type var settings_class: ::Class & ::Datadog::Core::Configuration::Options::_SettingsClass
             settings_class = new_settings_class(name, nested_settings_path, &block)
             # Record the child settings class on the owning class so
             # Options::ClassMethods#settings_path= can later propagate any path
@@ -42,7 +43,7 @@ module Datadog
               o.default { settings_class.new }
 
               o.resetter do |value|
-                value.reset! if value.respond_to?(:reset!)
+                value.reset! if value.respond_to?(:reset!) # steep:ignore NoMethod
                 value
               end
             end
@@ -55,7 +56,7 @@ module Datadog
           def new_settings_class(name, settings_path, &block)
             Class.new { include Configuration::Base }.tap do |klass|
               klass.instance_variable_set(:@settings_path, settings_path)
-              klass.instance_eval(&block) if block
+              klass.instance_eval(&block) if block # steep:ignore BlockTypeMismatch
             end
           end
         end
