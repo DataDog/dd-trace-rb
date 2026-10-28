@@ -188,6 +188,8 @@ $defs << "-DNO_INT_FIRST_LINENO" if RUBY_VERSION < "3.2"
 # On older Rubies, "pop" was not a primitive operation
 $defs << "-DNO_PRIMITIVE_POP" if RUBY_VERSION < "3.2"
 
+$defs << "-DHAVE_RUBY_FIBER_SCHEDULER_H" if RUBY_VERSION >= "3.1"
+
 # We could support this for older Rubies, but since this only gets used by the OTEL context extraction, and that
 # use-case is only for 3.1+, we didn't bother supporting it farther back yet.
 $defs << "-DNO_CURRENT_FIBER_FOR" if RUBY_VERSION < "3.1"

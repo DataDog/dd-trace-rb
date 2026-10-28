@@ -39,6 +39,10 @@
 
 #include <ruby.h>
 
+#ifdef HAVE_RUBY_FIBER_SCHEDULER_H
+  #include <ruby/fiber/scheduler.h>
+#endif
+
 #ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -315,21 +319,61 @@ VALUE thread_name_for(VALUE thread) {
   return thread_struct_from_object(thread)->name;
 }
 
-// This test doubles as a validation for the layout of the rb_thread_t structure. Because the `name` is almost at
-// the end of the structure, if somehow we can't read the name, this probably means we're getting the structure wrong
+// This test validates the layout of the rb_thread_t structure. Because the fields we check are near the end of
+// the structure, if somehow we can't read the values we set, this probably means we're getting the structure wrong
 // and we should stop immediately (this includes covering the use of `stat_insn_usage` on Ruby <= 3.2).
 //
 // One example where this happens is in patches such as
 // https://github.com/gitlabhq/omnibus-gitlab/blob/master/config/patches/ruby/thread-memory-allocations-3.2.patch
-// that add items to the structure and thus shift its position from where we expect.
-void self_test_thread_name_for(void) {
-  VALUE thread = rb_eval_string("Thread.new { Thread.current.name = 'dd-prof-test' }.join");
-  VALUE expected_name = rb_funcall(thread, rb_intern("name"), 0);
-  if (thread_name_for(thread) != expected_name) {
-    rb_raise(rb_eRuntimeError,
-      "thread_name_for() self-test failed; this usually means the `rb_thread_t` on this Ruby doesn't match what the profiler expects"
-    );
+// that add items to the structure and thus shift its fields from where we expect.
+static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
+  VALUE dummy_scheduler = (VALUE) dummy_scheduler_arg;
+  VALUE thread = rb_thread_current();
+  rb_thread_t *thread_struct = thread_struct_from_object(thread);
+
+  // Are we reading the name from the right place?
+  VALUE name = rb_obj_freeze(rb_str_new_cstr("dd-prof-test"));
+  rb_funcall(thread, rb_intern("name="), 1, name);
+  // We check for rb_method_basic_definition_p to avoid the issue in https://github.com/DataDog/dd-trace-rb/issues/6582:
+  // If `Thread#name` gets redefined, we fall back to the next steps, rather than failing the self-test.
+  // (This means we don't block users of the `semantic_logger` gem from profiling)
+  if (thread_struct->name != name && rb_method_basic_definition_p(rb_cThread, rb_intern("name"))) {
+    return rb_str_new_cstr("name does not match the assigned name");
   }
+
+  #ifdef HAVE_RUBY_FIBER_SCHEDULER_H
+    rb_fiber_scheduler_set(dummy_scheduler);
+    if (thread_struct->scheduler != dummy_scheduler) {
+      return rb_str_new_cstr("scheduler does not match the installed scheduler");
+    }
+  #else
+    (void) dummy_scheduler;
+  #endif
+
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    bool original_ractor_safe = thread_struct->ext_config.ractor_safe;
+    rb_ext_ractor_safe(!original_ractor_safe);
+    if (thread_struct->ext_config.ractor_safe != !original_ractor_safe) {
+      return rb_str_new_cstr("ext_config.ractor_safe did not change after toggling it");
+    }
+    rb_ext_ractor_safe(original_ractor_safe);
+    if (thread_struct->ext_config.ractor_safe != original_ractor_safe) {
+      return rb_str_new_cstr("ext_config.ractor_safe did not match after restoring it");
+    }
+  #endif
+
+  return Qnil;
+}
+
+void self_test_thread_struct(void) {
+  VALUE dummy_scheduler =
+    rb_eval_string("Object.new.tap { |s| [:block, :unblock, :kernel_sleep, :io_wait, :fiber_interrupt].each { |hook| s.define_singleton_method(hook) {} } }");
+
+  // We do this in a separate thread to isolate any of the changes we make
+  VALUE error = rb_funcall(rb_thread_create(self_test_thread_struct_in_thread, (void *) dummy_scheduler), rb_intern("value"), 0);
+
+  RB_GC_GUARD(dummy_scheduler);
+  if (!NIL_P(error)) rb_raise(rb_eRuntimeError, "rb_thread_t self-test failed: %"PRIsVALUE, error);
 }
 
 // -----------------------------------------------------------------------------
