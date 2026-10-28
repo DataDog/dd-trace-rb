@@ -2,7 +2,16 @@ module Datadog
   module ErrorTracking
     module Configuration
       module Settings
+        extend Datadog::Core::Configuration::Base::ClassMethods
+
+        include Datadog::Core::Configuration::Base::InstanceMethods
+
+        extend Datadog::Core::Configuration::Options::ClassMethods
+
+        include Datadog::Core::Configuration::Options::InstanceMethods
+
         def self.extended: (untyped base) -> untyped
+
         def self.add_settings!: (untyped base) -> untyped
       end
     end
