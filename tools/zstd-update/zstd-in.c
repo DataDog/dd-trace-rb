@@ -38,6 +38,9 @@
  */
 #define DEBUGLEVEL 0
 #define ZSTD_NO_INLINE
+/* Keep bundled zstd symbols private to the profiler extension. */
+#define ZSTDLIB_VISIBLE ZSTDLIB_HIDDEN
+#define ZSTDERRORLIB_VISIBLE ZSTDERRORLIB_HIDDEN
 #define MEM_MODULE
 #undef  XXH_NAMESPACE
 #define XXH_NAMESPACE ZSTD_
