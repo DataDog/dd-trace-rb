@@ -9,7 +9,7 @@
 // Given a miteruby stack sample, symbolicates it and places it inside libdatadog.
 // Also keeps track of time deltas between events in threads (TODO: This maybe should move elsewhere?).
 
-// Caller holds the main ractor's GVL and consumer's consumed_events_mutex.
+// Caller holds the main ractor's GVL and consumer's mutex.
 void miteruby_consumer_recorder_init(void);
 void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,

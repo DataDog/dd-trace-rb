@@ -12,5 +12,5 @@ void miteruby_consumer_reset(void);
 // Storage exhaustion raises after reacquiring the GVL.
 void miteruby_consumer_consume_loop(miteruby_buffer_t *buffer);
 
-// Requires the main ractor's GVL throughout; may allocate and raise while holding the buffer lock.
+// Requires the main ractor's GVL throughout; may allocate and raise while holding the consumer mutex.
 void miteruby_consumer_prepare_serialize(VALUE recorder_instance);
