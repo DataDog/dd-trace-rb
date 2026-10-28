@@ -49,8 +49,12 @@ static miteruby_event_stack_sample_view_t view_for(miteruby_event_stack_sample_t
 
 static void assert_allocation_accounting(void) {
   assert(miteruby_allocator_requested_bytes() ==
-    consumer_state.objects_to_mark_allocated_bytes + stack_dedup_state.unique_stacks_set_allocated_bytes + stack_dedup_state.unique_stacks_size +
+    miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets) +
+    miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
+    miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) +
     consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
+  assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(*consumer_state.buffer) +
+    sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_requested_bytes());
 }
 
 static VALUE initialize_consumer(DDTRACE_UNUSED VALUE unused) {
@@ -79,7 +83,7 @@ static void test_initialization_failure(void) {
   assert(!miteruby_stack_dedup_init());
   assert_runtime_error(initialize_consumer, "Failure during miteruby_stack_dedup_init");
   assert(stack_dedup_state.unique_stacks_array == NULL);
-  assert(stack_dedup_state.unique_stacks_size == 0);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == 0);
   assert(stack_dedup_state.unique_stacks_pos == 0);
   assert(miteruby_allocator_requested_bytes() == 0);
   failed_allocation_name = NULL;
@@ -258,9 +262,9 @@ static void test_set_growth_and_stable_storage(void) {
     ids[i] = assert_dedup(view_for(event), true);
     assert(ids[i].offset % 8 == 0);
   }
-  assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert(stack_dedup_state.unique_stacks_array == array);
-  assert(stack_dedup_state.unique_stacks_set_allocated_bytes > 0);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) > 0);
   assert_allocation_accounting();
 
   size_t used = stack_dedup_state.unique_stacks_pos;
@@ -343,7 +347,7 @@ static void test_unique_stacks_set_capacity(void) {
   }
   assert(count > 20000 && count < upper_bound);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == count);
-  assert(stack_dedup_state.unique_stacks_set_allocated_bytes <= UNIQUE_STACKS_SET_MAX_SIZE);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) <= UNIQUE_STACKS_SET_MAX_SIZE);
   assert(stack_dedup_state.unique_stacks_pos + 32 <= UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert_failed_dedup(view_for(event));
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
@@ -374,7 +378,7 @@ static void test_fixed_array_capacity(void) {
   assert_failed_dedup(view);
   size_t remaining = UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos;
   assert(remaining < MITERUBY_MAX_SIZE_BYTES);
-  assert(stack_dedup_state.unique_stacks_size == 16U * 1024U * 1024U);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == 16U * 1024U * 1024U);
   assert(stack_dedup_state.unique_stacks_array == array);
   assert_failed_dedup((miteruby_event_stack_sample_view_t) {0});
 
@@ -421,7 +425,7 @@ static void test_compact_events_and_reset(void) {
   assert(consumer_state.consumed_events_count == capacity);
   assert(consumer_state.consumed_events_capacity == capacity);
   assert(consumer_state.consumed_events_buffer == buffer);
-  assert(consumer_state.objects_to_mark_allocated_bytes > 0);
+  assert(miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets) > 0);
   assert_allocation_accounting();
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
   size_t stacks_pos = stack_dedup_state.unique_stacks_pos;
@@ -465,7 +469,7 @@ static void test_compact_events_and_reset(void) {
   miteruby_consumer_reset();
   assert_allocation_accounting();
   assert(consumer_state.consumed_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
-  assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == 0);
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
@@ -524,13 +528,13 @@ static void test_retention_failure(size_t retained_objects, uint16_t frame_count
 }
 
 static void test_objects_to_mark_capacity(void) {
-  size_t initial_size = consumer_state.objects_to_mark_allocated_bytes;
+  size_t initial_size = miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets);
   size_t count = 0;
   size_t upper_bound = OBJECTS_TO_MARK_MAX_SIZE / sizeof(VALUE);
   while (count < upper_bound && retain_object((VALUE)count)) count++;
   assert(count > 20000 && count < upper_bound);
-  assert(consumer_state.objects_to_mark_allocated_bytes > initial_size);
-  assert(consumer_state.objects_to_mark_allocated_bytes <= OBJECTS_TO_MARK_MAX_SIZE);
+  assert(miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets) > initial_size);
+  assert(miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets) <= OBJECTS_TO_MARK_MAX_SIZE);
   assert(verstable_objects_to_mark_set_size(&consumer_state.objects_to_mark) == count);
   assert_allocation_accounting();
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
@@ -601,7 +605,7 @@ int main(int argc, char **argv) {
   test_buffer_internal_error();
   test_initialization_failure();
   assert(miteruby_stack_dedup_init());
-  assert(stack_dedup_state.unique_stacks_size == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert_allocation_accounting();
   test_empty_stack_before_nonempty();
   test_identity_and_collisions();
@@ -628,7 +632,7 @@ int main(int argc, char **argv) {
   test_thread_contexts_capacity();
   verstable_unique_stacks_set_cleanup(&stack_dedup_state.unique_stacks);
   verstable_objects_to_mark_set_cleanup(&consumer_state.objects_to_mark);
-  assert(stack_dedup_state.unique_stacks_set_allocated_bytes == 0 && consumer_state.objects_to_mark_allocated_bytes == 0);
+  assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) == 0 && miteruby_allocator_alloc_size(consumer_state.objects_to_mark.buckets) == 0);
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
   miteruby_allocator_free(consumer_state.consumed_events_buffer);
   assert(miteruby_allocator_requested_bytes() == 0);
