@@ -395,6 +395,26 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     include_examples "correctly reports profiling data"
 
+    context "with a custom encoded profile" do
+      let(:start) { Time.at(1_700_000_001, 123_456_789, :nanosecond).utc }
+      let(:finish) { Time.at(1_700_000_067, 987_654_321, :nanosecond).utc }
+      let(:encoded_profile) { Datadog::Profiling::EncodedProfile.from_custom(start, finish, "custom\x00\xffpayload".b) }
+
+      it "exports the custom bytes unchanged without endpoint stats" do
+        expect(http_transport.export(flush)).to be true
+
+        boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch("event"))
+
+        expect(body.fetch(pprof_file_name)).to eq("custom\x00\xffpayload".b)
+        expect(event_data.fetch("endpoint_counts")).to be_nil
+        expect(event_data.fetch("start")).to eq(start_timestamp)
+        expect(event_data.fetch("end")).to eq(end_timestamp)
+        expect { encoded_profile._native_bytes }.to raise_error(RuntimeError, /Failed to get bytes from profile/)
+      end
+    end
+
     it "exports data via http to the agent url" do
       http_transport.export(flush)
 
