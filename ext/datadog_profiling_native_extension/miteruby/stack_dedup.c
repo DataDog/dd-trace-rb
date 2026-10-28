@@ -202,6 +202,10 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true}};
 }
 
+// This weird thing currently exists because we:
+// 1. Check if the stack exists, and store it
+// 2. If it didn't exist, try to add every VALUE to `objects_to_mark_set` (caller)
+// 3. In step 2 we might run out of space. So this allows us to back out of 1 if step 2 fails.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
   verstable_unique_stacks_set_erase(&stack_dedup_state.unique_stacks, (stack_key) {
     .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),
