@@ -75,6 +75,9 @@ module Datadog
           return
         end
 
+        miteruby_stats = worker_stats.select { |name, _| name.to_s.start_with?("miteruby_") }
+        Datadog.logger.info("Miteruby stats (export at #{finish}): #{miteruby_stats}") unless miteruby_stats.empty?
+
         uncompressed_code_provenance =
           if (collector = code_provenance_collector)
             collector.refresh.generate_json
