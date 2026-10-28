@@ -34,7 +34,10 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   only when nil is genuinely acceptable at that point
 - `respond_to?` narrows unreliably on union receivers; `is_a?(Class)`
   narrows every time. Prefer `is_a?` in typed code
-- A block-parameter `# @type var` annotation sits in contravariant
+- A `# @type self:` annotation applies per scope: a SECOND one later in
+  the same method body poisons the FIRST for the whole method. Split the
+  scopes instead: annotate the block body, or hoist the differing
+  operation into its own method, or use one annotation for the method
   position: the declared block type must be assignable INTO the
   annotation. It can widen an `untyped` parameter, but never narrow a
   generic one like `option_type`. To specialize a wide block input, use
