@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Updates the profiler's vendored zstd.c from a pinned GitHub release. Downloads
-# and extracts the source, verifies zstd-in.c's SHA-256 checksum, then generates
-# the single-file library. Temporary downloads and sources are cleaned up on exit.
+# and extracts the source, verifies the upstream zstd-in.c's SHA-256 checksum,
+# then generates the library using our local zstd-in.c. Temporary files are cleaned up on exit.
 set -euo pipefail
 
 readonly ZSTD_VERSION="v1.5.7"
@@ -24,14 +24,14 @@ curl -fsSL --retry 5 --retry-delay 2 \
 tar -xzf "$temp_dir/$archive_name" -C "$temp_dir"
 
 source_dir="$temp_dir/zstd-${ZSTD_VERSION#v}"
-template_path="$source_dir/build/single_file_libs/zstd-in.c"
+upstream_template_path="$source_dir/build/single_file_libs/zstd-in.c"
 actual_checksum="$(python3 -c '
 import hashlib
 import sys
 
 with open(sys.argv[1], "rb") as template:
     print(hashlib.sha256(template.read()).hexdigest())
-' "$template_path")"
+' "$upstream_template_path")"
 
 if [[ "$actual_checksum" != "$EXPECTED_CHECKSUM" ]]; then
   printf 'zstd-in.c SHA-256 mismatch: expected %s, got %s\n' \
@@ -45,7 +45,7 @@ printf 'Checksum verified. Generating zstd.c...\n'
 (
   cd -- "$source_dir/build/single_file_libs"
   python3 combine.py -r ../../lib -x legacy/zstd_legacy.h \
-    -o "$temp_dir/zstd.c" zstd-in.c
+    -o "$temp_dir/zstd.c" "$script_dir/zstd-in.c"
 )
 
 install -m 644 "$temp_dir/zstd.c" "$output_path"
