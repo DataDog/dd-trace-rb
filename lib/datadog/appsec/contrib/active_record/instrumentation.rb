@@ -43,6 +43,16 @@ module Datadog
             end
           end
 
+          module PreprocessQueryAdapterPatch
+            private
+
+            def preprocess_query(sql)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
+
+              super
+            end
+          end
+
           # patch for mysql2, sqlite3, and postgres+jdbc adapters in ActiveRecord >= 7.1
           module InternalExecQueryAdapterPatch
             def internal_exec_query(sql, *args, **rest)

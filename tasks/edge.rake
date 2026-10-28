@@ -43,6 +43,7 @@ namespace :edge do
     # the integration owns (e.g. ethon + typhoeus, or the aws-sdk family)
     allowlist = {
       "ai_guard:ruby_llm" => "ruby_llm",
+      "appsec:active_record" => "activerecord",
       "appsec:devise" => "devise",
       "aws" => ["aws-sdk", "aws-sdk-core"],
       "dalli" => "dalli",
