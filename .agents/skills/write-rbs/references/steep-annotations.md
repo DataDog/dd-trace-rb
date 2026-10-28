@@ -17,9 +17,15 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
   block parameter, or instance variable Steep infers wrong; pin the real type,
   NEVER `untyped`
-- An intersection inside an annotation is written WITHOUT parentheses:
-  `# @type var klass: ::Class & _Iface`. The parenthesized form
-  `# @type var klass: (::Class & _Iface)` fails to parse in Steep.
+- Never wrap the whole type of an annotation in parentheses. Write
+  `# @type var klass: ::Class & _Iface` and
+  `# @type var cb: ^(::String) -> void`. The parenthesized forms
+  `# @type var klass: (::Class & _Iface)` and
+  `# @type var cb: (^(::String) -> void)` fail to parse in Steep.
+- A guard (`if x`, `respond_to?`) narrows locals. It does not narrow a
+  fresh method call or an ivar. Hoist the guarded value to a local first,
+  for example `site = Datadog.configuration.site`. Fall back to a scoped
+  `steep:ignore` only when hoisting changes behavior.
 - `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
   (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
   `steep:ignore:start` / `steep:ignore:end`
