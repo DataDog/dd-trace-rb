@@ -55,11 +55,6 @@ module Datadog
             "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
         end
-        rate_limit = config["sampling"]&.[]("snapshotsPerSecond")
-        if rate_limit.is_a?(Float)
-          logger.debug { "di: probe #{config["id"]}: fractional snapshotsPerSecond #{rate_limit}" }
-        end
-
         Probe.new(
           id: config.fetch("id"),
           type: type_symbol,
@@ -80,7 +75,7 @@ module Datadog
           max_capture_string_length: config["capture"]&.[]("maxLength"),
           capture_expressions: capture_expressions,
           evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"], logger),
-          rate_limit: rate_limit,
+          rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
       rescue KeyError => exc

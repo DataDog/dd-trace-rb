@@ -46,11 +46,6 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         expect(probe.line?).to be true
         expect(probe.method?).to be false
       end
-
-      it "does not log a fractional rate for integer values" do
-        probe
-        expect(logger).not_to have_received(:debug)
-      end
     end
 
     context "fractional snapshotsPerSecond" do
@@ -71,13 +66,6 @@ RSpec.describe Datadog::DI::ProbeBuilder do
 
       it "stores the fractional rate limit" do
         expect(probe.rate_limit).to eq 0.5
-      end
-
-      it "logs the fractional rate at debug" do
-        expect(logger).to receive(:debug) do |&block|
-          expect(block.call).to match(/fractional snapshotsPerSecond 0\.5/)
-        end
-        probe
       end
     end
 
