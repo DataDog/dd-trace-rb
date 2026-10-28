@@ -17,6 +17,9 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
   block parameter, or instance variable Steep infers wrong; pin the real type,
   NEVER `untyped`
+- An intersection inside an annotation is written WITHOUT parentheses:
+  `# @type var klass: ::Class & _Iface`. The parenthesized form
+  `# @type var klass: (::Class & _Iface)` fails to parse in Steep.
 - `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
   (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
   `steep:ignore:start` / `steep:ignore:end`

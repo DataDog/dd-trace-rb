@@ -61,6 +61,10 @@ rules above
 
 ## Steep checks
 
+Always pass `--no-daemon` when using a non-default Steepfile. The daemon
+returns stale or empty results for a Steepfile it did not start with, and
+silently hides every error.
+
 While iterating, scope the check to the edited file's Ruby source – a `sig/`
 path silently passes even on a broken signature:
 
