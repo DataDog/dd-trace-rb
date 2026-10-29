@@ -56,7 +56,7 @@ module Datadog
 
         def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> bool
+        def all: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
         def any: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> bool
 
