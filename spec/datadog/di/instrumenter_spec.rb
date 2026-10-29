@@ -13,6 +13,7 @@ require "datadog/di/probe_notifier_worker"
 require "datadog/di/probe_repository"
 require_relative "hook_line"
 require_relative "hook_method"
+require "securerandom"
 
 # The examples below use a local code tracker when they set line probes,
 # for better test encapsulation and to avoid having to clear/reset global state.
@@ -2143,8 +2144,16 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     describe "condition evaluation timeout" do
+      # The constant name is unique per example because the class object
+      # stays in ObjectSpace with its cached Module#name after the
+      # remove_const cleanup, and a fixed name would collide across
+      # examples in name-keyed ObjectSpace walks.
+      let(:timeout_class_name) { :"DITimeoutClass#{SecureRandom.hex(4)}" }
+
+      let(:timeout_class) { Object.const_get(timeout_class_name) }
+
       before do
-        Object.const_set(:DITimeoutClass, Class.new do
+        Object.const_set(timeout_class_name, Class.new do
           def test_method(arg1)
             arg1.length
           end
@@ -2152,7 +2161,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       after do
-        Object.send(:remove_const, :DITimeoutClass)
+        Object.send(:remove_const, timeout_class_name)
       end
 
       before do
@@ -2195,7 +2204,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 1, type: :log, type_name: "DITimeoutClass", method_name: "test_method",
+          id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
           condition: compile_timeout_condition("arg1"),
         )
       end
@@ -2213,7 +2222,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           begin
             instrumenter.hook_method(probe, responder)
-            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
           ensure
             instrumenter.unhook_method(probe)
           end
@@ -2238,8 +2247,8 @@ RSpec.describe Datadog::DI::Instrumenter do
             instrumenter.hook_method(probe, responder)
             # The first hit times out evaluating the condition; the second
             # skips the evaluation while the throttle window is open.
-            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
-            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
           ensure
             instrumenter.unhook_method(probe)
           end
@@ -2295,7 +2304,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           begin
             instrumenter.hook_method(probe, probe_manager)
 
-            expect { DITimeoutClass.new.test_method([1, 2, 3]) }.not_to raise_error
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
           ensure
             instrumenter.unhook_method(probe)
           end
