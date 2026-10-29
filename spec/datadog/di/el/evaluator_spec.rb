@@ -302,6 +302,61 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
     end
 
+  describe "invocation-local evaluation state" do
+    # The first collection item triggers a nested evaluate call on the same
+    # Expression: isUndefined invokes nil? on the item, and the trigger's
+    # nil? reenters evaluation. This reproduces on one thread the state
+    # sharing that occurs when two threads evaluate the same probe
+    # concurrently.
+
+    let(:filter_with_refs_expr) do
+      compile_expr("collection.filter(isUndefined(@it) != true && marker == 'outer')",
+        "filter" => [
+          {"ref" => "collection"},
+          {"and" => [
+            {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
+            {"eq" => [{"ref" => "marker"}, "outer"]},
+          ]},
+        ])
+    end
+
+    let(:trigger) do
+      nested_expr = filter_with_refs_expr
+      nested_context = context_with_marker([1, 2, 3], "inner")
+      nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+      trigger = Object.new
+      trigger.define_singleton_method(:nil?) do
+        begin
+          nested_expr.evaluate(nested_context, deadline: nested_deadline)
+        rescue Datadog::DI::Error::EvaluationTimeout
+          nil
+        end
+        false
+      end
+      trigger
+    end
+
+    def context_with_marker(collection, marker)
+      Datadog::DI::Context.new(
+        probe: nil, settings: settings, serializer: serializer,
+        locals: {collection: collection, marker: marker}
+      )
+    end
+
+    it "reads locals from the invoking evaluation's context" do
+      result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
+      expect(result).to eq([trigger, 2])
+    end
+
+    it "keeps the invoking evaluation's deadline" do
+      collection = [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
+      deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+      result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
+      expect(result).to eq(collection)
+    end
+  end
+
+  describe "#filter" do
     context "with a compare_by_identity Hash collection" do
       let(:identity_collection) do
         source = {}
@@ -311,64 +366,10 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         source
       end
 
-      it "#filter preserves the distinct keys and the identity mode" do
+      it "preserves the distinct keys and the identity mode" do
         result = filter_hash_expr.evaluate(context_with(identity_collection), deadline: nil)
         expect(result.length).to eq(2)
         expect(result.compare_by_identity?).to be(true)
-      end
-    end
-
-    context "with a nested evaluation of the same expression mid-iteration" do
-      # The first collection item triggers a nested evaluate call on the same
-      # Expression: isUndefined invokes nil? on the item, and the trigger's
-      # nil? reenters evaluation. This reproduces on one thread the state
-      # sharing that occurs when two threads evaluate the same probe
-      # concurrently.
-
-      let(:filter_with_refs_expr) do
-        compile_expr("collection.filter(isUndefined(@it) != true && marker == 'outer')",
-          "filter" => [
-            {"ref" => "collection"},
-            {"and" => [
-              {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
-              {"eq" => [{"ref" => "marker"}, "outer"]},
-            ]},
-          ])
-      end
-
-      let(:trigger) do
-        nested_expr = filter_with_refs_expr
-        nested_context = context_with_marker([1, 2, 3], "inner")
-        nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
-        trigger = Object.new
-        trigger.define_singleton_method(:nil?) do
-          begin
-            nested_expr.evaluate(nested_context, deadline: nested_deadline)
-          rescue Datadog::DI::Error::EvaluationTimeout
-            nil
-          end
-          false
-        end
-        trigger
-      end
-
-      def context_with_marker(collection, marker)
-        Datadog::DI::Context.new(
-          probe: nil, settings: settings, serializer: serializer,
-          locals: {collection: collection, marker: marker}
-        )
-      end
-
-      it "reads locals from the invoking evaluation's context" do
-        result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
-        expect(result).to eq([trigger, 2])
-      end
-
-      it "keeps the invoking evaluation's deadline" do
-        collection = [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
-        deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
-        result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
-        expect(result).to eq(collection)
       end
     end
   end
