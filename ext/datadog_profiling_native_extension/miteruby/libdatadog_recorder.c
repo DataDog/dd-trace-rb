@@ -1,4 +1,5 @@
 #include "libdatadog_recorder.h"
+#include "custom_profile.h"
 #include "../datadog_ruby_common.h"
 #include "../encoded_profile.h"
 #include "../helpers.h"
@@ -18,6 +19,7 @@ static const ddog_prof_SampleType sample_types[] = {
 
 typedef struct {
   ddog_prof_Profile profile;
+  custom_profile *custom;
   ddog_Timespec start_timestamp;
   // Only accessed with the GVL. The serializer exclusively owns profile while this is true.
   bool serializing;
@@ -31,16 +33,19 @@ typedef struct {
 
 typedef struct {
   recorder_state *state;
+  custom_profile *next_custom;
   ddog_Timespec finish_timestamp;
   ddog_prof_Profile_SerializeResult result;
   long duration_ns;
   bool ran;
   bool owns_result;
+  bool success;
 } serialize_args;
 
 static void recorder_free(void *data) {
   recorder_state *state = data;
   ddog_prof_Profile_drop(&state->profile);
+  custom_profile_free(state->custom);
   ruby_xfree(state);
 }
 
@@ -92,6 +97,7 @@ static VALUE recorder_new(VALUE klass) {
   if (result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR)
     raise_error(rb_eRuntimeError, "Failed to initialize miteruby profile: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   state->profile = result.ok;
+  state->custom = custom_profile_new();
   return recorder;
 }
 
@@ -104,17 +110,15 @@ void miteruby_libdatadog_recorder_record_sample(
     values.cpu_time_ns, values.cpu_or_wall_samples, values.wall_time_ns,
     values.alloc_samples, values.alloc_samples_unscaled, values.timeline_wall_time_ns,
   };
-  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
-    &state->profile,
-    (ddog_prof_Sample) {
-      .locations = locations,
-      .values = {.ptr = metrics, .len = sizeof(metrics) / sizeof(metrics[0])},
-      .labels = labels,
-    },
-    end_timestamp_ns
-  );
+  ddog_prof_Sample sample = {
+    .locations = locations,
+    .values = {.ptr = metrics, .len = sizeof(metrics) / sizeof(metrics[0])},
+    .labels = labels,
+  };
+  ddog_prof_Profile_Result result = ddog_prof_Profile_add(&state->profile, sample, end_timestamp_ns);
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR)
     raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  custom_profile_record_sample(state->custom, sample, end_timestamp_ns);
   state->recorded_samples++;
 }
 
@@ -130,6 +134,8 @@ static void *serialize_without_gvl(void *data) {
 
 static VALUE serialize_owned(VALUE data) {
   serialize_args *args = (serialize_args *) data;
+  // Allocate before consuming either profile so exception cleanup needs no allocation.
+  args->next_custom = custom_profile_new();
   rb_thread_call_without_gvl(serialize_without_gvl, args, NULL, NULL);
 
   if (args->result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
@@ -138,20 +144,25 @@ static VALUE serialize_owned(VALUE data) {
 
   VALUE encoded = from_ddog_prof_EncodedProfile(args->result.ok);
   args->owns_result = false;
+  VALUE start = ruby_time(args->state->start_timestamp), finish = ruby_time(args->finish_timestamp);
+  long custom_start_ns = monotonic_wall_time_now_ns();
+  VALUE custom_encoded = custom_profile_serialize(args->state->custom, start, finish);
+  args->duration_ns += long_max_of(0, monotonic_wall_time_now_ns() - custom_start_ns);
   VALUE stats = rb_hash_new();
   rb_hash_aset(stats, ID2SYM(rb_intern("recorded_samples")), ULL2NUM(args->state->recorded_samples));
   rb_hash_aset(stats, ID2SYM(rb_intern("serialization_time_ns")), LONG2NUM(args->duration_ns));
-  return rb_ary_new_from_args(2, ID2SYM(rb_intern("ok")), rb_ary_new_from_args(
-    4, ruby_time(args->state->start_timestamp), ruby_time(args->finish_timestamp), encoded, stats
+  VALUE result = rb_ary_new_from_args(2, ID2SYM(rb_intern("ok")), rb_ary_new_from_args(
+    2, rb_ary_new_from_args(4, start, finish, encoded, stats), rb_ary_new_from_args(4, start, finish, custom_encoded, stats)
   ));
+  args->success = true;
+  return result;
 }
 
 static VALUE serialize_cleanup(VALUE data) {
   serialize_args *args = (serialize_args *) data;
   recorder_state *state = args->state;
   if (args->ran) {
-    bool success = args->result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_OK;
-    if (success) state->serialization_successes++;
+    if (args->success) state->serialization_successes++;
     else state->serialization_failures++;
     state->serialization_time_ns_min = long_min_of(state->serialization_time_ns_min, args->duration_ns);
     state->serialization_time_ns_max = long_max_of(state->serialization_time_ns_max, args->duration_ns);
@@ -159,11 +170,15 @@ static VALUE serialize_cleanup(VALUE data) {
     // libdatadog resets the profile during serialization, including when Ruby interrupts the return to the GVL.
     state->start_timestamp = args->finish_timestamp;
     state->recorded_samples = 0;
+    custom_profile_free(state->custom);
+    state->custom = args->next_custom;
+    args->next_custom = NULL;
     if (args->owns_result) {
-      if (success) ddog_prof_EncodedProfile_drop(&args->result.ok);
+      if (args->result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_OK) ddog_prof_EncodedProfile_drop(&args->result.ok);
       else ddog_Error_drop(&args->result.err);
     }
   }
+  custom_profile_free(args->next_custom);
   state->serializing = false;
   return Qnil;
 }
@@ -178,11 +193,17 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE recorder) {
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE recorder) {
   recorder_state *state = available_state(recorder);
+  ddog_Timespec start_timestamp = epoch_now();
+  custom_profile *next_custom = custom_profile_new();
   ddog_prof_Profile_Result result = ddog_prof_Profile_reset(&state->profile);
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR)
+  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    custom_profile_free(next_custom);
     raise_error(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  state->start_timestamp = epoch_now();
+  }
+  state->start_timestamp = start_timestamp;
   state->recorded_samples = 0;
+  custom_profile_free(state->custom);
+  state->custom = next_custom;
   return Qtrue;
 }
 
@@ -202,7 +223,9 @@ static VALUE native_stats(DDTRACE_UNUSED VALUE klass, VALUE recorder) {
   return stats;
 }
 
-static VALUE testing_record_sample(DDTRACE_UNUSED VALUE klass, VALUE recorder, VALUE metrics, VALUE timestamp) {
+static VALUE testing_record_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klass) {
+  VALUE recorder, metrics, timestamp, frames, input_labels;
+  rb_scan_args(argc, argv, "32", &recorder, &metrics, &timestamp, &frames, &input_labels);
   Check_Type(metrics, T_ARRAY);
   if (RARRAY_LEN(metrics) != 6) rb_raise(rb_eArgError, "Expected six sample values");
   miteruby_sample_values values = {
@@ -213,9 +236,39 @@ static VALUE testing_record_sample(DDTRACE_UNUSED VALUE klass, VALUE recorder, V
     .alloc_samples_unscaled = NUM2UINT(rb_ary_entry(metrics, 4)),
     .timeline_wall_time_ns = NUM2LL(rb_ary_entry(metrics, 5)),
   };
+  ddog_prof_Location locations[400];
+  size_t location_count = NIL_P(frames) ? 0 : (Check_Type(frames, T_ARRAY), RARRAY_LEN(frames));
+  if (location_count > 400) rb_raise(rb_eArgError, "Too many testing frames");
+  for (size_t i = 0; i < location_count; i++) {
+    VALUE frame = rb_ary_entry(frames, i);
+    Check_Type(frame, T_ARRAY);
+    locations[i] = (ddog_prof_Location) {
+      .function = {
+        .name = char_slice_from_ruby_string(rb_ary_entry(frame, 0)),
+        .filename = char_slice_from_ruby_string(rb_ary_entry(frame, 1)),
+      },
+      .line = NUM2LL(rb_ary_entry(frame, 2)),
+    };
+  }
+  ddog_prof_Label labels[32];
+  size_t label_count = NIL_P(input_labels) ? 0 : (Check_Type(input_labels, T_ARRAY), RARRAY_LEN(input_labels));
+  if (label_count > 32) rb_raise(rb_eArgError, "Too many testing labels");
+  for (size_t i = 0; i < label_count; i++) {
+    VALUE label = rb_ary_entry(input_labels, i);
+    Check_Type(label, T_ARRAY);
+    labels[i] = (ddog_prof_Label) {
+      .key = char_slice_from_ruby_string(rb_ary_entry(label, 0)),
+      .str = char_slice_from_ruby_string(rb_ary_entry(label, 1)),
+      .num = NUM2LL(rb_ary_entry(label, 2)),
+      .num_unit = char_slice_from_ruby_string(rb_ary_entry(label, 3)),
+    };
+  }
   miteruby_libdatadog_recorder_record_sample(
-    recorder, (ddog_prof_Slice_Location) {0}, values, (ddog_prof_Slice_Label) {0}, NUM2LL(timestamp)
+    recorder, (ddog_prof_Slice_Location) {.ptr = locations, .len = location_count}, values,
+    (ddog_prof_Slice_Label) {.ptr = labels, .len = label_count}, NUM2LL(timestamp)
   );
+  RB_GC_GUARD(frames);
+  RB_GC_GUARD(input_labels);
   return Qnil;
 }
 
@@ -235,6 +288,6 @@ void miteruby_libdatadog_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(klass, "_native_reset_after_fork", native_reset_after_fork, 1);
   rb_define_singleton_method(klass, "_native_stats", native_stats, 1);
   VALUE testing = rb_define_module_under(klass, "Testing");
-  rb_define_singleton_method(testing, "_native_record_sample", testing_record_sample, 3);
+  rb_define_singleton_method(testing, "_native_record_sample", testing_record_sample, -1);
   rb_define_singleton_method(testing, "_native_with_serialization_ownership", testing_with_serialization_ownership, 1);
 }

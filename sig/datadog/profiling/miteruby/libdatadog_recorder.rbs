@@ -14,7 +14,7 @@ module Datadog
 
         def stats: () -> Hash[Symbol, (Integer | Float)?]
 
-        def self._native_serialize: (LibdatadogRecorder recorder) -> ([:ok, serialized_profile_data] | [:error, String])
+        def self._native_serialize: (LibdatadogRecorder recorder) -> ([:ok, [serialized_profile_data, serialized_profile_data]] | [:error, String])
 
         def self._native_reset_after_fork: (LibdatadogRecorder recorder) -> true
 
