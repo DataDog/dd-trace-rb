@@ -347,6 +347,12 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       )
     end
 
+    let(:collection) do
+      [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
+    end
+
+    let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
+
     it "reads locals from the invoking evaluation's context" do
       result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
       expect(result).to eq([trigger, 2])
@@ -355,8 +361,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
 
     it "keeps the invoking evaluation's deadline" do
-      collection = [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
-      deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
       result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
       expect(result).to eq(collection)
       expect(nested_timeouts.length).to eq(1)
