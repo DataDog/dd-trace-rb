@@ -15,6 +15,18 @@ require_relative "hook_line"
 require_relative "hook_method"
 require "securerandom"
 
+# Defined at top level so #hook_method can resolve the class by name, with
+# the remove_const guard the suite's other fixture classes use.
+begin
+  Object.send(:remove_const, :InterleavedEvaluationTestClass)
+rescue NameError
+end
+class InterleavedEvaluationTestClass
+  def test_method(arg1, arg2)
+    arg1.length
+  end
+end
+
 # The examples below use a local code tracker when they set line probes,
 # for better test encapsulation and to avoid having to clear/reset global state.
 RSpec.describe Datadog::DI::Instrumenter do
@@ -2471,6 +2483,82 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
         end
       end
+    end
+  end
+
+  describe "interleaved evaluation of the same probe" do
+    include_context "with probe manager"
+
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    # The condition is `len(arg1) == 3 ||
+    # arg1.filter(isUndefined(@it) != true && arg2 == 'outer').length == 2`:
+    # the inner invocation satisfies the first clause alone, while the
+    # outer invocation satisfies the second, whose filter reads arg2 after
+    # the yielding item's nil? check has paused the evaluation.
+    let(:probe) do
+      src, regexps = Datadog::DI::EL::Compiler.new.compile(
+        "or" => [
+          {"eq" => [{"len" => {"ref" => "arg1"}}, 3]},
+          {"eq" => [
+            {"len" => {"filter" => [
+              {"ref" => "arg1"},
+              {"and" => [
+                {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
+                {"eq" => [{"ref" => "arg2"}, "outer"]},
+              ]},
+            ]}},
+            2,
+          ]},
+        ],
+      )
+      condition = Datadog::DI::EL::Expression.new(
+        "len(arg1) == 3 || arg1.filter(isUndefined(@it) != true && arg2 == 'outer').length == 2",
+        src, regexps: regexps)
+      Datadog::DI::Probe.new(
+        id: 1, type: :log,
+        type_name: "InterleavedEvaluationTestClass", method_name: "test_method",
+        capture_snapshot: true,
+        rate_limit: 100,
+        condition: condition,
+      )
+    end
+
+    let(:yielding_item) do
+      Object.new.tap do |item|
+        item.define_singleton_method(:nil?) do
+          Fiber.yield
+          false
+        end
+      end
+    end
+
+    it "reads each invocation's locals from that invocation's context" do
+      instrumenter.hook_method(probe, probe_manager)
+      begin
+        outer = Fiber.new { InterleavedEvaluationTestClass.new.test_method([yielding_item, 5], "outer") }
+        # The outer condition evaluation pauses inside its filter, at the
+        # yielding item's nil? check.
+        outer.resume
+
+        # The inner invocation of the same probe evaluates and completes
+        # while the outer evaluation is paused mid-iteration.
+        InterleavedEvaluationTestClass.new.test_method([1, 2, 3], "inner")
+        expect(snapshot_payloads.length).to eq(1)
+
+        expect(outer.resume).to eq(2)
+        expect(snapshot_payloads.length).to eq(2)
+      ensure
+        instrumenter.unhook_method(probe)
+      end
+
+      entry_args = snapshot_payloads.map do |payload|
+        payload[:debugger][:snapshot][:captures][:entry][:arguments]
+      end
+      expect(entry_args.map { |args| args[:arg2] }).to contain_exactly(
+        {type: "String", value: "outer"},
+        {type: "String", value: "inner"},
+      )
     end
   end
 
