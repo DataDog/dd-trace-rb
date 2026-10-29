@@ -1,5 +1,6 @@
 # Members missing from the rbs 4.2.0 stdlib signatures, grounded in Ruby's
-# net/http and net/protocol sources.
+# net/http and net/protocol sources. Lives under `vendor/rbs/ruby/` (not
+# `sig/`) because it augments core classes rather than mirroring a `lib/` file.
 module Net
   class BufferedIO
     def initialize: (

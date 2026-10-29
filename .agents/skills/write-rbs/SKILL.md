@@ -94,14 +94,16 @@ workaround over a scoped ignore:
   rejects any typed timeout, and `Numeric` lacks `*`. Keep timing
   values `untyped`, as IntervalLoop already does
 - `Net::HTTP#initialize`, `#on_connect`, and `Net::BufferedIO` are
-  missing. They are reopened in `sig/stdlib/net-http.rbs`, grounded by
-  probing the installed Ruby; extend that file for further `Net` gaps
-  instead of adding call-site ignores
-- A missing member in a *gem* goes in `vendor/rbs`; a missing member in
-  *stdlib or core* goes in `sig/stdlib/`; a *core-class* return the
-  stdlib types loosely (e.g. `RubyVM::YJIT.runtime_stats` as
-  `Hash[untyped, untyped]?`) is best absorbed by typing our own wrapper
-  methods, not by casting every call site
+  missing. They are reopened in `vendor/rbs/ruby/0/net_http.rbs`,
+  grounded by probing the installed Ruby; extend that file for further
+  `Net` gaps instead of adding call-site ignores
+- A missing member in a *gem* goes in `vendor/rbs/<gem>/<version>/`;
+  a missing member in *stdlib or core Ruby* goes in
+  `vendor/rbs/ruby/0/` (never `sig/`, which must mirror `lib/` files);
+  a *core-class* return the stdlib types loosely (e.g.
+  `RubyVM::YJIT.runtime_stats` as `Hash[untyped, untyped]?`) is best
+  absorbed by typing our own wrapper methods, not by casting every call
+  site
 
 To test a Steep semantics hypothesis fast, append a scratch `.rbs`
 plus `.rb` probe pair to a file already in the checked target. Run the
