@@ -21,6 +21,10 @@ new one
 - ALWAYS write a nilable as `Type?`, never `Type | nil`
 - NEVER copy Ruby comments into the `.rbs`
 - NEVER use `untyped` when the type is inferable from the code
+- ALWAYS read the rbs gem's own stdlib declaration before casting a stdlib
+  or core-class return (`Gem::Specification.find_by_name("rbs").gem_dir`);
+  its declaration is ground truth, and a cast that disagrees with it is
+  hiding a real nil
 - RBS expresses only `public` and `private` visibility. Declare a
   `protected` method with no modifier.
 - NEVER loosen a signature just to satisfy Steep – a signature MUST harden the
@@ -37,6 +41,11 @@ new one
   inference from usage can be wrong, and the caller may misuse the gem
 - ALWAYS read the gem's real source first; ask for its location if you lack it
 - SHOULD update stale or missing stubs, but only after seeing that source
+- SHOULD pin superclasses, arity, and keyword defaults by probing the
+  installed gem or Ruby (`Net::BufferedIO.superclass`,
+  `Net::HTTP.instance_method(:initialize).parameters`) before writing a
+  stub; the obvious guess is often wrong (BufferedIO's superclass is Object,
+  not IO)
 - NEVER use `any` in a vendored stub – `any` is a dd-trace-rb type alias, not a
   vendored concept; use `untyped` for genuinely open values there
 
@@ -85,7 +94,14 @@ workaround over a scoped ignore:
   rejects any typed timeout, and `Numeric` lacks `*`. Keep timing
   values `untyped`, as IntervalLoop already does
 - `Net::HTTP#initialize`, `#on_connect`, and `Net::BufferedIO` are
-  missing. See the scoped ignores in `unix_socket.rb`
+  missing. They are reopened in `sig/stdlib/net-http.rbs`, grounded by
+  probing the installed Ruby; extend that file for further `Net` gaps
+  instead of adding call-site ignores
+- A missing member in a *gem* goes in `vendor/rbs`; a missing member in
+  *stdlib or core* goes in `sig/stdlib/`; a *core-class* return the
+  stdlib types loosely (e.g. `RubyVM::YJIT.runtime_stats` as
+  `Hash[untyped, untyped]?`) is best absorbed by typing our own wrapper
+  methods, not by casting every call site
 
 To test a Steep semantics hypothesis fast, append a scratch `.rbs`
 plus `.rb` probe pair to a file already in the checked target. Run the
@@ -109,3 +125,17 @@ reference it. ALWAYS run the full check before treating types as done:
 ```bash
 bundle exec steep check
 ```
+
+## Known Steep limitations
+
+Verified empirically on PR #6587:
+
+- Steep checks a parameter's default value against the union of its
+  overloads' param types. A sentinel-defaulted param
+  (`default_value = UNSET` where `UNSET: Object`) can never be narrowed
+  by overloads; keep the signature loose (`?Object?`) and cast at call
+  sites (`ConfigHelper#fetch`)
+- Steep does not flow-narrow ivars: a `return unless @x` guard does not
+  narrow later `@x` reads in the same method. Hoist to a local first
+  (`lib/datadog/opentelemetry/api/context.rb`,
+  `lib/datadog/core/workers/async.rb`)
