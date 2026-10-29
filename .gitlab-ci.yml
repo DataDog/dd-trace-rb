@@ -240,7 +240,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 64056082f51b508a3eaff21428b557e64dacb4a9 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: 1f289cff86f5ec2a61502f179ede8960bda417fb # Automated: Updated by .github/workflows/update-system-tests.yml.
     # one-pipeline forwards only scenario groups, and the system-tests GitLab exporter emits only
     # SSI jobs. "all" plus "simple_onboarding", which holds SIMPLE_INSTALLER_AUTO_INJECTION outside
     # "all", selects every SSI scenario that has a ruby weblog.
