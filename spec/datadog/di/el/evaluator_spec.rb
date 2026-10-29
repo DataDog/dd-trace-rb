@@ -321,16 +321,19 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         ])
     end
 
+    let(:nested_timeouts) { [] }
+
     let(:trigger) do
       nested_expr = filter_with_refs_expr
       nested_context = context_with_marker([1, 2, 3], "inner")
       nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+      recorded_timeouts = nested_timeouts
       Object.new.tap do |trigger|
         trigger.define_singleton_method(:nil?) do
           begin
             nested_expr.evaluate(nested_context, deadline: nested_deadline)
-          rescue Datadog::DI::Error::EvaluationTimeout
-            nil
+          rescue Datadog::DI::Error::EvaluationTimeout => exc
+            recorded_timeouts << exc
           end
           false
         end
@@ -347,6 +350,8 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "reads locals from the invoking evaluation's context" do
       result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
       expect(result).to eq([trigger, 2])
+      expect(nested_timeouts.length).to eq(1)
+      expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
     end
 
     it "keeps the invoking evaluation's deadline" do
@@ -354,6 +359,8 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
       result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
       expect(result).to eq(collection)
+      expect(nested_timeouts.length).to eq(1)
+      expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
     end
   end
 
