@@ -361,8 +361,9 @@ void sample_thread(
     }
 
     // This frame kept the name we composed for it in an earlier sample, so there's nothing to compose or trim again
-    char *cached_name = show_classes ? buffer->cached_names + (i * MAX_CACHED_FRAME_NAME) : NULL;
-    bool name_is_cached = cached_name != NULL && frame.cached_name_len > 0;
+    char *cached_name = buffer->cached_names == NULL ? NULL : buffer->cached_names + (i * MAX_CACHED_FRAME_NAME);
+    // The length is only ever set together with the name it describes, and frames start out zeroed
+    bool name_is_cached = frame.cached_name_len > 0;
 
     ddog_CharSlice frame_name;
     // We only keep a name we managed to compose: ddtrace_location_label() also fails when this stack used up the
