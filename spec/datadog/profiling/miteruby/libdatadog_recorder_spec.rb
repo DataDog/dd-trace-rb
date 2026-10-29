@@ -40,7 +40,7 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
 
     it "preserves metric values, timestamps, strings, numeric labels, and shared stack frames" do
       frames = [["leaf", "app/例.rb", 42], ["caller", "app/main.rb", 10], ["leaf", "app/例.rb", 43]]
-      labels = [["thread name", "worker\0名前", 0, ""], ["allocation size", "", 4096, "bytes"], ["zero", "", 0, "count"]]
+      labels = [["thread name", "worker\0名前", 0], ["allocation size", "", 4096], ["zero", "", 0]]
       record_sample(frames: frames, labels: labels, timestamp: 123456789)
       record_sample(frames: frames, labels: labels, timestamp: 123456789)
       record_sample(frames: frames.reverse, labels: labels, timestamp: -123, values: [-11, 0, 0, 0, 0, -66])
@@ -54,8 +54,8 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
     end
 
     it "aggregates untimestamped samples with saturating signed values" do
-      2.times { record_sample(values: [2**63 - 1, 2, -2**63, 4, 5, 66], labels: [["thread name", "worker", 0, ""]]) }
-      record_sample(labels: [["thread name", "main", 0, ""]])
+      2.times { record_sample(values: [2**63 - 1, 2, -2**63, 4, 5, 66], labels: [["thread name", "worker", 0]]) }
+      record_sample(labels: [["thread name", "main", 0]])
 
       _, custom = equivalent_profiles
       sample = samples_from_pprof(custom).find { |item| item.labels[:"thread name"] == "worker" }
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
     end
 
     it "clears both profiles after fork" do
-      record_sample(labels: [["thread name", "old thread", 0, ""]])
+      record_sample(labels: [["thread name", "old thread", 0]])
       recorder.reset_after_fork
       _, custom = equivalent_profiles
       expect(decode_profile(custom).sample).to be_empty
