@@ -1,0 +1,23 @@
+module Datadog
+  module OpenFeature
+    module Transport
+      class Response
+        include Core::Transport::Response
+
+        attr_reader code: Integer?
+
+        attr_reader info: Hash[String, untyped]?
+
+        @pre_send: bool
+
+        def initialize: (?code: Integer?, ?info: Hash[String, untyped]?, ?pre_send: bool) -> void
+
+        def ok?: () -> bool
+
+        def internal_error?: () -> bool
+
+        def pre_send?: () -> bool
+      end
+    end
+  end
+end

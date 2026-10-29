@@ -14,14 +14,14 @@ RSpec.describe Datadog::OpenFeature::Component do
     allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build_flagevaluations).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
-    # Never spawn the EVP writer's real background thread in component specs (avoid resource leaks).
+    # Lifecycle examples explicitly enable and stop the real background thread.
     allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
       .to receive(:start_background_thread).and_return(nil)
   end
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false, warn: nil) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
@@ -30,6 +30,37 @@ RSpec.describe Datadog::OpenFeature::Component do
     Datadog::OpenFeature::Configuration::Source::Resolution.new("agentless", enabled: true)
   end
   let(:on_configuration_change) { instance_double(Proc, call: nil) }
+
+  describe "production event transport ownership" do
+    it "constructs both writers with the same agentless selector, scoped to the component" do
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+      settings.feature_flags.enabled = true
+      exposure_transports = []
+      evaluation_transports = []
+      allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_wrap_original do |constructor, **options|
+        exposure_transports << options[:transport]
+        constructor.call(**options)
+      end
+      allow(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).and_wrap_original do |constructor, **options|
+        evaluation_transports << options[:transport]
+        constructor.call(**options)
+      end
+      components = 2.times.map do
+        described_class.build(settings, agent_settings, resolution: resolution,
+          on_configuration_change: on_configuration_change, logger: logger, telemetry: telemetry)
+      end
+      expect(exposure_transports.size).to eq(2)
+      expect(evaluation_transports.size).to eq(2)
+      expect(exposure_transports.first).to be_a(Datadog::OpenFeature::Transport::Agentless)
+      expect(evaluation_transports.first).to equal(exposure_transports.first)
+      expect(evaluation_transports.last).to equal(exposure_transports.last)
+      expect(exposure_transports.first).not_to equal(exposure_transports.last)
+      expect(Datadog::OpenFeature::Transport::HTTP).not_to have_received(:build)
+      expect(Datadog::OpenFeature::Transport::HTTP).not_to have_received(:build_flagevaluations)
+    ensure
+      components&.each(&:shutdown!)
+    end
+  end
 
   describe ".build" do
     subject(:component) do
@@ -289,6 +320,98 @@ RSpec.describe Datadog::OpenFeature::Component do
       allow(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
+    end
+
+    context "with agentless event delivery" do
+      subject(:component) do
+        described_class.new(settings, agent_settings, resolution: resolution, logger: logger, telemetry: telemetry)
+      end
+
+      let(:event_transport) { instance_double(Datadog::OpenFeature::Transport::Agentless) }
+
+      before do
+        allow(Datadog::OpenFeature::Transport::Agentless).to receive(:new).and_return(event_transport)
+      end
+
+      it "starts the deadline before stopping either writer and closes delivery last",
+        skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+        evaluation_writer = instance_double(Datadog::OpenFeature::FlagEvaluation::Writer)
+        allow(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).and_return(evaluation_writer)
+        expect(event_transport).to receive(:shutdown!).with(timeout: 5).ordered
+        expect(evaluation_writer).to receive(:request_stop).ordered
+        expect(worker).to receive(:graceful_shutdown).ordered
+        expect(evaluation_writer).to receive(:stop).ordered
+        expect(event_transport).to receive(:close).ordered
+
+        component.shutdown!
+      end
+
+      it "flushes flag evaluations while the exposure worker is still shutting down",
+        skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+        exposure_started = Queue.new
+        exposure_stopping = Queue.new
+        release_exposure = Queue.new
+        evaluations = Queue.new
+        closed = false
+        exposure_worker = nil
+        evaluation_writer = nil
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.0)
+        allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
+          .to receive(:start_background_thread).and_call_original
+        allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_wrap_original do |constructor, **options|
+          exposure_worker = constructor.call(**options)
+        end
+        allow(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).and_wrap_original do |constructor, **options|
+          evaluation_writer = constructor.call(**options)
+        end
+        allow(event_transport).to receive(:shutdown!).with(timeout: 5)
+        allow(event_transport).to receive(:close) { closed = true }
+        allow(event_transport).to receive(:send_exposures) do
+          exposure_started << true
+          release_exposure.pop
+          Datadog::OpenFeature::Transport::Response.new(code: 202)
+        end
+        allow(event_transport).to receive(:send_flag_evaluations) do |payload|
+          evaluations << [payload, closed]
+          Datadog::OpenFeature::Transport::Response.new(code: 202)
+        end
+        component
+        allow(exposure_worker).to receive(:graceful_shutdown).and_wrap_original do |method|
+          exposure_stopping << true
+          method.call
+        end
+        exposure_worker.enqueue(
+          timestamp: 1_735_689_600_000,
+          allocation: {key: "control"},
+          flag: {key: "exposure-flag"},
+          variant: {key: "on"},
+          subject: {id: "subject"},
+        )
+        Timeout.timeout(1) { exposure_started.pop }
+        evaluation_writer.enqueue(flag_key: "shutdown-flag", variant: "on", eval_time_ms: 1_000)
+
+        shutdown_thread = Thread.new { component.shutdown! }
+        Timeout.timeout(1) { exposure_stopping.pop }
+        payload, closed_during_send = Timeout.timeout(1) { evaluations.pop }
+        expect(payload["flagEvaluations"].map { |event| event["flag"]["key"] }).to eq(["shutdown-flag"])
+        expect(closed_during_send).to be(false)
+        expect(shutdown_thread).to be_alive
+        expect(closed).to be(false)
+
+        release_exposure << true
+        expect(shutdown_thread.join(1)).to eq(shutdown_thread)
+        expect(exposure_worker).not_to be_running
+        expect(evaluation_writer).not_to be_running
+        expect(closed).to be(true)
+        expect(event_transport).to have_received(:send_flag_evaluations).once
+      ensure
+        release_exposure << true if release_exposure
+        shutdown_thread&.join(1)
+        shutdown_thread&.kill
+        shutdown_thread&.join(1)
+        exposure_worker&.stop(true, 0)
+        evaluation_writer&.stop
+      end
     end
   end
 

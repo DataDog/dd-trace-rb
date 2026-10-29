@@ -2907,9 +2907,19 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 `DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED` and `c.open_feature.enabled` are deprecated. When neither stable setting is explicitly configured, the legacy value `true` selects `remote_config` and `false` disables Feature Flags.
 
-The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
+Configuration polling sends the API key only to the managed Datadog endpoint. A custom agentless configuration URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
 Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
+
+#### Event delivery with agentless configuration
+
+When `c.feature_flags.configuration_source` is `agentless`, exposures and flag evaluations share one delivery route. The library prefers a local Agent or serverless relay that forwards EVP origin metadata; Datadog Agent 7.84.0 and later support this metadata. Otherwise, the library sends events directly to `https://event-platform-intake.<DD_SITE>`, authenticated with `DD_API_KEY`. Allow outbound HTTPS access to this host for direct delivery. If direct delivery is not configured, the library can still use an older Agent's advertised EVP endpoint. When `c.feature_flags.configuration_source` is `remote_config`, events are delivered only through the Agent.
+
+Direct event delivery supports `https_proxy` or `HTTPS_PROXY` and `no_proxy` or `NO_PROXY`; lowercase variables take precedence. Proxy URLs must use `http://` or a bare `host:port`, including for HTTPS intake requests. An explicitly empty HTTPS proxy variable disables proxying. When neither HTTPS proxy variable is set, Ruby's standard HTTP proxy settings apply; prefer `http_proxy` because Ruby warns when using uppercase `HTTP_PROXY`. These HTTPS proxy settings apply to event delivery; agentless configuration polling uses Ruby's standard HTTP proxy settings. Event delivery does not follow redirects.
+
+If the local route returns a 404 or 405 response, or a request fails before it is sent, the library resends that batch directly to Datadog one time, provided direct delivery is configured. If the local route returns a 403, 429, or 5xx response, or encounters another transport error, the library sends only later batches directly, so events the local route may have accepted are not duplicated.
+
+After switching to direct delivery, the library keeps using it in that process until you reconfigure the library with `Datadog.configure`. If no usable local route is available and direct delivery is not configured, the library logs a warning once until reconfiguration, drops the batch, and retries local discovery on the next batch after a 30-second cooldown.
 
 #### Evaluation telemetry opt-out
 

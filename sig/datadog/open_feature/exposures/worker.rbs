@@ -8,23 +8,21 @@ module Datadog
         include Core::Workers::Async::Thread
         include Core::Workers::IntervalLoop
 
-        GRACEFUL_SHUTDOWN_EXTRA_SECONDS: ::Integer
-
-        GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS: ::Float
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: ::Integer
 
         DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
 
         DEFAULT_BUFFER_LIMIT: ::Integer
 
         @logger: Core::Logger
-        @transport: Transport::HTTP
+        @transport: Transport::HTTP | Transport::Agentless
         @telemetry: Core::Telemetry::Component
         @batch_builder: BatchBuilder
         @buffer_limit: ::Integer
 
         def initialize: (
           settings: Core::Configuration::Settings,
-          transport: Transport::HTTP,
+          transport: Transport::HTTP | Transport::Agentless,
           telemetry: Core::Telemetry::Component,
           logger: Core::Logger,
           ?flush_interval_seconds: ::Integer,
@@ -41,6 +39,10 @@ module Datadog
 
         def graceful_shutdown: () -> bool
 
+        def work_pending?: () -> bool
+
+        def after_fork: () -> void
+
         private
 
         def loop_base_interval=: (::Integer) -> ::Integer
@@ -53,7 +55,7 @@ module Datadog
 
         def send_events: (::Array[Event::t], ::Integer) -> Core::Transport::Response?
 
-        def log_shutdown_outcome: (::Numeric wait_time) -> void
+        def log_shutdown_outcome: (Numeric wait_time) -> void
       end
     end
   end

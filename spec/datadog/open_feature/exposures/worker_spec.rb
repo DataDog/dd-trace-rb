@@ -72,7 +72,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       worker.send(:send_events, *worker.dequeue)
 
       expect(debug_messages).to include("Feature Flags: dropped 1 older queued exposure event(s) because the exposure buffer was full")
-      expect(debug_messages).to include("Feature Flags: flushing 2 exposure event(s) to the Datadog Agent")
+      expect(debug_messages).to include("Feature Flags: flushing 2 exposure event(s) to Datadog")
     end
 
     context "when worker is not started" do
@@ -116,13 +116,13 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     context "when transport response is ok" do
       before { allow(transport).to receive(:send_exposures).and_return(response) }
 
-      it "logs that the Datadog Agent accepted the events" do
+      it "logs that the transport accepted the events" do
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
         worker.flush
 
-        expect(debug_messages).to include("Feature Flags: sent 1 exposure event(s) to the Datadog Agent")
+        expect(debug_messages).to include("Feature Flags: sent 1 exposure event(s) to Datadog")
       end
     end
 
@@ -176,7 +176,44 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 
+  it "discards inherited pending exposures and delivers child events after fork" do
+    sent = []
+    allow(transport).to receive(:send_exposures) { |payload|
+      sent << payload
+      response
+    }
+    worker.send(:loop_base_interval=, 30)
+    worker.enqueue(event)
+    try_wait_until { sent.size == 1 }
+    worker.buffer.push(event.merge(subject: {id: "parent-pending"}))
+    expect_in_fork do
+      sent.clear
+      worker.enqueue(event.merge(subject: {id: "child"}))
+      worker.graceful_shutdown
+      expect(sent.flat_map { |payload| payload[:exposures].map { |exposure| exposure[:subject][:id] } }).to eq(["child"])
+    end
+  end
+
   describe "#graceful_shutdown" do
+    it "bounds shutdown even when a delivery cannot finish" do
+      stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS", 0.1)
+      entered = Queue.new
+      release = Queue.new
+      allow(transport).to receive(:send_exposures) do
+        entered << true
+        release.pop
+      end
+      worker.enqueue(event)
+      Timeout.timeout(1) { entered.pop }
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      worker.graceful_shutdown
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 1
+      expect(worker).not_to be_running
+      expect(worker.enqueue(event)).to be(false)
+    ensure
+      release << response
+    end
+
     it "reports an in-flight upload before stopping and only then reports completion" do
       entered = Queue.new
       release = Queue.new
@@ -186,13 +223,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       end
       worker.enqueue(event)
       Timeout.timeout(1) { entered.pop }
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0, 100)
-      allow(worker).to receive(:sleep)
-      allow(worker).to receive(:stop).and_wrap_original { |method, force| method.call(force, 0) }
+      allow(worker).to receive(:stop).and_wrap_original { |method, force, _timeout| method.call(force, 0) }
       worker.graceful_shutdown
       expect(worker).not_to be_running
+      expect(debug_messages).to include("Feature Flags: exposure worker stopping; queued=0, upload_in_progress=true, wait_budget=3s")
       expect(debug_messages.last(2)).to eq([
-        "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=true, wait_budget=5.1s; no queued exposure events remain; the in-flight upload may still report sent or dropping during shutdown; if forcibly terminated, its outcome will not be reported",
+        "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=3s; no queued exposure events remain",
         "Feature Flags: exposure worker stopped",
       ])
     ensure
@@ -208,16 +244,13 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       end
       worker.enqueue(event)
       Timeout.timeout(1) { entered.pop }
-      worker.enqueue(event)
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0, 100)
-      allow(worker).to receive(:sleep)
       allow(worker).to receive(:join).and_wrap_original do |method, *args|
         release << response
         method.call(*args)
       end
       worker.graceful_shutdown
-      expect(debug_messages.count("Feature Flags: sent 1 exposure event(s) to the Datadog Agent")).to eq(1)
-      expect(worker.buffer.length).to eq(1)
+      expect(debug_messages.count("Feature Flags: sent 1 exposure event(s) to Datadog")).to eq(1)
+      expect(worker.buffer.length).to eq(0)
       expect(debug_messages).to include("Feature Flags: exposure worker stopped")
       expect(worker).not_to be_running
     ensure
@@ -226,8 +259,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
     context "when buffer contains events" do
       before do
-        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_EXTRA_SECONDS", 0.1)
-        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS", 0.1)
+        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS", 0.2)
       end
 
       let(:event_2) do
@@ -266,10 +298,11 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
         worker.enqueue(event)
         worker.graceful_shutdown
         expect(worker).not_to be_running
-        expect(messages.pop(true)).to eq("Feature Flags: flushing 1 exposure event(s) to the Datadog Agent")
-
-        expect(Array.new(messages.size) { messages.pop })
-          .to include("Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=0.2s; no queued exposure events remain", "Feature Flags: exposure worker stopped")
+        expect(Array.new(messages.size) { messages.pop }).to include(
+          "Feature Flags: flushing 1 exposure event(s) to Datadog",
+          "Feature Flags: exposure shutdown wait finished; queued=0, upload_in_progress=false, wait_budget=0.2s; no queued exposure events remain",
+          "Feature Flags: exposure worker stopped"
+        )
       end
 
       it "logs queued events that were not sent before the deadline" do

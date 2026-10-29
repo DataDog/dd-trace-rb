@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "transport"
+require_relative "transport/agentless"
 require_relative "evaluation_engine"
 require_relative "../core/utils/time"
 require_relative "configuration/source"
@@ -50,14 +51,21 @@ module Datadog
         new(
           settings,
           agent_settings,
+          resolution: resolution,
           on_configuration_change: on_configuration_change,
           logger: logger,
           telemetry: telemetry,
         )
       end
 
-      def initialize(settings, agent_settings, logger:, telemetry:, on_configuration_change: nil)
-        transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
+      def initialize(settings, agent_settings, logger:, telemetry:, on_configuration_change: nil,
+        resolution: Configuration::Source.resolve(settings))
+        if resolution.source == Configuration::Source::AGENTLESS
+          @event_transport = Transport::Agentless.new(
+            agent_settings: agent_settings, site: settings.site, api_key: settings.api_key, logger: logger,
+          )
+        end
+        transport = @event_transport || Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, telemetry: telemetry, logger: logger)
 
         reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
@@ -148,8 +156,11 @@ module Datadog
           @configuration_condition.broadcast
         end
 
+        @event_transport&.shutdown!(timeout: 5)
+        @flag_eval_evp_writer&.request_stop
         @worker.graceful_shutdown
         @flag_eval_evp_writer&.stop
+        @event_transport&.close
         # Symmetric teardown: drop any accumulated span-enrichment state and
         # subscriptions (Ruby CLAUDE.md mandates closing resources).
         @span_enrichment_hook&.shutdown
@@ -174,7 +185,7 @@ module Datadog
         return unless @settings.open_feature.evaluation_counts_enabled
         return unless Hooks::FlagEvalEVPHook.available?
 
-        evp_transport = Transport::HTTP.build_flagevaluations(
+        evp_transport = @event_transport || Transport::HTTP.build_flagevaluations(
           agent_settings: @agent_settings,
           logger: @logger,
         )

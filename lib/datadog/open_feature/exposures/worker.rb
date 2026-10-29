@@ -15,8 +15,7 @@ module Datadog
         include Core::Workers::Queue
         include Core::Workers::Polling
 
-        GRACEFUL_SHUTDOWN_EXTRA_SECONDS = 5
-        GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS = 0.5
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 3
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -54,6 +53,9 @@ module Datadog
         end
 
         def enqueue(event)
+          return false unless enabled?
+
+          start if forked?
           unless buffer.push(event)
             @logger.debug { "Feature Flags: exposure not queued: buffer closed" }
             return false
@@ -74,24 +76,27 @@ module Datadog
         end
 
         def graceful_shutdown
-          return false unless enabled? || !run_loop?
-
-          self.enabled = false
-
-          started = Core::Utils::Time.get_time
-          wait_time = loop_base_interval + GRACEFUL_SHUTDOWN_EXTRA_SECONDS
-
-          loop do
-            break if buffer.empty? && !in_iteration?
-
-            sleep(GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS)
-            break if Core::Utils::Time.get_time - started > wait_time
+          buffer.close
+          @logger.debug do
+            "Feature Flags: exposure worker stopping; queued=#{buffer.length}, " \
+              "upload_in_progress=#{!!in_iteration?}, wait_budget=#{GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS}s"
           end
-
-          log_shutdown_outcome(wait_time)
-          stopped = stop(true)
+          stopped = stop(true, GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
+          log_shutdown_outcome(GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)
           @logger.debug("Feature Flags: exposure worker stopped") unless running?
           stopped
+        ensure
+          self.enabled = false
+        end
+
+        def work_pending?
+          !buffer.empty?
+        end
+
+        protected
+
+        def after_fork
+          self.buffer = Buffer.new(@buffer_limit)
         end
 
         private
@@ -106,11 +111,11 @@ module Datadog
           end
 
           payload = @batch_builder.payload_for(events)
-          @logger.debug { "Feature Flags: flushing #{events.size} exposure event(s) to the Datadog Agent" }
+          @logger.debug { "Feature Flags: flushing #{events.size} exposure event(s) to Datadog" }
           response = @transport.send_exposures(payload)
 
           if response&.ok?
-            @logger.debug { "Feature Flags: sent #{events.size} exposure event(s) to the Datadog Agent" }
+            @logger.debug { "Feature Flags: sent #{events.size} exposure event(s) to Datadog" }
           else
             @logger.debug do
               "Feature Flags: exposure upload response was not OK; dropping #{events.size} exposure event(s) " \

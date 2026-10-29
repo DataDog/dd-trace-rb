@@ -58,31 +58,47 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
 
       expect(
         a_request(:get, "https://example.test/config?dd_env=test").with do |request|
-          !request.headers.key?("Dd-Api-Key")
+          !request.headers.key?("Dd-Api-Key") && !request.headers.key?("Authorization")
         end
       ).to have_been_made.once
     end
 
     context "with URL credentials" do
-      let(:endpoint) do
-        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
-          URI("https://user:password@example.test/custom/path"),
-          managed: false,
-        )
+      shared_examples "custom URL authentication" do
+        [["user:password", "user", "password"],
+          ["us%40er:p%3Ass%25%2B+", "us@er", "p:ss%++"],
+          ["user", "user", ""], ["user:", "user", ""]].each do |userinfo, username, password|
+          context "with #{userinfo.inspect}" do
+            let(:endpoint) do
+              Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+                URI("https://#{userinfo}@example.test/custom/path"),
+                managed: false,
+              )
+            end
+
+            it "uses the decoded credentials for Basic authentication" do
+              authenticated = stub_request(:get, "https://example.test/custom/path")
+                .with(basic_auth: [username, password])
+                .with { |request| !request.headers.key?("Dd-Api-Key") }
+                .to_return(status: 200, body: "configuration")
+
+              expect(response.status).to eq(200)
+              expect(authenticated).to have_been_requested.once
+            end
+          end
+        end
       end
 
-      before do
-        stub_request(:get, "https://example.test/custom/path")
-          .with(basic_auth: ["user", "password"])
-          .to_return(status: 200, body: "configuration")
-      end
+      include_examples "custom URL authentication"
 
-      it "uses Basic authentication" do
-        expect(response.status).to eq(200)
-        expect(
-          a_request(:get, "https://example.test/custom/path")
-            .with(basic_auth: ["user", "password"])
-        ).to have_been_made.once
+      context "when URI only exposes the RFC2396 parser as DEFAULT_PARSER" do
+        before do
+          stub_const("URI::DEFAULT_PARSER", URI::RFC2396_Parser.new)
+          hide_const("URI::RFC2396_PARSER")
+          allow(URI).to receive(:const_missing).with(:RFC2396_PARSER).and_raise(NameError, "missing URI parser")
+        end
+
+        include_examples "custom URL authentication"
       end
     end
 

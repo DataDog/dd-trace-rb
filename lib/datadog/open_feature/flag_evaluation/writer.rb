@@ -108,8 +108,12 @@ module Datadog
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
           }
-          @queue.push(bounded_event, true)
-          @stop_mutex.synchronize { @stop_cond.signal }
+          @stop_mutex.synchronize do
+            return if @stopped
+
+            @queue.push(bounded_event, true)
+            @stop_cond.signal
+          end
           start_background_thread unless running?
         rescue ThreadError
           # Report queue backpressure on the next flush.
@@ -119,15 +123,18 @@ module Datadog
         # Stop the background thread and flush remaining events. Wakes the worker out of its
         # interruptible wait so the drain + final flush happen immediately (no up-to-10s delay).
         def stop
-          @stop_mutex.synchronize do
-            @stopped = true
-            @stop_cond.broadcast
-          end
-
+          request_stop
           return true if join(SHUTDOWN_TIMEOUT_SECONDS)
 
           @logger.debug { "OpenFeature EVP: writer did not stop gracefully; terminating worker thread" }
           terminate
+        end
+
+        def request_stop
+          @stop_mutex.synchronize do
+            @stopped = true
+            @stop_cond.broadcast
+          end
         end
 
         protected
