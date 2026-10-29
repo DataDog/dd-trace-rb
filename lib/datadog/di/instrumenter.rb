@@ -568,6 +568,8 @@ module Datadog
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
                   !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
+                # An evaluation timeout is an internal budget abort, so it
+                # stays contained even under propagate_all_exceptions.
                 if exc.is_a?(DI::Error::EvaluationTimeout)
                   record_condition_evaluation_timeout(probe, exc)
                 end
@@ -860,6 +862,8 @@ module Datadog
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
+            # An evaluation timeout is an internal budget abort, so it
+            # stays contained even under propagate_all_exceptions.
             if exc.is_a?(DI::Error::EvaluationTimeout)
               record_condition_evaluation_timeout(probe, exc)
             end

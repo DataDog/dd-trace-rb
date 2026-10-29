@@ -2314,6 +2314,28 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
+      context "method probe timeout with propagate_all_exceptions enabled" do
+        let(:propagate_all_exceptions) { true }
+
+        it "keeps the evaluation timeout contained and the customer method runs normally" do
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
+          expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
+            expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          end
+          expect(responder).not_to receive(:probe_executed_callback)
+
+          begin
+            instrumenter.hook_method(probe, responder)
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+        end
+      end
+
       context "method probe snapshot through the probe manager" do
         include_context "with probe manager"
 
