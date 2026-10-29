@@ -34,7 +34,7 @@ module OpenTelemetry
 
     def set_values: (Hash[untyped, untyped] values) -> OpenTelemetry::Context
 
-    def trace: () -> Datadog::Tracing::TraceOperation
+    def trace: () -> Datadog::Tracing::TraceOperation?
 
     class DetachError < Error
     end

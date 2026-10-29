@@ -5,7 +5,7 @@ module Datadog
         CURRENT_SPAN_KEY: untyped
         BAGGAGE_REMOVE_KEY: ::Object
 
-        @trace: ::Datadog::Tracing::TraceOperation
+        @trace: ::Datadog::Tracing::TraceOperation?
 
         def initialize: (untyped entries, ?trace: ::Datadog::Tracing::TraceOperation?, ?baggage: untyped?) -> void
         def ensure_trace: () -> (nil | untyped)
