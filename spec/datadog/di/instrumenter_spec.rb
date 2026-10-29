@@ -126,19 +126,10 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:snapshot_payloads) { [] }
 
     let(:probe_notifier_worker) do
-      Class.new do
-        def initialize(snapshot_payloads)
-          @snapshot_payloads = snapshot_payloads
-        end
-
-        def add_status(payload, probe: nil)
-          # Status notifications are not recorded by this test.
-        end
-
-        def add_snapshot(payload, probe: nil)
-          @snapshot_payloads << payload
-        end
-      end.new(snapshot_payloads)
+      instance_double(Datadog::DI::ProbeNotifierWorker).tap do |worker|
+        allow(worker).to receive(:add_status)
+        allow(worker).to receive(:add_snapshot) { |payload| snapshot_payloads << payload }
+      end
     end
 
     let(:probe_repository) do
