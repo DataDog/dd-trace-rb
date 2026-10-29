@@ -16,11 +16,8 @@ module Datadog
         MATCHES_TIMEOUT_SECONDS = 0.5
 
         # Number of collection items processed between cooperative
-        # evaluation-deadline checks. Reading the thread CPU clock
-        # once per item would dominate the per-item block call work for
-        # large collections; checking every N items keeps clock reads to
-        # ~1/N of iterations while limiting the deadline overshoot to one
-        # check interval.
+        # evaluation-deadline checks; evaluation aborts within one
+        # interval's worth of items past the deadline.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
         # Message of DI::Error::EvaluationTimeout, raised by the
