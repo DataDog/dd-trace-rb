@@ -60,7 +60,7 @@ module Datadog
 
         def any: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
-        def filter: (Array[any] | Hash[any, any] collection, Float? deadline) { (?) -> any } -> (Array[any] | Hash[any, any])
+        def filter: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> (Array[Object] | Hash[Object, Object])
 
         private def filter_hash: (Hash[any, any] collection, Float? deadline) { (?) -> any } -> Hash[any, any]
 
