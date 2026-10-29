@@ -18,7 +18,7 @@ module Datadog
 
         def initialize: (?::Array[::Regexp] regexps) -> void
 
-        def evaluate: (Context context, Float? deadline) -> any
+        def evaluate: (Context context, Float? deadline) -> Object
 
         def regexps: () -> ::Array[::Regexp]
 
