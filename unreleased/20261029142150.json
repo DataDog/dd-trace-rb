@@ -2,5 +2,5 @@
   "type": "Fixed",
   "product": "Open Feature",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6592",
-  "message": "Fix provider readiness and recovery after initialization timeouts when using `openfeature-sdk` 0.8.0 or 0.8.1."
+  "message": "Fix provider readiness and recovery after initialization timeouts when using `openfeature-sdk` 0.7.1 or later."
 }

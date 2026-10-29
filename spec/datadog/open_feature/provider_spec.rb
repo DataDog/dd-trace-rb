@@ -225,7 +225,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(events).to eq([:ready, :ready, :stale])
       client = ::OpenFeature::SDK.build_client(domain: "first")
-      expect(client.provider_status).to eq("STALE") if client.respond_to?(:provider_status)
+      expect(client.provider_status).to eq("STALE") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
     ensure
       initialization&.kill
       initialization&.join(5)
@@ -449,7 +449,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
           expect(events).to eq([:stale, :error, :ready])
           client = ::OpenFeature::SDK.build_client
-          expect(client.provider_status).to eq("READY") if client.respond_to?(:provider_status)
+          expect(client.provider_status).to eq("READY") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
 
           provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
           provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
@@ -506,7 +506,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.8.0")
+    if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.7.1")
       context "with an isolated OpenFeature API" do
         let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_TIMEOUT }
 
@@ -602,7 +602,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(events).to eq([:ready, :stale])
       client = ::OpenFeature::SDK.build_client
-      expect(client.provider_status).to eq("STALE") if client.respond_to?(:provider_status)
+      expect(client.provider_status).to eq("STALE") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
     ensure
       provider.shutdown
       configuration&.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)

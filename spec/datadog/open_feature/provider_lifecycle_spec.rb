@@ -47,7 +47,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
 
   def expect_provider_status(expected)
     client = ::OpenFeature::SDK.build_client
-    expect(client.provider_status).to eq(expected) if client.respond_to?(:provider_status)
+    expect(client.provider_status).to eq(expected) if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
   end
 
   describe "fork recovery" do

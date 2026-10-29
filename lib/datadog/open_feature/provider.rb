@@ -159,6 +159,7 @@ module Datadog
         @initialization_mutex.synchronize do
           @waiting_component = nil
           @initialization_returned = true
+          # The legacy SDK dispatches READY/ERROR after init returns; retain the thread to identify that event.
           @initialization_thread = nil unless @initialization_ready_handler || @error_handler
         end
       end
