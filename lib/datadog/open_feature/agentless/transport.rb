@@ -15,6 +15,9 @@ module Datadog
     module Agentless
       # HTTP transport for agentless configuration delivery.
       class Transport
+        FEATURE_FLAGS_CAPABILITIES_HEADER = "X-DD-FEATURE-FLAGS-CAPABILITIES"
+        DEPENDENT_FLAG_CAPABILITY = "dependent-flag-variant-key-v1"
+
         def initialize(endpoint:, api_key:, timeout_seconds:)
           @endpoint = endpoint
           @api_key = endpoint.managed? ? api_key : nil
@@ -59,6 +62,7 @@ module Datadog
             "Accept-Encoding" => "gzip",
             "DD-Client-Library-Language" => Core::Environment::Identity.lang,
             "DD-Client-Library-Version" => Core::Environment::Identity.gem_datadog_version_semver2,
+            FEATURE_FLAGS_CAPABILITIES_HEADER => DEPENDENT_FLAG_CAPABILITY,
             Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => "1",
           }
           api_key = @api_key

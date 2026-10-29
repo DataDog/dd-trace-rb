@@ -45,6 +45,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
           "DD-Client-Library-Version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
           "DD-Internal-Untraced-Request" => "1",
           "If-None-Match" => "previous",
+          "X-DD-FEATURE-FLAGS-CAPABILITIES" => "dependent-flag-variant-key-v1",
         },
       )
     ).to have_been_made.once
@@ -53,12 +54,13 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
   context "with a custom endpoint" do
     let(:managed) { false }
 
-    it "does not send the API key" do
+    it "sends the capability header without the API key" do
       response
 
       expect(
         a_request(:get, "https://example.test/config?dd_env=test").with do |request|
-          !request.headers.key?("Dd-Api-Key")
+          request.headers["X-Dd-Feature-Flags-Capabilities"] == "dependent-flag-variant-key-v1" &&
+            !request.headers.key?("Dd-Api-Key")
         end
       ).to have_been_made.once
     end

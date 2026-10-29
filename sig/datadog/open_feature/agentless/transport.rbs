@@ -2,6 +2,10 @@ module Datadog
   module OpenFeature
     module Agentless
       class Transport
+        FEATURE_FLAGS_CAPABILITIES_HEADER: String
+
+        DEPENDENT_FLAG_CAPABILITY: String
+
         @endpoint: Configuration::AgentlessEndpoint
 
         @api_key: String?
