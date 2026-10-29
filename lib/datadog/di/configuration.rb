@@ -174,6 +174,8 @@ module Datadog
               # expressions, or a message template. The capture
               # expressions share one budget, and the template segments
               # share one budget.
+              #
+              # @return [Integer]
               option :max_time_to_evaluate_ms do |o|
                 o.type :int
                 o.default 50
