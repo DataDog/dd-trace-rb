@@ -118,13 +118,6 @@ void miteruby_libdatadog_recorder_record_sample(
   state->recorded_samples++;
 }
 
-void miteruby_libdatadog_recorder_record_endpoint(VALUE recorder, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
-  recorder_state *state = available_state(recorder);
-  ddog_prof_Profile_Result result = ddog_prof_Profile_set_endpoint(&state->profile, local_root_span_id, endpoint);
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR)
-    raise_error(rb_eArgError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-}
-
 static void *serialize_without_gvl(void *data) {
   serialize_args *args = data;
   long start_ns = monotonic_wall_time_now_ns();
@@ -209,7 +202,7 @@ static VALUE native_stats(DDTRACE_UNUSED VALUE klass, VALUE recorder) {
   return stats;
 }
 
-static VALUE testing_record_sample(DDTRACE_UNUSED VALUE klass, VALUE recorder, VALUE metrics, VALUE span_id, VALUE timestamp) {
+static VALUE testing_record_sample(DDTRACE_UNUSED VALUE klass, VALUE recorder, VALUE metrics, VALUE timestamp) {
   Check_Type(metrics, T_ARRAY);
   if (RARRAY_LEN(metrics) != 6) rb_raise(rb_eArgError, "Expected six sample values");
   miteruby_sample_values values = {
@@ -220,15 +213,9 @@ static VALUE testing_record_sample(DDTRACE_UNUSED VALUE klass, VALUE recorder, V
     .alloc_samples_unscaled = NUM2UINT(rb_ary_entry(metrics, 4)),
     .timeline_wall_time_ns = NUM2LL(rb_ary_entry(metrics, 5)),
   };
-  ddog_prof_Label label = {.key = DDOG_CHARSLICE_C("local root span id"), .num = NUM2LL(span_id)};
   miteruby_libdatadog_recorder_record_sample(
-    recorder, (ddog_prof_Slice_Location) {0}, values, (ddog_prof_Slice_Label) {.ptr = &label, .len = 1}, NUM2LL(timestamp)
+    recorder, (ddog_prof_Slice_Location) {0}, values, (ddog_prof_Slice_Label) {0}, NUM2LL(timestamp)
   );
-  return Qnil;
-}
-
-static VALUE testing_record_endpoint(DDTRACE_UNUSED VALUE klass, VALUE recorder, VALUE span_id, VALUE endpoint) {
-  miteruby_libdatadog_recorder_record_endpoint(recorder, NUM2ULL(span_id), char_slice_from_ruby_string(endpoint));
   return Qnil;
 }
 
@@ -248,7 +235,6 @@ void miteruby_libdatadog_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(klass, "_native_reset_after_fork", native_reset_after_fork, 1);
   rb_define_singleton_method(klass, "_native_stats", native_stats, 1);
   VALUE testing = rb_define_module_under(klass, "Testing");
-  rb_define_singleton_method(testing, "_native_record_sample", testing_record_sample, 4);
-  rb_define_singleton_method(testing, "_native_record_endpoint", testing_record_endpoint, 3);
+  rb_define_singleton_method(testing, "_native_record_sample", testing_record_sample, 3);
   rb_define_singleton_method(testing, "_native_with_serialization_ownership", testing_with_serialization_ownership, 1);
 }
