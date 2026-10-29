@@ -66,10 +66,14 @@ SIGPROF → raw event → 1 MiB ring → consumer without GVL
 
 ---
 
-## 5. Deferred work needs explicit ownership
+## 5. Stay safe around GC compaction
 
-- Ruby threads, ISEQs, and CMEs stay marked and pinned while retained; GC must see references during the transfer from ring to consumer.
-- Native hash tables let deduplication run without Ruby API calls or repeated GVL acquisition.
+- **Hold the GVL whenever accessing Ruby objects.** Signal capture also skips GC: even the GVL owner can be interrupted during compaction.
+- **Always mark and pin tracked objects**, including during transfer from ring to consumer, so they stay alive and cannot move.
+- **Outside the GVL, use Ruby object pointers only as opaque identifiers.** Native hash tables compare and hash them without dereferencing objects or calling Ruby APIs.
+
+Together, these rules prevent compaction crashes from touching Ruby objects at the wrong time, while keeping background deduplication independent of the GVL.
+
 - Named `mmap` allocations, per-structure limits, and usage counters make core storage inspectable.
 
 **Trade-off:** pinning limits compaction, and retained stacks/references currently survive exports until reset. Full consumer storage raises an error; graceful recovery is unfinished.
