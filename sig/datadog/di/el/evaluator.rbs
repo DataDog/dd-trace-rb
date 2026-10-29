@@ -62,7 +62,7 @@ module Datadog
 
         def filter: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> (Array[Object] | Hash[Object, Object])
 
-        private def filter_hash: (Hash[any, any] collection, Float? deadline) { (?) -> any } -> Hash[any, any]
+        private def filter_hash: (Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
 
         private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float? deadline) -> void
 
