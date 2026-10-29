@@ -80,9 +80,8 @@ module Datadog
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          # Unreachable with a nil version: supported? rejects nil before
-          # default_statsd_client can run.
-          options = if dogstatsd_version >= Gem::Version.new("5.2") # steep:ignore NoMethod
+          version = dogstatsd_version
+          options = if version && version >= Gem::Version.new("5.2")
             {single_thread: true}
           else
             {}
