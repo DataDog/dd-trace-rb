@@ -51,7 +51,7 @@ module Datadog
 
       def fetch: ((Symbol | String) var_name) -> Object
 
-      def fetch_ivar: ((Symbol | String) var_name) -> untyped
+      def fetch_ivar: ((Symbol | String) var_name) -> Object
     end
   end
 end
