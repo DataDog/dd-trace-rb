@@ -396,7 +396,7 @@ module Datadog
                       sampler_arg = DATADOG_ENV.fetch(
                         Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG,
                         1.0
-                      ) #: String | ::Float
+                      )
                       sampler_arg.to_f
                     else
                       value.to_f
