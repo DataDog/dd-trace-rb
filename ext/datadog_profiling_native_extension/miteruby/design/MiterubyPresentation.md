@@ -91,15 +91,39 @@ SIGPROF → raw event → 1 MiB ring → consumer without GVL
 
 Together, these rules prevent compaction crashes from touching Ruby objects at the wrong time, while keeping background deduplication independent of the GVL.
 
-- Named `mmap` allocations, per-structure limits, and usage counters make core storage inspectable.
-
 **Trade-off:** pinning limits compaction, and retained stacks/references currently survive exports until reset. Full consumer storage raises an error; graceful recovery is unfinished.
-
-Bounds on these structures are not a total profiler memory budget: libdatadog and the custom serializer allocate separately.
 
 ---
 
-## 7. Latest experiment: own the encoding too
+## 7. Memory footprint
+
+**Arena-style storage:** large, contiguous `mmap` regions hold consumed events and unique stacks. Events occupy fixed-size slots; stacks append into a byte array, with offsets as IDs.
+
+- No individual `malloc`/`free` per event or stack: these regions avoid malloc heap fragmentation and per-record allocator metadata.
+- Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. Event counts and the stack write offset track occupied bytes separately.
+- Native hash-table backing storage uses the same allocator. Linux mapping names help identify these allocations in process memory tools.
+
+**Trade-off:** reserved headroom, alignment padding, and temporary overlap during replacement still cost memory. Accounting covers requested payload bytes, not RSS, page rounding, or allocator headers; libdatadog, custom serialization, and pinned Ruby objects are additional costs.
+
+---
+
+## 8. Future memory footprint reduction
+
+**Consumed events — currently 40 bytes each:** encode thread IDs and stack IDs compactly, store timestamp/CPU-time deltas, and omit redundant fixed headers. Blocks with absolute starting values allow bounded decoding; unavailable CPU readings need an explicit marker.
+
+**Stacks array — currently 18 bytes per frame, plus header/padding:** combine delta compression with nibble packing (4-bit units).
+
+- Intern CME/ISEQ pairs as compact frame IDs; keep the actual pinned pointers in a separate table.
+- Encode a shared root prefix against a reference stack, followed by changed frames and position deltas.
+- Pack small integer deltas into nibbles, using an escape for larger values and unknown positions. For example, two small codes can share one byte.
+
+Do compression in the consumer, keeping signal capture simple. Periodic full stacks or independently decodable blocks limit dependency chains.
+
+**Trade-off:** extra tables and decoding work, more complex stack lookup, and less direct access. Measure net savings and CPU cost; all of these compression ideas remain unimplemented.
+
+---
+
+## 9. Latest experiment: own the encoding too
 
 The committed branch introduced a direct libdatadog recorder, nanopb, bundled zstd, and a bridge for custom encoded profiles.
 
@@ -113,7 +137,7 @@ The committed branch introduced a direct libdatadog recorder, nanopb, bundled zs
 
 ---
 
-## 8. What if we wanted to move most of it to rust?
+## 10. What if we wanted to move most of it to rust?
 
 **Proposed split:** a small Ruby-facing adapter around a Rust-owned processing pipeline. Here, “Ruby-facing” includes the C extension that accesses VM internals.
 
@@ -134,7 +158,7 @@ The committed branch introduced a direct libdatadog recorder, nanopb, bundled zs
 
 ---
 
-## 9. What we have, and what comes next
+## 11. What we have, and what comes next
 
 **Built:** an end-to-end experimental stack-sampling pipeline, GC-safe retention, stack deduplication, bounded core storage, diagnostic stats, and serializer comparison specs.
 
