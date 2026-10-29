@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6521",
+  "message": "Prevent evaluation context keys containing NUL from matching ordinary feature flag targeting attributes, including when experimentation opt-out is disabled."
+}

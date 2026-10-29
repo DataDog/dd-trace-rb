@@ -34,8 +34,8 @@ module Datadog
       def get_assignment(flag_key, default_value:, expected_type:, context:, experimentation_opt_out_mode: :disabled)
         if experimentation_opt_out_mode != :disabled && context.key?("dd_experimentation_opt_out_at")
           timestamp = context["dd_experimentation_opt_out_at"]
-          # The C binding omits unsupported types and uses NUL-terminated strings.
-          # Reject invalid opt-out values before that conversion loses information.
+          # The C binding drops nil and unsupported values, making them look absent, and truncates strings at NUL.
+          # Reject them before conversion can permit experimentation; libdatadog checks the timestamp grammar.
           unless valid_native_timestamp?(timestamp)
             return ResolutionDetails.build_error(
               value: default_value, error_code: Ext::INVALID_CONTEXT,

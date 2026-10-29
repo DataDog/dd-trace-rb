@@ -313,6 +313,106 @@ RSpec.describe Datadog::OpenFeature::Provider do
         experimentation_opt_out_mode: :disabled
       )
     end
+
+    def activate_feature_flags
+      Datadog.configuration.feature_flags.enabled = true
+      Datadog.configuration.feature_flags.configuration_source = "agentless"
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    [:kill_switch, :offline, :unknown_source, :legacy_disabled, :unloaded_extension].each do |inactive_reason|
+      context "when initially inactive through #{inactive_reason}" do
+        let(:mode) { +"unsupported" }
+        let(:native_supported) { false }
+
+        before do
+          case inactive_reason
+          when :kill_switch
+            Datadog.configuration.feature_flags.enabled = false
+          when :offline, :unknown_source
+            Datadog.configuration.feature_flags.configuration_source = inactive_reason.to_s
+          when :legacy_disabled
+            Datadog.configuration.open_feature.enabled = false
+          when :unloaded_extension
+            stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", "extension unavailable")
+          end
+        end
+
+        it "constructs without validating the unused policy or native support" do
+          expect { configured_provider }.not_to raise_error
+          expect(Datadog::Core::FeatureFlags::Configuration).not_to have_received(:method_defined?)
+        end
+
+        it "returns the existing default when no engine is available" do
+          allow(Datadog::OpenFeature).to receive(:engine).and_return(nil)
+          result = configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+
+          expect(result.value).to be(false)
+          expect(result.error_code).to eq("PROVIDER_FATAL")
+          expect(engine).not_to have_received(:fetch_value)
+        end
+
+        [nil, "2026-10-01T00:00:00Z"].each do |cutoff|
+          it "rejects a captured invalid policy before evaluation with cutoff #{cutoff.inspect}" do
+            configured_provider
+            activate_feature_flags
+            mode.replace("disabled")
+            Datadog.configuration.feature_flags.experimentation_opt_out_mode = "disabled"
+            context = if cutoff
+              ::OpenFeature::SDK::EvaluationContext.new(dd_experimentation_opt_out_at: cutoff)
+            end
+
+            result = configured_provider.fetch_boolean_value(
+              flag_key: "flag", default_value: false, evaluation_context: context,
+            )
+
+            expect(result.value).to be(false)
+            expect(result.error_code).to eq("GENERAL")
+            expect(result.error_message).to include("Experimentation opt-out mode must be")
+            expect(engine).not_to have_received(:fetch_value)
+            expect(reporter).not_to have_received(:report)
+          end
+        end
+
+        [:immediate, :future_experiments_only].each do |requested_mode|
+          context "with deferred #{requested_mode}" do
+            let(:mode) { requested_mode }
+
+            it "rejects missing native support without caching a disabled fallback" do
+              configured_provider
+              activate_feature_flags
+              result = configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+              expect(result.value).to be(false)
+              expect(result.error_code).to eq("GENERAL")
+              expect(result.error_message).to include("requires a libdatadog build")
+              expect(engine).not_to have_received(:fetch_value)
+
+              allow(Datadog::Core::FeatureFlags::Configuration).to receive(:method_defined?).and_return(true)
+              configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+              expect(engine).to have_received(:fetch_value).with(
+                "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
+                experimentation_opt_out_mode: requested_mode,
+              )
+            end
+          end
+        end
+
+        context "with an explicit disabled override" do
+          let(:mode) { :disabled }
+          let(:environment_mode) { "unsupported" }
+
+          it "keeps the override without requiring native opt-out support" do
+            configured_provider
+            activate_feature_flags
+            configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+            expect(engine).to have_received(:fetch_value).with(
+              "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
+              experimentation_opt_out_mode: :disabled,
+            )
+          end
+        end
+      end
+    end
   end
 
   describe "invalid opt-out containers" do
@@ -341,7 +441,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to be(false)
         expect(result.error_code).to eq("INVALID_CONTEXT")
-        expect(result.error_message).to include("supply a valid timestamp", "omit the attribute")
+        expect(result.error_message).to include(
+          "dd_experimentation_opt_out_at", "RFC3339", "supply a valid timestamp", "omit the attribute",
+        )
         expect(context.fields["dd_experimentation_opt_out_at"]).to eq(value)
       end
     end
@@ -357,8 +459,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
     let(:mode) { :disabled }
 
-    before do
-      engine.reconfigure!(JSON.generate(
+    let(:flag_configuration) do
+      JSON.generate(
         "createdAt" => "2026-01-01T00:00:00Z", "environment" => {"name" => "test"},
         "flags" => {"feature" => {
           "key" => "feature", "enabled" => true, "variationType" => "STRING",
@@ -372,8 +474,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
             {"key" => "ordinary", "doLog" => false, "splits" => [{"variationKey" => "ordinary", "shards" => []}]},
           ],
         }},
-      ))
+      )
     end
+
+    before { engine.reconfigure!(flag_configuration) }
 
     [:disabled, :immediate, :future_experiments_only].each do |selected_mode|
       context "in #{selected_mode} mode" do
@@ -412,6 +516,46 @@ RSpec.describe Datadog::OpenFeature::Provider do
           result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
           expect(result.value).to eq("experiment")
           expect(result.error_code).to be_nil
+        end
+      end
+    end
+
+    [:immediate, :future_experiments_only].product([:explicit, :configuration]).each do |requested_mode, source|
+      context "when #{requested_mode} is captured from #{source} while offline" do
+        let(:mode) { (source == :explicit) ? requested_mode.to_s : nil }
+        let(:setting) { requested_mode.to_s }
+        let(:provider) do
+          unless Datadog::Core::FeatureFlags::Configuration.method_defined?(:get_assignment_with_opt_out_mode)
+            skip "Requires a libdatadog build with opt-out modes"
+          end
+
+          Datadog.configuration.feature_flags.configuration_source = "offline"
+          Datadog.configuration.feature_flags.experimentation_opt_out_mode = setting
+          described_class.new(experimentation_opt_out_mode: mode)
+        end
+
+        it "preserves the requested policy through activation and configuration arrival" do
+          waiting_engine = Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+          allow(Datadog::OpenFeature).to receive(:engine).and_return(waiting_engine)
+          provider
+          setting.replace("disabled")
+          mode&.replace("disabled")
+          Datadog.configuration.feature_flags.configuration_source = "agentless"
+          Datadog.configuration.feature_flags.experimentation_opt_out_mode = "disabled"
+          context = ::OpenFeature::SDK::EvaluationContext.new(
+            targeting_key: "subject", dd_experimentation_opt_out_at: "2024-01-01T00:00:00Z",
+          )
+
+          result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
+          expect(result.value).to eq("default")
+          expect(result.error_code).to eq("PROVIDER_NOT_READY")
+
+          waiting_engine.reconfigure!(flag_configuration)
+          result = provider.fetch_string_value(flag_key: "feature", default_value: "default", evaluation_context: context)
+
+          expect(result.value).to eq("ordinary")
+          expect(result.error_code).to be_nil
+          expect(reporter).to have_received(:report).with(have_attributes(log?: false), flag_key: "feature", context: context).twice
         end
       end
     end

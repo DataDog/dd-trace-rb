@@ -39,7 +39,9 @@ module Datadog
 
       @shutdown: bool
 
-      @experimentation_opt_out_mode: experimentation_opt_out_mode
+      @requested_experimentation_opt_out_mode: String
+
+      @experimentation_opt_out_mode: experimentation_opt_out_mode?
 
       @enable_evaluation_telemetry_opt_out_parameter: bool
 
@@ -92,7 +94,7 @@ module Datadog
 
       private
 
-      def resolve_experimentation_opt_out_mode: ((String | Symbol)? mode) -> experimentation_opt_out_mode
+      def resolve_experimentation_opt_out_mode: (String mode) -> experimentation_opt_out_mode
 
       def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 

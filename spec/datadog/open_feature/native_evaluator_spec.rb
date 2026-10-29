@@ -151,7 +151,9 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
         expect(result.value).to be(false)
         expect(result.error_code).to eq("INVALID_CONTEXT")
-        expect(result.error_message).to include("supply a valid timestamp", "omit the attribute")
+        expect(result.error_message).to include(
+          "dd_experimentation_opt_out_at", "RFC3339", "supply a valid timestamp", "omit the attribute",
+        )
         expect(result.error_message).not_to include("suffix")
         expect(result.log?).to be(false)
         expect(configuration).not_to have_received(:get_assignment)

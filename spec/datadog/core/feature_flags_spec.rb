@@ -54,6 +54,35 @@ RSpec.describe Datadog::Core::FeatureFlags do
   end
 
   describe "Configuration" do
+    describe "attribute keys containing NUL" do
+      let(:configuration) do
+        config = JSON.parse(flags_json)
+        allocation = config.fetch("flags").fetch("test-flag").fetch("allocations").first
+        allocation["doLog"] = false
+        allocation["rules"] = [{"conditions" => [
+          {"attribute" => "email", "operator" => "ONE_OF", "value" => ["user@example.com"]},
+        ]}]
+        described_class::Configuration.new(JSON.generate(config))
+      end
+
+      it "does not alias an ordinary attribute with a NUL-suffixed key" do
+        result = configuration.get_assignment(
+          "test-flag", :object, {"targeting_key" => "subject", "email\0suffix" => "user@example.com"},
+        )
+
+        expect(result.variant).to be_nil
+      end
+
+      it "still matches the ordinary attribute" do
+        result = configuration.get_assignment(
+          "test-flag", :object, {"targeting_key" => "subject", "email" => "user@example.com"},
+        )
+
+        expect(result.variant).to eq("treatment")
+        expect(result.log?).to be(false)
+      end
+    end
+
     describe "#get_assignment_with_options" do
       let(:configuration) { described_class::Configuration.new(JSON.generate(config)) }
       let(:config) { JSON.parse(flags_json) }
