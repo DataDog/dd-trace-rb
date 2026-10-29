@@ -703,7 +703,9 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
-            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
+            # The option framework types callbacks as option_type (Object?);
+            # this option is declared :string, nilable: true, so the value is String?.
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service)) # steep:ignore ArgumentTypeMismatch
           end
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a

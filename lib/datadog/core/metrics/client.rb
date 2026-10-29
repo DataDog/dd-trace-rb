@@ -55,13 +55,15 @@ module Datadog
 
         def default_hostname
           # The env value or the String default, never the UNSET sentinel.
-          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          # fetch's UNSET sentinel default (Object) makes Steep reject any
+          # overload that narrows the return; the cast is the workaround.
+          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST) #: String
         end
 
         def default_port
           # The env value is a String. The default is an Integer. Both
           # convert to Integer.
-          port = DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT)
+          port = DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT) #: String | Integer
           port.to_i
         end
 

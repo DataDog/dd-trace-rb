@@ -24,20 +24,23 @@ module Datadog
         BAGGAGE_REMOVE_KEY = Object.new # sentinel object to indicate the deletion of a value in baggage
 
         def initialize(entries, trace: nil, baggage: nil)
-          @trace = trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)
-          @trace.otel_values.merge!(entries) if entries
-          @trace.otel_context ||= self
-          @trace.baggage = baggage if baggage
+          # start_trace always returns a TraceOperation; the chained `send`s are opaque to Steep.
+          trace = (trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)) #: Datadog::Tracing::TraceOperation
+          @trace = trace
+          trace.otel_values.merge!(entries) if entries
+          trace.otel_context ||= self
+          trace.baggage = baggage if baggage
         end
 
         # Because Context can be reused, we have to make sure we have
         # a valid `TraceOperation` on every invocation.
         def ensure_trace
-          return nil unless @trace
+          trace = @trace
+          return nil unless trace
 
           # The Context can be reused after the root span has finished.
-          @trace.send(:reset) if @trace.finished?
-          @trace
+          trace.send(:reset) if trace.finished?
+          trace
         end
 
         # Returns the corresponding value (or nil) for key
@@ -45,9 +48,10 @@ module Datadog
         # @param [Key] key The lookup key
         # @return [Object]
         def value(key)
-          return nil unless @trace
+          trace = @trace
+          return nil unless trace
 
-          @trace.otel_value(key)
+          trace.otel_value(key)
         end
 
         # `alias` performed to match {::OpenTelemetry::Context} aliasing upstream
