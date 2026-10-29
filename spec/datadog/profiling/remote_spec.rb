@@ -279,6 +279,17 @@ RSpec.describe Datadog::Profiling::Remote do
         expect(enabled_for([{"service" => "web", "env" => "staging"}])).to be true
       end
 
+      it "normalizes the service and env like the agent, as the targets are normalized" do
+        settings.service = "Web App"
+        settings.env = "Prod"
+
+        expect(enabled_for([{"service" => "web_app", "env" => "prod"}])).to be true
+      end
+
+      it "normalizes the targets too" do
+        expect(enabled_for([{"service" => "Web", "env" => "PROD"}])).to be true
+      end
+
       it "treats an empty env as no env" do
         settings.env = ""
 

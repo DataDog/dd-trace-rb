@@ -2,6 +2,7 @@
 
 require "json"
 require_relative "../core/remote/dispatcher"
+require_relative "../core/tag_normalizer"
 require_relative "../core/telemetry/configuration_value"
 require_relative "../core/utils/enumerable_compat"
 
@@ -186,21 +187,23 @@ module Datadog
         # no restriction), or nil if none matches.
         #
         # The backend only delivers a config when one of its targets matches, so this only needs to
-        # find which ones did. Tags are matched by the backend against the tags reported by the RC client
-        # and the agent's host tags, which the tracer can't see, so they only count towards specificity.
-        # A tracer without an env inherits the agent's env, so env targets match it whatever the env.
+        # find which ones did. Tags are matched by the backend against the tags reported by the RC client,
+        # the container tags the agent adds and the agent's host tags, which the tracer can't all see, so
+        # they only count towards specificity. A tracer without an env inherits the agent's env, so env
+        # targets match it whatever the env. The agent and the backend compare normalized services and
+        # envs, so both sides are normalized the same way here.
         def specificity(targets, settings)
           return 0 if targets.empty?
 
           # Same service as the RC client registers with, which is what the backend targets.
-          service = settings.remote.service || settings.service
-          env = settings.env
+          service = Core::TagNormalizer.normalize(settings.remote.service || settings.service)
+          env = Core::TagNormalizer.normalize(settings.env)
 
           Core::Utils::EnumerableCompat.filter_map(targets) do |target|
             has_service = !target[:service].nil? && target[:service] != "*"
             has_env = !target[:env].nil? && target[:env] != "*"
-            next if has_service && target[:service] != service
-            next if has_env && !env.to_s.empty? && target[:env] != env
+            next if has_service && Core::TagNormalizer.normalize(target[:service]) != service
+            next if has_env && !env.empty? && Core::TagNormalizer.normalize(target[:env]) != env
 
             if has_service && has_env
               4
