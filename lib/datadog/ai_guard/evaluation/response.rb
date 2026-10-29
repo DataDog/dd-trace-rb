@@ -8,7 +8,7 @@ module Datadog
       # @api private
       class Response
         attr_reader :action, :reason, :tags, :sds_findings, :tag_probabilities,
-          :redaction_replacements
+          :redaction_replacements, :extra_tags, :extra_metastruct
 
         def initialize(raw_response)
           attributes = raw_response.fetch("data").fetch("attributes")
@@ -20,6 +20,8 @@ module Datadog
           @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
           @sds_findings = attributes.fetch("sds_findings", [])
           @redaction_replacements = attributes.fetch("redaction_replacements", [])
+          @extra_tags = attributes["extra_tags"]
+          @extra_metastruct = attributes["extra_metastruct"]
         rescue KeyError => e
           raise AIGuardClientError, "Missing key: \"#{e.key}\""
         end

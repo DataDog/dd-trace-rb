@@ -25,7 +25,9 @@ module Datadog
           "tag_probs" => tag_probabilities,
           "is_blocking_enabled" => bool,
           ?"sds_findings" => sds_findings,
-          ?"redaction_replacements" => redaction_replacements
+          ?"redaction_replacements" => redaction_replacements,
+          ?"extra_tags" => Helpers::json,
+          ?"extra_metastruct" => Helpers::json
         }
 
         type raw_response = {
@@ -45,6 +47,10 @@ module Datadog
         attr_reader tag_probabilities: tag_probabilities
 
         attr_reader redaction_replacements: redaction_replacements
+
+        attr_reader extra_tags: Helpers::json
+
+        attr_reader extra_metastruct: Helpers::json
 
         @is_blocking_enabled: bool
 
