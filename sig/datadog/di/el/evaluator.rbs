@@ -24,7 +24,7 @@ module Datadog
 
         def self.compile_regexp: (::String needle) -> ::Regexp
 
-        def self.evaluation_deadline: (Datadog::Core::Configuration::Settings settings) -> ::Float?
+        def self.evaluation_deadline: (Core::Configuration::Settings settings) -> Float?
 
         def self.evaluation_deadline_exceeded?: (Float? deadline) -> bool
 
