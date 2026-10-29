@@ -338,7 +338,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
       end
 
-      it "surfaces the timeout as an evaluation error in the rendered message" do
+      it "reports the timeout as an evaluation error in the rendered message" do
         expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
         expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
           tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
