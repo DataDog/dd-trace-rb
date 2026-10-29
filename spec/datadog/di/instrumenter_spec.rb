@@ -2168,17 +2168,17 @@ RSpec.describe Datadog::DI::Instrumenter do
           tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
       end
 
-      # `arg1.filter(@it >= 0).length > 0`: a collection filter over the
-      # first positional argument. With a zero evaluation budget the
-      # cooperative check inside #filter raises immediately, aborting
-      # condition evaluation before any capture happens.
-      let(:probe) do
+      # Compiles `arg.filter(@it >= 0).length > 0`, a collection filter over
+      # the positional argument named +arg_name+. With a zero evaluation
+      # budget the cooperative check inside #filter raises immediately,
+      # aborting condition evaluation before any capture happens.
+      def compile_timeout_condition(arg_name)
         src, regexps = Datadog::DI::EL::Compiler.new.compile(
           "gt" => [
             {
               "len" => {
                 "filter" => [
-                  {"ref" => "arg1"},
+                  {"ref" => arg_name},
                   {"ge" => [{"ref" => "@it"}, 0]},
                 ],
               },
@@ -2186,18 +2186,21 @@ RSpec.describe Datadog::DI::Instrumenter do
             0,
           ],
         )
-        condition = Datadog::DI::EL::Expression.new("arg1.filter(@it >= 0).length > 0", src, regexps: regexps)
+        Datadog::DI::EL::Expression.new("#{arg_name}.filter(@it >= 0).length > 0", src, regexps: regexps)
+      end
+
+      let(:responder) do
+        instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
+      end
+
+      let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITimeoutClass", method_name: "test_method",
-          condition: condition,
+          condition: compile_timeout_condition("arg1"),
         )
       end
 
       context "method probe callback" do
-        let(:responder) do
-          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
-        end
-
         it "invokes the condition evaluation failed callback with the timeout and the customer method runs normally" do
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
           expect_condition_timeout_skip_metric
@@ -2218,10 +2221,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context "method probe skip after timeout" do
-        let(:responder) do
-          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
-        end
-
         it "skips condition evaluation on the hit after the timeout" do
           allow(logger).to receive(:debug)
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
@@ -2321,38 +2320,19 @@ RSpec.describe Datadog::DI::Instrumenter do
           instrumenter.unhook(probe)
         end
 
-        # `arg.filter(@it >= 0).length > 0` over the argument of
+        # The condition filters the argument of
         # HookLineLoadTestClass#test_method_with_arg, whose line 34 the
-        # probe hooks. With a zero evaluation budget the cooperative
-        # check inside #filter raises immediately.
+        # probe hooks.
         let(:probe) do
-          src, regexps = Datadog::DI::EL::Compiler.new.compile(
-            "gt" => [
-              {
-                "len" => {
-                  "filter" => [
-                    {"ref" => "arg"},
-                    {"ge" => [{"ref" => "@it"}, 0]},
-                  ],
-                },
-              },
-              0,
-            ],
-          )
-          condition = Datadog::DI::EL::Expression.new("arg.filter(@it >= 0).length > 0", src, regexps: regexps)
           Datadog::DI::Probe.new(
             id: 1, type: :log, file: "hook_line_load.rb", line_no: 34,
-            condition: condition,
+            condition: compile_timeout_condition("arg"),
           )
         end
       end
 
       context "line probe callback" do
         include_context "timing-out line probe"
-
-        let(:responder) do
-          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
-        end
 
         it "invokes the condition evaluation failed callback with the timeout" do
           allow(logger).to receive(:debug)
@@ -2373,10 +2353,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context "line probe skip after timeout" do
         include_context "timing-out line probe"
-
-        let(:responder) do
-          instance_double(Datadog::DI::ProcResponder, probe_executed_callback: nil)
-        end
 
         it "skips condition evaluation on the hit after the timeout" do
           allow(logger).to receive(:debug)
