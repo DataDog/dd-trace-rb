@@ -255,6 +255,40 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(run_result.duration_ext_ns).to be > 0
       end
     end
+
+    context "when runner was already finalized" do
+      before do
+        allow(thread_safe_ref).to receive(:release)
+        allow(waf_context).to receive(:finalize!)
+
+        runner.waf_context
+        runner.finalize!
+      end
+
+      let(:run_result) { runner.run({"addr.a" => "a"}, {}, 1_000) }
+
+      it "skips the run and returns an error result" do
+        expect(waf_context).not_to receive(:run)
+
+        expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
+        expect(run_result).not_to be_input_truncated
+      end
+    end
+
+    context "when runner was finalized before waf context was built" do
+      before do
+        allow(thread_safe_ref).to receive(:release)
+
+        runner.finalize!
+      end
+
+      it "does not build a new waf context" do
+        expect(waf_handle).not_to receive(:build_context)
+
+        expect(runner.run({"addr.a" => "a"}, {}, 1_000))
+          .to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
+      end
+    end
   end
 
   describe "#finalize!" do
@@ -266,6 +300,16 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       expect(thread_safe_ref).to receive(:release).with(waf_handle)
 
       expect { runner.finalize! }.to raise_error(StandardError)
+    end
+
+    it "finalizes waf context and releases the waf handle only once" do
+      runner.waf_context
+
+      expect(waf_context).to receive(:finalize!).once
+      expect(thread_safe_ref).to receive(:release).with(waf_handle).once
+
+      runner.finalize!
+      runner.finalize!
     end
   end
 end

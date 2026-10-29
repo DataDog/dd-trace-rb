@@ -16,6 +16,7 @@ module Datadog
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
           @ruleset_version = ruleset_version
+          @finalized = false
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -24,6 +25,15 @@ module Datadog
           @mutex.lock
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
+
+          # NOTE: The runner may outlive its request when thread-locals are copied
+          #       into another thread (e.g. `ActionController::Live`). Running a
+          #       finalized WAF context raises, so we skip the run instead.
+          if @finalized
+            Datadog.logger.debug { "#{@debug_tag} skipped: runner was already finalized" }
+            return Result::Error.new(duration_ext_ns: 0, input_truncated: false)
+          end
+
           persistent_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
@@ -69,9 +79,17 @@ module Datadog
         end
 
         def finalize!
-          @waf_context&.finalize!
-        ensure
-          @handle_ref.release(@waf_handle)
+          @mutex.synchronize do
+            return if @finalized
+
+            @finalized = true
+
+            begin
+              @waf_context&.finalize!
+            ensure
+              @handle_ref.release(@waf_handle)
+            end
+          end
         end
 
         private

@@ -16,6 +16,8 @@ module Datadog
 
         @debug_tag: ::String
 
+        @finalized: bool
+
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
         attr_reader ruleset_version: ::String
