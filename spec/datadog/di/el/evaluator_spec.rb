@@ -360,11 +360,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   describe "#filter" do
     context "with a compare_by_identity Hash collection" do
       let(:identity_collection) do
-        source = {}
-        source.compare_by_identity
-        source["key"] = 1
-        source[+"key"] = 2
-        source
+        {}.tap do |source|
+          source.compare_by_identity
+          source["key"] = 1
+          source[+"key"] = 2
+        end
       end
 
       it "preserves the distinct keys and the identity mode" do
