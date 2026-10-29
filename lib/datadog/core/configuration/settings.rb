@@ -703,7 +703,6 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
-            next unless service_name.is_a?(::String)
             Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
           end
 

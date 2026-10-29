@@ -13,7 +13,7 @@ module Datadog
 
         def self.tags: () -> ::Array[::String]
 
-        def self.set_service: (::String name, user_configured: bool) -> void
+        def self.set_service: (::String? name, user_configured: bool) -> void
 
         def self.rails_application_name=: (::String? name) -> void
 

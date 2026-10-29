@@ -1216,6 +1216,16 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { expect(settings.service).to be_nil }
     end
+
+    context "when clearing a previously configured service with nil" do
+      before { Datadog::Core::Environment::Process.set_service("first", user_configured: false) }
+
+      it "switches process metadata from svc.auto to svc.user" do
+        settings.service = nil
+        expect(Datadog::Core::Environment::Process.tags).to include("svc.user:true")
+        expect(Datadog::Core::Environment::Process.tags.join(",")).not_to include("svc.auto")
+      end
+    end
   end
 
   describe "#service_without_fallback" do
