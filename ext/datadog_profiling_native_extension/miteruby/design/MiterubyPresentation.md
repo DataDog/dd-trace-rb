@@ -36,7 +36,24 @@ Profiling costs more than walking a stack: scheduling Ruby work, resolving frame
 
 ---
 
-## 3. Capture enough information to decide later
+## 3. Reduced contact surface with Ruby VM APIs
+
+For periodic stack samples, miteruby concentrates VM interaction at capture, GC marking, and export.
+
+| When | Existing profiler | Miteruby prototype |
+| --- | --- | --- |
+| Signal arrives | Checks VM state, optionally captures frames, triggers Ruby's postponed-job API | Checks VM state and captures raw frames; publishes without scheduling a postponed job |
+| Between capture and export | Postponed jobs enumerate threads, inspect their state, resolve frames, and read labels under the GVL | Consumer hashes and copies native data; Ruby pointers are opaque IDs, with no Ruby object access |
+| GC runs | Marks references retained in sampling buffers and collector state | Marks and pins references in the ring and retained-object set |
+| Export preparation | Frame names and thread labels were resolved during sampling | Reads names, files, lines, and thread labels under the GVL |
+
+**Benefit:** fewer execution contexts need to understand Ruby objects and VM rules.
+
+**Limit:** private VM access still powers stack capture. Symbolication is deferred, currently still per sample; this is not yet feature-equivalent to the existing profiler.
+
+---
+
+## 4. Capture enough information to decide later
 
 - Each event carries a thread, monotonic timestamp, cumulative thread CPU time, and raw frames.
 - Keep both the executing instruction sequence (ISEQ) and callable method entry (CME): together they preserve block/eval locations and method identity.
@@ -48,7 +65,7 @@ CPU time is read at capture, so consumer scheduling delays do not become CPU mea
 
 ---
 
-## 4. A small producer, a dedicated consumer
+## 5. A small producer, a dedicated consumer
 
 ```text
 SIGPROF → raw event → 1 MiB ring → consumer without GVL
@@ -66,7 +83,7 @@ SIGPROF → raw event → 1 MiB ring → consumer without GVL
 
 ---
 
-## 5. Stay safe around GC compaction
+## 6. Stay safe around GC compaction
 
 - **Hold the GVL whenever accessing Ruby objects.** Signal capture also skips GC: even the GVL owner can be interrupted during compaction.
 - **Always mark and pin tracked objects**, including during transfer from ring to consumer, so they stay alive and cannot move.
@@ -82,7 +99,7 @@ Bounds on these structures are not a total profiler memory budget: libdatadog an
 
 ---
 
-## 6. Latest experiment: own the encoding too
+## 7. Latest experiment: own the encoding too
 
 The committed branch introduced a direct libdatadog recorder, nanopb, bundled zstd, and a bridge for custom encoded profiles.
 
@@ -96,7 +113,28 @@ The committed branch introduced a direct libdatadog recorder, nanopb, bundled zs
 
 ---
 
-## 7. What we have, and what comes next
+## 8. What if we wanted to move most of it to rust?
+
+**Proposed split:** a small Ruby-facing adapter around a Rust-owned processing pipeline. Here, “Ruby-facing” includes the C extension that accesses VM internals.
+
+| Keep on the Ruby-facing side | Could live entirely in Rust |
+| --- | --- |
+| VM/GVL/GC checks, Ruby hooks, and raw stack capture | Ring storage, publication, wakeups, and consumer loop |
+| GC callbacks that mark and pin retained Ruby objects | Retained-ID sets, stack deduplication, and sample storage |
+| Resolve Ruby frame names, files, lines, and thread labels under the GVL | Time deltas, aggregation, profile tables, encoding, and compression |
+| Gem configuration, Ruby exceptions, start/stop/fork hooks, and exporter integration | Native memory limits, accounting, diagnostics, and cleanup |
+
+**Shared across the boundary:** a small C ABI carrying raw events (opaque thread/ISEQ/CME IDs, positions, clocks, flags), copied symbol/label data, and encoded bytes.
+
+- Rust exposes retained IDs for Ruby's marking callback; transfer from ring to retained storage must preserve continuous GC protection. IDs stay valid only while their objects remain pinned and alive.
+- At export, Ruby resolves IDs under the GVL and hands over owned data. Rust can then finish the profile without accessing Ruby objects or holding the GVL.
+- Publication from the signal handler must remain signal-safe; Ruby exceptions and Rust panics must not unwind across the boundary.
+
+**Trade-off:** a smaller VM-dependent layer, but an explicit ownership and synchronization contract. Moving code to Rust alone does not solve GC safety.
+
+---
+
+## 9. What we have, and what comes next
 
 **Built:** an end-to-end experimental stack-sampling pipeline, GC-safe retention, stack deduplication, bounded core storage, diagnostic stats, and serializer comparison specs.
 
