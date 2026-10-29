@@ -83,10 +83,22 @@ module Datadog
           !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
         end
 
+        # Resolves the value of the local variable or argument +var+ from
+        # the evaluation +context+.
+        #
+        # @param context [Context] context holding the evaluation locals.
+        # @param var [Symbol, String] name of the local variable or argument.
+        # @return [Object] value of the local variable or argument.
         def ref(context, var)
           context.fetch(var)
         end
 
+        # Resolves the value of the instance variable +var+ from the
+        # receiver of the evaluation +context+.
+        #
+        # @param context [Context] context holding the evaluation receiver.
+        # @param var [Symbol, String] name of the instance variable.
+        # @return [Object] value of the instance variable.
         def iref(context, var)
           context.fetch_ivar(var)
         end
