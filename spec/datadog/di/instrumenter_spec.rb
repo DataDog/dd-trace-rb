@@ -100,6 +100,53 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
   end
 
+  # Provides the full probe lifecycle: a real ProbeManager wired to a
+  # real ProbeNotificationBuilder and CaptureExpressionEvaluator, with
+  # the worker collecting the emitted snapshot payloads into the
+  # snapshot_payloads array.
+  shared_context "with probe manager" do
+    let(:probe_notification_builder) do
+      Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
+        capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    let(:snapshot_payloads) { [] }
+
+    let(:probe_notifier_worker) do
+      Class.new do
+        def initialize(snapshot_payloads)
+          @snapshot_payloads = snapshot_payloads
+        end
+
+        def add_status(payload, probe: nil)
+          # Status notifications are not recorded by this test.
+        end
+
+        def add_snapshot(payload, probe: nil)
+          @snapshot_payloads << payload
+        end
+      end.new(snapshot_payloads)
+    end
+
+    let(:probe_repository) do
+      Datadog::DI::ProbeRepository.new
+    end
+
+    let(:probe_manager) do
+      Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    before do
+      allow(settings).to receive_messages(
+        service: "rspec",
+        experimental_propagate_process_tags_enabled: false,
+      )
+    end
+  end
+
   describe ".hook_method" do
     after do
       instrumenter.unhook(probe)
@@ -2256,46 +2303,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context "method probe snapshot through the probe manager" do
-        let(:probe_notification_builder) do
-          Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
-            capture_expression_evaluator: capture_expression_evaluator,
-            guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
-        end
-
-        let(:snapshot_payloads) { [] }
-
-        let(:probe_notifier_worker) do
-          Class.new do
-            def initialize(snapshot_payloads)
-              @snapshot_payloads = snapshot_payloads
-            end
-
-            def add_status(payload, probe: nil)
-              # Status notifications are not recorded by this test.
-            end
-
-            def add_snapshot(payload, probe: nil)
-              @snapshot_payloads << payload
-            end
-          end.new(snapshot_payloads)
-        end
-
-        let(:probe_repository) do
-          Datadog::DI::ProbeRepository.new
-        end
-
-        let(:probe_manager) do
-          Datadog::DI::ProbeManager.new(settings, instrumenter, probe_notification_builder,
-            probe_notifier_worker, logger, probe_repository,
-            guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
-        end
-
-        before do
-          allow(settings).to receive_messages(
-            service: "rspec",
-            experimental_propagate_process_tags_enabled: false,
-          )
-        end
+        include_context "with probe manager"
 
         it "emits an evaluation error snapshot with no captured data" do
           allow(telemetry).to receive(:inc)
@@ -2314,6 +2322,50 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(snapshot[:captures]).to eq({})
           evaluation_errors = snapshot[:evaluationErrors]
           expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+        end
+      end
+
+      context "method probe capture expression timeout through the probe manager" do
+        include_context "with probe manager"
+
+        # The capture expression filters the first positional argument so
+        # its evaluation crosses a cooperative deadline check, which the
+        # zero evaluation budget makes raise immediately.
+        let(:probe) do
+          src, regexps = Datadog::DI::EL::Compiler.new.compile(
+            "filter" => [{"ref" => "arg1"}, {"ge" => [{"ref" => "@it"}, 0]}],
+          )
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
+            capture_expressions: [
+              Datadog::DI::CaptureExpression.new(
+                name: "filtered",
+                expr: Datadog::DI::EL::Expression.new("arg1.filter(@it >= 0)", src, regexps: regexps),
+              ),
+            ],
+          )
+        end
+
+        it "emits an evaluation error snapshot with no captured value for the expression" do
+          allow(telemetry).to receive(:inc)
+          allow(telemetry).to receive(:report)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:captures][:return][:captureExpressions]).to eq({})
+          evaluation_errors = snapshot[:evaluationErrors]
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first[:expr]).to eq("filtered")
           expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
         end
       end
