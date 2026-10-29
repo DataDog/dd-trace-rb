@@ -245,6 +245,77 @@ static inline ddog_CharSlice unqualified_name(const rb_callable_method_entry_t *
   return (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
 }
 
+// When there's only wall-time in a sample, this means that the thread was not active in the sampled period, so we try
+// to tell what it was doing instead.
+//
+// TODO: `method` is the unqualified method name
+// because we don't always use qualified method names yet,
+// and the checks below need something stable to compare to until we always do.
+static void categorize_sample_state(
+  sample_labels labels,
+  frame_info frame,
+  ddog_CharSlice method,
+  DDTRACE_UNUSED ddog_CharSlice filename
+) {
+  ddog_prof_Label *state_label = labels.state_label;
+
+  // Did the caller already provide the state?
+  if (labels.is_gvl_waiting_state) {
+    state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+
+  // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+  // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+  // GVL instrumentation API.)
+  } else if (!frame.is_ruby_frame) {
+    // We know that known versions of Ruby implement these using native code; thus if we find a method with the
+    // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
+    // has the same name. Thus, even though "matching just by method name" is kinda weak,
+    // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
+
+    if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Kernel.sleep
+      state_label->str  = DDOG_CHARSLICE_C("sleeping");
+    } else if (CHARSLICE_EQUALS("select", method)) { // Expected to be Kernel.select
+      state_label->str  = DDOG_CHARSLICE_C("waiting");
+    } else if (
+        CHARSLICE_EQUALS("synchronize", method) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
+        #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
+          CHARSLICE_EQUALS("lock", method) ||        // Expected to be Mutex#lock
+        #endif
+        CHARSLICE_EQUALS("join", method)           // Expected to be Thread#join
+    ) {
+      state_label->str  = DDOG_CHARSLICE_C("blocked");
+    } else if (CHARSLICE_EQUALS("wait_readable", method)) { // Expected to be IO#wait_readable
+      state_label->str  = DDOG_CHARSLICE_C("network");
+    } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
+      state_label->str  = DDOG_CHARSLICE_C("waiting");
+    } else if (CHARSLICE_EQUALS("_native_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
+      state_label->str  = DDOG_CHARSLICE_C("sleeping");
+    }
+    #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
+      else if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
+        state_label->str  = DDOG_CHARSLICE_C("waiting");
+      }
+    #endif
+  } else {
+    #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
+      if (CHARSLICE_EQUALS("<internal:thread_sync>", filename)) {
+        if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
+          state_label->str  = DDOG_CHARSLICE_C("waiting");
+        }
+        #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
+          else if (CHARSLICE_EQUALS("synchronize", method) || CHARSLICE_EQUALS("lock", method)) { // Expected to be Mutex#lock/synchronize
+            state_label->str  = DDOG_CHARSLICE_C("blocked");
+          } else if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Mutex#sleep
+            state_label->str  = DDOG_CHARSLICE_C("sleeping");
+          } else if (CHARSLICE_EQUALS("wait", method)) { // Expected to be ConditionVariable#wait
+            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          }
+        #endif
+      }
+    #endif
+  }
+}
+
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
 // could continue making progress while the sample was ingested into the profile.
 //
@@ -386,68 +457,8 @@ void sample_thread(
       frame_name = unqualified_name(cme, iseq);
     }
 
-    // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
-      // TODO: the checks below compare to the unqualified method name
-      // because we don't always use qualified method names yet,
-      // and they need something stable to compare to until we always do.
-      ddog_CharSlice name_slice = unqualified_name(cme, iseq);
-
-      // Did the caller already provide the state?
-      if (labels.is_gvl_waiting_state) {
-        state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
-
-      // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
-      // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-      // GVL instrumentation API.)
-      } else if (!frame.is_ruby_frame) {
-        // We know that known versions of Ruby implement these using native code; thus if we find a method with the
-        // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
-        // has the same name. Thus, even though "matching just by method name" is kinda weak,
-        // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
-
-        if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Kernel.sleep
-          state_label->str  = DDOG_CHARSLICE_C("sleeping");
-        } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
-          state_label->str  = DDOG_CHARSLICE_C("waiting");
-        } else if (
-            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
-            #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
-              CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
-            #endif
-            CHARSLICE_EQUALS("join", name_slice)           // Expected to be Thread#join
-        ) {
-          state_label->str  = DDOG_CHARSLICE_C("blocked");
-        } else if (CHARSLICE_EQUALS("wait_readable", name_slice)) { // Expected to be IO#wait_readable
-          state_label->str  = DDOG_CHARSLICE_C("network");
-        } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
-          state_label->str  = DDOG_CHARSLICE_C("waiting");
-        } else if (CHARSLICE_EQUALS("_native_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
-          state_label->str  = DDOG_CHARSLICE_C("sleeping");
-        }
-        #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
-          else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
-          }
-        #endif
-      } else {
-        #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-          if (CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) {
-            if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
-              state_label->str  = DDOG_CHARSLICE_C("waiting");
-            }
-            #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
-              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) { // Expected to be Mutex#lock/synchronize
-                state_label->str  = DDOG_CHARSLICE_C("blocked");
-              } else if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Mutex#sleep
-                state_label->str  = DDOG_CHARSLICE_C("sleeping");
-              } else if (CHARSLICE_EQUALS("wait", name_slice)) { // Expected to be ConditionVariable#wait
-                state_label->str  = DDOG_CHARSLICE_C("waiting");
-              }
-            #endif
-          }
-        #endif
-      }
+      categorize_sample_state(labels, frame, unqualified_name(cme, iseq), filename_slice);
     }
 
     if (!name_is_cached) {
