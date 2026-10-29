@@ -271,6 +271,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
             end
           end
+
           context "when the integration's default configuration is disabled" do
             include_context "registry with integration"
 
@@ -278,11 +279,11 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               before { integration.default_configuration.enabled = false }
 
               it "enables it when given enabled: true" do
-                settings.send(:instrument, integration_name, enabled: true)
+                expect { settings.send(:instrument, integration_name, enabled: true) }
+                  .to change { integration.default_configuration.enabled }.from(false).to(true)
 
                 expect(settings.instrumented_integrations).to include(integration_name => integration)
                 expect(settings.integrations_pending_activation).to include(integration)
-                expect(integration.default_configuration.enabled).to be true
               end
 
               it "does not configure or instrument it without an explicit enabled option" do
@@ -302,9 +303,8 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
 
               it "enables it when given enabled: true" do
-                settings.send(:instrument, integration_name, enabled: true)
-
-                expect(integration.default_configuration.enabled).to be true
+                expect { settings.send(:instrument, integration_name, enabled: true) }
+                  .to change { integration.default_configuration.enabled }.from(false).to(true)
               end
 
               it "stays disabled when given other options" do

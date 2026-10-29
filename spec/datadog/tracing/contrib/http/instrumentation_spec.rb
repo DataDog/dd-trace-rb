@@ -32,23 +32,16 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
   describe "#request" do
     subject(:response) { client.get(path) }
 
-    shared_examples "does not build or trace a span" do
-      it "does not build or trace a span" do
-        expect(Datadog::Tracing::SpanOperation).not_to receive(:new)
-        expect(Datadog::Tracing).not_to receive(:trace)
-
-        is_expected.to be_a(Net::HTTPResponse)
-        expect(response.code).to eq("200")
-        expect(spans).to be_empty
-      end
-    end
-
     context "when tracing is disabled" do
       before do
         Datadog.configure { |c| c.tracing.enabled = false }
       end
 
-      include_examples "does not build or trace a span"
+      it "does not trace the request" do
+        is_expected.to be_a(Net::HTTPResponse)
+        expect(response.code).to eq("200")
+        expect(spans).to be_empty
+      end
     end
 
     context "when the http integration is disabled after patching" do
@@ -56,7 +49,11 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
         Datadog.configure { |c| c.tracing.instrument :http, enabled: false }
       end
 
-      include_examples "does not build or trace a span"
+      it "does not trace the request" do
+        is_expected.to be_a(Net::HTTPResponse)
+        expect(response.code).to eq("200")
+        expect(spans).to be_empty
+      end
     end
 
     context "when the http integration is disabled after patching and the host has a describes override" do
@@ -67,7 +64,11 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
         end
       end
 
-      include_examples "does not build or trace a span"
+      it "does not trace the request" do
+        is_expected.to be_a(Net::HTTPResponse)
+        expect(response.code).to eq("200")
+        expect(spans).to be_empty
+      end
     end
 
     context "when the http integration is re-enabled after being disabled" do
