@@ -45,7 +45,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         stub_di_settings(settings,
           max_capture_string_length: 20,
           max_capture_collection_size: 20)
-        allow(settings).to receive_messages(untargeted_trace_points: false, max_time_to_evaluate_ms: nil)
+        allow(settings).to receive_messages(untargeted_trace_points: false)
       end
     end
 

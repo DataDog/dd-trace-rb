@@ -14,10 +14,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
   default_settings
 
-  before do
-    allow(di_settings).to receive_messages(max_time_to_serialize_ms: 200, max_time_to_evaluate_ms: nil)
-  end
-
   let(:redactor) do
     Datadog::DI::Redactor.new(settings)
   end
