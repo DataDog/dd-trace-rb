@@ -43,9 +43,8 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
         t.timestamps
       end
 
-      # prevent internal sql requests from showing up
-      klass.count
-      klass.first
+      # trigger schema queries before the AppSec context is activated.
+      klass.columns_hash
     end
   end
 

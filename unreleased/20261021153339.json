@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6532",
+  "message": "Fix full-pathway latency inflated by minutes, and messages linked to the wrong pathway, in multi-threaded or forking apps such as `Karafka` consumers and `ActiveJob` workers."
+}

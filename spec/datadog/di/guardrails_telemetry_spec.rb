@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
 
   let(:probe) do
     Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
-      method_name: "m", capture_snapshot: true,)
+      method_name: "m", capture_snapshot: true)
   end
 
   # Emits the given emission twice and asserts both emissions reuse one
@@ -57,7 +57,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
     context "for a log probe" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "p1", type: :log, type_name: "C",
-          method_name: "m", capture_snapshot: false,)
+          method_name: "m", capture_snapshot: false)
       end
 
       it "returns log" do
@@ -69,7 +69,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
   describe "#skipped" do
     it "emits the canonical skipped metric with the probe id tag for a probe-scoped reason" do
       expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-        tags: {reason: "rateLimitProbe", event_type: "snapshot", probe_id: "p1"},)
+        tags: {reason: "rateLimitProbe", event_type: "snapshot", probe_id: "p1"})
 
       guardrails_telemetry.skipped(
         reason: described_class::Reason::RATE_LIMIT_PROBE,
@@ -79,7 +79,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
 
     it "omits the probe id tag for a process-scoped reason" do
       expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-        tags: {reason: "rateLimitGlobal", event_type: "snapshot"},)
+        tags: {reason: "rateLimitGlobal", event_type: "snapshot"})
 
       guardrails_telemetry.skipped(
         reason: described_class::Reason::RATE_LIMIT_GLOBAL,
@@ -212,7 +212,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
   describe "#dropped" do
     it "emits only the dropped metric when bytes is omitted" do
       expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-        tags: {reason: "queueFull", event_type: "snapshot"},)
+        tags: {reason: "queueFull", event_type: "snapshot"})
 
       guardrails_telemetry.dropped(
         reason: described_class::Reason::QUEUE_FULL,
@@ -222,9 +222,9 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
 
     it "emits the dropped and dropped_bytes metrics when bytes is provided" do
       expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-        tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+        tags: {reason: "payloadTooLarge", event_type: "snapshot"})
       expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes", 2048,
-        tags: {reason: "payloadTooLarge", event_type: "snapshot"},)
+        tags: {reason: "payloadTooLarge", event_type: "snapshot"})
 
       guardrails_telemetry.dropped(
         reason: described_class::Reason::PAYLOAD_TOO_LARGE,
@@ -269,7 +269,7 @@ RSpec.describe Datadog::DI::GuardrailsTelemetry do
   describe "#capture_incomplete" do
     it "emits the canonical capture-incomplete metric with reason and event_type tags" do
       expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
-        tags: {reason: "depth", event_type: "snapshot"},)
+        tags: {reason: "depth", event_type: "snapshot"})
 
       guardrails_telemetry.capture_incomplete(
         reason: described_class::Reason::DEPTH,

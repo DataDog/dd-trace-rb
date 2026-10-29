@@ -10,6 +10,7 @@ require_relative "../core/ddsketch"
 require_relative "../core/buffer/cruby"
 require_relative "../core/utils/time"
 require_relative "../core/utils/fnv"
+require_relative "../core/utils/sequence"
 
 module Datadog
   module DataStreams
@@ -28,7 +29,17 @@ module Datadog
       # Set to handle high-throughput scenarios (e.g., 10k events/sec for 10s interval)
       DEFAULT_BUFFER_SIZE = 100_000
 
-      attr_reader :pathway_context, :buckets, :bucket_size_ns
+      attr_reader :buckets, :bucket_size_ns
+
+      UNIQUE_INSTANCE_MUTEX = Mutex.new
+      UNIQUE_INSTANCE_GENERATOR = Core::Utils::Sequence.new
+
+      private_constant :UNIQUE_INSTANCE_MUTEX, :UNIQUE_INSTANCE_GENERATOR
+
+      # Not object_id: the VM may reuse it, letting a new processor read a stale context.
+      def self.next_instance_id
+        UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
+      end
 
       # Initialize the Data Streams Monitoring processor
       #
@@ -48,12 +59,9 @@ module Datadog
         @agent_info = agent_info
         @logger = logger
 
-        now = Core::Utils::Time.now
-        @pathway_context = PathwayContext.new(
-          hash_value: 0,
-          pathway_start: now,
-          current_edge_start: now
-        )
+        # Fiber-local (Thread#[] is fiber-local), so a consume on one thread never rewrites the
+        # pathway of produces on another.
+        @pathway_context_key = :"datadog_data_streams_pathway_context_#{Processor.next_instance_id}"
         @bucket_size_ns = (interval * 1e9).to_i
         @buckets = {}
         @consumer_stats = []
@@ -81,6 +89,14 @@ module Datadog
       def restart_flush_thread
         discard_inherited_state_after_fork! if forked?
         perform
+      end
+
+      def pathway_context
+        Thread.current[@pathway_context_key]
+      end
+
+      def pathway_context=(context)
+        Thread.current[@pathway_context_key] = context
       end
 
       # Track Kafka produce offset for lag monitoring
@@ -253,7 +269,7 @@ module Datadog
       end
 
       def encode_pathway_context
-        @pathway_context.encode_b64
+        get_current_context.encode_b64
       end
 
       def set_checkpoint(tags:, now: nil, payload_size: 0, span: nil)
@@ -326,6 +342,8 @@ module Datadog
       # agent. Discard it instead: losing a few seconds of pre-fork stats is preferable to
       # corrupting pipeline throughput/lag numbers with duplicates.
       def discard_inherited_state_after_fork!
+        # Runs on the forking thread, the only one that survives into the child.
+        self.pathway_context = nil
         @event_buffer.pop
         @stats_mutex.synchronize do
           @buckets.clear
@@ -367,24 +385,27 @@ module Datadog
         get_current_context
       end
 
+      # Created at the fiber's first checkpoint rather than at processor start, so a producer
+      # that starts a pathway reports ~0 latency however long the process sat idle.
       def get_current_context
-        @pathway_context ||= begin
-          now = Core::Utils::Time.now
-          PathwayContext.new(
-            hash_value: 0,
-            pathway_start: now,
-            current_edge_start: now
-          )
-        end
+        current = pathway_context
+        return current if current
+
+        now = Core::Utils::Time.now
+        self.pathway_context = PathwayContext.new(
+          hash_value: 0,
+          pathway_start: now,
+          current_edge_start: now
+        )
       end
 
       def set_pathway_context(ctx)
-        if ctx
-          @pathway_context = ctx
-          @pathway_context.previous_direction = nil
-          @pathway_context.closest_opposite_direction_hash = 0
-          @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start
-        end
+        return unless ctx
+
+        ctx.previous_direction = nil
+        ctx.closest_opposite_direction_hash = 0
+        ctx.closest_opposite_direction_edge_start = ctx.current_edge_start
+        self.pathway_context = ctx
       end
 
       def decode_and_set_pathway_context(headers)

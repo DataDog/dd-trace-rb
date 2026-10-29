@@ -6,9 +6,12 @@ module Datadog
 
       ALLOWED_TYPES: ::Array[::Symbol]
 
+      RAW_DATA_WARNING: String
+
       @reporter: Exposures::Reporter
       @telemetry: Core::Telemetry::Component
       @logger: Core::Logger
+      @raw_data_warning: Core::Utils::OnlyOnce
       @evaluator: NoopEvaluator | NativeEvaluator
 
       def initialize: (
@@ -26,7 +29,15 @@ module Datadog
 
       def reconfigure!: (::String? configuration) -> void
 
+      def warn_raw_data_logging: () -> void
+
       private
+
+      def log_resolution: (String flag_key, Symbol expected_type, ResolutionDetails result) -> void
+
+      def log_resolution_failure: (String flag_key, StandardError error) -> void
+
+      def configuration_summary: (String configuration) -> String
 
       def with_observe_full_evaluation_data: (
         ResolutionDetails result,

@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6581",
+  "message": "Fix missing SQL injection detection in applications using `ActiveRecord` 8.0 and later."
+}

@@ -13,7 +13,8 @@ module Datadog
 
       def self.receivers: (
         Core::Telemetry::Component telemetry,
-        component_provider: ^() -> Component?
+        component_provider: ^() -> Component?,
+        ?logger: Core::Logger
       ) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       private

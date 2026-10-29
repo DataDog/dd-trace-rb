@@ -83,7 +83,7 @@ RSpec.describe "Karafka Data Streams Integration" do
         expect(message.headers["dd-pathway-ctx-base64"]).to eq(producer_ctx_b64)
 
         # Verify auto-instrumentation has processed it
-        current_ctx = processor.instance_variable_get(:@pathway_context)
+        current_ctx = processor.pathway_context
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consume checkpoint has different hash
         expect(current_ctx.pathway_start).to be_within(0.001).of(producer_ctx.pathway_start) # Same pathway (within 1ms due to serialization precision loss)
@@ -100,7 +100,7 @@ RSpec.describe "Karafka Data Streams Integration" do
       # Auto-instrumentation should still create a consume checkpoint even without headers
       messages.each { |_message| }
 
-      new_ctx = processor.instance_variable_get(:@pathway_context)
+      new_ctx = processor.pathway_context
       expect(new_ctx).to be_a(Datadog::DataStreams::PathwayContext)
       expect(new_ctx.hash).to be > 0
     end
@@ -146,7 +146,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
       messages_from_a.each { |_msg| } # Auto-instrumentation runs here
 
-      ctx_b_consume = processor.instance_variable_get(:@pathway_context)
+      ctx_b_consume = processor.pathway_context
       expect(ctx_b_consume.hash).not_to eq(ctx_a.hash) # Consume creates new checkpoint
       expect(ctx_b_consume.pathway_start).to be_within(0.001).of(ctx_a.pathway_start) # Same pathway (within 1ms due to serialization precision loss)
 
@@ -164,7 +164,7 @@ RSpec.describe "Karafka Data Streams Integration" do
 
       messages_from_b.each { |_msg| } # Auto-instrumentation runs here
 
-      ctx_c = processor.instance_variable_get(:@pathway_context)
+      ctx_c = processor.pathway_context
       expect(ctx_c).to be_a(Datadog::DataStreams::PathwayContext)
       expect(ctx_c.hash).to be > 0
       expect(ctx_c.pathway_start).to be_within(0.001).of(ctx_a.pathway_start) # Still same original pathway (within 1ms due to serialization precision loss)

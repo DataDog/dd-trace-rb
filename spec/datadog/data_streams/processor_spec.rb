@@ -504,4 +504,88 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
     end
   end
+
+  describe "pathway context isolation" do
+    let(:t0) { Time.utc(2000, 1, 1, 0, 0, 0) }
+    let(:clock) { {now: t0} }
+    let(:upstream_header) do
+      Datadog::DataStreams::PathwayContext.new(
+        hash_value: 12345,
+        pathway_start: t0 - 300,
+        current_edge_start: t0 - 1
+      ).encode_b64
+    end
+
+    before do
+      allow(Datadog::Core::Utils::Time).to receive(:now) { clock[:now] }
+      allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
+      processor.stop(true)
+    end
+
+    def checkpoint_events
+      processor.instance_variable_get(:@event_buffer).pop.select { |event| event[:type] == :checkpoint }
+    end
+
+    context "when the first produce happens long after the processor was created" do
+      before { clock[:now] = t0 + 300 }
+
+      it "records zero latency, since the producer is the pathway origin" do
+        processor.set_produce_checkpoint(type: "kafka", destination: "orders")
+
+        expect(checkpoint_events.last).to include(full_pathway_latency_sec: 0.0, edge_latency_sec: 0.0)
+      end
+
+      it "propagates the produce time as the pathway start" do
+        encoded = processor.set_produce_checkpoint(type: "kafka", destination: "orders")
+        decoded = Datadog::DataStreams::PathwayContext.decode_b64(encoded)
+
+        expect(decoded.pathway_start.to_f).to be_within(0.001).of((t0 + 300).to_f)
+      end
+    end
+
+    context "when a consume happens on another thread" do
+      before do
+        Thread.new do
+          processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
+        end.join
+      end
+
+      it "does not chain this thread's produces onto the consumed pathway" do
+        Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
+
+        expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+      end
+    end
+
+    context "when a consume happens on the same thread" do
+      it "chains the produce onto the consumed pathway" do
+        processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
+        consume_hash = processor.pathway_context.hash
+
+        processor.set_produce_checkpoint(type: "kafka", destination: "direct")
+
+        expect(checkpoint_events.last).to include(parent_hash: consume_hash, full_pathway_latency_sec: 300.0)
+      end
+    end
+
+    context "when the process forks" do
+      before do
+        skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
+
+        processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
+      end
+
+      it "does not carry the parent's pathway context into the child" do
+        expect_in_fork do
+          clock[:now] = t0 + 300
+          processor.restart_flush_thread
+          processor.stop(true)
+
+          processor.set_produce_checkpoint(type: "kafka", destination: "forked")
+
+          expect(checkpoint_events.last).to include(parent_hash: 0, full_pathway_latency_sec: 0.0)
+        end
+      end
+    end
+  end
 end
