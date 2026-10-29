@@ -260,7 +260,6 @@ static VALUE testing_record_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE k
       .key = char_slice_from_ruby_string(rb_ary_entry(label, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(label, 1)),
       .num = NUM2LL(rb_ary_entry(label, 2)),
-      .num_unit = char_slice_from_ruby_string(rb_ary_entry(label, 3)),
     };
   }
   miteruby_libdatadog_recorder_record_sample(
