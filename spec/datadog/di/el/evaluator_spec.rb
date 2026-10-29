@@ -166,10 +166,10 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
   end
 
-  def context_with(collection)
+  def context_with(locals)
     Datadog::DI::Context.new(
       probe: nil, settings: settings, serializer: serializer,
-      locals: {collection: collection}
+      locals: locals
     )
   end
 
@@ -194,7 +194,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -203,7 +203,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -213,12 +213,12 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:collection) { Array.new(1000) { |i| i } }
 
         it "returns the selected items" do
-          expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq((500..999).to_a)
+          expect(filter_expr.evaluate(context_with({collection: collection}), deadline: nil)).to eq((500..999).to_a)
         end
 
         it "returns the selected entries of a Hash" do
           expect(filter_hash_expr.evaluate(
-            context_with({"a" => 1, "b" => 2, "c" => -1}),
+            context_with({collection: {"a" => 1, "b" => 2, "c" => -1}}),
             deadline: nil,
           )).to eq({"a" => 1, "b" => 2})
         end
@@ -229,7 +229,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
 
         it "completes without timing out" do
-          expect(filter_expr.evaluate(context_with(collection), deadline: deadline)).to eq((500..999).to_a)
+          expect(filter_expr.evaluate(context_with({collection: collection}), deadline: deadline)).to eq((500..999).to_a)
         end
       end
 
@@ -248,7 +248,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
             (checks <= 1) ? deadline - 0.001 : deadline + 0.001
           end
           expect do
-            filter_expr.satisfied?(context_with(collection), deadline: deadline)
+            filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline)
           end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
           expect(checks).to be >= 2
         end
@@ -261,7 +261,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { all_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -270,7 +270,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { all_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -283,7 +283,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { any_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -292,7 +292,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+            expect { any_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -322,7 +322,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
     let(:trigger) do
       nested_expr = filter_with_refs_expr
-      nested_context = context_with_marker([1, 2, 3], "inner")
+      nested_context = context_with({collection: [1, 2, 3], marker: "inner"})
       nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
       recorded_timeouts = nested_timeouts
       Object.new.tap do |trigger|
@@ -337,13 +337,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
     end
 
-    def context_with_marker(collection, marker)
-      Datadog::DI::Context.new(
-        probe: nil, settings: settings, serializer: serializer,
-        locals: {collection: collection, marker: marker}
-      )
-    end
-
     let(:collection) do
       [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
     end
@@ -351,14 +344,14 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
 
     it "reads locals from the invoking evaluation's context" do
-      result = filter_with_refs_expr.evaluate(context_with_marker([trigger, 2], "outer"), deadline: nil)
+      result = filter_with_refs_expr.evaluate(context_with({collection: [trigger, 2], marker: "outer"}), deadline: nil)
       expect(result).to eq([trigger, 2])
       expect(nested_timeouts.length).to eq(1)
       expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
     end
 
     it "keeps the invoking evaluation's deadline" do
-      result = filter_with_refs_expr.evaluate(context_with_marker(collection, "outer"), deadline: deadline)
+      result = filter_with_refs_expr.evaluate(context_with({collection: collection, marker: "outer"}), deadline: deadline)
       expect(result).to eq(collection)
       expect(nested_timeouts.length).to eq(1)
       expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
@@ -376,7 +369,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
 
       it "preserves the distinct keys and the identity mode" do
-        result = filter_hash_expr.evaluate(context_with(identity_collection), deadline: nil)
+        result = filter_hash_expr.evaluate(context_with({collection: identity_collection}), deadline: nil)
         expect(result.length).to eq(2)
         expect(result.compare_by_identity?).to be(true)
       end
@@ -395,7 +388,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
       it "selects items without invoking the override" do
         collection = each_raising_array_class.new([400, 600, 700])
-        expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq([600, 700])
+        expect(filter_expr.evaluate(context_with({collection: collection}), deadline: nil)).to eq([600, 700])
       end
     end
 
@@ -412,7 +405,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         collection = each_raising_hash_class.new
         collection["a"] = 1
         collection["b"] = -1
-        expect(filter_hash_expr.evaluate(context_with(collection), deadline: nil)).to eq("a" => 1)
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), deadline: nil)).to eq("a" => 1)
       end
     end
 
@@ -429,7 +422,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         collection = identity_raising_hash_class.new.compare_by_identity
         collection["key"] = 1
         collection[+"key"] = 2
-        result = filter_hash_expr.evaluate(context_with(collection), deadline: nil)
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), deadline: nil)
         expect(result.length).to eq(2)
         expect(result.compare_by_identity?).to be(true)
       end
@@ -469,7 +462,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         key_b = raising_key_class.new(2)
         collection = {key_a => 1, key_b => -1}
         raising_key_class.methods_raise = true
-        result = filter_hash_expr.evaluate(context_with(collection), deadline: nil)
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), deadline: nil)
         raising_key_class.methods_raise = false
         expect(result).to eq(key_a => 1)
       end
