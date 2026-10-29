@@ -844,6 +844,52 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(builder.send(:evaluate_template, template_segments, context)).to eq(["[redacted] alice", []])
       end
     end
+
+    context "when the evaluation deadline is crossed during a template segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:template_segments) do
+        src, regexps = compiler.compile(
+          "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
+        )
+        expression = Datadog::DI::EL::Expression.new("collection.filter(@it >= 0)", src, regexps: regexps)
+        ["prefix ", expression]
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          locals: {collection: Array.new(1000) { |i| i }},
+        )
+      end
+
+      # Stub Process.clock_gettime so the pre-segment check reads a time
+      # before the deadline and the cooperative check inside #filter, at
+      # item zero, reads a time after it, proving the threaded deadline
+      # aborts segment evaluation in mid-iteration.
+      before do
+        reads = 0
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
+          reads += 1
+          (reads <= 1) ? 1.0 : 1.001
+        end
+      end
+
+      it "reports the timeout as an evaluation error in the rendered message" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
+
+        message, evaluation_errors =
+          builder.send(:evaluate_template, template_segments, context, deadline: 1.0005)
+
+        expect(message).to eq("prefix [evaluation error]")
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first.expr).to eq("collection.filter(@it >= 0)")
+        expect(evaluation_errors.first.message).to match(/EvaluationTimeout/)
+      end
+    end
   end
 
   describe "#build_snapshot with capture_expressions" do
