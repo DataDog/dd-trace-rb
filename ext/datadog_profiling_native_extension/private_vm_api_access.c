@@ -331,6 +331,17 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
   VALUE thread = rb_thread_current();
   rb_thread_t *thread_struct = thread_struct_from_object(thread);
 
+  rb_fiber_current(); // Trigger creation of root fiber
+
+  // For a new thread with a root fiber + no thread-local keys, we expect the reported size to be exactly the
+  // same as `rb_thread_t`
+  if (RARRAY_LEN(rb_funcall(thread, rb_intern("keys"), 0)) == 0) {
+    size_t actual_size = private_vm_api_global.thread_data_type->function.dsize(thread_struct);
+    if (actual_size != sizeof(rb_thread_t)) {
+      return rb_sprintf("size mismatch (Ruby reports %zu bytes, profiler expects %zu)", actual_size, sizeof(rb_thread_t));
+    }
+  }
+
   // Are we reading the name from the right place?
   VALUE name = rb_obj_freeze(rb_str_new_cstr("dd-prof-test"));
   rb_funcall(thread, rb_intern("name="), 1, name);
