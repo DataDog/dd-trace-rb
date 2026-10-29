@@ -25,7 +25,7 @@ module Datadog
 
         def initialize(entries, trace: nil, baggage: nil)
           # start_trace always returns a TraceOperation; the chained `send`s are opaque to Steep.
-          trace = (trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)) #: Datadog::Tracing::TraceOperation
+          trace ||= ::Datadog::Tracing.send(:tracer).send(:start_trace) #: Datadog::Tracing::TraceOperation
           @trace = trace
           trace.otel_values.merge!(entries) if entries
           trace.otel_context ||= self

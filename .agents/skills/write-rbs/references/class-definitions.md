@@ -7,6 +7,12 @@ declaring a method that is both instance and singleton
 
 - MUST open the class for an empty subclass – `class Foo < Bar` / `end` – NEVER a
   bare `Foo: Bar` constant, which Steep will not type as the class
+- MUST define a struct typed in `sig/` as a real class in the Ruby –
+  `class Boot < Struct.new(:barrier, :time)` – NEVER the constant
+  assignment (`Boot = Struct.new(...)`), with or without a block: Steep
+  cannot associate a constant-assigned anonymous class with its RBS class
+  declaration. `Style/StructInheritance` is disabled by Standard's
+  config, so the class form is also the lint-clean one
 - MUST type a `Struct.new(...)` constant as a real class – parameterize
   `Struct[E]` with the member value type (a union for mixed members, NEVER a
   tuple), add an `attr_accessor` per member, and a `self.new` returning
