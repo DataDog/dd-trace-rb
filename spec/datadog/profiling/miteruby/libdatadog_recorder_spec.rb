@@ -1,13 +1,111 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/miteruby/libdatadog_recorder"
+require "open3"
 
 RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
   before { skip_if_profiling_not_supported }
 
   subject(:recorder) { described_class.new }
 
-  def record_sample(timestamp: 0)
-    described_class::Testing._native_record_sample(recorder, [11, 2, 33, 4, 5, 66], timestamp)
+  def record_sample(timestamp: 0, values: [11, 2, 33, 4, 5, 66], frames: [], labels: [])
+    described_class::Testing._native_record_sample(recorder, values, timestamp, frames, labels)
+  end
+
+  def decode_raw(encoded)
+    output, error, status = Open3.capture3("protoc", "--decode_raw", stdin_data: Zstd.decompress(encoded._native_bytes), binmode: true)
+    expect(status.success?).to be(true), error
+    output
+  end
+
+  def equivalent_profiles
+    status, results = described_class._native_serialize(recorder)
+    expect(status).to eq(:ok)
+    original, custom = results
+    expect(custom.values_at(0, 1, 3)).to eq(original.values_at(0, 1, 3))
+    decoded = results.map do |result|
+      fields = decode_raw(result[2]).split(/(?=^\d)/).group_by { |field| field[/\A\d+/] }
+      # Protobuf field order is immaterial; libdatadog also reorders samples during aggregation.
+      fields["2"]&.sort!
+      fields
+    end
+    expect(decoded[1]).to eq(decoded[0])
+    [original[2], custom[2]]
+  end
+
+  describe "dual serialization" do
+    it "produces exactly the same decoded empty profile" do
+      original, custom = equivalent_profiles
+      expect(decode_raw(custom)).to eq(decode_raw(original))
+    end
+
+    it "preserves metric values, timestamps, strings, numeric labels, and shared stack frames" do
+      frames = [["leaf", "app/例.rb", 42], ["caller", "app/main.rb", 10], ["leaf", "app/例.rb", 43]]
+      labels = [["thread name", "worker\0名前", 0, ""], ["allocation size", "", 4096, "bytes"], ["zero", "", 0, "count"]]
+      record_sample(frames: frames, labels: labels, timestamp: 123456789)
+      record_sample(frames: frames, labels: labels, timestamp: 123456789)
+      record_sample(frames: frames.reverse, labels: labels, timestamp: -123, values: [-11, 0, 0, 0, 0, -66])
+      record_sample(values: [0, 0, 0, 0, 0, 0])
+
+      original, custom = equivalent_profiles
+      expect(samples_from_pprof(custom)).to match_array(samples_from_pprof(original))
+      expect(decode_profile(custom).sample.size).to eq(4)
+      expect(decode_profile(custom).location.size).to eq(3)
+      expect(decode_profile(custom).function.size).to eq(2)
+    end
+
+    it "aggregates untimestamped samples with saturating signed values" do
+      2.times { record_sample(values: [2**63 - 1, 2, -2**63, 4, 5, 66], labels: [["thread name", "worker", 0, ""]]) }
+      record_sample(labels: [["thread name", "main", 0, ""]])
+
+      _, custom = equivalent_profiles
+      sample = samples_from_pprof(custom).find { |item| item.labels[:"thread name"] == "worker" }
+      expect(sample.values).to include("cpu-time": 2**63 - 1, "wall-time": -2**63, "cpu-samples": 4, timeline: 132)
+      expect(decode_profile(custom).sample.size).to eq(2)
+    end
+
+    it "owns recorded strings and encoded bytes across garbage collection and subsequent flushes" do
+      150.times do |index|
+        name = "frame #{index}"
+        record_sample(frames: [[name, "example.rb", index]], timestamp: index + 1)
+        name.replace("changed after recording")
+      end
+      original, custom = equivalent_profiles
+      expected = decode_raw(original)
+      GC.start
+      equivalent_profiles
+      expect(decode_raw(custom).split(/(?=^\d)/).sort).to eq(expected.split(/(?=^\d)/).sort)
+      expect(decode_profile(custom).string_table).to_not include("changed after recording")
+    end
+
+    it "clears both profiles after fork" do
+      record_sample(labels: [["thread name", "old thread", 0, ""]])
+      recorder.reset_after_fork
+      _, custom = equivalent_profiles
+      expect(decode_profile(custom).sample).to be_empty
+      expect(decode_profile(custom).string_table).to_not include("old thread")
+      record_sample
+      equivalent_profiles
+    end
+
+    it "releases serialization ownership and clears both profiles if wrapping the custom bytes raises" do
+      record_sample
+      allow(Datadog::Profiling::EncodedProfile).to receive(:from_custom).and_raise("wrapping failed")
+      expect { recorder.serialize }.to raise_error("wrapping failed")
+      expect(recorder.stats).to include(serialization_failures: 1, serialization_successes: 0)
+      allow(Datadog::Profiling::EncodedProfile).to receive(:from_custom).and_call_original
+      _, custom = equivalent_profiles
+      expect(decode_profile(custom).sample).to be_empty
+      record_sample
+      equivalent_profiles
+    end
+
+    it "returns only the libdatadog result from the Ruby wrapper" do
+      record_sample
+      status, results = described_class._native_serialize(recorder)
+      allow(described_class).to receive(:_native_serialize).with(recorder).and_return([status, results])
+      expect(recorder.serialize).to equal(results[0])
+      expect(recorder.serialize!).to equal(results[0][2])
+    end
   end
 
   it "records all non-heap metrics and timeline labels" do
