@@ -2514,7 +2514,8 @@ RSpec.describe Datadog::DI::Instrumenter do
       )
       condition = Datadog::DI::EL::Expression.new(
         "len(arg1) == 3 || arg1.filter(isUndefined(@it) != true && arg2 == 'outer').length == 2",
-        src, regexps: regexps)
+        src, regexps: regexps,
+      )
       Datadog::DI::Probe.new(
         id: 1, type: :log,
         type_name: "InterleavedEvaluationTestClass", method_name: "test_method",
