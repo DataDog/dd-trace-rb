@@ -41,7 +41,7 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
-static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename);
+static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice filename, bool frame_name_in_scratch_buffer);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -180,7 +180,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   sample_locations locations;
   sample_locations_initialize(&locations, max_frames_requested, show_classes == Qtrue);
   sampling_buffer buffer;
-  sampling_buffer_initialize(&buffer, max_frames_requested);
+  sampling_buffer_initialize(&buffer, max_frames_requested, show_classes == Qtrue);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -238,6 +238,83 @@ static VALUE native_sample_ensure(VALUE args) {
 }
 
 #define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
+
+// The method name on its own, without any class/module name
+static inline ddog_CharSlice unqualified_name(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  VALUE name = ddtrace_location_base_label(cme, iseq);
+  return (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+}
+
+// When there's only wall-time in a sample, this means that the thread was not active in the sampled period, so we try
+// to tell what it was doing instead.
+//
+// TODO: `method` is the unqualified method name
+// because we don't always use qualified method names yet,
+// and the checks below need something stable to compare to until we always do.
+static void categorize_sample_state(
+  sample_labels labels,
+  frame_info frame,
+  ddog_CharSlice method,
+  DDTRACE_UNUSED ddog_CharSlice filename
+) {
+  ddog_prof_Label *state_label = labels.state_label;
+
+  // Did the caller already provide the state?
+  if (labels.is_gvl_waiting_state) {
+    state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+
+  // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+  // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+  // GVL instrumentation API.)
+  } else if (!frame.is_ruby_frame) {
+    // We know that known versions of Ruby implement these using native code; thus if we find a method with the
+    // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
+    // has the same name. Thus, even though "matching just by method name" is kinda weak,
+    // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
+
+    if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Kernel.sleep
+      state_label->str  = DDOG_CHARSLICE_C("sleeping");
+    } else if (CHARSLICE_EQUALS("select", method)) { // Expected to be Kernel.select
+      state_label->str  = DDOG_CHARSLICE_C("waiting");
+    } else if (
+        CHARSLICE_EQUALS("synchronize", method) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
+        #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
+          CHARSLICE_EQUALS("lock", method) ||        // Expected to be Mutex#lock
+        #endif
+        CHARSLICE_EQUALS("join", method)           // Expected to be Thread#join
+    ) {
+      state_label->str  = DDOG_CHARSLICE_C("blocked");
+    } else if (CHARSLICE_EQUALS("wait_readable", method)) { // Expected to be IO#wait_readable
+      state_label->str  = DDOG_CHARSLICE_C("network");
+    } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
+      state_label->str  = DDOG_CHARSLICE_C("waiting");
+    } else if (CHARSLICE_EQUALS("_native_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
+      state_label->str  = DDOG_CHARSLICE_C("sleeping");
+    }
+    #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
+      else if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
+        state_label->str  = DDOG_CHARSLICE_C("waiting");
+      }
+    #endif
+  } else {
+    #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
+      if (CHARSLICE_EQUALS("<internal:thread_sync>", filename)) {
+        if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
+          state_label->str  = DDOG_CHARSLICE_C("waiting");
+        }
+        #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
+          else if (CHARSLICE_EQUALS("synchronize", method) || CHARSLICE_EQUALS("lock", method)) { // Expected to be Mutex#lock/synchronize
+            state_label->str  = DDOG_CHARSLICE_C("blocked");
+          } else if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Mutex#sleep
+            state_label->str  = DDOG_CHARSLICE_C("sleeping");
+          } else if (CHARSLICE_EQUALS("wait", method)) { // Expected to be ConditionVariable#wait
+            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          }
+        #endif
+      }
+    #endif
+  }
+}
 
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
 // could continue making progress while the sample was ingested into the profile.
@@ -354,91 +431,45 @@ void sample_thread(
       );
     }
 
-    VALUE name = ddtrace_location_base_label(cme, iseq);
-    // TODO: name_slice is currently the unqualified method name
-    // because we don't always use qualified method names yet, so we don't always compute it,
-    // and checks below need to compare to something stable until we always qualified method names.
-    ddog_CharSlice name_slice = (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
-
-    ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
-    if (show_classes) {
-      ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
-      if (written > 0) {
-        qualified_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
-        qualified_name_buf += written;
-        qualified_name_buf_size -= written;
-      } else {
-        qualified_name = name_slice; // just the method name
-      }
-    }
-
-    // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
-    if (top_of_the_stack && only_wall_time) {
-      // Did the caller already provide the state?
-      if (labels.is_gvl_waiting_state) {
-        state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
-
-      // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
-      // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-      // GVL instrumentation API.)
-      } else if (!frame.is_ruby_frame) {
-        // We know that known versions of Ruby implement these using native code; thus if we find a method with the
-        // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
-        // has the same name. Thus, even though "matching just by method name" is kinda weak,
-        // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
-
-        if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Kernel.sleep
-          state_label->str  = DDOG_CHARSLICE_C("sleeping");
-        } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
-          state_label->str  = DDOG_CHARSLICE_C("waiting");
-        } else if (
-            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
-            #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
-              CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
-            #endif
-            CHARSLICE_EQUALS("join", name_slice)           // Expected to be Thread#join
-        ) {
-          state_label->str  = DDOG_CHARSLICE_C("blocked");
-        } else if (CHARSLICE_EQUALS("wait_readable", name_slice)) { // Expected to be IO#wait_readable
-          state_label->str  = DDOG_CHARSLICE_C("network");
-        } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
-          state_label->str  = DDOG_CHARSLICE_C("waiting");
-        } else if (CHARSLICE_EQUALS("_native_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
-          state_label->str  = DDOG_CHARSLICE_C("sleeping");
-        }
-        #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
-          else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
-          }
-        #endif
-      } else {
-        #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-          if (CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) {
-            if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
-              state_label->str  = DDOG_CHARSLICE_C("waiting");
-            }
-            #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
-              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) { // Expected to be Mutex#lock/synchronize
-                state_label->str  = DDOG_CHARSLICE_C("blocked");
-              } else if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Mutex#sleep
-                state_label->str  = DDOG_CHARSLICE_C("sleeping");
-              } else if (CHARSLICE_EQUALS("wait", name_slice)) { // Expected to be ConditionVariable#wait
-                state_label->str  = DDOG_CHARSLICE_C("waiting");
-              }
-            #endif
-          }
-        #endif
-      }
-    }
+    // This frame kept the name we composed for it in an earlier sample, so there's nothing to compose or trim again
+    char *cached_name = buffer->cached_names == NULL ? NULL : buffer->cached_names + (i * MAX_CACHED_FRAME_NAME);
+    // The length is only ever set together with the name it describes, and frames start out zeroed
+    bool name_is_cached = frame.cached_name_len > 0;
 
     ddog_CharSlice frame_name;
-    if (show_classes) {
-      frame_name = qualified_name;
+    // We only keep a name we managed to compose: ddtrace_location_label() also fails when this stack used up the
+    // scratch buffer, and keeping the unqualified name it falls back to would stick to the frame even once there's
+    // room for it again.
+    bool name_is_cacheable = false;
+    if (name_is_cached) {
+      frame_name = (ddog_CharSlice) {.ptr = cached_name, .len = frame.cached_name_len};
+    } else if (show_classes) {
+      ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
+      if (written > 0) {
+        frame_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
+        qualified_name_buf += written;
+        qualified_name_buf_size -= written;
+        name_is_cacheable = true;
+      } else {
+        frame_name = unqualified_name(cme, iseq); // just the method name
+      }
     } else {
-      frame_name = name_slice;
+      frame_name = unqualified_name(cme, iseq);
     }
 
-    maybe_trim_template_random_ids(&frame_name, name_slice, filename_slice);
+    if (top_of_the_stack && only_wall_time) {
+      categorize_sample_state(labels, frame, unqualified_name(cme, iseq), filename_slice);
+    }
+
+    if (!name_is_cached) {
+      maybe_trim_template_random_ids(&frame_name, filename_slice, name_is_cacheable);
+
+      // Keep this name for as long as the frame stays in the buffer
+      if (cached_name != NULL && name_is_cacheable && frame_name.len <= MAX_CACHED_FRAME_NAME) {
+        memcpy(cached_name, frame_name.ptr, frame_name.len);
+        buffer->stack_buffer[i].cached_name_len = frame_name.len;
+      }
+    }
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
@@ -549,49 +580,55 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 //
 // This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
 //
-// We match on `method_name` because it always ends with the ids, while `frame_name` can have DDTRACE_BLOCK_SUFFIX
-// after them ("Foo#_app_views_articles_index_html_erb__123_456 (block)"); in that case we move the suffix left over
-// the ids. A `frame_name` that is a Ruby String ends with the ids we just matched, so that write only ever lands on
-// a name we composed in the sample's own buffer.
-static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice method_name, ddog_CharSlice filename) {
+// The ids end `frame_name`, or sit right before DDTRACE_BLOCK_SUFFIX
+// ("Foo#_app_views_articles_index_html_erb__123_456 (block)"); in that case we move the suffix left over the ids.
+// That write needs a name we composed ourselves, which is what `frame_name_in_scratch_buffer` tells us.
+static void maybe_trim_template_random_ids(
+  ddog_CharSlice *frame_name,
+  ddog_CharSlice filename,
+  bool frame_name_in_scratch_buffer
+) {
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename.len < 3 || memcmp(filename.ptr + filename.len - 3, ".rb", 3) == 0) return;
 
-  if (method_name.len > 1024) return;
-  if (method_name.len == 0) return;
-
-  int pos = ((int) method_name.len) - 1;
-
-  // Let's match on something__number_number:
-  // Find start of id suffix from the end...
-  if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
-
-  // ...now match a bunch of numbers and interspersed underscores
-  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
-    if (method_name.ptr[pos] == '_') underscores++;
-    else if (method_name.ptr[pos] < '0' || method_name.ptr[pos] > '9') return;
-  }
-
-  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
-  if (pos <= 0 || method_name.ptr[pos] != '_') return;
-
-  // Does it have the optional third underscore? If so, remove it as well
-  if (pos > 1 && method_name.ptr[pos-1] == '_') pos--;
-
-  // If we got here, we matched on our pattern. Let's remove the ids from the end of the frame name.
-  size_t random_ids_len = method_name.len - pos;
+  if (frame_name->len > 1024) return;
+  if (frame_name->len == 0) return;
 
   static const char block_suffix[] = DDTRACE_BLOCK_SUFFIX;
   size_t block_suffix_len = sizeof(block_suffix) - 1;
 
-  if (
-    frame_name->len >= random_ids_len + block_suffix_len &&
-    memcmp(frame_name->ptr + frame_name->len - block_suffix_len, block_suffix, block_suffix_len) == 0
-  ) {
-    memcpy((char *) frame_name->ptr + frame_name->len - block_suffix_len - random_ids_len, block_suffix, block_suffix_len);
+  size_t len = frame_name->len;
+  bool has_block_suffix =
+    frame_name_in_scratch_buffer &&
+    len > block_suffix_len &&
+    memcmp(frame_name->ptr + len - block_suffix_len, block_suffix, block_suffix_len) == 0;
+  if (has_block_suffix) len -= block_suffix_len;
+
+  int pos = ((int) len) - 1;
+
+  // Let's match on something__number_number:
+  // Find start of id suffix from the end...
+  if (frame_name->ptr[pos] < '0' || frame_name->ptr[pos] > '9') return;
+
+  // ...now match a bunch of numbers and interspersed underscores
+  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
+    if (frame_name->ptr[pos] == '_') underscores++;
+    else if (frame_name->ptr[pos] < '0' || frame_name->ptr[pos] > '9') return;
   }
 
-  frame_name->len -= random_ids_len;
+  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
+  if (pos <= 0 || frame_name->ptr[pos] != '_') return;
+
+  // Does it have the optional third underscore? If so, remove it as well
+  if (pos > 1 && frame_name->ptr[pos-1] == '_') pos--;
+
+  // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
+  if (has_block_suffix) {
+    memcpy((char *) frame_name->ptr + pos, block_suffix, block_suffix_len);
+    frame_name->len = pos + block_suffix_len;
+  } else {
+    frame_name->len = pos;
+  }
 }
 
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
@@ -697,7 +734,7 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, bool cache_names) {
   sampling_buffer_check_max_frames(max_frames);
 
   buffer->max_frames = max_frames;
@@ -705,16 +742,19 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
+  buffer->cached_names = cache_names ? ruby_xcalloc(max_frames, MAX_CACHED_FRAME_NAME) : NULL;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
   ruby_xfree(buffer->stack_buffer);
+  ruby_xfree(buffer->cached_names);
 
   buffer->max_frames = 0;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
+  buffer->cached_names = NULL;
 }
 
 void sampling_buffer_mark(sampling_buffer *buffer) {
