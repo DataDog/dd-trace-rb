@@ -332,10 +332,8 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
   rb_thread_t *thread_struct = thread_struct_from_object(thread);
 
   VALUE fiber = rb_fiber_current(); // Trigger creation of root fiber
-  if (thread_struct->root_fiber != DATA_PTR(fiber)) {
-    return rb_str_new_cstr("root_fiber does not match the current fiber");
-  }
 
+  // Check size first, when possible, to avoid out-of-bounds field reads if Ruby's structure is smaller than we expect.
   // For a new thread with a root fiber + no thread-local keys, we expect the reported size to be exactly the
   // same as `rb_thread_t`
   if (RARRAY_LEN(rb_funcall(thread, rb_intern("keys"), 0)) == 0) {
@@ -343,6 +341,10 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
     if (actual_size != sizeof(rb_thread_t)) {
       return rb_sprintf("size mismatch (Ruby reports %zu bytes, profiler expects %zu)", actual_size, sizeof(rb_thread_t));
     }
+  }
+
+  if (thread_struct->root_fiber != DATA_PTR(fiber)) {
+    return rb_str_new_cstr("root_fiber does not match the current fiber");
   }
 
   // Are we reading the name from the right place?
