@@ -2190,7 +2190,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    describe "condition evaluation timeout" do
+    describe "evaluation timeout" do
       # The constant name is unique per example because the class object
       # stays in ObjectSpace with its cached Module#name after the
       # remove_const cleanup, and a fixed name would collide across
@@ -2367,6 +2367,41 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(evaluation_errors.length).to eq 1
           expect(evaluation_errors.first[:expr]).to eq("filtered")
           expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
+        end
+      end
+
+      context "method probe template timeout through the probe manager" do
+        include_context "with probe manager"
+
+        # The template holds one expression segment, whose pre-segment
+        # deadline check raises before the segment evaluates under the
+        # zero evaluation budget.
+        let(:probe) do
+          src, regexps = Datadog::DI::EL::Compiler.new.compile("ref" => "arg1")
+          Datadog::DI::Probe.new(
+            id: 1, type: :log, type_name: timeout_class_name.to_s, method_name: "test_method",
+            template_segments: [Datadog::DI::EL::Expression.new("arg1", src, regexps: regexps)],
+          )
+        end
+
+        it "renders the timed-out template as an evaluation error in the emitted message" do
+          allow(telemetry).to receive(:inc)
+          allow(logger).to receive(:debug)
+
+          begin
+            instrumenter.hook_method(probe, probe_manager)
+
+            expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
+          ensure
+            instrumenter.unhook_method(probe)
+          end
+
+          expect(snapshot_payloads.length).to eq 1
+          snapshot = snapshot_payloads.first[:debugger][:snapshot]
+          expect(snapshot[:evaluationErrors].length).to eq 1
+          expect(snapshot[:evaluationErrors].first[:expr]).to eq("arg1")
+          expect(snapshot[:evaluationErrors].first[:message]).to match(/EvaluationTimeout/)
+          expect(snapshot_payloads.first[:message]).to eq("[evaluation error]")
         end
       end
 
