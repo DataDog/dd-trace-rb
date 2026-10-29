@@ -70,6 +70,9 @@ jobs:
       binaries_artifact: dd-trace-rb
       desired_execution_time: 600
       scenarios_groups: tracer_release
+      # system-tests excludes the agentless FFE scenario from tracer_release so that each SDK
+      # opts in by naming it (https://github.com/DataDog/system-tests/pull/7298).
+      scenarios: FEATURE_FLAGGING_AND_EXPERIMENTATION_AGENTLESS
       ref: 1f289cff86f5ec2a61502f179ede8960bda417fb # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
