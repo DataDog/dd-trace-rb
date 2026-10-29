@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5226",
+  "message": "Add `tracing.context_scope` (`DD_TRACE_CONTEXT_SCOPE`); set it to `fiber_inherited` on Ruby 3.2+ so spans created in a new Fiber, such as inside `Enumerator#next`, continue the trace of the Fiber that created it instead of a new trace."
+}
