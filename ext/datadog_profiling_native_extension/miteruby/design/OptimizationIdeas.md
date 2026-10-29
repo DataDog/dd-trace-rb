@@ -24,3 +24,12 @@ to profile and don't often change", we could better use Ruby's generational GC a
 on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
+
+## Custom serializer ideas (Added by AI friend)
+
+* Replace linear searches for strings, functions, locations, mappings, and aggregate samples with hash tables.
+* Grow arrays geometrically and reuse their storage between profiles instead of reallocating on every append.
+* Reuse the consumer's deduplicated stacks directly instead of building a second set of tables while recording.
+* Reduce temporary allocations and copies, including the Ruby string passed to `EncodedProfile.from_custom`.
+* Explore streaming protobuf output into zstd to avoid keeping the entire uncompressed pprof in memory.
+* Move custom encoding outside the GVL once ownership and interruption handling have been designed for that path.
