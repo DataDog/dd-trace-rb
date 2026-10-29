@@ -182,6 +182,12 @@ appraise 'sneakers' do
   gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
 end
 
+build_coverage_matrix('active-record', [7, 8], gem: 'activerecord', meta: {
+  'mysql2' => '>= 0.5.3',
+  'pg' => nil,
+  'sqlite3' => '>= 1.4.2',
+})
+
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
   # All existing relational_db configurations use ActiveRecord 7.0. ActiveRecord 7.1 is tested as a part of rails71

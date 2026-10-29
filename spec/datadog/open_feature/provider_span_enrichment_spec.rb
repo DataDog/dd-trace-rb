@@ -40,6 +40,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
       # on every supported SDK version.
       flag_eval_metrics_hook: nil,
       flag_eval_evp_hook: nil,
+      debug_logging_hook: nil,
       span_enrichment_hook: span_enrichment_hook
     )
   end
@@ -230,6 +231,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
         engine: engine,
         flag_eval_metrics_hook: nil,
         flag_eval_evp_hook: nil,
+        debug_logging_hook: nil,
         span_enrichment_hook: nil
       )
     end

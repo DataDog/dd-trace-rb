@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -62,11 +62,6 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.update-internal-deps
-
-      # There appers to be a race condition, wait it out a bit
-      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
-      - name: Wait for token propagation
-        run: sleep 30
 
       - name: Create Pull Request
         id: cpr

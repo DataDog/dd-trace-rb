@@ -2909,6 +2909,8 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
+Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
+
 #### Evaluation telemetry opt-out
 
 Set `dd_evaluation_telemetry_opt_out: true` in an evaluation context to suppress new flag evaluation events, `feature_flag.evaluations` metrics, and automatic flag span tags.

@@ -250,6 +250,52 @@ RSpec.describe "ActiveJob", execute_in_fork: Rails.version.to_i >= 8 do
           )
           expect(extracted).to eq("pathway-context")
         end
+
+        context "when the job is executed" do
+          let(:context_before_job) { instance_double(Datadog::DataStreams::PathwayContext) }
+
+          before do
+            allow(Datadog::DataStreams).to receive(:pathway_context).and_return(context_before_job)
+            allow(Datadog::DataStreams).to receive(:pathway_context=)
+          end
+
+          it "restores the worker thread's pathway context after the job runs" do
+            job_class.execute(job.serialize)
+
+            expect(Datadog::DataStreams).to have_received(:pathway_context=).with(context_before_job).once
+          end
+
+          it "restores the pathway context when the job raises" do
+            allow_any_instance_of(job_class).to receive(:perform).and_raise(ArgumentError)
+
+            expect { job_class.execute(job.serialize) }.to raise_error(ArgumentError)
+            expect(Datadog::DataStreams).to have_received(:pathway_context=).with(context_before_job).once
+          end
+
+          it "clears the thread's pathway context before the consume checkpoint" do
+            expect(Datadog::DataStreams).to receive(:pathway_context=).with(nil).ordered
+            expect(Datadog::DataStreams).to receive(:set_consume_checkpoint).ordered
+            expect(Datadog::DataStreams).to receive(:pathway_context=).with(context_before_job).ordered
+
+            job_class.execute(job.serialize)
+          end
+
+          context "when the worker thread had no pathway context" do
+            let(:context_before_job) { nil }
+
+            it "leaves the thread without one after the job runs" do
+              job_class.execute(job.serialize)
+
+              expect(Datadog::DataStreams).to have_received(:pathway_context=).with(nil).twice
+            end
+          end
+
+          it "does not touch the pathway context for a job performed without deserializing" do
+            job.perform_now
+
+            expect(Datadog::DataStreams).not_to have_received(:pathway_context=)
+          end
+        end
       end
 
       context "when DSM is disabled" do

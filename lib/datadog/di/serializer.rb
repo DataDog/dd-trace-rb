@@ -186,7 +186,7 @@ module Datadog
         collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count,
-          length: length, collection_size: collection_size, deadline: deadline,)
+          length: length, collection_size: collection_size, deadline: deadline)
       end
 
       # Serializes variables captured by a line probe.
@@ -205,7 +205,7 @@ module Datadog
         collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
           agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
-            length: length, collection_size: collection_size, deadline: deadline,)
+            length: length, collection_size: collection_size, deadline: deadline)
         end
       end
 

@@ -36,32 +36,32 @@ module Datadog
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: "RECEIVED",)
+          status: "RECEIVED")
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: "INSTALLED",)
+          status: "INSTALLED")
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: "EMITTING",)
+          status: "EMITTING")
       end
 
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
           status: "ERROR",
-          exception: exc,)
+          exception: exc)
       end
 
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: "ERROR",)
+          status: "ERROR")
       end
 
       # Duration is in seconds.
@@ -149,7 +149,7 @@ module Datadog
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
-          captures: captures,)
+          captures: captures)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)
