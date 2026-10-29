@@ -176,7 +176,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     )
   end
 
-  describe "#filter, #all, #any evaluation deadline" do
+  describe "collection operators abort evaluation when the deadline is exceeded" do
     let(:all_expr) do
       compile_expr("collection.all(@it >= 0)",
         "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
@@ -187,92 +187,118 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
     end
 
-    context "with the deadline already in the past" do
-      let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+    # The abort raises at i == 0, before the predicate block runs, so the
+    # Hash branch aborts before the @it predicate is reached.
+    let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
 
-      # The abort raises at i == 0, before the predicate block runs, so the
-      # Hash branch aborts before the @it predicate is reached.
-      context "over an Array collection" do
+    describe "#filter" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
+
+          it "raises EvaluationTimeout" do
+            expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+
+          it "raises EvaluationTimeout" do
+            expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+      end
+
+      context "with no deadline" do
         let(:collection) { Array.new(1000) { |i| i } }
 
-        it "#filter raises EvaluationTimeout" do
-          expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        it "returns the selected items" do
+          expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq((500..999).to_a)
         end
 
-        it "#all raises EvaluationTimeout" do
-          expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
-        end
-
-        it "#any raises EvaluationTimeout" do
-          expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        it "returns the selected entries of a Hash" do
+          expect(filter_hash_expr.evaluate(
+            context_with({"a" => 1, "b" => 2, "c" => -1}),
+            deadline: nil,
+          )).to eq({"a" => 1, "b" => 2})
         end
       end
 
-      context "over a Hash collection" do
-        let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+      context "with the deadline far in the future" do
+        let(:collection) { Array.new(1000) { |i| i } }
+        let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
 
-        it "#filter raises EvaluationTimeout" do
-          expect { filter_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        it "completes without timing out" do
+          expect(filter_expr.evaluate(context_with(collection), deadline: deadline)).to eq((500..999).to_a)
+        end
+      end
+
+      context "with the deadline exceeded midway through the collection" do
+        let(:collection) { Array.new(1000) { |i| i } }
+
+        # The cooperative check runs every EVALUATION_DEADLINE_CHECK_INTERVAL items.
+        # Stub Process.clock_gettime so the first check (i=0) is before the
+        # deadline and the second check (i=64) is after it, proving the timeout
+        # raises at the second check, in mid-iteration.
+        it "raises after the first check interval" do
+          deadline = 1.0
+          checks = 0
+          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
+            checks += 1
+            (checks <= 1) ? deadline - 0.001 : deadline + 0.001
+          end
+          expect do
+            filter_expr.satisfied?(context_with(collection), deadline: deadline)
+          end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          expect(checks).to be >= 2
+        end
+      end
+    end
+
+    describe "#all" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
+
+          it "raises EvaluationTimeout" do
+            expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
         end
 
-        it "#all raises EvaluationTimeout" do
-          expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
-        end
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
-        it "#any raises EvaluationTimeout" do
-          expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
-            .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          it "raises EvaluationTimeout" do
+            expect { all_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
         end
       end
     end
 
-    context "with no deadline" do
-      let(:collection) { Array.new(1000) { |i| i } }
+    describe "#any" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
 
-      it "#filter returns the selected items" do
-        expect(filter_expr.evaluate(context_with(collection), deadline: nil)).to eq((500..999).to_a)
-      end
-
-      it "#filter returns the selected entries of a Hash" do
-        expect(filter_hash_expr.evaluate(
-          context_with({"a" => 1, "b" => 2, "c" => -1}),
-          deadline: nil,
-        )).to eq({"a" => 1, "b" => 2})
-      end
-    end
-
-    context "with the deadline far in the future" do
-      let(:collection) { Array.new(1000) { |i| i } }
-      let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
-
-      it "#filter completes without timing out" do
-        expect(filter_expr.evaluate(context_with(collection), deadline: deadline)).to eq((500..999).to_a)
-      end
-    end
-
-    context "with the deadline exceeded midway through the collection" do
-      let(:collection) { Array.new(1000) { |i| i } }
-
-      # The cooperative check runs every EVALUATION_DEADLINE_CHECK_INTERVAL items.
-      # Stub Process.clock_gettime so the first check (i=0) is before the
-      # deadline and the second check (i=64) is after it, proving the timeout
-      # raises at the second check, in mid-iteration.
-      it "#filter raises after the first check interval" do
-        deadline = 1.0
-        checks = 0
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
-          checks += 1
-          (checks <= 1) ? deadline - 0.001 : deadline + 0.001
+          it "raises EvaluationTimeout" do
+            expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
         end
-        expect do
-          filter_expr.satisfied?(context_with(collection), deadline: deadline)
-        end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
-        expect(checks).to be >= 2
+
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+
+          it "raises EvaluationTimeout" do
+            expect { any_expr.satisfied?(context_with(collection), deadline: deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
       end
     end
 
