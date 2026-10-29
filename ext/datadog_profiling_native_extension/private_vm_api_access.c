@@ -326,7 +326,9 @@ static VALUE self_test_thread_struct_in_thread(DDTRACE_UNUSED void *unused) {
   VALUE thread = rb_thread_current();
   rb_thread_t *thread_struct = thread_struct_from_object(thread);
 
-  VALUE fiber = rb_fiber_current(); // Trigger creation of root fiber
+  // Without a root fiber, Ruby includes the VM stack in the thread's reported size. Calling rb_fiber_current()
+  // creates the root fiber, so Ruby accounts for the stack under that fiber instead, leaving it out of thread size.
+  VALUE fiber = rb_fiber_current();
 
   // Check size first, when possible, to avoid out-of-bounds field reads if Ruby's structure is smaller than we expect.
   // For a new thread with a root fiber + no thread-local keys, we expect the reported size to be exactly the
