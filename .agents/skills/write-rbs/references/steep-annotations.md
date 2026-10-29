@@ -38,7 +38,7 @@ resort: a trailing **assertion**, an above-the-line **annotation**, and
   the same method body poisons the FIRST for the whole method. Split the
   scopes instead: annotate the block body, or hoist the differing
   operation into its own method, or use one annotation for the method
-  position: the declared block type must be assignable INTO the
+  position: the declared block type MUST be assignable INTO the
   annotation. It can widen an `untyped` parameter, but never narrow a
   generic one like `option_type`. To specialize a wide block input, use
   an `is_a?` passthrough guard instead – no annotation can do it
