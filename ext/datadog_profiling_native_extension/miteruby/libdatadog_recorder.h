@@ -20,4 +20,3 @@ void miteruby_libdatadog_recorder_record_sample(
   VALUE recorder, ddog_prof_Slice_Location locations, miteruby_sample_values values,
   ddog_prof_Slice_Label labels, int64_t end_timestamp_ns
 );
-void miteruby_libdatadog_recorder_record_endpoint(VALUE recorder, uint64_t local_root_span_id, ddog_CharSlice endpoint);

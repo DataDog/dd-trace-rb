@@ -6,8 +6,8 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
 
   subject(:recorder) { described_class.new }
 
-  def record_sample(span_id: 123, timestamp: 0)
-    described_class::Testing._native_record_sample(recorder, [11, 2, 33, 4, 5, 66], span_id, timestamp)
+  def record_sample(timestamp: 0)
+    described_class::Testing._native_record_sample(recorder, [11, 2, 33, 4, 5, 66], timestamp)
   end
 
   it "records all non-heap metrics and timeline labels" do
@@ -22,22 +22,7 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
       "alloc-samples-unscaled": 5,
       timeline: 66,
     )
-    expect(sample.labels).to include("local root span id": 123, end_timestamp_ns: 123456789)
-  end
-
-  it "associates endpoints with samples recorded before and after the endpoint" do
-    record_sample(timestamp: 1)
-    described_class::Testing._native_record_endpoint(recorder, 123, "GET /example")
-    record_sample(timestamp: 2)
-    record_sample(span_id: 456)
-
-    samples = samples_from_pprof(recorder.serialize!)
-    expect(samples.select { |sample| sample.labels[:"local root span id"] == 123 }.map(&:labels))
-      .to all(include("trace endpoint": "GET /example"))
-    expect(samples.find { |sample| sample.labels[:"local root span id"] == 456 }.labels).to_not have_key(:"trace endpoint")
-
-    record_sample
-    expect(samples_from_pprof(recorder.serialize!).fetch(0).labels).to_not have_key(:"trace endpoint")
+    expect(sample.labels).to eq(end_timestamp_ns: 123456789)
   end
 
   it "drains samples and uses contiguous time intervals across flushes" do
@@ -107,8 +92,6 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
       expect { recorder.serialize }.to raise_error(RuntimeError, /being serialized/)
       expect { record_sample }.to raise_error(RuntimeError, /being serialized/)
       expect { recorder.reset_after_fork }.to raise_error(RuntimeError, /being serialized/)
-      expect { described_class::Testing._native_record_endpoint(recorder, 123, "endpoint") }
-        .to raise_error(RuntimeError, /being serialized/)
       expect { Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_miteruby_consumer_prepare_serialize(recorder) }
         .to raise_error(RuntimeError, /being serialized/)
     ensure
