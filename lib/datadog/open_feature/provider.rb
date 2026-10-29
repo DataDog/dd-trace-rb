@@ -498,6 +498,7 @@ module Datadog
         metadata = result.flag_metadata&.dup || {}
         metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] =
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
+        metadata[Ext::METADATA_DEPENDENCY_EVALUATIONS] = dependency_evaluations(result, eval_time_ms)
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
 
@@ -506,6 +507,16 @@ module Datadog
         metadata["dd.eval.timestamp_ms"] = eval_time_ms
 
         metadata
+      end
+
+      def dependency_evaluations(result, eval_time_ms)
+        (result.dependency_evaluations || []).each do |dependency|
+          metadata = dependency.flag_metadata&.dup || {}
+          allocation_key = dependency.allocation_key
+          metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+          metadata["dd.eval.timestamp_ms"] = eval_time_ms
+          dependency.flag_metadata = metadata
+        end
       end
 
       # Dispatch span enrichment from the evaluation path in a never-throw

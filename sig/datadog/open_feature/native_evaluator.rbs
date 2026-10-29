@@ -25,6 +25,8 @@ module Datadog
         untyped default_value
       ) -> ResolutionDetails
 
+      def build_dependency_evaluation: (::Hash[::Symbol, untyped] record) -> ResolutionDetails
+
       def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
 
       def invalid_flag_configuration_error: (untyped default_value) -> ResolutionDetails

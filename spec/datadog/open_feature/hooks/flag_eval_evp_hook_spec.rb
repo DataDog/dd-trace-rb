@@ -102,6 +102,66 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       expect(writer).to receive(:enqueue).once
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
+
+    it "enqueues returned dependencies in completion order before the root" do
+      first = Datadog::OpenFeature::ResolutionDetails.new(
+        flag_key: "first",
+        variant: "one",
+        reason: "STATIC",
+        error_code: nil,
+        flag_metadata: {"dd.eval.timestamp_ms" => 1_700_000_000_000},
+      )
+      second = Datadog::OpenFeature::ResolutionDetails.new(
+        flag_key: "second",
+        variant: nil,
+        reason: "ERROR",
+        error_code: "FLAG_NOT_FOUND",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1_700_000_000_000},
+      )
+      details = build_evaluation_details(
+        variant: "on",
+        flag_metadata: {
+          Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS => [first, second],
+          "dd.eval.timestamp_ms" => 1_700_000_000_000,
+        },
+      )
+
+      expect(writer).to receive(:enqueue).ordered.with(hash_including(flag_key: "first", variant: "one"))
+      expect(writer).to receive(:enqueue).ordered.with(
+        hash_including(flag_key: "second", runtime_default: true, error_message: "FLAG_NOT_FOUND")
+      )
+      expect(writer).to receive(:enqueue).ordered.with(hash_including(flag_key: "my-flag", variant: "on"))
+
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it "retains returned dependencies when OpenFeature adapts a root error" do
+      dependency = Datadog::OpenFeature::ResolutionDetails.new(
+        flag_key: "successful-dependency",
+        variant: "on",
+        reason: "STATIC",
+        flag_metadata: {"dd.eval.timestamp_ms" => 1_700_000_000_000},
+      )
+      details = build_evaluation_details(
+        variant: nil,
+        reason: "ERROR",
+        error_code: "GENERAL",
+        error_message: "root failed",
+        flag_metadata: {
+          Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS => [dependency],
+          "dd.eval.timestamp_ms" => 1_700_000_000_000,
+        },
+      )
+
+      expect(writer).to receive(:enqueue).ordered.with(
+        hash_including(flag_key: "successful-dependency", variant: "on", runtime_default: false)
+      )
+      expect(writer).to receive(:enqueue).ordered.with(
+        hash_including(flag_key: "my-flag", variant: nil, runtime_default: true, error_message: "GENERAL")
+      )
+
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
   end
 
   describe "#finally — runtime-default + missing-metadata edge cases" do

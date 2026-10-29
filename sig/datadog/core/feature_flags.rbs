@@ -47,10 +47,15 @@ module Datadog
 
         def flag_metadata: () -> metadata_t
 
+        def dependency_evaluations: () -> ::Array[::Hash[::Symbol, untyped]]
+
+        def exposure_trace: () -> ::Array[::String]
+
         private
 
         def json?: (untyped) -> bool
       end
+
     end
   end
 end

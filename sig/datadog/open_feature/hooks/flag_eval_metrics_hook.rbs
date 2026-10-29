@@ -18,8 +18,18 @@ module Datadog
 
         private
 
-        def extract_allocation_key: (
+        def record: (
+          Metrics::FlagEvalMetrics metrics,
+          ::String flag_key,
+          (ResolutionDetails | ::OpenFeature::SDK::EvaluationDetails) evaluation_details
+        ) -> void
+
+        def dependency_evaluations: (
           ::OpenFeature::SDK::EvaluationDetails evaluation_details
+        ) -> ::Array[ResolutionDetails]
+
+        def extract_allocation_key: (
+          (ResolutionDetails | ::OpenFeature::SDK::EvaluationDetails) evaluation_details
         ) -> ::String?
       end
     end

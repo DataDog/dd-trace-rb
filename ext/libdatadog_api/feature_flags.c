@@ -28,6 +28,8 @@ static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
 static VALUE resolution_details_get_flag_metadata(VALUE self);
+static VALUE resolution_details_get_dependency_evaluations(VALUE self);
+static VALUE resolution_details_get_exposure_trace(VALUE self);
 
 static const rb_data_type_t configuration_data_type = {
   .wrap_struct_name = "Datadog::Core::FeatureFlags::Configuration",
@@ -110,6 +112,9 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
   rb_define_method(resolution_details_class, "log?", resolution_details_get_do_log, 0);
   rb_define_method(resolution_details_class, "flag_metadata", resolution_details_get_flag_metadata, 0);
+  rb_define_method(
+    resolution_details_class, "dependency_evaluations", resolution_details_get_dependency_evaluations, 0);
+  rb_define_method(resolution_details_class, "exposure_trace", resolution_details_get_exposure_trace, 0);
 
   // Cache symbol IDs for expected types
   id_boolean = rb_intern_const("boolean");
@@ -585,4 +590,157 @@ static VALUE resolution_details_get_flag_metadata(VALUE self) {
   // }
 
   return hash;
+}
+
+static VALUE dependency_value(struct ddog_ffe_VariantValue value) {
+  switch (value.tag) {
+    case DDOG_FFE_VARIANT_VALUE_STRING:
+    case DDOG_FFE_VARIANT_VALUE_OBJECT:
+      return str_from_borrow(value.string);
+    case DDOG_FFE_VARIANT_VALUE_INTEGER:
+      return LONG2NUM(value.integer);
+    case DDOG_FFE_VARIANT_VALUE_FLOAT:
+      return rb_float_new(value.float_);
+    case DDOG_FFE_VARIANT_VALUE_BOOLEAN:
+      return value.boolean ? Qtrue : Qfalse;
+    case DDOG_FFE_VARIANT_VALUE_NONE:
+      return Qnil;
+    default:
+      raise_error(feature_flags_error_class, "Internal: Unexpected dependency value tag");
+  }
+}
+
+static VALUE dependency_flag_type(struct ddog_ffe_VariantValue value) {
+  switch (value.tag) {
+    case DDOG_FFE_VARIANT_VALUE_STRING:
+      return ID2SYM(id_string);
+    case DDOG_FFE_VARIANT_VALUE_INTEGER:
+      return ID2SYM(id_integer);
+    case DDOG_FFE_VARIANT_VALUE_FLOAT:
+      return ID2SYM(id_float);
+    case DDOG_FFE_VARIANT_VALUE_BOOLEAN:
+      return ID2SYM(id_boolean);
+    case DDOG_FFE_VARIANT_VALUE_OBJECT:
+      return ID2SYM(id_object);
+    case DDOG_FFE_VARIANT_VALUE_NONE:
+      return Qnil;
+    default:
+      raise_error(feature_flags_error_class, "Internal: Unexpected dependency value tag");
+  }
+}
+
+static VALUE dependency_reason(enum ddog_ffe_Reason reason) {
+  switch (reason) {
+    case DDOG_FFE_REASON_STATIC:
+      return rb_str_new_lit("STATIC");
+    case DDOG_FFE_REASON_DEFAULT:
+      return rb_str_new_lit("DEFAULT");
+    case DDOG_FFE_REASON_TARGETING_MATCH:
+      return rb_str_new_lit("TARGETING_MATCH");
+    case DDOG_FFE_REASON_SPLIT:
+      return rb_str_new_lit("SPLIT");
+    case DDOG_FFE_REASON_DISABLED:
+      return rb_str_new_lit("DISABLED");
+    case DDOG_FFE_REASON_ERROR:
+    default:
+      return rb_str_new_lit("ERROR");
+  }
+}
+
+static VALUE dependency_error_code(enum ddog_ffe_ErrorCode error_code) {
+  switch (error_code) {
+    case DDOG_FFE_ERROR_CODE_OK:
+      return Qnil;
+    case DDOG_FFE_ERROR_CODE_TYPE_MISMATCH:
+      return rb_str_new_lit("TYPE_MISMATCH");
+    case DDOG_FFE_ERROR_CODE_PARSE_ERROR:
+      return rb_str_new_lit("PARSE_ERROR");
+    case DDOG_FFE_ERROR_CODE_FLAG_NOT_FOUND:
+      return rb_str_new_lit("FLAG_NOT_FOUND");
+    case DDOG_FFE_ERROR_CODE_TARGETING_KEY_MISSING:
+      return rb_str_new_lit("TARGETING_KEY_MISSING");
+    case DDOG_FFE_ERROR_CODE_INVALID_CONTEXT:
+      return rb_str_new_lit("INVALID_CONTEXT");
+    case DDOG_FFE_ERROR_CODE_PROVIDER_NOT_READY:
+      return rb_str_new_lit("PROVIDER_NOT_READY");
+    case DDOG_FFE_ERROR_CODE_GENERAL:
+    default:
+      return rb_str_new_lit("GENERAL");
+  }
+}
+
+static VALUE resolution_details_get_dependency_evaluations(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  size_t count = ddog_ffe_assignment_get_dependency_evaluation_count(resolution_details);
+  VALUE records = rb_ary_new_capa(count);
+
+  for (size_t index = 0; index < count; index++) {
+    const struct ddog_ffe_DependencyEvaluation *evaluation =
+      ddog_ffe_assignment_get_dependency_evaluation(resolution_details, index);
+    if (evaluation == NULL) {
+      continue;
+    }
+
+    struct ddog_ffe_VariantValue value = ddog_ffe_dependency_evaluation_get_value(evaluation);
+    struct ddog_Option_I32 serial_id = ddog_ffe_dependency_evaluation_get_serial_id(evaluation);
+    VALUE allocation_key = str_from_borrow(ddog_ffe_dependency_evaluation_get_allocation_key(evaluation));
+    VALUE metadata = rb_hash_new();
+    struct ddog_ffe_ArrayMap_BorrowedStr native_metadata =
+      ddog_ffe_dependency_evaluation_get_flag_metadata(evaluation);
+    for (size_t metadata_index = 0; metadata_index < native_metadata.count; metadata_index++) {
+      struct ddog_ffe_KeyValue_BorrowedStr pair = native_metadata.elements[metadata_index];
+      VALUE key = str_from_borrow(pair.key);
+      VALUE metadata_value = str_from_borrow(pair.value);
+      if (!NIL_P(key) && !NIL_P(metadata_value)) {
+        rb_hash_aset(metadata, key, metadata_value);
+      }
+    }
+    if (!NIL_P(allocation_key) && NIL_P(rb_hash_lookup2(
+      metadata, rb_str_new_lit("__dd_allocation_key"), Qnil))) {
+      rb_hash_aset(metadata, rb_str_new_lit("__dd_allocation_key"), allocation_key);
+    }
+
+    VALUE record = rb_hash_new();
+    rb_hash_aset(record, ID2SYM(rb_intern_const("flag_key")),
+      str_from_borrow(ddog_ffe_dependency_evaluation_get_flag_key(evaluation)));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("raw_value")), dependency_value(value));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("flag_type")), dependency_flag_type(value));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("variant")),
+      str_from_borrow(ddog_ffe_dependency_evaluation_get_variant(evaluation)));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("allocation_key")), allocation_key);
+    rb_hash_aset(record, ID2SYM(rb_intern_const("reason")),
+      dependency_reason(ddog_ffe_dependency_evaluation_get_reason(evaluation)));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("error_code")),
+      dependency_error_code(ddog_ffe_dependency_evaluation_get_error_code(evaluation)));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("error_message")),
+      str_from_borrow(ddog_ffe_dependency_evaluation_get_error_message(evaluation)));
+    rb_hash_aset(record, ID2SYM(rb_intern_const("serial_id")),
+      serial_id.tag == DDOG_OPTION_I32_SOME_I32 ? INT2NUM(serial_id.some) : Qnil);
+    rb_hash_aset(record, ID2SYM(rb_intern_const("log")),
+      ddog_ffe_dependency_evaluation_get_do_log(evaluation) ? Qtrue : Qfalse);
+    rb_hash_aset(record, ID2SYM(rb_intern_const("exposure_eligible")),
+      ddog_ffe_dependency_evaluation_get_exposure_eligible(evaluation) ? Qtrue : Qfalse);
+    rb_hash_aset(record, ID2SYM(rb_intern_const("flag_metadata")), metadata);
+    rb_ary_push(records, record);
+  }
+
+  return records;
+}
+
+static VALUE resolution_details_get_exposure_trace(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  size_t count = ddog_ffe_assignment_get_exposure_trace_count(resolution_details);
+  VALUE trace = rb_ary_new_capa(count);
+
+  for (size_t index = 0; index < count; index++) {
+    VALUE flag_key = str_from_borrow(
+      ddog_ffe_assignment_get_exposure_trace_flag_key(resolution_details, index));
+    if (!NIL_P(flag_key)) {
+      rb_ary_push(trace, flag_key);
+    }
+  }
+
+  return trace;
 }

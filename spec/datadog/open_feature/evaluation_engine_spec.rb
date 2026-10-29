@@ -261,6 +261,37 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
 
+      it "replays successful dependency exposures in trace order before the root" do
+        first = Datadog::OpenFeature::ResolutionDetails.new(flag_key: "first", log?: true)
+        second = Datadog::OpenFeature::ResolutionDetails.new(flag_key: "second", log?: true)
+        details.dependency_evaluations = [first, second]
+        details.exposure_trace = ["second", "first"]
+
+        expect(reporter).to receive(:report).ordered.with(
+          second, flag_key: "second", context: evaluation_context
+        )
+        expect(reporter).to receive(:report).ordered.with(
+          first, flag_key: "first", context: evaluation_context
+        )
+        expect(reporter).to receive(:report).ordered.with(
+          details, flag_key: "test", context: evaluation_context
+        )
+
+        result
+      end
+
+      it "retains dependency evaluations without exposing rejected paths" do
+        dependency = Datadog::OpenFeature::ResolutionDetails.new(flag_key: "rejected", log?: true)
+        details.dependency_evaluations = [dependency]
+        details.exposure_trace = []
+
+        expect(reporter).to receive(:report).once.with(
+          details, flag_key: "test", context: evaluation_context
+        )
+
+        expect(result.dependency_evaluations).to eq([dependency])
+      end
+
       it "logs the raw provider resolution while debug logging is enabled" do
         allow(reporter).to receive(:report)
         messages = []

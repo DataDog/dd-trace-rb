@@ -1094,5 +1094,68 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(res.flag_metadata["dd.eval.timestamp_ms"]).to eq(1_700_000_000_000)
       expect(res.error_message).to eq("missing")
     end
+
+    it "preserves returned dependency evaluations on provider errors" do
+      dependency = Datadog::OpenFeature::ResolutionDetails.new(
+        flag_key: "dependency",
+        value: "on",
+        reason: "STATIC",
+        variant: "on",
+        flag_metadata: {},
+        allocation_key: "dependency-allocation",
+        log?: true,
+        error?: false,
+      )
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: "d",
+        reason: "ERROR",
+        variant: nil,
+        error_code: "GENERAL",
+        error_message: "root failed",
+        flag_metadata: {},
+        log?: false,
+        error?: true,
+        dependency_evaluations: [dependency],
+        exposure_trace: [],
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      resolved = provider.fetch_string_value(flag_key: "root", default_value: "d")
+      dependencies = resolved.flag_metadata.fetch(
+        Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS
+      )
+
+      expect(dependencies).to eq([dependency])
+      expect(dependency.flag_metadata).to include(
+        "dd.eval.timestamp_ms" => 1_700_000_000_000,
+        Datadog::OpenFeature::Ext::METADATA_ALLOCATION_KEY => "dependency-allocation",
+      )
+    end
+
+    it "preserves returned dependency evaluations when the root uses a default" do
+      dependency = Datadog::OpenFeature::ResolutionDetails.new(
+        flag_key: "rejected-path-dependency",
+        reason: "STATIC",
+        variant: "on",
+        flag_metadata: {},
+      )
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: "d",
+        reason: "DEFAULT",
+        variant: nil,
+        flag_metadata: {},
+        log?: false,
+        error?: false,
+        dependency_evaluations: [dependency],
+        exposure_trace: [],
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      resolved = provider.fetch_string_value(flag_key: "root", default_value: "d")
+
+      expect(
+        resolved.flag_metadata[Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS]
+      ).to eq([dependency])
+    end
   end
 end

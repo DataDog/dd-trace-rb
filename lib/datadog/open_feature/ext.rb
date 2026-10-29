@@ -35,6 +35,8 @@ module Datadog
       # Stamped from the UFC the evaluation ran against; the hook reads only this
       # key, never live config.
       METADATA_OBSERVE_FULL_EVALUATION_DATA = "__dd_observe_full_evaluation_data"
+
+      METADATA_DEPENDENCY_EVALUATIONS = "__dd_dependency_evaluations"
     end
   end
 end

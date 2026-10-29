@@ -28,8 +28,17 @@ module Datadog
           metrics = @metrics
           return unless metrics
 
+          dependency_evaluations(evaluation_details).each do |dependency|
+            record(metrics, dependency.flag_key, dependency)
+          end
+          record(metrics, hook_context.flag_key, evaluation_details)
+        end
+
+        private
+
+        def record(metrics, flag_key, evaluation_details)
           metrics.record(
-            hook_context.flag_key,
+            flag_key,
             variant: evaluation_details.variant,
             reason: evaluation_details.reason,
             error_code: evaluation_details.error_code,
@@ -37,7 +46,12 @@ module Datadog
           )
         end
 
-        private
+        def dependency_evaluations(evaluation_details)
+          metadata = evaluation_details.flag_metadata
+          return [] unless metadata.is_a?(Hash)
+
+          metadata[Ext::METADATA_DEPENDENCY_EVALUATIONS] || []
+        end
 
         def extract_allocation_key(evaluation_details)
           metadata = evaluation_details.flag_metadata

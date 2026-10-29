@@ -53,7 +53,29 @@ module Datadog
           serial_id: result.serial_id,
           log?: result.log?,
           error?: result.error?,
+          dependency_evaluations: result.dependency_evaluations.map { |record| build_dependency_evaluation(record) },
+          exposure_trace: result.exposure_trace,
         )
+      end
+
+      def build_dependency_evaluation(record)
+        value = record[:raw_value]
+        value = JSON.parse(value) if record[:flag_type] == :object && value.is_a?(String)
+        ResolutionDetails.new(
+          value: value,
+          reason: record[:reason],
+          variant: record[:variant],
+          error_code: record[:error_code],
+          error_message: record[:error_message],
+          flag_metadata: record[:flag_metadata],
+          allocation_key: record[:allocation_key],
+          serial_id: record[:serial_id],
+          log?: record[:log],
+          error?: record[:reason] == Ext::ERROR,
+          flag_key: record[:flag_key],
+        )
+      rescue JSON::ParserError => e
+        raise Core::FeatureFlags::Error, "Failed to parse dependency JSON value: #{e.class}: #{e.message}"
       end
 
       def invalid_flag_configuration?(result)

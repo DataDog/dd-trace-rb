@@ -23,6 +23,12 @@ module Datadog
 
       attr_accessor error?: bool?
 
+      attr_accessor flag_key: ::String?
+
+      attr_accessor dependency_evaluations: ::Array[ResolutionDetails]?
+
+      attr_accessor exposure_trace: ::Array[::String]?
+
       def self.new: (
         ?value: untyped,
         ?reason: ::String?,
@@ -34,7 +40,10 @@ module Datadog
         ?serial_id: ::Integer?,
         ?extra_logging: ::Hash[::String, untyped]?,
         ?log?: bool?,
-        ?error?: bool?
+        ?error?: bool?,
+        ?flag_key: ::String?,
+        ?dependency_evaluations: ::Array[ResolutionDetails]?,
+        ?exposure_trace: ::Array[::String]?
       ) -> ResolutionDetails
 
       def self.build_error: (

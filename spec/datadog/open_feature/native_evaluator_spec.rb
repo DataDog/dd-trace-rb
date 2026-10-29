@@ -30,6 +30,12 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
       def error?
       end
+
+      def dependency_evaluations
+      end
+
+      def exposure_trace
+      end
     end
   end
   let(:configuration_json) { '{"flags":{}}' }
@@ -53,6 +59,8 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       serial_id: serial_id,
       log?: log,
       error?: error,
+      dependency_evaluations: dependency_records,
+      exposure_trace: exposure_trace,
     )
   end
   let(:value) { true }
@@ -65,6 +73,8 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:serial_id) { 123 }
   let(:log) { true }
   let(:error) { false }
+  let(:dependency_records) { [] }
+  let(:exposure_trace) { [] }
 
   describe "#get_assignment" do
     subject(:result) do
@@ -83,6 +93,35 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       expect(result.serial_id).to eq(123)
       expect(result.log?).to be(true)
       expect(result.error?).to be(false)
+      expect(result.dependency_evaluations).to eq([])
+      expect(result.exposure_trace).to eq([])
+    end
+
+    context "with returned dependency evaluations" do
+      let(:dependency_records) do
+        [
+          {
+            flag_key: "dependency",
+            raw_value: true,
+            flag_type: :boolean,
+            reason: reason,
+            variant: variant,
+            error_code: error_code,
+            error_message: error_message,
+            flag_metadata: flag_metadata,
+            allocation_key: allocation_key,
+            serial_id: serial_id,
+            log: log,
+          },
+        ]
+      end
+      let(:exposure_trace) { ["dependency"] }
+
+      it "copies the ordered returned batch" do
+        expect(result.dependency_evaluations.map(&:flag_key)).to eq(["dependency"])
+        expect(result.dependency_evaluations.map(&:variant)).to eq(["on"])
+        expect(result.exposure_trace).to eq(["dependency"])
+      end
     end
 
     context "when the native assignment has an object value" do

@@ -34,6 +34,15 @@ module Datadog
           writer = @writer
           return unless writer
 
+          dependency_evaluations(evaluation_details).each do |dependency|
+            enqueue(writer, dependency.flag_key, dependency, hook_context.evaluation_context)
+          end
+          enqueue(writer, hook_context.flag_key, evaluation_details, hook_context.evaluation_context)
+        end
+
+        private
+
+        def enqueue(writer, flag_key, evaluation_details, evaluation_context)
           # Eval-time stamped by the provider at eval-entry time; fall back to hook-fire time.
           # Metadata key: 'dd.eval.timestamp_ms' (int, ms since epoch) — stamped at eval entry.
           metadata = evaluation_details.flag_metadata
@@ -46,7 +55,7 @@ module Datadog
           observe_full_evaluation_data = false unless observe_full_evaluation_data == true
 
           attrs = if observe_full_evaluation_data
-            extract_attributes(hook_context.evaluation_context)
+            extract_attributes(evaluation_context)
           end
 
           # Raw messages may contain high-cardinality data, so only error codes enter EVP.
@@ -56,19 +65,24 @@ module Datadog
           error_code = Ext::GENERAL if reason == Ext::ERROR && error_code.to_s.empty?
 
           writer.enqueue(
-            flag_key: hook_context.flag_key,
+            flag_key: flag_key,
             variant: runtime_default ? nil : evaluation_details.variant,
             allocation_key: runtime_default ? nil : extract_allocation_key(evaluation_details),
             error_message: error_code,
             runtime_default: runtime_default,
-            targeting_key: extract_targeting_key(hook_context.evaluation_context),
+            targeting_key: extract_targeting_key(evaluation_context),
             eval_time_ms: eval_time_ms,
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
 
-        private
+        def dependency_evaluations(evaluation_details)
+          metadata = evaluation_details.flag_metadata
+          return [] unless metadata.is_a?(Hash)
+
+          metadata[Ext::METADATA_DEPENDENCY_EVALUATIONS] || []
+        end
 
         def extract_targeting_key(evaluation_context)
           return unless evaluation_context&.respond_to?(:targeting_key)

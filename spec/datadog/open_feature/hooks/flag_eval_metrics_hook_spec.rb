@@ -38,6 +38,77 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
       end
     end
 
+    context "with returned dependency evaluations" do
+      let(:dependency) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          flag_key: "dependency",
+          variant: "dependency-on",
+          reason: "SPLIT",
+          error_code: nil,
+          flag_metadata: {"__dd_allocation_key" => "dependency-allocation"},
+        )
+      end
+      let(:evaluation_details) do
+        instance_double(
+          "OpenFeature::SDK::EvaluationDetails",
+          variant: "on",
+          reason: "TARGETING_MATCH",
+          error_code: nil,
+          flag_metadata: {
+            Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS => [dependency],
+          },
+        )
+      end
+
+      it "records dependencies in completion order before the root" do
+        expect(metrics).to receive(:record).ordered.with(
+          "dependency",
+          variant: "dependency-on",
+          reason: "SPLIT",
+          error_code: nil,
+          allocation_key: "dependency-allocation",
+        )
+        expect(metrics).to receive(:record).ordered.with(
+          "test-flag",
+          variant: "on",
+          reason: "TARGETING_MATCH",
+          error_code: nil,
+          allocation_key: nil,
+        )
+
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+      end
+
+      it "retains dependencies when OpenFeature adapts a rejected root to its default" do
+        default_details = instance_double(
+          "OpenFeature::SDK::EvaluationDetails",
+          variant: nil,
+          reason: "DEFAULT",
+          error_code: nil,
+          flag_metadata: {
+            Datadog::OpenFeature::Ext::METADATA_DEPENDENCY_EVALUATIONS => [dependency],
+          },
+        )
+
+        expect(metrics).to receive(:record).ordered.with(
+          "dependency",
+          variant: "dependency-on",
+          reason: "SPLIT",
+          error_code: nil,
+          allocation_key: "dependency-allocation",
+        )
+        expect(metrics).to receive(:record).ordered.with(
+          "test-flag",
+          variant: nil,
+          reason: "DEFAULT",
+          error_code: nil,
+          allocation_key: nil,
+        )
+
+        hook.finally(hook_context: hook_context, evaluation_details: default_details)
+      end
+    end
+
     context "with error evaluation" do
       let(:evaluation_details) do
         instance_double(

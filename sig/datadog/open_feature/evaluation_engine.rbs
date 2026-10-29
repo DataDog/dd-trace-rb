@@ -33,6 +33,12 @@ module Datadog
 
       private
 
+      def report_exposures: (
+        ResolutionDetails result,
+        ::String flag_key,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> void
+
       def log_resolution: (String flag_key, Symbol expected_type, ResolutionDetails result) -> void
 
       def log_resolution_failure: (String flag_key, StandardError error) -> void

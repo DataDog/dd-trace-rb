@@ -18,11 +18,24 @@ module Datadog
 
         private
 
+        def enqueue: (
+          FlagEvaluation::Writer writer,
+          ::String flag_key,
+          (ResolutionDetails | ::OpenFeature::SDK::EvaluationDetails) evaluation_details,
+          ::OpenFeature::SDK::EvaluationContext? evaluation_context
+        ) -> void
+
+        def dependency_evaluations: (
+          ::OpenFeature::SDK::EvaluationDetails evaluation_details
+        ) -> ::Array[ResolutionDetails]
+
         def extract_targeting_key: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::String?
 
         def extract_attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::Hash[::String, any]
 
-        def extract_allocation_key: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> ::String?
+        def extract_allocation_key: (
+          (ResolutionDetails | ::OpenFeature::SDK::EvaluationDetails) evaluation_details
+        ) -> ::String?
 
         def runtime_default_reason?: (::String reason) -> bool
       end

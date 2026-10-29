@@ -153,6 +153,11 @@ module Datadog
         ::Integer eval_time_ms
       ) -> ::Hash[::String, untyped]
 
+      def dependency_evaluations: (
+        ResolutionDetails result,
+        ::Integer eval_time_ms
+      ) -> ::Array[ResolutionDetails]
+
       def enrich_span: (
         ::String flag_key,
         ResolutionDetails result,

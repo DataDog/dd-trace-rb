@@ -56,7 +56,7 @@ module Datadog
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
 
-        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
+        report_exposures(result, flag_key, evaluation_context)
 
         result
       rescue => e
@@ -100,6 +100,17 @@ module Datadog
       end
 
       private
+
+      def report_exposures(result, flag_key, evaluation_context)
+        dependencies = (result.dependency_evaluations || []).each_with_object({}) do |dependency, records|
+          records[dependency.flag_key] = dependency
+        end
+        (result.exposure_trace || []).each do |dependency_key|
+          dependency = dependencies[dependency_key]
+          @reporter.report(dependency, flag_key: dependency_key, context: evaluation_context) if dependency
+        end
+        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
+      end
 
       # The SDK can still replace this result, for example on a type mismatch; DebugLoggingHook logs the final one.
       def log_resolution(flag_key, expected_type, result)
@@ -147,6 +158,10 @@ module Datadog
         result = result.dup if result.frozen?
         metadata = result.flag_metadata ||= {}
         metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = observe_full_evaluation_data
+        (result.dependency_evaluations || []).each do |dependency|
+          dependency.flag_metadata ||= {}
+          dependency.flag_metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] = observe_full_evaluation_data
+        end
         result
       end
     end

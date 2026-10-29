@@ -19,6 +19,9 @@ module Datadog
       :extra_logging,
       :log?,
       :error?,
+      :flag_key,
+      :dependency_evaluations,
+      :exposure_trace,
       keyword_init: true
     )
       def self.build_error(value:, error_code:, error_message:, reason: Ext::ERROR)
