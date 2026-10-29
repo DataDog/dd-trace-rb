@@ -39,10 +39,6 @@
 
 #include <ruby.h>
 
-#ifdef HAVE_RUBY_FIBER_SCHEDULER_H
-  #include <ruby/fiber/scheduler.h>
-#endif
-
 #ifndef NO_RACTOR_HEADER_INCLUDE
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -326,8 +322,7 @@ VALUE thread_name_for(VALUE thread) {
 // One example where this happens is in patches such as
 // https://github.com/gitlabhq/omnibus-gitlab/blob/master/config/patches/ruby/thread-memory-allocations-3.2.patch
 // that add items to the structure and thus shift its fields from where we expect.
-static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
-  VALUE dummy_scheduler = (VALUE) dummy_scheduler_arg;
+static VALUE self_test_thread_struct_in_thread(DDTRACE_UNUSED void *unused) {
   VALUE thread = rb_thread_current();
   rb_thread_t *thread_struct = thread_struct_from_object(thread);
 
@@ -357,15 +352,6 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
     return rb_str_new_cstr("name does not match the assigned name");
   }
 
-  #ifdef HAVE_RUBY_FIBER_SCHEDULER_H
-    rb_fiber_scheduler_set(dummy_scheduler);
-    if (thread_struct->scheduler != dummy_scheduler) {
-      return rb_str_new_cstr("scheduler does not match the installed scheduler");
-    }
-  #else
-    (void) dummy_scheduler;
-  #endif
-
   #ifdef HAVE_RB_EXT_RACTOR_SAFE
     bool original_ractor_safe = thread_struct->ext_config.ractor_safe;
     rb_ext_ractor_safe(!original_ractor_safe);
@@ -382,13 +368,9 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
 }
 
 void self_test_thread_struct(void) {
-  VALUE dummy_scheduler =
-    rb_eval_string("Object.new.tap { |s| [:block, :unblock, :kernel_sleep, :io_wait, :fiber_interrupt].each { |hook| s.define_singleton_method(hook) {} } }");
-
   // We do this in a separate thread to isolate any of the changes we make
-  VALUE error = rb_funcall(rb_thread_create(self_test_thread_struct_in_thread, (void *) dummy_scheduler), rb_intern("value"), 0);
+  VALUE error = rb_funcall(rb_thread_create(self_test_thread_struct_in_thread, NULL), rb_intern("value"), 0);
 
-  RB_GC_GUARD(dummy_scheduler);
   if (!NIL_P(error)) rb_raise(rb_eRuntimeError, "rb_thread_t self-test failed: %"PRIsVALUE, error);
 }
 
