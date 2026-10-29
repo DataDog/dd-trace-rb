@@ -325,16 +325,16 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       nested_expr = filter_with_refs_expr
       nested_context = context_with_marker([1, 2, 3], "inner")
       nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
-      trigger = Object.new
-      trigger.define_singleton_method(:nil?) do
-        begin
-          nested_expr.evaluate(nested_context, deadline: nested_deadline)
-        rescue Datadog::DI::Error::EvaluationTimeout
-          nil
+      Object.new.tap do |trigger|
+        trigger.define_singleton_method(:nil?) do
+          begin
+            nested_expr.evaluate(nested_context, deadline: nested_deadline)
+          rescue Datadog::DI::Error::EvaluationTimeout
+            nil
+          end
+          false
         end
-        false
       end
-      trigger
     end
 
     def context_with_marker(collection, marker)
