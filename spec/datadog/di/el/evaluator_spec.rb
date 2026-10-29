@@ -156,9 +156,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     Datadog::DI::EL::Expression.new(dsl_expr, src, regexps: regexps)
   end
 
-  # `collection.filter(@it >= 500)`, the collection-filter shape used
-  # by the system test, with a predicate that selects only part of the
-  # collection so the selected content is observable in assertions.
   let(:filter_expr) do
     compile_expr("collection.filter(@it >= 500)",
       "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
