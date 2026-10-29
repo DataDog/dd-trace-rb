@@ -31,6 +31,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
   let(:events) { [] }
 
   before do
+    allow(OpenFeature::SDK::API.instance).to receive(:configuration).and_return(configuration)
     allow(Datadog::OpenFeature).to receive(:activate_provider).with(provider) do
       [activation.activate(provider), activation.failure]
     end
@@ -41,7 +42,12 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
   after do
     provider.shutdown
     activation.shutdown!
-    configuration.send(:reset)
+    configuration.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
+  end
+
+  def expect_provider_status(expected)
+    client = ::OpenFeature::SDK.build_client
+    expect(client.provider_status).to eq(expected) if client.respond_to?(:provider_status)
   end
 
   describe "fork recovery" do
@@ -65,7 +71,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
           component.reconfigure!(flags) unless cached
 
           expect(component).to be_configuration_received
-          expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+          expect_provider_status(::OpenFeature::SDK::ProviderState::READY)
           expect(events).to eq([:ready])
           activation.after_fork
           expect(events).to eq([:ready])
@@ -88,7 +94,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
           component.reconfigure!(flags)
 
           expect(events).to be_empty
-          expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::NOT_READY)
+          expect_provider_status(::OpenFeature::SDK::ProviderState::NOT_READY)
         end
         component.reconfigure!(flags)
         method.call(&cancelled)
@@ -101,18 +107,26 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
 
     it "preserves the live initializer until the SDK delivers its READY event" do
       component.reconfigure!(flags)
-      first_ready = true
-      allow(configuration).to receive(:dispatch_provider_event).and_wrap_original do |method, event_provider, event, *args|
-        if event == ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY && first_ready
-          first_ready = false
-          expect_in_fork do
-            activation.after_fork
+      before_ready = lambda do
+        expect_in_fork do
+          activation.after_fork
 
-            expect(events).to be_empty
-            expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::NOT_READY)
-          end
+          expect(events).to be_empty
+          expect_provider_status(::OpenFeature::SDK::ProviderState::NOT_READY)
         end
-        method.call(event_provider, event, *args)
+      end
+      if Gem::Version.new(::OpenFeature::SDK::VERSION) < Gem::Version.new("0.7.0")
+        original_init = provider.method(:init)
+        provider.define_singleton_method(:init) do
+          result = original_init.call
+          before_ready.call
+          result
+        end
+      else
+        allow(provider).to receive(:emit_event).and_wrap_original do |method, event, details|
+          before_ready.call if event == ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+          method.call(event, details)
+        end
       end
 
       configuration.set_provider_and_wait(provider)
@@ -128,7 +142,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
         activation.after_fork
 
         expect(events).to eq([:ready])
-        expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+        expect_provider_status(::OpenFeature::SDK::ProviderState::READY)
       end
     end
   end
@@ -168,7 +182,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
         expect(initialization.join(5)).to eq(initialization)
         expect(initialization.value).to be_a(::OpenFeature::SDK::ProviderInitializationError)
         expected_state = (sequence.last == :ready) ? ::OpenFeature::SDK::ProviderState::READY : ::OpenFeature::SDK::ProviderState::ERROR
-        expect(configuration.send(:provider_state, provider)).to eq(expected_state)
+        expect_provider_status(expected_state)
         expect(events).to eq((sequence.last == :ready) ? [:ready] : [])
       ensure
         initialization&.kill
@@ -183,14 +197,14 @@ RSpec.describe Datadog::OpenFeature::Provider, "configuration delivery lifecycle
 
     expect { configuration.set_provider_and_wait(provider) }
       .to raise_error(::OpenFeature::SDK::ProviderInitializationError) { |failure| expect(failure.original_error).to be(error) }
-    expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::ERROR)
+    expect_provider_status(::OpenFeature::SDK::ProviderState::ERROR)
 
     allow(remote).to receive(:start).and_return(nil)
     second_provider = described_class.new
     recovered_component = activation.activate(second_provider)
     recovered_component.reconfigure!(flags)
 
-    expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+    expect_provider_status(::OpenFeature::SDK::ProviderState::READY)
     expect(events).to eq([:ready])
   ensure
     activation.deactivate(second_provider) if second_provider

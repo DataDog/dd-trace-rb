@@ -7,6 +7,8 @@ module Datadog
 
       INITIALIZATION_CANCELLED_MESSAGE: ::String
 
+      SDK_EMITS_INITIALIZATION_EVENTS: bool
+
       type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
 
       @initialization_mutex: Thread::Mutex
@@ -14,6 +16,8 @@ module Datadog
       @initializing: bool
 
       @initialization_thread: Thread?
+
+      @initialization_returned: bool
 
       @awaiting_ready_after_fork: bool
 
@@ -44,6 +48,8 @@ module Datadog
       def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?) -> void
 
       def init: () -> void
+
+      def emits_lifecycle_events?: () -> bool
 
       def shutdown: () -> void
 
@@ -103,13 +109,15 @@ module Datadog
 
       def install_error_handler: () -> void
 
-      def provider_error: (Hash[Symbol, untyped] details) -> void
+      def initialization_event?: (Hash[Symbol, untyped] details) -> bool
 
-      def provider_ready: (Hash[Symbol, untyped] details) -> void
+      def provider_error: () -> void
+
+      def provider_ready: () -> void
 
       def configuration_changed: (Component::configuration_event event) -> void
 
-      def emit_state_event: (String event_type) -> void
+      def emit_state_event: (String event_type, ?Hash[Symbol, String] details) -> void
 
       def log_state_event: (String event_type) -> void
 
