@@ -25,7 +25,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     let(:builder) do
       described_class.new(settings, serializer, logger,
-        capture_expression_evaluator: capture_expression_evaluator)
+        capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry)
     end
 
     let(:settings) do

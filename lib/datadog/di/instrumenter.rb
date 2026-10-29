@@ -83,7 +83,7 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for instrumenter diagnostics
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrail skip metrics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
@@ -924,7 +924,8 @@ module Datadog
       end
 
       # Records a condition evaluation timeout for +probe+: increments the
-      # evaluation_timeouts telemetry counter, logs the timeout at debug
+      # evaluation_timeouts telemetry counter, emits the canonical guardrail
+      # skip metric for the timeout, logs the timeout at debug
       # with the probe id and the exception, and trips the probe's
       # condition-error throttle so condition evaluation is skipped at
       # probe entry while the throttle window is open.
@@ -934,6 +935,10 @@ module Datadog
       # @return [void]
       def record_condition_evaluation_timeout(probe, exc)
         telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+        guardrails_telemetry.skipped(
+          reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+          probe: probe,
+        )
         logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc.message}" }
         probe.trip_condition_error_throttle!
       end

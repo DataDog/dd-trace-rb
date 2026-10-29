@@ -17,7 +17,7 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured expression values
       # @param logger [DI::Logger] logger for evaluation failure diagnostics
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical evaluation-timeout skip metric
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation failures are reported through
       # @return [void]
       def initialize(settings:, serializer:, logger:, guardrails_telemetry:, telemetry: nil)
@@ -90,6 +90,10 @@ module Datadog
             Datadog::DI.reraise_if_fatal(exc)
             if exc.is_a?(DI::Error::EvaluationTimeout)
               telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+              guardrails_telemetry.skipped(
+                reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+                probe: probe,
+              )
             end
             evaluation_errors << EvaluationFailure.new(expr: name, message: "#{exc.class}: #{exc.message}")
             logger.debug do

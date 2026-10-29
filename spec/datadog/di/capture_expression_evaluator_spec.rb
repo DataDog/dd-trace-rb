@@ -157,8 +157,10 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(result.errors.first.message).to include("EvaluationTimeout")
       end
 
-      it "increments the evaluation_timeouts telemetry counter" do
+      it "increments the evaluation_timeouts telemetry counter and emits the evaluationTimeout skip metric" do
         expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
         evaluator.evaluate(probe, context)
       end
     end

@@ -4,6 +4,7 @@
 
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -17,13 +18,16 @@ module Datadog
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for builder diagnostics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical evaluation-timeout skip metric
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
       # @return [void]
-      def initialize(settings, serializer, logger, capture_expression_evaluator:, telemetry: nil)
+      def initialize(settings, serializer, logger, capture_expression_evaluator:, guardrails_telemetry:,
+        telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @capture_expression_evaluator = capture_expression_evaluator
+        @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
       end
 
@@ -34,6 +38,10 @@ module Datadog
       attr_reader :logger
 
       attr_reader :capture_expression_evaluator
+
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
 
       # The telemetry component evaluation timeouts are counted through.
       # @return [Datadog::Core::Telemetry::Component, nil]
@@ -434,6 +442,10 @@ module Datadog
           Datadog::DI.reraise_if_fatal(exc)
           if exc.is_a?(DI::Error::EvaluationTimeout)
             telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+            guardrails_telemetry.skipped(
+              reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+              probe: context.probe,
+            )
             logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc.message}" }
           end
           evaluation_errors << EvaluationFailure.new(

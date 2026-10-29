@@ -59,7 +59,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   let(:builder) do
     described_class.new(settings, serializer, logger,
-      capture_expression_evaluator: capture_expression_evaluator, telemetry: telemetry)
+      capture_expression_evaluator: capture_expression_evaluator,
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   let(:probe) do
@@ -337,6 +338,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       it "surfaces the timeout as an evaluation error in the rendered message" do
         expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
         expect_lazy_log(logger, :debug, /di: probe 123: template evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
 
         expect(payload[:message]).to eq("[evaluation error]")

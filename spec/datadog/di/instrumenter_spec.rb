@@ -2159,6 +2159,15 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).and_return(0)
       end
 
+      let(:guardrails_telemetry) do
+        Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+      end
+
+      def expect_condition_timeout_skip_metric
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
+      end
+
       # `arg1.filter(@it >= 0).length > 0`: a collection filter over the
       # first positional argument. With a zero evaluation budget the
       # cooperative check inside #filter raises immediately, aborting
@@ -2191,6 +2200,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it "invokes the condition evaluation failed callback with the timeout and the customer method runs normally" do
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
           expect_lazy_log(logger, :debug, /di: probe 1: condition evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
 
           expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
@@ -2215,6 +2225,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "skips condition evaluation on the hit after the timeout" do
           allow(logger).to receive(:debug)
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
           expect_lazy_log(logger, :trace,
             /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
 
@@ -2239,7 +2250,8 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "method probe snapshot through the probe manager" do
         let(:probe_notification_builder) do
           Datadog::DI::ProbeNotificationBuilder.new(settings, serializer, logger,
-            capture_expression_evaluator: capture_expression_evaluator, telemetry: telemetry)
+            capture_expression_evaluator: capture_expression_evaluator,
+            guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
         end
 
         let(:snapshot_payloads) { [] }
@@ -2344,6 +2356,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           allow(logger).to receive(:debug)
 
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
 
           expect(responder).to receive(:probe_condition_evaluation_failed_callback) do |context, expr, exc|
             expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
@@ -2366,6 +2379,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         it "skips condition evaluation on the hit after the timeout" do
           allow(logger).to receive(:debug)
           expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+          expect_condition_timeout_skip_metric
           expect_lazy_log(logger, :trace,
             /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
 
