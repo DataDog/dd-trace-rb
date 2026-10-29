@@ -1,9 +1,12 @@
 require "spec_helper"
 require_relative "../spec_helper"
 require "datadog/di/el"
+require_relative "../serializer_helper"
 
 RSpec.describe Datadog::DI::EL::Evaluator do
   di_test
+
+  extend SerializerHelper
 
   let(:evaluator) { described_class.new }
 
@@ -236,21 +239,15 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       context "with the deadline exceeded midway through the collection" do
         let(:collection) { Array.new(1000) { |i| i } }
 
-        # The cooperative check runs every EVALUATION_DEADLINE_CHECK_INTERVAL items.
-        # Stub Process.clock_gettime so the first check (i=0) is before the
-        # deadline and the second check (i=64) is after it, proving the timeout
-        # raises at the second check, in mid-iteration.
+        # The first cooperative check (i=0) reads 0.999, below the 1.0
+        # deadline; the second (i=64) reads 1.001, past it, so the raise
+        # happens at the second check, in mid-iteration.
+        stub_cpu_clock([0.999, 1.001])
+
         it "raises after the first check interval" do
-          deadline = 1.0
-          checks = 0
-          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
-            checks += 1
-            (checks <= 1) ? deadline - 0.001 : deadline + 0.001
-          end
           expect do
-            filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline)
+            filter_expr.satisfied?(context_with({collection: collection}), deadline: 1.0)
           end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
-          expect(checks).to be >= 2
         end
       end
     end
