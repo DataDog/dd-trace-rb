@@ -52,7 +52,7 @@ module Datadog
 
         def gauge: (untyped stat, ?untyped? value, ?untyped? options) ?{ () -> untyped } -> untyped
 
-        def time: (untyped stat, ?untyped? options) ?{ () -> untyped } -> untyped
+        def time: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
 
         def send_metrics: (Array[Metric] metrics) -> void
 
