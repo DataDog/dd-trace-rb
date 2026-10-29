@@ -331,7 +331,10 @@ static VALUE self_test_thread_struct_in_thread(void *dummy_scheduler_arg) {
   VALUE thread = rb_thread_current();
   rb_thread_t *thread_struct = thread_struct_from_object(thread);
 
-  rb_fiber_current(); // Trigger creation of root fiber
+  VALUE fiber = rb_fiber_current(); // Trigger creation of root fiber
+  if (thread_struct->root_fiber != DATA_PTR(fiber)) {
+    return rb_str_new_cstr("root_fiber does not match the current fiber");
+  }
 
   // For a new thread with a root fiber + no thread-local keys, we expect the reported size to be exactly the
   // same as `rb_thread_t`
