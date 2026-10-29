@@ -28,9 +28,9 @@ module Datadog
 
         def self.evaluation_deadline_exceeded?: (Float? deadline) -> bool
 
-        def ref: (Context context, (Symbol | String) var) -> Object
+        def ref: (Context context, (Symbol | String) var) -> Object?
 
-        def iref: (Context context, (Symbol | String) var) -> Object
+        def iref: (Context context, (Symbol | String) var) -> Object?
 
         def len: (any var, (Symbol | String) var_name) -> Integer
 

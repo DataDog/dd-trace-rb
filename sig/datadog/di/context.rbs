@@ -49,9 +49,9 @@ module Datadog
 
       def serialized_locals: (serialization_deadline: Float) -> Hash[Symbol, untyped]?
 
-      def fetch: ((Symbol | String) var_name) -> Object
+      def fetch: ((Symbol | String) var_name) -> Object?
 
-      def fetch_ivar: ((Symbol | String) var_name) -> Object
+      def fetch_ivar: ((Symbol | String) var_name) -> Object?
     end
   end
 end
