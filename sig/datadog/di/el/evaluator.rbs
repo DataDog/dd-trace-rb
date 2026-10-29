@@ -4,7 +4,7 @@ module Datadog
       class Evaluator
         MATCHES_TIMEOUT_SECONDS: ::Float
 
-        EVALUATION_DEADLINE_CHECK_INTERVAL: ::Integer
+        EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
 
         EVALUATION_TIMEOUT_MESSAGE: String
 
