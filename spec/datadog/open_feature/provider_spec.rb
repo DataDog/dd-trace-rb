@@ -547,7 +547,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(logger).to have_lazy_debug_logged(
           'Feature Flags: provider returned the default value for "flag" (type=boolean): ' \
             "the Feature Flags component is not active; see the provider initialization logs " \
-            "(error_code=PROVIDER_FATAL)"
+            "(error_code=PROVIDER_FATAL)",
         )
       end
     end

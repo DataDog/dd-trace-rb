@@ -105,7 +105,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         receiver.call(repository, transaction)
 
         expect(messages).to eq(
-          ["Feature Flags: received Remote Configuration insert for datadog/1/FFE_FLAGS/latest/config (version 1)"]
+          ["Feature Flags: received Remote Configuration insert for datadog/1/FFE_FLAGS/latest/config (version 1)"],
         )
       end
     end
@@ -223,7 +223,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
         receiver.call(repository, changes)
 
         expect(messages.last).to eq(
-          "Feature Flags: ignored Remote Configuration update for datadog/1/FFE_FLAGS/other/config: content is missing"
+          "Feature Flags: ignored Remote Configuration update for datadog/1/FFE_FLAGS/other/config: content is missing",
         )
       end
     end

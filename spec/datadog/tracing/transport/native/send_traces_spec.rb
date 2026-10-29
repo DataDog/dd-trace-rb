@@ -362,7 +362,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_sent" => 2, "spans_enqueued_for_serialization" => 3,
             "bytes_sent" => trace_requests.first.fetch(:body).bytesize,
           },
-        ]
+        ],
       )
       expect(result.fetch("returned")).to be true
     end
@@ -376,7 +376,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_dropped_cancelled" => 2,
             "spans_dropped_cancelled" => 3,
             "spans_enqueued_for_serialization" => 3,
-          }]
+          }],
         )
         expect(result.fetch("returned")).to be false
         expect(result.fetch("same_exception")).to be true
@@ -392,7 +392,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_dropped_cancelled" => 2,
             "spans_dropped_cancelled" => 3,
             "spans_enqueued_for_serialization" => 3,
-          }]
+          }],
         )
         expect(result.fetch("returned")).to be false
         expect(result.fetch("error")).to be_nil

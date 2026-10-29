@@ -1026,7 +1026,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     def sample_class_three_times(klass)
       recorder = Datadog::Profiling::StackRecorder.for_testing
       thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
-        recorder: recorder, show_classes: show_classes
+        recorder: recorder, show_classes: show_classes,
       )
 
       3.times do

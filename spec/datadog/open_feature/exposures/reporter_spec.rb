@@ -60,7 +60,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
         expect(debug_messages).to include(
           'Feature Flags: queued exposure for "feature_flag" (allocation="4-for-john-doe", variant="4", ' \
-            'targeting_key="john-doe")'
+            'targeting_key="john-doe")',
         )
       end
 
@@ -83,7 +83,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         reporter.report(result, flag_key: "feature_flag", context: context)
 
         expect(debug_messages).to include(
-          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject'
+          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject',
         )
       end
     end
@@ -127,7 +127,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
         expect(debug_messages).to include(
           'Feature Flags: exposure for "feature_flag" not recorded: ' \
-            "the evaluation result is not marked for exposure logging"
+            "the evaluation result is not marked for exposure logging",
         )
       end
     end

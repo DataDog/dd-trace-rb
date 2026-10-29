@@ -395,7 +395,7 @@ module Datadog
         self.pathway_context = PathwayContext.new(
           hash_value: 0,
           pathway_start: now,
-          current_edge_start: now
+          current_edge_start: now,
         )
       end
 
