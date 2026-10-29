@@ -301,6 +301,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         end
       end
     end
+  end
 
   describe "invocation-local evaluation state" do
     # The first collection item triggers a nested evaluate call on the same
