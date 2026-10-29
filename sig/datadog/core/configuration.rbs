@@ -14,7 +14,7 @@ module Datadog
       def configuration=: (Settings? configuration) -> void
 
       # Apply global configuration changes to `Datadog`.
-      def configure: () ?{ (Settings settings) -> void } -> Settings
+      def configure: () { (Settings settings) -> void } -> Settings
 
       # Apply configuration changes only to a specific Ruby object.
       def configure_onto: (untyped target, **untyped opts) -> void
