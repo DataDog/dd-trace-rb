@@ -56,15 +56,30 @@ module Datadog
             span.set_tag(Ext::REASON_TAG, result.reason)
             span.set_tag(Ext::REDACTED_TAG, redaction.redacted?) if redaction.performed?
 
-            span.set_metastruct_tag(
-              Ext::METASTRUCT_TAG,
-              {
-                messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
-                attack_categories: result.tags,
-                sds: result.sds_findings,
-                tag_probs: result.tag_probabilities,
-              }
-            )
+            filter_extra_entries(outcome.extra_tags).each do |entry|
+              key = entry["key"]
+              next if key.start_with?("_dd") || Ext::RESERVED_EXTRA_TAGS.include?(key)
+
+              value = entry["value"]
+              span.set_tag(key, value) if value.is_a?(String)
+            end
+
+            # @type var metastruct: Hash[String | Symbol, Array[Message::serialized] | Helpers::json]
+            metastruct = {
+              messages: truncate_content(truncate_messages(result.messages).map(&:to_h)),
+              attack_categories: result.tags,
+              sds: result.sds_findings,
+              tag_probs: result.tag_probabilities,
+            }
+
+            filter_extra_entries(outcome.extra_metastruct).each do |entry|
+              key = entry["key"]
+              next if Ext::RESERVED_EXTRA_METASTRUCT_KEYS.include?(key)
+
+              metastruct[key] = clamp_metastruct_integers(entry["value"])
+            end
+
+            span.set_metastruct_tag(Ext::METASTRUCT_TAG, metastruct)
 
             blocked = allow_raise && outcome.block?
             Metrics::Telemetry.report_evaluation(outcome, blocked: blocked)
@@ -85,6 +100,31 @@ module Datadog
         end
 
         private
+
+        def filter_extra_entries(entries)
+          return [] unless entries.is_a?(Array)
+
+          entries.select do |entry|
+            next false unless entry.is_a?(Hash)
+
+            key = entry["key"]
+            key.is_a?(String) && !key.empty? && !entry["value"].nil?
+          end #: Array[{"key" => String, "value" => Helpers::json}]
+        end
+
+        def clamp_metastruct_integers(value)
+          case value
+          when Integer
+            # An out-of-range integer makes MessagePack encoding fail, dropping the entire trace batch.
+            value.clamp(-(1 << 63), (1 << 64) - 1)
+          when Array
+            value.map { |item| clamp_metastruct_integers(item) }
+          when Hash
+            value.transform_values { |item| clamp_metastruct_integers(item) }
+          else
+            value
+          end
+        end
 
         def truncate_messages(serialized_messages)
           max_length = Datadog.configuration.ai_guard.max_messages_length

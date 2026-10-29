@@ -8,7 +8,17 @@ module Datadog
 
         attr_reader redaction: Redaction::Result
 
-        def initialize: (result: Result, redaction: Redaction::Result, blocking_enabled: bool) -> void
+        attr_reader extra_tags: Helpers::json
+
+        attr_reader extra_metastruct: Helpers::json
+
+        def initialize: (
+          result: Result,
+          redaction: Redaction::Result,
+          blocking_enabled: bool,
+          extra_tags: Helpers::json,
+          extra_metastruct: Helpers::json
+        ) -> void
 
         def block?: () -> bool
       end

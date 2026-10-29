@@ -7,12 +7,14 @@ module Datadog
       #
       # @api private
       class Outcome
-        attr_reader :result, :redaction
+        attr_reader :result, :redaction, :extra_tags, :extra_metastruct
 
-        def initialize(result:, redaction:, blocking_enabled:)
+        def initialize(result:, redaction:, blocking_enabled:, extra_tags:, extra_metastruct:)
           @result = result
           @redaction = redaction
           @blocking_enabled = blocking_enabled
+          @extra_tags = extra_tags
+          @extra_metastruct = extra_metastruct
         end
 
         def block?
