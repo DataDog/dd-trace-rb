@@ -2283,8 +2283,10 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         before do
-          allow(settings).to receive(:service).and_return("rspec")
-          allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+          allow(settings).to receive_messages(
+            service: "rspec",
+            experimental_propagate_process_tags_enabled: false,
+          )
         end
 
         it "emits an evaluation error snapshot with no captured data" do
