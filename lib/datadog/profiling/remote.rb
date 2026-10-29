@@ -184,20 +184,23 @@ module Datadog
 
         # Highest specificity among the matching targets (service+env > service > env > tags only >
         # no restriction), or nil if none matches.
+        #
+        # The backend only delivers a config when one of its targets matches, so this only needs to
+        # find which ones did. Tags are matched by the backend against the tags reported by the RC client
+        # and the agent's host tags, which the tracer can't see, so they only count towards specificity.
+        # A tracer without an env inherits the agent's env, so env targets match it whatever the env.
         def specificity(targets, settings)
           return 0 if targets.empty?
 
           # Same service as the RC client registers with, which is what the backend targets.
           service = settings.remote.service || settings.service
           env = settings.env
-          tags = settings.tags
 
           Core::Utils::EnumerableCompat.filter_map(targets) do |target|
             has_service = !target[:service].nil? && target[:service] != "*"
             has_env = !target[:env].nil? && target[:env] != "*"
             next if has_service && target[:service] != service
-            next if has_env && target[:env] != env
-            next unless target[:tags].all? { |tag| tag_matches?(tags, tag) }
+            next if has_env && !env.to_s.empty? && target[:env] != env
 
             if has_service && has_env
               4
@@ -211,11 +214,6 @@ module Datadog
               0
             end
           end.max
-        end
-
-        def tag_matches?(tags, tag)
-          key, value = tag.split(":", 2)
-          !value.nil? && tags[key] == value
         end
 
         def to_values(profilers, settings)

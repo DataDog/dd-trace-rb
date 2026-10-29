@@ -273,26 +273,24 @@ RSpec.describe Datadog::Profiling::Remote do
         expect(enabled_for([{"service" => "rc-web"}])).to be true
       end
 
-      context "with tags" do
-        before { settings.tags = {"team" => "profiling"} }
+      it "matches any env target when the tracer has no env, as it inherits the agent's env" do
+        settings.env = nil
 
-        it "matches when every tag matches" do
-          expect(enabled_for([{"service" => "web", "tags" => ["team:profiling"]}])).to be true
-        end
+        expect(enabled_for([{"service" => "web", "env" => "staging"}])).to be true
+      end
 
-        it "does not match when a tag differs" do
-          expect(enabled_for([{"service" => "web", "tags" => ["team:tracing"]}])).to be false
-        end
+      it "treats an empty env as no env" do
+        settings.env = ""
 
-        it "does not match a tag without a value" do
-          expect(enabled_for([{"service" => "web", "tags" => ["team"]}])).to be false
-        end
+        expect(enabled_for([{"env" => "staging"}])).to be true
+      end
+
+      it "leaves matching tags to the backend, which sees tags the tracer can't" do
+        expect(enabled_for([{"service" => "web", "tags" => ["host_tag:value"]}])).to be true
       end
     end
 
     describe "merging" do
-      before { settings.tags = {"team" => "profiling"} }
-
       [
         [[{"service" => "web", "env" => "prod"}], [{"service" => "web"}]],
         [[{"service" => "web"}], [{"env" => "prod"}]],
@@ -308,6 +306,17 @@ RSpec.describe Datadog::Profiling::Remote do
 
           expect(settings.profiling.enabled).to be true
         end
+      end
+
+      it "ranks a config by its most specific matching target, ignoring targets that do not match" do
+        contents << profiling_content(
+          "a", profilers: disabled_preset, targets: [{"service" => "web", "env" => "staging"}, {"env" => "prod"}]
+        )
+        contents << profiling_content("b", profilers: default_preset, targets: [{"service" => "web"}])
+
+        apply_configs
+
+        expect(settings.profiling.enabled).to be true
       end
 
       it "merges fields from less specific configs" do

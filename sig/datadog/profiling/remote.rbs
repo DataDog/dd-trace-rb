@@ -47,8 +47,6 @@ module Datadog
 
       def self.specificity: (Array[target] targets, Core::Configuration::Settings settings) -> Integer?
 
-      def self.tag_matches?: (Hash[String, String] tags, String tag) -> bool
-
       def self.to_values: (Hash[String, untyped] profilers, Hash[String, untyped] settings) -> Hash[Symbol, untyped]
 
       def self.apply_values: (Core::Configuration::Settings settings, Hash[Symbol, untyped] values) -> void
