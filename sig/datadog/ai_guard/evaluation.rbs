@@ -7,6 +7,12 @@ module Datadog
 
       private
 
+      def self.filter_extra_entries: (
+        Helpers::json entries
+      ) -> Array[{"key" => String, "value" => Helpers::json}]
+
+      def self.clamp_metastruct_integers: (Helpers::json value) -> Helpers::json
+
       def self.truncate_messages: (Array[Message] messages) -> Array[Message]
 
       def self.truncate_content: (Array[Message::serialized] serialized_messages) -> Array[Message::serialized]

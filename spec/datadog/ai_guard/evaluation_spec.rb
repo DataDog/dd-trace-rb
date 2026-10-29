@@ -2,6 +2,8 @@
 
 require "datadog/tracing/contrib/support/spec_helper"
 
+require "msgpack"
+
 require "datadog/ai_guard/evaluation"
 
 RSpec.describe Datadog::AIGuard::Evaluation do
@@ -165,6 +167,224 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     context "when empty messages array is passed" do
       it "raises ArgumentError" do
         expect { described_class.perform([]) }.to raise_error(ArgumentError, "Messages must not be empty")
+      end
+    end
+
+    context "with backend-provided span data" do
+      subject(:evaluate) do
+        described_class.perform([
+          Datadog::AIGuard.message(role: :user, content: "Hello"),
+        ])
+      end
+
+      let(:action) { "ALLOW" }
+      let(:blocking_enabled) { false }
+      let(:metastruct) { ai_guard_span.get_metastruct_tag("ai_guard") }
+
+      let(:extra_tags) do
+        [
+          {"key" => "ai_guard.evaluate_id", "value" => "evaluation-123"},
+          {"key" => "custom_context.note", "value" => ""},
+        ]
+      end
+
+      let(:extra_metastruct) do
+        [
+          {"key" => "policy_match", "value" => {"rule" => "example", "matches" => []}},
+          {"key" => "flag", "value" => false},
+          {"key" => "empty", "value" => []},
+        ]
+      end
+
+      let(:raw_response) do
+        {
+          "data" => {
+            "id" => "evaluation-123",
+            "attributes" => {
+              "action" => action,
+              "reason" => "Because why not",
+              "tags" => [],
+              "sds_findings" => [],
+              "tag_probs" => {},
+              "is_blocking_enabled" => blocking_enabled,
+              "extra_tags" => extra_tags,
+              "extra_metastruct" => extra_metastruct,
+            },
+          },
+        }
+      end
+
+      it "adds backend data to the intended destinations without changing values" do
+        expect(evaluate.action).to eq("ALLOW")
+
+        expect(ai_guard_span.tags).to include(
+          "ai_guard.evaluate_id" => "evaluation-123",
+          "custom_context.note" => ""
+        )
+        expect(ai_guard_span.tags).not_to include(
+          "ai_guard.ai_guard.evaluate_id", "ai_guard.custom_context.note",
+          "policy_match", "flag", "empty"
+        )
+        expect(metastruct).to include(
+          "policy_match" => {"rule" => "example", "matches" => []},
+          "flag" => false,
+          "empty" => []
+        )
+        expect(metastruct).not_to include("ai_guard.evaluate_id", "custom_context.note")
+      end
+
+      context "when extra_metastruct contains integers outside the MessagePack range" do
+        let(:extra_metastruct) do
+          super() + [
+            {"key" => "large_positive", "value" => 2**64},
+            {"key" => "large_negative", "value" => -(2**63) - 1},
+            {
+              "key" => "nested",
+              "value" => {
+                "values" => [2**64, {"minimum" => -(2**63) - 1}],
+                "bounds" => [-(2**63), (2**64) - 1],
+                "unchanged" => [42, 0.5, "text", true, false, nil],
+              },
+            },
+          ]
+        end
+
+        let(:unpacked_metastruct) do
+          packed_metastruct = MessagePack.pack(ai_guard_span.metastruct)
+          MessagePack.unpack(MessagePack.unpack(packed_metastruct).fetch("ai_guard"))
+        end
+
+        it "clamps out-of-range integers so the metadata can be serialized" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(unpacked_metastruct).to include(
+            "large_positive" => 18_446_744_073_709_551_615,
+            "large_negative" => -9_223_372_036_854_775_808,
+            "nested" => {
+              "values" => [18_446_744_073_709_551_615, {"minimum" => -9_223_372_036_854_775_808}],
+              "bounds" => [-9_223_372_036_854_775_808, 18_446_744_073_709_551_615],
+              "unchanged" => [42, 0.5, "text", true, false, nil],
+            },
+            "policy_match" => {"rule" => "example", "matches" => []},
+            "flag" => false,
+            "empty" => []
+          )
+        end
+      end
+
+      context "when entries are malformed" do
+        let(:extra_tags) do
+          super() + [
+            nil,
+            {"value" => "missing key"},
+            {"key" => "", "value" => "empty key"},
+            {"key" => 1, "value" => "numeric key"},
+            {"key" => "bad.number", "value" => 42},
+            {"key" => "bad.object", "value" => {}},
+            {"key" => "bad.boolean", "value" => true},
+            {"key" => "bad.nil", "value" => nil},
+            {"key" => "custom_context.after_invalid", "value" => "kept"},
+          ]
+        end
+
+        let(:extra_metastruct) do
+          super() + [
+            "not an object",
+            {"key" => "bad.nil", "value" => nil},
+            {"key" => "after_invalid", "value" => true},
+          ]
+        end
+
+        it "skips malformed entries while retaining valid entries" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span).not_to have_error
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.evaluate_id" => "evaluation-123",
+            "custom_context.after_invalid" => "kept"
+          )
+          expect(ai_guard_span.tags).not_to include(
+            "", "1", "bad.number", "bad.object", "bad.boolean", "bad.nil"
+          )
+          expect(metastruct).to include("flag" => false, "after_invalid" => true)
+          expect(metastruct).not_to include("bad.number", "bad.object", "bad.boolean", "bad.nil")
+        end
+      end
+
+      context "when extra_tags is not an array" do
+        let(:extra_tags) { {"ai_guard.policy" => "example"} }
+
+        it "ignores extra_tags while retaining extra_metastruct" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span).not_to have_error
+          expect(ai_guard_span.tags).not_to have_key("ai_guard.policy")
+          expect(metastruct).to include("flag" => false)
+        end
+      end
+
+      context "when extra_metastruct is not an array" do
+        let(:extra_metastruct) { {"policy_match" => {"rule" => "example"}} }
+
+        it "ignores extra_metastruct while retaining extra_tags" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span).not_to have_error
+          expect(ai_guard_span.tags).to include("ai_guard.evaluate_id" => "evaluation-123")
+          expect(metastruct).not_to have_key("policy_match")
+        end
+      end
+
+      context "when entries use reserved keys" do
+        let(:extra_tags) do
+          super() + [
+            {"key" => "ai_guard.action", "value" => "forged"},
+            {"key" => "ai_guard.blocked", "value" => "forged"},
+            {"key" => "_dd.custom", "value" => "forged"},
+            {"key" => "analytics.enabled", "value" => "forged"},
+          ]
+        end
+
+        let(:extra_metastruct) do
+          super() + [
+            {"key" => "messages", "value" => "forged"},
+            {"key" => "attack_categories", "value" => "forged"},
+            {"key" => "sds", "value" => "forged"},
+            {"key" => "tag_probs", "value" => "forged"},
+          ]
+        end
+
+        it "protects tracer-owned fields, including fields that are absent" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.action" => "ALLOW",
+            "ai_guard.evaluate_id" => "evaluation-123"
+          )
+          expect(ai_guard_span.tags).not_to include(
+            "ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr"
+          )
+          expect(metastruct).not_to include("messages", "attack_categories", "sds", "tag_probs")
+          expect(metastruct.fetch(:messages)).to eq([{role: :user, content: "Hello"}])
+          expect(metastruct).to include("flag" => false)
+        end
+      end
+
+      context "when the evaluation blocks" do
+        let(:action) { "DENY" }
+        let(:blocking_enabled) { true }
+
+        it "attaches backend data before raising" do
+          expect { evaluate }.to raise_error(Datadog::AIGuard::AIGuardAbortError)
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.evaluate_id" => "evaluation-123",
+            "ai_guard.blocked" => "true"
+          )
+          expect(metastruct).to include(
+            "policy_match" => {"rule" => "example", "matches" => []}
+          )
+        end
       end
     end
 
