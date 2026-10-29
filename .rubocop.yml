@@ -65,6 +65,16 @@ CustomCops/TimeNowUsageCop:
     # This file defines Utils::Time.now itself, by aliasing the original ::Time.now.
     - "lib/datadog/core/utils/time.rb"
 
+# Flag a rescue added solely to protect a logger/telemetry diagnostic call.
+# logger/telemetry promise not to raise during normal use, so swallowing a
+# hypothetical exception here just hides real bugs (e.g. a broken custom
+# logger, a typo'd method name) instead of surfacing them.
+CustomCops/DiagnosticCallRescueCop:
+  Enabled: true
+  Description: 'Prevents rescuing exceptions solely to protect a logger/telemetry diagnostic call'
+  Include:
+    - "lib/**/*"
+
 # The trailing-comma and leading-comment cops below should stay in sync with
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.

@@ -190,3 +190,74 @@ Run the cop tests with:
 ```bash
 bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
 ```
+
+## DiagnosticCallRescueCop
+
+The `CustomCops::DiagnosticCallRescueCop` flags a `rescue` added solely to protect a `logger`/`telemetry` diagnostic call from raising.
+
+### Purpose
+
+The logger and telemetry components promise not to raise during normal use. Wrapping a bare diagnostic send in a `begin/rescue`, a method-level `rescue`, or a postfix `rescue` just to swallow a hypothetical exception hides real bugs (e.g. a typo'd method name, a broken custom logger) instead of surfacing them, and adds noise reviewers have to re-litigate on every PR.
+
+This cop only flags a rescue when BOTH of the following hold:
+
+- the protected body is *solely* a logger/telemetry diagnostic call: bare (`logger.debug(msg)`), blocked (`logger.debug { msg }`), or simply guarded (`if logger.debug? then logger.debug(msg) end`)
+- every rescue branch is "blind": it never references its exception variable (including inside nested blocks/interpolations/args) and never re-raises (`raise`/`fail`, with or without arguments)
+
+A rescue branch that logs/reports the exception it caught, or re-raises, is not flagged -- it is doing meaningful work, not blindly swallowing. A rescue that protects multiple statements, or a non-diagnostic call, is also not flagged -- this cop only targets the specific "wrap a single diagnostic send just in case" pattern.
+
+### Examples
+
+#### Bad
+
+```ruby
+begin
+  logger.debug("hello")
+rescue
+  nil
+end
+
+telemetry.inc(:namespace, :metric, 1) rescue nil
+
+begin
+  if logger.debug?
+    logger.debug("hello")
+  end
+rescue
+  nil
+end
+```
+
+#### Good
+
+```ruby
+# Rescue branch does meaningful work with the exception.
+begin
+  logger.debug("hello")
+rescue => e
+  telemetry.report(e, description: "hello failed")
+end
+
+# Rescue branch re-raises.
+begin
+  logger.debug("hello")
+rescue
+  raise
+end
+
+# Protected body does more than just the diagnostic call.
+begin
+  crashtracker.report_unhandled_exception(exception)
+  logger.debug("reported")
+rescue => e
+  logger.debug("failed to report: #{e.class}: #{e.message}")
+end
+```
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/diagnostic_call_rescue_cop_spec.rb
+```
