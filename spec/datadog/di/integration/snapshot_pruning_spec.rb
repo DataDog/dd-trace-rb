@@ -3,7 +3,7 @@ require "datadog/di"
 require "json"
 
 # End-to-end coverage for snapshot size pruning: a probe is installed, the
-# target code runs, and the test asserts on the payload actually delivered
+# target code runs, and the test asserts on the payload delivered
 # to the snapshot input endpoint, exercising the real serializer through
 # the real encoder.
 
