@@ -34,8 +34,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
           normalize(
             "/users/:user_id/posts/:id",
             {user_id: "42", id: "7"},
-            "/users/42/posts/7"
-          )
+            "/users/42/posts/7",
+          ),
         ).to eq("/users/{user_id}/posts/{id}")
       end
     end
@@ -74,8 +74,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
           normalize(
             "/archive(/:year(/:month(/:day)))",
             {year: "2024", month: "01", day: "15"},
-            "/archive/2024/01/15"
-          )
+            "/archive/2024/01/15",
+          ),
         ).to eq("/archive/{year}/{month}/{day}")
       end
     end

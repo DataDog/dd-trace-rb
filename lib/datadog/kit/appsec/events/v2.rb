@@ -50,7 +50,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -104,7 +104,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -157,7 +157,7 @@ module Datadog
 
               if trace.nil? || span.nil?
                 return Datadog.logger.warn(
-                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events"
+                  "Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events",
                 )
               end
 
@@ -239,7 +239,7 @@ module Datadog
 
               if telemetry.nil?
                 return Datadog.logger.debug(
-                  "Kit::AppSec: Telemetry component is unavailable. Skip recording SDK metrics"
+                  "Kit::AppSec: Telemetry component is unavailable. Skip recording SDK metrics",
                 )
               end
 

@@ -9,11 +9,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       operation_name: :list_buckets,
       client: double(class: "Aws::S3::Client", config: double(region: "us-west-2")),
       http_request: Seahorse::Client::Http::Request.new(
-        endpoint: URI("http://us-west-2.amazonaws.com.com/")
+        endpoint: URI("http://us-west-2.amazonaws.com.com/"),
       ),
       http_response: Seahorse::Client::Http::Response.new(
-        status_code: 200
-      )
+        status_code: 200,
+      ),
     )
   end
 

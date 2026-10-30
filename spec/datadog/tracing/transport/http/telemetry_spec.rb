@@ -152,7 +152,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
         expect(count("trace_chunks_sent", ruby_tags)).to eq(2)
         expect(metrics.find { |metric| metric[:metric] == "trace_api.bytes" }[:points].first).to be > 0
         expect(metrics.map { |metric| metric[:metric] }).not_to include(
-          "trace_api.responses", "trace_api.errors", "trace_chunks_dropped", "spans_dropped"
+          "trace_api.responses", "trace_api.errors", "trace_chunks_dropped", "spans_dropped",
         )
       end
     end
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
       allow(adapter_response).to receive(:ok?).and_return(nil)
       expect(transport.send_traces(traces).first.ok?).to be_nil
       expect(metrics.map { |metric| metric[:metric] }).to contain_exactly(
-        "spans_enqueued_for_serialization", "trace_api.requests"
+        "spans_enqueued_for_serialization", "trace_api.requests",
       )
     end
 
@@ -192,7 +192,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Telemetry, webmock: true do
       expect(count("trace_chunks_dropped", ruby_tags("reason:send_failure"))).to eq(2)
       expect(count("spans_dropped", ["reason:api_error"])).to eq(traces.sum(&:length))
       expect(metrics.map { |metric| metric[:metric] }).not_to include(
-        "trace_api.responses", "trace_api.errors", "trace_chunks_sent", "trace_api.bytes"
+        "trace_api.responses", "trace_api.errors", "trace_chunks_sent", "trace_api.bytes",
       )
     end
   end

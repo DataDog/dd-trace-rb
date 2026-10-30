@@ -66,7 +66,7 @@ RSpec.describe Datadog::DI::Component do
 
         it "returns nil and warns with the docs URL" do
           expect(logger).to receive(:warn).with(
-            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
@@ -75,7 +75,7 @@ RSpec.describe Datadog::DI::Component do
       context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
         it "returns nil and logs the RC-disabled reason at debug" do
           expect(logger).to receive(:debug).with(
-            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -168,7 +168,7 @@ RSpec.describe Datadog::DI::Component do
 
       it "returns nil and logs at debug without building a component" do
         expect(logger).to receive(:debug).with(
-          a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/)
+          a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/),
         )
         expect(logger).not_to receive(:warn)
         expect(described_class.build(settings, agent_settings, logger)).to be nil
@@ -480,7 +480,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/carrier/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
         let(:unrelated_content) do
@@ -488,7 +488,7 @@ RSpec.describe Datadog::DI::Component do
             {
               path: "datadog/1/APM_TRACING/unrelated/lib_config",
               content: "{not json",
-            }
+            },
           )
         end
 
@@ -555,7 +555,7 @@ RSpec.describe Datadog::DI::Component do
             expect(component.rc_enablement_signal_withdrawn?([])).to be true
 
             expect(messages).to eq(
-              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"]
+              ["APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false"],
             )
           end
 

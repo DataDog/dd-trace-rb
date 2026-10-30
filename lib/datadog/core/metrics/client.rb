@@ -105,7 +105,7 @@ module Datadog
           statsd.count(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send count stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send count stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send count stat")
         end
@@ -119,7 +119,7 @@ module Datadog
           statsd.distribution(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send distribution stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send distribution stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send distribution stat")
         end
@@ -132,7 +132,7 @@ module Datadog
           statsd.increment(stat, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send increment stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send increment stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send increment stat")
         end
@@ -146,7 +146,7 @@ module Datadog
           statsd.gauge(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send gauge stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send gauge stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send gauge stat")
         end
@@ -167,7 +167,7 @@ module Datadog
           rescue => e
             # TODO: Likely to be redundant, since `distribution` handles its own errors.
             logger.error(
-              "Failed to send time stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+              "Failed to send time stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
             )
             telemetry.report(e, description: "Failed to send time stat")
           end
@@ -201,7 +201,7 @@ module Datadog
           IGNORED_STATSD_ONLY_ONCE.run do
             logger.warn(
               "Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. " \
-              "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file."
+              "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file.",
             )
           end
         end

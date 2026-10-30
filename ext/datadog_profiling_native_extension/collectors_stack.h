@@ -10,7 +10,7 @@
 
 // Longest qualified frame name we keep per frame in `sampling_buffer`. Longer names are still reported, they just get
 // composed again on every sample; this bounds the per-thread memory the cache costs (max_frames * this).
-#define MAX_CACHED_FRAME_NAME 64
+#define MAX_CACHED_FRAME_NAME 96
 
 // Per thread, where we store the stack sample
 typedef struct {

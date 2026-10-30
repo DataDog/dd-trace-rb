@@ -84,7 +84,7 @@ RSpec.describe "Faraday SSRF Injection" do
             response = client.get("/")
 
             [200, {"Content-Type" => "application/json"}, [response.status.to_s]]
-          end
+          end,
         )
       end
     end

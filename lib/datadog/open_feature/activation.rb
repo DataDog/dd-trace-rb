@@ -261,7 +261,7 @@ module Datadog
           @failure = "Feature Flags Remote Configuration is unavailable"
           @logger.warn(
             "#{@failure}. To enable Remote Configuration, " \
-              "see https://docs.datadoghq.com/remote_configuration/."
+              "see https://docs.datadoghq.com/remote_configuration/.",
           )
           return false
         end

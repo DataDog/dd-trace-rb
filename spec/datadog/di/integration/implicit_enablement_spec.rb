@@ -130,7 +130,7 @@ RSpec.describe "DI implicit enablement integration" do
       {
         path: "datadog/1/APM_TRACING/lib_config/config",
         content: raw_content,
-      }
+      },
     )
     repository = instance_double(
       Datadog::Core::Remote::Configuration::Repository,
@@ -449,7 +449,7 @@ RSpec.describe "DI implicit enablement integration" do
     # Poll N: only the LIVE_DEBUGGING probe (DI still stopped).
     let(:poll_with_probe_only) do
       DIHelpers::TestRemoteConfigGenerator.new(
-        {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec}
+        {"datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec},
       ).mock_response
     end
 
@@ -459,7 +459,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
           "datadog/2/APM_TRACING/lib_config/config" => {"lib_config" => {"dynamic_instrumentation_enabled" => true}},
-        }
+        },
       ).mock_response
     end
 
@@ -496,7 +496,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
           content: JSON.dump(hash),
-        }
+        },
       )
     end
 
@@ -674,7 +674,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           path: "datadog/1/APM_TRACING/unrelated/lib_config",
           content: "{not json",
-        }
+        },
       )
     end
     let(:repository) do
@@ -725,7 +725,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           path: "datadog/1/APM_TRACING/unrelated/lib_config",
           content: "{not json",
-        }
+        },
       )
     end
     let(:withdrawal_repository) do
@@ -800,7 +800,7 @@ RSpec.describe "DI implicit enablement integration" do
 
     let(:poll_without_enable) do
       DIHelpers::TestRemoteConfigGenerator.new(
-        {"datadog/2/ASM_DATA/blocked_ips/config" => {"rules_data" => []}}
+        {"datadog/2/ASM_DATA/blocked_ips/config" => {"rules_data" => []}},
       ).mock_response
     end
 
@@ -868,7 +868,7 @@ RSpec.describe "DI implicit enablement integration" do
         {
           path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
           content: raw_content,
-        }
+        },
       )
     end
 
@@ -955,7 +955,7 @@ RSpec.describe "DI implicit enablement integration" do
 
     let(:poll_without_probe) do
       DIHelpers::TestRemoteConfigGenerator.new(
-        {"datadog/2/APM_TRACING/lib_config/config" => rc_payload_enable}
+        {"datadog/2/APM_TRACING/lib_config/config" => rc_payload_enable},
       ).mock_response
     end
 

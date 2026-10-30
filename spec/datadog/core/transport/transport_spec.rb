@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Transport::Transport do
     let(:apis) do
       Datadog::Core::Transport::HTTP::API::Map[
         v2: api_v2,
-        v1: api_v1
+        v1: api_v1,
       ].with_fallbacks(v2: :v1)
     end
 

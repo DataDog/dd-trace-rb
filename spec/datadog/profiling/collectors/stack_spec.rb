@@ -101,7 +101,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(label: end_with("_native_sample")),
           have_attributes(label: end_with("sample")),
           have_attributes(label: end_with("sample_and_decode")),
-        ]
+        ],
       )
       super()[3..-1]
     end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             %(
             ready_queue << true
             sleep
-          )
+          ),
           )
         end
       end
@@ -814,7 +814,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           ),
           binding,
           filename,
-          123456
+          123456,
         )
         # rubocop:enable Security/Eval
         # rubocop:enable Style/EvalWithLocation
@@ -826,7 +826,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(
             path: filename,
             label: end_with("_app_views_layouts_explore_html_haml"),
-          )
+          ),
         )
       end
 
@@ -838,7 +838,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(
               path: filename,
               label: end_with("_app_views_layouts_explore_html_haml"),
-            )
+            ),
           )
         end
       end
@@ -885,7 +885,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             ),
             binding,
             filename,
-            123456
+            123456,
           )
           # rubocop:enable Security/Eval
           # rubocop:enable Style/EvalWithLocation
@@ -897,7 +897,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(
               path: filename,
               label: end_with("_app_views_layouts_explore_html_haml (block)"),
-            )
+            ),
           )
         end
 
@@ -909,7 +909,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
               have_attributes(
                 path: filename,
                 label: end_with("_app_views_layouts_explore_html_haml"),
-              )
+              ),
             )
           end
         end
@@ -929,7 +929,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
                 end
               ),
               filename,
-              123456
+              123456,
             )
             # rubocop:enable Style/DocumentDynamicEvalDefinition
             # rubocop:enable Style/EvalWithLocation
@@ -943,7 +943,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
               have_attributes(
                 path: filename,
                 label: "DummyTemplateClass#_app_views_layouts_explore_html_haml (block)",
-              )
+              ),
             )
           end
         end
@@ -1026,7 +1026,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     def sample_class_three_times(klass)
       recorder = Datadog::Profiling::StackRecorder.for_testing
       thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
-        recorder: recorder, show_classes: show_classes
+        recorder: recorder, show_classes: show_classes,
       )
 
       3.times do
@@ -1203,7 +1203,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           write_finish_pipe.close
           read_finish_pipe.read
           read_finish_pipe.close
-        end
+        end,
       )
     end
 
@@ -1456,7 +1456,7 @@ class DeepStackSimulator
       ),
         binding,
         __FILE__,
-        __LINE__ - 12
+        __LINE__ - 12,
       )
       # rubocop:enable Security/Eval
     end

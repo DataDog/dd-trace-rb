@@ -16,7 +16,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
         def index
           head :ok
         end
-      end
+      end,
     )
   end
 
@@ -51,7 +51,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
             def call(env)
               @app.call(env)
             end
-          end
+          end,
         )
       end
 
@@ -88,7 +88,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
                 @app.call(env)
               end
             end
-          end
+          end,
         )
       end
 
@@ -133,7 +133,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
               @app.call(env)
               raise NotImplementedError
             end
-          end
+          end,
         )
       end
 
@@ -179,7 +179,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
               @app.call(env)
               raise ActionController::RoutingError, "/missing_route"
             end
-          end
+          end,
         )
       end
 
@@ -221,7 +221,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
             def message
               "Custom error message!"
             end
-          end
+          end,
         )
       end
 
@@ -240,7 +240,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
               @app.call(env)
               raise CustomError
             end
-          end
+          end,
         )
       end
 
@@ -277,7 +277,7 @@ RSpec.describe "Rails middleware", execute_in_fork: Rails.version.to_i >= 8 do
           proc do
             instance_exec(&super_block)
             config.action_dispatch.rescue_responses.merge!(
-              "CustomError" => :not_found
+              "CustomError" => :not_found,
             )
           end
         end

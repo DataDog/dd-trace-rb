@@ -42,7 +42,7 @@ module Datadog
           if headers && header_name
             return Datadog::Core::Utils::Network.stripped_ip_from_request_headers(
               headers,
-              ip_headers_to_check: Array(header_name)
+              ip_headers_to_check: Array(header_name),
             )
           end
 

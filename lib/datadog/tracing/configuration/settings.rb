@@ -57,7 +57,7 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
-                  ]
+                  ],
                 )
                 o.after_set do |styles|
                   next unless styles.is_a?(::Array)
@@ -457,7 +457,7 @@ module Datadog
                           "Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only " \
                             "DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when " \
                             "also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. " \
-                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
+                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}",
                         )
                       end
                       rules
@@ -468,7 +468,7 @@ module Datadog
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
                           "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
-                          "No span sampling rules will be applied."
+                          "No span sampling rules will be applied.",
                         )
                         nil
                       end
