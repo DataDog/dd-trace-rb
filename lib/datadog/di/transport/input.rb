@@ -9,6 +9,7 @@ require_relative "../../core/transport/transport"
 require_relative "../error"
 require_relative "../fatal_exceptions"
 require_relative "../guardrails_telemetry"
+require_relative "../snapshot_encoder"
 require_relative "http/input"
 
 module Datadog
@@ -35,23 +36,22 @@ module Datadog
           #
           # @param apis [Datadog::Core::Transport::HTTP::API::Map] API instances by name
           # @param default_api [String] name of the API requests are sent through when unspecified
-          # @param logger [Datadog::Core::Logger] logger for transport diagnostics
+          # @param logger [DI::Logger] logger for transport diagnostics
           # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical payload-drop metric
           # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
           # @return [void]
           def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
-            super(apis, default_api, logger: logger)
+            # The DI logger, passed through an untyped variable because
+            # the base class's logger parameter is typed as a core logger.
+            # @type var base_logger: untyped
+            base_logger = logger
+            super(apis, default_api, logger: base_logger)
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
           end
 
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
-          #
-          # TODO There is an RFC for snapshot pruning that should be
-          # implemented to reduce the size of snapshots to be below this
-          # limit, so that we can send a portion of the captured data
-          # rather than dropping the snapshot entirely.
           MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
 
           # The maximum chunk (batch) size that intake permits is 5 MB.
@@ -72,14 +72,18 @@ module Datadog
           # and exception, allowing the caller to disable the affected probe.
           # Successfully serialized snapshots are still sent.
           #
-          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
-          # of ~2MB each to avoid large network requests.
+          # Large snapshots (> 1MB) are pruned to fit, or dropped when pruning
+          # leaves them above the cap. Batches are split into chunks of
+          # ~2MB each to avoid large network requests.
           #
           # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
           # @param tags [Hash] Tags to send with the snapshots
           # @param on_serialization_error [Proc] Called with (probe_id, exception)
           #   when a snapshot fails to serialize.
-          # @return [Array<SnapshotEvent>] the events that were sent
+          # @return [Array<SnapshotEvent>] the +payload+ argument, after
+          #   best-effort delivery of the encoded snapshots
+          # @raise [Exception] fatal exceptions (SystemExit,
+          #   SignalException, NoMemoryError) are re-raised
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
@@ -87,15 +91,24 @@ module Datadog
             encoded_snapshots = []
             dropped_events = []
             payload.each do |event|
-              encoded = encoder.encode(event.payload)
-              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+              result = SnapshotEncoder.encode(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE)
+              if result.encoded.nil?
                 logger.debug do
-                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
+                  "di: dropping snapshot: pruning cannot bring it within the " \
+                    "#{MAX_SERIALIZED_SNAPSHOT_SIZE}-byte limit (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                dropped_events << [event, encoded.bytesize]
+                dropped_events << [event, result.bytes]
                 next
               end
-              encoded_snapshots << encoded
+              if result.pruned
+                logger.trace { "di: pruned snapshot to fit size cap" }
+                # The prune counter reports through the tracer-specific
+                # metric snapshots_pruned_by_payload_size. Other tracers
+                # report a payload trimmed to fit with the shared
+                # capture.incomplete metric (reason payloadTooLarge).
+                telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
+              end
+              encoded_snapshots << result.encoded
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
@@ -127,7 +140,8 @@ module Datadog
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
-              # We drop snapshots that are too big earlier.
+              # Snapshots that are too big are pruned to fit earlier, and
+              # each encoded snapshot is at most MAX_SERIALIZED_SNAPSHOT_SIZE.
               # The limit on chunked payload length here is greater
               # than the limit on snapshot size, therefore no chunks
               # can exceed limits here.

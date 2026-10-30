@@ -26,7 +26,7 @@ module Datadog
           def initialize: (
             Datadog::Core::Transport::HTTP::API::Map apis,
             ::String default_api,
-            logger: Datadog::Core::Logger,
+            logger: DI::Logger,
             guardrails_telemetry: DI::GuardrailsTelemetry,
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void
@@ -36,6 +36,8 @@ module Datadog
           def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 
           def encoder: () -> singleton(Core::Encoding::JSONEncoder)
+
+          def logger: () -> DI::Logger
         end
       end
     end

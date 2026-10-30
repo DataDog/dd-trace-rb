@@ -208,6 +208,16 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 }
 #endif
 
+/*
+ * call-seq:
+ *   DI::Testing._native_imemo_mask -> Integer
+ *
+ * Returns the imemo type bit mask this extension compiled against, so
+ * specs can cross-check it against the value the profiling extension
+ * observes; the mask layout shifts on Ruby 4.1+ (HAVE_SHIFTED_IMEMO_MASK).
+ *
+ * @api private
+ */
 static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
   return INT2NUM(IMEMO_MASK);
 }

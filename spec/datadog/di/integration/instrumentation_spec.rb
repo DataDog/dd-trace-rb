@@ -2055,7 +2055,9 @@ RSpec.describe "Instrumentation integration" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
-            be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+            be_between(1, 2_000), tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect_lazy_log(logger, :debug,
+            "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
 
           probe_manager.add_probe(probe)
 
