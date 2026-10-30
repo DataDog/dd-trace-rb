@@ -24,7 +24,6 @@ module Datadog
         # the configured DD_HOSTNAME if set, otherwise the system hostname.
         # Returns nil when `report_hostname` is disabled or no hostname is available.
         def resolved_hostname(settings)
-          # @type self: singleton(Datadog::Core::Environment::Socket)
           return nil unless settings.tracing.report_hostname
 
           configured = settings.hostname

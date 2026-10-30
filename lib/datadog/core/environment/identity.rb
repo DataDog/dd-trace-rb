@@ -47,7 +47,6 @@ module Datadog
         end
 
         def runtime_propagation_envs
-          # @type self: Datadog::Core::Environment::Identity
           {ENV_ROOT_SESSION_ID => root_runtime_id || id, ENV_PARENT_SESSION_ID => id}.freeze
         end
 
