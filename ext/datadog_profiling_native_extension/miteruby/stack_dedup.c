@@ -72,7 +72,7 @@ static void *unique_stacks_calloc(size_t size);
 // we want to manage them carefully.
 //
 // Even though conceptually CME and ISEQs are VALUEs that need marking for Ruby GC, the consumer tracks them separately
-// in `verstable_objects_to_mark_set` so we don't need to mark them again here.
+// in `verstable_mark_cme_iseq_set` so we don't need to mark them again here.
 
 typedef struct {
   verstable_unique_stacks_set unique_stacks;
@@ -201,9 +201,9 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
 }
 
 // This weird thing currently exists because we:
-// 1. Check if the stack exists, and store it
-// 2. If it didn't exist, try to add every VALUE to `objects_to_mark_set` (caller)
-// 3. In step 2 we might run out of space. So this allows us to back out of 1 if step 2 fails.
+// 1. Check if the stack exists, and store it if it doesn't
+// 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ to `mark_cme_iseq_set` (caller)
+// 3. In step 2 either set might run out of space. So this allows us to back out of 1 if step 2 fails.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
   verstable_unique_stacks_set_erase(&stack_dedup_state.unique_stacks, (stack_key) {
     .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),

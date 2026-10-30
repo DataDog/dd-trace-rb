@@ -35,7 +35,7 @@ static void *thread_contexts_alloc(size_t size) {
 #define FREE_FN miteruby_allocator_free_sized
 #include "verstable.h"
 
-// Ruby thread keys are marked and pinned via objects_to_mark.
+// Ruby thread keys are marked and pinned via mark_threads_set.
 static verstable_thread_contexts_map thread_contexts;
 static bool thread_contexts_initialized = false;
 
