@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6596",
+  "message": "Require C11 (`-std=gnu11`) support to build native extensions on Linux."
+}
