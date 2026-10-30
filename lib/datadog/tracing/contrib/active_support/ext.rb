@@ -23,6 +23,7 @@ module Datadog
           TAG_CACHE_BACKEND = "rails.cache.backend"
           TAG_CACHE_KEY = "rails.cache.key"
           TAG_CACHE_KEY_MULTI = "rails.cache.keys"
+          TAG_CACHE_NAMESPACE = "rails.cache.namespace"
           TAG_COMPONENT = "active_support"
           TAG_OPERATION_CACHE = "cache"
         end
