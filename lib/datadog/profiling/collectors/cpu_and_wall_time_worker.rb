@@ -224,7 +224,7 @@ module Datadog
             @worker_state.failed!(e)
             Datadog.logger.warn(
               "Miteruby consumer thread error. " \
-              "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+              "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
             )
             Datadog::Core::Telemetry::Logger.report(e, description: "Miteruby consumer thread error")
           end
