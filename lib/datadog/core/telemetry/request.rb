@@ -28,6 +28,16 @@ module Datadog
 
           private
 
+          # The `ci` settings member exists only when the datadog-ci gem is
+          # loaded; respond_to? covers that at runtime but Steep cannot
+          # narrow it, hence the cast.
+          def datadog_ci_enabled?(config)
+            return false unless defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci)
+
+            ci_settings = config.send(:ci) #: Datadog::CI::Configuration::Settings::_CiSettings
+            ci_settings.enabled
+          end
+
           def application
             config = Datadog.configuration
 
@@ -38,11 +48,7 @@ module Datadog
             #
             # This code checks that Datadog::CI is loaded and ci mode is enabled and adds
             # "-ci-X.Y.Z" suffix to the tracer version.
-            # `ci` settings are only defined when the datadog-ci gem is loaded; the
-            # respond_to? guard covers that but Steep cannot narrow it.
-            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled # steep:ignore NoMethod
-              tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
-            end
+            tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}" if datadog_ci_enabled?(config)
 
             app = {
               env: config.env,

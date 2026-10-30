@@ -1,5 +1,16 @@
+# Grounded in datadog-ci's lib/datadog/ci/configuration/settings.rb: `settings :ci`
+# registers a nested settings object exposing an `enabled` bool option on
+# Datadog.configuration when the gem is loaded.
 module Datadog
   module CI
+    module Configuration
+      class Settings
+        interface _CiSettings
+          def enabled: () -> bool
+        end
+      end
+    end
+
     module VERSION
       STRING: String
     end
