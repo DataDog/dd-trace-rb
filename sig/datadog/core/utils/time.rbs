@@ -7,7 +7,7 @@ module Datadog
         def self.original_clock_gettime: (Symbol | Integer clock_id,
              :float_second | :float_millisecond | :float_microsecond | :second | :millisecond | :microsecond | :nanosecond unit) -> (Float | Integer)
 
-        def self.get_time: () -> Float
+        def self.get_time: (?:float_second unit) -> Float
                            | (:float_second | :float_millisecond | :float_microsecond unit) -> Float
                            | (:second | :millisecond | :microsecond | :nanosecond unit) -> Integer
 
