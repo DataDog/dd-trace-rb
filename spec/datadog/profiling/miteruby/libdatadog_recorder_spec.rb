@@ -63,6 +63,22 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
       expect(decode_profile(custom).sample.size).to eq(2)
     end
 
+    it "preserves empty frame names, zero line numbers, and repeated locations in a stack" do
+      record_sample(frames: [["", "", 0]] * 400, values: [0, 0, 0, 0, 0, 0])
+
+      _, custom = equivalent_profiles
+      profile = decode_profile(custom)
+      expect(profile.string_table.first).to eq("")
+      expect(profile.sample.first.location_id).to eq([1] * 400)
+      expect(profile.sample.first.value).to eq([0, 0, 0, 0, 0, 0])
+      expect(profile.location.size).to eq(1)
+      expect(profile.location.first.line.size).to eq(1)
+      expect(profile.location.first.line.first.line).to eq(0)
+      expect(profile.function.size).to eq(1)
+      expect(profile.function.first.name).to eq(0)
+      expect(profile.function.first.filename).to eq(0)
+    end
+
     it "owns recorded strings and encoded bytes across garbage collection and subsequent flushes" do
       150.times do |index|
         name = "frame #{index}"
