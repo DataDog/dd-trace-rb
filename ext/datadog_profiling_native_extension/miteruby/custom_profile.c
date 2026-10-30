@@ -1,7 +1,7 @@
 #include "custom_profile.h"
 #include "../datadog_ruby_common.h"
 #include "pprof/pb_encode.h"
-#include "pprof/pprof.pb.h"
+#include "pprof/pprof_fragments.pb.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +31,7 @@ typedef struct {
 } integers;
 
 typedef struct {
-  perftools_profiles_Sample message;
+  miteruby_pprof_fragment_sample_t message;
   integers locations;
   integers values;
   messages labels;
@@ -41,7 +41,6 @@ typedef struct {
 struct custom_profile {
   allocation *allocations;
   messages strings;
-  messages mappings;
   messages functions;
   messages locations;
   messages samples;
@@ -71,10 +70,9 @@ static void append(messages *array, void *item) {
 custom_profile *custom_profile_new(void) {
   custom_profile *profile = calloc(1, sizeof(custom_profile));
   if (profile == NULL) rb_memerror();
-  profile->mappings.fields = perftools_profiles_Mapping_fields;
-  profile->functions.fields = perftools_profiles_Function_fields;
-  profile->locations.fields = perftools_profiles_Location_fields;
-  profile->samples.fields = perftools_profiles_Sample_fields;
+  profile->functions.fields = MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS;
+  profile->locations.fields = MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS;
+  profile->samples.fields = MITERUBY_PPROF_FRAGMENT_SAMPLE_FIELDS;
   return profile;
 }
 
@@ -85,7 +83,6 @@ void custom_profile_free(custom_profile *profile) {
     free(item->labels.items);
   }
   free(profile->strings.items);
-  free(profile->mappings.items);
   free(profile->functions.items);
   free(profile->locations.items);
   free(profile->samples.items);
@@ -142,10 +139,6 @@ static bool encode_integers(pb_ostream_t *stream, const pb_field_t *field, void 
   return true;
 }
 
-static bool encode_line(pb_ostream_t *stream, const pb_field_t *field, void *const *arg) {
-  return pb_encode_tag_for_field(stream, field) && pb_encode_submessage(stream, perftools_profiles_Line_fields, *arg);
-}
-
 static bool encode_strings(pb_ostream_t *stream, const pb_field_t *field, void *const *arg) {
   const messages *strings = *arg;
   for (size_t i = 0; i < strings->count; i++) {
@@ -155,58 +148,37 @@ static bool encode_strings(pb_ostream_t *stream, const pb_field_t *field, void *
   return true;
 }
 
-static uint64_t intern_mapping(custom_profile *profile, ddog_prof_Mapping mapping) {
-  if (!(mapping.memory_start || mapping.memory_limit || mapping.file_offset || mapping.filename.len || mapping.build_id.len)) return 0;
-  perftools_profiles_Mapping value = {
-    .memory_start = mapping.memory_start, .memory_limit = mapping.memory_limit, .file_offset = mapping.file_offset,
-    .filename = intern_string(profile, mapping.filename), .build_id = intern_string(profile, mapping.build_id),
-  };
-  for (size_t i = 0; i < profile->mappings.count; i++) {
-    perftools_profiles_Mapping *existing = profile->mappings.items[i];
-    if (existing->memory_start == value.memory_start && existing->memory_limit == value.memory_limit &&
-        existing->file_offset == value.file_offset && existing->filename == value.filename && existing->build_id == value.build_id) return existing->id;
-  }
-  perftools_profiles_Mapping *copy = allocate(profile, 1, sizeof(*copy));
-  *copy = value;
-  copy->id = profile->mappings.count + 1;
-  append(&profile->mappings, copy);
-  return copy->id;
-}
-
 static uint64_t intern_function(custom_profile *profile, ddog_prof_Function function) {
-  perftools_profiles_Function value = {
-    .name = intern_string(profile, function.name), .system_name = intern_string(profile, function.system_name),
-    .filename = intern_string(profile, function.filename),
+  miteruby_pprof_fragment_function_function_t value = {
+    .name = intern_string(profile, function.name), .filename = intern_string(profile, function.filename),
   };
   for (size_t i = 0; i < profile->functions.count; i++) {
-    perftools_profiles_Function *existing = profile->functions.items[i];
-    if (existing->name == value.name && existing->system_name == value.system_name && existing->filename == value.filename) return existing->id;
+    miteruby_pprof_fragment_function_t *existing = profile->functions.items[i];
+    if (existing->function.name == value.name && existing->function.filename == value.filename) return existing->function.id;
   }
-  perftools_profiles_Function *copy = allocate(profile, 1, sizeof(*copy));
-  *copy = value;
-  copy->id = profile->functions.count + 1;
+  miteruby_pprof_fragment_function_t *copy = allocate(profile, 1, sizeof(*copy));
+  *copy = (miteruby_pprof_fragment_function_t) {.has_function = true, .function = value};
+  copy->function.id = profile->functions.count + 1;
   append(&profile->functions, copy);
-  return copy->id;
+  return copy->function.id;
 }
 
 static uint64_t intern_location(custom_profile *profile, ddog_prof_Location location) {
-  uint64_t mapping_id = intern_mapping(profile, location.mapping);
   uint64_t function_id = intern_function(profile, location.function);
   for (size_t i = 0; i < profile->locations.count; i++) {
-    perftools_profiles_Location *existing = profile->locations.items[i];
-    perftools_profiles_Line *line = existing->line.arg;
-    if (existing->mapping_id == mapping_id && existing->address == location.address &&
-        line->function_id == function_id && line->line == location.line) return existing->id;
+    miteruby_pprof_fragment_location_t *existing = profile->locations.items[i];
+    if (existing->location.line.function_id == function_id && existing->location.line.line == location.line) return existing->location.id;
   }
-  perftools_profiles_Location *copy = allocate(profile, 1, sizeof(*copy));
-  perftools_profiles_Line *line = allocate(profile, 1, sizeof(*line));
-  *line = (perftools_profiles_Line) {.function_id = function_id, .line = location.line};
-  *copy = (perftools_profiles_Location) {
-    .id = profile->locations.count + 1, .mapping_id = mapping_id, .address = location.address,
-    .line = {.funcs.encode = encode_line, .arg = line},
+  miteruby_pprof_fragment_location_t *copy = allocate(profile, 1, sizeof(*copy));
+  *copy = (miteruby_pprof_fragment_location_t) {
+    .has_location = true,
+    .location = {
+      .id = profile->locations.count + 1, .has_line = true,
+      .line = {.function_id = function_id, .line = location.line},
+    },
   };
   append(&profile->locations, copy);
-  return copy->id;
+  return copy->location.id;
 }
 
 static bool same_sample(sample *a, sample *b) {
@@ -215,9 +187,9 @@ static bool same_sample(sample *a, sample *b) {
     if (a->locations.items[i] != b->locations.items[i]) return false;
   }
   for (size_t i = 0; i < a->labels.count; i++) {
-    perftools_profiles_Label *left = a->labels.items[i];
-    perftools_profiles_Label *right = b->labels.items[i];
-    if (left->key != right->key || left->str != right->str || left->num != right->num || left->num_unit != right->num_unit) return false;
+    miteruby_pprof_fragment_sample_sample_label_t *left = a->labels.items[i];
+    miteruby_pprof_fragment_sample_sample_label_t *right = b->labels.items[i];
+    if (left->key != right->key || left->str != right->str || left->num != right->num) return false;
   }
   return true;
 }
@@ -225,26 +197,26 @@ static bool same_sample(sample *a, sample *b) {
 void custom_profile_record_sample(custom_profile *profile, ddog_prof_Sample input, int64_t timestamp) {
   initialize_strings(profile);
   sample *item = allocate(profile, 1, sizeof(*item));
-  item->labels.fields = perftools_profiles_Label_fields;
+  item->labels.fields = MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS;
   item->timestamp = timestamp;
   item->locations = (integers) {.count = input.locations.len, .items = allocate(profile, input.locations.len, sizeof(uint64_t))};
   item->values = (integers) {.count = input.values.len, .items = allocate(profile, input.values.len, sizeof(uint64_t))};
-  item->message = (perftools_profiles_Sample) {
-    .location_id = {.funcs.encode = encode_integers, .arg = &item->locations},
-    .value = {.funcs.encode = encode_integers, .arg = &item->values},
-    .label = {.funcs.encode = encode_messages, .arg = &item->labels},
+  item->message = (miteruby_pprof_fragment_sample_t) {
+    .has_sample = true,
+    .sample = {
+      .location_id = {.funcs.encode = encode_integers, .arg = &item->locations},
+      .value = {.funcs.encode = encode_integers, .arg = &item->values},
+      .label = {.funcs.encode = encode_messages, .arg = &item->labels},
+    },
   };
   // Attach before any further allocations so cleanup also owns partially built samples.
   append(&profile->samples, item);
   for (size_t i = 0; i < input.labels.len; i++) {
     ddog_prof_Label label = input.labels.ptr[i];
-    perftools_profiles_Label *copy = allocate(profile, 1, sizeof(*copy));
+    miteruby_pprof_fragment_sample_sample_label_t *copy = allocate(profile, 1, sizeof(*copy));
     copy->key = intern_string(profile, label.key);
     if (label.str.len) copy->str = intern_string(profile, label.str);
-    else {
-      copy->num = label.num;
-      copy->num_unit = intern_string(profile, label.num_unit);
-    }
+    else copy->num = label.num;
     append(&item->labels, copy);
   }
   for (size_t i = 0; i < input.locations.len; i++) item->locations.items[i] = intern_location(profile, input.locations.ptr[i]);
@@ -269,11 +241,33 @@ static void add_timestamps(custom_profile *profile) {
   for (size_t i = 0; i < profile->samples.count; i++) {
     sample *item = profile->samples.items[i];
     if (item->timestamp) {
-      perftools_profiles_Label *extra = allocate(profile, 1, sizeof(*extra));
-      *extra = (perftools_profiles_Label) {.key = END_TIMESTAMP_NS, .num = item->timestamp};
+      miteruby_pprof_fragment_sample_sample_label_t *extra = allocate(profile, 1, sizeof(*extra));
+      *extra = (miteruby_pprof_fragment_sample_sample_label_t) {.key = END_TIMESTAMP_NS, .num = item->timestamp};
       append(&item->labels, extra);
     }
   }
+}
+
+static bool encode_fragments(pb_ostream_t *stream, const messages *array) {
+  for (size_t i = 0; i < array->count; i++) {
+    if (!pb_encode(stream, array->fields, array->items[i])) return false;
+  }
+  return true;
+}
+
+static bool encode_profile(
+  pb_ostream_t *stream, custom_profile *profile, const messages *sample_types,
+  const miteruby_pprof_fragment_profile_t *metadata
+) {
+  miteruby_pprof_fragment_string_table_t strings = {
+    .string_table = {.funcs.encode = encode_strings, .arg = &profile->strings},
+  };
+  return encode_fragments(stream, sample_types) &&
+    encode_fragments(stream, &profile->samples) &&
+    encode_fragments(stream, &profile->locations) &&
+    encode_fragments(stream, &profile->functions) &&
+    pb_encode(stream, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_FIELDS, &strings) &&
+    pb_encode(stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, metadata);
 }
 
 VALUE custom_profile_serialize(custom_profile *profile, VALUE start, VALUE finish) {
@@ -281,33 +275,31 @@ VALUE custom_profile_serialize(custom_profile *profile, VALUE start, VALUE finis
   add_timestamps(profile);
   const char *names[] = {"cpu-time", "cpu-samples", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline"};
   const char *units[] = {"nanoseconds", "count", "nanoseconds", "count", "count", "nanoseconds"};
-  perftools_profiles_ValueType types[6];
+  miteruby_pprof_fragment_sample_type_t types[6];
   void *type_pointers[6];
   for (size_t i = 0; i < 6; i++) {
-    types[i] = (perftools_profiles_ValueType) {
-      .type = intern_string(profile, (ddog_CharSlice) {.ptr = names[i], .len = strlen(names[i])}),
-      .unit = intern_string(profile, (ddog_CharSlice) {.ptr = units[i], .len = strlen(units[i])}),
+    types[i] = (miteruby_pprof_fragment_sample_type_t) {
+      .has_sample_type = true,
+      .sample_type = {
+        .type = intern_string(profile, (ddog_CharSlice) {.ptr = names[i], .len = strlen(names[i])}),
+        .unit = intern_string(profile, (ddog_CharSlice) {.ptr = units[i], .len = strlen(units[i])}),
+      },
     };
     type_pointers[i] = &types[i];
   }
-  messages sample_types = {.items = type_pointers, .count = 6, .fields = perftools_profiles_ValueType_fields};
+  messages sample_types = {.items = type_pointers, .count = 6, .fields = MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS};
   struct timespec start_time = rb_time_timespec(start), finish_time = rb_time_timespec(finish);
   int64_t time_ns = start_time.tv_sec * INT64_C(1000000000) + start_time.tv_nsec;
   int64_t duration_ns = (finish_time.tv_sec - start_time.tv_sec) * INT64_C(1000000000) + finish_time.tv_nsec - start_time.tv_nsec;
-  perftools_profiles_Profile message = {
-    .sample_type = {.funcs.encode = encode_messages, .arg = &sample_types},
-    .sample = {.funcs.encode = encode_messages, .arg = &profile->samples},
-    .mapping = {.funcs.encode = encode_messages, .arg = &profile->mappings},
-    .location = {.funcs.encode = encode_messages, .arg = &profile->locations},
-    .function = {.funcs.encode = encode_messages, .arg = &profile->functions},
-    .string_table = {.funcs.encode = encode_strings, .arg = &profile->strings},
+  miteruby_pprof_fragment_profile_t metadata = {
     .time_nanos = time_ns, .duration_nanos = duration_ns > 0 ? duration_ns : 0,
   };
-  size_t size;
-  if (!pb_get_encoded_size(&size, perftools_profiles_Profile_fields, &message)) rb_raise(rb_eRuntimeError, "Failed to size custom pprof");
+  pb_ostream_t sizing = PB_OSTREAM_SIZING;
+  if (!encode_profile(&sizing, profile, &sample_types, &metadata)) rb_raise(rb_eRuntimeError, "Failed to size custom pprof");
+  size_t size = sizing.bytes_written;
   void *bytes = allocate(profile, size, 1);
   pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
-  if (!pb_encode(&stream, perftools_profiles_Profile_fields, &message)) rb_raise(rb_eRuntimeError, "Failed to encode custom pprof: %s", PB_GET_ERROR(&stream));
+  if (!encode_profile(&stream, profile, &sample_types, &metadata)) rb_raise(rb_eRuntimeError, "Failed to encode custom pprof: %s", PB_GET_ERROR(&stream));
   size_t capacity = ZSTD_compressBound(size);
   if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
   void *compressed = allocate(profile, capacity, 1);
