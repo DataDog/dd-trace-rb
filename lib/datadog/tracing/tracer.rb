@@ -282,6 +282,17 @@ module Datadog
         # expliclity finish the trace after the block finishes.
         auto_finish = !block
 
+        # DEV-3.0 change auto_finish to true on `digest == nil`.
+        # Without this, a trace started inside `continue_trace!`
+        # does not finish when its root span finishes, causing
+        # new root spans inside the `continue_trace!` block
+        # to be part of the previous trace (a trace with two root spans!):
+        # `continue_trace!(nil) { trace("root") {}; trace("another root!") {} }`
+        # Enabling auto_finish in this case would match normal
+        # trace lifecycle behavior.
+        # This issue does not affect `digest != nil` because the digest
+        # carries the effective root span of spans created inside `continue_trace!`s
+        # block.
         trace = start_trace(continue_from: digest, auto_finish: auto_finish)
 
         # If block hasn't been given; we need to manually deactivate
