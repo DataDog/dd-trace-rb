@@ -2206,7 +2206,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       recorded_miteruby_samples
       expect(cpu_and_wall_time_worker.stats).to include(
-        consumed_stats.merge(miteruby_consumed_events_buffer_used_size_bytes: 0, miteruby_thread_contexts_entries: 1)
+        consumed_stats.merge(miteruby_consumed_events_buffer_used_size_bytes: 0, miteruby_thread_contexts_entries: 1),
       )
 
       capture_miteruby {}
