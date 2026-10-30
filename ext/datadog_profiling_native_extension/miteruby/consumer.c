@@ -22,6 +22,8 @@
 
 static void *mark_threads_calloc(size_t size);
 static void *mark_cme_iseq_calloc(size_t size);
+static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs);
+static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right);
 
 #define NAME verstable_mark_threads_set
 #define KEY_TY VALUE
@@ -32,9 +34,9 @@ static void *mark_cme_iseq_calloc(size_t size);
 #include "verstable.h"
 
 #define NAME verstable_mark_cme_iseq_set
-#define KEY_TY VALUE
-#define HASH_FN vt_hash_integer
-#define CMPR_FN vt_cmpr_integer
+#define KEY_TY miteruby_event_frame_refs_t
+#define HASH_FN cme_iseq_hash
+#define CMPR_FN cme_iseq_equal
 #define MALLOC_FN mark_cme_iseq_calloc
 #define FREE_FN miteruby_allocator_free_sized
 #include "verstable.h"
@@ -91,6 +93,14 @@ static void *mark_cme_iseq_calloc(size_t size) {
   return miteruby_allocator_alloc(size, "mark_cme_iseq");
 }
 
+static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs) {
+  return vt_wyhash(&refs, sizeof(refs));
+}
+
+static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right) {
+  return left.cme == right.cme && left.iseq == right.iseq;
+}
+
 static void mutex_lock(mtx_t *mutex) {
   if (mtx_lock(mutex) != thrd_success) rb_bug("Failed to lock miteruby consumer mutex");
 }
@@ -128,7 +138,8 @@ static void consumer_mark(void *data) {
     !verstable_mark_cme_iseq_set_is_end(itr);
     itr = verstable_mark_cme_iseq_set_next(itr)
   ) {
-    rb_gc_mark(itr.data->key);
+    if (itr.data->key.cme != NULL) rb_gc_mark((VALUE) itr.data->key.cme);
+    if (itr.data->key.iseq != NULL) rb_gc_mark((VALUE) itr.data->key.iseq);
   }
 
   mutex_unlock(&consumer_state.mutex);
@@ -320,8 +331,9 @@ static bool retain_thread(VALUE thread) {
   return !verstable_mark_threads_set_is_end(verstable_mark_threads_set_get_or_insert(&consumer_state.mark_threads_set, thread));
 }
 
-static bool retain_cme_iseq(VALUE object) {
-  return !verstable_mark_cme_iseq_set_is_end(verstable_mark_cme_iseq_set_get_or_insert(&consumer_state.mark_cme_iseq_set, object));
+static bool retain_cme_iseq(miteruby_event_frame_refs_t refs) {
+  if (refs.cme == NULL && refs.iseq == NULL) return true;
+  return !verstable_mark_cme_iseq_set_is_end(verstable_mark_cme_iseq_set_get_or_insert(&consumer_state.mark_cme_iseq_set, refs));
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
@@ -347,8 +359,7 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   bool retained = true;
   if (result.ok.inserted) {
     for (uint16_t i = 0; retained && i < header->frame_count; i++) {
-      retained = (event->refs[i].cme == NULL || retain_cme_iseq((VALUE) event->refs[i].cme)) &&
-        (event->refs[i].iseq == NULL || retain_cme_iseq((VALUE) event->refs[i].iseq));
+      retained = retain_cme_iseq(event->refs[i]);
     }
   }
 
