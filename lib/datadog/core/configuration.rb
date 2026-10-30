@@ -85,10 +85,9 @@ module Datadog
         yield(configuration)
 
         safely_synchronize do |write_components|
-          components = @components
           write_components.call(
-            if components
-              replace_components!(configuration, components)
+            if components?
+              replace_components!(configuration, @components) # steep:ignore ArgumentTypeMismatch
             else
               build_components(configuration)
             end,
@@ -188,8 +187,7 @@ module Datadog
       # Components won't be automatically reinitialized after a shutdown.
       def shutdown!
         safely_synchronize do
-          components = @components
-          components&.shutdown!
+          @components.shutdown! if components? # steep:ignore NoMethod
         end
       end
 
