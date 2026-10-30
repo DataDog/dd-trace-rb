@@ -52,7 +52,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: "123", type: :log, file: "X", line_no: 1,
-          capture_snapshot: true
+          capture_snapshot: true,
         )
       end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         let(:context) do
           Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
-            probe: probe, locals: locals, target_self: Object.new
+            probe: probe, locals: locals, target_self: Object.new,
           )
         end
 
@@ -127,7 +127,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, serialized_entry_args: serialized_entry_args,
-            target_self: Object.new
+            target_self: Object.new,
           )
         end
 

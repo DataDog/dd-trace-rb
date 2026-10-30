@@ -10,13 +10,13 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
         trace_sampling_priority: 1,
         trace_state: "vendor=value",
         trace_otel_random_value: "ef284ace7a91e1",
-        trace_otel_threshold: "8"
+        trace_otel_threshold: "8",
       )
     end
 
     it "assembles Datadog, OpenTelemetry, and pass-through vendors" do
       expect(described_class.serialize_digest(digest)).to eq(
-        "dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value"
+        "dd=s:1,ot=rv:ef284ace7a91e1;th:8,vendor=value",
       )
     end
   end
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
       expect(extracted.datadog.sampling_priority).to eq(1)
       expect(extracted.open_telemetry).to have_attributes(
         random_value: "ef284ace7a91e1",
-        threshold: "8"
+        threshold: "8",
       )
     end
   end
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
         trace_state_unknown_fields: "future:value;",
         trace_otel_random_value: "ef284ace7a91e1",
         trace_otel_threshold: "8",
-        trace_otel_unknown_fields: "future:value;"
+        trace_otel_unknown_fields: "future:value;",
       )
     end
     let(:propagate_sampling) { true }
@@ -59,12 +59,12 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
         origin: "synthetics",
         ts_parent_id: "000000000000000f",
         tags: {"_dd.p.test" => "value"},
-        unknown_fields: "future:value;"
+        unknown_fields: "future:value;",
       )
       expect(trace_state.open_telemetry).to have_attributes(
         random_value: "ef284ace7a91e1",
         threshold: "8",
-        unknown_fields: "future:value;"
+        unknown_fields: "future:value;",
       )
     end
 
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState do
         expect(trace_state.open_telemetry).to have_attributes(
           random_value: nil,
           threshold: nil,
-          unknown_fields: "future:value;"
+          unknown_fields: "future:value;",
         )
       end
     end

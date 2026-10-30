@@ -9,6 +9,7 @@ require "datadog/open_feature/hooks/flag_eval_metrics_hook"
 require "datadog/open_feature/hooks/flag_eval_evp_hook"
 require "datadog/open_feature/flag_evaluation/writer"
 require "datadog/open_feature/hooks/span_enrichment_hook"
+require "datadog/open_feature/hooks/debug_logging_hook"
 
 RSpec.describe Datadog::OpenFeature, ".activate_provider" do
   subject(:activate_provider) { described_class.activate_provider(provider) }
@@ -154,7 +155,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, debug: nil, debug?: false) }
 
   subject(:provider) { described_class.new }
 
@@ -486,6 +487,25 @@ RSpec.describe Datadog::OpenFeature::Provider do
       configuration&.send(:reset)
     end
 
+    it "logs the STALE and READY transitions" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      messages = []
+      allow(logger).to receive(:debug?).and_return(true)
+      configuration.set_provider_and_wait(provider)
+      allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+      expect(messages).to eq([
+        "Feature Flags: provider emitted PROVIDER_STALE; configuration is no longer available",
+        "Feature Flags: provider emitted PROVIDER_READY; configuration is available",
+      ])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
     it "emits STALE after SDK readiness when configuration is lost during initialization" do
       configuration = ::OpenFeature::SDK::Configuration.new
       events = []
@@ -516,6 +536,19 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq(false)
         expect(result.error_message).to match(/OpenFeature component must be configured/)
+      end
+
+      it "logs why the default was returned without logging the default value" do
+        allow(Datadog).to receive(:logger).and_return(logger)
+        allow(logger).to receive(:debug?).and_return(true)
+
+        provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+
+        expect(logger).to have_lazy_debug_logged(
+          'Feature Flags: provider returned the default value for "flag" (type=boolean): ' \
+            "the Feature Flags component is not active; see the provider initialization logs " \
+            "(error_code=PROVIDER_FATAL)",
+        )
       end
     end
   end
@@ -594,7 +627,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         Datadog::OpenFeature::ResolutionDetails.new(
           value: "{}", reason: "MATCH", variant: "blue",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "joe", extra_logging: {}, log?: true, error?: false
+          allocation_key: "joe", extra_logging: {}, log?: true, error?: false,
         )
       end
 
@@ -604,7 +637,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.value).to eq("default" => true)
         expect(result.reason).to eq("ERROR")
         expect(result.flag_metadata).to include(
-          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
         )
       end
     end
@@ -626,10 +659,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
+        allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
         expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
+      end
+
+      context "when debug logging is enabled" do
+        let(:debug_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::DebugLoggingHook) }
+
+        before { allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_logging_hook) }
+
+        it "also returns the debug logging hook" do
+          expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
+        end
       end
 
       context "when EVP hook is disabled (killswitch)" do
@@ -672,17 +716,18 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
+      allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
     end
 
     it "passes provider success details to the EVP hook after SDK finalization" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("variant-a")
@@ -698,12 +743,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final type mismatch details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("default")
@@ -720,7 +765,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final after-hook failure details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       failing_after_hook = double("FailingAfterHook", before: nil, error: nil, finally: nil)
       allow(failing_after_hook).to receive(:after).and_raise(RuntimeError, "after boom")
@@ -730,7 +775,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         flag_key: "after-hook-flag",
         default_value: "default",
         evaluation_context: evaluation_context,
-        hooks: [failing_after_hook]
+        hooks: [failing_after_hook],
       )
 
       expect(details.value).to eq("default")
@@ -749,7 +794,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "nope", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -761,6 +806,82 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(evaluation_details.variant).to be_nil
         expect(evaluation_details.error_message).to eq("nope")
         expect(evaluation_details.flag_metadata).to include("dd.eval.timestamp_ms")
+      end
+    end
+
+    context "with rendered debug diagnostics" do
+      let(:output) { StringIO.new }
+      let(:logger) { Datadog::Core::Logger.new(output).tap { |log| log.level = Logger::DEBUG } }
+      let(:debug_hook) { Datadog::OpenFeature::Hooks::DebugLoggingHook.new(logger) }
+      let(:expected_attributes) { {"global" => "global", "client" => "client", "shared" => "invocation", "from_hook" => true} }
+      let(:client) do
+        ::OpenFeature::SDK::Client.new(provider: provider, evaluation_context: OpenFeature::SDK::EvaluationContext.new(client: "client", shared: "client"))
+      end
+
+      before do
+        allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_hook)
+        allow(OpenFeature::SDK).to receive(:evaluation_context)
+          .and_return(OpenFeature::SDK::EvaluationContext.new(global: "global", shared: "global"))
+      end
+
+      it "does not inspect values or emit diagnostics for success and fallback with debug off" do
+        logger.level = Logger::INFO
+        value = +"uninspected"
+        inspections = 0
+        value.define_singleton_method(:inspect) do
+          inspections += 1
+          super()
+        end
+        client.fetch_string_details(flag_key: "unready", default_value: value)
+        allow(engine).to receive(:fetch_value).and_return(Datadog::OpenFeature::ResolutionDetails.new(value: value, flag_metadata: {}))
+        client.fetch_string_details(flag_key: "success", default_value: value)
+        expect(output.string).to eq("")
+        expect(inspections).to eq(0)
+      end
+
+      [
+        [:boolean, true, false, nil], [:string, "targeted", "default", nil],
+        [:integer, 42, 0, nil], [:float, 1.25, 0.0, nil], [:number, 2.5, 0, nil],
+        [:object, {"nested" => Array.new(100) { {"text" => "x" * 100} }}, {}, nil],
+        [:string, 123, "default", "TYPE_MISMATCH"],
+        [:string, "default", "default", "FLAG_NOT_FOUND"],
+        [:string, "default", "default", "PROVIDER_NOT_READY"],
+        [:string, "targeted", "default", "GENERAL"],
+      ].each do |type, value, default, error|
+        it "logs caller-visible #{type} details for #{error || "success"} and the effective context" do
+          result = Datadog::OpenFeature::ResolutionDetails.new(
+            value: value, reason: "TARGETING_MATCH", variant: "treatment", flag_metadata: {}, log?: false,
+          )
+          result = Datadog::OpenFeature::ResolutionDetails.build_error(value: default, error_code: error, error_message: "missing flag") if error == "FLAG_NOT_FOUND"
+          allow(engine).to receive(:fetch_value).and_return(result) unless error == "PROVIDER_NOT_READY"
+          application_hook = instance_double(OpenFeature::SDK::Hooks::Hook)
+          allow(application_hook).to receive(:before).and_return(OpenFeature::SDK::EvaluationContext.new(from_hook: true))
+          allow(application_hook).to receive(:after) { raise "after boom" if error == "GENERAL" }
+          allow(application_hook).to receive(:error)
+          allow(application_hook).to receive(:finally)
+          allow(debug_hook).to receive(:finally).and_call_original
+          details = client.public_send(
+            "fetch_#{type}_details", flag_key: "diagnostic", default_value: default,
+            evaluation_context: OpenFeature::SDK::EvaluationContext.new(targeting_key: "subject", shared: "invocation"), hooks: [application_hook],
+          )
+          expect(details.value).to eq(error ? default : value)
+          expect(details.error_code).to eq(error)
+          expect(debug_hook).to have_received(:finally) do |evaluation_details:, hook_context:, **|
+            expect(evaluation_details).to equal(details)
+            expect(hook_context.evaluation_context.fields).to eq(expected_attributes.merge("targeting_key" => "subject"))
+          end
+          hook_lines = output.string.lines.grep(/Feature Flags: evaluated "diagnostic" /)
+          expect(hook_lines.size).to eq(1)
+          hook_line = hook_lines.first
+          expect(hook_line).to include(
+            "value=#{details.value.inspect}", "default=#{default.inspect}",
+            "variant=#{details.variant.inspect}", "reason=#{details.reason.inspect}", "error_code=#{error.inspect}",
+            "error_message=#{details.error_message.inspect}", 'targeting_key="subject"',
+          )
+          expected_attributes.each do |key, attribute_value|
+            expect(hook_line).to include({key => attribute_value}.inspect[1...-1])
+          end
+        end
       end
     end
 
@@ -798,7 +919,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         ))
 
         result = client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         expect(result).to eq("enabled")
@@ -819,12 +940,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -845,12 +966,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
           result = Datadog::OpenFeature::ResolutionDetails.new(
             value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
             flag_metadata: {},
-            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false
+            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false,
           )
           allow(engine).to receive(:fetch_value).and_return(result)
 
           client.fetch_string_value(
-            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context
+            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context,
           )
 
           writer.send(:drain_and_flush)
@@ -858,7 +979,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             expect(payload["flagEvaluations"].size).to eq(1)
             row = payload["flagEvaluations"].first
             expect(row["targeting_key"]).to eq(
-              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b",
             )
             expect(row).not_to have_key("context")
             expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("user-1")
@@ -872,12 +993,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -898,12 +1019,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
           value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
           error_message: "flag user-1 was not found", flag_metadata: {
             Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true
+          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -930,7 +1051,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: {"existing" => "kept"}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -946,7 +1067,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: metadata, allocation_key: "alloc-9", extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -954,7 +1075,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(res.flag_metadata).to include(
         "dd.eval.timestamp_ms" => 1_700_000_000_000,
-        "__dd_allocation_key" => "alloc-9"
+        "__dd_allocation_key" => "alloc-9",
       )
       expect(res.flag_metadata).not_to equal(metadata)
       expect(metadata).to eq("existing" => "kept")
@@ -964,7 +1085,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "d", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "missing", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 

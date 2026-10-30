@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sequel::Ext do
         "network.destination.name",
         "peer.hostname",
         "out.host",
-      ]
+      ],
     )
   end
 end

@@ -246,7 +246,7 @@ RSpec.describe Datadog::Tracing::Span do
         metrics: {},
         meta_struct: {},
         span_links: [],
-        error: 0
+        error: 0,
       )
     end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Tracing::Span do
       it "includes timing information" do
         is_expected.to include(
           start: be >= 0,
-          duration: be >= 0
+          duration: be >= 0,
         )
       end
     end

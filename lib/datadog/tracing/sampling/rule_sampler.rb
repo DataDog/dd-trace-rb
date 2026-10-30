@@ -133,7 +133,7 @@ module Datadog
           apply_rule!(trace, rule)
         rescue => e
           Datadog.logger.error(
-            "Rule sampling failed. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Rule sampling failed. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           Datadog::Core::Telemetry::Logger.report(e, description: "Rule sampling failed")
 

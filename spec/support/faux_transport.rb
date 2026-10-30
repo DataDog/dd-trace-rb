@@ -10,8 +10,8 @@ class FauxTransport < Datadog::Tracing::Transport::HTTP::Client
     # Emulate an OK response
     [Datadog::Tracing::Transport::HTTP::Traces::Response.new(
       Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(
-        Net::HTTPResponse.new(1.0, 200, "OK")
-      )
+        Net::HTTPResponse.new(1.0, 200, "OK"),
+      ),
     )]
   end
 end

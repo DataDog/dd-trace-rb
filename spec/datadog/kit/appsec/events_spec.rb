@@ -67,7 +67,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "42",
-            "appsec.events.users.login.success.usr.login" => "42"
+            "appsec.events.users.login.success.usr.login" => "42",
           )
       end
     end
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.login.success.usr.login" => "hey"
+            "appsec.events.users.login.success.usr.login" => "hey",
           )
       end
     end
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.login.success.usr.login" => "hey"
+            "appsec.events.users.login.success.usr.login" => "hey",
           )
       end
     end
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.login.success.usr.login" => "hey"
+            "appsec.events.users.login.success.usr.login" => "hey",
           )
       end
     end
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.login.success.usr.login" => "hey"
+            "appsec.events.users.login.success.usr.login" => "hey",
           )
       end
     end
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect { described_class.track_login_success(trace_op, user: {id: "42"}) }
           .to change { span.tags }.to include(
             "appsec.events.users.login.success.track" => "true",
-            "_dd.appsec.events.users.login.success.sdk" => "true"
+            "_dd.appsec.events.users.login.success.sdk" => "true",
           )
       end
     end
@@ -146,7 +146,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect(span.tags).to include(
           "appsec.events.users.login.success.track" => "true",
           "appsec.events.users.login.success.usr.login" => "42",
-          "_dd.appsec.events.users.login.success.sdk" => "true"
+          "_dd.appsec.events.users.login.success.sdk" => "true",
         )
       end
     end
@@ -157,7 +157,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect(span.tags).to include(
           "appsec.events.users.login.success.track" => "true",
           "appsec.events.users.login.success.usr.login" => "test-42",
-          "_dd.appsec.events.users.login.success.sdk" => "true"
+          "_dd.appsec.events.users.login.success.sdk" => "true",
         )
       end
     end
@@ -291,7 +291,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "42",
-            "appsec.events.users.signup.usr.login" => "42"
+            "appsec.events.users.signup.usr.login" => "42",
           )
       end
     end
@@ -302,7 +302,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.signup.usr.login" => "hey"
+            "appsec.events.users.signup.usr.login" => "hey",
           )
       end
     end
@@ -313,7 +313,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.signup.usr.login" => "hey"
+            "appsec.events.users.signup.usr.login" => "hey",
           )
       end
     end
@@ -324,7 +324,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.signup.usr.login" => "hey"
+            "appsec.events.users.signup.usr.login" => "hey",
           )
       end
     end
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
           .to change { span.tags }.to include(
             "usr.id" => "42",
             "usr.login" => "hey",
-            "appsec.events.users.signup.usr.login" => "hey"
+            "appsec.events.users.signup.usr.login" => "hey",
           )
       end
     end
@@ -345,7 +345,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect { described_class.track_signup(trace_op, user: {id: "42"}) }
           .to change { span.tags }.to include(
             "appsec.events.users.signup.track" => "true",
-            "_dd.appsec.events.users.signup.sdk" => "true"
+            "_dd.appsec.events.users.signup.sdk" => "true",
           )
       end
     end

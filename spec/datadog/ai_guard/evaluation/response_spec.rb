@@ -43,7 +43,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
       it "raises an AI Guard client error" do
         expect { described_class.new({}) }.to raise_error(
           Datadog::AIGuard::AIGuardClientError,
-          "Missing key: \"data\""
+          "Missing key: \"data\"",
         )
       end
     end

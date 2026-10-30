@@ -207,7 +207,7 @@ module Datadog
           trace_otel_threshold: trace_otel_threshold,
           trace_otel_unknown_fields: trace_otel_unknown_fields,
           span_remote: span_remote,
-          baggage: baggage, **field_value_pairs
+          baggage: baggage, **field_value_pairs,
         )
       end
     end

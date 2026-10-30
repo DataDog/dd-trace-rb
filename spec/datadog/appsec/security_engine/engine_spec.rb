@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "1.0.0",
             success: "true",
-          }
+          },
         )
 
         engine
@@ -86,7 +86,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports error through telemetry" do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
-          description: "AppSec security engine failed to initialize"
+          description: "AppSec security engine failed to initialize",
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -101,7 +101,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.init metric once with correct tags" do
         expect(telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(telemetry).to receive(:inc).with(
@@ -109,7 +109,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
             success: "false",
-          }
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -144,7 +144,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             action: "init",
             config_key: "rules",
             scope: "item",
-          }
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -165,7 +165,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.init metric once with correct tags" do
         expect(telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.init", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(telemetry).to receive(:inc).with(
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "",
             success: "false",
-          }
+          },
         )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -251,7 +251,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             },
           ],
         },
-        path: "datadog/603646/ASM/test-custom-rule"
+        path: "datadog/603646/ASM/test-custom-rule",
       )
 
       aggregate_failures("diagnostics") do
@@ -317,7 +317,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             action: "update",
             config_key: "custom_rules",
             scope: "item",
-          }
+          },
         )
 
         engine.add_or_update_config(config_with_invalid_rule, path: "datadog/603646/ASM/test-custom-rule")
@@ -353,7 +353,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: "",
             action: "update",
             scope: "top-level",
-          }
+          },
         )
 
         engine.add_or_update_config("", path: "datadog/603646/ASM/test-custom-rule")
@@ -392,7 +392,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             action: "update",
             config_key: "custom_rules",
             scope: "top-level",
-          }
+          },
         )
 
         engine.add_or_update_config({custom_rules: ""}, path: "datadog/603646/ASM/test-custom-rule")
@@ -525,7 +525,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               action: "update",
               config_key: "rules",
               scope: "top-level",
-            }
+            },
           )
 
           engine.add_or_update_config(invalid_config, path: "datadog/603646/ASM_DD/latest/config")
@@ -644,7 +644,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
               },
             ],
           },
-          path: "datadog/603646/ASM_DD/latest/config"
+          path: "datadog/603646/ASM_DD/latest/config",
         )
         engine.reconfigure!
 
@@ -654,7 +654,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         end.to(
           change { engine.new_runner.waf_addresses }
             .from(match_array(%w[server.db.statement server.request.query server.db.system]))
-            .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params]))
+            .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params])),
         )
       end
     end
@@ -709,7 +709,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
           event_rules_version: "1.0.0",
           success: "true",
-        }
+        },
       )
 
       engine.reconfigure!
@@ -739,7 +739,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports error through telemetry" do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
-          description: "AppSec security engine failed to reconfigure, reverting to the previous configuration"
+          description: "AppSec security engine failed to reconfigure, reverting to the previous configuration",
         )
 
         engine.reconfigure!
@@ -748,7 +748,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it "reports waf.updates metric with success: false" do
         expect(Datadog::AppSec.telemetry).not_to receive(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "waf.updates", 1,
-          tags: hash_including(success: "true")
+          tags: hash_including(success: "true"),
         )
 
         expect(Datadog::AppSec.telemetry).to receive(:inc).with(
@@ -757,7 +757,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: "2.0.0",
             success: "false",
-          }
+          },
         )
 
         engine.reconfigure!

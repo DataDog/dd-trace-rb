@@ -25,7 +25,7 @@ module Datadog
 
           # Send health metrics
           Datadog.health_metrics.send_metrics(
-            metrics_for_response(response).values
+            metrics_for_response(response).values,
           )
         end
 
@@ -42,7 +42,7 @@ module Datadog
 
           # Send health metrics
           Datadog.health_metrics.send_metrics(
-            metrics_for_exception(exception).values
+            metrics_for_exception(exception).values,
           )
         end
 

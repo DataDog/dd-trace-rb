@@ -37,7 +37,7 @@ module Datadog
             agent_base_url: agent_base_url,
             ld_library_path: ld_library_path,
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-            logger: logger
+            logger: logger,
           ).tap(&:start)
         end
 

@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           health_metrics_enabled: false,
           otlp_traces_export_enabled: false,
           otlp_metrics_export_enabled: false,
-          otlp_logs_export_enabled: false
+          otlp_logs_export_enabled: false,
         )
       end
 

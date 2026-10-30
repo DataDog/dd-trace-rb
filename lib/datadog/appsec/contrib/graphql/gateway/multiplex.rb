@@ -60,7 +60,7 @@ module Datadog
                 when ::GraphQL::Language::Nodes::FragmentSpread
                   fragment_name = selection.name
                   append_arguments(
-                    args_hash, fragment_name, nil, arguments_from_directives(selection.directives, query_variables)
+                    args_hash, fragment_name, nil, arguments_from_directives(selection.directives, query_variables),
                   )
 
                   next if visited_fragments[fragment_name]
@@ -69,13 +69,13 @@ module Datadog
                   next unless fragment
 
                   append_arguments(
-                    args_hash, fragment_name, nil, arguments_from_directives(fragment.directives, query_variables)
+                    args_hash, fragment_name, nil, arguments_from_directives(fragment.directives, query_variables),
                   )
 
                   # re-used fragments are not expanded
                   visited_fragments[fragment_name] = true
                   arguments_from_selections(
-                    fragment.selections, query_variables, args_hash, fragments, visited_fragments
+                    fragment.selections, query_variables, args_hash, fragments, visited_fragments,
                   )
                 when ::GraphQL::Language::Nodes::Field
                   selection_name = selection.alias || selection.name
@@ -84,19 +84,19 @@ module Datadog
                     args_hash,
                     selection_name,
                     field_arguments,
-                    arguments_from_directives(selection.directives, query_variables)
+                    arguments_from_directives(selection.directives, query_variables),
                   )
 
                   arguments_from_selections(
-                    selection.selections, query_variables, args_hash, fragments, visited_fragments
+                    selection.selections, query_variables, args_hash, fragments, visited_fragments,
                   )
                 when ::GraphQL::Language::Nodes::InlineFragment
                   append_arguments(
-                    args_hash, selection.type.name, nil, arguments_from_directives(selection.directives, query_variables)
+                    args_hash, selection.type.name, nil, arguments_from_directives(selection.directives, query_variables),
                   )
 
                   arguments_from_selections(
-                    selection.selections, query_variables, args_hash, fragments, visited_fragments
+                    selection.selections, query_variables, args_hash, fragments, visited_fragments,
                   )
                 end
               end

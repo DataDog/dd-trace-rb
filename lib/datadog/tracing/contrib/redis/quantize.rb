@@ -28,7 +28,7 @@ module Datadog
               DEBUG
               LATENCY
               MEMORY
-            ]
+            ],
           ).freeze
 
           module_function

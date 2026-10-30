@@ -32,7 +32,7 @@ module Datadog
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
-              digest.trace_sampling_priority
+              digest.trace_sampling_priority,
             )
             value += "-#{sampling_priority}"
           end
