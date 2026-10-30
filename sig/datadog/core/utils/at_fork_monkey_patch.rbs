@@ -3,6 +3,7 @@ module Datadog
   module Core
     module Utils
       module AtForkMonkeyPatch
+        type fork_block = ^() -> untyped
         self.@at_fork_blocks: ::Hash[Symbol, Array[Callback]]
 
         EMPTY_AT_FORK_BLOCKS: ::Hash[Symbol, Array[Callback]]
