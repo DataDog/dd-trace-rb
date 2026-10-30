@@ -29,9 +29,10 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   class NativeTransportMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port, :requests
 
-    def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
+    def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}', before_response: nil)
       @status = status
       @body = body
+      @before_response = before_response
       @requests = []
       @server = TCPServer.new("127.0.0.1", 0)
       @port = @server.addr[1]
@@ -75,6 +76,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       body_len = (headers["content-length"] || 0).to_i
       body = (body_len > 0) ? client.read(body_len) : ""
       @requests << {request_line: request_line.strip, headers: headers, body: body}
+      @before_response&.call if request_line.start_with?("POST ")
 
       client.print "HTTP/1.1 #{@status} OK\r\n"
       client.print "Content-Length: #{@body.bytesize}\r\n"
@@ -140,6 +142,15 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     it "returns true when native extension is loaded" do
       expect(native_module.supported?).to be true
     end
+  end
+
+  it "reports oversized drops even without a telemetry client" do
+    trace = make_trace_segment("oversized")
+    trace.spans.first.resource = "x" * (5 * 1024 * 1024 + 1)
+    expect(Datadog.health_metrics).to receive(:transport_trace_too_large).with(1)
+
+    expect(transport.send_traces([trace])).to eq([])
+    expect(mock_agent.requests.none? { |request| request[:request_line].include?("/v0.4/traces") }).to be true
   end
 
   describe "telemetry forwarding" do
@@ -239,7 +250,133 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       end
     end
 
+    [:close, :fork].each do |operation|
+      context "when #{operation} interrupts a split batch" do
+        let(:started) { Queue.new }
+        let(:release_response) { Queue.new }
+        let(:mock_agent) do
+          first = true
+          NativeTransportMockAgent.new(before_response: proc do
+            if first
+              first = false
+              started << true
+              release_response.pop
+            end
+          end)
+        end
+
+        it "stops dispatch before waiting for the send mutex" do
+          traces = Array.new(3) { make_trace_segment("large") }
+          traces.each { |trace| trace.spans.first.resource = "x" * (2 * 1024 * 1024) }
+          instance = transport
+          sender = Thread.new { instance.send_traces(traces) }
+          Timeout.timeout(5) { started.pop }
+          stopper = Thread.new do
+            if operation == :close
+              instance.close
+            else
+              hooks = instance.instance_variable_get(:@fork_hooks)
+              hooks[:before].call
+              hooks[:parent].call
+            end
+          end
+          expect(stopper.join(5)).to eq(stopper)
+          expect(sender.join(5)).to eq(sender)
+          expect(mock_agent.requests.count { |r| r[:request_line].start_with?("POST ") }).to eq(1)
+        ensure
+          release_response << true
+          sender&.join(5)
+          stopper&.join(5)
+        end
+      end
+    end
+
     describe "#close" do
+      [:raise, :kill].each do |interrupt|
+        it "restores send admission when the closer is interrupted by #{interrupt}" do
+          exporter = transport.instance_variable_get(:@exporter)
+          entered = Queue.new
+          release = Queue.new
+          cancelled = Queue.new
+          errors = Queue.new
+          failure = RuntimeError.new("interrupted close")
+          allow(exporter).to receive(:_native_send_traces) do
+            entered << true
+            release.pop
+            []
+          end
+          allow(exporter).to receive(:_native_cancel_pending).and_wrap_original do |method|
+            result = method.call
+            cancelled << true
+            result
+          end
+          sender = Thread.new { transport.send_traces([make_trace_segment("held")]) }
+          Timeout.timeout(5) { entered.pop }
+          closer = Thread.new do
+            transport.close
+          rescue => error
+            errors << error
+          end
+          Timeout.timeout(5) { cancelled.pop }
+          (interrupt == :raise) ? closer.raise(failure) : closer.kill
+          expect(closer.join(5)).to eq(closer)
+          release << true
+          expect(sender.join(5)).to eq(sender)
+          allow(exporter).to receive(:_native_send_traces).and_call_original
+          expect(transport.instance_variable_get(:@exporter)).to equal(exporter)
+          expect(transport.instance_variable_get(:@fork_hooks)).to_not be_nil
+          expect(transport.send_traces([make_trace_segment("after-close-interrupt")]).first).to be_ok
+          if interrupt == :raise
+            expect(errors.size).to eq(1)
+            expect(errors.pop).to equal(failure)
+          else
+            expect(errors).to be_empty
+          end
+        ensure
+          release << true if release
+          closer&.kill
+          sender&.join(5)
+          closer&.join(5)
+        end
+      end
+
+      it "rejects callback re-entry before waiting for a concurrent closer" do
+        exporter = transport.instance_variable_get(:@exporter)
+        entered = Queue.new
+        release = Queue.new
+        cancelled = Queue.new
+        errors = Queue.new
+        allow(exporter).to receive(:_native_send_traces) do
+          entered << true
+          release.pop
+          begin
+            transport.close
+          rescue ThreadError => error
+            errors << error
+          end
+          []
+        end
+        allow(exporter).to receive(:_native_cancel_pending).and_wrap_original do |method|
+          result = method.call
+          cancelled << true
+          result
+        end
+        sender = Thread.new { transport.send_traces([make_trace_segment("reentrant")]) }
+        Timeout.timeout(5) { entered.pop }
+        closer = Thread.new { transport.close }
+        Timeout.timeout(5) { cancelled.pop }
+        release << true
+        expect(sender.join(5)).to eq(sender)
+        expect(closer.join(5)).to eq(closer)
+        expect(errors.size).to eq(1)
+        expect(errors.pop).to be_a(ThreadError)
+      ensure
+        release << true if release
+        closer&.kill
+        sender&.join(5)
+        closer&.join(5)
+      end
+
       it "removes all of its hooks from the global registry" do
         hooks = transport.instance_variable_get(:@fork_hooks)
 

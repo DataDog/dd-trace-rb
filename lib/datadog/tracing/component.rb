@@ -176,11 +176,13 @@ module Datadog
       # capture the current sampler in the callback closure.
       def writer_update_priority_sampler_rates_callback(sampler)
         lambda do |_, responses|
-          response = responses.last
+          responses.reverse_each do |response|
+            next unless response.ok?
+            rates = response.service_rates
+            next unless rates
 
-          next unless response && !response.internal_error? && response.service_rates
-
-          sampler.update(response.service_rates, decision: Tracing::Sampling::Ext::Decision::AGENT_RATE)
+            break sampler.update(rates, decision: Tracing::Sampling::Ext::Decision::AGENT_RATE)
+          end
         end
       end
 
