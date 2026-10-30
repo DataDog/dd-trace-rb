@@ -1,14 +1,14 @@
-AppSec WAF rules based on [appsec-event-rules](https://github.com/datadog/appsec-event-rules) builds
+AppSec WAF rules based on [appsec-event-rules](https://github.com/ddoghq/appsec-event-rules) builds
 
 ## How to update
 
-In order to update rules, download `recommended.json` and `strict.json` of the desired version from [appsec-event-rules](https://github.com/datadog/appsec-event-rules) (example: [v1.13.3](https://github.com/DataDog/appsec-event-rules/tree/1.13.3/build))
+In order to update rules, download `recommended.json` and `strict.json` of the desired version from [appsec-event-rules](https://github.com/ddoghq/appsec-event-rules) (example: [v1.13.3](https://github.com/ddoghq/appsec-event-rules/tree/1.13.3/build))
 
 You can store the following code as a `Rakefile` under `lib/datadog/appsec/assets/waf_rules`
 
 ```ruby
 def download(filename)
-  build_path = 'repos/DataDog/appsec-event-rules/contents/build'
+  build_path = 'repos/ddoghq/appsec-event-rules/contents/build'
 
   system("gh api #{build_path}/#{filename} --jq '.content' | base64 -d > #{filename}")
 end
