@@ -996,15 +996,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         it_behaves_like "a binary setting with",
           env_variable: "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED",
-          default: false
+          default: true
       end
 
       describe "#experimental_show_classes_enabled=" do
         it "updates the #experimental_show_classes_enabled setting" do
-          expect { settings.profiling.advanced.experimental_show_classes_enabled = true }
+          expect { settings.profiling.advanced.experimental_show_classes_enabled = false }
             .to change { settings.profiling.advanced.experimental_show_classes_enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
     end

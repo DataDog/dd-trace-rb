@@ -770,7 +770,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # For Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
         # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
         expect(RubyVersion.is?(">= 4") ? allocation_sample.locations[0] : allocation_sample.locations[1])
-          .to match(have_attributes(label: end_with("<top (required)>"), path: __FILE__, lineno: allocation_line))
+          .to match(have_attributes(label: "<top (required)> (block)", path: __FILE__, lineno: allocation_line))
       end
 
       context "with dynamic_sampling_rate_enabled" do
@@ -978,7 +978,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           allocation_trigger_frame.lineno == allocation_line &&
             allocation_trigger_frame.path == __FILE__ &&
-            allocation_trigger_frame.label.end_with?(current_method_name) &&
+            allocation_trigger_frame.label == "#{current_method_name} (block)" &&
             sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
             (sample.values[:"heap-live-samples"] || 0) > 0
         end
@@ -1529,20 +1529,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       request_sample_at_gc_exit
       gc_event(:exit)
 
-      expect(record_sample.locations.first.label).to eq("_native_on_gc_event")
+      expect(record_sample.locations.first.label)
+        .to eq("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_on_gc_event")
     end
 
     it "does not prepare a stack without a request" do
       gc_event(:exit)
 
-      expect(record_sample.locations.first.label).to eq("_native_sample")
+      expect(record_sample.locations.first.label)
+        .to eq("Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
     end
 
     it "does not prepare a stack when already processing a sample" do
       request_sample_at_gc_exit
       gc_event(:exit, during_sample: true)
 
-      expect(record_sample.locations.first.label).to eq("_native_sample")
+      expect(record_sample.locations.first.label)
+        .to eq("Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
     end
 
     it "discards a late request from the previous GC step" do
@@ -1551,7 +1554,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_event(:enter)
       gc_event(:exit)
 
-      expect(record_sample.locations.first.label).to eq("_native_sample")
+      expect(record_sample.locations.first.label)
+        .to eq("Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
     end
   end
 
