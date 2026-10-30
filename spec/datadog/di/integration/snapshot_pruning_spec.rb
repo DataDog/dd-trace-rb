@@ -2,11 +2,6 @@ require "datadog/di/spec_helper"
 require "datadog/di"
 require "json"
 
-# End-to-end coverage for snapshot size pruning: a probe is installed, the
-# target code runs, and the test asserts on the payload delivered
-# to the snapshot input endpoint, exercising the real serializer through
-# the real encoder.
-
 class SnapshotPruningTestClass
   def capture_method(huge, small)
     small
@@ -35,8 +30,6 @@ RSpec.describe "Snapshot size pruning integration" do
     Datadog::DI::Logger.new(settings, logger)
   end
 
-  # A real input transport, so the encoder runs. Chunk sending is stubbed,
-  # so no request reaches the network.
   let(:input_transport) do
     Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: di_logger, telemetry: nil,
       guardrails_telemetry: guardrails_telemetry,)
