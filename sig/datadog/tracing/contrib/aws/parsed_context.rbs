@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Aws
         class ParsedContext
+          PROVEN_ACCOUNT_ID_PROVIDERS: ::Array[::String]
+
           def initialize: (untyped context) -> void
 
           def safely: (untyped attr, ?untyped? fallback) -> untyped
@@ -19,6 +21,8 @@ module Datadog
 
           def region: () -> untyped
 
+          def assumed_role_account_id: () -> untyped
+
           def retry_attempts: () -> untyped
 
           def path: () -> untyped
@@ -28,6 +32,10 @@ module Datadog
           private
 
           attr_reader context: untyped
+
+          def signing_credential_provider: () -> untyped
+
+          def resolved_credentials: (untyped provider) -> untyped
 
           def service: () -> untyped
         end
