@@ -27,7 +27,8 @@ We could even "shard" some of our storage to take better advantage of this.
 
 ## Bulk marking reference sets
 
-The `mark_threads_set` and `mark_cme_iseq_set` Verstable sets store contiguous `VALUE`-sized keys, with metadata in a separate array.
+The `mark_threads_set` Verstable set stores `VALUE`-sized keys, while `mark_cme_iseq_set` stores pairs of `VALUE`-sized
+references. Both keep metadata in a separate array.
 Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `buffer_marking.c`,
 instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
 
