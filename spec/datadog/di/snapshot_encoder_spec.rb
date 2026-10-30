@@ -44,7 +44,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when the snapshot is under the cap" do
       let(:small) { snapshot(line_captures(x: {type: "Integer", value: "5"})) }
 
-      it "encodes the snapshot unchanged with no pruning" do
+      it "encodes the snapshot unchanged" do
         result = described_class.encode(small, cap)
         expect(result.encoded).to eq(JSON.dump(small))
         expect(result.pruned).to be(false)
@@ -73,7 +73,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           small: {type: "Integer", value: "1"}))
       end
 
-      it "prunes the oversized slot to the marker without encoding the value" do
+      it "prunes the oversized slot to the marker and skips encoding the value" do
         dump_args
         result = described_class.encode(big, cap)
         expect(result.pruned).to be(true)
@@ -113,7 +113,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         snapshot(line_captures(items: {type: "Array", elements: Array.new(10) { |i| {type: "Integer", value: "v#{i}"} }}))
       end
 
-      it "prunes the whole collection slot without encoding its items" do
+      it "prunes the whole collection slot and skips encoding its items" do
         dump_args
         result = described_class.encode(big_collection, 2_000)
         expect(result.pruned).to be(true)
@@ -223,7 +223,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(locals_of(result)["u"]).to eq("type" => "String", "value" => "あ" * 255)
       end
 
-      it "prunes the value when its encoded bytes do not fit, measuring by bytes" do
+      it "prunes the value when its encoded bytes exceed the budget" do
         # A 255-character budget would fit this value (255 characters,
         # 765 bytes); a byte budget of this size must prune it.
         result = described_class.encode(utf8, empty_base + 400)
@@ -268,7 +268,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         )
       end
 
-      it "prunes the nested collection member when the budget cannot fit it" do
+      it "prunes the nested collection member that exceeds the budget" do
         deep = {type: "Array", elements: Array.new(2_000) { {type: "Integer", value: "1"} }}
         slot = {type: "Array", elements: [deep, {type: "Integer", value: "2"}]}
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
@@ -421,7 +421,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "entries" => "junk")
       end
 
-      it "encodes a pair that is not an array as generic JSON" do
+      it "encodes a String pair as generic JSON" do
         result = described_class.encode(
           snapshot(line_captures(c: {type: "Custom", entries: ["junk"]})), cap
         )
