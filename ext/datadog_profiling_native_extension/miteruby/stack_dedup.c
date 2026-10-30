@@ -33,14 +33,13 @@ typedef struct {
 static uint64_t stack_key_hash(stack_key key);
 static bool stack_key_equal(stack_key left, stack_key right);
 static void *unique_stacks_calloc(size_t size);
-static void unique_stacks_free(void *allocation, size_t size);
 
 #define NAME verstable_unique_stacks_set
 #define KEY_TY stack_key
 #define HASH_FN stack_key_hash
 #define CMPR_FN stack_key_equal
 #define MALLOC_FN unique_stacks_calloc
-#define FREE_FN unique_stacks_free
+#define FREE_FN miteruby_allocator_free_sized
 #include "verstable.h"
 
 // Stack deduping design
@@ -117,10 +116,6 @@ static void *unique_stacks_calloc(size_t size) {
   if (size > UNIQUE_STACKS_SET_MAX_SIZE) return NULL;
 
   return miteruby_allocator_alloc(size, "unique_stacks_set");
-}
-
-static void unique_stacks_free(void *allocation, DDTRACE_UNUSED size_t _size) {
-  miteruby_allocator_free(allocation);
 }
 
 bool miteruby_stack_dedup_init(void) {
