@@ -94,7 +94,6 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # Validated by the settings framework (o.type); the setter signature cannot express it.
                   list = value #: Array[untyped]
                   next list if list.empty?
 
@@ -112,7 +111,6 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # Validated by the settings framework (o.type); the setter signature cannot express it.
                   list = value #: Array[untyped]
                   next list if list.empty?
 
@@ -130,7 +128,6 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  # Validated by the settings framework (o.type); the setter signature cannot express it.
                   list = value #: Array[untyped]
                   next list if list.empty?
 
@@ -188,7 +185,6 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # Validated by the settings framework (o.type); the setter signature cannot express it.
                       path = value #: String?
                       if path
                         unless File.exist?(path)
@@ -205,7 +201,6 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # Validated by the settings framework (o.type); the setter signature cannot express it.
                       path = value #: String?
                       if path
                         unless File.exist?(path)
@@ -222,7 +217,6 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      # Validated by the settings framework (o.type); the setter signature cannot express it.
                       path = value #: String?
                       if path
                         unless File.exist?(path)
