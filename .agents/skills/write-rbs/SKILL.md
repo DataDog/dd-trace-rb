@@ -147,11 +147,13 @@ bundle exec steep check
 
 Verified empirically on PR #6587:
 
-- Steep checks a parameter's default value against the union of its
-  overloads' param types. A sentinel-defaulted param
-  (`default_value = UNSET` where `UNSET: Object`) can never be narrowed
-  by overloads; keep the signature loose (`?Object?`) and cast at call
-  sites (`ConfigHelper#fetch`)
+- A sentinel-defaulted param (`default_value = UNSET` where `UNSET:
+  Object`) can never be narrowed by overloads. The workaround that
+  WORKS: make the method generic and let the DEFAULT's type drive the
+  return type, omitting the sentinel case entirely from the RBS
+  (`[T] (String name, T default_value) -> (String | T)` in
+  `ConfigHelper#fetch`) – no call-site casts needed. Prefer this over
+  `?Object?` + casts at every caller
 - Steep does not flow-narrow ivars: a `return unless @x` guard does not
   narrow later `@x` reads in the same method. Hoist to a local first
   (`lib/datadog/opentelemetry/api/context.rb`,
