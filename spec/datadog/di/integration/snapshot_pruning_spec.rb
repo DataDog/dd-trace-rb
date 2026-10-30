@@ -29,7 +29,7 @@ RSpec.describe "Snapshot size pruning integration" do
 
   let(:input_transport) do
     Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: di_logger, telemetry: nil,
-      guardrails_telemetry: guardrails_telemetry,)
+      guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:delivered_chunks) { [] }
@@ -79,14 +79,14 @@ RSpec.describe "Snapshot size pruning integration" do
     Datadog::DI::Probe.new(id: "snapshot-pruning-probe", type: :log,
       type_name: "SnapshotPruningTestClass", method_name: "capture_method",
       capture_snapshot: true,
-      max_capture_string_length: 2_000_000,)
+      max_capture_string_length: 2_000_000)
   end
 
   let(:raising_probe) do
     Datadog::DI::Probe.new(id: "snapshot-pruning-raising-probe", type: :log,
       type_name: "SnapshotPruningTestClass", method_name: "raising_method",
       capture_snapshot: true,
-      max_capture_string_length: 2_000_000,)
+      max_capture_string_length: 2_000_000)
   end
 
   before do

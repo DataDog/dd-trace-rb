@@ -407,7 +407,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when a slot field holds a value of the wrong type" do
       it "encodes the elements value as generic JSON" do
         result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", elements: "junk"})), cap
+          snapshot(line_captures(c: {type: "Custom", elements: "junk"})), cap,
         )
         expect(result.pruned).to be(false)
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "elements" => "junk")
@@ -415,7 +415,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
       it "encodes the entries value as generic JSON" do
         result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: "junk"})), cap
+          snapshot(line_captures(c: {type: "Custom", entries: "junk"})), cap,
         )
         expect(result.pruned).to be(false)
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "entries" => "junk")
@@ -423,7 +423,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
       it "encodes a String pair as generic JSON" do
         result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: ["junk"]})), cap
+          snapshot(line_captures(c: {type: "Custom", entries: ["junk"]})), cap,
         )
         expect(result.pruned).to be(false)
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "entries" => ["junk"])
@@ -431,7 +431,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
       it "encodes the fields value as generic JSON" do
         result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", fields: 7})), cap
+          snapshot(line_captures(c: {type: "Custom", fields: 7})), cap,
         )
         expect(result.pruned).to be(false)
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "fields" => 7)
@@ -462,7 +462,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
       it "encodes the throwable with its message and stacktrace" do
         result = described_class.encode(
-          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: throwable}}}), cap
+          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: throwable}}}), cap,
         )
         expect(result.pruned).to be(false)
         captured = parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "throwable")
@@ -475,7 +475,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
       it "encodes a nil throwable" do
         result = described_class.encode(
-          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: nil}}}), cap
+          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: nil}}}), cap,
         )
         expect(result.pruned).to be(false)
         expect(parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "throwable")).to be_nil
@@ -484,7 +484,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "prunes a throwable that exceeds the budget" do
         huge = {type: "RuntimeError", message: "m" * 2_000, stacktrace: []}
         result = described_class.encode(
-          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: huge}}}), 2_000
+          snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: huge}}}), 2_000,
         )
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= 2_000
