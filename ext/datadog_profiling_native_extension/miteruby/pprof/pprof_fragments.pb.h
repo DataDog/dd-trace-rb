@@ -36,7 +36,7 @@ typedef struct miteruby_pprof_fragment_sample {
 typedef struct miteruby_pprof_fragment_sample_sample_label {
     int64_t key;
     int64_t str;
-    int64_t num; /* Not currently needed for Ruby profiler
+    int64_t num; /* Not currently needed by miteruby
  int64 num_unit = 4; */
 } miteruby_pprof_fragment_sample_sample_label_t;
 
@@ -47,14 +47,14 @@ typedef struct miteruby_pprof_fragment_location_location_line {
 
 typedef struct miteruby_pprof_fragment_location_location {
     uint64_t id;
-    /* Not currently needed for Ruby profiler
+    /* Not currently needed by miteruby
  uint64 mapping_id = 2;
  uint64 address = 3;
- Multiple inline-frame records are not currently needed for Ruby profiler.
+ Multiple inline-frame records are not currently needed by miteruby.
  repeated Line line = 4;
  Ruby emits one Line per Location; a singular field preserves its wire encoding. */
     bool has_line;
-    miteruby_pprof_fragment_location_location_line_t line; /* Not currently needed for Ruby profiler
+    miteruby_pprof_fragment_location_location_line_t line; /* Not currently needed by miteruby
  bool is_folded = 5; */
 } miteruby_pprof_fragment_location_location_t;
 
@@ -67,9 +67,9 @@ typedef struct miteruby_pprof_fragment_location {
 typedef struct miteruby_pprof_fragment_function_function {
     uint64_t id;
     int64_t name;
-    /* Not currently needed for Ruby profiler
+    /* Not currently needed by miteruby
  int64 system_name = 3; */
-    int64_t filename; /* Not currently needed for Ruby profiler
+    int64_t filename; /* Not currently needed by miteruby
  int64 start_line = 5; */
 } miteruby_pprof_fragment_function_function_t;
 
@@ -86,12 +86,12 @@ typedef struct miteruby_pprof_fragment_string_table {
 } miteruby_pprof_fragment_string_table_t;
 
 /* Profile fields that don't need separate encoding can be emitted together once per profile. */
-typedef struct miteruby_pprof_fragment_profile { /* Not currently needed for Ruby profiler
+typedef struct miteruby_pprof_fragment_profile { /* Not currently needed by miteruby
  message ValueType {
    int64 type = 1;
    int64 unit = 2;
  } */
-    /* Not currently needed for Ruby profiler
+    /* Not currently needed by miteruby
  Corresponds to Profile.drop_frames in pprof.proto
  int64 drop_frames = 7;
  Corresponds to Profile.keep_frames in pprof.proto
@@ -99,7 +99,7 @@ typedef struct miteruby_pprof_fragment_profile { /* Not currently needed for Rub
  Corresponds to Profile.time_nanos in pprof.proto */
     int64_t time_nanos;
     /* Corresponds to Profile.duration_nanos in pprof.proto */
-    int64_t duration_nanos; /* Not currently needed for Ruby profiler
+    int64_t duration_nanos; /* Not currently needed by miteruby
  Corresponds to Profile.period_type in pprof.proto
  ValueType period_type = 11;
  Corresponds to Profile.period in pprof.proto
