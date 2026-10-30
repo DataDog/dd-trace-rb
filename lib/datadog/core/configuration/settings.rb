@@ -235,7 +235,11 @@ module Datadog
           option :instance do |o|
             # Telemetry for this option is manually modified and added in the AppStarted event.
             o.skip_telemetry true
-            o.after_set { |value| set_option(:level, value.level) unless value.nil? } # steep:ignore NoMethod
+            # The value is a Logger (validated by usage); the option signature cannot express it.
+            o.after_set do |value|
+              logger = value #: ::Logger
+              set_option(:level, logger.level) unless logger.nil?
+            end
           end
 
           # Log level for `Datadog.logger`.
