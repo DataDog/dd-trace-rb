@@ -20,3 +20,9 @@ void *miteruby_allocator_alloc(size_t size, const char *name);
 size_t miteruby_allocator_alloc_size(const void *allocation);
 void miteruby_allocator_free(void *allocation);
 size_t miteruby_allocator_requested_bytes(void);
+
+// Matches Verstable's sized free callback; the allocation header supplies the actual size.
+static inline void miteruby_allocator_free_sized(void *allocation, size_t _size) {
+  (void) _size;
+  miteruby_allocator_free(allocation);
+}
