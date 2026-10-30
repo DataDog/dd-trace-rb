@@ -229,6 +229,15 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
           expect(response).to have_attributes(internal_error?: true)
         end
       end
+
+      context "with a non-object config payload" do
+        let(:response_body) { "[]" }
+
+        it "reports the offending value in the internal error response" do
+          expect(response).to have_attributes(internal_error?: true)
+          expect(response.to_s).to include("Invalid type for payload: expected Hash: []")
+        end
+      end
     end
   end
 end

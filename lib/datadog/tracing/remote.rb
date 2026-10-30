@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../core/remote/dispatcher"
+require_relative "../core/remote/configuration/error"
 require_relative "configuration/dynamic"
 
 module Datadog
@@ -73,7 +74,9 @@ module Datadog
                 # A syntactically valid but non-object payload (null, [], 42)
                 # would later make config_matches? raise outside this per-content
                 # rescue and abort the whole merge, erroring valid configs too.
-                raise TypeError, "APM_TRACING remote config must be a JSON object, got #{config.class}"
+                raise Core::Remote::Configuration::Error.invalid_data_type(
+                  config, field: "APM_TRACING remote config", expected_type: Hash
+                )
               end
               # A present but non-object lib_config (e.g. {"lib_config": []}) is a
               # schema violation the customer can fix. Acknowledging it as applied
@@ -83,7 +86,9 @@ module Datadog
               # carries no overrides and is left as a no-op.
               lib_config = config["lib_config"]
               if !lib_config.nil? && !lib_config.is_a?(Hash)
-                raise TypeError, "APM_TRACING lib_config must be a JSON object, got #{lib_config.class}"
+                raise Core::Remote::Configuration::Error.invalid_data_type(
+                  lib_config, field: "APM_TRACING lib_config", expected_type: Hash
+                )
               end
               parsed << [content, config]
             rescue => e
@@ -258,6 +263,9 @@ module Datadog
           end
 
           unless di_enabled.nil?
+            # Coerce to a boolean so the value matches the handle_rc_enablement
+            # contract regardless of the JSON type the backend sent.
+            di_enabled = di_enabled ? true : false
             # repository is forwarded for the stopped->started replay in
             # Datadog::DI::Remote.handle_rc_enablement.
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
