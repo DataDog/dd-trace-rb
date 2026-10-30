@@ -13,11 +13,11 @@ module Datadog
       # collection (+elements+, +entries+, +fields+).
       MAX_ITEM_BYTES = 2048
 
-      # Byte allowance for a captured-value slot's framing: braces,
+      # Byte allowance for a captured-value slot's overhead: braces,
       # colons, commas, and the small fixed-size auxiliary fields such as
-      # +truncated+, +size+, and +isNull+. Doubles as the fixed allowance
-      # for a collection member name or a throwable stack frame, whose
-      # encoded size has no constant-time bound.
+      # +truncated+, +size+, and +isNull+. The constant is also the fixed
+      # allowance for a collection member name or a throwable stack
+      # frame, whose encoded size has no constant-time bound.
       SLOT_OVERHEAD = 128
 
       # Maximum JSON expansion of one byte of a string value, via the
