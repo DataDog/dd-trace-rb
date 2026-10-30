@@ -71,7 +71,7 @@ RSpec.describe "Correlation integration" do
   def method_probe(id, method_name, capture_snapshot: true, rate_limit: nil, condition: nil)
     Datadog::DI::Probe.new(id: id, type: :log,
       type_name: "CorrelationIntegrationTestClass", method_name: method_name,
-      capture_snapshot: capture_snapshot, rate_limit: rate_limit, condition: condition,)
+      capture_snapshot: capture_snapshot, rate_limit: rate_limit, condition: condition)
   end
 
   def flush
@@ -384,7 +384,7 @@ RSpec.describe "Correlation integration" do
     it "bounds a capturing line probe to the per-probe counter within a trace" do
       probe = Datadog::DI::Probe.new(id: "p-line", type: :log,
         file: "correlation_line_probe_test_class.rb", line_no: 18,
-        capture_snapshot: true, rate_limit: 5000,)
+        capture_snapshot: true, rate_limit: 5000)
       probe_manager.add_probe(probe)
 
       CorrelationLineProbeTestClass.new.loop_n(25)

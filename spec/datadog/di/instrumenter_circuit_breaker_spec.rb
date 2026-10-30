@@ -402,7 +402,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         probe_notification_builder,
         probe_notifier_worker,
         logger,
-        probe_repository
+        probe_repository,
       )
     end
 

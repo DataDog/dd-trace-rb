@@ -59,7 +59,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
       guardrails_telemetry: guardrails_telemetry,
       capture_expression_evaluator: capture_expression_evaluator,
-      correlation_sampler: correlation_sampler,)
+      correlation_sampler: correlation_sampler)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -2609,7 +2609,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           stub_active_trace(123)
 
           capturing_line_probe = Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
-            id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000,)
+            id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000)
           hook_line(capturing_line_probe) do |payload|
             observed_calls << payload
           end
@@ -2620,7 +2620,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           # wrapper must short-circuit; unguarded, it fires.
           weakref_probe = Datadog::DI::Probe.new(type_name: "WeakRef",
             method_name: "weakref_alive?", id: "p-weakref", type: :log,
-            capture_snapshot: true, rate_limit: 5000,)
+            capture_snapshot: true, rate_limit: 5000)
           weakref_probe_calls = []
           hook_method(weakref_probe) do |payload|
             weakref_probe_calls << payload
@@ -2811,7 +2811,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:starving_probe) do
             Datadog::DI::Probe.new(
               id: 2, type: :log, type_name: "DITestClass", method_name: "test_method",
-              capture_snapshot: true
+              capture_snapshot: true,
             )
           end
 
@@ -2843,7 +2843,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           let(:probe) do
             Datadog::DI::Probe.new(
               id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-              condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()")
+              condition: Datadog::DI::EL::Expression.new("(expression)", "undefined_function()"),
             )
           end
 

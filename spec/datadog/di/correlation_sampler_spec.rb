@@ -7,7 +7,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
   subject(:correlation) do
     described_class.new(sweep_threshold: sweep_threshold, top_rate: top_rate,
       global_rate: global_rate, per_probe_budget: per_probe_budget,
-      all_budget: all_budget,)
+      all_budget: all_budget)
   end
 
   let(:sweep_threshold) { 4096 }
@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
   def probe(id, own_rate_limit_allows: true)
     instance_double(Datadog::DI::Probe, id: id,
-      own_rate_limit_allows?: own_rate_limit_allows,)
+      own_rate_limit_allows?: own_rate_limit_allows)
   end
 
   # A distinct trace object per call, mirroring the tracer's one trace object
