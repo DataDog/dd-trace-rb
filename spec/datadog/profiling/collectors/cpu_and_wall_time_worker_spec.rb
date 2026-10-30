@@ -1815,7 +1815,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_and_wall_time_worker.stats).to include(
           miteruby_buffer_max_size_bytes: 1024 * 1024, # 1 MiB
           miteruby_consumed_events_buffer_max_size_bytes: 16_777_200, # around 16 MiB, it rounds because records are 40 bytes
-          miteruby_objects_to_mark_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_mark_threads_max_size_bytes: 100 * 1024,
+          miteruby_mark_cme_iseq_max_size_bytes: 16 * 1024 * 1024,
           miteruby_unique_stacks_array_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_unique_stacks_set_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_thread_contexts_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
@@ -2176,7 +2177,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       empty_usage = {
         miteruby_consumed_events_buffer_used_size_bytes: 0,
-        miteruby_objects_to_mark_entries: 0,
+        miteruby_mark_threads_entries: 0,
+        miteruby_mark_cme_iseq_entries: 0,
         miteruby_unique_stacks_array_used_size_bytes: 0,
         miteruby_unique_stacks_set_entries: 0,
         miteruby_thread_contexts_entries: 0,
@@ -2192,7 +2194,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consumed_stats = cpu_and_wall_time_worker.stats.select { |key, _| key.to_s.start_with?("miteruby_") }
       expect(consumed_stats).to include(
         miteruby_consumed_events_buffer_used_size_bytes: 80,
-        miteruby_objects_to_mark_entries: be > 0,
+        miteruby_mark_threads_entries: 1,
+        miteruby_mark_cme_iseq_entries: be > 0,
         miteruby_unique_stacks_array_used_size_bytes: be > 0,
         miteruby_unique_stacks_set_entries: 1,
         miteruby_thread_contexts_entries: 0,
