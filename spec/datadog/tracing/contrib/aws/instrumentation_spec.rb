@@ -1190,7 +1190,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:get_item) do
         client.get_item(
           table_name: "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable",
-          key: {id: "1234"}
+          key: {id: "1234"},
         )
       end
 
@@ -1225,7 +1225,7 @@ RSpec.describe "AWS instrumentation" do
       ::Aws::DynamoDB::Client.new(
         stub_responses: responses,
         region: "us-west-2",
-        credentials: ::Aws::Credentials.new("stubbed-key", "stubbed-secret")
+        credentials: ::Aws::Credentials.new("stubbed-key", "stubbed-secret"),
       )
     end
 
@@ -1233,7 +1233,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:get_item) do
         client.get_item(
           table_name: "arn:aws:dynamodb:eu-central-1:999999999999:table/CrossRegionTable",
-          key: {id: "1234"}
+          key: {id: "1234"},
         )
       end
 
@@ -1275,7 +1275,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:get_item) do
         client.get_item(
           table_name: "arn:aws:dynamodb::123456789012:global-table/MyTable",
-          key: {id: "1234"}
+          key: {id: "1234"},
         )
       end
 
@@ -1346,7 +1346,7 @@ RSpec.describe "AWS instrumentation" do
           stream_arn: "arn:aws:kinesis:us-east-1:123456789012:stream/arn-stream",
           stream_name: "param-stream",
           partition_key: "partition-1",
-          data: "Hello world!"
+          data: "Hello world!",
         )
       end
 
@@ -1378,7 +1378,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:publish) do
         client.publish(
           target_arn: "arn:aws:sns:us-west-2:123456789012:endpoint/APNS/my-app/1234-5678",
-          message: "Hello, world!"
+          message: "Hello, world!",
         )
       end
 
@@ -1410,7 +1410,7 @@ RSpec.describe "AWS instrumentation" do
     describe "#describe_execution" do
       subject!(:describe_execution) do
         client.describe_execution(
-          execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution"
+          execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
         )
       end
 
@@ -1448,7 +1448,7 @@ RSpec.describe "AWS instrumentation" do
     describe "#describe_state_machine" do
       subject!(:describe_state_machine) do
         client.describe_state_machine(
-          state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine"
+          state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine",
         )
       end
 
@@ -1483,7 +1483,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:start_execution) do
         client.start_execution(
           state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine",
-          name: "my-execution"
+          name: "my-execution",
         )
       end
 
@@ -1516,7 +1516,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:start_execution) do
         client.start_execution(
           state_machine_arn: "arn:aws:states:us-east-1:oops:stateMachine:MyStateMachine",
-          name: "my-execution"
+          name: "my-execution",
         )
       end
 
@@ -1633,7 +1633,7 @@ RSpec.describe "AWS instrumentation" do
     describe "#invoke with a qualified full ARN" do
       subject!(:invoke) do
         client.invoke(
-          function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD"
+          function_name: "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD",
         )
       end
 

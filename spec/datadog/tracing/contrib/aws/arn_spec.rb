@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Arn do
 
       it "splits on both delimiters" do
         expect(parsed.resource_segments).to eq(
-          ["stream", "my-stream", "consumer", "my-consumer", "1693526402"]
+          ["stream", "my-stream", "consumer", "my-consumer", "1693526402"],
         )
       end
     end

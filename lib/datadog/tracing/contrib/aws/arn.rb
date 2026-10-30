@@ -86,7 +86,7 @@ module Datadog
               service: service,
               region: region.empty? ? nil : region,
               account_id: account_id.empty? ? nil : account_id,
-              resource: resource
+              resource: resource,
             )
           end
 
