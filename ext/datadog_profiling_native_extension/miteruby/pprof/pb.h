@@ -10,8 +10,8 @@
  * uncommenting the lines, or on the compiler command line.      *
  *****************************************************************/
 
-/* Enable support for dynamically allocated fields */
-/* #define PB_ENABLE_MALLOC 1 */
+/* Datadog: miteruby owns allocations; external compiler flags must not enable nanopb allocation. */
+#undef PB_ENABLE_MALLOC
 
 /* Define this if your CPU / compiler combination does not support
  * unaligned memory access to packed structures. Note that packed
