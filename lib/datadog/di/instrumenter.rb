@@ -530,7 +530,10 @@ module Datadog
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @yield invokes the original method via super and returns its value
       # @return [Object] the original method's return value, or re-raises its exception
-      def run_method_probe(args, kwargs, target_block, target_self,
+      # Steep cannot correlate rv being nil with exc being set on the
+      # yield-rescue path, so the body's static (nil | X) mismatches the
+      # X return contract that every non-raising path satisfies.
+      def run_method_probe(args, kwargs, target_block, target_self, # steep:ignore MethodBodyTypeMismatch
         probe, responder, loc, method_name)
         # Disabled probe: skip DI processing entirely. enter_probe is not
         # called on this path so the guard is never set — there is no DI

@@ -92,7 +92,7 @@ module Datadog
             # wait for the cooldown period.
             if @lock.synchronize { @flush } == 0
               sleep_remaining = @lock.synchronize do
-                if sleep_remaining && sleep_remaining > 0
+                if sleep_remaining && sleep_remaining > 0 # steep:ignore FallbackAny
                   # Recalculate how much sleep time is remaining, then sleep that long.
                   set_sleep_remaining
                 else
@@ -103,7 +103,7 @@ module Datadog
               if sleep_remaining > 0
                 # Do not need to update @wake_scheduled here because
                 # wake-up is already scheduled for the earliest possible time.
-                wake.wait(sleep_remaining)
+                wake.wait(sleep_remaining) # steep:ignore ArgumentTypeMismatch
                 next
               end
             end
@@ -159,7 +159,8 @@ module Datadog
         end
         begin
           loop do
-            if @thread.nil? || !@thread.alive?
+            worker_thread = thread
+            if worker_thread.nil? || !worker_thread.alive?
               return
             end
 
@@ -231,7 +232,8 @@ module Datadog
       #
       # @param batch [Array<SnapshotEvent>] the snapshot events queued for sending
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+        snapshot_transport.send_input(batch, tags,
+          on_serialization_error: method(:handle_serialization_error)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Handles serialization errors reported by the transport.
@@ -260,6 +262,16 @@ module Datadog
         add_status(payload, probe: probe)
       end
 
+      # Returns the guardrails event type tag for a snapshot firing,
+      # defaulting to the snapshot classification when no probe is
+      # available for attribution.
+      #
+      # @param probe [Probe, nil] the probe that produced the snapshot
+      # @return [String] GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT or EVENT_TYPE_LOG
+      def snapshot_event_type_tag(probe)
+        probe ? GuardrailsTelemetry.probe_event_type_tag(probe) : GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
+      end
+
       def tags
         # DEV: The tags could be cached but they need to be recreated
         # when process forks (since the child receives new runtime IDs).
@@ -268,10 +280,14 @@ module Datadog
         )
       end
 
-      [
+      # Each queue's event type paired with the human-readable name used in
+      # diagnostics.
+      EVENT_TYPES = [
         [:status, "probe status"],
         [:snapshot, "snapshot"],
-      ].each do |(event_type, event_name)|
+      ] #: Array[[Symbol, String]]
+
+      EVENT_TYPES.each do |(event_type, event_name)|
         attr_reader "#{event_type}_queue"
 
         # Adds a status or a snapshot to the queue to be sent to the agent
@@ -289,6 +305,9 @@ module Datadog
         #   snapshot event's guardrails event type
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
+          # @type self: ProbeNotifierWorker
+          # @type var event: Hash[Symbol, untyped]
+          # @type var probe: DI::Probe?
           # Enqueueing reads DI configuration and writes debug/trace logs, both
           # of which can call stdlib methods (e.g. Set#include? via the
           # configuration layer's supported-configuration lookup). If a customer
@@ -304,9 +323,6 @@ module Datadog
           begin
             @lock.synchronize do
               queue = send("#{event_type}_queue")
-              guardrails_event_type = if event_type == :snapshot
-                probe ? GuardrailsTelemetry.probe_event_type_tag(probe) : GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
-              end
               if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
@@ -324,7 +340,7 @@ module Datadog
                 if event_type == :snapshot
                   guardrails_telemetry.dropped(
                     reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                    event_type: guardrails_event_type,
+                    event_type: snapshot_event_type_tag(probe),
                   )
                 end
               else
@@ -335,7 +351,7 @@ module Datadog
                   logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
                 end
                 queue << if event_type == :snapshot
-                  SnapshotEvent.new(payload: event, event_type: guardrails_event_type)
+                  SnapshotEvent.new(payload: event, event_type: snapshot_event_type_tag(probe))
                 else
                   event
                 end
@@ -372,11 +388,12 @@ module Datadog
         # types of events. Therefore on most wake-ups we expect to only
         # send one type of events.
         define_method("maybe_send_#{event_type}") do
-          batch = nil
-          @lock.synchronize do
-            batch = instance_variable_get("@#{event_type}_queue")
+          # @type self: ProbeNotifierWorker
+          batch = @lock.synchronize do
+            queue = instance_variable_get("@#{event_type}_queue")
             instance_variable_set("@#{event_type}_queue", [])
-            @io_in_progress = batch.any?
+            @io_in_progress = queue.any?
+            queue
           end
           logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
           if batch.any?
