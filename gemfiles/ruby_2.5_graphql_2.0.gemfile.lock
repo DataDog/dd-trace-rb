@@ -140,7 +140,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.6.1)
     minitest (5.15.0)
-    msgpack (1.8.5)
+    msgpack (1.8.6)
     net-imap (0.2.2)
       digest
       net-protocol
@@ -201,7 +201,7 @@ GEM
       rake (>= 12.2)
       thor (~> 1.0)
     rake (13.4.2)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     request_store (1.7.0)
       rack (>= 1.4)
@@ -223,7 +223,7 @@ GEM
     rspec-support (3.13.7)
     rspec-wait (0.0.10)
       rspec (>= 3.0)
-    rspec_junit_formatter (0.6.0)
+    rspec_junit_formatter (0.6.2)
       rspec-core (>= 2, < 4, != 2.12.0)
     simplecov (0.22.0)
       docile (~> 1.1)

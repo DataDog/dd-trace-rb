@@ -116,7 +116,7 @@ GEM
       url_mount (~> 0.2.1)
     inflecto (0.0.2)
     io-console (0.9.4)
-    json-schema (6.2.0)
+    json-schema (6.2.1)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
     libdatadog (46.1.0.1.1)
@@ -140,7 +140,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_mime (1.1.2)
-    msgpack (1.8.5)
+    msgpack (1.8.6)
     net-imap (0.3.4)
       date
       net-protocol
@@ -151,7 +151,7 @@ GEM
     net-smtp (0.3.3)
       net-protocol
     os (1.1.4)
-    pry (0.16.0)
+    pry (0.16.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
       reline (>= 0.6.0)
@@ -160,7 +160,7 @@ GEM
     rack-test (2.0.2)
       rack (>= 1.3)
     rake (13.4.2)
-    rake-compiler (1.3.1)
+    rake-compiler (1.3.2)
       rake
     reline (0.7.0)
       io-console (~> 0.5)
@@ -182,7 +182,7 @@ GEM
     rspec-support (3.13.7)
     rspec-wait (0.0.10)
       rspec (>= 3.0)
-    rspec_junit_formatter (0.6.0)
+    rspec_junit_formatter (0.6.2)
       rspec-core (>= 2, < 4, != 2.12.0)
     simplecov (0.22.0)
       docile (~> 1.1)
@@ -197,7 +197,7 @@ GEM
     url_mount (0.2.1)
       rack
     warning (1.6.0)
-    webmock (3.26.4)
+    webmock (3.34.0)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
