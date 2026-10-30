@@ -315,21 +315,65 @@ VALUE thread_name_for(VALUE thread) {
   return thread_struct_from_object(thread)->name;
 }
 
-// This test doubles as a validation for the layout of the rb_thread_t structure. Because the `name` is almost at
-// the end of the structure, if somehow we can't read the name, this probably means we're getting the structure wrong
+// This test validates the layout of the rb_thread_t structure. Because the fields we check are near the end of
+// the structure, if somehow we can't read the values we set, this probably means we're getting the structure wrong
 // and we should stop immediately (this includes covering the use of `stat_insn_usage` on Ruby <= 3.2).
 //
 // One example where this happens is in patches such as
 // https://github.com/gitlabhq/omnibus-gitlab/blob/master/config/patches/ruby/thread-memory-allocations-3.2.patch
-// that add items to the structure and thus shift its position from where we expect.
-void self_test_thread_name_for(void) {
-  VALUE thread = rb_eval_string("Thread.new { Thread.current.name = 'dd-prof-test' }.join");
-  VALUE expected_name = rb_funcall(thread, rb_intern("name"), 0);
-  if (thread_name_for(thread) != expected_name) {
-    rb_raise(rb_eRuntimeError,
-      "thread_name_for() self-test failed; this usually means the `rb_thread_t` on this Ruby doesn't match what the profiler expects"
-    );
+// that add items to the structure and thus shift its fields from where we expect.
+static VALUE self_test_thread_struct_in_thread(DDTRACE_UNUSED void *unused) {
+  VALUE thread = rb_thread_current();
+  rb_thread_t *thread_struct = thread_struct_from_object(thread);
+
+  // Without a root fiber, Ruby includes the VM stack in the thread's reported size. Calling rb_fiber_current()
+  // creates the root fiber, so Ruby accounts for the stack under that fiber instead, leaving it out of thread size.
+  VALUE fiber = rb_fiber_current();
+
+  // Check size first, when possible, to avoid out-of-bounds field reads if Ruby's structure is smaller than we expect.
+  // For a new thread with a root fiber + no thread-local keys, we expect the reported size to be exactly the
+  // same as `rb_thread_t`
+  if (RARRAY_LEN(rb_funcall(thread, rb_intern("keys"), 0)) == 0) {
+    size_t actual_size = private_vm_api_global.thread_data_type->function.dsize(thread_struct);
+    if (actual_size != sizeof(rb_thread_t)) {
+      return rb_sprintf("size mismatch (Ruby reports %zu bytes, profiler expects %zu)", actual_size, sizeof(rb_thread_t));
+    }
   }
+
+  if (thread_struct->root_fiber != DATA_PTR(fiber)) {
+    return rb_str_new_cstr("root_fiber does not match the current fiber");
+  }
+
+  // Are we reading the name from the right place?
+  VALUE name = rb_obj_freeze(rb_str_new_cstr("dd-prof-test"));
+  rb_funcall(thread, rb_intern("name="), 1, name);
+  // We check for rb_method_basic_definition_p to avoid the issue in https://github.com/DataDog/dd-trace-rb/issues/6582:
+  // If `Thread#name` gets redefined, we fall back to the next steps, rather than failing the self-test.
+  // (This means we don't block users of the `semantic_logger` gem from profiling)
+  if (thread_struct->name != name && rb_method_basic_definition_p(rb_cThread, rb_intern("name"))) {
+    return rb_str_new_cstr("name does not match the assigned name");
+  }
+
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    bool original_ractor_safe = thread_struct->ext_config.ractor_safe;
+    rb_ext_ractor_safe(!original_ractor_safe);
+    if (thread_struct->ext_config.ractor_safe != !original_ractor_safe) {
+      return rb_str_new_cstr("ext_config.ractor_safe did not change after toggling it");
+    }
+    rb_ext_ractor_safe(original_ractor_safe);
+    if (thread_struct->ext_config.ractor_safe != original_ractor_safe) {
+      return rb_str_new_cstr("ext_config.ractor_safe did not match after restoring it");
+    }
+  #endif
+
+  return Qnil;
+}
+
+void self_test_thread_struct(void) {
+  // We do this in a separate thread to isolate any of the changes we make
+  VALUE error = rb_funcall(rb_thread_create(self_test_thread_struct_in_thread, NULL), rb_intern("value"), 0);
+
+  if (!NIL_P(error)) rb_raise(rb_eRuntimeError, "rb_thread_t self-test failed: %"PRIsVALUE, error);
 }
 
 // -----------------------------------------------------------------------------
@@ -664,6 +708,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       stack_buffer[i].as.ruby_frame.iseq = iseq;
       stack_buffer[i].as.ruby_frame.caching_pc = (void *) pc;
       stack_buffer[i].cme = cme;
+      stack_buffer[i].cached_name_len = 0;
 
       // The topmost frame may not have an updated PC because the JIT
       // may not have set one.  The JIT compiler will update the PC
@@ -699,6 +744,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         }
 
         stack_buffer[i].cme = cme;
+        stack_buffer[i].cached_name_len = 0;
         stack_buffer[i].is_ruby_frame = false;
         i++;
       }
@@ -1036,15 +1082,22 @@ static bool is_metaclass(VALUE mod, VALUE* attached) {
 }
 
 VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
-#ifdef NO_ALLOC_FREE_MOD_NAME
+// Reading the field is what rb_mod_name() does (MRI: classname()), minus the cross-library call, which shows up in
+// profiles as we do this for every frame. See has_permanent_classpath() below for why RCLASS_EXT_PRIME.
+#if defined(RCLASS_EXT_PRIME) // 4.0+
+  VALUE name = RCLASS_EXT_PRIME(mod)->classpath;
+#elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
+  VALUE name = RCLASS_EXT(mod)->classpath;
+#elif defined(NO_ALLOC_FREE_MOD_NAME) // 2.6 and older
   VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
-#else
+#else // 2.7 - 3.2
   VALUE name = rb_mod_name(mod);
 #endif
+  // `classpath` is Qfalse, not Qnil, for a module that has no name.
   // While Module#const_set rejects empty strings,
   // an empty String is possible if `rb_const_set(mod, "", val)` was used
   // but that's not understandable so consider those anonymous too.
-  if (name == Qnil || RSTRING_LEN(name) == 0) {
+  if (name == Qfalse || name == Qnil || RSTRING_LEN(name) == 0) {
     return Qnil;
   } else {
     return name;

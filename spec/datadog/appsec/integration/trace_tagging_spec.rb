@@ -227,7 +227,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
       expect(http_service_entry_span.tags).to include(
         "_sampling_priority_v1" => 1.0,
         "_dd.appsec.trace.integer" => 1.0,
-        "_dd.appsec.trace.agent" => "TraceTagging/v1"
+        "_dd.appsec.trace.agent" => "TraceTagging/v1",
       )
     end
   end
@@ -242,7 +242,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
         "_sampling_priority_v1" => 2.0,
         "_dd.appsec.trace.integer" => 2.0,
         "_dd.appsec.trace.agent" => "TraceTagging/v2",
-        "http.request.headers.via" => "test"
+        "http.request.headers.via" => "test",
       )
     end
   end
@@ -257,7 +257,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
         "_sampling_priority_v1" => 2.0,
         "_dd.appsec.trace.integer" => 3.0,
         "_dd.appsec.trace.agent" => "TraceTagging/v3",
-        "http.request.headers.via" => "test"
+        "http.request.headers.via" => "test",
       )
     end
   end
@@ -272,7 +272,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
       expect(http_service_entry_span.tags).to include(
         "_sampling_priority_v1" => 1.0,
         "_dd.appsec.trace.integer" => 4.0,
-        "_dd.appsec.trace.agent" => "TraceTagging/v4"
+        "_dd.appsec.trace.agent" => "TraceTagging/v4",
       )
     end
   end

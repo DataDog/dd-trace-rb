@@ -78,7 +78,7 @@ RSpec.describe "Redis test" do
 
       context(
         "when working with Redis < 5",
-        skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new("5.0.0")
+        skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new("5.0.0"),
       ) do
         context "when supplying custom configuration via `Datadog.configure_onto`" do
           before { Datadog.configure_onto(redis, **tracing_options) }
@@ -103,7 +103,7 @@ RSpec.describe "Redis test" do
 
       context(
         "when working with Redis >= 5",
-        skip: Gem::Version.new(::Redis::VERSION) < Gem::Version.new("5.0.0")
+        skip: Gem::Version.new(::Redis::VERSION) < Gem::Version.new("5.0.0"),
       ) do
         context "when attempting to supply configuration via Datadog.configure_onto" do
           let(:redis_options) { default_redis_options }

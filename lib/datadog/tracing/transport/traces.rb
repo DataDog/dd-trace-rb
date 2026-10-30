@@ -120,7 +120,7 @@ module Datadog
                 encoder,
                 trace,
                 logger: logger,
-                native_events_supported: @native_events_supported
+                native_events_supported: @native_events_supported,
               )
             rescue
               @batch&.serialization_failed

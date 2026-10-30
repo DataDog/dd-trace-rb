@@ -84,7 +84,7 @@ RSpec.describe FfeFixtures do
           "ci/lint.yml" => "jobs",
           "evaluation-cases/nested/case.json" => "[]",
           "evaluation-cases/notes.txt" => "not a case",
-        )
+        ),
       )
 
       root = described_class.download(repository)

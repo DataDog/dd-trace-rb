@@ -52,7 +52,7 @@ RSpec.describe TestBatching::TaskMatrix do
 
     expect(tasks.map(&:name)).to eq(["main", "core_with_rails", "legacy"])
     expect(tasks.map(&:gemfile)).to eq(
-      ["gemfiles/Gemfile", "gemfiles/rails8.gemfile", "gemfiles/Gemfile"]
+      ["gemfiles/Gemfile", "gemfiles/rails8.gemfile", "gemfiles/Gemfile"],
     )
   end
 

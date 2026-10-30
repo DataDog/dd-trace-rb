@@ -8,6 +8,10 @@
 #define MAX_FRAMES_LIMIT            3000
 #define MAX_FRAMES_LIMIT_AS_STRING "3000"
 
+// Longest qualified frame name we keep per frame in `sampling_buffer`. Longer names are still reported, they just get
+// composed again on every sample; this bounds the per-thread memory the cache costs (max_frames * this).
+#define MAX_CACHED_FRAME_NAME 64
+
 // Per thread, where we store the stack sample
 typedef struct {
   uint16_t max_frames;
@@ -15,6 +19,10 @@ typedef struct {
   bool pending_sample;
   bool is_marking; // Used to avoid recording a sample when marking (marking can happen outside of GC as well)
   int pending_sample_result;
+  // Qualified frame names from the last sample, MAX_CACHED_FRAME_NAME bytes per frame (NULL when not qualifying names).
+  // A frame keeps its name for as long as it stays in `stack_buffer`, which is most of the time: between two samples
+  // of a thread, usually only the frames close to the top of the stack change.
+  char *cached_names;
 } sampling_buffer;
 
 // 1 per ThreadContext so effectively global.
@@ -55,7 +63,7 @@ void sample_locations_initialize(sample_locations *locations, uint16_t max_frame
 void sample_locations_free(sample_locations *locations);
 
 uint16_t sampling_buffer_check_max_frames(int max_frames);
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames);
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, bool cache_names);
 void sampling_buffer_free(sampling_buffer *buffer);
 void sampling_buffer_mark(sampling_buffer *buffer);
 static inline bool sampling_buffer_needs_marking(sampling_buffer *buffer) {

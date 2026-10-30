@@ -35,7 +35,7 @@ module Datadog
           end
 
           Redaction::Result.new(
-            redacted_messages, applied_count: applied_count, failures_count: failures_count
+            redacted_messages, applied_count: applied_count, failures_count: failures_count,
           )
         end
 

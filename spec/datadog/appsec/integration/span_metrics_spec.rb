@@ -66,11 +66,11 @@ RSpec.describe "Span metrics integration test" do
           lambda do |env|
             request = Rack::Request.new(env)
             users = User.find_by_sql(
-              "SELECT * FROM users WHERE name = '#{request.params["name"]}'"
+              "SELECT * FROM users WHERE name = '#{request.params["name"]}'",
             )
 
             [200, {"Content-Type" => "text/html"}, [users.join(",")]]
-          end
+          end,
         )
       end
     end

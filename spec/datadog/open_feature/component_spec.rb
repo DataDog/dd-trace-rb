@@ -22,7 +22,7 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
-  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false, warn: nil) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
@@ -151,6 +151,102 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect(component.flag_eval_evp_hook).to be_nil
         expect(component.flag_eval_metrics_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook)
       end
+    end
+  end
+
+  describe "#debug_logging_hook", skip: !Datadog::OpenFeature::Hooks::DebugLoggingHook.available? do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    it "is returned while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+
+    it "is withheld while debug logging is disabled" do
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+    end
+
+    it "reuses one hook across evaluations" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be(component.debug_logging_hook)
+    end
+
+    it "withholds an existing hook when debug logging is disabled later" do
+      allow(logger).to receive(:debug?).and_return(true)
+      hook = component.debug_logging_hook
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(logger).to receive(:debug?).and_return(true)
+      expect(component.debug_logging_hook).to be(hook)
+    end
+
+    it "is built once the OpenFeature SDK loads after the component" do
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(false)
+      component
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+  end
+
+  describe "raw evaluation data warning" do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) do
+      described_class.build(
+        settings,
+        agent_settings,
+        resolution: resolution,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
+    end
+
+    let(:raw_data_warning) { Datadog::OpenFeature::EvaluationEngine::RAW_DATA_WARNING }
+
+    it "warns once when built while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+
+      component.debug_logging_hook
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+    end
+
+    it "does not warn while debug logging is disabled" do
+      component.debug_logging_hook
+
+      expect(logger).not_to have_received(:warn)
+    end
+
+    it "warns once before handing out the debug logging hook when debug logging is enabled later" do
+      component
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component.debug_logging_hook
+      component.debug_logging_hook
+
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
     end
   end
 

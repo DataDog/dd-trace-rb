@@ -43,7 +43,7 @@ RSpec.shared_context "Rails 5 test application" do
           # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
             chain.add(
-              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
             )
           end
         end

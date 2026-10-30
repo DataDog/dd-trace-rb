@@ -124,7 +124,7 @@ module Datadog
             if per_flag_count >= @per_flag_cap
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data
+                observe_full_evaluation_data,
               )
               return
             end
@@ -140,7 +140,7 @@ module Datadog
                 error_message: error_message,
                 targeting_key: targeting_key,
                 context_attrs: observe_full_evaluation_data ? attrs : nil,
-                observe_full_evaluation_data: observe_full_evaluation_data
+                observe_full_evaluation_data: observe_full_evaluation_data,
               )
               @full[full_key] = entry
               @global_count += 1
@@ -148,7 +148,7 @@ module Datadog
               # Route to degraded tier
               add_to_degraded(
                 flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms,
-                observe_full_evaluation_data
+                observe_full_evaluation_data,
               )
             end
           end
@@ -328,7 +328,7 @@ module Datadog
                 end
 
                 output[prefix] = string_value.encode(
-                  Encoding::UTF_8, invalid: :replace, undef: :replace
+                  Encoding::UTF_8, invalid: :replace, undef: :replace,
                 ).freeze
               rescue
                 # Unsupported caller values must not break flag evaluation.
@@ -433,7 +433,7 @@ module Datadog
             evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
-            observe_full_evaluation_data: observe_full_evaluation_data
+            observe_full_evaluation_data: observe_full_evaluation_data,
           )
         end
       end

@@ -52,7 +52,9 @@ module Datadog
           end
 
           def patch_sqlite3_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -65,7 +67,9 @@ module Datadog
           end
 
           def patch_mysql2_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
               Instrumentation::InternalExecQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecQueryAdapterPatch
@@ -78,14 +82,18 @@ module Datadog
           end
 
           def patch_postgresql_adapter
-            instrumentation_module = if ::ActiveRecord.gem_version.segments.first == 4
+            instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+              Instrumentation::PreprocessQueryAdapterPatch
+            elsif ::ActiveRecord.gem_version.segments.first == 4
               Instrumentation::Rails4ExecuteAndClearAdapterPatch
             else
               Instrumentation::ExecuteAndClearAdapterPatch
             end
 
             if defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
+                Instrumentation::PreprocessQueryAdapterPatch
+              elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
                 Instrumentation::InternalExecQueryAdapterPatch
               elsif ::ActiveRecord.gem_version.segments.first == 4
                 Instrumentation::Rails4ExecQueryAdapterPatch

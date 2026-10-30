@@ -231,7 +231,7 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: span.id,
-                local_root_span_id: span.id
+                local_root_span_id: span.id,
               )
             end
           end
@@ -248,7 +248,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         it "yields span provided block" do
           expect { |b| tracer.trace(name, &b) }.to yield_with_args(
             a_kind_of(Datadog::Tracing::SpanOperation),
-            a_kind_of(Datadog::Tracing::TraceOperation)
+            a_kind_of(Datadog::Tracing::TraceOperation),
           )
         end
 
@@ -354,13 +354,13 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(otel_thread_context).to have_received(:set).with(
                 trace_id: trace_op.id,
                 span_id: child.id,
-                local_root_span_id: parent.id
+                local_root_span_id: parent.id,
               ).once
 
               expect(otel_thread_context).to receive(:set).with(
                 trace_id: trace_op.id,
                 span_id: parent.id,
-                local_root_span_id: parent.id
+                local_root_span_id: parent.id,
               ).once
 
               child.finish
@@ -473,7 +473,7 @@ RSpec.describe Datadog::Tracing::Tracer do
                   parent,
                   child,
                   grandchild,
-                ].all? { |s| s.trace_id == grandparent.trace_id }
+                ].all? { |s| s.trace_id == grandparent.trace_id },
               ).to be true
               expect(grandparent.parent_id).to eq(0)
               expect(parent.parent_id).to eq(grandparent.id)
@@ -484,7 +484,7 @@ RSpec.describe Datadog::Tracing::Tracer do
                 [
                   great_uncle,
                   second_cousin,
-                ].all? { |s| s.trace_id == great_uncle.trace_id }
+                ].all? { |s| s.trace_id == great_uncle.trace_id },
               ).to be true
               expect(great_uncle.parent_id).to eq(0)
               expect(second_cousin.parent_id).to eq(great_uncle.id)
@@ -534,7 +534,7 @@ RSpec.describe Datadog::Tracing::Tracer do
               tracer.trace(name, &b)
             end.to yield_with_args(
               a_kind_of(Datadog::Tracing::SpanOperation),
-              a_kind_of(Datadog::Tracing::TraceOperation)
+              a_kind_of(Datadog::Tracing::TraceOperation),
             )
           end.to_not raise_error
         end
@@ -600,7 +600,7 @@ RSpec.describe Datadog::Tracing::Tracer do
                   tracer.trace(name, on_error: b.to_proc, &block)
                 end.to yield_with_args(
                   a_kind_of(Datadog::Tracing::SpanOperation),
-                  error
+                  error,
                 )
               end.to raise_error(error)
 
@@ -903,7 +903,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(otel_thread_context).to have_received(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
-              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID,
             ).once
           end
         end
@@ -913,7 +913,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(otel_thread_context).to receive(:set).with(
               trace_id: digest.trace_id,
               span_id: digest.span_id,
-              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID
+              local_root_span_id: Datadog::Tracing::OTelThreadContext::UNKNOWN_LOCAL_ROOT_SPAN_ID,
             ).once
 
             tracer.trace("span") {}
@@ -950,13 +950,13 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace("operation") do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: nil
+            sampling_priority: nil,
           )
 
           expect(span).to have_attributes(
             parent_id: 0,
             id: a_kind_of(Integer),
-            trace_id: a_kind_of(Integer)
+            trace_id: a_kind_of(Integer),
           )
         end
 
@@ -1011,13 +1011,13 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace("operation") do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: nil
+            sampling_priority: nil,
           )
 
           expect(span).to have_attributes(
             parent_id: 0,
             id: a_kind_of(Integer),
-            trace_id: a_kind_of(Integer)
+            trace_id: a_kind_of(Integer),
           )
         end
 
@@ -1085,7 +1085,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             sampling_priority: digest.trace_sampling_priority,
             trace_state: an_object_having_attributes(
               unknown_vendors: "my-state",
-              datadog: an_object_having_attributes(unknown_fields: "any;field")
+              datadog: an_object_having_attributes(unknown_fields: "any;field"),
             ),
           )
           expect(digest.span_remote).to be true
@@ -1095,7 +1095,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: digest.span_id,
-            trace_id: digest.trace_id
+            trace_id: digest.trace_id,
           )
         end
 
@@ -1112,7 +1112,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace("second") do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: nil
+            sampling_priority: nil,
           )
 
           expect(span.trace_id).to_not eq(digest.trace_id)
@@ -1442,7 +1442,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       trace_digest = Datadog::Tracing::Contrib::HTTP.extract(
         {
           "baggage" => "user.id=test-id,session.id=session-123,foo=bar",
-        }
+        },
       )
 
       tracer.trace("op", continue_from: trace_digest) do |_span, _trace|

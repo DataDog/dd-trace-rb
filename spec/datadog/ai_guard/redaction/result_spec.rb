@@ -8,7 +8,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Result do
       [],
       applied_count: state.fetch(:applied_count),
       failures_count: state.fetch(:failures_count),
-      performed: state.fetch(:performed)
+      performed: state.fetch(:performed),
     )
   end
 

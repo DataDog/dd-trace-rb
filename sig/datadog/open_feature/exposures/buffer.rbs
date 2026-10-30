@@ -10,6 +10,8 @@ module Datadog
 
         def initialize: (?::Integer) -> void
 
+        def pending_dropped_count: () -> Integer
+
         def drain!: () -> ::Array[Object]
 
         def replace!: [T < Object] (T) -> T

@@ -20,7 +20,7 @@ module Datadog
               block_failure: "false",
               rate_limited: (!context.trace.sampled?).to_s,
               input_truncated: metrics.inputs_truncated.positive?.to_s,
-            }
+            },
           )
         end
 
@@ -31,14 +31,14 @@ module Datadog
           if context.span&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
             AppSec.telemetry.inc(
               AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.missing_route", 1,
-              tags: {framework: web_framework}
+              tags: {framework: web_framework},
             )
           end
 
           metric_name = context.state[:schema_extracted] ? "schema" : "no_schema"
           AppSec.telemetry.inc(
             AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.#{metric_name}", 1,
-            tags: {framework: web_framework}
+            tags: {framework: web_framework},
           )
         end
       end
