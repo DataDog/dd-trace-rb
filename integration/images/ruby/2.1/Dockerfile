@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:2.1-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+FROM ghcr.io/datadog/images-rb/engines/ruby:2.1-gnu-gcc-g394055630bfd9c8f8b0ed47990298992b1d40999
 
 # Add Jessie repos
 # Fixes https://www.lucas-nussbaum.net/blog/?p=947
