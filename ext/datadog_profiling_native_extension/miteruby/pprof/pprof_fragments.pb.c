@@ -6,40 +6,40 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(streaming_FragmentSampleType, streaming_FragmentSampleType, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE, miteruby_pprof_fragment_sample_type_t, AUTO)
 
 
-PB_BIND(streaming_FragmentSampleType_ValueType, streaming_FragmentSampleType_ValueType, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_VALUE_TYPE, miteruby_pprof_fragment_sample_type_value_type_t, AUTO)
 
 
-PB_BIND(streaming_FragmentSample, streaming_FragmentSample, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_SAMPLE, miteruby_pprof_fragment_sample_t, AUTO)
 
 
-PB_BIND(streaming_FragmentSample_Sample, streaming_FragmentSample_Sample, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE, miteruby_pprof_fragment_sample_sample_t, AUTO)
 
 
-PB_BIND(streaming_FragmentSample_Sample_Label, streaming_FragmentSample_Sample_Label, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL, miteruby_pprof_fragment_sample_sample_label_t, AUTO)
 
 
-PB_BIND(streaming_FragmentLocation, streaming_FragmentLocation, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_LOCATION, miteruby_pprof_fragment_location_t, AUTO)
 
 
-PB_BIND(streaming_FragmentLocation_Location, streaming_FragmentLocation_Location, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION, miteruby_pprof_fragment_location_location_t, AUTO)
 
 
-PB_BIND(streaming_FragmentLocation_Location_Line, streaming_FragmentLocation_Location_Line, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_LOCATION_LOCATION_LINE, miteruby_pprof_fragment_location_location_line_t, AUTO)
 
 
-PB_BIND(streaming_FragmentFunction, streaming_FragmentFunction, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_FUNCTION, miteruby_pprof_fragment_function_t, AUTO)
 
 
-PB_BIND(streaming_FragmentFunction_Function, streaming_FragmentFunction_Function, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_FUNCTION_FUNCTION, miteruby_pprof_fragment_function_function_t, AUTO)
 
 
-PB_BIND(streaming_FragmentStringTable, streaming_FragmentStringTable, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_STRING_TABLE, miteruby_pprof_fragment_string_table_t, AUTO)
 
 
-PB_BIND(streaming_FragmentProfile, streaming_FragmentProfile, AUTO)
+PB_BIND(MITERUBY_PPROF_FRAGMENT_PROFILE, miteruby_pprof_fragment_profile_t, AUTO)
 
 
 
