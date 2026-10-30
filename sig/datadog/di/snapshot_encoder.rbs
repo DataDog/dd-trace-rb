@@ -19,7 +19,7 @@ module Datadog
       PRUNED_ENCODED: String
       KEY_JSON: Hash[String, String]
 
-      class Result < Struct[String? | bool]
+      class Result < Struct[[String?, bool]]
         attr_reader encoded: String?
         attr_reader pruned: bool
 
