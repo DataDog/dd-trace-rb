@@ -31,6 +31,8 @@ module Datadog
 
           def self.scannable?: (untyped value) -> bool
 
+          def self.arn_like?: (untyped value) -> bool
+
           def self.parse: (untyped value) -> Arn?
 
           def initialize: (
@@ -43,7 +45,7 @@ module Datadog
 
           def bare_resource?: () -> bool
 
-          def typed_resource_id: (::String service_name, ::Array[::String] resource_types) -> ::String?
+          def typed_resource_id: (::String service_name, ::Array[::String] resource_types, ?segments: ::Integer?) -> ::String?
 
           def bare_resource_id: (::String service_name) -> ::String?
         end

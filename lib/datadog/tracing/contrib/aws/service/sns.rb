@@ -28,9 +28,8 @@ module Datadog
 
               if arn && resolved_name
                 topic_name = resolved_name
-                account_id = arn.account_id
                 span.set_tag(Aws::Ext::TAG_AWS_TOPIC_ARN, topic_arn)
-                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
+                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, arn.account_id) if arn.account_id
               end
 
               span.set_tag(Aws::Ext::TAG_TOPIC_NAME, topic_name)

@@ -22,9 +22,6 @@ module Datadog
           TAG_OPERATION = "aws.operation"
           TAG_OPERATION_COMMAND = "command"
           TAG_PATH = "path"
-          # The Region of the endpoint the request was sent to (the client's
-          # own Region). A target resource's Region is carried by its ARN in
-          # the `*.arn` tags below, not here.
           TAG_AWS_REGION = "aws.region"
           TAG_REGION = "region"
           TAG_AWS_SERVICE = "aws_service"
@@ -36,11 +33,6 @@ module Datadog
           TAG_RULE_NAME = "rulename"
           TAG_STATE_MACHINE_NAME = "statemachinename"
           TAG_BUCKET_NAME = "bucketname"
-          # Target identity tags shared with the other Datadog tracers. They
-          # complement, and never replace, the legacy top-level name tags
-          # above, which remain the `peer.service` sources. An `*.arn` tag is
-          # the ARN the request supplied, byte for byte, including any version
-          # or alias qualifier.
           TAG_AWS_TABLE_NAME = "aws.table.name"
           TAG_AWS_TABLE_ARN = "aws.table.arn"
           TAG_AWS_TOPIC_NAME = "aws.topic.name"

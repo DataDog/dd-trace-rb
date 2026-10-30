@@ -61,8 +61,7 @@ module Datadog
               resolved = state_machine || execution
               resolved_name = state_machine ? state_machine_name : execution_name
 
-              account_id = resolved.account_id
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, resolved.account_id) if resolved.account_id
               span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, resolved_name)
             end
 

@@ -111,10 +111,12 @@ module Datadog
 
           # The id of a typed resource: the `MyTable` of `table/MyTable`, or the
           # `my-function` of `function:my-function:PROD`. Answers `nil` unless
-          # the ARN belongs to `service_name` and names one of `resource_types`.
-          def typed_resource_id(service_name, resource_types)
+          # the ARN belongs to `service_name`, names one of `resource_types` and,
+          # when `segments` is given, has exactly that many resource segments.
+          def typed_resource_id(service_name, resource_types, segments: nil)
             return nil unless service == service_name
             return nil unless resource_types.include?(resource_segments[0])
+            return nil if segments && resource_segments.length != segments
 
             id = resource_segments[1]
             return nil if id.nil? || id.empty?

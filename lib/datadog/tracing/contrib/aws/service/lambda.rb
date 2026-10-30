@@ -95,8 +95,7 @@ module Datadog
 
               span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, match[:name])
               span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_ARN, function_name)
-              account_id = arn.account_id
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, arn.account_id) if arn.account_id
             end
 
             # Tags a partial ARN: the account is reported, no ARN is, since the
