@@ -43,7 +43,7 @@ module Datadog
               o.default { settings_class.new }
 
               o.resetter do |value|
-                value.reset! if value.respond_to?(:reset!) # steep:ignore NoMethod
+                value.reset! if value.is_a?(Configuration::Base)
                 value
               end
             end
