@@ -19,11 +19,12 @@ module Datadog
       PRUNED_ENCODED: String
       KEY_JSON: Hash[String, String]
 
-      class Result < Struct[[String?, bool]]
+      class Result < Struct[[String?, bool, Integer?]]
         attr_reader encoded: String?
         attr_reader pruned: bool
+        attr_reader bytes: Integer?
 
-        def self.new: (String? encoded, bool pruned) -> instance
+        def self.new: (String? encoded, bool pruned, ?Integer? bytes) -> instance
       end
 
       class Budget

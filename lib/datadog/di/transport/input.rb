@@ -97,7 +97,7 @@ module Datadog
                   "di: dropping snapshot: pruning cannot bring it within the " \
                     "#{MAX_SERIALIZED_SNAPSHOT_SIZE}-byte limit (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
-                dropped_events << event
+                dropped_events << [event, result.bytes]
                 next
               end
               if result.pruned
@@ -128,10 +128,10 @@ module Datadog
               end
             end
 
-            dropped_events.each do |event|
+            dropped_events.each do |event, bytes|
               guardrails_telemetry.dropped(
                 reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
-                event_type: event.event_type,
+                event_type: event.event_type, bytes: bytes,
               )
             end
 

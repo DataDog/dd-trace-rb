@@ -2050,10 +2050,12 @@ RSpec.describe "Instrumentation integration" do
         )
       end
 
-      shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metric" do
-        it "drops the snapshot, keeps the probe enabled and emits the canonical drop metric" do
+      shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics" do
+        it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
+            be_between(1, 2_000), tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect_lazy_log(logger, :debug,
             "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
 
@@ -2070,13 +2072,13 @@ RSpec.describe "Instrumentation integration" do
       context "with a single-byte snapshot over the byte limit" do
         let(:captured_value) { "A" * 3_000 }
 
-        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metric"
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
       end
 
       context "with a multibyte snapshot within the character limit but over the byte limit" do
         let(:captured_value) { "あ" * 700 }
 
-        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metric"
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
       end
     end
   end

@@ -48,6 +48,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(small, cap)
         expect(result.encoded).to eq(JSON.dump(small))
         expect(result.pruned).to be(false)
+        expect(result.bytes).to be_nil
       end
     end
 
@@ -133,6 +134,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(huge_envelope, 1024)
         expect(result.encoded).to be_nil
         expect(result.pruned).to be(false)
+        expect(result.bytes).to be_between(1, 1024)
       end
     end
 

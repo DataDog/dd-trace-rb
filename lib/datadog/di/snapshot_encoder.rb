@@ -53,7 +53,7 @@ module Datadog
         budget = Budget.new(max_size)
         pruned = false
         on_prune = -> { pruned = true }
-        return Result.new(nil, false) unless encode_value(snapshot, out, budget, &on_prune)
+        return Result.new(nil, false, max_size - budget.remaining) unless encode_value(snapshot, out, budget, &on_prune)
         Result.new(out, pruned)
       end
 
@@ -61,8 +61,11 @@ module Datadog
       # string, of at most the per-event byte cap, or nil when the
       # snapshot cannot fit within the cap even after pruning; +pruned+
       # [Boolean] is true when any captured-value slot was replaced with
-      # the pruned marker.
-      Result = Struct.new(:encoded, :pruned)
+      # the pruned marker; +bytes+ [Integer, nil] is the number of bytes
+      # emitted into the output buffer before the pass failed, a lower
+      # bound on the encoded size of the snapshot, or nil when the pass
+      # succeeded.
+      Result = Struct.new(:encoded, :pruned, :bytes)
       private_constant :Result
 
       # Byte budget for an encoding pass.
