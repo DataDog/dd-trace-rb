@@ -62,14 +62,14 @@ module Datadog
         Result.new(out, pruned)
       end
 
-      # Outcome of one encoding pass: +encoded+ [String, nil] is the JSON
+      # Outcome of an encoding pass: +encoded+ [String, nil] is the JSON
       # string, or nil when the snapshot cannot fit within the cap even
       # after pruning; +pruned+ [Boolean] is true when any captured-value
       # slot was replaced with the pruned marker.
       Result = Struct.new(:encoded, :pruned)
       private_constant :Result
 
-      # Byte budget for one encoding pass.
+      # Byte budget for an encoding pass.
       #
       # @api private
       class Budget
@@ -117,7 +117,7 @@ module Datadog
           end
         end
 
-        # Encodes one captured-value slot.
+        # Encodes a captured-value slot.
         #
         # @param slot [Object] captured-value slot
         # @param out [String] output buffer
@@ -248,7 +248,7 @@ module Datadog
           emit_json_fragment(out, budget, "]")
         end
 
-        # Encodes one [key, value] pair of an +entries+ field.
+        # Encodes a [key, value] pair of an +entries+ field.
         #
         # @param pair [Array] two-element Array of captured-value slots
         # @param out [String] output buffer
@@ -316,7 +316,7 @@ module Datadog
 
         # Encodes a structural envelope Hash. The +locals+, +arguments+, and
         # +captureExpressions+ values are Hashes of {variable name: slot};
-        # the +throwable+ value is a single slot. Other values are envelope
+        # the +throwable+ value is a slot. Other values are envelope
         # data and are emitted as-is.
         #
         # @param hash [Hash] envelope Hash to encode
