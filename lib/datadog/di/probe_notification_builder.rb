@@ -306,6 +306,7 @@ module Datadog
         end
       end
 
+      # Builds the snapshot payload common to all probe snapshot notifications.
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
         probe = context.probe
 
@@ -379,6 +380,7 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
+            generation: DI.current_thread_generation,
             version: 2,
           },
           runtime_id: Core::Environment::Identity.id,
