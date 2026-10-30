@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6572",
+  "message": "Enable partial flushing by default so unfinished traces flush completed spans at the 500-span threshold. Restore complete-trace flushing with `c.tracing.partial_flush.enabled = false` in `Datadog.configure`."
+}
