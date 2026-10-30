@@ -82,8 +82,8 @@ module Datadog
           #   when a snapshot fails to serialize.
           # @return [Array<SnapshotEvent>] the +payload+ argument, after
           #   best-effort delivery of the encoded snapshots
-          # @raise [Exception] fatal exceptions (SystemExit, SignalException,
-          #   NoMemoryError) re-raised by Datadog::DI.reraise_if_fatal
+          # @raise [Exception] fatal exceptions (SystemExit,
+          #   SignalException, NoMemoryError) are re-raised
           def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
