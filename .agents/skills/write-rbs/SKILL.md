@@ -35,6 +35,21 @@ new one
 - SHOULD reuse the signatures already present, and upgrade any `untyped` you can
   infer
 
+## Nilable design
+
+Steep fails at the definition when a non-nil signature meets a nil-returning
+body. So tightening a signature forces tightening the code in the same change
+– use that as the lever, and never lie in the signature alone.
+
+- Tighten RETURN types when nil has one meaning and many consumers branch on
+  it. Absorb the absence into one null value (`Gem::Version.new("0")` for an
+  unloaded gem) or a null object when absence behaves like presence almost
+  everywhere
+- Keep a return nilable when nil is a real state ("is the subsystem on?"),
+  not an implementation accident
+- NEVER tighten a public input param: a nilable param can be the documented
+  contract ("unset the service"); tightening it breaks callers
+
 ## Vendored signatures
 
 - NEVER write a `vendor/rbs` signature from how the calling code uses the gem –
