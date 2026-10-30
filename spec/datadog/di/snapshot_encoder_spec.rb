@@ -436,6 +436,14 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(result.pruned).to be(false)
         expect(locals_of(result)["c"]).to eq("type" => "Custom", "fields" => 7)
       end
+
+      it "encodes the locals value as generic JSON" do
+        result = described_class.encode(
+          snapshot({lines: {42 => {locals: "junk", arguments: {}}}}), cap,
+        )
+        expect(result.pruned).to be(false)
+        expect(locals_of(result)).to eq("junk")
+      end
     end
 
     context "when a captured value reports a serialization failure" do
