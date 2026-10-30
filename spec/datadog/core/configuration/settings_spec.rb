@@ -872,6 +872,13 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context "with an invalid value" do
+          it "raises ArgumentError" do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = "banana" }
+              .to raise_error(ArgumentError)
+          end
+        end
+
         context "with false" do
           it "updates the #preview_otel_context_enabled setting" do
             settings.profiling.advanced.preview_otel_context_enabled = true

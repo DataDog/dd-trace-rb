@@ -90,11 +90,13 @@ module Datadog
               end
 
               option :ip_passlist do |o|
+                o.type :array
                 o.default []
 
                 o.setter do |value|
-                  next value unless value.is_a?(::Array)
-                  next value if value.empty?
+                  # Validated by the settings framework (o.type); the setter signature cannot express it.
+                  list = value #: Array[untyped]
+                  next list if list.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The ip_passlist setting is deprecated and will be removed in the next release. " \
@@ -110,8 +112,9 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  next value unless value.is_a?(::Array)
-                  next value if value.empty?
+                  # Validated by the settings framework (o.type); the setter signature cannot express it.
+                  list = value #: Array[untyped]
+                  next list if list.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The ip_denylist setting is deprecated and will be removed in the next release. " \
@@ -127,8 +130,9 @@ module Datadog
                 o.default []
 
                 o.setter do |value|
-                  next value unless value.is_a?(::Array)
-                  next value if value.empty?
+                  # Validated by the settings framework (o.type); the setter signature cannot express it.
+                  list = value #: Array[untyped]
+                  next list if list.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
                     "The user_id_denylist setting is deprecated and will be removed in the next release. " \
@@ -184,14 +188,15 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      next value unless value.is_a?(::String)
-                      if value
-                        unless File.exist?(value)
+                      # Validated by the settings framework (o.type); the setter signature cannot express it.
+                      path = value #: String?
+                      if path
+                        unless File.exist?(path)
                           raise(ArgumentError,
-                            "appsec.templates.html: file not found: #{value}")
+                            "appsec.templates.html: file not found: #{path}")
                         end
 
-                        File.binread(value) || ""
+                        File.binread(path) || ""
                       end
                     end
                   end
@@ -200,14 +205,15 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      next value unless value.is_a?(::String)
-                      if value
-                        unless File.exist?(value)
+                      # Validated by the settings framework (o.type); the setter signature cannot express it.
+                      path = value #: String?
+                      if path
+                        unless File.exist?(path)
                           raise(ArgumentError,
-                            "appsec.templates.json: file not found: #{value}")
+                            "appsec.templates.json: file not found: #{path}")
                         end
 
-                        File.binread(value) || ""
+                        File.binread(path) || ""
                       end
                     end
                   end
@@ -216,14 +222,15 @@ module Datadog
                     o.env "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT"
                     o.type :string, nilable: true
                     o.setter do |value|
-                      next value unless value.is_a?(::String)
-                      if value
-                        unless File.exist?(value)
+                      # Validated by the settings framework (o.type); the setter signature cannot express it.
+                      path = value #: String?
+                      if path
+                        unless File.exist?(path)
                           raise(ArgumentError,
-                            "appsec.templates.text: file not found: #{value}")
+                            "appsec.templates.text: file not found: #{path}")
                         end
 
-                        File.binread(value) || ""
+                        File.binread(path) || ""
                       end
                     end
                   end

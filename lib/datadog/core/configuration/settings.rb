@@ -570,12 +570,16 @@ module Datadog
                 end
               end
               o.setter do |value|
-                if value == true
-                  :both
-                elsif value.is_a?(::String) || value.is_a?(::Symbol)
-                  ["only", "both", :only, :both].include?(value) ? value.to_sym : false
+                next :both if value == true
+                next false if value == false || value == "false"
+
+                if value.is_a?(::String) || value.is_a?(::Symbol)
+                  raise ArgumentError, "expects one of only/both, got #{value.inspect}" \
+                    unless ["only", "both", :only, :both].include?(value)
+
+                  value.to_sym
                 else
-                  false
+                  raise ArgumentError, "expects a String, Symbol, or boolean, got #{value.inspect}"
                 end
               end
             end
