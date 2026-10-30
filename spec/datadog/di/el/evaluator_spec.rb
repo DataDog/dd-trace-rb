@@ -172,7 +172,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   def context_with(locals)
     Datadog::DI::Context.new(
       probe: nil, settings: settings, serializer: serializer,
-      locals: locals
+      locals: locals,
     )
   end
 
