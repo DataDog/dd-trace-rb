@@ -69,7 +69,7 @@ module Datadog
                 post = ::Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
                   env.path,
                   env.form,
-                  env.headers
+                  env.headers,
                 )
               end
 

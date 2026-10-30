@@ -456,11 +456,11 @@ module Datadog
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: error_message
+          error_message: error_message,
         )
         error_flag_meta = flag_meta
         error_flag_meta ||= build_flag_metadata(
-          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i,
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
@@ -471,7 +471,7 @@ module Datadog
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
         )
       end
 
@@ -490,7 +490,7 @@ module Datadog
           error_code: error_code,
           error_message: error_message,
           reason: reason,
-          flag_metadata: flag_meta
+          flag_metadata: flag_meta,
         )
       end
 
@@ -561,7 +561,7 @@ module Datadog
           flag_metadata: {
             "dd.eval.timestamp_ms" => eval_time_ms,
             Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
-          }
+          },
         )
       end
     end

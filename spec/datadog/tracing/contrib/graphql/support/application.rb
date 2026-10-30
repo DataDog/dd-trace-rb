@@ -101,7 +101,7 @@ RSpec.shared_context "GraphQL test application" do
               query: params[:query],
               operation_name: params[:operationName],
               variables: prepare_variables(params[:variables]),
-              context: {}
+              context: {},
             )
           end
           render json: result
@@ -125,7 +125,7 @@ RSpec.shared_context "GraphQL test application" do
             raise ArgumentError, "Unexpected parameter: #{variables_param}"
           end
         end
-      end
+      end,
     )
   end
 end

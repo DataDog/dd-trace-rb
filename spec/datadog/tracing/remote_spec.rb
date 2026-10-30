@@ -29,8 +29,8 @@ RSpec.describe Datadog::Tracing::Remote do
       match(
         lambda do |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse(path)
-        end
-      )
+        end,
+      ),
     )
   end
 
@@ -407,7 +407,7 @@ RSpec.describe Datadog::Tracing::Remote do
         {
           path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
           content: JSON.dump(config),
-        }
+        },
       )
     end
 
@@ -531,7 +531,7 @@ RSpec.describe Datadog::Tracing::Remote do
           {
             path: "datadog/1/APM_TRACING/bad/lib_config",
             content: "{not json",
-          }
+          },
         )
       end
       let(:contents) { [good, bad] }
@@ -558,7 +558,7 @@ RSpec.describe Datadog::Tracing::Remote do
           {
             path: "datadog/1/APM_TRACING/non_object/lib_config",
             content: "null",
-          }
+          },
         )
       end
       let(:contents) { [good, non_object] }
@@ -604,7 +604,7 @@ RSpec.describe Datadog::Tracing::Remote do
           {
             path: "datadog/1/APM_TRACING/malformed_json/lib_config",
             content: "{not json",
-          }
+          },
         )
       end
       let(:deleted_signal_config_path) do
@@ -746,7 +746,7 @@ RSpec.describe Datadog::Tracing::Remote do
           {
             path: "datadog/1/OTHER_PRODUCT/x/name",
             content: "{}",
-          }
+          },
         )
       end
       let(:apm) do

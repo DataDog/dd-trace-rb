@@ -9,7 +9,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         expect(
           described_class
             .fetch_service_name("TEST_DD_INTEGRATION_SERVICE",
-              "default-integration-service-name")
+              "default-integration-service-name"),
         ).to eq("integration-service-name")
       end
     end
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         expect(
           described_class
             .fetch_service_name("TEST_DD_INTEGRATION_SERVICE",
-              "default-integration-service-name")
+              "default-integration-service-name"),
         ).to eq("default-integration-service-name")
       end
     end
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         expect(
           described_class
             .fetch_service_name("TEST_DD_INTEGRATION_SERVICE",
-              "default-integration-service-name")
+              "default-integration-service-name"),
         ).to eq("default-integration-service-name")
       end
     end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         expect(
           described_class
             .fetch_service_name("TEST_DD_INTEGRATION_SERVICE",
-              "default-integration-service-name")
+              "default-integration-service-name"),
         ).to eq("service")
       end
     end

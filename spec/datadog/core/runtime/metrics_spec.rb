@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       it do
         expect(runtime_metrics.send(:service_tags)).to include(
           "#{Datadog::Core::Runtime::Ext::Metrics::TAG_SERVICE}:service-a",
-          "#{Datadog::Core::Runtime::Ext::Metrics::TAG_SERVICE}:service-b"
+          "#{Datadog::Core::Runtime::Ext::Metrics::TAG_SERVICE}:service-b",
         )
       end
     end

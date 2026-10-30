@@ -42,7 +42,7 @@ module Datadog
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
           result = ResolutionDetails.build_error(
-            value: default_value, error_code: Ext::UNKNOWN_TYPE, error_message: message
+            value: default_value, error_code: Ext::UNKNOWN_TYPE, error_message: message,
           )
 
           return with_observe_full_evaluation_data(result, observe_full_evaluation_data)
@@ -50,7 +50,7 @@ module Datadog
 
         context = evaluation_context&.fields.to_h
         result = evaluator.get_assignment(
-          flag_key, default_value: default_value, context: context, expected_type: expected_type
+          flag_key, default_value: default_value, context: context, expected_type: expected_type,
         )
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
@@ -64,7 +64,7 @@ module Datadog
         log_resolution_failure(flag_key, e)
 
         result = ResolutionDetails.build_error(
-          value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
+          value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}",
         )
         # `== true` is load-bearing: Steep types this local as `(nil | bool)` in a rescue
         # body, and coercing at the use site is what narrows it to `bool`.

@@ -113,7 +113,7 @@ module Datadog
             partition: partition,
             offset: offset,
             timestamp_ns: (now.to_f * 1e9).to_i,
-          }
+          },
         )
         true
       end
@@ -132,7 +132,7 @@ module Datadog
             partition: partition,
             offset: offset,
             timestamp: now,
-          }
+          },
         )
         true
       end
@@ -317,7 +317,7 @@ module Datadog
           full_pathway_latency_sec: full_pathway_latency_sec,
           payload_size: payload_size,
           tags: tags,
-          timestamp_sec: now.to_f
+          timestamp_sec: now.to_f,
         )
 
         current_context.parent_hash = current_context.hash
@@ -395,7 +395,7 @@ module Datadog
         self.pathway_context = PathwayContext.new(
           hash_value: 0,
           pathway_start: now,
-          current_edge_start: now
+          current_edge_start: now,
         )
       end
 
@@ -453,7 +453,7 @@ module Datadog
             payload_size: payload_size,
             tags: tags,
             timestamp_sec: timestamp_sec,
-          }
+          },
         )
         true
       end
@@ -471,7 +471,7 @@ module Datadog
       def transport
         @transport ||= Transport::HTTP.default(
           agent_settings: @agent_settings,
-          logger: @logger
+          logger: @logger,
         )
       end
 

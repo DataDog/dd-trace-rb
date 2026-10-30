@@ -90,7 +90,7 @@ module Datadog
               replace_components!(configuration, @components)
             else
               build_components(configuration)
-            end
+            end,
           )
         end
 
@@ -240,7 +240,7 @@ module Datadog
           logger_without_components.error(
             "Detected deadlock during datadog initialization: #{e.class}: #{e.message}. " \
             "Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug" \
-            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}",
           )
           nil
         end

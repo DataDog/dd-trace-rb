@@ -37,7 +37,7 @@ module Datadog
                 tracing_sinatra_framework.add_middleware_after(
                   tracing_middleware,
                   Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-                  builder
+                  builder,
                 )
               else
                 tracing_sinatra_framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)

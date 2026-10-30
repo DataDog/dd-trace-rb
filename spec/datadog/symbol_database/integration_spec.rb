@@ -138,7 +138,7 @@ RSpec.describe "Symbol Database Integration" do
       config = double("config", service: "test-service", env: "test", version: "1.0")
       agent_settings = instance_double(
         Datadog::Core::Configuration::AgentSettings,
-        hostname: "localhost", port: 8126, timeout_seconds: 30, ssl: false
+        hostname: "localhost", port: 8126, timeout_seconds: 30, ssl: false,
       )
       logger = instance_double(Logger, debug: nil)
 
@@ -153,7 +153,7 @@ RSpec.describe "Symbol Database Integration" do
         source_file: "/app/test.rb",
         start_line: 1,
         end_line: 10,
-        scopes: []
+        scopes: [],
       )
 
       captured_form = nil

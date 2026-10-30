@@ -33,7 +33,7 @@ module Datadog
             propagation_style_inject: tracing.propagation_style_inject,
             propagation_style_extract: tracing.propagation_style_extract,
             propagation_behavior_extract: tracing.propagation_behavior_extract,
-            propagation_extract_first: tracing.propagation_extract_first
+            propagation_extract_first: tracing.propagation_extract_first,
           )
         end
       end

@@ -57,7 +57,7 @@ module TestBatching
           task: task,
           gemfile: gemfile,
           test_seconds: @weights.test_cost(task),
-          setup_seconds: @weights.setup_cost(gemfile)
+          setup_seconds: @weights.setup_cost(gemfile),
         )
       end
 

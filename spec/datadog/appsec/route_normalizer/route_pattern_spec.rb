@@ -91,7 +91,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern do
 
       it "lets glob params span to a following segment" do
         expect(
-          described_class.new("/books/*section/:title(.:format)").normalize(path: "/books/some/section/last-words.json")
+          described_class.new("/books/*section/:title(.:format)").normalize(path: "/books/some/section/last-words.json"),
         ).to eq("/books/{section}/{title+format}")
       end
 

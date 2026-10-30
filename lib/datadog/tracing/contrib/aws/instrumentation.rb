@@ -58,7 +58,7 @@ module Datadog
             if configuration[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                configuration[:peer_service]
+                configuration[:peer_service],
               )
             end
 

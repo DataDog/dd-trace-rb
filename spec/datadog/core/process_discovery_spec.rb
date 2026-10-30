@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
               "service_name" => "test-service",
               "service_env" => "test-env",
               "service_version" => "1.0.0",
-              "process_tags" => Datadog::Core::Environment::Process.serialized
+              "process_tags" => Datadog::Core::Environment::Process.serialized,
             )
           end
         end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             "tracer_language" => Datadog::Core::Environment::Identity.lang,
             "tracer_version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
             "hostname" => Datadog::Core::Environment::Socket.hostname,
-            "process_tags" => Datadog::Core::Environment::Process.serialized
+            "process_tags" => Datadog::Core::Environment::Process.serialized,
           )
         end
       end
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           "tracer_version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
           "hostname" => Datadog::Core::Environment::Socket.hostname,
           "service_name" => "test-service",
-          "process_tags" => Datadog::Core::Environment::Process.serialized
+          "process_tags" => Datadog::Core::Environment::Process.serialized,
         )
         expect(content.fetch("runtime_id")).to_not eq(parent_runtime_id)
       end
@@ -262,7 +262,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         "telemetry.sdk.version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
         "telemetry.sdk.name" => "libdatadog",
         "host.name" => Datadog::Core::Environment::Socket.hostname,
-        "container.id" => "test-container-id"
+        "container.id" => "test-container-id",
       )
 
       expect(extra_attributes).to include("datadog.process_tags" => Datadog::Core::Environment::Process.serialized)

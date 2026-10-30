@@ -27,7 +27,7 @@ module Datadog
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: configuration,
-                trace: trace_op
+                trace: trace_op,
               )
                 Sidekiq.inject(trace_op, job)
               end
@@ -41,7 +41,7 @@ module Datadog
 
               span.set_tag(
                 Datadog::Tracing::Metadata::Ext::TAG_KIND,
-                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER
+                Datadog::Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER,
               )
 
               # Set analytics sample rate

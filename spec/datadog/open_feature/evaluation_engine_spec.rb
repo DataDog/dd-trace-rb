@@ -83,7 +83,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           flag_metadata: {},
           extra_logging: {},
           error?: true,
-          log?: false
+          log?: false,
         )
       end
 
@@ -108,13 +108,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         Datadog::OpenFeature::ResolutionDetails.build_error(
           value: "fallback",
           error_code: Datadog::OpenFeature::Ext::PARSE_ERROR,
-          error_message: "invalid configuration"
+          error_message: "invalid configuration",
         )
       end
 
       it "preserves the error and stamps the evaluation metadata" do
         expect(reporter).to receive(:report).with(
-          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil
+          kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: "test", context: nil,
         )
 
         expect(result.error_code).to eq("PARSE_ERROR")
@@ -154,7 +154,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           [
             described_class::RAW_DATA_WARNING,
             'Feature Flags: provider failed to resolve "test": RuntimeError: Crash; returning the default value',
-          ]
+          ],
         )
       end
     end
@@ -244,12 +244,12 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           flag_metadata: {},
           extra_logging: {},
           error?: true,
-          log?: false
+          log?: false,
         )
       end
       let(:result) do
         engine.fetch_value(
-          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context
+          "test", default_value: "bye!", expected_type: :string, evaluation_context: evaluation_context,
         )
       end
 
@@ -270,7 +270,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to include(
           'Feature Flags: provider resolved "test": type=string, value="hello", variant="blue", ' \
-            'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil'
+            'reason="MATCH", allocation=nil, serial_id=nil, error_code=nil, error_message=nil',
         )
       end
 
@@ -293,7 +293,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
               "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it.",
             resolution_message,
             resolution_message,
-          ]
+          ],
         )
       end
 
@@ -364,7 +364,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!(JSON.generate(payload))
         expect(debug_messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count=#{include_valid ? 2 : 1}, " \
-            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation'],
         )
         result = engine.fetch_value("invalid", default_value: "fallback", expected_type: :string)
         expect(result.value).to eq("fallback")
@@ -400,7 +400,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count=1, " \
-            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation']
+            'environment="test", created_at="2024-04-17T19:40:53.716Z"; individual flags may still fail evaluation'],
         )
       end
 
@@ -412,7 +412,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(messages).to eq(
           ["Feature Flags: configuration applied; received payload: flag_count is not specified, " \
-            "environment is not specified, created_at is not specified; individual flags may still fail evaluation"]
+            "environment is not specified, created_at is not specified; individual flags may still fail evaluation"],
         )
       end
 
@@ -447,7 +447,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect { engine.reconfigure!(deeply_nested_configuration) }.not_to raise_error
 
         expect(messages).to eq(
-          ["Feature Flags: configuration applied; received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"]
+          ["Feature Flags: configuration applied; received payload metadata unavailable: JSON nesting exceeds the diagnostic parser limit"],
         )
         expect(engine.fetch_value("test_flag", default_value: "fallback", expected_type: :string).value).to eq("hello")
       end

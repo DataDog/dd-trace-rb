@@ -27,7 +27,7 @@ module TestBatching
           task: task,
           build_seconds: build_seconds,
           test_seconds: test_seconds,
-          junit_seconds: junit_seconds
+          junit_seconds: junit_seconds,
         )
 
         [task.name, junit_seconds]
@@ -166,7 +166,7 @@ module TestBatching
       rescue => e
         warn(
           "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-          Source:\n#{Array(e.backtrace).join("\n")}"
+          Source:\n#{Array(e.backtrace).join("\n")}",
         )
         sleep(2**retries)
         retries += 1

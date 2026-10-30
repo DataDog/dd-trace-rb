@@ -81,7 +81,7 @@ module LogrageSubscription
       ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
     else
       ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
-        ::ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s }
+        ::ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s },
       )
     end
   end
@@ -100,7 +100,7 @@ module RailsSemanticLoggerSubscription
       ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
         ::ActiveSupport::LogSubscriber.log_subscribers.select do |s|
           s.class.name.start_with? "RailsSemanticLogger::"
-        end
+        end,
       )
     end
   end

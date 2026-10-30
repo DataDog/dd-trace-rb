@@ -169,7 +169,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               type: nil,
               type_options: {},
               env: nil,
-              env_parser: nil
+              env_parser: nil,
             )
           end
         end

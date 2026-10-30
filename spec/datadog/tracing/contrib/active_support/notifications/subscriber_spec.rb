@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
                 double("span name"),
                 double("options"),
                 on_start: on_start,
-                on_finish: on_finish
+                on_finish: on_finish,
               )
 
               is_expected.to contain_exactly(subscription)
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
                 options,
                 on_start: on_start,
                 on_finish: on_finish,
-                trace: trace
+                trace: trace,
               )
             end
 
