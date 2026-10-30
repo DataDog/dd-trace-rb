@@ -178,7 +178,7 @@ module Datadog
             def instrument(integration_name, options = {}, &block)
               integration = fetch_integration(integration_name)
 
-              unless integration.nil? || !integration.default_configuration.enabled
+              if integration && (integration.default_configuration.enabled || options[:enabled])
                 configuration_name = options[:describes] || :default
                 filtered_options = options.reject { |k, _v| k == :describes }
                 integration.configure(configuration_name, filtered_options, &block)
