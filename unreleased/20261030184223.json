@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AI Guard",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6597",
+  "message": "Fix automatic framework instrumentation staying inactive when the library is enabled through stable configuration: it now runs whenever the resolved `ai_guard.enabled` setting is true."
+}
