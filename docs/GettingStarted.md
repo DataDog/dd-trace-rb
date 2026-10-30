@@ -2898,12 +2898,15 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | Setting | Environment variable | Type | Description | Default |
 |---|---|---|---|---|
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
+| `c.open_feature.evaluation_counts_enabled` | `DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED` | `Boolean` | Enables delivery of aggregated evaluation counts to `/api/v2/flagevaluation`. Flag evaluation, configuration fetching, exposure delivery, and OpenTelemetry evaluation metrics are unaffected. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
 | `c.feature_flags.agentless.base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless endpoint. Origin URLs receive the standard configuration path; URLs with a non-root path are used verbatim. | `nil` |
 | `c.feature_flags.agentless.poll_interval_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS` | `Integer` | Sets the agentless polling interval in seconds. Must be greater than `0`. | `30` |
 | `c.feature_flags.agentless.request_timeout_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS` | `Integer` | Sets the agentless request timeout in seconds, from `1` through `300`. | `5` |
 | `c.feature_flags.initialization_timeout_ms` | `DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS` | `Integer` | Sets how long provider initialization waits for the first configuration, from `1` through `2147483647` milliseconds. | `30000` |
+
+`DD_FLAGGING_EVALUATION_COUNTS_ENABLED` remains supported as an alias for `DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED`. The new name takes precedence when both are set. Set the variable before initializing the provider; explicit `c.open_feature.evaluation_counts_enabled` configuration takes precedence over either environment variable.
 
 `DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED` and `c.open_feature.enabled` are deprecated. When neither stable setting is explicitly configured, the legacy value `true` selects `remote_config` and `false` disables Feature Flags.
 
