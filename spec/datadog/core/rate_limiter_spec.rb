@@ -32,6 +32,27 @@ RSpec.describe Datadog::Core::TokenBucket do
         expect { bucket }.to raise_error(ArgumentError, /bad/)
       end
     end
+
+    context "when max_tokens is not given" do
+      subject(:bucket) { described_class.new(rate) }
+
+      context "with a fractional rate below one" do
+        let(:rate) { 0.5 }
+
+        it "caps the bucket at the one-token admission cost" do
+          expect(bucket.max_tokens).to eq(1)
+          expect(bucket.available_tokens).to eq(1)
+        end
+      end
+
+      context "with a rate at or above one" do
+        let(:rate) { 3 }
+
+        it "keeps the capacity at the rate" do
+          expect(bucket.max_tokens).to eq(3)
+        end
+      end
+    end
   end
 
   describe "#allow?" do
@@ -99,6 +120,38 @@ RSpec.describe Datadog::Core::TokenBucket do
           allow?
           expect(bucket.available_tokens).to eq(rate * 10)
         end
+      end
+    end
+
+    context "with a fractional rate and the default capacity" do
+      subject(:bucket) { described_class.new(rate) }
+
+      let(:rate) { 0.5 }
+
+      it "admits the first message" do
+        expect(bucket.allow?).to be true
+      end
+
+      it "denies an immediate second message" do
+        bucket.allow?
+        expect(bucket.allow?).to be false
+      end
+
+      it "admits again once the rate refills a whole token" do
+        bucket.allow?
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(2)
+        expect(bucket.allow?).to be true
+      end
+
+      it "caps the refill at the one-token capacity" do
+        bucket.allow?
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(10)
+        bucket.allow?(0) # No-op message, only to force token refilling
+        expect(bucket.available_tokens).to eq(1)
+      end
+
+      it "still honors an explicit max_tokens" do
+        expect(described_class.new(rate, 2).max_tokens).to eq(2)
       end
     end
 
