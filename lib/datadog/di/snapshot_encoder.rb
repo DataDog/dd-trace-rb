@@ -5,7 +5,7 @@ require "json"
 module Datadog
   module DI
     # Encodes a snapshot Hash to a JSON string bounded by a per-event byte
-    # cap, pruning captured values that do not fit.
+    # cap, pruning captured values that exceed the remaining budget.
     #
     # @api private
     module SnapshotEncoder
@@ -42,8 +42,8 @@ module Datadog
         captures lines entry return
       ].each_with_object({}) { |key, json| json[key] = JSON.dump(key) }.freeze
 
-      # Encodes +snapshot+ to JSON, pruning captured values that do not
-      # fit +max_size+ bytes.
+      # Encodes +snapshot+ to JSON, pruning captured values that exceed
+      # the remaining budget.
       #
       # @param snapshot [Hash] snapshot payload Hash
       # @param max_size [Integer] per-event byte cap
