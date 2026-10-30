@@ -124,7 +124,7 @@ static uint16_t latest_max_frames = 400;
 
 // Same as `latest_max_frames`, for deciding whether new sampling buffers need room to cache qualified frame names.
 // Should be kept in sync with the default for DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED in settings.rb.
-static bool latest_show_classes = false;
+static bool latest_show_classes = true;
 
 // Global tracepoint for RUBY_EVENT_THREAD_BEGIN. Created and enabled once when the first ThreadContext collector is initialized.
 static VALUE thread_begin_tracepoint = Qnil;
