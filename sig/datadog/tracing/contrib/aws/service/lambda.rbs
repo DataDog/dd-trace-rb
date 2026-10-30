@@ -1,0 +1,41 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        module Service
+          class Lambda < Base
+            SERVICE: ::String
+
+            MAX_FUNCTION_NAME_LENGTH: ::Integer
+
+            NAME_FORMAT: ::Regexp
+
+            QUALIFIER_FORMAT: ::Regexp
+
+            QUALIFIED_NAME: ::Regexp
+
+            FUNCTION_RESOURCE: ::Regexp
+
+            REGION_FORMAT: ::Regexp
+
+            BARE_NAME_FORMAT: ::Regexp
+
+            PARTIAL_ARN_FORMAT: ::Regexp
+
+            FUNCTION_RESOURCE_FORMAT: ::Regexp
+
+            def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def tag_full_arn: (untyped span, ::String function_name) -> untyped
+
+            def tag_partial_arn: (untyped span, ::MatchData match) -> untyped
+
+            def tag_bare_name: (untyped span, ::String name) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

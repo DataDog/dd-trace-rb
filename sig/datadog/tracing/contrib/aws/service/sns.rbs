@@ -4,6 +4,8 @@ module Datadog
       module Aws
         module Service
           class SNS < Base
+            SERVICE: ::String
+
             def add_tags: (untyped span, untyped params) -> untyped
           end
         end
