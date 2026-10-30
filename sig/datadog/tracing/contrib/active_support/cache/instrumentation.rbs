@@ -10,7 +10,12 @@ module Datadog
 
             def self?.finish_trace_cache_multi: (untyped payload) -> untyped
 
+            def self?.set_cache_namespace_tag: (untyped span, any namespace) -> void
+
             def self?.enabled?: () -> untyped
+            module InstanceMethods
+              def dd_cache_namespace: (any call_options) -> any
+            end
             module Read
               def read: (*untyped args) ?{ () -> untyped } -> untyped
             end
@@ -28,6 +33,18 @@ module Datadog
             end
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+            RESOLVED_NAMESPACE_KEY: ::String
+
+            module ResolveNamespace
+              def namespace_key: (untyped key, ?untyped _options) -> untyped
+            end
+            DELETE_NAMESPACE_KEY: ::String
+
+            module BackfillDeleteNamespace
+              def delete: (any name, ?::Hash[::Symbol, any]? options) -> untyped
+
+              def instrument: (::Symbol operation, any key, ?::Hash[::Symbol, any]? call_options) ?{ (any payload) -> untyped } -> untyped
             end
           end
         end
