@@ -356,7 +356,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-    it "prunes the snapshot instead of dropping it and counts the prune" do
+    it "prunes the snapshot to fit the cap, delivers it, and counts the prune" do
       expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
       expect_lazy_log(logger, :trace, "di: pruned snapshot to fit size cap")
 
@@ -379,7 +379,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       )
     end
 
-    it "prunes an oversized capture expression instead of dropping the snapshot" do
+    it "prunes an oversized capture expression to fit the cap and delivers the snapshot" do
       expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
 
       chunks = []
