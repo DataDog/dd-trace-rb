@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Runtime
       class Metrics < Core::Metrics::Client
-        def initialize: (**untyped options) -> void
+        def initialize: (telemetry: Core::Telemetry::Component telemetry, **untyped options) -> void
         def register_service: (untyped service) -> (nil | untyped)
         def flush: () -> (nil | untyped)
 
@@ -20,6 +20,8 @@ module Datadog
 
         attr_reader process_tags_enabled: untyped
 
+        attr_reader runtime_id_enabled: bool
+
         def compile_service_tags!: () -> untyped
 
         def nested_gc_metric: (untyped prefix, untyped k, untyped v) -> untyped
@@ -27,6 +29,8 @@ module Datadog
         def to_metric_name: (untyped str) -> untyped
 
         def gauge_if_not_nil: (untyped metric_name, untyped metric_value) -> (untyped | nil)
+
+        def flush_yjit_stats: () -> void
       end
     end
   end

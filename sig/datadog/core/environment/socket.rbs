@@ -2,7 +2,15 @@ module Datadog
   module Core
     module Environment
       module Socket
-        def self?.hostname: () -> ::String
+        extend Datadog::Core::Utils::Forking
+
+        # Module-body writes resolve through self.@, method bodies with an
+        # explicit module self-type through @. Declare both lenses.
+        @hostname: String?
+        self.@hostname: String?
+
+        def self?.hostname: () -> String
+
         def self?.resolved_hostname: (untyped settings) -> String?
       end
     end

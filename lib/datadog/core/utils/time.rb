@@ -11,8 +11,10 @@ module Datadog
         # We want the real not-mocked time here, so we use those aliases to the original method if present.
         # If not present we assume these methods have not been monkey-patched and are the original.
 
+        # Steep cannot type a Method object passed as a block argument (Proc has
+        # no self type), so these block passes carry scoped ignores.
         original_clock_gettime_name = Process.respond_to?(:clock_gettime_without_mock) ? :clock_gettime_without_mock : :clock_gettime
-        define_singleton_method(:original_clock_gettime, &Process.method(original_clock_gettime_name))
+        define_singleton_method(:original_clock_gettime, &Process.method(original_clock_gettime_name)) # steep:ignore BlockTypeMismatch
 
         MONOTONIC_CLOCK_ID = RUBY_PLATFORM.include?("darwin") ? Process::CLOCK_MONOTONIC_RAW : Process::CLOCK_MONOTONIC
 
@@ -23,19 +25,26 @@ module Datadog
         # @param unit [Symbol] unit for the resulting value, same as ::Process#clock_gettime, defaults to :float_second
         # @return [Float|Integer] timestamp in the requested unit, since some unspecified starting point
         def self.get_time(unit = :float_second)
-          original_clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          if unit.nil?
+            original_clock_gettime(MONOTONIC_CLOCK_ID, :float_second)
+          else
+            original_clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          end
         end
 
         # Current wall time.
         #
         # @return [Time] current time object
         original_time_now_name = ::Time.respond_to?(:now_without_mock_time) ? :now_without_mock_time : :now
-        define_singleton_method(:now, &::Time.method(original_time_now_name))
+        define_singleton_method(:now, &::Time.method(original_time_now_name)) # steep:ignore BlockTypeMismatch
 
         def self.measure(unit = :float_second)
-          before = get_time(unit)
+          # @type var unit: :float_second | :float_millisecond | :float_microsecond | :second | :millisecond | :microsecond | :nanosecond
+          # Steep cannot resolve an overloaded call given a union-typed
+          # argument. The unit stays checked by get_time's own overloads.
+          before = get_time(unit) # steep:ignore UnresolvedOverloading
           yield
-          after = get_time(unit)
+          after = get_time(unit) # steep:ignore UnresolvedOverloading
           after - before
         end
 

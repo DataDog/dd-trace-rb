@@ -23,16 +23,19 @@ module Datadog
         @parent_runtime_id = DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         def id
-          @id ||= ::SecureRandom.uuid.freeze
-
+          # @type self: singleton(Datadog::Core::Environment::Identity)
           after_fork! do
+            # @type self: Datadog::Core::Environment::Identity
             # Order matters: capture @id before overwriting
             @parent_runtime_id = @id
             @root_runtime_id ||= @id
             @id = ::SecureRandom.uuid.freeze
           end
 
-          @id
+          id = @id || ::SecureRandom.uuid.freeze
+          @id = id
+
+          id
         end
 
         def root_runtime_id

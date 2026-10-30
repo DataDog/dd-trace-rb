@@ -58,7 +58,10 @@ module Datadog
         end
 
         def default_port
-          DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          # The env value is a String. The default is an Integer. Both
+          # convert to Integer.
+          port = DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT)
+          port.to_i
         end
 
         def default_statsd_client
@@ -74,7 +77,8 @@ module Datadog
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          version = dogstatsd_version
+          options = if version && version >= Gem::Version.new("5.2")
             {single_thread: true}
           else
             {}
@@ -151,6 +155,7 @@ module Datadog
           return yield unless send_stats?
 
           # Calculate time, send it as a distribution.
+          # @type var start: Float?
           start = Utils::Time.get_time
           yield
         ensure

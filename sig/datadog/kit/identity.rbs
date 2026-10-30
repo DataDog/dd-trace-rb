@@ -3,8 +3,11 @@ module Datadog
     module Identity
       type trace = ::Datadog::Tracing::TraceSegment | ::Datadog::Tracing::TraceOperation
 
-      def self.set_user: (?trace trace, ?::Datadog::Tracing::SpanOperation span, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **::Hash[::Symbol, ::String | nil] others) -> void
-                       | (?trace trace, ?::Datadog::Tracing::SpanOperation span, Kit::AppSec::Events::V2::attributes user_attributes) -> void
+      def self.set_user: (?trace? trace, ?::Datadog::Tracing::SpanOperation? span, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **untyped others) -> void
+
+      private
+
+      def self.set_trace_and_span_context: (String method, ?trace? trace, ?::Datadog::Tracing::SpanOperation? span) { (untyped trace, ::Datadog::Tracing::SpanOperation span) -> void } -> void
     end
   end
 end

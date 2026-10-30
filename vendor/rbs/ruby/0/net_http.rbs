@@ -1,0 +1,27 @@
+# Members missing from the rbs 4.2.0 stdlib signatures, grounded in Ruby's
+# net/http and net/protocol sources. Lives under `vendor/rbs/ruby/` (not
+# `sig/`) because it augments core classes rather than mirroring a `lib/` file.
+module Net
+  class BufferedIO
+    def initialize: (
+      IO io,
+      ?read_timeout: Numeric?,
+      ?write_timeout: Numeric?,
+      ?continue_timeout: Numeric?,
+      ?debug_output: untyped?
+    ) -> void
+
+    attr_accessor read_timeout: Numeric?
+    attr_accessor write_timeout: Numeric?
+    attr_accessor continue_timeout: Numeric?
+    attr_accessor debug_output: untyped?
+  end
+
+  class HTTP < Protocol
+    def initialize: (String address, ?Integer? port) -> void
+
+    private
+
+    def on_connect: () -> void
+  end
+end

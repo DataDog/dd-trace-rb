@@ -39,6 +39,7 @@ RSpec.describe "gem release process" do
            |Rakefile
            |Matrixfile
            |Steepfile
+           |Steepfile\.loose
            |datadog\.gemspec
            |docker-compose\.yml
            |mise\.toml

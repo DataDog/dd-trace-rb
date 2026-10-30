@@ -2,7 +2,9 @@ module Datadog
   module Core
     module Metrics
       module Options
-        DEFAULT: { tags: untyped }
+        DEFAULT_TAGS: Array[String]
+
+        DEFAULT: { tags: Array[String] }
 
         def metric_options: (?untyped? options) -> untyped
 

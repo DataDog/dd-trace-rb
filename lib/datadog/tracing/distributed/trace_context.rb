@@ -39,11 +39,15 @@ module Datadog
         end
 
         def extract(data)
-          fetcher = @fetcher.new(data)
+          fetcher_class = @fetcher
+          return unless fetcher_class
 
-          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          fetcher = fetcher_class.new(data)
 
-          return unless trace_id # Could not parse traceparent
+          extracted = extract_traceparent(fetcher[@traceparent_key])
+          return unless extracted # Could not parse traceparent
+
+          trace_id, parent_id, sampled, trace_flags = extracted
 
           trace_state = TraceState.extract(fetcher[@tracestate_key])
           dd = trace_state.datadog
@@ -53,8 +57,11 @@ module Datadog
           sampling_priority = parse_priority_sampling(sampled, dd.sampling_priority) do |decision|
             case decision
             when String
-              tags ||= {}
-              tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
+              # The hoisted local keeps Steep's narrowing: a variable
+              # written inside this block would lose it.
+              decision_tags = tags || {} #: Hash[::String, ::String]
+              decision_tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
+              tags = decision_tags
             when :drop
               tags&.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
             end
@@ -146,7 +153,10 @@ module Datadog
 
           return unless version && trace_id && parent_id && trace_flags
           return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
-          return if version[0] < "0" || version[0] > "f" || version[1] < "0" || version[1] > "f"
+          # The size check above guarantees both characters exist.
+          v0 = version[0] #: String
+          v1 = version[1] #: String
+          return if v0 < "0" || v0 > "f" || v1 < "0" || v1 > "f"
 
           return if version == INVALID_VERSION
 

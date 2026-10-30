@@ -30,6 +30,8 @@ module Datadog
 
       @flush: Integer
 
+      @last_sent: Numeric?
+
       @status_transport: DI::Transport::Diagnostics::Transport?
 
       @snapshot_transport: DI::Transport::Input::Transport?
@@ -87,7 +89,7 @@ module Datadog
 
       def do_send_status: (Array[Hash[Symbol, untyped]] batch) -> void
 
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+      def do_send_snapshot: (Array[SnapshotEvent] batch) -> void
 
       def handle_serialization_error: (String probe_id, Exception exception) -> void
 

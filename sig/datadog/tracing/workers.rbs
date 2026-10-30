@@ -2,32 +2,51 @@ module Datadog
   module Tracing
     module Workers
       class AsyncTransport
-        DEFAULT_BUFFER_MAX_SIZE: 1000
+        DEFAULT_BUFFER_MAX_SIZE: ::Integer
 
-        DEFAULT_FLUSH_INTERVAL: 1
+        DEFAULT_FLUSH_INTERVAL: ::Integer
 
-        DEFAULT_TIMEOUT: 5
+        DEFAULT_TIMEOUT: ::Integer
 
         BACK_OFF_RATIO: ::Float
 
-        BACK_OFF_MAX: 5
+        BACK_OFF_MAX: ::Integer
 
-        SHUTDOWN_TIMEOUT: 1
+        DEFAULT_SHUTDOWN_TIMEOUT: ::Integer
 
-        attr_reader trace_buffer: untyped
+        @transport: untyped
+        @trace_task: (^(untyped, untyped) -> untyped)?
+        # Timing values stay untyped: rbs 4.2.0 stdlib lacks Numeric#* and no
+        # core class implements Time::_Timeout, which ConditionVariable#wait wants.
+        @flush_interval: untyped
+        @back_off: untyped
+        @trace_buffer: (ThreadSafeTraceBuffer | CRubyTraceBuffer)
+        @shutdown: ::ConditionVariable
+        @shutdown_timeout: untyped
+        @mutex: ::Mutex
+        @worker: ::Thread?
+        @run: bool
+        @logger: Datadog::Core::Logger
 
-        def initialize: (?::Hash[untyped, untyped] options) -> void
-        def callback_traces: () -> (true | untyped)
-        def start: () -> untyped
+        attr_reader trace_buffer: (ThreadSafeTraceBuffer | CRubyTraceBuffer)
+
+        attr_reader logger: Datadog::Core::Logger
+
+        def initialize: (
+          ?::Hash[untyped, untyped] options
+        ) -> void
+
+        def callback_traces: () -> untyped
+        def start: () -> nil
         def stop: () -> (nil | true)
-        def join: () -> untyped
-        def enqueue_trace: (untyped trace) -> (nil | untyped)
+        def join: () -> (nil | ::Thread)
+        def enqueue_trace: (untyped trace) -> untyped
 
         private
 
         alias flush_data callback_traces
 
-        def perform: () -> untyped
+        def perform: () -> void
       end
     end
   end

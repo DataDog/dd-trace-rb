@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "OpenTelemetry",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6587",
+  "message": "Fix `NoMethodError` from the propagator's `inject` when called without an active trace; nothing is injected in that case, matching the upstream propagator contract."
+}

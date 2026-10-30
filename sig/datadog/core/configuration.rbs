@@ -1,17 +1,60 @@
 module Datadog
   module Core
     module Configuration
-      def health_metrics: -> Diagnostics::Health::Metrics
+      COMPONENTS_WRITE_LOCK: ::Mutex
+      COMPONENTS_READ_LOCK: ::Mutex
 
-      def tracer: () -> Datadog::Tracing::Tracer
+      @configuration: Settings?
+      @components: Components?
+      @temp_logger: Datadog::Core::Logger?
+      @temp_config_logger: Datadog::Core::Logger?
+
+      def configuration: () -> Settings
+
+      def configuration=: (Settings? configuration) -> void
+
+      # Apply global configuration changes to `Datadog`.
+      def configure: () { (Settings settings) -> void } -> Settings
+
+      # Apply configuration changes only to a specific Ruby object.
+      def configure_onto: (untyped target, **untyped opts) -> void
+
+      # Get configuration changes applied only to a specific Ruby object.
+      def configuration_for: (untyped target, ?untyped option) -> untyped
+
+      # Internal {Datadog::Statsd} metrics collection.
+      def health_metrics: () -> Diagnostics::Health::Metrics
 
       def logger: () -> Datadog::Core::Logger
 
-      def configuration: () -> untyped # The DSL methods have to be explicitly declared for this to be typed
-
       def config_init_logger: () -> Datadog::Core::Logger
 
-      def shutdown!: -> void
+      # Gracefully shuts down all components.
+      def shutdown!: () -> void
+
+      # Shuts down all components and disposes of component references,
+      # allowing execution to start anew.
+      def reset!: () -> void
+
+      # Holds COMPONENTS_WRITE_LOCK while running the block, yielding a
+      # proc through which the block replaces @components.
+      def safely_synchronize: () { (^(Components? new_value) -> void) -> untyped } -> untyped
+
+      def configuration?: () -> bool
+
+      def components?: () -> bool
+
+      def build_components: (Settings settings) -> Components
+
+      def replace_components!: (Settings settings, Components old) -> Components
+
+      def logger_without_components: () -> Datadog::Core::Logger
+
+      def logger_without_configuration: () -> Datadog::Core::Logger
+
+      def handle_interrupt_shutdown!: () -> void
+
+      def components: (?allow_initialization: bool) -> Components?
     end
   end
 end

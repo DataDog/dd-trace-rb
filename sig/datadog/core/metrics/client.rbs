@@ -7,51 +7,64 @@ module Datadog
         extend Options
 
         extend Helpers
-	
-	@logger: Core::Logger
+
+        @logger: Core::Logger
+
+        @enabled: bool
+
+        @dogstatsd_version: Gem::Version?
 
         attr_reader statsd: untyped
-	attr_reader logger: Core::Logger
 
-        def initialize: (telemetry: Core::Telemetry::Component, ?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
+        attr_reader logger: Core::Logger
 
-        def supported?: () -> untyped
+        attr_reader telemetry: Core::Telemetry::Component
 
-        def enabled?: () -> untyped
+        def initialize: (
+          telemetry: Core::Telemetry::Component telemetry,
+          ?statsd: untyped? statsd,
+          ?enabled: bool enabled,
+          ?logger: Core::Logger logger,
+          **untyped _
+        ) -> void
 
-        def enabled=: (untyped enabled) -> untyped
+        def supported?: () -> bool
 
-        def default_hostname: () -> untyped
+        def enabled?: () -> bool
 
-        def default_port: () -> untyped
+        def enabled=: (untyped enabled) -> void
+
+        def default_hostname: () -> String
+
+        def default_port: () -> Integer
 
         def default_statsd_client: () -> untyped
 
-        def configure: (?::Hash[untyped, untyped] options) -> untyped
+        def configure: (?Hash[untyped, untyped] options) -> void
 
-        def send_stats?: () -> untyped
+        def send_stats?: () -> bool
 
-        def count: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def count: (untyped stat, ?untyped? value, ?untyped? options) ?{ () -> untyped } -> untyped
 
-        def distribution: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def distribution: (untyped stat, ?untyped? value, ?untyped? options) ?{ () -> untyped } -> untyped
 
-        def increment: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
+        def increment: (untyped stat, ?untyped? options) ?{ () -> untyped } -> untyped
 
-        def gauge: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def gauge: (untyped stat, ?untyped? value, ?untyped? options) ?{ () -> untyped } -> untyped
 
         def time: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
 
-        def send_metrics: (untyped metrics) -> untyped
+        def send_metrics: (Array[Metric] metrics) -> void
 
         def close: () -> (untyped | nil)
 
         private
 
-        def dogstatsd_version: () -> untyped
+        def dogstatsd_version: () -> Gem::Version?
 
         IGNORED_STATSD_ONLY_ONCE: untyped
 
-        def ignored_statsd_warning: () -> untyped
+        def ignored_statsd_warning: () -> void
       end
     end
   end

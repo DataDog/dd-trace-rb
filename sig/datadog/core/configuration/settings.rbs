@@ -4,6 +4,10 @@ module Datadog
       class Settings
         include Base
 
+        # The runtime does this in Base.included; RBS cannot model the hook,
+        # so the class-level settings DSL is declared directly.
+        extend Base::ClassMethods
+
         interface _Remote
           def enabled: () -> bool
 
@@ -62,6 +66,86 @@ module Datadog
           def ip_denylist: () -> ::Array[::String]
 
           def user_id_denylist: () -> ::Array[::String]
+
+          # The following members are injected at runtime by the AppSec
+          # settings contribution (lib/datadog/appsec/configuration.rb).
+          include Options::_InstanceMethods
+
+          def waf_timeout: () -> ::Integer
+
+          def body_parsing_size_limit: () -> ::Integer
+
+          def stack_trace: () -> _AppSecStackTrace
+
+          def auto_user_instrumentation: () -> _AppSecAutoUserInstrumentation
+
+          def track_user_events: () -> _AppSecTrackUserEvents
+
+          def api_security: () -> _AppSecApiSecurity
+
+          def sca_enabled: () -> bool?
+
+          def rasp_enabled: () -> bool?
+        end
+
+        interface _AppSecStackTrace
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def max_depth: () -> ::Integer
+
+          def top_percentage: () -> ::Integer
+
+          def max_stack_traces: () -> ::Integer
+        end
+
+        interface _AppSecAutoUserInstrumentation
+          include Options::_InstanceMethods
+
+          def enabled?: () -> bool
+
+          def mode: () -> ::String
+        end
+
+        interface _AppSecTrackUserEvents
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def mode: () -> ::String
+        end
+
+        interface _AppSecApiSecurity
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def enabled?: () -> bool
+
+          def endpoint_collection: () -> _AppSecApiSecurityEndpointCollection
+
+          def sample_delay: () -> ::Integer
+
+          def sample_rate: () -> Datadog::AppSec::SampleRate
+
+          def downstream_body_analysis: () -> _AppSecApiSecurityDownstreamBodyAnalysis
+        end
+
+        interface _AppSecApiSecurityEndpointCollection
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool?
+        end
+
+        interface _AppSecApiSecurityDownstreamBodyAnalysis
+          include Options::_InstanceMethods
+
+          def sample_rate: () -> ::Float
+
+          def max_requests: () -> ::Integer
+
+          def max_downstream_body_bytes: () -> ::Integer
         end
 
         interface _AppSecBlock
@@ -173,6 +257,12 @@ module Datadog
         end
 
         interface _TemplatesBlock
+          include Options::_InstanceMethods
+
+          # Object#send on the template option selected by the symbol. RBS
+          # interfaces do not include Object methods.
+          def send: (::Symbol) -> ::String
+
           def html=: (::String) -> void
 
           def html: () -> ::String
@@ -184,6 +274,94 @@ module Datadog
           def text=: (::String) -> void
 
           def text: () -> ::String
+        end
+
+        interface _Diagnostics
+          include Options::_InstanceMethods
+
+          def debug: () -> bool
+
+          def startup_logs: () -> _DiagnosticsStartupLogs
+        end
+
+        interface _DiagnosticsStartupLogs
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool?
+        end
+
+        interface _LoggerSettings
+          include Options::_InstanceMethods
+
+          def instance: () -> untyped
+
+          def level: () -> ::Integer
+        end
+
+        interface _Container
+          include Options::_InstanceMethods
+
+          def external_env: () -> ::String?
+        end
+
+        interface _HealthMetrics
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def statsd: () -> untyped
+        end
+
+        interface _Apm
+          include Options::_InstanceMethods
+
+          def tracing: () -> _ApmTracing
+        end
+
+        interface _ApmTracing
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def partial_flush: () -> _ApmTracingPartialFlush
+
+          def client_ip: () -> _ApmTracingClientIp
+        end
+
+        interface _ApmTracingClientIp
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def header_name: () -> String?
+        end
+
+        interface _ApmTracingPartialFlush
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def enabled=: (bool enabled) -> void
+        end
+
+        interface _DataStreams
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def interval: () -> ::Float
+        end
+
+        interface _Crashtracking
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+        end
+
+        interface _Profiling
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
         end
 
         interface _OpenFeature
@@ -256,21 +434,27 @@ module Datadog
 
         def initialize: (*untyped _) -> untyped
 
-        def env: -> String?
+        def env: () -> String?
 
-        def api_key: -> String?
+        def env=: (String? env) -> void
 
-        def hostname: -> String?
+        def api_key: () -> String?
 
-        def service: -> String?
+        def hostname: () -> String?
 
-        def site: -> String?
+        def service: () -> String?
 
-        def service_without_fallback: -> ::String?
+        def service=: (String? service) -> void
 
-        def version: -> String?
+        def site: () -> String?
 
-        def tags: -> ::Hash[::String, ::String]
+        def service_without_fallback: () -> ::String?
+
+        def version: () -> String?
+
+        def version=: (String? version) -> void
+
+        def tags: () -> ::Hash[::String, ::String]
 
         def experimental_propagate_process_tags_enabled: () -> bool
 
@@ -293,6 +477,22 @@ module Datadog
         def open_feature: () -> _OpenFeature
 
         def feature_flags: () -> _FeatureFlags
+
+        def diagnostics: () -> _Diagnostics
+
+        def logger: () -> _LoggerSettings
+
+        def container: () -> _Container
+
+        def health_metrics: () -> _HealthMetrics
+
+        def apm: () -> _Apm
+
+        def data_streams: () -> _DataStreams
+
+        def crashtracking: () -> _Crashtracking
+
+        def profiling: () -> _Profiling
 
         def tracing: () -> untyped
 

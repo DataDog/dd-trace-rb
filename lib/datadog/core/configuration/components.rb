@@ -166,8 +166,9 @@ module Datadog
           # Register fork handling once globally
           self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
+            env_provider = -> { Core::Environment::Identity.runtime_propagation_envs }
             Utils::SpawnMonkeyPatch.apply!(
-              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+              env_provider: env_provider,
             )
 
             # Register callback that calls Components.after_fork

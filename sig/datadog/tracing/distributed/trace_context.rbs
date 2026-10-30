@@ -5,13 +5,19 @@ module Datadog
         type traceparent_fields = [::Integer, ::Integer, ::Integer]
         type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
 
+        @fetcher: singleton(Fetcher)?
+
+        @traceparent_key: ::String
+
+        @tracestate_key: ::String
+
         TRACEPARENT_KEY: "traceparent"
 
         TRACESTATE_KEY: "tracestate"
 
         SPEC_VERSION: "00"
 
-        def initialize: (fetcher: untyped, ?traceparent_key: untyped, ?tracestate_key: untyped) -> void
+        def initialize: (fetcher: singleton(Fetcher)?, ?traceparent_key: ::String, ?tracestate_key: ::String) -> void
 
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
 

@@ -10,13 +10,13 @@ module Datadog
 
         USER_LOGIN_KEYS: Array[String | Symbol]
 
-        def self.track_login_success: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
+        def self.track_login_success: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **untyped others) -> void
 
-        def self.track_login_failure: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user_exists: bool, ?user_id: String?, **Hash[Symbol | String, String] others) -> void
+        def self.track_login_failure: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user_exists: bool, ?user_id: String?, **untyped others) -> void
 
-        def self.track_signup: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
+        def self.track_signup: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **untyped others) -> void
 
-        def self.track: (String event, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, **Hash[Symbol, String] others) -> void
+        def self.track: (String event, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, **untyped others) -> void
 
         private
 

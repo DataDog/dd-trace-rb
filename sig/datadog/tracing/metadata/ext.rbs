@@ -8,6 +8,7 @@ module Datadog
         TAG_PEER_SERVICE: ::String
         TAG_KIND: ::String
         TAG_TOP_LEVEL: ::String
+        TAG_PROFILING_ENABLED: ::String
         TAG_APM_ENABLED: ::String
         TAG_SDK_OTLP_EXPORT: String
         TAG_BASE_SERVICE: ::String
@@ -34,10 +35,12 @@ module Datadog
           TAG_DECISION_MAKER: ::String
           TAG_KNUTH_SAMPLING_RATE: ::String
           TAG_DD_PARENT_ID: ::String
+          DD_PARENT_ID_DEFAULT: ::String
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
           TAGS_PREFIX: ::String
           TID: ::String
+          TAG_TID: ::String
         end
 
         module Errors
@@ -59,6 +62,7 @@ module Datadog
           TAG_USER_AGENT: ::String
           TAG_URL: ::String
           TAG_ROUTE: ::String
+          TAG_ROUTE_PATH: ::String
           TYPE_INBOUND: untyped
           TYPE_OUTBOUND: ::String
           TYPE_PROXY: ::String
@@ -69,7 +73,7 @@ module Datadog
           module Headers
             INVALID_TAG_CHARACTERS: ::Regexp
 
-            def self?.to_tag: (::String name, allow_nested: bool) -> ::String
+            def self?.to_tag: (::String name, ?allow_nested: bool) -> ::String
           end
 
           module RequestHeaders
@@ -106,6 +110,7 @@ module Datadog
         end
 
         module SpanKind
+          TAG_PROXY: ::String
           TAG_SERVER: ::String
           TAG_CLIENT: ::String
           TAG_PRODUCER: ::String

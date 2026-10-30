@@ -16,13 +16,25 @@ module Datadog
       end
       class SimpleMatcher < Matcher
         attr_reader name: Matcher::_Matcher
-        attr_reader service: Matcher::_Matcher
-        attr_reader resource: Matcher::_Matcher
-        attr_reader tags: Matcher::_Matcher
 
-        def initialize: (?name: untyped, ?service: untyped) -> void
+        attr_reader service: Matcher::_Matcher
+
+        attr_reader resource: Matcher::_Matcher
+
+        attr_reader tags: Hash[untyped, Matcher::_Matcher]
+
+        def initialize: (
+          ?name: untyped name,
+          ?service: untyped service,
+          ?resource: untyped resource,
+          ?tags: Hash[untyped, untyped] tags
+        ) -> void
 
         def match?: (untyped trace) -> untyped
+
+        private
+
+        def tags_match?: (untyped trace) -> bool
       end
     end
   end

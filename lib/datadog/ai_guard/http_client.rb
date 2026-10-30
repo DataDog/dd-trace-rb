@@ -17,10 +17,12 @@ module Datadog
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @timeout = timeout
 
+        configuration = Datadog.configuration
+        site = configuration.site
         @endpoint_uri = if endpoint
           URI(endpoint) #: URI::HTTP
-        elsif Datadog.configuration.site
-          host = Datadog.configuration.site.dup
+        elsif site
+          host = site.dup
           host.prepend("app.") if host.count(".") == 1
 
           URI::HTTPS.build(host: host, path: DEFAULT_PATH)

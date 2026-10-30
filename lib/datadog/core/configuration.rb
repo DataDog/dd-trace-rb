@@ -87,7 +87,7 @@ module Datadog
         safely_synchronize do |write_components|
           write_components.call(
             if components?
-              replace_components!(configuration, @components)
+              replace_components!(configuration, @components) # steep:ignore ArgumentTypeMismatch
             else
               build_components(configuration)
             end,
@@ -157,7 +157,7 @@ module Datadog
       # The list of metrics collected can be found in {Datadog::Core::Diagnostics::Ext::Health::Metrics}.
       # @public_api
       def health_metrics
-        components.health_metrics
+        components.health_metrics # steep:ignore NoMethod
       end
 
       def logger
@@ -187,7 +187,7 @@ module Datadog
       # Components won't be automatically reinitialized after a shutdown.
       def shutdown!
         safely_synchronize do
-          @components.shutdown! if components?
+          @components.shutdown! if components? # steep:ignore NoMethod
         end
       end
 
@@ -218,7 +218,7 @@ module Datadog
       def reset!
         safely_synchronize do |write_components|
           if components?
-            @components.shutdown!
+            @components.shutdown! # steep:ignore NoMethod
             @temp_logger = nil # Reset to ensure instance and log level are reset for next run
           end
 
@@ -230,7 +230,8 @@ module Datadog
       def safely_synchronize
         # Writes to @components should only happen through this proc. Because this proc is only accessible to callers of
         # safely_synchronize, this forces all writers to go through this method.
-        write_components = proc do |new_value|
+        # @type var write_components: ^(::Datadog::Core::Configuration::Components?) -> void
+        write_components = ->(new_value) do
           COMPONENTS_READ_LOCK.synchronize { @components = new_value }
         end
 

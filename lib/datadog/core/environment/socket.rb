@@ -13,6 +13,7 @@ module Datadog
         module_function
 
         def hostname
+          # @type self: singleton(Datadog::Core::Environment::Socket)
           # Check if runtime has changed, e.g. forked.
           after_fork! { @hostname = ::Socket.gethostname.freeze }
 

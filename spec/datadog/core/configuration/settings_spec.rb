@@ -872,6 +872,13 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context "with an invalid value" do
+          it "raises ArgumentError" do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = "banana" }
+              .to raise_error(ArgumentError)
+          end
+        end
+
         context "with false" do
           it "updates the #preview_otel_context_enabled setting" do
             settings.profiling.advanced.preview_otel_context_enabled = true
@@ -1215,6 +1222,16 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to be_nil }
+    end
+
+    context "when clearing a previously configured service with nil" do
+      before { Datadog::Core::Environment::Process.set_service("first", user_configured: false) }
+
+      it "switches process metadata from svc.auto to svc.user" do
+        settings.service = nil
+        expect(Datadog::Core::Environment::Process.tags).to include("svc.user:true")
+        expect(Datadog::Core::Environment::Process.tags.join(",")).not_to include("svc.auto")
+      end
     end
   end
 
