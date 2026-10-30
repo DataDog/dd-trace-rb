@@ -102,11 +102,10 @@ module Datadog
               end
               if result.pruned
                 logger.trace { "di: pruned snapshot to fit size cap" }
-                # The prune counter keeps a tracer-specific name, diverging
-                # from the other tracers, which report a payload trimmed to
-                # fit with the shared capture.incomplete metric (reason
-                # payloadTooLarge); the dropped-event metric stays canonical
-                # and shared across tracers.
+                # The prune counter reports through the tracer-specific
+                # metric snapshots_pruned_by_payload_size. Other tracers
+                # report a payload trimmed to fit with the shared
+                # capture.incomplete metric (reason payloadTooLarge).
                 telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
               end
               encoded_snapshots << result.encoded
