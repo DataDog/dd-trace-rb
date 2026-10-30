@@ -123,6 +123,36 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to eq([])
     end
 
+    it "reports a message over the word cap, naming the actual count" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen " \
+          "sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three " \
+          "twenty-four twenty-five twenty-six."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has 26 words, cap is 25/)
+    end
+
+    it "accepts a message at the word cap" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen " \
+          "sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three " \
+          "twenty-four twenty-five."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "counts each code span as one word, however many words it wraps" do
+      path = write_fragment("1.json",
+        valid_entry("message" =>
+          "Fix paths like `GET /users/*` on HTTP client spans with one two three four five " \
+          "six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen."))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
     it "reports a lowercase product term, naming the canonical casing" do
       path = write_fragment("1.json", valid_entry("message" => "Fix the appsec rules."))
 
@@ -158,16 +188,39 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to eq([])
     end
 
-    it "reports a message with more than three sentences" do
+    it "accepts a waived word cap, still enforcing every other cap" do
       path = write_fragment("1.json",
-        valid_entry("message" => "Add X. It also does Y. Users now get Z. And it is faster."))
+        valid_entry(
+          "message" =>
+            "Fix the appsec rules and one two three four five six seven eight nine ten " \
+            "eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen " \
+            "twenty twenty-one twenty-two twenty-three twenty-four twenty-five.",
+          "waive_word_cap" => 40,
+        ))
 
       expect(described_class.read(path).errors)
-        .to contain_exactly(/message has 4 sentences, cap is 3/)
+        .to contain_exactly(/message uses "appsec"; write it as "AppSec"/)
     end
 
-    it "accepts a message at three sentences" do
+    it "reports a waive field that is not a positive integer" do
+      path = write_fragment("1.json", valid_entry("waive_word_cap" => true, "waive_sentence_cap" => "lots"))
+
+      expect(described_class.read(path).errors).to contain_exactly(
+        /waive_word_cap must be a positive integer/,
+        /waive_sentence_cap must be a positive integer/,
+      )
+    end
+
+    it "reports a message with more than two sentences" do
       path = write_fragment("1.json", valid_entry("message" => "Add X. It also does Y. Users now get Z."))
+
+      expect(described_class.read(path).errors)
+        .to contain_exactly(/message has 3 sentences, cap is 2/)
+    end
+
+    it "accepts a waived sentence cap" do
+      path = write_fragment("1.json",
+        valid_entry("message" => "Add X. It also does Y. Users now get Z.", "waive_sentence_cap" => 4))
 
       expect(described_class.read(path).errors).to eq([])
     end
@@ -179,7 +232,14 @@ RSpec.describe ReleasePrep::Fragment do
       expect(described_class.read(path).errors).to eq([])
     end
 
-    it "accepts a message without terminal punctuation for sentence counting" do
+    it "accepts a waived character cap" do
+      path = write_fragment("1.json",
+        valid_entry("message" => "F" + "a" * 250, "waive_char_cap" => 300))
+
+      expect(described_class.read(path).errors).to eq([])
+    end
+
+    it "accepts a message without terminal punctuation" do
       path = write_fragment("1.json", valid_entry("message" => "Fix the crash"))
 
       expect(described_class.read(path).errors).to eq([])
