@@ -69,6 +69,7 @@ static gvl_owner_context_t *get_gvl_owner_context(void);
 typedef struct {
   gvl_owner_context_t *main_ractor_gvl_owner_context;
   const rb_data_type_t *thread_data_type;
+  const rb_data_type_t *method_data_type;
 } private_vm_api_global_t;
 
 // Initialized once on the main ractor with the GVL held, before sampling starts; never rewritten.
@@ -77,6 +78,7 @@ static private_vm_api_global_t private_vm_api_global;
 
 void private_vm_api_access_init(void) {
   private_vm_api_global.thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  private_vm_api_global.method_data_type = RTYPEDDATA_TYPE(rb_obj_method(rb_cObject, ID2SYM(rb_intern("new"))));
   private_vm_api_global.main_ractor_gvl_owner_context = get_gvl_owner_context();
 }
 
@@ -1267,6 +1269,32 @@ size_t sizeof_rb_callable_method_entry_t(void) {
 
 void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
   return cme->def->body.cfunc.func;
+}
+
+// proc.c keeps this layout private; rb_check_typeddata also handles embedded Method data on newer Rubies.
+typedef struct {
+  VALUE recv;
+  VALUE klass;
+  VALUE iclass;
+  #ifdef HAVE_METHOD_OWNER
+    VALUE owner;
+  #endif
+  const rb_method_entry_t *me;
+} ddtrace_method_data;
+
+method_implementation ddtrace_method_implementation(VALUE method) {
+  const ddtrace_method_data *data = rb_check_typeddata(method, private_vm_api_global.method_data_type);
+  const rb_method_definition_t *def = data->me->def;
+
+  while (def->type == VM_METHOD_TYPE_ALIAS) def = def->body.alias.original_me->def;
+
+  if (def->type == VM_METHOD_TYPE_ISEQ) {
+    return (method_implementation) {.iseq = def->body.iseq.iseqptr};
+  } else if (def->type == VM_METHOD_TYPE_CFUNC) {
+    return (method_implementation) {.cfunc = def->body.cfunc.func};
+  }
+
+  return (method_implementation) {0};
 }
 
 const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {

@@ -42,6 +42,13 @@ typedef struct {
   bool same_frame : 1;
 } frame_info;
 
+typedef struct {
+  const rb_iseq_t *iseq;
+  void *cfunc;
+} method_implementation;
+
+method_implementation ddtrace_method_implementation(VALUE method);
+
 rb_nativethread_id_t pthread_id_for(VALUE thread);
 // Must be called from the main ractor while holding the GVL
 void private_vm_api_access_init(void);

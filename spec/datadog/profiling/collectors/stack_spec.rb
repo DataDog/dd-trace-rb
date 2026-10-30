@@ -555,6 +555,33 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
         end
 
+        context "when calling the Kernel singleton method" do
+          let(:do_in_background_thread) do
+            proc do |ready_queue|
+              ready_queue << true
+              Kernel.sleep
+            end
+          end
+
+          it do
+            expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
+          end
+        end
+
+        context "when calling a copied Method object" do
+          let(:do_in_background_thread) do
+            proc do |ready_queue|
+              sleeper = Kernel.method(:sleep).unbind.bind(Kernel)
+              ready_queue << true
+              sleeper.call
+            end
+          end
+
+          it do
+            expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
+          end
+        end
+
         # See comment on sample_thread in collectors_stack.c for details of why we do this
         context "when wall_time is zero" do
           let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 0} }
@@ -726,6 +753,29 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
         end
+
+        [:deq, :shift].each do |queue_method|
+          context "when calling the #{queue_method} alias" do
+            let(:do_in_background_thread) do
+              proc do |ready_queue|
+                ready_queue << true
+                Queue.new.public_send(queue_method)
+              end
+            end
+
+            it do
+              expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
+            end
+          end
+        end
+
+        it "preserves implementation identities across GC compaction" do
+          skip "GC compaction is not available" unless GC.respond_to?(:verify_compaction_references)
+
+          GC.verify_compaction_references
+
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
+        end
       end
 
       context "when sampling a thread waiting on a SizedQueue object" do
@@ -770,6 +820,37 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
 
         it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "unknown")
+        end
+      end
+
+      context "when an unrelated native method has the same name" do
+        let(:expected_method_name) { "join" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            described_class::Testing.join
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it "does not classify it as Thread#join" do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "unknown")
+        end
+      end
+
+      context "when an unrelated Ruby method has the same name and filename" do
+        let(:expected_method_name) { "pop" }
+        let(:filename) { "<internal:thread_sync>" }
+        let(:do_in_background_thread) do
+          queue_class = Class.new
+          queue_class.class_eval("def pop(ready_queue); ready_queue << true; while true; end; end", filename, __LINE__) # rubocop:disable Style/EvalWithLocation
+
+          proc { |ready_queue| queue_class.new.pop(ready_queue) }
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it "does not classify it as Queue#pop" do
           expect(sample_and_decode(background_thread, :labels)).to include(state: "unknown")
         end
       end

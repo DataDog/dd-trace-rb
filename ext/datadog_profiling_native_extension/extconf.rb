@@ -141,8 +141,8 @@ have_func "malloc_stats"
 
 $defs << "-DHAVE_ZJIT_FRAME" if RUBY_VERSION >= "4.1"
 
-# On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
-$defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
+# https://github.com/ruby/ruby/commit/6b7d32a5e54088b6b4014529bbf2b4b8c1a96029 (also backported to 3.1.3)
+$defs << "-DHAVE_METHOD_OWNER" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.1.3")
 
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
@@ -184,9 +184,6 @@ $defs << "-DNO_RB_THREAD_SCHED" if RUBY_VERSION < "3.2"
 
 # On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
 $defs << "-DNO_INT_FIRST_LINENO" if RUBY_VERSION < "3.2"
-
-# On older Rubies, "pop" was not a primitive operation
-$defs << "-DNO_PRIMITIVE_POP" if RUBY_VERSION < "3.2"
 
 # We could support this for older Rubies, but since this only gets used by the OTEL context extraction, and that
 # use-case is only for 3.1+, we didn't bother supporting it farther back yet.

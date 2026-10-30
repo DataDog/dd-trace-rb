@@ -25,6 +25,7 @@
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
 static VALUE _native_set_file_info_for_cfunc(DDTRACE_UNUSED VALUE self, VALUE new_static_ruby_actual_filename);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
+static VALUE _native_unrelated_join(DDTRACE_UNUSED VALUE self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
 static void set_file_info_for_cfunc(
@@ -42,6 +43,29 @@ static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *frame_name, ddog_CharSlice filename, bool frame_name_in_scratch_buffer);
+static void initialize_sample_state_methods(void);
+
+static struct {
+  const char *class_name;
+  const char *method_name;
+  bool singleton;
+  ddog_CharSlice state;
+  method_implementation implementation;
+} sample_state_methods[] = {
+  {"Kernel", "sleep", false, DDOG_CHARSLICE_C("sleeping"), {0}},
+  {"Kernel", "select", false, DDOG_CHARSLICE_C("waiting"), {0}},
+  {"Thread", "join", false, DDOG_CHARSLICE_C("blocked"), {0}},
+  {"Thread::Mutex", "synchronize", false, DDOG_CHARSLICE_C("blocked"), {0}},
+  {"Thread::Mutex", "lock", false, DDOG_CHARSLICE_C("blocked"), {0}},
+  {"Thread::Mutex", "sleep", false, DDOG_CHARSLICE_C("sleeping"), {0}},
+  {"Monitor", "synchronize", false, DDOG_CHARSLICE_C("blocked"), {0}},
+  {"IO", "wait_readable", false, DDOG_CHARSLICE_C("network"), {0}},
+  {"Thread::Queue", "pop", false, DDOG_CHARSLICE_C("waiting"), {0}},
+  {"Thread::SizedQueue", "pop", false, DDOG_CHARSLICE_C("waiting"), {0}},
+  {"Thread::ConditionVariable", "wait", false, DDOG_CHARSLICE_C("waiting"), {0}},
+  {"Datadog::Profiling::Collectors::IdleSamplingHelper", "_native_idle_sampling_loop", true, DDOG_CHARSLICE_C("waiting"), {0}},
+  {"Datadog::Profiling::Collectors::CpuAndWallTimeWorker", "_native_sampling_loop", true, DDOG_CHARSLICE_C("sleeping"), {0}},
+};
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -61,6 +85,9 @@ void collectors_stack_init(VALUE profiling_module) {
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
   rb_define_singleton_method(testing_module, "_native_set_file_info_for_cfunc", _native_set_file_info_for_cfunc, 1);
+  rb_define_singleton_method(testing_module, "join", _native_unrelated_join, 0);
+
+  initialize_sample_state_methods();
 
   // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
   // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
@@ -75,6 +102,27 @@ void collectors_stack_init(VALUE profiling_module) {
     initialize_static_ruby_actual_filename(profiling_module);
   }
   st_free_table(temporary_cache);
+}
+
+static void initialize_sample_state_methods(void) {
+  // These methods must be loaded before we snapshot their implementations, including on older Rubies.
+  rb_require("monitor");
+  rb_require("io/wait");
+
+  for (size_t i = 0; i < sizeof(sample_state_methods) / sizeof(sample_state_methods[0]); i++) {
+    VALUE klass = rb_path2class(sample_state_methods[i].class_name);
+    if (sample_state_methods[i].singleton) klass = rb_singleton_class(klass);
+    VALUE method = rb_funcall(klass, rb_intern("instance_method"), 1, ID2SYM(rb_intern(sample_state_methods[i].method_name)));
+    method_implementation implementation = ddtrace_method_implementation(method);
+
+    if (implementation.iseq) rb_gc_register_mark_object((VALUE) implementation.iseq);
+    sample_state_methods[i].implementation = implementation;
+    RB_GC_GUARD(method);
+  }
+}
+
+static VALUE _native_unrelated_join(DDTRACE_UNUSED VALUE self) {
+  return rb_thread_stop();
 }
 
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self) {
@@ -237,82 +285,25 @@ static VALUE native_sample_ensure(VALUE args) {
   return Qtrue;
 }
 
-#define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
-
 // The method name on its own, without any class/module name
 static inline ddog_CharSlice unqualified_name(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
   VALUE name = ddtrace_location_base_label(cme, iseq);
   return (name == Qfalse) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
 }
 
-// When there's only wall-time in a sample, this means that the thread was not active in the sampled period, so we try
-// to tell what it was doing instead.
-//
-// TODO: `method` is the unqualified method name
-// because we don't always use qualified method names yet,
-// and the checks below need something stable to compare to until we always do.
-static void categorize_sample_state(
-  sample_labels labels,
-  frame_info frame,
-  ddog_CharSlice method,
-  DDTRACE_UNUSED ddog_CharSlice filename
-) {
-  ddog_prof_Label *state_label = labels.state_label;
-
-  // Did the caller already provide the state?
+// The top frame only approximates the reason for wall-time without CPU time; GVL events take precedence.
+static void categorize_sample_state(sample_labels labels, const rb_iseq_t *iseq, void *cfunc) {
   if (labels.is_gvl_waiting_state) {
-    state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+    labels.state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+    return;
+  }
 
-  // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
-  // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-  // GVL instrumentation API.)
-  } else if (!frame.is_ruby_frame) {
-    // We know that known versions of Ruby implement these using native code; thus if we find a method with the
-    // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
-    // has the same name. Thus, even though "matching just by method name" is kinda weak,
-    // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
-
-    if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Kernel.sleep
-      state_label->str  = DDOG_CHARSLICE_C("sleeping");
-    } else if (CHARSLICE_EQUALS("select", method)) { // Expected to be Kernel.select
-      state_label->str  = DDOG_CHARSLICE_C("waiting");
-    } else if (
-        CHARSLICE_EQUALS("synchronize", method) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
-        #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
-          CHARSLICE_EQUALS("lock", method) ||        // Expected to be Mutex#lock
-        #endif
-        CHARSLICE_EQUALS("join", method)           // Expected to be Thread#join
-    ) {
-      state_label->str  = DDOG_CHARSLICE_C("blocked");
-    } else if (CHARSLICE_EQUALS("wait_readable", method)) { // Expected to be IO#wait_readable
-      state_label->str  = DDOG_CHARSLICE_C("network");
-    } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
-      state_label->str  = DDOG_CHARSLICE_C("waiting");
-    } else if (CHARSLICE_EQUALS("_native_sampling_loop", method)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
-      state_label->str  = DDOG_CHARSLICE_C("sleeping");
+  for (size_t i = 0; i < sizeof(sample_state_methods) / sizeof(sample_state_methods[0]); i++) {
+    method_implementation known = sample_state_methods[i].implementation;
+    if (iseq ? iseq == known.iseq : cfunc == known.cfunc) {
+      labels.state_label->str = sample_state_methods[i].state;
+      return;
     }
-    #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
-      else if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
-        state_label->str  = DDOG_CHARSLICE_C("waiting");
-      }
-    #endif
-  } else {
-    #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-      if (CHARSLICE_EQUALS("<internal:thread_sync>", filename)) {
-        if (CHARSLICE_EQUALS("pop", method)) { // Expected to be Queue/SizedQueue#pop
-          state_label->str  = DDOG_CHARSLICE_C("waiting");
-        }
-        #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
-          else if (CHARSLICE_EQUALS("synchronize", method) || CHARSLICE_EQUALS("lock", method)) { // Expected to be Mutex#lock/synchronize
-            state_label->str  = DDOG_CHARSLICE_C("blocked");
-          } else if (CHARSLICE_EQUALS("sleep", method)) { // Expected to be Mutex#sleep
-            state_label->str  = DDOG_CHARSLICE_C("sleeping");
-          } else if (CHARSLICE_EQUALS("wait", method)) { // Expected to be ConditionVariable#wait
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
-          }
-        #endif
-      }
-    #endif
   }
 }
 
@@ -407,6 +398,7 @@ void sample_thread(
     frame_info frame = buffer->stack_buffer[i];
     const rb_callable_method_entry_t *cme = frame.cme;
     const rb_iseq_t* iseq;
+    void *cfunc = NULL;
     if (frame.is_ruby_frame) {
       iseq = frame.as.ruby_frame.iseq;
 
@@ -418,13 +410,14 @@ void sample_thread(
       last_ruby_line = line;
     } else {
       iseq = NULL;
+      cfunc = ddtrace_cme_cfunc_func(cme);
 
       set_file_info_for_cfunc(
         &filename_slice,
         &line,
         last_ruby_frame_filename,
         last_ruby_line,
-        ddtrace_cme_cfunc_func(cme),
+        cfunc,
         top_of_the_stack,
         native_filenames_enabled,
         native_filenames_cache
@@ -458,7 +451,7 @@ void sample_thread(
     }
 
     if (top_of_the_stack && only_wall_time) {
-      categorize_sample_state(labels, frame, unqualified_name(cme, iseq), filename_slice);
+      categorize_sample_state(labels, iseq, cfunc);
     }
 
     if (!name_is_cached) {
