@@ -47,12 +47,14 @@ append_cflags "-Werror" if ENV["DATADOG_GEM_CI"] == "true"
 # header lands upstream in libdatadog/libdatadog-rb. Remove this once that ships.
 append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "true"
 
-# Older gcc releases may not default to C99 and we need to ask for this. This is also used:
-# * by upstream Ruby -- search for gnu99 in the codebase
-# * by msgpack, another datadog gem dependency
-#   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
-# @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
-append_cflags RUBY_PLATFORM.include?("darwin") ? "-std=gnu11" : "-std=gnu99"
+unless try_cflags("-std=gnu11")
+  skip_building_extension!(
+    "your C compiler does not support C11 (-std=gnu11). " \
+    "This issue can be fixed by upgrading to a later version of your " \
+    "operating system image or compiler.",
+  )
+end
+$CFLAGS += " -std=gnu11"
 
 # Allow defining variables at any point in a function
 append_cflags "-Wno-declaration-after-statement"
