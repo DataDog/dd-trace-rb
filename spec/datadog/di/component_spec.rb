@@ -34,7 +34,6 @@ RSpec.describe Datadog::DI::Component do
       it "wires the guardrails telemetry emitter into every consumer" do
         component = described_class.build(settings, agent_settings, logger)
         expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
-        expect(component.probe_manager.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
           .to equal(component.guardrails_telemetry)
@@ -393,6 +392,37 @@ RSpec.describe Datadog::DI::Component do
       component.stop!
       component.start!
       expect(component.probe_manager.send(:definition_trace_point).enabled?).to be true
+    end
+  end
+
+  describe "#after_fork" do
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.dynamic_instrumentation.internal.development = true
+        settings.remote.enabled = true
+      end
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
+    end
+
+    let(:logger) do
+      instance_double(Logger)
+    end
+
+    let(:component) do
+      described_class.build(settings, agent_settings, logger)
+    end
+
+    after do
+      component&.shutdown!
+    end
+
+    it "rebuilds the correlation sampler's process-scoped state" do
+      expect(component.correlation_sampler).to receive(:after_fork!)
+
+      component.after_fork
     end
   end
 

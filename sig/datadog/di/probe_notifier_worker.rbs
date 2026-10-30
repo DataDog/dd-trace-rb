@@ -12,7 +12,7 @@ module Datadog
 
       @agent_settings: Datadog::Core::Configuration::AgentSettings
 
-      @lock: Mutex
+      @lock: Thread::Mutex
 
       @wake: Core::Semaphore
 

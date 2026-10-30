@@ -381,10 +381,11 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          # Per-process identity, distinguishing snapshots before and after a
+          # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
-          # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": active_trace&.id&.to_s,
-          "dd.span_id": active_span&.id&.to_s,
+          "dd.trace_id": envelope_trace(context)&.id&.to_s,
+          "dd.span_id": envelope_span(context)&.id&.to_s,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -436,16 +437,44 @@ module Datadog
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
       end
 
-      def active_trace
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_trace
-        end
+      # Returns the trace the envelope's correlation fields report: the
+      # trace captured when the gate admitted the hit, when the context
+      # carries one (method probes), otherwise the trace active when the
+      # snapshot is built (line probes, condition failures).
+      #
+      # @param context [Context] the context of the probe hit
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def envelope_trace(context)
+        context.admission_trace || active_trace
       end
 
+      # Returns the span the envelope's correlation fields report: the span
+      # captured when the gate admitted the hit, when the context carries
+      # one (method probes), otherwise the span active when the snapshot is
+      # built (line probes, condition failures).
+      #
+      # @param context [Context] the context of the probe hit
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def envelope_span(context)
+        context.admission_span || active_span
+      end
+
+      # Returns the active APM trace supplying the snapshot's trace id,
+      # or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace
+        Datadog::DI.active_trace
+      end
+
+      # Returns the active APM span, or nil when no span is active. The
+      # lookup does not initialize the component tree, for the same reason
+      # as {active_trace}: it runs on the application thread inside the
+      # probe wrapper and the line-probe TracePoint callback.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
       def active_span
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_span
-        end
+        Datadog::DI.active_span
       end
     end
   end

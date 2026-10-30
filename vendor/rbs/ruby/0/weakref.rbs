@@ -1,0 +1,15 @@
+# Weak reference to an object of type `T`; a vendored shim for the stdlib
+# type missing from the rbs bundled with Steep.
+#
+# `weakref_alive?` is not Boolean on the supported Rubies (verified on 2.6
+# through 4.0): it returns true while the referent is alive, nil once an
+# ordinary referent is collected, and the String "instance-variable" for
+# true/false/nil referents, whose storage branch the implementation checks
+# with `defined?`.
+class WeakRef[T]
+  def initialize: (T orig) -> void
+
+  def __getobj__: () -> T
+
+  def weakref_alive?: () -> (true | String?)
+end

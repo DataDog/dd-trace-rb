@@ -1,0 +1,6 @@
+{
+  "message": "Live Debugger snapshots now capture all or no probes within one APM trace.",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6118",
+  "type": "Changed"
+}

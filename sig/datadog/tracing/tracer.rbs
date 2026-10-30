@@ -8,6 +8,8 @@ module Datadog
 
       def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
 
+      def active_trace: (?untyped? key) -> Datadog::Tracing::TraceOperation?
+
       def active_span: (?untyped? key) -> Datadog::Tracing::SpanOperation
 
       def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier

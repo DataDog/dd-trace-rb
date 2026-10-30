@@ -6,6 +6,8 @@ module Datadog
 
         RATE_LIMIT_GLOBAL: String
 
+        RATE_LIMIT_TRACE_BUDGET: String
+
         EVALUATION_TIMEOUT: String
 
         EVALUATION_ERROR_THROTTLED: String

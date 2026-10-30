@@ -253,6 +253,33 @@ module DIHelpers
         hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false,
       )
     end
+
+    # Stub the active APM trace that the correlation gate and the snapshot
+    # builder read through the Datadog::DI seam, plus the active span the
+    # builder reports.
+    def stub_active_trace(trace_id, span_id: nil)
+      trace = instance_double(Datadog::Tracing::TraceOperation, id: trace_id)
+      allow(Datadog::DI).to receive(:active_trace).and_return(trace)
+      if span_id
+        span = instance_double(Datadog::Tracing::SpanOperation, id: span_id)
+        allow(Datadog::DI).to receive(:active_span).and_return(span)
+      end
+    end
+
+    # Stub the absence of an active APM trace.
+    def stub_no_trace
+      allow(Datadog::DI).to receive(:active_trace).and_return(nil)
+      allow(Datadog::DI).to receive(:active_span).and_return(nil)
+    end
+
+    # Freeze the time provider the rate limiters refill from, so their
+    # buckets hold a fixed balance for the rest of the example: the current
+    # time is captured before the stub takes effect, so every refill adds
+    # zero tokens.
+    def freeze_rate_limiter_clock
+      frozen_time = Datadog::Core::Utils::Time.get_time
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(frozen_time)
+    end
   end
 end
 

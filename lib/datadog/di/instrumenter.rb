@@ -70,26 +70,37 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      # Maximum number of capturing-probe snapshots admitted per second across the
-      # whole process.
-      GLOBAL_SNAPSHOT_RATE_LIMIT = 20
-
       # Maximum number of non-capturing probe emissions admitted per second across
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      # Initializes the instrumenter.
+      # Canonical guardrails skip reason recorded for each correlation sampler
+      # drop decision.
+      # @return [Hash{Symbol => String}]
+      CORRELATION_DROP_SKIP_REASONS = {
+        own_rate_limit: GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE,
+        global_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        top_gate: GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL,
+        trace_budget: GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET,
+      }.freeze
+
+      # Initializes the instrumenter with its process-wide hard rate
+      # limiter and the coordination gate.
       #
-      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
-      # @param serializer [Serializer] serializer for captured values
-      # @param logger [DI::Logger] logger for instrumenter diagnostics
+      # @param settings [Datadog::Core::Configuration::Settings] active DI/core settings
+      # @param serializer [Datadog::DI::Serializer] serializes captured values into snapshots
+      # @param logger [Datadog::DI::Logger] DI logger used for diagnostic output
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
-      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
+      # @param correlation_sampler [Datadog::DI::CorrelationSampler] coordinated
+      #   sampling gate for capturing probes
+      # @param code_tracker [Datadog::DI::CodeTracker, nil] global code tracker, or nil when
+      #   tracking is not active
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry sink, or nil
+      #   when telemetry is disabled
       # @return [void]
       def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
-        code_tracker: nil, telemetry: nil)
+        correlation_sampler:, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -97,8 +108,8 @@ module Datadog
         @guardrails_telemetry = guardrails_telemetry
         @capture_expression_evaluator = capture_expression_evaluator
         @code_tracker = code_tracker
-        @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
         @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
+        @correlation_sampler = correlation_sampler
 
         @lock = Mutex.new
       end
@@ -114,6 +125,9 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # Coordinated sampling gate for capturing probe hits.
+      # @return [Datadog::DI::CorrelationSampler]
+      attr_reader :correlation_sampler
 
       # The code tracker is a global singleton created lazily by
       # DI.activate_tracking. When DI is enabled after boot via remote
@@ -121,23 +135,48 @@ module Datadog
       # Component#start! assigns the now-current tracker here.
       attr_writer :code_tracker
 
-      # Process-wide snapshot rate limiter.
-      # @return [Datadog::Core::TokenBucket]
-      attr_reader :global_snapshot_rate_limiter
       # Process-wide log rate limiter.
       # @return [Datadog::Core::TokenBucket]
       attr_reader :global_log_rate_limiter
 
-      # Returns the process-wide rate limiter for the probe.
+      # Decides whether a condition-evaluation-failure notification may
+      # emit, after the probe's own condition-error limiter admitted it. A
+      # capturing probe's notification inside an active trace takes the
+      # correlation sampler's coordinated decision, consuming the trace's
+      # per-trace budget; every other notification, one with no active
+      # trace or from a non-capturing probe, consumes one GLOBAL token.
+      # Denials record the canonical rate-limit skip metric. A gate error
+      # fails open; the probe's condition-error limiter is the remaining
+      # throttle.
       #
-      # @param probe [Probe] the probe whose invocation is being rate limited
-      # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
-      def probe_global_rate_limiter(probe)
-        if probe.capturing?
-          global_snapshot_rate_limiter
-        else
-          global_log_rate_limiter
+      # @param probe [Datadog::DI::Probe] the probe whose condition evaluation failed
+      # @return [Boolean] true when the notification may emit
+      def admit_condition_error_snapshot?(probe)
+        begin
+          trace = current_trace
+          if trace && probe.capturing?
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
+          else
+            admitted = correlation_sampler.admit_process_wide_snapshot?
+            drop_reason = :global_budget
+          end
+        rescue Exception => exc # standard:disable Lint/RescueException
+          reraise_per_policy(exc)
+
+          logger.debug { "[di-correlation] gate error, failing open to the probe's condition-error limiter: #{exc.class}: #{exc.message}" }
+          telemetry&.report(exc, description: "Error in DI correlation gate")
+          return true
         end
+
+        unless admitted
+          # A denial always carries its drop decision; Steep cannot infer
+          # the pairing between the returned tuple's elements.
+          # @type var drop_reason: Symbol
+          record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+          return false
+        end
+
+        true
       end
 
       # Emits the canonical rate-limit skip metric for a probe.
@@ -146,9 +185,9 @@ module Datadog
       # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
       # @return [void]
       def record_rate_limit_skip(reason, probe)
+        limit = rate_limit_skip_limit(reason)
         logger.trace do
-          "di: #{probe.type} probe #{probe.id}: skipping due to " \
-            "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
+          "di: #{probe.type} probe #{probe.id}: skipping due to #{limit}" \
             " (#{reason})"
         end
         guardrails_telemetry.skipped(
@@ -156,6 +195,24 @@ module Datadog
           probe: probe,
         )
         nil
+      end
+
+      # Names the rejecting limit each rate-limit skip reason reports.
+      #
+      # @param reason [String] a GuardrailsTelemetry::Reason rate-limit constant
+      # @return [String] the limit the reason names
+      # @raise [ArgumentError] when the reason is no known rate-limit constant
+      private def rate_limit_skip_limit(reason)
+        case reason
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE
+          "per-probe rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL
+          "global rate limit"
+        when GuardrailsTelemetry::Reason::RATE_LIMIT_TRACE_BUDGET
+          "per-trace snapshot budget"
+        else
+          raise ArgumentError, "Unknown rate limit skip reason: #{reason}"
+        end
       end
 
       # This is a substitute for Thread::Backtrace::Location
@@ -500,6 +557,130 @@ module Datadog
 
       attr_reader :lock
 
+      # Decides whether a probe hit is admitted for emission. A capturing
+      # hit delegates the whole decision to the correlation sampler, and
+      # every denial is recorded as the canonical rate-limit skip metric.
+      # A gate error fails open to the probe's own rate limiter. A
+      # non-capturing hit consults the probe's own rate limiter and then
+      # the process-wide log rate limiter.
+      #
+      # An admitted hit yields the active trace for the snapshot envelope:
+      # the gate's own resolution for a capturing hit, reused by the
+      # envelope capture, and a fresh resolution for a non-capturing hit or
+      # for a gate error that failed open.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @yieldparam trace [Datadog::Tracing::TraceOperation, nil] the trace
+      #   active when the hit was admitted
+      # @return [Boolean]
+      def emit?(probe)
+        if probe.capturing?
+          begin
+            trace = current_trace
+            admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            reraise_per_policy(exc)
+
+            logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error in DI correlation gate")
+            return false unless own_rate_limit_admits?(probe)
+
+            yield(active_trace_at_admission) if block_given?
+            return true
+          end
+
+          unless admitted
+            # A denial always carries its drop decision; Steep cannot infer
+            # the pairing between the returned tuple's elements.
+            # @type var drop_reason: Symbol
+            record_rate_limit_skip(CORRELATION_DROP_SKIP_REASONS.fetch(drop_reason), probe)
+            return false
+          end
+
+          yield(trace) if block_given?
+        else
+          return false unless own_rate_limit_admits?(probe)
+
+          return false unless global_rate_limit_allows?(probe)
+
+          yield(active_trace_at_admission) if block_given?
+        end
+        true
+      end
+
+      # The active APM trace, or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def current_trace
+        Datadog::DI.active_trace
+      end
+
+      # Returns the trace active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace_at_admission
+        current_trace
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission trace capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
+      # Returns the span active when the gate admitted a hit, for the
+      # snapshot envelope, or nil when resolution fails.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span_at_admission
+        Datadog::DI.active_span
+      rescue Exception => exc # standard:disable Lint/RescueException
+        reraise_per_policy(exc)
+
+        logger.debug { "[di-correlation] admission span capture failed: #{exc.class}: #{exc.message}" }
+        nil
+      end
+
+      # Re-raises a gate error: fatal exceptions always, every exception
+      # when the customer opted into propagation. Called from rescue blocks
+      # only.
+      #
+      # @param exc [Exception] the in-flight exception
+      # @return [void]
+      def reraise_per_policy(exc)
+        Datadog::DI.reraise_if_fatal(exc)
+        raise exc if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+      end
+
+      # Consults the probe's own rate limiter, recording the canonical skip
+      # metric when it denies.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the probe's own limiter admits the hit
+      def own_rate_limit_admits?(probe)
+        return true if probe.own_rate_limit_allows?
+
+        record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+        false
+      end
+
+      # Consults the process-wide hard rate limiter bounding non-capturing
+      # hits. Capturing hits draw their process-wide bound from the
+      # correlation sampler's GLOBAL budget, which traced and untraced
+      # traffic share; a hard cap at the same rate would drop the snapshots
+      # already admitted under a trace's GLOBAL deficit.
+      #
+      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
+      # @return [Boolean] true when the hard limiter admits the hit
+      def global_rate_limit_allows?(probe)
+        unless global_log_rate_limiter.allow?
+          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
+          return false
+        end
+
+        true
+      end
+
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
       # indentation. The original method is invoked with yield, calling the
@@ -539,6 +720,16 @@ module Datadog
         return yield unless probe.enabled?
 
         DI.enter_probe
+        # The trace is captured at admission, before the customer method
+        # runs: a method that finishes the active trace or starts a new one
+        # must not relabel the snapshot away from the trace whose budget the
+        # gate consumed, nor pair that trace with a span of the replacement
+        # trace. The gate passes its own resolution to the block, so an
+        # admitted capturing hit resolves the trace once. The declaration sits
+        # above the begin/ensure body: steep drops @type var annotations
+        # inside a body that has an ensure clause.
+        # @type var admission_trace: Datadog::Tracing::TraceOperation?
+        admission_trace = nil
         begin
           di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -589,16 +780,8 @@ module Datadog
             end
           end
 
-          rate_limiter = probe.rate_limiter
-          admitted = continue
-          if continue && rate_limiter && !rate_limiter.allow?
-            admitted = false
-            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-          end
-          if admitted && !probe_global_rate_limiter(probe).allow?
-            admitted = false
-            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
-          end
+          admitted = continue && emit?(probe) { |trace| admission_trace = trace }
+          admission_span = active_span_at_admission if admitted
           if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
@@ -698,6 +881,8 @@ module Datadog
               entry_capture_expressions: entry_capture_expressions,
               entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
+              admission_trace: admission_trace,
+              admission_span: admission_span,
               return_value: rv, duration: duration, exception: exc)
 
             begin
@@ -812,85 +997,92 @@ module Datadog
           )
         end
 
-        # We set the trace point on :return to be able to instrument
-        # 'end' lines. This also causes the trace point to be invoked on
-        # non-'end' lines when a line raises an exception, since the
-        # exception causes the method to stop executing and stack unwends.
-        # We do not want two invocations of the trace point.
-        # Therefore, if a trace point is invoked with a :line event,
-        # mark it as such and ignore subsequent :return events.
-        if probe.executed_on_line?
-          return unless tp.event == :line
-        else
-          _ = 42 # stop standard from changing this code
+        # Re-entrancy guard, mirroring the method-probe wrapper: the
+        # processing below dispatches interceptable stdlib methods
+        # (Kernel#send, Mutex#synchronize, WeakRef methods), and a nested
+        # method-probe firing during this callback must short-circuit
+        # instead of consuming rate-limit tokens and snapshotting
+        # DI-internal arguments. The prior guard state is restored so a
+        # hit nested inside other DI processing does not clear the outer
+        # guard. The guard starts after the untargeted match check above:
+        # an untargeted trace point invokes this callback for every line
+        # executed in the process, so the unmatched-line return would
+        # otherwise run the fiber-local guard round trip on each of them.
+        was_in_probe = DI.in_probe?
+        DI.enter_probe unless was_in_probe
+        begin
+          # We set the trace point on :return to be able to instrument
+          # 'end' lines. This also causes the trace point to be invoked on
+          # non-'end' lines when a line raises an exception, since the
+          # exception causes the method to stop executing and stack unwends.
+          # We do not want two invocations of the trace point.
+          # Therefore, if a trace point is invoked with a :line event,
+          # mark it as such and ignore subsequent :return events.
+          if probe.executed_on_line?
+            return unless tp.event == :line
+          else
+            _ = 42 # stop standard from changing this code
 
-          if tp.event == :line
-            probe.executed_on_line!
-          end
-        end
-
-        if condition = probe.condition
-          begin
-            context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
-          rescue Exception => exc # standard:disable Lint/RescueException
-            Datadog::DI.reraise_if_fatal(exc)
-            # Evaluation error exception can be raised for "expected"
-            # errors, we probably need another setting to control whether
-            # these exceptions are propagated.
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-              !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-            if context
-              # We want to report evaluation errors for conditions
-              # as probe snapshots. However, if we failed to create
-              # the context, we won't be able to report anything as
-              # the probe notifier builder requires a context.
-              begin
-                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue Exception => nested_exc # standard:disable Lint/RescueException
-                Datadog::DI.reraise_if_fatal(nested_exc)
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-              end
-
-              return
-            else
-              _ = 42 # stop standard from wrecking this code
-
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
-              telemetry&.report(exc, description: "Error evaluating condition without context")
-              # If execution gets here, there is probably a bug in the tracer.
+            if tp.event == :line
+              probe.executed_on_line!
             end
           end
+
+          if condition = probe.condition
+            begin
+              context = build_trace_point_context(probe, tp)
+              return unless condition.satisfied?(context)
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                end
+
+                return
+              else
+                _ = 42 # stop standard from wrecking this code
+
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
+              end
+            end
+          end
+
+          return unless emit?(probe)
+
+          # The context creation is relatively expensive and we don't
+          # want to run it if the callback won't be executed due to the
+          # rate limit.
+          # Thus the copy-paste of the creation call here.
+          context ||= build_trace_point_context(probe, tp)
+
+          responder.probe_executed_callback(context)
+
+          check_and_disable_if_exceeded(probe, responder, di_start_time)
+          nil
+        ensure
+          DI.leave_probe unless was_in_probe
         end
-
-        # In practice we should always have a rate limiter, but be safe
-        # and check that it is in fact set.
-        if probe.rate_limiter && !probe.rate_limiter.allow?
-          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-          return
-        end
-
-        unless probe_global_rate_limiter(probe).allow?
-          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
-          return
-        end
-
-        # The context creation is relatively expensive and we don't
-        # want to run it if the callback won't be executed due to the
-        # rate limit.
-        # Thus the copy-paste of the creation call here.
-        context ||= build_trace_point_context(probe, tp)
-
-        responder.probe_executed_callback(context)
-
-        check_and_disable_if_exceeded(probe, responder, di_start_time)
-        nil
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions

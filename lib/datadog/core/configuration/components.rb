@@ -262,6 +262,7 @@ module Datadog
           symbol_database&.after_fork!
           data_streams&.restart_flush_thread
           @open_feature_activation.after_fork
+          dynamic_instrumentation&.after_fork
         end
 
         # Hot-swaps with a new sampler.
