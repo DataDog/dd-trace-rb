@@ -281,7 +281,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when a captured object holds nested objects" do
-      it "keeps the chain of nested objects within the capture depth" do
+      it "keeps the nested objects within the capture depth" do
         slot = {type: "L1", fields: {nested: {type: "L2", fields: {
           nested: {type: "L3", fields: {leaf: {type: "Integer", value: "1"}}},
         }}}}
