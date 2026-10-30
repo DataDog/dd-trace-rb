@@ -23,6 +23,7 @@ require "datadog/open_feature/hooks/span_enrichment_hook"
 RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   subject(:provider) { Datadog::OpenFeature::Provider.new }
 
+  let(:api_configuration) { OpenFeature::SDK::Configuration.new }
   let(:engine) { instance_double(Datadog::OpenFeature::EvaluationEngine) }
   let(:span_enrichment_hook) do
     Datadog::OpenFeature::Hooks::SpanEnrichmentHook.new(
@@ -51,6 +52,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   before do
+    allow(OpenFeature::SDK::API.instance).to receive(:configuration).and_return(api_configuration)
     allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op)
 
     # Resolve the engine and (when the gate is on) the span-enrichment hook
@@ -71,9 +73,7 @@ RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   end
 
   after do
-    # The OpenFeature API is a process-global singleton; reset it so providers
-    # do not leak between examples.
-    OpenFeature::SDK::API.instance.instance_variable_set(:@configuration, nil)
+    api_configuration.set_provider_and_wait(OpenFeature::SDK::Provider::NoOpProvider.new)
   end
 
   # Builds a Datadog ResolutionDetails (the engine's return shape). A nil

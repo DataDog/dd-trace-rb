@@ -2893,6 +2893,9 @@ In addition, all metrics include the following tags:
 
 The OpenFeature provider supports agentless configuration delivery by default. Enabling Feature Flags alone does not contact Datadog; delivery starts when application code adopts the provider.
 
+With `openfeature-sdk` versions below 0.7, register the provider through the global `OpenFeature::SDK` API, including named domains.
+Standalone `OpenFeature::SDK::Configuration` instances are not supported on those versions; initialization recovery requires events from the global API.
+
 Configure Feature Flags with environment variables or inside a `Datadog.configure` block:
 
 | Setting | Environment variable | Type | Description | Default |

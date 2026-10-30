@@ -145,7 +145,10 @@ RSpec.describe Datadog::OpenFeature, ".deactivate_provider" do
 end
 
 RSpec.describe Datadog::OpenFeature::Provider do
+  let(:api_configuration) { OpenFeature::SDK::Configuration.new }
+
   before do
+    allow(OpenFeature::SDK::API.instance).to receive(:configuration).and_return(api_configuration)
     allow(telemetry).to receive(:report)
     allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
@@ -194,19 +197,40 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(component).to have_received(:wait_for_configuration)
     end
 
-    it "installs the initialization ready handler once" do
-      configuration = ::OpenFeature::SDK::Configuration.new
-      provider.send(:attach, configuration)
-      allow(configuration).to receive(:add_handler).and_call_original
+    it "keeps concurrent named providers' initialization events separate" do
+      other_provider = described_class.new
+      other_component = instance_double(Datadog::OpenFeature::Component, wait_for_configuration: :ready)
+      allow(Datadog::OpenFeature).to receive(:activate_provider).with(other_provider).and_return([other_component, nil])
+      allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(other_provider)
+      events = []
+      api_configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+      api_configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+      waiting = SizedQueue.new(1)
+      continue_initialization = SizedQueue.new(1)
+      allow(component).to receive(:wait_for_configuration) do
+        waiting.push(true)
+        continue_initialization.pop
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+        Datadog::OpenFeature::Component::CONFIGURATION_READY
+      end
+      initialization = Thread.new { ::OpenFeature::SDK.set_provider_and_wait(provider, domain: "first") }
+      Timeout.timeout(5) { waiting.pop }
 
-      2.times { provider.init }
+      ::OpenFeature::SDK.set_provider_and_wait(other_provider, domain: "second")
+      expect(events).to eq([:ready])
+      continue_initialization.push(true)
+      expect(initialization.join(5)).to eq(initialization)
+      initialization.value
 
-      expect(configuration).to have_received(:add_handler)
-        .with(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, anything)
-        .once
+      expect(events).to eq([:ready, :ready, :stale])
+      client = ::OpenFeature::SDK.build_client(domain: "first")
+      expect(client.provider_status).to eq("STALE") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
     ensure
+      initialization&.kill
+      initialization&.join(5)
       provider.shutdown
-      configuration&.send(:reset)
+      other_provider&.shutdown
     end
 
     it "deactivates delivery on shutdown" do
@@ -362,7 +386,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       describe "OpenFeature SDK events" do
-        let(:configuration) { ::OpenFeature::SDK::Configuration.new }
+        let(:configuration) { api_configuration }
         let(:events) { [] }
 
         before do
@@ -372,7 +396,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         after do
           provider.shutdown
-          configuration.send(:reset)
+          configuration.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
         end
 
         it "reports ERROR on timeout and READY when configuration arrives later" do
@@ -424,38 +448,95 @@ RSpec.describe Datadog::OpenFeature::Provider do
             .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
 
           expect(events).to eq([:stale, :error, :ready])
-          expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+          client = ::OpenFeature::SDK.build_client
+          expect(client.provider_status).to eq("READY") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
 
           provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
           provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
           expect(events).to eq([:stale, :error, :ready, :stale, :ready])
         end
 
-        [:before_registration, :during_registration].each do |shutdown_timing|
-          it "removes the error callback when shutdown occurs #{shutdown_timing}" do
-            if shutdown_timing == :before_registration
-              allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
-                provider.shutdown
-                method.call
-              end
-            else
-              allow(configuration).to receive(:add_handler).and_wrap_original do |method, event, handler|
-                provider.shutdown if event == ::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR
-                method.call(event, handler)
-              end
-            end
-            expect(provider).not_to receive(:provider_error)
+        it "does not recover after shutdown" do
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
 
-            expect { configuration.set_provider_and_wait(provider) }
+          provider.shutdown
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+          expect(events).to eq([:error])
+        end
+
+        if Gem::Version.new(::OpenFeature::SDK::VERSION) < Gem::Version.new("0.7.0")
+          it "waits for its own initialization error when another named provider fails" do
+            other_provider = described_class.new
+            allow(Datadog::OpenFeature).to receive(:activate_provider).with(other_provider).and_return([component, nil])
+            allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(other_provider)
+            failed = SizedQueue.new(1)
+            continue_error = SizedQueue.new(1)
+            original_init = provider.method(:init)
+            provider.define_singleton_method(:init) do
+              original_init.call
+            rescue RuntimeError
+              failed.push(true)
+              continue_error.pop
+              raise
+            end
+            initialization = Thread.new do
+              ::OpenFeature::SDK.set_provider_and_wait(provider, domain: "first")
+            rescue ::OpenFeature::SDK::ProviderInitializationError => error
+              error
+            end
+            Timeout.timeout(5) { failed.pop }
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+            expect { ::OpenFeature::SDK.set_provider_and_wait(other_provider, domain: "second") }
               .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
-            provider.emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR)
+            expect(events).to eq([:error])
+
+            continue_error.push(true)
+            expect(initialization.join(5)).to eq(initialization)
+            expect(initialization.value).to be_a(::OpenFeature::SDK::ProviderInitializationError)
+            expect(events).to eq([:error, :error, :ready])
+          ensure
+            initialization&.kill
+            initialization&.join(5)
+            other_provider&.shutdown
           end
         end
       end
     end
 
+    if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.7.1")
+      context "with an isolated OpenFeature API" do
+        let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_TIMEOUT }
+
+        it "recovers the isolated client without publishing events on the global API" do
+          require "open_feature/sdk/isolated"
+          api = ::OpenFeature::SDK::Isolated.create_api
+          client = api.build_client(domain: "isolated")
+          events = []
+          global_events = []
+          [::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY].each do |event|
+            client.add_handler(event, ->(_) { events << event })
+            ::OpenFeature::SDK.add_handler(event, ->(_) { global_events << event })
+          end
+
+          expect { api.set_provider_and_wait(provider, domain: "isolated") }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+          expect(client.provider_status).to eq("ERROR")
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+          expect(client.provider_status).to eq("READY")
+          expect(events).to eq(["PROVIDER_ERROR", "PROVIDER_READY"])
+          expect(global_events).to be_empty
+        ensure
+          api&.shutdown
+        end
+      end
+    end
+
     it "emits configuration-changed after successful initialization" do
-      configuration = ::OpenFeature::SDK::Configuration.new
+      configuration = api_configuration
       events = []
       configuration.add_handler(
         ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED,
@@ -468,11 +549,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(events).to eq([:changed])
     ensure
       provider.shutdown
-      configuration&.send(:reset)
+      configuration&.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
     end
 
     it "emits STALE when configuration is lost and READY when it returns" do
-      configuration = ::OpenFeature::SDK::Configuration.new
+      configuration = api_configuration
       events = []
       configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
       configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
@@ -484,11 +565,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(events).to eq([:ready, :stale, :ready])
     ensure
       provider.shutdown
-      configuration&.send(:reset)
+      configuration&.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
     end
 
     it "logs the STALE and READY transitions" do
-      configuration = ::OpenFeature::SDK::Configuration.new
+      configuration = api_configuration
       messages = []
       allow(logger).to receive(:debug?).and_return(true)
       configuration.set_provider_and_wait(provider)
@@ -503,11 +584,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
       ])
     ensure
       provider.shutdown
-      configuration&.send(:reset)
+      configuration&.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
     end
 
     it "emits STALE after SDK readiness when configuration is lost during initialization" do
-      configuration = ::OpenFeature::SDK::Configuration.new
+      configuration = api_configuration
       events = []
       configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
       configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
@@ -520,10 +601,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
       configuration.set_provider_and_wait(provider)
 
       expect(events).to eq([:ready, :stale])
-      expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::STALE)
+      client = ::OpenFeature::SDK.build_client
+      expect(client.provider_status).to eq("STALE") if Gem::Version.new(::OpenFeature::SDK::VERSION) >= Gem::Version.new("0.6.1")
     ensure
       provider.shutdown
-      configuration&.send(:reset)
+      configuration&.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new)
     end
   end
 
@@ -810,6 +892,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
 
     context "with rendered debug diagnostics" do
+      let(:api_configuration) { OpenFeature::SDK::Configuration.new }
       let(:output) { StringIO.new }
       let(:logger) { Datadog::Core::Logger.new(output).tap { |log| log.level = Logger::DEBUG } }
       let(:debug_hook) { Datadog::OpenFeature::Hooks::DebugLoggingHook.new(logger) }
@@ -820,9 +903,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       before do
         allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_hook)
-        allow(OpenFeature::SDK).to receive(:evaluation_context)
-          .and_return(OpenFeature::SDK::EvaluationContext.new(global: "global", shared: "global"))
+        allow(OpenFeature::SDK::API.instance).to receive(:configuration).and_return(api_configuration)
+        api_configuration.evaluation_context = OpenFeature::SDK::EvaluationContext.new(global: "global", shared: "global")
       end
+
+      after { api_configuration.set_provider_and_wait(::OpenFeature::SDK::Provider::NoOpProvider.new) }
 
       it "does not inspect values or emit diagnostics for success and fallback with debug off" do
         logger.level = Logger::INFO
