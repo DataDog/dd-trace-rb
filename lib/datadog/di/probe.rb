@@ -36,6 +36,13 @@ module Datadog
 
       EVALUATE_AT_VALUES = %i[entry exit].freeze
 
+      # Condition evaluation is skipped at probe entry for this many seconds
+      # after a condition evaluation timeout, so a condition that exhausts its
+      # evaluation budget does not consume the budget again on every hit; the
+      # Python and Node tracers pause evaluation for five minutes after a
+      # timeout.
+      CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS = 300.0
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, template_segments: nil,
@@ -108,6 +115,7 @@ module Datadog
         # trace point).
         if condition
           @condition_evaluation_failed_rate_limiter = Datadog::Core::TokenBucket.new(1)
+          @condition_error_throttled_until = nil
         end
 
         @emitting_notified = false
@@ -157,6 +165,26 @@ module Datadog
       # does not hold the evaluation may fail - we don't want to use up the
       # probe rate limit for the errors).
       attr_reader :condition_evaluation_failed_rate_limiter
+
+      # Monotonic clock deadline until which condition evaluation is skipped
+      # at probe entry after a condition evaluation timeout, or nil when no
+      # condition evaluation timeout has occurred.
+      attr_reader :condition_error_throttled_until
+
+      # Opens the condition-error skip window: condition evaluation is
+      # skipped at probe entry until CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS
+      # elapse. Invoked when a condition evaluation times out.
+      def trip_condition_error_throttle!
+        @condition_error_throttled_until = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
+          CONDITION_EVALUATION_TIMEOUT_SKIP_SECONDS
+      end
+
+      # Returns whether the condition-error skip window is open. While it is,
+      # condition evaluation is skipped at probe entry.
+      def condition_error_throttled?
+        return false unless condition_error_throttled_until
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) < condition_error_throttled_until
+      end
 
       def capture_snapshot?
         @capture_snapshot

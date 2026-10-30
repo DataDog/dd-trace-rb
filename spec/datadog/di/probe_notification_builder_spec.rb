@@ -29,15 +29,18 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   let(:di_settings) do
     double("di settings").tap do |settings|
-      allow(settings).to receive(:enabled).and_return(true)
-      allow(settings).to receive(:redacted_identifiers).and_return([])
-      allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
-      allow(settings).to receive(:redacted_type_names).and_return(%w[])
-      allow(settings).to receive(:max_capture_collection_size).and_return(10)
-      allow(settings).to receive(:max_capture_attribute_count).and_return(10)
-      allow(settings).to receive(:max_capture_depth).and_return(2)
-      allow(settings).to receive(:max_capture_string_length).and_return(100)
-      allow(settings).to receive(:max_time_to_serialize_ms).and_return(200)
+      allow(settings).to receive_messages(
+        enabled: true,
+        redacted_identifiers: [],
+        redaction_excluded_identifiers: [],
+        redacted_type_names: %w[],
+        max_capture_collection_size: 10,
+        max_capture_attribute_count: 10,
+        max_capture_depth: 2,
+        max_capture_string_length: 100,
+        max_time_to_serialize_ms: 200,
+        max_time_to_evaluate_ms: nil,
+      )
     end
   end
 
@@ -58,7 +61,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   let(:builder) do
     described_class.new(settings, serializer, logger,
-      capture_expression_evaluator: capture_expression_evaluator)
+      capture_expression_evaluator: capture_expression_evaluator,
+      guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
   end
 
   let(:probe) do
@@ -318,6 +322,32 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       it "returns a hash with expected contents" do
         expect(payload).to be_a(Hash)
         expect(payload).to match(expected)
+      end
+    end
+
+    context "when the evaluation time budget is exhausted before a template segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:probe) do
+        compiled, regexps = compiler.compile("ref" => "hello")
+        Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
+          template_segments: [Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: regexps)])
+      end
+
+      before do
+        expect(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      it "reports the timeout as an evaluation error in the rendered message" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
+        expect_lazy_log(logger, :debug, /di: probe 123: template evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+        expect(payload[:message]).to eq("[evaluation error]")
+        evaluation_errors = payload[:debugger][:snapshot][:evaluationErrors]
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first[:message]).to match(/EvaluationTimeout/)
       end
     end
 
@@ -812,6 +842,52 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       it "redacts the referenced value in the rendered message" do
         expect(builder.send(:evaluate_template, template_segments, context)).to eq(["[redacted] alice", []])
+      end
+    end
+
+    context "when the evaluation deadline is crossed during a template segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:template_segments) do
+        src, regexps = compiler.compile(
+          "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}],
+        )
+        expression = Datadog::DI::EL::Expression.new("collection.filter(@it >= 0)", src, regexps: regexps)
+        ["prefix ", expression]
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          locals: {collection: Array.new(1000) { |i| i }},
+        )
+      end
+
+      # Stub Process.clock_gettime so the pre-segment check reads a time
+      # before the deadline and the cooperative check inside #filter, at
+      # item zero, reads a time after it, proving the threaded deadline
+      # aborts segment evaluation in mid-iteration.
+      before do
+        reads = 0
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
+          reads += 1
+          (reads <= 1) ? 1.0 : 1.001
+        end
+      end
+
+      it "reports the timeout as an evaluation error in the rendered message" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
+
+        message, evaluation_errors =
+          builder.send(:evaluate_template, template_segments, context, deadline: 1.0005)
+
+        expect(message).to eq("prefix [evaluation error]")
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first.expr).to eq("collection.filter(@it >= 0)")
+        expect(evaluation_errors.first.message).to match(/EvaluationTimeout/)
       end
     end
   end

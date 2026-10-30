@@ -88,6 +88,8 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", nil, "enabled", false],
         ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS", "300", "max_time_to_serialize_ms", 300],
         ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "300", "max_time_to_serialize_ms", 300],
+        ["DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS", "10", "max_time_to_evaluate_ms", 10],
+        ["DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS", nil, "max_time_to_evaluate_ms", 50],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo", "redacted_identifiers", %w[foo]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo,bar", "redacted_identifiers", %w[foo bar]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo, bar", "redacted_identifiers", %w[foo bar]],
@@ -121,6 +123,19 @@ RSpec.describe Datadog::DI::Configuration::Settings do
           it "sets dynamic_instrumentation.#{setting_name}=#{setting_value}" do
             expect(settings.dynamic_instrumentation.public_send(setting_name)).to eq setting_value
           end
+        end
+      end
+
+      context "when DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS=-5" do
+        around do |example|
+          ClimateControl.modify("DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS" => "-5") do
+            example.run
+          end
+        end
+
+        it "raises ArgumentError for a negative value" do
+          expect { settings.dynamic_instrumentation.max_time_to_evaluate_ms }
+            .to raise_error(ArgumentError, /must not be negative/)
         end
       end
     end
@@ -286,6 +301,18 @@ RSpec.describe Datadog::DI::Configuration::Settings do
 
       it "resolves the fleet value without raising for the legacy value" do
         expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+      end
+    end
+    context "max_time_to_evaluate_ms validation" do
+      it "accepts zero as a valid exhausted-budget sentinel" do
+        settings.dynamic_instrumentation.max_time_to_evaluate_ms = 0
+        expect(settings.dynamic_instrumentation.max_time_to_evaluate_ms).to eq(0)
+      end
+
+      it "raises ArgumentError for a negative value" do
+        expect do
+          settings.dynamic_instrumentation.max_time_to_evaluate_ms = -5
+        end.to raise_error(ArgumentError, /must not be negative/)
       end
     end
   end

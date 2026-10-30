@@ -4,21 +4,33 @@ module Datadog
       class Evaluator
         MATCHES_TIMEOUT_SECONDS: ::Float
 
-        @context: Context
+        EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
+
+        EVALUATION_TIMEOUT_MESSAGE: String
+
+        ARRAY_EACH: UnboundMethod
+
+        HASH_EACH: UnboundMethod
+
+        IDENTITY_MODE_CHECK: UnboundMethod
 
         @regexps: ::Array[::Regexp]
 
         def initialize: (?::Array[::Regexp] regexps) -> void
 
-        def evaluate: (Context compiled) -> any
+        def evaluate: (Context context, Float? deadline) -> Object
 
         def regexps: () -> ::Array[::Regexp]
 
         def self.compile_regexp: (::String needle) -> ::Regexp
 
-        def ref: ((Symbol | String) var) -> any
+        def self.evaluation_deadline: (Core::Configuration::Settings settings) -> Float?
 
-        def iref: ((Symbol | String) var) -> any
+        def self.evaluation_deadline_exceeded?: (Float? deadline) -> bool
+
+        def ref: (Context context, (Symbol | String) var) -> Object?
+
+        def iref: (Context context, (Symbol | String) var) -> Object?
 
         def len: (any var, (Symbol | String) var_name) -> Integer
 
@@ -44,11 +56,15 @@ module Datadog
 
         def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
+        def all: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
-        def any: (Array[any] | Hash[any, any] collection) { (?) -> any } -> bool
+        def any: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
-        def filter: (Array[any] | Hash[any, any] collection) { (?) -> any } -> (Array[any] | Hash[any, any])
+        def filter: (Array[Object] | Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> (Array[Object] | Hash[Object, Object])
+
+        private def filter_hash: (Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
+
+        private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float? deadline) -> void
 
         def instanceof: (any object, String cls_name) -> bool
       end

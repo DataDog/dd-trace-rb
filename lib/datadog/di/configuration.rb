@@ -169,6 +169,27 @@ module Datadog
                 end
               end
 
+              # Maximum thread CPU time, in milliseconds, allowed for
+              # evaluating a probe condition (`when`), a probe's capture
+              # expressions, or a message template. The capture
+              # expressions share one budget, and the template segments
+              # share one budget.
+              #
+              # @return [Integer]
+              option :max_time_to_evaluate_ms do |o|
+                o.type :int
+                o.default 50
+                o.env "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS"
+                o.setter do |value, _old|
+                  if value < 0
+                    raise ArgumentError,
+                      "The setting `dynamic_instrumentation.max_time_to_evaluate_ms` must not be negative, " \
+                        "but `#{value.inspect}` was provided."
+                  end
+                  value
+                end
+              end
+
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.

@@ -16,8 +16,9 @@ module Datadog
         # process-wide rate limiter.
         RATE_LIMIT_GLOBAL = "rateLimitGlobal"
 
-        # Skip reason emitted when a capture expression evaluation exceeds
-        # the capture time budget.
+        # Skip reason emitted when an evaluation exceeds its time budget:
+        # a probe condition, a capture expression (including one skipped at
+        # the expired capture time budget), or a message template.
         EVALUATION_TIMEOUT = "evaluationTimeout"
 
         # Skip reason named in the +di: debug log when a condition-evaluation

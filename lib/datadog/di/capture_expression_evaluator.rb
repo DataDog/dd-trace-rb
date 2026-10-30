@@ -7,6 +7,7 @@ require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry"
 require_relative "../core/utils/time"
+require_relative "el"
 
 module Datadog
   module DI
@@ -16,7 +17,7 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured expression values
       # @param logger [DI::Logger] logger for evaluation failure diagnostics
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-timeout skip metric
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical evaluation-timeout skip metric
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation failures are reported through
       # @return [void]
       def initialize(settings:, serializer:, logger:, guardrails_telemetry:, telemetry: nil)
@@ -52,6 +53,7 @@ module Datadog
       #   to evaluate or serialize
       def evaluate(probe, context)
         deadline = serializer.serialization_deadline
+        evaluation_deadline = EL::Evaluator.evaluation_deadline(settings)
 
         output = {}
         evaluation_errors = []
@@ -70,7 +72,7 @@ module Datadog
           end
 
           begin
-            value = capture_expression.expr.evaluate(context)
+            value = capture_expression.expr.evaluate(context, deadline: evaluation_deadline)
             limits = CaptureLimits.resolve(
               expr_limits: capture_expression.limits,
               probe: probe,
@@ -86,6 +88,13 @@ module Datadog
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
+            if exc.is_a?(DI::Error::EvaluationTimeout)
+              telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+              guardrails_telemetry.skipped(
+                reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+                probe: probe,
+              )
+            end
             evaluation_errors << EvaluationFailure.new(expr: name, message: "#{exc.class}: #{exc.message}")
             logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"

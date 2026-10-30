@@ -3013,6 +3013,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` | `Integer` | Per-capture time budget (in milliseconds) for serializing a snapshot and evaluating capture expressions. | `150` |
+| `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` | `Integer` | Thread CPU-time budget (in milliseconds) for evaluating a probe condition, a probe's capture expressions, or a message template; the capture expressions share one budget, and the template segments share one budget. | `50` |
 
 Alternatively, set DI parameters inside a `Datadog.configure` block:
 
@@ -3023,6 +3024,7 @@ Alternatively, set DI parameters inside a `Datadog.configure` block:
 | `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
 | `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
 | `c.dynamic_instrumentation.max_time_to_serialize_ms` | `Integer` | Per-capture time budget (in milliseconds) for serializing a snapshot and evaluating capture expressions. | `150` |
+| `c.dynamic_instrumentation.max_time_to_evaluate_ms` | `Integer` | Thread CPU-time budget (in milliseconds) for evaluating a probe condition, a probe's capture expressions, or a message template; the capture expressions share one budget, and the template segments share one budget. | `50` |
 
 #### Symbol Database
 

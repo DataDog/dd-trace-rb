@@ -92,6 +92,11 @@ module Datadog
       # expressions.
       class ExpressionEvaluationError < Error
       end
+
+      # Raised when expression evaluation exceeds the configured
+      # evaluation CPU-time budget.
+      class EvaluationTimeout < ExpressionEvaluationError
+      end
     end
   end
 end

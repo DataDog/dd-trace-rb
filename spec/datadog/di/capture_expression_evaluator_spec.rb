@@ -14,10 +14,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
   default_settings
 
-  before do
-    allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(200)
-  end
-
   let(:redactor) do
     Datadog::DI::Redactor.new(settings)
   end
@@ -116,6 +112,50 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           an_instance_of(Datadog::DI::Error::ExpressionEvaluationError),
           description: "DI capture-expression evaluation failed",
         )
+        evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "expression evaluation exceeds the evaluation deadline" do
+      before do
+        expect(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("x.filter(@it >= 0)",
+                {"filter" => [{"ref" => "x"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {x: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "omits the key from output and reports the timeout as an evaluation error" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("filtered")
+        expect(result.errors.first.message).to include("EvaluationTimeout")
+      end
+
+      it "increments the evaluation_timeouts telemetry counter and emits the evaluationTimeout skip metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
         evaluator.evaluate(probe, context)
       end
     end
