@@ -1,3 +1,5 @@
+require "timeout"
+
 require "spec_helper"
 
 require "datadog"
@@ -440,6 +442,53 @@ RSpec.describe Datadog::Core::Configuration::Options do
 
           it "resets the option to its default value" do
             expect { reset_options }.to change { options_object.get_option(:foo) }.from(:baz).to(:bar)
+          end
+        end
+
+        context "when another thread first reads an unresolved option while the reset iterates" do
+          before do
+            options_class.send(:option, :seed, default: :seeded)
+            options_class.send(:option, :late, default: :lated)
+          end
+
+          it "resolves the option without raising on the reading thread" do
+            options_object.get_option(:seed)
+
+            iteration_started = Queue.new
+            release_iteration = Queue.new
+            resolution = Queue.new
+
+            # The stubbed reset suspends reset_options! with the options hash
+            # under each_value iteration, the same state a concurrent
+            # Datadog.configuration.reset! leaves it in. Lazy resolution from
+            # another thread inserts into that hash; CRuby raises on the
+            # reading thread when the insert overlaps the iteration.
+            allow(options_object.options[:seed]).to receive(:reset) do
+              iteration_started.push(true)
+              release_iteration.pop
+            end
+
+            resolver = Thread.new do
+              iteration_started.pop
+              begin
+                options_object.get_option(:late)
+                resolution.push(nil)
+              rescue RuntimeError => e
+                resolution.push(e)
+              end
+            end
+
+            resetter = Thread.new { options_object.reset_options! }
+
+            first_resolution = Timeout.timeout(2) { resolution.pop }
+            release_iteration.push(true)
+
+            expect(first_resolution).to be_nil
+
+            resetter.join(2)
+            resolver.join(2)
+            expect(resetter).not_to be_alive
+            expect(resolver).not_to be_alive
           end
         end
       end

@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6588",
+  "message": "Fix a `RuntimeError` (`can't add a new key into hash during iteration`) raised on background threads that read a setting for the first time while the settings are being reset."
+}

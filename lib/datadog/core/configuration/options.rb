@@ -13,6 +13,13 @@ module Datadog
           base.include(InstanceMethods)
         end
 
+        # CRuby raises when a new key is added to a hash during a Ruby-level
+        # iteration of that hash. Lazy option resolution adds such a key on
+        # whichever thread first reads the option, so the options hash accesses
+        # serialize on this lock; option value computation stays outside it.
+        OPTIONS_HASH_LOCK = Thread::Mutex.new
+        private_constant :OPTIONS_HASH_LOCK
+
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
@@ -136,13 +143,15 @@ module Datadog
           end
 
           def options_hash
-            self.class.options.merge(options).each_with_object({}) do |(key, _), hash|
+            merged = OPTIONS_HASH_LOCK.synchronize { self.class.options.merge(options) }
+
+            merged.each_with_object({}) do |(key, _), hash|
               hash[key] = get_option(key)
             end
           end
 
           def reset_options!
-            options.each_value(&:reset)
+            OPTIONS_HASH_LOCK.synchronize { options.values }.each(&:reset)
           end
 
           private
@@ -155,7 +164,8 @@ module Datadog
             assert_valid_option!(name)
             definition = self.class.options[name]
             # @type self: Configuration::Options::_Settings
-            options[name] = definition.build(self)
+            built = definition.build(self)
+            OPTIONS_HASH_LOCK.synchronize { options[name] = built }
           end
 
           def assert_valid_option!(name)

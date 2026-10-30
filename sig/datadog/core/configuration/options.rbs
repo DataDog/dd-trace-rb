@@ -5,6 +5,8 @@ module Datadog
         extend _ClassMethods
         include _InstanceMethods
 
+        OPTIONS_HASH_LOCK: Thread::Mutex
+
         def self.included: (Class | Module base) -> void
 
         interface _ClassMethods
