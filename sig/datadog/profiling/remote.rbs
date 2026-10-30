@@ -1,0 +1,59 @@
+module Datadog
+  module Profiling
+    module Remote
+      type validator = ^(untyped value) -> bool
+
+      type target = { service: String?, env: String?, tags: Array[String] }
+
+      # profilers and settings hold parsed JSON values, already checked against their validator.
+      type config = {
+        id: String,
+        targets: Array[target],
+        profilers: Hash[String, untyped],
+        settings: Hash[String, untyped],
+      }
+
+      type remote_option = [Core::Configuration::Options::_InstanceMethods, Symbol, String]
+
+      PRODUCT: "DEBUG"
+
+      BOOLEAN: validator
+
+      POSITIVE_INTEGER: validator
+
+      PROFILER_FIELDS: Hash[String, validator]
+
+      SETTING_FIELDS: Hash[String, validator]
+
+      def self.products: () -> Array[String]
+
+      def self.receivers: (Core::Telemetry::Component? _telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.apply_configs: (Core::Remote::Configuration::Repository repository) -> nil
+
+      private
+
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> config?
+
+      def self.parse_json: (Core::Remote::Configuration::Content content) -> untyped
+
+      def self.parse_fields: (untyped section, String section_name, Hash[String, validator] fields, Array[String] problems) -> Hash[String, untyped]
+
+      def self.parse_targets: (untyped targets, Array[String] problems) -> Array[target]?
+
+      def self.valid_target?: (untyped target) -> bool
+
+      def self.merge: (Array[config] configs, Core::Configuration::Settings settings) -> [Hash[String, untyped], Hash[String, untyped]]
+
+      def self.specificity: (Array[target] targets, Core::Configuration::Settings settings) -> Integer?
+
+      def self.to_values: (Hash[String, untyped] profilers, Hash[String, untyped] settings) -> Hash[Symbol, untyped]
+
+      def self.apply_values: (Core::Configuration::Settings settings, Hash[Symbol, untyped] values) -> void
+
+      def self.remote_options: (Core::Configuration::Settings settings) -> Array[remote_option]
+
+      def self.apply_option: (Core::Configuration::Options::_InstanceMethods object, Symbol name, Object? value) -> void
+    end
+  end
+end

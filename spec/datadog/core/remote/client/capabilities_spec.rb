@@ -485,4 +485,18 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers.count(receiver)).to eq(1)
     end
   end
+
+  context "Profiling" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it "registers the DEBUG product and a receiver for it, without a capability" do
+      expect(capabilities.products).to include("DEBUG")
+      expect(capabilities.receivers).to include(
+        lambda { |r|
+          r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/DEBUG/preset-default/config")
+        }
+      )
+      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
+    end
+  end
 end
