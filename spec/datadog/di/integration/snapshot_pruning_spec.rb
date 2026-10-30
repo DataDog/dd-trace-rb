@@ -23,9 +23,6 @@ RSpec.describe "Snapshot size pruning integration" do
     Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: di_logger, telemetry: nil)
   end
 
-  # The DI logger facade the input transport and the guardrails telemetry
-  # emit through; the transport logs prune diagnostics at the facade's
-  # trace level.
   let(:di_logger) do
     Datadog::DI::Logger.new(settings, logger)
   end
