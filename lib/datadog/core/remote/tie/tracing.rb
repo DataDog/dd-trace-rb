@@ -13,15 +13,17 @@ module Datadog
             return if boot.nil?
             return if span.nil?
 
-            # Hoisted so the nil guard narrows the component for the calls below.
+            # Read once: active_remote can be replaced on another thread, and the
+            # local keeps the nil check and the uses on the same component.
             remote = Datadog::Core::Remote.active_remote
             return if remote.nil?
 
             # TODO: this is not thread-consistent
+            client_id = remote.client.id
             ready = remote.healthy
             status = ready ? "ready" : "disconnected"
 
-            span.set_tag("_dd.rc.client_id", remote.client.id)
+            span.set_tag("_dd.rc.client_id", client_id)
             span.set_tag("_dd.rc.status", status)
 
             if boot.barrier != :pass

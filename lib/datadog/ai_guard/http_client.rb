@@ -17,7 +17,8 @@ module Datadog
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @timeout = timeout
 
-        site = Datadog.configuration.site
+        configuration = Datadog.configuration
+        site = configuration.site
         @endpoint_uri = if endpoint
           URI(endpoint) #: URI::HTTP
         elsif site
