@@ -85,9 +85,11 @@ module Datadog
         yield(configuration)
 
         safely_synchronize do |write_components|
+          # Hoisted: Steep does not flow-narrow ivars after the components? guard.
+          components = @components
           write_components.call(
-            if components?
-              replace_components!(configuration, @components) # steep:ignore ArgumentTypeMismatch
+            if components
+              replace_components!(configuration, components)
             else
               build_components(configuration)
             end
@@ -187,7 +189,9 @@ module Datadog
       # Components won't be automatically reinitialized after a shutdown.
       def shutdown!
         safely_synchronize do
-          @components.shutdown! if components? # steep:ignore NoMethod
+          # Hoisted: Steep does not flow-narrow ivars after the components? guard.
+          components = @components
+          components&.shutdown!
         end
       end
 
