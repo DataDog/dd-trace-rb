@@ -47,10 +47,7 @@ module Datadog
       #
       # @param snapshot [Hash] snapshot payload Hash
       # @param max_size [Integer] per-event byte cap
-      # @return [Result] +encoded+ is the JSON string, of at most
-      #   +max_size+ bytes, or nil when the snapshot cannot fit within
-      #   +max_size+ even after pruning. +pruned+ is true when any
-      #   captured-value slot was replaced with the pruned marker.
+      # @return [Result] outcome of the encoding pass
       # @raise [JSON::GeneratorError] when a captured value cannot be
       #   JSON-encoded
       def self.encode(snapshot, max_size)
@@ -63,9 +60,10 @@ module Datadog
       end
 
       # Outcome of an encoding pass: +encoded+ [String, nil] is the JSON
-      # string, or nil when the snapshot cannot fit within the cap even
-      # after pruning; +pruned+ [Boolean] is true when any captured-value
-      # slot was replaced with the pruned marker.
+      # string, of at most the per-event byte cap, or nil when the
+      # snapshot cannot fit within the cap even after pruning; +pruned+
+      # [Boolean] is true when any captured-value slot was replaced with
+      # the pruned marker.
       Result = Struct.new(:encoded, :pruned)
       private_constant :Result
 
