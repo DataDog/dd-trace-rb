@@ -20,14 +20,13 @@
 #define OBJECTS_TO_MARK_MAX_SIZE MiB_AS_BYTES(16)
 
 static void *objects_to_mark_calloc(size_t size);
-static void objects_to_mark_free(void *allocation, size_t size);
 
 #define NAME verstable_objects_to_mark_set
 #define KEY_TY VALUE
 #define HASH_FN vt_hash_integer
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN objects_to_mark_calloc
-#define FREE_FN objects_to_mark_free
+#define FREE_FN miteruby_allocator_free_sized
 #include "verstable.h"
 
 #define CONSUMED_EVENTS_BUFFER_MAX_CAPACITY (MiB_AS_BYTES(16) / sizeof(miteruby_event_deduped_sample_t))
@@ -73,10 +72,6 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 static void *objects_to_mark_calloc(size_t size) {
   if (size > OBJECTS_TO_MARK_MAX_SIZE) return NULL;
   return miteruby_allocator_alloc(size, "objects_to_mark");
-}
-
-static void objects_to_mark_free(void *allocation, DDTRACE_UNUSED size_t _size) {
-  miteruby_allocator_free(allocation);
 }
 
 static void mutex_lock(mtx_t *mutex) {
