@@ -29,7 +29,7 @@
 /* #define PB_NO_ERRMSG 1 */
 
 /* Disable support for custom streams (support only memory buffers). */
-/* #define PB_BUFFER_ONLY 1 */
+#define PB_BUFFER_ONLY 1
 
 /* Disable support for 64-bit datatypes, for compilers without int64_t
    or to save some code space. */
