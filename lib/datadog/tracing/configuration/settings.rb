@@ -395,8 +395,8 @@ module Datadog
                       # The env value or the Float default; both convert.
                       sampler_arg = DATADOG_ENV.fetch(
                         Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG,
-                        1.0
-                      ) #: String | ::Float
+                        1.0,
+                      )
                       sampler_arg.to_f
                     else
                       value.to_f
@@ -431,7 +431,7 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES) { nil } }
                 end
 
                 # Single span sampling rules.
