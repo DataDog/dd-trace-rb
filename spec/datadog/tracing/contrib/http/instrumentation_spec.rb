@@ -4,11 +4,6 @@ require "datadog"
 require "net/http"
 
 RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
-  after do
-    WebMock.reset!
-    WebMock.disable!
-  end
-
   let(:host) { "127.0.0.1" }
   let(:port) { 1234 }
   let(:uri) { "http://#{host}:#{port}" }
@@ -18,15 +13,16 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Instrumentation do
   let(:configuration_options) { {} }
 
   before do
+    Datadog.registry[:http].reset_configuration!
     WebMock.enable!(allow: agent_url)
     Datadog.configure { |c| c.tracing.instrument :http, configuration_options }
     stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: "{}")
   end
 
-  around do |example|
+  after do
     Datadog.registry[:http].reset_configuration!
-    example.run
-    Datadog.registry[:http].reset_configuration!
+    WebMock.reset!
+    WebMock.disable!
   end
 
   describe "#request" do
