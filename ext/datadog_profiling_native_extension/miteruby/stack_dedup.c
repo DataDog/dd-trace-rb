@@ -202,7 +202,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
 
 // This weird thing currently exists because we:
 // 1. Check if the stack exists, and store it if it doesn't
-// 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ to `mark_cme_iseq_set` (caller)
+// 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ pair to `mark_cme_iseq_set` (caller)
 // 3. In step 2 either set might run out of space. So this allows us to back out of 1 if step 2 fails.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
   verstable_unique_stacks_set_erase(&stack_dedup_state.unique_stacks, (stack_key) {
