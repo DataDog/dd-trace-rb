@@ -119,8 +119,8 @@ module Datadog
         # @param out [String] output buffer
         # @param budget [Budget] byte budget of the enclosing structure
         # @param item_cap [Integer, nil] byte cap for a scalar slot
-        #   inside a captured collection; nil to gate against the whole
-        #   remaining budget
+        #   inside a captured collection; nil to use the whole remaining
+        #   budget as the cap
         # @param on_prune [Proc, nil] invoked when the slot is pruned
         # @return [Boolean] true when the slot was emitted, either as its
         #   content or as the pruned marker
