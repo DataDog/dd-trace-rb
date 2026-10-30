@@ -24,9 +24,7 @@ module Datadog
       # \uXXXX escaping of a control character.
       MAX_ESCAPE_EXPANSION = 6
 
-      # Slot fields that hold a string of unbounded size: the type name,
-      # the serialized value, the throwable message, and the capture
-      # failure reasons.
+      # Slot fields that hold a string of unbounded size.
       SLOT_STRING_FIELDS = %w[type value message notCapturedReason notSerializedReason].freeze
 
       # @type var marker: Hash[String, true]
