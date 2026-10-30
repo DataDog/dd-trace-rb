@@ -59,8 +59,8 @@ module Datadog
         @agent_info = agent_info
         @logger = logger
 
-        # Fiber-local (Thread#[] is fiber-local), so a consume on one thread never rewrites the
-        # pathway of produces on another.
+        # Each fiber holds its own reference (see #pathway_context), so a consume on one thread
+        # never rewrites the pathway of produces on another.
         @pathway_context_key = :"datadog_data_streams_pathway_context_#{Processor.next_instance_id}"
         @bucket_size_ns = (interval * 1e9).to_i
         @buckets = {}
@@ -91,12 +91,24 @@ module Datadog
         perform
       end
 
-      def pathway_context
-        Thread.current[@pathway_context_key]
-      end
+      # Fiber storage (Ruby 3.2+) is inherited by child fibers, external enumerators, and new
+      # threads, so a pathway follows work started from the fiber that consumed it.
+      if Fiber.respond_to?(:[])
+        def pathway_context
+          Fiber[@pathway_context_key]
+        end
 
-      def pathway_context=(context)
-        Thread.current[@pathway_context_key] = context
+        def pathway_context=(context)
+          Fiber[@pathway_context_key] = context
+        end
+      else
+        def pathway_context
+          Thread.current[@pathway_context_key]
+        end
+
+        def pathway_context=(context)
+          Thread.current[@pathway_context_key] = context
+        end
       end
 
       # Track Kafka produce offset for lag monitoring
@@ -275,7 +287,9 @@ module Datadog
       def set_checkpoint(tags:, now: nil, payload_size: 0, span: nil)
         now ||= Core::Utils::Time.now
 
-        current_context = get_current_context
+        # Copy, never mutate: on Ruby 3.2+ fibers and threads started from this fiber inherit the
+        # same object through fiber storage, and threads checkpoint concurrently.
+        current_context = get_current_context.dup
         tags = tags.sort
 
         direction = nil # : ::String?
@@ -323,6 +337,7 @@ module Datadog
         current_context.parent_hash = current_context.hash
         current_context.hash = new_hash
         current_context.current_edge_start = now
+        self.pathway_context = current_context
 
         current_context.encode_b64
       end
