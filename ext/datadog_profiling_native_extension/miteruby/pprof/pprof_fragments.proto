@@ -19,28 +19,28 @@
 // one entry of a repeated field. Encode each fragment as a raw protobuf message
 // and concatenate the bytes to form one Profile; no enclosing message is needed.
 
-syntax = "proto2";
+syntax = "proto3";
 
 package streaming;
 
 message FragmentSampleType {
   message ValueType {
-    optional int64 type = 1;
-    optional int64 unit = 2;
+    int64 type = 1;
+    int64 unit = 2;
   }
 
   // Corresponds to Profile.sample_type in pprof.proto
-  required ValueType sample_type = 1;
+  ValueType sample_type = 1;
 }
 
 message FragmentSample {
   message Sample {
     message Label {
-      optional int64 key = 1;
-      optional int64 str = 2;
-      optional int64 num = 3;
+      int64 key = 1;
+      int64 str = 2;
+      int64 num = 3;
       // Not currently needed for Ruby profiler
-      // optional int64 num_unit = 4;
+      // int64 num_unit = 4;
     }
 
     repeated uint64 location_id = 1 [packed = true];
@@ -49,96 +49,96 @@ message FragmentSample {
   }
 
   // Corresponds to Profile.sample in pprof.proto
-  required Sample sample = 2;
+  Sample sample = 2;
 }
 
 // Not currently needed for Ruby profiler
 // message FragmentMapping {
 //   message Mapping {
-//     optional uint64 id = 1;
-//     optional uint64 memory_start = 2;
-//     optional uint64 memory_limit = 3;
-//     optional uint64 file_offset = 4;
-//     optional int64 filename = 5;
-//     optional int64 build_id = 6;
-//     optional bool has_functions = 7;
-//     optional bool has_filenames = 8;
-//     optional bool has_line_numbers = 9;
-//     optional bool has_inline_frames = 10;
+//     uint64 id = 1;
+//     uint64 memory_start = 2;
+//     uint64 memory_limit = 3;
+//     uint64 file_offset = 4;
+//     int64 filename = 5;
+//     int64 build_id = 6;
+//     bool has_functions = 7;
+//     bool has_filenames = 8;
+//     bool has_line_numbers = 9;
+//     bool has_inline_frames = 10;
 //   }
 //
 //   // Corresponds to Profile.mapping in pprof.proto
-//   required Mapping mapping = 3;
+//   Mapping mapping = 3;
 // }
 
 message FragmentLocation {
   message Location {
     message Line {
-      optional uint64 function_id = 1;
-      optional int64 line = 2;
+      uint64 function_id = 1;
+      int64 line = 2;
     }
 
-    optional uint64 id = 1;
+    uint64 id = 1;
     // Not currently needed for Ruby profiler
-    // optional uint64 mapping_id = 2;
-    // optional uint64 address = 3;
+    // uint64 mapping_id = 2;
+    // uint64 address = 3;
     // Multiple inline-frame records are not currently needed for Ruby profiler.
     // repeated Line line = 4;
     // Ruby emits one Line per Location; a singular field preserves its wire encoding.
-    optional Line line = 4;
+    Line line = 4;
     // Not currently needed for Ruby profiler
-    // optional bool is_folded = 5;
+    // bool is_folded = 5;
   }
 
   // Corresponds to Profile.location in pprof.proto
-  required Location location = 4;
+  Location location = 4;
 }
 
 message FragmentFunction {
   message Function {
-    optional uint64 id = 1;
-    optional int64 name = 2;
+    uint64 id = 1;
+    int64 name = 2;
     // Not currently needed for Ruby profiler
-    // optional int64 system_name = 3;
-    optional int64 filename = 4;
+    // int64 system_name = 3;
+    int64 filename = 4;
     // Not currently needed for Ruby profiler
-    // optional int64 start_line = 5;
+    // int64 start_line = 5;
   }
 
   // Corresponds to Profile.function in pprof.proto
-  required Function function = 5;
+  Function function = 5;
 }
 
 message FragmentStringTable {
   // Corresponds to Profile.string_table in pprof.proto
-  // Required presence preserves the empty string at string-table index zero.
-  required string string_table = 6;
+  // Emit one element per fragment; repeated preserves the empty string at index zero.
+  repeated string string_table = 6;
 }
 
 // Profile fields that don't need separate encoding can be emitted together once per profile.
 message FragmentProfile {
   // Not currently needed for Ruby profiler
   // message ValueType {
-  //   optional int64 type = 1;
-  //   optional int64 unit = 2;
+  //   int64 type = 1;
+  //   int64 unit = 2;
   // }
 
   // Not currently needed for Ruby profiler
   // Corresponds to Profile.drop_frames in pprof.proto
-  // optional int64 drop_frames = 7;
+  // int64 drop_frames = 7;
   // Corresponds to Profile.keep_frames in pprof.proto
-  // optional int64 keep_frames = 8;
+  // int64 keep_frames = 8;
   // Corresponds to Profile.time_nanos in pprof.proto
-  optional int64 time_nanos = 9;
+  int64 time_nanos = 9;
   // Corresponds to Profile.duration_nanos in pprof.proto
-  optional int64 duration_nanos = 10;
+  int64 duration_nanos = 10;
   // Not currently needed for Ruby profiler
   // Corresponds to Profile.period_type in pprof.proto
-  // optional ValueType period_type = 11;
+  // ValueType period_type = 11;
   // Corresponds to Profile.period in pprof.proto
-  // optional int64 period = 12;
+  // int64 period = 12;
   // Corresponds to Profile.comment in pprof.proto
   // repeated int64 comment = 13 [packed = true];
   // Corresponds to Profile.default_sample_type in pprof.proto
-  // optional int64 default_sample_type = 14;
+  // int64 default_sample_type = 14;
 }
