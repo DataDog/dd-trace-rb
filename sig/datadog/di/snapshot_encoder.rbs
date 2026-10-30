@@ -36,6 +36,8 @@ module Datadog
 
       def self.encode: (snapshot snapshot, Integer max_size) -> Result
 
+      private
+
       def self.encode_value: (snapshot_value node, String out, Budget budget) ?{ () -> void } -> bool
 
       def self.encode_slot:
