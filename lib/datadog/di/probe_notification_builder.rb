@@ -372,7 +372,9 @@ module Datadog
           host: nil,
           logger: {
             name: probe.file,
-            method: probe.method_name,
+            # Logs standard attribute that populates the Logger Method facet:
+            # https://docs.datadoghq.com/standard-attributes/?search=logger&product=log+management
+            method_name: probe.method_name,
             thread_name: Thread.current.name,
             # Dynamic instrumentation currently does not need thread_id for
             # anything. It can be sent if a customer requests it at which point
