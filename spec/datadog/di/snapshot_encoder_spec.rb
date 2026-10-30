@@ -492,7 +492,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
     end
 
-    context "when the budget leaves no room for the pruned marker" do
+    context "when the budget cannot fit the pruned marker" do
       let(:sized) { snapshot(line_captures(s: {type: "String", value: "x" * 3_000})) }
       let(:full) { JSON.dump(snapshot(line_captures(s: {type: "String", value: ""}))).bytesize }
 
