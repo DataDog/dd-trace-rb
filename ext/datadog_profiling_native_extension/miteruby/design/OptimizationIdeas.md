@@ -25,6 +25,19 @@ on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
 
+## Bulk marking objects_to_mark
+
+The current `objects_to_mark` Verstable set stores contiguous `VALUE`-sized keys, with metadata in a separate array.
+Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `buffer_marking.c`,
+instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
+
+Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
+only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing the set to avoid
+retaining objects from previous profiles. Any future individual deletions would also need to zero vacated buckets.
+
+Benchmark before adopting: this avoids metadata-driven iteration and individual marking calls, but scans every bucket,
+including empty ones, and adds the cost of zeroing keys on clear.
+
 ## Custom serializer ideas (Added by AI friend)
 
 * Replace linear searches for strings, functions, locations, mappings, and aggregate samples with hash tables.
