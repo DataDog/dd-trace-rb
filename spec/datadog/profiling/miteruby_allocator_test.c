@@ -78,9 +78,9 @@ static void test_accounting(void) {
   assert(miteruby_allocator_alloc(0, "test") == NULL);
   assert(miteruby_allocator_alloc(SIZE_MAX, "test") == NULL);
   assert(miteruby_allocator_alloc(32, NULL) == NULL);
-  miteruby_allocator_free(NULL);
+  miteruby_allocator_free_sized(NULL, SIZE_MAX);
   assert(miteruby_allocator_requested_bytes() == 1017);
-  miteruby_allocator_free(first);
+  miteruby_allocator_free_sized(first, SIZE_MAX);
   assert(miteruby_allocator_requested_bytes() == 1000);
   miteruby_allocator_free(second);
   assert(miteruby_allocator_requested_bytes() == 0);
