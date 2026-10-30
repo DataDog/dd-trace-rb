@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#define KiB_AS_BYTES(VALUE) ((VALUE) * 1024ULL)
 #define MiB_AS_BYTES(VALUE) ((VALUE) * 1024ULL * 1024ULL)
 
 // @ivoanjo: After trying to read through https://stackoverflow.com/questions/3437404/min-and-max-in-c I decided I

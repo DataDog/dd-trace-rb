@@ -25,14 +25,14 @@ on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
 
-## Bulk marking objects_to_mark
+## Bulk marking reference sets
 
-The current `objects_to_mark` Verstable set stores contiguous `VALUE`-sized keys, with metadata in a separate array.
+The `mark_threads_set` and `mark_cme_iseq_set` Verstable sets store contiguous `VALUE`-sized keys, with metadata in a separate array.
 Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `buffer_marking.c`,
 instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
 
 Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
-only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing the set to avoid
+only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing each set to avoid
 retaining objects from previous profiles. Any future individual deletions would also need to zero vacated buckets.
 
 Benchmark before adopting: this avoids metadata-driven iteration and individual marking calls, but scans every bucket,
