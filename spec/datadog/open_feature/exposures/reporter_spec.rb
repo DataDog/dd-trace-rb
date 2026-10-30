@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
   let(:context) do
     instance_double(
-      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"}
+      OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
     )
   end
   let(:result) do
@@ -40,7 +40,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         "doLog" => true,
       },
       log?: true,
-      error?: false
+      error?: false,
     )
   end
 
@@ -60,7 +60,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
         expect(debug_messages).to include(
           'Feature Flags: queued exposure for "feature_flag" (allocation="4-for-john-doe", variant="4", ' \
-            'targeting_key="john-doe")'
+            'targeting_key="john-doe")',
         )
       end
 
@@ -83,7 +83,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         reporter.report(result, flag_key: "feature_flag", context: context)
 
         expect(debug_messages).to include(
-          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject'
+          'Feature Flags: exposure for "feature_flag" not recorded: duplicate of the last exposure for this subject',
         )
       end
     end
@@ -111,7 +111,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
           allocation_key: "4-for-john-doe",
           flag_metadata: {},
           log?: false,
-          error?: true
+          error?: true,
         )
       end
 
@@ -127,7 +127,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
         expect(debug_messages).to include(
           'Feature Flags: exposure for "feature_flag" not recorded: ' \
-            "the evaluation result is not marked for exposure logging"
+            "the evaluation result is not marked for exposure logging",
         )
       end
     end
@@ -147,7 +147,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
             "doLog" => true,
           },
           log?: true,
-          error?: false
+          error?: false,
         )
       end
 

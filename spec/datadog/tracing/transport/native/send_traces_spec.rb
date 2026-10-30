@@ -362,7 +362,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_sent" => 2, "spans_enqueued_for_serialization" => 3,
             "bytes_sent" => trace_requests.first.fetch(:body).bytesize,
           },
-        ]
+        ],
       )
       expect(result.fetch("returned")).to be true
     end
@@ -376,7 +376,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_dropped_cancelled" => 2,
             "spans_dropped_cancelled" => 3,
             "spans_enqueued_for_serialization" => 3,
-          }]
+          }],
         )
         expect(result.fetch("returned")).to be false
         expect(result.fetch("same_exception")).to be true
@@ -392,7 +392,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "chunks_dropped_cancelled" => 2,
             "spans_dropped_cancelled" => 3,
             "spans_enqueued_for_serialization" => 3,
-          }]
+          }],
         )
         expect(result.fetch("returned")).to be false
         expect(result.fetch("error")).to be_nil
@@ -429,7 +429,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
             "bools" => [true, false],
             "ints" => [-1, 2],
             "doubles" => [1.25, 2.5],
-          }
+          },
         ),
         Datadog::Tracing::SpanEvent.new("second", time_unix_nano: 456),
       ]
@@ -460,7 +460,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       expect(event.dig("attributes", "attempt")).to eq("type" => 2, "int_value" => 2)
       expect(event.dig("attributes", "exception.type")).to eq(
         "type" => 0,
-        "string_value" => "StandardError"
+        "string_value" => "StandardError",
       )
     end
 
@@ -469,7 +469,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       span.events = [Datadog::Tracing::SpanEvent.new(
         "empty",
         time_unix_nano: 123,
-        attributes: {"values" => []}
+        attributes: {"values" => []},
       )]
 
       responses = exporter._native_send_traces([[span]], true)
@@ -478,7 +478,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       payload = last_payload
       expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
         "type" => 4,
-        "array_value" => {"values" => []}
+        "array_value" => {"values" => []},
       )
     end
   end

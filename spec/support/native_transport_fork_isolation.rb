@@ -86,7 +86,7 @@ module NativeTransportForkIsolation
     stack << registry.snapshot_at_fork_blocks
     registry.send(
       :replace_at_fork_blocks,
-      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze,
     )
   end
 

@@ -20,7 +20,7 @@ def skip_building_extension!(reason)
     Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(
       **reason,
       fail_install: fail_install_if_missing_extension,
-    )
+    ),
   )
 
   File.write(
@@ -32,7 +32,7 @@ def skip_building_extension!(reason)
     require "mkmf"
     Logging.message(
       "[datadog] Failure cause: " \
-      "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
+      "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n",
     )
   else
     File.write("Makefile", "all install clean: # dummy makefile that does nothing")
@@ -63,7 +63,7 @@ $stderr.puts(
 | Thanks for using datadog! You rock!                                          |
 +------------------------------------------------------------------------------+
 
-)
+),
 )
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks

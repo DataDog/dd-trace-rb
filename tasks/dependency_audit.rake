@@ -52,7 +52,7 @@ if Gem::Specification.find_all_by_name("bundler-audit").any?
         puts
         puts Thor::Shell::Basic.new.print_table(
           [%w[Lockfile Gem Version Advisory]] + findings.map { |f| [f.lockfile, f.gem, f.version, f.id] },
-          {borders: true}
+          {borders: true},
         )
         exit(1)
       end

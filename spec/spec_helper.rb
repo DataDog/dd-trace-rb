@@ -218,7 +218,7 @@ RSpec.configure do |config|
           warn RSpec::Core::Formatters::ConsoleCodes.wrap(
             "Too many leaky thread reports! Suppressing further reports.\n" \
             "Consider addressing the previously reported leaks before proceeding.",
-            :red
+            :red,
           )
 
           $background_thread_leak_warned = true
@@ -296,7 +296,7 @@ RSpec.configure do |config|
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
           "#{info}",
-          :yellow
+          :yellow,
         )
 
         $background_thread_leak_reports += 1

@@ -167,7 +167,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         context "when the environment variable is #{configured_value.inspect}" do
           around do |example|
             ClimateControl.modify(
-              "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => configured_value
+              "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => configured_value,
             ) { example.run }
           end
 

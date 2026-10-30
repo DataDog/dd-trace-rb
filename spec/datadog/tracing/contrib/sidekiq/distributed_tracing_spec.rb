@@ -32,7 +32,7 @@ RSpec.describe "Sidekiq distributed tracing" do
         include Sidekiq::Worker
         def perform
         end
-      end
+      end,
     )
   end
 
@@ -83,8 +83,8 @@ RSpec.describe "Sidekiq distributed tracing" do
             "x-datadog-parent-id" => span_id.to_s,
             "x-datadog-sampling-priority" => "2",
             "x-datadog-tags" => "_dd.p.dm=-99,_dd.p.tid=#{high_order_hex_trace_id(trace_id)}",
-            "x-datadog-origin" => "my-origin"
-          )
+            "x-datadog-origin" => "my-origin",
+          ),
         )
 
         EmptyWorker.perform_one
@@ -171,8 +171,8 @@ RSpec.describe "Sidekiq distributed tracing" do
             "x-datadog-parent-id" => span_id.to_s,
             "x-datadog-sampling-priority" => "2",
             "x-datadog-tags" => "_dd.p.dm=99",
-            "x-datadog-origin" => "my-origin"
-          )
+            "x-datadog-origin" => "my-origin",
+          ),
         )
 
         EmptyWorker.perform_one

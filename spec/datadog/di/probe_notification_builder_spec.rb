@@ -260,7 +260,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:context) do
       Datadog::DI::Context.new(
         settings: settings, serializer: serializer,
-        probe: probe
+        probe: probe,
       )
     end
 
@@ -771,7 +771,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         Datadog::DI::Context.new(
           settings: settings, serializer: serializer,
           locals: vars,
-          probe: probe
+          probe: probe,
         )
       end
 
@@ -806,7 +806,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         Datadog::DI::Context.new(
           settings: settings, serializer: serializer,
           locals: vars,
-          probe: probe
+          probe: probe,
         )
       end
 
@@ -1014,7 +1014,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:context) do
       Datadog::DI::Context.new(
         settings: settings, serializer: serializer,
-        probe: probe
+        probe: probe,
       )
     end
 

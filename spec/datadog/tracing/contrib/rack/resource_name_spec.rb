@@ -55,7 +55,7 @@ RSpec.describe "Rack integration with other middleware" do
 
             @app.call(env)
           end
-        end
+        end,
       )
     end
 
@@ -66,7 +66,7 @@ RSpec.describe "Rack integration with other middleware" do
           def call(_)
             [200, {}, []]
           end
-        end
+        end,
       )
     end
   end

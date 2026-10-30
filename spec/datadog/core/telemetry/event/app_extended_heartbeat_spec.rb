@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppExtendedHeartbeat do
       event = described_class.new(settings: settings, agent_settings: agent_settings)
 
       expect(event.payload[:configuration]).to include(
-        hash_including(name: "DD_SERVICE", value: "my-service")
+        hash_including(name: "DD_SERVICE", value: "my-service"),
       )
     end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppExtendedHeartbeat do
       new_event = described_class.new(settings: settings, agent_settings: agent_settings)
 
       expect(new_event.payload[:configuration]).to include(
-        hash_including(name: "DD_SERVICE", value: "after")
+        hash_including(name: "DD_SERVICE", value: "after"),
       )
     end
   end

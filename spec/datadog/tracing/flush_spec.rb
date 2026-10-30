@@ -9,7 +9,7 @@ RSpec.shared_context "trace operation" do
     instance_double(
       Datadog::Tracing::TraceOperation,
       finished?: finished,
-      flush!: trace
+      flush!: trace,
     )
   end
 

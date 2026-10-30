@@ -60,11 +60,11 @@ RSpec.describe "Session fingerprint collection for business events" do
         run(
           lambda do |_env|
             Datadog::Kit::AppSec::Events.track_login_success(
-              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: "42"}
+              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: "42"},
             )
 
             [200, {"Content-Type" => "text/html"}, ["OK"]]
-          end
+          end,
         )
       end
 

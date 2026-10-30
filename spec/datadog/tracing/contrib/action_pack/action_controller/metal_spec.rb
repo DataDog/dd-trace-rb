@@ -22,7 +22,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionController::Metal" 
             def handle_error
               head :ok
             end
-          end
+          end,
         )
       end
 
@@ -37,7 +37,7 @@ RSpec.describe "Datadog::Tracing::Contrib::ActionPack::ActionController::Metal" 
             def raise_exception
               raise StandardError, "bala boom!"
             end
-          end
+          end,
         )
       end
 

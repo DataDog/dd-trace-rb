@@ -512,7 +512,7 @@ RSpec.describe Datadog::DataStreams::Processor do
       Datadog::DataStreams::PathwayContext.new(
         hash_value: 12345,
         pathway_start: t0 - 300,
-        current_edge_start: t0 - 1
+        current_edge_start: t0 - 1,
       ).encode_b64
     end
 

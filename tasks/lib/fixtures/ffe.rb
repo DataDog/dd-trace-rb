@@ -89,7 +89,7 @@ class FfeFixtures
     uri = URI(url)
     Net::HTTP.start(
       uri.host, uri.port, use_ssl: uri.scheme == "https",
-      open_timeout: HTTP_TIMEOUT_SECONDS, read_timeout: HTTP_TIMEOUT_SECONDS
+      open_timeout: HTTP_TIMEOUT_SECONDS, read_timeout: HTTP_TIMEOUT_SECONDS,
     ) do |http|
       request = Net::HTTP::Get.new(uri)
       request["User-Agent"] = "dd-trace-rb-ffe-fixtures"
