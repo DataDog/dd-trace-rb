@@ -52,9 +52,8 @@ module Datadog
 
       def self.encode_slot_pair: (Array[snapshot_value] pair, String out, Budget budget) ?{ () -> void } -> bool
 
-      def self.encode_fields: (snapshot_value fields, String out, Budget budget) ?{ () -> void } -> bool
-
-      def self.encode_slot_hash: (snapshot_value hash, String out, Budget budget) ?{ () -> void } -> bool
+      def self.encode_slot_hash:
+        (snapshot_value hash, String out, Budget budget, item_cap: Integer?) ?{ () -> void } -> bool
 
       def self.encode_envelope_hash: (snapshot hash, String out, Budget budget) ?{ () -> void } -> bool
 

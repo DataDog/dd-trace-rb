@@ -184,7 +184,7 @@ module Datadog
             when "entries"
               return false unless encode_entries(val, out, budget, &on_prune)
             when "fields"
-              return false unless encode_fields(val, out, budget, &on_prune)
+              return false unless encode_slot_hash(val, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
             else
               # Remaining serializer fields (type, capture failure
               # reasons, message, stacktrace) and custom serializer
@@ -262,42 +262,20 @@ module Datadog
           emit_json_fragment(out, budget, "]")
         end
 
-        # Encodes a +fields+ field: a Hash mapping member names to
+        # Encodes a +fields+, +locals+, +arguments+, or
+        # +captureExpressions+ value: a Hash mapping names to
         # captured-value slots. Custom serializer output is encoded as a
         # generic JSON value.
         #
-        # @param fields [Object] value of the +fields+ field
+        # @param hash [Object] value of the +fields+, +locals+,
+        #   +arguments+, or +captureExpressions+ field
         # @param out [String] output buffer
         # @param budget [Budget] byte budget for the collection
-        # @param on_prune [Proc, nil] invoked when a member is pruned
-        # @return [Boolean] true when the collection was emitted in full
-        def encode_fields(fields, out, budget, &on_prune)
-          return encode_value(fields, out, budget, &on_prune) unless Hash === fields
-          return false unless emit_json_fragment(out, budget, "{")
-          first = true
-          fields.each do |name, slot|
-            unless first
-              return false unless emit_json_fragment(out, budget, ",")
-            end
-            first = false
-            return false unless emit_json_fragment(out, budget, json_dump(name.to_s))
-            return false unless emit_json_fragment(out, budget, ":")
-            return false unless encode_slot(slot, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
-          end
-          emit_json_fragment(out, budget, "}")
-        end
-
-        # Encodes a +locals+, +arguments+, or +captureExpressions+ value: a
-        # Hash mapping variable names to captured-value slots. Custom
-        # serializer output is encoded as a generic JSON value.
-        #
-        # @param hash [Object] value of the +locals+, +arguments+, or
-        #   +captureExpressions+ field
-        # @param out [String] output buffer
-        # @param budget [Budget] byte budget for the collection
+        # @param item_cap [Integer, nil] byte cap for a scalar slot
+        #   inside the collection
         # @param on_prune [Proc, nil] invoked when a slot is pruned
         # @return [Boolean] true when the collection was emitted in full
-        def encode_slot_hash(hash, out, budget, &on_prune)
+        def encode_slot_hash(hash, out, budget, item_cap:, &on_prune)
           return encode_value(hash, out, budget, &on_prune) unless Hash === hash
           return false unless emit_json_fragment(out, budget, "{")
           first = true
@@ -308,7 +286,7 @@ module Datadog
             first = false
             return false unless emit_json_fragment(out, budget, json_dump(name.to_s))
             return false unless emit_json_fragment(out, budget, ":")
-            return false unless encode_slot(slot, out, budget, item_cap: nil, &on_prune)
+            return false unless encode_slot(slot, out, budget, item_cap: item_cap, &on_prune)
           end
           emit_json_fragment(out, budget, "}")
         end
@@ -337,7 +315,7 @@ module Datadog
             return false unless emit_json_fragment(out, budget, ":")
             case key
             when "locals", "arguments", "captureExpressions"
-              return false unless encode_slot_hash(val, out, budget, &on_prune)
+              return false unless encode_slot_hash(val, out, budget, item_cap: nil, &on_prune)
             when "throwable"
               if val.nil?
                 return false unless encode_scalar(val, out, budget)
