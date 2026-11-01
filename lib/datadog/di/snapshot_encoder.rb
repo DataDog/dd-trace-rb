@@ -351,8 +351,14 @@ module Datadog
           emit_json_fragment(out, budget, "]")
         end
 
-        # Dumps +value+ to JSON for emission, normalizing the encoding
-        # failure class across the supported range.
+        # Dumps +value+ to JSON for emission. The json library below
+        # 2.6, bundled with Ruby 2.5 through 3.0, raises
+        # Encoding::UndefinedConversionError from JSON.dump for a
+        # string that cannot be converted to UTF-8, while json 2.6 and
+        # later raise JSON::GeneratorError directly. The rescue maps
+        # the former to the latter, so send_input and the
+        # on_serialization_error callback handle one failure class on
+        # every supported version.
         #
         # @param value [Object] value to dump
         # @return [String] JSON encoding of +value+
