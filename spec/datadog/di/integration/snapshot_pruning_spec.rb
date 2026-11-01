@@ -16,7 +16,7 @@ RSpec.describe "Snapshot size pruning integration" do
   di_test
 
   let(:diagnostics_transport) do
-    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport, send_diagnostics: nil)
   end
 
   let(:guardrails_telemetry) do
@@ -45,7 +45,6 @@ RSpec.describe "Snapshot size pruning integration" do
       diagnostics: diagnostics_transport,
       input: input_transport,
     )
-    allow(diagnostics_transport).to receive(:send_diagnostics)
     allow(input_transport).to receive(:send_input_chunk) do |chunked_payload, _serialized_tags|
       delivered_chunks << chunked_payload
     end
