@@ -152,11 +152,14 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(result.errors.first.message).to include("EvaluationTimeout")
       end
 
-      it "increments the evaluation_timeouts telemetry counter and emits the evaluationTimeout skip metric" do
+      it "increments the evaluation_timeouts telemetry counter and records the evaluationTimeout skip metric" do
         expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
-        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
+
         evaluator.evaluate(probe, context)
+
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "events.skipped", 1, {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}]],
+        )
       end
 
       it "logs the timeout at debug with the probe id, then the failure log" do
@@ -313,10 +316,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
       it "counts it as skipped by the capture budget" do
         expect(telemetry).to receive(:inc).with("debugger", "capture_expressions_skipped_by_timeout", 1)
-        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
         expect(telemetry).not_to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+
         evaluator.evaluate(probe, context)
+
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "events.skipped", 1, {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}]],
+        )
       end
     end
 
@@ -475,11 +481,12 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         evaluator.evaluate(probe, context)
       end
 
-      it "emits the canonical evaluationTimeout skip metric for each timed-out expression" do
-        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}).twice
-
+      it "records the canonical evaluationTimeout skip metric for each timed-out expression" do
         evaluator.evaluate(probe, context)
+
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "events.skipped", 2, {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}]],
+        )
       end
     end
 

@@ -194,13 +194,54 @@ module DIHelpers
   end
 
   module InstanceMethods
-    # Builds a telemetry component double whose metric increments raise the
-    # given exception, for exercising emission containment paths.
-    def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
-      instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
-        allow(telemetry).to receive(:inc).and_raise(exception)
-        allow(telemetry).to receive(:report)
+    # Builds a telemetry component double that accepts the registration of
+    # metric sources and answers the given messages.
+    def telemetry_component_double(**stubs)
+      instance_double(Datadog::Core::Telemetry::Component,
+        register_metric_source: nil, unregister_metric_source: nil, **stubs)
+    end
+
+    # Builds a metrics manager double whose increments raise the given
+    # exception, for exercising the containment of reporting failures.
+    def metrics_manager_double_raising_on_inc(exception: StandardError.new("telemetry down"))
+      instance_double(Datadog::Core::Telemetry::MetricsManager).tap do |metrics_manager|
+        allow(metrics_manager).to receive(:inc).and_raise(exception)
       end
+    end
+
+    # Returns the average number of objects allocated per call of the
+    # block, measured as the difference between 200 and 100 calls so that
+    # the fixed allocations of the measurement cancel out. A block that
+    # allocates on every call measures at least 1.
+    def allocations_per_call(&call)
+      (count_allocations { 200.times(&call) } - count_allocations { 100.times(&call) }) / 100.0
+    end
+
+    # Returns the number of objects allocated while the block runs, with
+    # garbage collection disabled so that the count is exact.
+    def count_allocations
+      GC.disable
+      before = GC.stat(:total_allocated_objects)
+      yield
+      GC.stat(:total_allocated_objects) - before
+    ensure
+      GC.enable
+    end
+
+    # Asks +guardrails_telemetry+ to report its counts into a recording
+    # metrics manager double and returns the recorded increments as
+    # [namespace, metric_name, value, tags] arrays. The debug log of the
+    # report is allowed, so that log expectations set by the caller for
+    # earlier messages keep their counts.
+    def reported_guardrail_metrics(guardrails_telemetry)
+      allow(guardrails_telemetry.logger).to receive(:debug)
+      recorded = []
+      metrics_manager = instance_double(Datadog::Core::Telemetry::MetricsManager)
+      allow(metrics_manager).to receive(:inc) do |namespace, metric_name, value, tags:|
+        recorded << [namespace, metric_name, value, tags]
+      end
+      guardrails_telemetry.report_metrics(metrics_manager)
+      recorded
     end
 
     # Helper method to generate a deeply nested hash for circuit breaker tests

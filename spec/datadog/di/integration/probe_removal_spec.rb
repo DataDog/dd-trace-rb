@@ -30,7 +30,7 @@ RSpec.describe "DI probe removal via remote config" do
 
   let(:agent_settings) { instance_double_agent_settings_with_stubs }
   let(:logger) { logger_allowing_debug }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) { telemetry_component_double }
 
   # Replace the probe notifier worker transports with doubles so probe status
   # and snapshot delivery does not attempt real network calls.
