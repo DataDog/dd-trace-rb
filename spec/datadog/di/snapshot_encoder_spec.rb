@@ -42,6 +42,16 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "locals")
   end
 
+  # Encodes a Custom slot whose +field+ holds +value+ of the wrong type and
+  # asserts the field is emitted as generic JSON without pruning.
+  def expect_generic_json_field(field, value)
+    result = described_class.encode(
+      snapshot(line_captures(c: {type: "Custom", field => value})), cap,
+    )
+    expect(result.pruned).to be(false)
+    expect(captured_locals(result)["c"]).to eq("type" => "Custom", field => value)
+  end
+
   describe ".encode" do
     context "when the snapshot is under the cap" do
       let(:small) { snapshot(line_captures(x: {type: "Integer", value: "5"})) }
@@ -442,40 +452,19 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
     context "when a slot field holds a value of the wrong type" do
       it "encodes the elements value as generic JSON" do
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", elements: "junk"})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "elements" => "junk")
+        expect_generic_json_field("elements", "junk")
       end
 
       it "encodes the entries value as generic JSON" do
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: "junk"})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => "junk")
+        expect_generic_json_field("entries", "junk")
       end
 
       it "encodes a String pair as generic JSON" do
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: ["junk"]})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => ["junk"])
+        expect_generic_json_field("entries", ["junk"])
       end
 
       it "encodes a three-member pair as generic JSON" do
-        pair = [
-          {type: "String", value: "k"},
-          {type: "String", value: "v"},
-          {type: "String", value: "w"},
-        ]
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: [pair]})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => [
+        expect_generic_json_field("entries", [
           [
             {"type" => "String", "value" => "k"},
             {"type" => "String", "value" => "v"},
@@ -485,21 +474,11 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "encodes a one-member pair as generic JSON" do
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", entries: [[{type: "String", value: "k"}]]})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => [
-          [{"type" => "String", "value" => "k"}],
-        ])
+        expect_generic_json_field("entries", [[{"type" => "String", "value" => "k"}]])
       end
 
       it "encodes the fields value as generic JSON" do
-        result = described_class.encode(
-          snapshot(line_captures(c: {type: "Custom", fields: 7})), cap,
-        )
-        expect(result.pruned).to be(false)
-        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "fields" => 7)
+        expect_generic_json_field("fields", 7)
       end
 
       it "encodes the locals value as generic JSON" do
