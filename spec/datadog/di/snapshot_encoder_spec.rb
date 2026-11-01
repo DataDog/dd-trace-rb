@@ -32,7 +32,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
   # Records every value passed to JSON.dump during the block, so tests can
   # assert how many times each captured value was encoded.
-  def dump_args
+  def record_json_dump_args
     @dump_args = []
     allow(JSON).to receive(:dump).and_wrap_original do |method, value|
       @dump_args << value
@@ -75,7 +75,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "prunes the oversized slot to the marker and skips encoding the value" do
-        dump_args
+        record_json_dump_args
         result = described_class.encode(big, cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
@@ -87,7 +87,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "encodes each captured string value at most once" do
-        dump_args
+        record_json_dump_args
         described_class.encode(big, cap)
         counts = @dump_args.each_with_object(Hash.new(0)) do |value, agg|
           agg[value.object_id] += 1 if String === value
@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "prunes the whole collection slot and skips encoding its items" do
-        dump_args
+        record_json_dump_args
         result = described_class.encode(big_collection, 2_000)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= 2_000
