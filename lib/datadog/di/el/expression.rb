@@ -55,13 +55,12 @@ module Datadog
         # @param context [Context] evaluation context (locals, instance
         #   variables, and per-invocation special variables).
         # @param deadline [Float, nil] cooperative evaluation deadline, as
-        #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation
-        #   unbounded.
+        #   CLOCK_THREAD_CPUTIME_ID float seconds.
         # @return [Object] the value the expression evaluates to.
         # @raise [DI::Error::ExpressionEvaluationError] the expression failed
         #   to evaluate; DI::Error::EvaluationTimeout, raised when the
         #   evaluation deadline is exceeded, is a subclass.
-        def evaluate(context, deadline: nil)
+        def evaluate(context, deadline:)
           evaluator.evaluate(context, deadline)
         end
 
@@ -70,12 +69,12 @@ module Datadog
         #
         # @param context [Context] evaluation context.
         # @param deadline [Float, nil] cooperative evaluation deadline, as
-        #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation unbounded.
+        #   CLOCK_THREAD_CPUTIME_ID float seconds.
         # @return [Boolean] whether the expression is satisfied.
         # @raise [DI::Error::ExpressionEvaluationError] the expression failed
         #   to evaluate; DI::Error::EvaluationTimeout, raised when the
         #   evaluation deadline is exceeded, is a subclass.
-        def satisfied?(context, deadline: nil)
+        def satisfied?(context, deadline:)
           !!evaluate(context, deadline: deadline)
         end
       end
