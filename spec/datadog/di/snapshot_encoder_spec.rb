@@ -26,7 +26,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     JSON.parse(result.encoded)
   end
 
-  def locals_of(result)
+  def captured_locals(result)
     parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "locals")
   end
 
@@ -62,7 +62,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(big, cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        locals = locals_of(result)
+        locals = captured_locals(result)
         expect(locals["big"]).to eq("type" => "Integer", "value" => "9" * 500_000)
         expect(locals["small"]).to eq("type" => "Integer", "value" => "1")
       end
@@ -79,7 +79,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(big, cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
-        locals = locals_of(result)
+        locals = captured_locals(result)
         expect(locals["big"]).to eq("pruned" => true)
         expect(locals["small"]).to eq("type" => "Integer", "value" => "1")
         expect(result.encoded).not_to include("9" * 1000)
@@ -105,7 +105,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(bigstr, cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result)["s"]).to eq("pruned" => true)
+        expect(captured_locals(result)["s"]).to eq("pruned" => true)
       end
     end
 
@@ -119,7 +119,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(big_collection, 2_000)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= 2_000
-        expect(locals_of(result)["items"]).to eq("pruned" => true)
+        expect(captured_locals(result)["items"]).to eq("pruned" => true)
         expect(result.encoded).not_to include("elements")
         Array.new(10) { |i| "v#{i}" }.each do |item|
           expect(@dump_args).not_to include(item)
@@ -146,7 +146,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "keeps the object with its fields" do
         result = described_class.encode(snapshot(line_captures(o: object_slot)), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["o"]).to eq(
+        expect(captured_locals(result)["o"]).to eq(
           "type" => "Obj",
           "fields" => {
             "a" => {"type" => "Integer", "value" => "1"},
@@ -164,7 +164,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "keeps the array with its elements" do
         result = described_class.encode(snapshot(line_captures(a: array_slot)), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["a"]).to eq(
+        expect(captured_locals(result)["a"]).to eq(
           "type" => "Array",
           "elements" => [
             {"type" => "Integer", "value" => "1"},
@@ -178,7 +178,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(snapshot(line_captures(a: {type: "Array", elements: members})), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
-        elements = locals_of(result)["a"]["elements"]
+        elements = captured_locals(result)["a"]["elements"]
         expect(elements.first).to eq("pruned" => true)
         expect(elements.last).to eq("type" => "Integer", "value" => "1")
       end
@@ -198,7 +198,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "keeps the hash with its entries" do
         result = described_class.encode(snapshot(line_captures(h: hash_slot)), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["h"]).to eq(
+        expect(captured_locals(result)["h"]).to eq(
           "type" => "Hash",
           "entries" => [
             [
@@ -222,7 +222,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(utf8, cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result)["u"]).to eq("type" => "String", "value" => "あ" * 255)
+        expect(captured_locals(result)["u"]).to eq("type" => "String", "value" => "あ" * 255)
       end
 
       it "prunes the value when its encoded bytes exceed the budget" do
@@ -231,7 +231,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(utf8, empty_base + 400)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= empty_base + 400
-        expect(locals_of(result)["u"]).to eq("pruned" => true)
+        expect(captured_locals(result)["u"]).to eq("pruned" => true)
       end
     end
 
@@ -243,7 +243,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        elements = locals_of(result)["a"]["elements"]
+        elements = captured_locals(result)["a"]["elements"]
         expect(elements.first).to eq("type" => "Array", "elements" => [{"type" => "Integer", "value" => "1"}])
         expect(elements.last).to eq("type" => "Integer", "value" => "2")
       end
@@ -264,7 +264,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(snapshot(line_captures(deepObject: deep)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result)["deepObject"].dig("fields", "@nested", "fields", "@nested", "fields", "@nested")).to eq(
+        expect(captured_locals(result)["deepObject"].dig("fields", "@nested", "fields", "@nested", "fields", "@nested")).to eq(
           "type" => "NestedObject",
           "notCapturedReason" => "depth",
         )
@@ -276,7 +276,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
-        elements = locals_of(result)["a"]["elements"]
+        elements = captured_locals(result)["a"]["elements"]
         expect(elements.first).to eq("pruned" => true)
         expect(elements.last).to eq("type" => "Integer", "value" => "2")
       end
@@ -290,7 +290,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result)["a"]).to eq(
+        expect(captured_locals(result)["a"]).to eq(
           "type" => "L1",
           "fields" => {"nested" => {
             "type" => "L2",
@@ -338,7 +338,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(many, cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result).keys).to eq(30.times.map { |i| "v#{i}" })
+        expect(captured_locals(result).keys).to eq(30.times.map { |i| "v#{i}" })
       end
 
       it "returns nil or JSON within the cap for every cap" do
@@ -355,7 +355,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "encodes the unknown field name and value" do
         result = described_class.encode(snapshot(line_captures(c: {type: "Custom", customField: "x"})), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["c"]).to eq("type" => "Custom", "customField" => "x")
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "customField" => "x")
       end
     end
 
@@ -370,7 +370,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         result = described_class.encode(escaping, empty_base + 400)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= empty_base + 400
-        expect(locals_of(result)["x"]).to eq("pruned" => true)
+        expect(captured_locals(result)["x"]).to eq("pruned" => true)
         expect(result.encoded).not_to include("\\u0001")
       end
     end
@@ -379,14 +379,14 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "encodes the raw string" do
         result = described_class.encode(snapshot(line_captures(raw: "hello")), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["raw"]).to eq("hello")
+        expect(captured_locals(result)["raw"]).to eq("hello")
       end
 
       it "prunes a raw string that exceeds the budget" do
         result = described_class.encode(snapshot(line_captures(raw: "x" * 2_000_000)), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
-        expect(locals_of(result)["raw"]).to eq("pruned" => true)
+        expect(captured_locals(result)["raw"]).to eq("pruned" => true)
       end
     end
 
@@ -394,7 +394,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "encodes the raw array" do
         result = described_class.encode(snapshot(line_captures(raw: [1, "two", nil])), cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["raw"]).to eq([1, "two", nil])
+        expect(captured_locals(result)["raw"]).to eq([1, "two", nil])
       end
     end
 
@@ -412,7 +412,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           snapshot(line_captures(c: {type: "Custom", elements: "junk"})), cap,
         )
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["c"]).to eq("type" => "Custom", "elements" => "junk")
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "elements" => "junk")
       end
 
       it "encodes the entries value as generic JSON" do
@@ -420,7 +420,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           snapshot(line_captures(c: {type: "Custom", entries: "junk"})), cap,
         )
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["c"]).to eq("type" => "Custom", "entries" => "junk")
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => "junk")
       end
 
       it "encodes a String pair as generic JSON" do
@@ -428,7 +428,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           snapshot(line_captures(c: {type: "Custom", entries: ["junk"]})), cap,
         )
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["c"]).to eq("type" => "Custom", "entries" => ["junk"])
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => ["junk"])
       end
 
       it "encodes the fields value as generic JSON" do
@@ -436,7 +436,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           snapshot(line_captures(c: {type: "Custom", fields: 7})), cap,
         )
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["c"]).to eq("type" => "Custom", "fields" => 7)
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "fields" => 7)
       end
 
       it "encodes the locals value as generic JSON" do
@@ -444,7 +444,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
           snapshot({lines: {42 => {locals: "junk", arguments: {}}}}), cap,
         )
         expect(result.pruned).to be(false)
-        expect(locals_of(result)).to eq("junk")
+        expect(captured_locals(result)).to eq("junk")
       end
     end
 
@@ -454,14 +454,14 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       it "keeps the failure reason when it fits" do
         result = described_class.encode(reason, cap)
         expect(result.pruned).to be(false)
-        expect(locals_of(result)["w"]).to eq("type" => "Weird", "notSerializedReason" => "boom " * 1000)
+        expect(captured_locals(result)["w"]).to eq("type" => "Weird", "notSerializedReason" => "boom " * 1000)
       end
 
       it "prunes the slot when the failure reason exceeds the budget" do
         result = described_class.encode(reason, 2_000)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= 2_000
-        expect(locals_of(result)["w"]).to eq("pruned" => true)
+        expect(captured_locals(result)["w"]).to eq("pruned" => true)
       end
     end
 
