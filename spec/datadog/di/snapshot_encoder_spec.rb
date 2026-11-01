@@ -173,8 +173,11 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       context "when an array member exceeds the member byte cap" do
+        let(:members) do
+          [{type: "String", value: "x" * 10_000}, {type: "Integer", value: "1"}]
+        end
+
         it "prunes a member that exceeds the member cap and keeps the members after it" do
-          members = [{type: "String", value: "x" * 10_000}, {type: "Integer", value: "1"}]
           result = described_class.encode(snapshot(line_captures(a: {type: "Array", elements: members})), cap)
           expect(result.pruned).to be(true)
           expect(result.encoded.bytesize).to be <= cap
@@ -239,9 +242,41 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when a captured collection holds a nested collection" do
       let(:nested) { {type: "Array", elements: [{type: "Integer", value: "1"}]} }
 
+      let(:fitting_slot) do
+        {type: "Array", elements: [nested, {type: "Integer", value: "2"}]}
+      end
+
+      let(:oversized_nested) do
+        {type: "Array", elements: Array.new(2_000) { {type: "Integer", value: "1"} }}
+      end
+
+      let(:oversized_slot) do
+        {type: "Array", elements: [oversized_nested, {type: "Integer", value: "2"}]}
+      end
+
+      let(:level3) do
+        {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "3"},
+          "@nested": {type: "NestedObject", notCapturedReason: "depth"},
+        }}
+      end
+
+      let(:level2) do
+        {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "2"},
+          "@nested": level3,
+        }}
+      end
+
+      let(:deep) do
+        {type: "NestedObject", fields: {
+          level: {type: "Integer", value: "1"},
+          "@nested": level2,
+        }}
+      end
+
       it "keeps the nested collection member when the budget fits it" do
-        slot = {type: "Array", elements: [nested, {type: "Integer", value: "2"}]}
-        result = described_class.encode(snapshot(line_captures(a: slot)), cap)
+        result = described_class.encode(snapshot(line_captures(a: fitting_slot)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
         elements = captured_locals(result)["a"]["elements"]
@@ -250,18 +285,6 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "keeps nested collections to the default capture depth" do
-        level3 = {type: "NestedObject", fields: {
-          level: {type: "Integer", value: "3"},
-          "@nested": {type: "NestedObject", notCapturedReason: "depth"},
-        }}
-        level2 = {type: "NestedObject", fields: {
-          level: {type: "Integer", value: "2"},
-          "@nested": level3,
-        }}
-        deep = {type: "NestedObject", fields: {
-          level: {type: "Integer", value: "1"},
-          "@nested": level2,
-        }}
         result = described_class.encode(snapshot(line_captures(deepObject: deep)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
@@ -272,9 +295,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "prunes the nested collection member that exceeds the budget" do
-        deep = {type: "Array", elements: Array.new(2_000) { {type: "Integer", value: "1"} }}
-        slot = {type: "Array", elements: [deep, {type: "Integer", value: "2"}]}
-        result = described_class.encode(snapshot(line_captures(a: slot)), cap)
+        result = described_class.encode(snapshot(line_captures(a: oversized_slot)), cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
         elements = captured_locals(result)["a"]["elements"]
@@ -284,10 +305,13 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     end
 
     context "when a captured object holds nested objects" do
-      it "keeps the nested objects within the capture depth" do
-        slot = {type: "L1", fields: {nested: {type: "L2", fields: {
+      let(:slot) do
+        {type: "L1", fields: {nested: {type: "L2", fields: {
           nested: {type: "L3", fields: {leaf: {type: "Integer", value: "1"}}},
         }}}}
+      end
+
+      it "keeps the nested objects within the capture depth" do
         result = described_class.encode(snapshot(line_captures(a: slot)), cap)
         expect(result.pruned).to be(false)
         expect(result.encoded.bytesize).to be <= cap
@@ -321,8 +345,11 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(captured["small"]).to eq("type" => "Integer", "value" => "1")
       end
 
+      let(:fitting) do
+        snapshot({entry: {captureExpressions: {x: {type: "Integer", value: "1"}}}})
+      end
+
       it "encodes fitting capture expressions unchanged" do
-        fitting = snapshot({entry: {captureExpressions: {x: {type: "Integer", value: "1"}}}})
         result = described_class.encode(fitting, cap)
         expect(result.pruned).to be(false)
         captured = parse(result).dig("debugger", "snapshot", "captures", "entry", "captureExpressions")
@@ -527,8 +554,9 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "throwable")).to be_nil
       end
 
+      let(:huge) { {type: "RuntimeError", message: "m" * 2_000, stacktrace: []} }
+
       it "prunes a throwable that exceeds the budget" do
-        huge = {type: "RuntimeError", message: "m" * 2_000, stacktrace: []}
         result = described_class.encode(
           snapshot({lines: {42 => {locals: {x: {type: "Integer", value: "1"}}, throwable: huge}}}), 2_000,
         )
