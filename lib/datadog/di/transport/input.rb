@@ -41,11 +41,7 @@ module Datadog
           # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
           # @return [void]
           def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
-            # The DI logger, passed through an untyped variable because
-            # the base class's logger parameter is typed as a core logger.
-            # @type var base_logger: untyped
-            base_logger = logger
-            super(apis, default_api, logger: base_logger)
+            super(apis, default_api, logger: logger)
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
           end
