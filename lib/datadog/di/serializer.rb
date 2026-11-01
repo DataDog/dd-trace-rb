@@ -117,19 +117,29 @@ module Datadog
         nil
       end
 
+      # Guardrails event types a serializer may be bound to.
+      EVENT_TYPES = [GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, GuardrailsTelemetry::EVENT_TYPE_LOG].freeze
+
       # Initializes the serializer.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param redactor [Redactor] redactor gating captured values
       # @param logger [DI::Logger] logger for contained serialization failures
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-incomplete metric
+      # @param event_type [String] guardrails event type of the values this serializer captures, one of EVENT_TYPES
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component serializer errors are reported through
+      # @raise [ArgumentError] if +event_type+ is not one of EVENT_TYPES
       # @return [void]
-      def initialize(settings, redactor, logger:, guardrails_telemetry:, telemetry: nil)
+      def initialize(settings, redactor, logger:, guardrails_telemetry:, event_type:, telemetry: nil)
+        unless EVENT_TYPES.include?(event_type)
+          raise ArgumentError, "Serializer event_type must be one of #{EVENT_TYPES.join(", ")}, got #{event_type.inspect}"
+        end
+
         @settings = settings
         @redactor = redactor
         @logger = logger
         @guardrails_telemetry = guardrails_telemetry
+        @event_type = event_type
         @telemetry = telemetry
       end
 
@@ -141,16 +151,19 @@ module Datadog
       # The guardrails metric emitter.
       # @return [GuardrailsTelemetry]
       attr_reader :guardrails_telemetry
+      # The guardrails event type of the values this serializer captures.
+      # @return [String] one of EVENT_TYPES
+      attr_reader :event_type
       attr_reader :telemetry
 
       # Emits the canonical capture-incomplete metric for a capture limit
-      # enforced while serializing a snapshot, with the snapshot event
+      # enforced while serializing, tagged with this serializer's event
       # type.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the enforced limit
       # @return [void]
       def record_capture_incomplete(reason)
-        guardrails_telemetry.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
+        guardrails_telemetry.capture_incomplete(reason: reason, event_type: event_type)
       end
 
       def combine_args(args, kwargs, target_self)

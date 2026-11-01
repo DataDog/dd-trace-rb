@@ -23,7 +23,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
@@ -71,6 +71,35 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(result.serialized_values.keys).to eq(["x"])
         expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
         expect(result.errors).to eq([])
+      end
+    end
+
+    context "when a captured value exceeds the capture depth limit" do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "nested", expr: compile_expression("nested", {"ref" => "nested"}),
+              limits: Datadog::DI::CaptureLimits.new(max_reference_depth: 1),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe, settings: settings, serializer: serializer,
+          locals: {nested: {inner: {leaf: 1}}}, target_self: nil,
+        )
+      end
+
+      it "records the capture limit with the log event type of its serializer" do
+        expect(guardrails_telemetry).to receive(:capture_incomplete)
+          .with(reason: Datadog::DI::GuardrailsTelemetry::Reason::DEPTH,
+            event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
+
+        evaluator.evaluate(probe, context)
       end
     end
 

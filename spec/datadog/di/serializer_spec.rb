@@ -108,7 +108,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   let(:serializer) do
-    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
+    described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
   end
 
   describe "#serialize_value" do
@@ -169,60 +169,103 @@ RSpec.describe Datadog::DI::Serializer do
     define_serialize_value_cases(cases)
   end
 
+  describe "construction" do
+    let(:guardrails_telemetry) { instance_double(Datadog::DI::GuardrailsTelemetry) }
+
+    it "exposes the event type it was constructed with" do
+      serializer = described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry,
+        event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
+      expect(serializer.event_type).to eq(Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
+    end
+
+    it "rejects an event type outside the guardrails event types" do
+      expect do
+        described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry,
+          event_type: "metric")
+      end.to raise_error(ArgumentError, 'Serializer event_type must be one of snapshot, log, got "metric"')
+    end
+  end
+
   describe "capture.incomplete emission" do
     let(:guardrails_telemetry) { instance_double(Datadog::DI::GuardrailsTelemetry).as_null_object }
 
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
     let(:serializer) do
-      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry,
+        event_type: event_type, telemetry: telemetry)
     end
 
-    # Asserts the capture-incomplete metric emission for the given reason.
-    def expect_capture_incomplete(reason)
-      expect(guardrails_telemetry).to receive(:capture_incomplete).with(reason: reason, event_type: "snapshot")
-    end
+    [
+      Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT,
+      Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG,
+    ].each do |serializer_event_type|
+      context "with a serializer bound to the #{serializer_event_type} event type" do
+        let(:event_type) { serializer_event_type }
 
-    it "emits the depth reason for a value at the capture depth limit" do
-      expect_capture_incomplete("depth")
-      expect(serializer.serialize_value([1], depth: 0, deadline: Float::INFINITY)).to include(notCapturedReason: "depth")
-    end
+        # Asserts the capture-incomplete metric emission for the given reason.
+        def expect_capture_incomplete(reason)
+          expect(guardrails_telemetry).to receive(:capture_incomplete).with(reason: reason, event_type: event_type)
+        end
 
-    it "emits the collectionSize reason for an oversized collection" do
-      expect_capture_incomplete("collectionSize")
-      expect(serializer.serialize_value([1, 2, 3], collection_size: 1, deadline: Float::INFINITY))
-        .to include(notCapturedReason: "collectionSize")
-    end
+        it "emits the depth reason for a value at the capture depth limit" do
+          expect_capture_incomplete("depth")
+          expect(serializer.serialize_value([1], depth: 0, deadline: Float::INFINITY)).to include(notCapturedReason: "depth")
+        end
 
-    it "emits the fieldCount reason for an object over the field limit" do
-      expect_capture_incomplete("fieldCount")
-      expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"),
-        attribute_count: 1, deadline: Float::INFINITY)).to include(notCapturedReason: "fieldCount")
-    end
+        it "emits the collectionSize reason for an oversized collection" do
+          expect_capture_incomplete("collectionSize")
+          expect(serializer.serialize_value([1, 2, 3], collection_size: 1, deadline: Float::INFINITY))
+            .to include(notCapturedReason: "collectionSize")
+        end
 
-    it "emits the stringLength reason for a trimmed string" do
-      allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(3)
-      expect_capture_incomplete("stringLength")
-      expect(serializer.serialize_value("abcdef", deadline: Float::INFINITY)).to include(truncated: true)
-    end
+        it "emits the fieldCount reason for an object over the field limit" do
+          expect_capture_incomplete("fieldCount")
+          expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"),
+            attribute_count: 1, deadline: Float::INFINITY)).to include(notCapturedReason: "fieldCount")
+        end
 
-    it "emits the runtimeError reason when serialization raises" do
-      expect_capture_incomplete("runtimeError")
-      expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new, deadline: Float::INFINITY))
-        .to include(notSerializedReason: "Arrgh!")
-    end
+        it "emits the stringLength reason for a trimmed string" do
+          allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(3)
+          expect_capture_incomplete("stringLength")
+          expect(serializer.serialize_value("abcdef", deadline: Float::INFINITY)).to include(truncated: true)
+        end
 
-    context "when the capture budget is exhausted" do
-      before do
-        allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
-      end
+        it "emits the runtimeError reason when serialization raises" do
+          expect_capture_incomplete("runtimeError")
+          expect(serializer.serialize_value(DISerializerSpecRaisingEachHash.new, deadline: Float::INFINITY))
+            .to include(notSerializedReason: "Arrgh!")
+        end
 
-      stub_cpu_clock([1.0, 2.0])
+        context "when the capture budget is exhausted" do
+          before do
+            allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+          end
 
-      it "emits the timeout reason" do
-        expect_capture_incomplete("timeout")
-        expect(serializer.serialize_value([1], name: :x,
-          deadline: serializer.serialization_deadline)).to include(notCapturedReason: "timeout")
+          stub_cpu_clock([1.0, 2.0])
+
+          it "emits the timeout reason" do
+            expect_capture_incomplete("timeout")
+            expect(serializer.serialize_value([1], name: :x,
+              deadline: serializer.serialization_deadline)).to include(notCapturedReason: "timeout")
+          end
+        end
+
+        context "when a custom serializer recurses through the serializer it receives" do
+          with_di_registry_change
+
+          before do
+            Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerSpecFields === value }) do |custom_serializer, _value, deadline:, **|
+              custom_serializer.serialize_value([:wrapped], depth: 0, deadline: deadline)
+            end
+          end
+
+          it "emits the nested markers with this serializer's event type" do
+            expect_capture_incomplete("depth")
+            expect(serializer.serialize_value(DISerializerSpecFields.new(name: "a", other: "b"), deadline: Float::INFINITY))
+              .to include(notCapturedReason: "depth")
+          end
+        end
       end
     end
   end
@@ -544,7 +587,7 @@ RSpec.describe Datadog::DI::Serializer do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
     let(:serializer) do
       described_class.new(settings, redactor, logger: logger,
-        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: telemetry)
     end
 
     before do
@@ -873,7 +916,7 @@ RSpec.describe Datadog::DI::Serializer do
     context "when condition raises an exception" do
       let(:telemetry) { double("telemetry") }
       let(:serializer) do
-        described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: telemetry)
       end
 
       it "skips the custom serializer and uses default serialization" do
@@ -1527,7 +1570,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
@@ -1634,7 +1677,7 @@ RSpec.describe Datadog::DI::Serializer do
 
     let(:telemetry) { double("telemetry") }
     let(:serializer) do
-      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+      described_class.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: telemetry)
     end
 
     describe "#serialize_value" do
