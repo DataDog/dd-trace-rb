@@ -21,15 +21,15 @@ module Datadog
 
         IDENTITY_MODE_CHECK: UnboundMethod
 
-        @regexps: ::Array[::Regexp]
+        @regexps: Array[Regexp]
 
-        def initialize: (?::Array[::Regexp] regexps) -> void
+        def initialize: (?Array[Regexp] regexps) -> void
 
         def evaluate: (Context context, Float evaluation_deadline) -> Object
 
-        def regexps: () -> ::Array[::Regexp]
+        def regexps: () -> Array[Regexp]
 
-        def self.compile_regexp: (::String needle) -> ::Regexp
+        def self.compile_regexp: (String needle) -> Regexp
 
         def self.evaluation_deadline_exceeded?: (Float evaluation_deadline) -> bool
 
@@ -47,9 +47,9 @@ module Datadog
 
         def matches: (String haystack, String needle, Float evaluation_deadline) -> bool
 
-        def matches_compiled: (::String haystack, ::Integer index, Float evaluation_deadline) -> bool
+        def matches_compiled: (String haystack, Integer index, Float evaluation_deadline) -> bool
 
-        private def bounded_match?: (::Regexp re, ::String haystack) -> bool
+        private def bounded_match?: (Regexp re, String haystack) -> bool
 
         def getmember: (any object, (Symbol | String) field) -> any
 
