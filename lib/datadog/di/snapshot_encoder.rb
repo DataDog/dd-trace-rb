@@ -29,7 +29,11 @@ module Datadog
 
       # @type var marker: Hash[String, true]
       marker = {"pruned" => true}
+      # Marker Hash emitted in place of a captured value that does not
+      # fit the byte budget.
       PRUNED = marker.freeze
+      # Encoded form of the pruned marker, appended whole into the
+      # output buffer.
       PRUNED_ENCODED = JSON.dump(PRUNED)
 
       # Encoded forms of the fixed snapshot keys.
