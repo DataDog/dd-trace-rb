@@ -74,7 +74,7 @@ module Datadog
         def self.evaluation_deadline(settings)
           budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
           return nil unless budget_ms
-          ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
+          Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
         end
 
         # Returns whether the thread CPU clock has passed +evaluation_deadline+.
@@ -83,7 +83,7 @@ module Datadog
         #   means no deadline is set, leaving evaluation unbounded.
         # @return [Boolean] whether the deadline has been exceeded.
         def self.evaluation_deadline_exceeded?(evaluation_deadline)
-          !evaluation_deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= evaluation_deadline
+          !evaluation_deadline.nil? && Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= evaluation_deadline
         end
 
         # Resolves the value of the local variable or argument +var+ from
