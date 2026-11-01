@@ -5,6 +5,18 @@ require "json"
 RSpec.describe Datadog::DI::SnapshotEncoder do
   let(:cap) { 1024 * 1024 }
 
+  # Records every value passed to JSON.dump, so tests can assert how many
+  # times each captured value was encoded. The block is eager so the
+  # spying stub is installed before each example encodes.
+  let!(:dump_args) do
+    args = []
+    allow(JSON).to receive(:dump).and_wrap_original do |method, value|
+      args << value
+      method.call(value)
+    end
+    args
+  end
+
   # Builds a snapshot Hash in the shape ProbeNotificationBuilder produces.
   def snapshot(captures)
     probe = {id: "p1", version: 0}
@@ -28,16 +40,6 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
 
   def captured_locals(result)
     parse(result).dig("debugger", "snapshot", "captures", "lines", "42", "locals")
-  end
-
-  # Records every value passed to JSON.dump during the block, so tests can
-  # assert how many times each captured value was encoded.
-  def record_json_dump_args
-    @dump_args = []
-    allow(JSON).to receive(:dump).and_wrap_original do |method, value|
-      @dump_args << value
-      method.call(value)
-    end
   end
 
   describe ".encode" do
@@ -75,7 +77,6 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "prunes the oversized slot to the marker and skips encoding the value" do
-        record_json_dump_args
         result = described_class.encode(big, cap)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= cap
@@ -83,13 +84,12 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(locals["big"]).to eq("pruned" => true)
         expect(locals["small"]).to eq("type" => "Integer", "value" => "1")
         expect(result.encoded).not_to include("9" * 1000)
-        expect(@dump_args).not_to include("9" * 2_000_000)
+        expect(dump_args).not_to include("9" * 2_000_000)
       end
 
       it "encodes each captured string value at most once" do
-        record_json_dump_args
         described_class.encode(big, cap)
-        counts = @dump_args.each_with_object(Hash.new(0)) do |value, agg|
+        counts = dump_args.each_with_object(Hash.new(0)) do |value, agg|
           agg[value.object_id] += 1 if String === value
         end
         expect(counts.values.max).to be <= 1
@@ -115,14 +115,13 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "prunes the whole collection slot and skips encoding its items" do
-        record_json_dump_args
         result = described_class.encode(big_collection, 2_000)
         expect(result.pruned).to be(true)
         expect(result.encoded.bytesize).to be <= 2_000
         expect(captured_locals(result)["items"]).to eq("pruned" => true)
         expect(result.encoded).not_to include("elements")
         Array.new(10) { |i| "v#{i}" }.each do |item|
-          expect(@dump_args).not_to include(item)
+          expect(dump_args).not_to include(item)
         end
       end
     end
