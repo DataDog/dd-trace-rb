@@ -427,21 +427,21 @@ module Datadog
         # @param slot [Hash] captured-value slot
         # @return [Integer] upper bound on the slot's encoded byte size
         def slot_upper_bound(slot)
-          v = SLOT_OVERHEAD +
+          bound = SLOT_OVERHEAD +
             slot_string_fields_bound(slot, bytes_per_byte: MAX_ESCAPE_EXPANSION, bytes_per_field: 0)
           if (elements = field_value(slot, "elements")) && Array === elements
-            v += 2 + elements.length * (MAX_ITEM_BYTES + 1)
+            bound += 2 + elements.length * (MAX_ITEM_BYTES + 1)
           end
           if (entries = field_value(slot, "entries")) && Array === entries
-            v += 2 + entries.length * (2 * (MAX_ITEM_BYTES + 1) + 3)
+            bound += 2 + entries.length * (2 * (MAX_ITEM_BYTES + 1) + 3)
           end
           if (fields = field_value(slot, "fields")) && Hash === fields
-            v += 2 + fields.size * (MAX_ITEM_BYTES + 1 + SLOT_OVERHEAD)
+            bound += 2 + fields.size * (MAX_ITEM_BYTES + 1 + SLOT_OVERHEAD)
           end
           if (stacktrace = field_value(slot, "stacktrace")) && Array === stacktrace
-            v += 2 + stacktrace.length * SLOT_OVERHEAD
+            bound += 2 + stacktrace.length * SLOT_OVERHEAD
           end
-          v
+          bound
         end
 
         # Lower bound on a scalar slot's encoded size.
