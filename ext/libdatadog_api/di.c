@@ -216,6 +216,7 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
  * specs can cross-check it against the value the profiling extension
  * observes; the mask layout shifts on Ruby 4.1+ (HAVE_SHIFTED_IMEMO_MASK).
  *
+ * @return [Integer] The imemo type bit mask this build compiled against
  * @api private
  */
 static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
