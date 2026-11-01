@@ -196,8 +196,8 @@ module Datadog
         end
 
         # Encodes an +elements+ field: an Array whose members are
-        # captured-value slots. A value of another type (custom serializer
-        # output) is encoded as a generic JSON value.
+        # captured-value slots. Custom serializer output is encoded as a
+        # generic JSON value.
         #
         # @param elements [Object] value of the +elements+ field
         # @param out [String] output buffer
@@ -219,8 +219,8 @@ module Datadog
         end
 
         # Encodes an +entries+ field: an Array of [key, value] pairs of
-        # captured-value slots. Pairs of another shape and values of
-        # another type are encoded as generic JSON values.
+        # captured-value slots. Custom serializer output is encoded as
+        # generic JSON values.
         #
         # @param entries [Object] value of the +entries+ field
         # @param out [String] output buffer
@@ -263,7 +263,7 @@ module Datadog
         end
 
         # Encodes a +fields+ field: a Hash mapping member names to
-        # captured-value slots. A value of another type is encoded as a
+        # captured-value slots. Custom serializer output is encoded as a
         # generic JSON value.
         #
         # @param fields [Object] value of the +fields+ field
@@ -288,8 +288,8 @@ module Datadog
         end
 
         # Encodes a +locals+, +arguments+, or +captureExpressions+ value: a
-        # Hash mapping variable names to captured-value slots. A value of
-        # another type is encoded as a generic JSON value.
+        # Hash mapping variable names to captured-value slots. Custom
+        # serializer output is encoded as a generic JSON value.
         #
         # @param hash [Object] value of the +locals+, +arguments+, or
         #   +captureExpressions+ field
