@@ -170,7 +170,8 @@ module Datadog
               end
 
               # Maximum thread CPU time, in milliseconds, allowed for
-              # evaluating expressions.
+              # evaluating expressions. The env var key is shared with
+              # other tracers, which measure wall time for it.
               #
               # @return [Integer]
               option :max_time_to_evaluate_ms do |o|
