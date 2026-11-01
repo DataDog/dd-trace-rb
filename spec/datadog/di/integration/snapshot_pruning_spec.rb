@@ -94,11 +94,9 @@ RSpec.describe "Snapshot size pruning integration" do
     allow(Datadog::DI).to receive(:current_component).and_return(component)
   end
 
-  it "delivers a pruned snapshot within the size cap" do
-    probe_manager.add_probe(probe)
-
-    expect(SnapshotPruningTestClass.new.capture_method("x" * 2_000_000, "small")).to eq("small")
-
+  # Flushes the probe notifier worker, asserts that a single snapshot chunk
+  # within the size cap is delivered, and returns the parsed snapshot.
+  def delivered_snapshot
     component.probe_notifier_worker.flush
 
     expect(delivered_chunks.length).to eq(1)
@@ -106,7 +104,15 @@ RSpec.describe "Snapshot size pruning integration" do
     expect(chunked_payload.bytesize)
       .to be <= Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE + 2
 
-    snapshot = JSON.parse(chunked_payload).first
+    JSON.parse(chunked_payload).first
+  end
+
+  it "delivers a pruned snapshot within the size cap" do
+    probe_manager.add_probe(probe)
+
+    expect(SnapshotPruningTestClass.new.capture_method("x" * 2_000_000, "small")).to eq("small")
+
+    snapshot = delivered_snapshot
     arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
     expect(arguments["arg1"]).to eq("pruned" => true)
     expect(arguments["arg2"]).to eq("type" => "String", "value" => "small")
@@ -118,14 +124,7 @@ RSpec.describe "Snapshot size pruning integration" do
     expect { SnapshotPruningTestClass.new.raising_method("x" * 2_000_000) }
       .to raise_error(RuntimeError, "boom")
 
-    component.probe_notifier_worker.flush
-
-    expect(delivered_chunks.length).to eq(1)
-    chunked_payload = delivered_chunks.first
-    expect(chunked_payload.bytesize)
-      .to be <= Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE + 2
-
-    snapshot = JSON.parse(chunked_payload).first
+    snapshot = delivered_snapshot
     entry_arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
     expect(entry_arguments["arg1"]).to eq("pruned" => true)
     throwable = snapshot.dig("debugger", "snapshot", "captures", "return", "throwable")
