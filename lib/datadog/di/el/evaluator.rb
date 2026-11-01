@@ -46,9 +46,8 @@ module Datadog
         #
         # @param item_index [Integer] zero-based index of the collection
         #   element being processed.
-        # @param deadline [Float, nil] invocation-local evaluation deadline,
-        #   passed from the compiled #evaluate into the operator calls;
-        #   nil leaves evaluation unbounded.
+        # @param deadline [Float] invocation-local evaluation deadline,
+        #   passed from the compiled #evaluate into the operator calls.
         # @return [void]
         # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
         def raise_if_evaluation_deadline_exceeded(item_index, deadline)
@@ -60,26 +59,22 @@ module Datadog
         private :raise_if_evaluation_deadline_exceeded
 
         # Resolves a per-invocation thread-CPU-time deadline (float seconds)
-        # from the configured evaluation timeout setting. Returns nil when
-        # no evaluation timeout is configured, leaving evaluation
-        # unbounded.
+        # from the configured evaluation timeout setting.
         #
         # @param settings [Datadog::Core::Configuration::Settings] settings to
         #   read the evaluation timeout budget from.
-        # @return [Float, nil] the deadline, or nil when no timeout is configured.
+        # @return [Float] the deadline.
         def self.evaluation_deadline(settings)
           budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
-          return nil unless budget_ms
           ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
         end
 
         # Returns whether the thread CPU clock has passed +deadline+.
         #
-        # @param deadline [Float, nil] the deadline to check; nil means no
-        #   deadline is set, leaving evaluation unbounded.
+        # @param deadline [Float] the deadline to check.
         # @return [Boolean] whether the deadline has been exceeded.
         def self.evaluation_deadline_exceeded?(deadline)
-          !deadline.nil? && ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
+          ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
         end
 
         # Resolves the value of the local variable or argument +var+ from
@@ -244,8 +239,7 @@ module Datadog
         # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
-        # @param deadline [Float, nil] invocation-local evaluation deadline;
-        #   nil leaves evaluation unbounded.
+        # @param deadline [Float] invocation-local evaluation deadline.
         # @return [Boolean] whether the block is satisfied by every element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.
@@ -278,8 +272,7 @@ module Datadog
         # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
-        # @param deadline [Float, nil] invocation-local evaluation deadline;
-        #   nil leaves evaluation unbounded.
+        # @param deadline [Float] invocation-local evaluation deadline.
         # @return [Boolean] whether the block is satisfied by any element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.
@@ -354,8 +347,7 @@ module Datadog
         # Hash of the selected key-value pairs of a Hash collection.
         #
         # @param collection [Array, Hash] collection to filter.
-        # @param deadline [Float, nil] invocation-local evaluation deadline;
-        #   nil leaves evaluation unbounded.
+        # @param deadline [Float] invocation-local evaluation deadline.
         # @return [Array, Hash] the selected elements.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.

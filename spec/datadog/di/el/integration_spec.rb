@@ -23,6 +23,11 @@ RSpec.describe Datadog::DI::EL do
 
   let(:compiler) { Datadog::DI::EL::Compiler.new }
 
+  # Deadline far enough in the future that a test evaluation stays within it.
+  def far_future_deadline
+    Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+  end
+
   dir = File.join(File.dirname(__FILE__), "integration_cases")
   (Dir.entries(dir) - %w[. ..]).sort.each do |basename|
     next if File.extname(basename) != ".yml"
@@ -44,7 +49,7 @@ RSpec.describe Datadog::DI::EL do
           let(:expr) { Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: compile_result.last) }
 
           let(:evaluated) do
-            expr.evaluate(context, deadline: nil)
+            expr.evaluate(context, deadline: far_future_deadline)
           end
 
           let(:context) do

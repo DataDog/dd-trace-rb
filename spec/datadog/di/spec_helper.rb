@@ -147,13 +147,13 @@ module DIHelpers
 
       let(:di_settings) do
         double("di settings").tap do |settings|
-          # Default to no evaluation deadline so existing DI specs preserve their
-          # pre-timeout behavior; specs exercising the cooperative bound
+          # Default to a large evaluation budget so existing DI specs preserve
+          # their pre-timeout behavior; specs exercising the cooperative bound
           # override this with a real value.
           allow(settings).to receive_messages(
             internal: di_internal_settings,
             redaction_excluded_identifiers: [],
-            max_time_to_evaluate_ms: nil,
+            max_time_to_evaluate_ms: 1_000_000,
           )
         end
       end
@@ -236,7 +236,7 @@ module DIHelpers
     def stub_di_settings(settings, enabled: true, max_capture_depth: 2,
       max_capture_attribute_count: 2, max_capture_string_length: 100,
       max_capture_collection_size: 100, max_time_to_serialize_ms: 200,
-      max_time_to_evaluate_ms: nil,
+      max_time_to_evaluate_ms: 1_000_000,
       redacted_type_names: [], redacted_identifiers: [], redaction_excluded_identifiers: [])
       allow(settings).to receive_messages(
         enabled: enabled,

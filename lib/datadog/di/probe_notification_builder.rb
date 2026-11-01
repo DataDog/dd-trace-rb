@@ -420,8 +420,8 @@ module Datadog
       # @param template_segments [Array<String, EL::Expression>] compiled
       #   template segments to render.
       # @param context [Context] evaluation context for expression segments.
-      # @param deadline [Float, nil] cooperative evaluation deadline, as
-      #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation unbounded.
+      # @param deadline [Float] cooperative evaluation deadline, as
+      #   CLOCK_THREAD_CPUTIME_ID float seconds.
       # @return [Array(String, Array<Hash>)] the rendered message and the
       #   evaluation errors.
       def evaluate_template(template_segments, context, deadline: EL::Evaluator.evaluation_deadline(settings))

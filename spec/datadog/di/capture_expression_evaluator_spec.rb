@@ -344,9 +344,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       # construction; it passes through the CPU clock stub below.
       deadline_calc = 0.0
       first_expr_check = 0.0
+      first_expr_eval_deadline_calc = 0.0
       first_result_serialize = 0.0
       second_expr_check = 0.2  # past the deadline
-      stub_cpu_clock([deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
+      stub_cpu_clock([deadline_calc, first_expr_check, first_expr_eval_deadline_calc,
+        first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(

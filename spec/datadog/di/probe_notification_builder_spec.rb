@@ -39,7 +39,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         max_capture_depth: 2,
         max_capture_string_length: 100,
         max_time_to_serialize_ms: 200,
-        max_time_to_evaluate_ms: nil,
+        max_time_to_evaluate_ms: 1_000_000,
       )
     end
   end
