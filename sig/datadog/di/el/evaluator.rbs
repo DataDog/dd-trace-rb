@@ -2,6 +2,8 @@ module Datadog
   module DI
     module EL
       class Evaluator
+        type collection = Array[Object] | Hash[Object, Object]
+
         MATCHES_TIMEOUT_SECONDS: ::Float
 
         EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
@@ -48,7 +50,7 @@ module Datadog
 
         def getmember: (any object, (Symbol | String) field) -> any
 
-        def index: (Array[any] | Hash[any, any] array_or_hash, any index_or_key) -> any
+        def index: (collection array_or_hash, any index_or_key) -> any
 
         def substring: (String object, Integer from, Integer to) -> String?
 
@@ -56,11 +58,11 @@ module Datadog
 
         def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[Object] | Hash[Object, Object] collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
+        def all: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
-        def any: (Array[Object] | Hash[Object, Object] collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
+        def any: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
 
-        def filter: (Array[Object] | Hash[Object, Object] collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> (Array[Object] | Hash[Object, Object])
+        def filter: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> collection
 
         private def filter_hash: (Hash[Object, Object] collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
 
