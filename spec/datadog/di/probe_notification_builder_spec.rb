@@ -16,6 +16,12 @@ require "datadog/di/el"
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   di_test
 
+  # Deadline far in the future, for template specs that assert rendering
+  # behavior rather than the budget.
+  def far_future_deadline
+    Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+  end
+
   let(:settings) do
     double("settings").tap do |settings|
       allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
@@ -808,7 +814,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:expected) { %(test "'\\\\a\#{value}) }
 
       it "substitutes correctly" do
-        expect(builder.send(:evaluate_template, template_segments, context)).to eq([expected, []])
+        expect(builder.send(:evaluate_template, template_segments, context,
+          evaluation_deadline: far_future_deadline)).to eq([expected, []])
       end
     end
 
@@ -841,7 +848,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       it "redacts the referenced value in the rendered message" do
-        expect(builder.send(:evaluate_template, template_segments, context)).to eq(["[redacted] alice", []])
+        expect(builder.send(:evaluate_template, template_segments, context,
+          evaluation_deadline: far_future_deadline)).to eq(["[redacted] alice", []])
       end
     end
 

@@ -158,7 +158,8 @@ module Datadog
         message = nil
         evaluation_errors = []
         if segments = probe.template_segments
-          message, evaluation_errors = evaluate_template(segments, context)
+          message, evaluation_errors = evaluate_template(segments, context,
+            evaluation_deadline: serializer.evaluation_deadline)
         end
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
@@ -424,7 +425,7 @@ module Datadog
       #   CLOCK_THREAD_CPUTIME_ID float seconds.
       # @return [Array(String, Array<EvaluationFailure>)] the rendered message
       #   and the evaluation errors.
-      def evaluate_template(template_segments, context, evaluation_deadline: serializer.evaluation_deadline)
+      def evaluate_template(template_segments, context, evaluation_deadline:)
         evaluation_errors = []
         message = template_segments.map do |segment|
           if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)

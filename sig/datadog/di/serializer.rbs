@@ -18,6 +18,8 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
+      @evaluation_budget_seconds: Float
+
       def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, logger: DI::Logger, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
@@ -44,6 +46,7 @@ module Datadog
         (Serializer serializer, any value, name: Symbol?, depth: Integer, deadline: Float) -> untyped } -> void
 
       private
+      attr_reader evaluation_budget_seconds: Float
       def deadline_exceeded?: (Float deadline) -> bool
       def max_capture_collection_size_for_message: () -> Integer
 
