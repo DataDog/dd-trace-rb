@@ -13,6 +13,8 @@ module Datadog
 
       @serializer: Serializer
 
+      @capture_expression_serializer: Serializer
+
       @instrumenter: Instrumenter
 
       @code_tracker: CodeTracker?
@@ -64,6 +66,8 @@ module Datadog
       attr_reader redactor: Redactor
 
       attr_reader serializer: Serializer
+
+      attr_reader capture_expression_serializer: Serializer
 
       def start!: () -> void
 

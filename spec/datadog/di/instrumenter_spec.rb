@@ -36,7 +36,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
   end
 
   di_logger_double
@@ -2605,7 +2605,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     context "when a capture limit truncates the snapshot" do
       let(:serializer) do
-        Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, telemetry: nil)
+        Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry, event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT, telemetry: nil)
       end
 
       let(:probe) do

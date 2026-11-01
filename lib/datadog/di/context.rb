@@ -64,7 +64,7 @@ module Datadog
       # Returns the locals captured at the probe hit in serialized form,
       # or nil when no locals were captured.
       #
-      # @param serialization_deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @param serialization_deadline [Float] absolute capture deadline in thread CPU clock seconds
       # @return [Hash{Symbol => Hash}, nil] serialized locals keyed by variable name
       def serialized_locals(serialization_deadline:)
         # TODO cache?
