@@ -172,14 +172,16 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         )
       end
 
-      it "prunes a member that exceeds the member cap and keeps the members after it" do
-        members = [{type: "String", value: "x" * 10_000}, {type: "Integer", value: "1"}]
-        result = described_class.encode(snapshot(line_captures(a: {type: "Array", elements: members})), cap)
-        expect(result.pruned).to be(true)
-        expect(result.encoded.bytesize).to be <= cap
-        elements = captured_locals(result)["a"]["elements"]
-        expect(elements.first).to eq("pruned" => true)
-        expect(elements.last).to eq("type" => "Integer", "value" => "1")
+      context "when an array member exceeds the member byte cap" do
+        it "prunes a member that exceeds the member cap and keeps the members after it" do
+          members = [{type: "String", value: "x" * 10_000}, {type: "Integer", value: "1"}]
+          result = described_class.encode(snapshot(line_captures(a: {type: "Array", elements: members})), cap)
+          expect(result.pruned).to be(true)
+          expect(result.encoded.bytesize).to be <= cap
+          elements = captured_locals(result)["a"]["elements"]
+          expect(elements.first).to eq("pruned" => true)
+          expect(elements.last).to eq("type" => "Integer", "value" => "1")
+        end
       end
     end
 
