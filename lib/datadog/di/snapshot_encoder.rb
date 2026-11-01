@@ -422,7 +422,8 @@ module Datadog
             Array === field_value(slot, "stacktrace")
         end
 
-        # Constant-time upper bound on a collection slot's encoded size.
+        # Computes a constant-time upper bound on a collection slot's
+        # encoded size without encoding the slot.
         #
         # @param slot [Hash] captured-value slot
         # @return [Integer] upper bound on the slot's encoded byte size
@@ -444,7 +445,8 @@ module Datadog
           bound
         end
 
-        # Lower bound on a scalar slot's encoded size.
+        # Computes a lower bound on a scalar slot's encoded size without
+        # encoding the slot.
         #
         # @param slot [Hash] captured-value slot
         # @return [Integer] lower bound on the slot's encoded byte size
