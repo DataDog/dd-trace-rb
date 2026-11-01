@@ -27,7 +27,7 @@ module Datadog
           cls = Class.new(Evaluator)
           cls.class_exec do
             eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
-              def evaluate(context, deadline)
+              def evaluate(context, evaluation_deadline)
                 #{compiled_expr}
               end
             RUBY
@@ -43,23 +43,24 @@ module Datadog
         #
         # @param context [Context] evaluation context (locals, instance
         #   variables, and per-invocation special variables).
-        # @param deadline [Float, nil] cooperative evaluation deadline, as
-        #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation
-        #   unbounded.
+        # @param evaluation_deadline [Float, nil] cooperative evaluation
+        #   deadline, as CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves
+        #   evaluation unbounded.
         # @return [Object] the value the expression evaluates to.
-        def evaluate(context, deadline: nil)
-          @evaluator.evaluate(context, deadline)
+        def evaluate(context, evaluation_deadline: nil)
+          @evaluator.evaluate(context, evaluation_deadline)
         end
 
         # Returns whether the expression evaluates to a truthy value
         # against +context+.
         #
         # @param context [Context] evaluation context.
-        # @param deadline [Float, nil] cooperative evaluation deadline, as
-        #   CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves evaluation unbounded.
+        # @param evaluation_deadline [Float, nil] cooperative evaluation
+        #   deadline, as CLOCK_THREAD_CPUTIME_ID float seconds; nil leaves
+        #   evaluation unbounded.
         # @return [Boolean] whether the expression is satisfied.
-        def satisfied?(context, deadline: nil)
-          !!evaluate(context, deadline: deadline)
+        def satisfied?(context, evaluation_deadline: nil)
+          !!evaluate(context, evaluation_deadline: evaluation_deadline)
         end
       end
     end

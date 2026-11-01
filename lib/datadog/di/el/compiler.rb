@@ -185,7 +185,7 @@ module Datadog
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
-              "#{op}(#{compile_partial(target.first, regexps)}, deadline) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
+              "#{op}(#{compile_partial(target.first, regexps)}, evaluation_deadline) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
             end
