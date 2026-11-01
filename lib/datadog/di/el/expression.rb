@@ -48,7 +48,7 @@ module Datadog
         #   unbounded.
         # @return [Object] the value the expression evaluates to.
         def evaluate(context, deadline: nil)
-          @evaluator.evaluate(context, deadline)
+          evaluator.evaluate(context, deadline)
         end
 
         # Returns whether the expression evaluates to a truthy value
