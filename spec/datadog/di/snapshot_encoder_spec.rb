@@ -342,11 +342,17 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
 
       it "returns nil or JSON within the cap for every cap" do
-        0.step(JSON.dump(many).bytesize + 50, 1) do |capped|
-          result = described_class.encode(many, capped)
-          next if result.encoded.nil?
-          expect(result.encoded.bytesize).to be <= capped
-          expect { JSON.parse(result.encoded) }.not_to raise_error
+        full = JSON.dump(many).bytesize
+        expect(described_class.encode(many, 1).encoded).to be_nil
+        result = described_class.encode(many, full)
+        expect(result.encoded).not_to be_nil
+        expect(result.encoded.bytesize).to be <= full
+        expect { JSON.parse(result.encoded) }.not_to raise_error
+        0.step(full + 50, 1) do |capped|
+          sweep_result = described_class.encode(many, capped)
+          next if sweep_result.encoded.nil?
+          expect(sweep_result.encoded.bytesize).to be <= capped
+          expect { JSON.parse(sweep_result.encoded) }.not_to raise_error
         end
       end
     end
@@ -534,13 +540,20 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
     context "when the budget cannot fit the pruned marker" do
       let(:sized) { snapshot(line_captures(s: {type: "String", value: "x" * 3_000})) }
       let(:full) { JSON.dump(snapshot(line_captures(s: {type: "String", value: ""}))).bytesize }
+      let(:pruned_size) { JSON.dump(snapshot(line_captures(s: {"pruned" => true}))).bytesize }
 
       it "returns nil or valid JSON within the cap for every cap" do
+        expect(described_class.encode(sized, pruned_size - 1).encoded).to be_nil
+        result = described_class.encode(sized, pruned_size)
+        expect(result.encoded).not_to be_nil
+        expect(result.pruned).to be(true)
+        expect(result.encoded.bytesize).to be <= pruned_size
+        expect(captured_locals(result)["s"]).to eq("pruned" => true)
         0.step(full + 50, 1) do |capped|
-          result = described_class.encode(sized, capped)
-          next if result.encoded.nil?
-          expect(result.encoded.bytesize).to be <= capped
-          expect { JSON.parse(result.encoded) }.not_to raise_error
+          sweep_result = described_class.encode(sized, capped)
+          next if sweep_result.encoded.nil?
+          expect(sweep_result.encoded.bytesize).to be <= capped
+          expect { JSON.parse(sweep_result.encoded) }.not_to raise_error
         end
       end
     end
