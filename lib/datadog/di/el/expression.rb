@@ -27,6 +27,17 @@ module Datadog
           cls = Class.new(Evaluator)
           cls.class_exec do
             eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
+              # Evaluates the compiled expression against +context+ within
+              # the cooperative evaluation +deadline+.
+              #
+              # @param context [Context] evaluation context (locals, instance
+              #   variables, and per-invocation special variables).
+              # @param deadline [Float] invocation-local evaluation deadline,
+              #   as CLOCK_THREAD_CPUTIME_ID float seconds.
+              # @return [Object] the value the expression evaluates to.
+              # @raise [DI::Error::ExpressionEvaluationError] the expression
+              #   failed to evaluate, including the EvaluationTimeout
+              #   subclass raised when the deadline is exceeded.
               def evaluate(context, deadline)
                 #{compiled_expr}
               end
