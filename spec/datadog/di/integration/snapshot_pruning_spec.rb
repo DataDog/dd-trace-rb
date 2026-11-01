@@ -41,8 +41,10 @@ RSpec.describe "Snapshot size pruning integration" do
   let(:logger) { logger_allowing_debug }
 
   before do
-    allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
-    allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    allow(Datadog::DI::Transport::HTTP).to receive_messages(
+      diagnostics: diagnostics_transport,
+      input: input_transport,
+    )
     allow(diagnostics_transport).to receive(:send_diagnostics)
     allow(input_transport).to receive(:send_input_chunk) do |chunked_payload, _serialized_tags|
       delivered_chunks << chunked_payload
