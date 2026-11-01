@@ -170,10 +170,7 @@ module Datadog
               end
 
               # Maximum thread CPU time, in milliseconds, allowed for
-              # evaluating a probe condition (`when`), each of a probe's
-              # capture expressions, or a message template. Each capture
-              # expression has its own budget, and the segments of one
-              # template render share one budget.
+              # evaluating expressions.
               #
               # @return [Integer]
               option :max_time_to_evaluate_ms do |o|
