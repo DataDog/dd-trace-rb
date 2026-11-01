@@ -853,6 +853,41 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context "when the evaluation deadline is crossed before the first expression segment" do
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:template_segments) do
+        expressions = %w[a b c].map do |name|
+          src, regexps = compiler.compile("ref" => name)
+          Datadog::DI::EL::Expression.new(name, src, regexps: regexps)
+        end
+        [expressions[0], " ", expressions[1], " ", expressions[2]]
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          locals: {a: 1, b: 2, c: 3},
+        )
+      end
+
+      it "reports the whole-template timeout once" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
+        expect_lazy_log(logger, :debug, /di: probe 123: template evaluation timed out: Datadog::DI::Error::EvaluationTimeout/)
+
+        message, evaluation_errors =
+          builder.send(:evaluate_template, template_segments, context, evaluation_deadline: 0.0)
+
+        expect(message).to eq("[evaluation error] [evaluation error] [evaluation error]")
+        expect(evaluation_errors.length).to eq(1)
+        expect(evaluation_errors.first.expr).to eq("a")
+        expect(evaluation_errors.first.message).to match(/EvaluationTimeout/)
+      end
+    end
+
     context "when the evaluation deadline is crossed during a template segment" do
       let(:compiler) { Datadog::DI::EL::Compiler.new }
 

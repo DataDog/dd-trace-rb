@@ -427,15 +427,25 @@ module Datadog
       #   and the evaluation errors.
       def evaluate_template(template_segments, context, evaluation_deadline:)
         evaluation_errors = []
+        timed_out = false
         message = template_segments.map do |segment|
-          if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+          if segment.is_a?(EL::Expression) && !timed_out &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
             raise DI::Error::EvaluationTimeout
           end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context, evaluation_deadline: evaluation_deadline), name: segment.redaction_identifier)
+            if timed_out
+              # The shared deadline already crossed and reported its
+              # timeout, so the remaining segments render as the
+              # placeholder rather than raising and re-reporting per
+              # segment.
+              "[evaluation error]"
+            else
+              serializer.serialize_value_for_message(segment.evaluate(context, evaluation_deadline: evaluation_deadline), name: segment.redaction_identifier)
+            end
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
@@ -449,6 +459,13 @@ module Datadog
             expr: segment.dsl_expr, # steep:ignore NoMethod
             message: "#{exc.class}: #{exc.message}",
           )
+          # The matches wall-time bound also raises EvaluationTimeout
+          # without crossing the shared deadline, and it stops only one
+          # segment, so it must not suppress the remaining ones.
+          if exc.is_a?(DI::Error::EvaluationTimeout) &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            timed_out = true
+          end
           "[evaluation error]"
         end.join
         [message, evaluation_errors]
