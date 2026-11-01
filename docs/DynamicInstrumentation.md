@@ -387,6 +387,19 @@ application performance:
   it
 - This threshold can be configured globally
 
+### Evaluation Time Budget
+
+Evaluating a probe's condition (`when`), each of its capture expressions,
+and each message template is bounded by a thread CPU-time budget:
+
+- The budget applies per evaluation: each capture expression has its own
+  budget, and the segments of one message template share one budget
+- The default budget is **50 milliseconds**
+- An evaluation that exceeds the budget is aborted and reported as an
+  evaluation error in the probe snapshot
+- Configure it with `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` or
+  `c.dynamic_instrumentation.max_time_to_evaluate_ms`
+
 ## Getting Help
 
 For the latest updates, known issues, and to provide feedback, please
