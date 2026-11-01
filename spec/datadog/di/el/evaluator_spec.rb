@@ -93,11 +93,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   describe "#matches" do
     context "with a well-formed pattern" do
       it "returns true when the haystack matches" do
-        expect(evaluator.matches("hello world", "hello[a-z ]+")).to be(true)
+        expect(evaluator.matches("hello world", "hello[a-z ]+", nil)).to be(true)
       end
 
       it "returns false when the haystack does not match" do
-        expect(evaluator.matches("xyz", "hello[a-z]")).to be(false)
+        expect(evaluator.matches("xyz", "hello[a-z]", nil)).to be(false)
       end
     end
 
@@ -105,7 +105,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       # Needle computed at evaluation time, so the regexp is compiled on
       # each call.
       def do_match
-        evaluator.matches(haystack, pattern)
+        evaluator.matches(haystack, pattern, nil)
       end
 
       include_examples "a timeout-bounded matcher"
@@ -125,7 +125,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:compiled_pattern) { "hello[a-z ]+" }
 
         it "returns true" do
-          expect(evaluator.matches_compiled("hello world", 0)).to be(true)
+          expect(evaluator.matches_compiled("hello world", 0, nil)).to be(true)
         end
       end
 
@@ -133,7 +133,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:compiled_pattern) { "hello[a-z]" }
 
         it "returns false" do
-          expect(evaluator.matches_compiled("xyz", 0)).to be(false)
+          expect(evaluator.matches_compiled("xyz", 0, nil)).to be(false)
         end
       end
     end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:compiled_pattern) { pattern }
 
       def do_match
-        evaluator.matches_compiled(haystack, 0)
+        evaluator.matches_compiled(haystack, 0, nil)
       end
 
       include_examples "a timeout-bounded matcher"
@@ -301,6 +301,55 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           end
         end
       end
+    end
+  end
+
+  describe "the matches operator aborts evaluation when the deadline is exceeded" do
+    let(:matches_expr) do
+      compile_expr("str.matches(pat)",
+        "matches" => [{"ref" => "str"}, {"ref" => "pat"}])
+    end
+
+    let(:matches_compiled_expr) do
+      compile_expr("str.matches('hello')",
+        "matches" => [{"ref" => "str"}, "hello"])
+    end
+
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+
+    it "raises EvaluationTimeout before a match against a computed needle" do
+      expect do
+        matches_expr.satisfied?(context_with({str: "hello", pat: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+
+    it "raises EvaluationTimeout before a match against a precompiled needle" do
+      expect do
+        matches_compiled_expr.satisfied?(context_with({str: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+  end
+
+  describe "a per-item matches predicate aborts at the pre-match check" do
+    let(:filter_matches_expr) do
+      compile_expr("collection.filter(@it.matches('a+'))",
+        "filter" => [
+          {"ref" => "collection"},
+          {"matches" => [{"ref" => "@it"}, "a+"]},
+        ])
+    end
+
+    # The boundary check at item zero reads a time below the deadline;
+    # the pre-match check of the item's predicate reads a time past it,
+    # so the abort happens at the pre-match check without waiting for
+    # the next boundary at item 64 and without spending
+    # MATCHES_TIMEOUT_SECONDS on the in-flight match.
+    stub_cpu_clock([0.999, 1.001])
+
+    it "raises EvaluationTimeout before the match starts" do
+      expect do
+        filter_matches_expr.satisfied?(context_with({collection: ["aaa", "bbb"]}), evaluation_deadline: 1.0)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
     end
   end
 
@@ -479,7 +528,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "precompiles a literal matches needle at compile time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, "hello[a-z]"]})
 
-      expect(code).to eq("matches_compiled(ref(context, 'var'), 0)")
+      expect(code).to eq("matches_compiled(ref(context, 'var'), 0, evaluation_deadline)")
       expect(regexps.length).to eq(1)
       expect(regexps.first).to be_a(Regexp)
     end
@@ -487,7 +536,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "compiles a dynamically-computed matches needle at evaluation time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, {"ref" => "pat"}]})
 
-      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')))")
+      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')), evaluation_deadline)")
       expect(regexps).to be_empty
     end
 

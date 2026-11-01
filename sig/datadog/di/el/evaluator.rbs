@@ -38,9 +38,9 @@ module Datadog
 
         def contains: (any haystack, any needle) -> bool
 
-        def matches: (String haystack, String needle) -> bool
+        def matches: (String haystack, String needle, Float? evaluation_deadline) -> bool
 
-        def matches_compiled: (::String haystack, ::Integer index) -> bool
+        def matches_compiled: (::String haystack, ::Integer index, Float? evaluation_deadline) -> bool
 
         private def bounded_match?: (::Regexp re, ::String haystack) -> bool
 
@@ -61,6 +61,8 @@ module Datadog
         def filter: (Array[Object] | Hash[Object, Object] collection, Float? evaluation_deadline) { (Object, ?Object, ?Object) -> Object } -> (Array[Object] | Hash[Object, Object])
 
         private def filter_hash: (Hash[Object, Object] collection, Float? evaluation_deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
+
+        private def raise_if_evaluation_deadline_exceeded: (Float? evaluation_deadline) -> void
 
         private def raise_if_deadline_check_due_and_exceeded: (Integer item_index, Float? evaluation_deadline) -> void
 

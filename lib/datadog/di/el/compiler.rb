@@ -146,10 +146,10 @@ module Datadog
               if String === second
                 # Match against a literal regular expression (string).
                 index = precompile_regexp(second, regexps)
-                "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
+                "matches_compiled(#{compile_partial(first, regexps)}, #{index}, evaluation_deadline)"
               else
                 # Match against a (complex) expression.
-                "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
+                "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}), evaluation_deadline)"
               end
             when *TWO_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }

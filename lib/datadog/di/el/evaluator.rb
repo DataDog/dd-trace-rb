@@ -17,7 +17,12 @@ module Datadog
 
         # Number of collection items processed between cooperative
         # evaluation-deadline checks; evaluation aborts within one
-        # interval's worth of items past the deadline.
+        # interval's worth of items past the deadline. A `matches`
+        # invocation can spend MATCHES_TIMEOUT_SECONDS of wall time, so
+        # #matches and #matches_compiled check the deadline before each
+        # match; a predicate that runs `matches` per item therefore
+        # adds at most the one match in flight when the deadline
+        # passes to the overshoot.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
         # Built-in Array#each, resolved once at load and bound per
@@ -36,6 +41,21 @@ module Datadog
 
         attr_reader :regexps
 
+        # Raises DI::Error::EvaluationTimeout when the evaluation deadline
+        # has been exceeded, aborting evaluation cooperatively.
+        #
+        # @param evaluation_deadline [Float, nil] invocation-local evaluation
+        #   deadline, threaded from the compiled #evaluate into the operator
+        #   calls; nil leaves evaluation unbounded.
+        # @return [void]
+        # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
+        def raise_if_evaluation_deadline_exceeded(evaluation_deadline)
+          if self.class.evaluation_deadline_exceeded?(evaluation_deadline)
+            raise DI::Error::EvaluationTimeout
+          end
+        end
+        private :raise_if_evaluation_deadline_exceeded
+
         # Raises DI::Error::EvaluationTimeout when +item_index+ falls on
         # a cooperative check boundary and the evaluation deadline has
         # been exceeded. The thread CPU clock is read only at every
@@ -51,9 +71,8 @@ module Datadog
         # @raise [DI::Error::EvaluationTimeout] a check boundary was reached
         #   with the deadline exceeded.
         def raise_if_deadline_check_due_and_exceeded(item_index, evaluation_deadline)
-          if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 &&
-              self.class.evaluation_deadline_exceeded?(evaluation_deadline)
-            raise DI::Error::EvaluationTimeout
+          if (item_index % EVALUATION_DEADLINE_CHECK_INTERVAL).zero?
+            raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           end
         end
         private :raise_if_deadline_check_due_and_exceeded
@@ -161,10 +180,15 @@ module Datadog
         #
         # @param haystack [String] string to match against.
         # @param needle [String] regexp source.
+        # @param evaluation_deadline [Float, nil] invocation-local evaluation
+        #   deadline; nil leaves evaluation unbounded.
         # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   exceeded before the match started.
         # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
         # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
-        def matches(haystack, needle)
+        def matches(haystack, needle, evaluation_deadline)
+          raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(Evaluator.compile_regexp(needle), haystack)
         end
 
@@ -173,10 +197,15 @@ module Datadog
         #
         # @param haystack [String] string to match against.
         # @param index [Integer] position of the precompiled Regexp in +regexps+.
+        # @param evaluation_deadline [Float, nil] invocation-local evaluation
+        #   deadline; nil leaves evaluation unbounded.
         # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   exceeded before the match started.
         # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
         # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
-        def matches_compiled(haystack, index)
+        def matches_compiled(haystack, index, evaluation_deadline)
+          raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(regexps.fetch(index), haystack)
         end
 
