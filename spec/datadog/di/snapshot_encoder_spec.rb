@@ -172,7 +172,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         )
       end
 
-      it "prunes a member that exceeds the member cap and keeps the members before it" do
+      it "prunes a member that exceeds the member cap and keeps the members after it" do
         members = [{type: "String", value: "x" * 10_000}, {type: "Integer", value: "1"}]
         result = described_class.encode(snapshot(line_captures(a: {type: "Array", elements: members})), cap)
         expect(result.pruned).to be(true)
