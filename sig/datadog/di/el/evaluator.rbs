@@ -14,6 +14,8 @@ module Datadog
 
         HASH_EACH: UnboundMethod
 
+        HASH_SELECT: UnboundMethod
+
         IDENTITY_MODE_CHECK: UnboundMethod
 
         @regexps: ::Array[::Regexp]
@@ -58,15 +60,17 @@ module Datadog
 
         def ends_with: (any haystack, String needle) -> bool
 
-        def all: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
+        def all: (collection collection, Float deadline) { (Object, Object?, Object?) -> Object } -> bool
 
-        def any: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> bool
+        def any: (collection collection, Float deadline) { (Object, Object?, Object?) -> Object } -> bool
 
-        def filter: (collection collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> collection
+        def filter: (collection collection, Float deadline) { (Object, Object?, Object?) -> Object } -> collection
 
-        private def filter_hash: (Hash[Object, Object] collection, Float deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
+        private def filter_hash: (Hash[Object, Object] collection, Float deadline) { (Object, Object?, Object?) -> Object } -> Hash[Object, Object]
 
         private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float deadline) -> void
+
+        private def each_collection_item: (collection collection, Float deadline, String operator_name) { (Object, Object?, Object?) -> any } -> void
 
         def instanceof: (any object, String cls_name) -> bool
       end

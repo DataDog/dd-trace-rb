@@ -24,11 +24,12 @@ module Datadog
         # cooperative evaluation-deadline checks.
         EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
 
-        # Built-in Array#each, resolved once at load and bound per
-        # invocation: #filter's iteration then dispatches no customer
-        # each override during probe evaluation.
+        # Built-in Array#each and Hash#each, resolved once at load and
+        # bound per invocation: the collection operators' iteration then
+        # dispatches no customer each override during probe evaluation.
         ARRAY_EACH = Array.instance_method(:each)
-        private_constant :ARRAY_EACH
+        HASH_EACH = Hash.instance_method(:each)
+        private_constant :ARRAY_EACH, :HASH_EACH
 
         # @param regexps [Array<Regexp>] Regexps precompiled from literal
         #   `matches` patterns, looked up by index by #matches_compiled.
@@ -57,6 +58,48 @@ module Datadog
           end
         end
         private :raise_if_evaluation_deadline_exceeded
+
+        # Yields the evaluation values for one collection element — the
+        # item alone for an Array element, or the [key, value] pair as
+        # @it together with the @key and the @value for a Hash element —
+        # iterating through the built-in iteration methods bound per
+        # invocation and performing the interval-gated evaluation-deadline
+        # check and its counter advance between elements.
+        #
+        # @param collection [Array, Hash] collection whose elements the
+        #   block receives.
+        # @param deadline [Float] invocation-local evaluation deadline.
+        # @param operator_name [String] name of the invoking collection
+        #   operator, reported in the bad-collection-type error.
+        # @yield [current_item, current_key, current_value] evaluation
+        #   values for one element.
+        # @return [void]
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   exceeded mid-iteration.
+        # @raise [DI::Error::ExpressionEvaluationError] +collection+ is
+        #   not an Array or a Hash.
+        def each_collection_item(collection, deadline, operator_name)
+          case collection
+          when Array
+            i = 0
+            ARRAY_EACH.bind(collection).call do |item|
+              raise_if_evaluation_deadline_exceeded(i, deadline)
+              i += 1
+              yield item, nil, nil
+            end
+          when Hash
+            i = 0
+            HASH_EACH.bind(collection).call do |key, value|
+              raise_if_evaluation_deadline_exceeded(i, deadline)
+              i += 1
+              yield [key, value], key, value
+            end
+          else
+            raise DI::Error::ExpressionEvaluationError, "Bad collection type for #{operator_name}: #{collection.class}"
+          end
+          nil
+        end
+        private :each_collection_item
 
         # Resolves a per-invocation thread-CPU-time deadline (float seconds)
         # from the configured evaluation timeout setting.
@@ -246,26 +289,14 @@ module Datadog
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
         def all(collection, deadline, &block)
-          case collection
-          when Array
-            i = 0
-            collection.all? do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              block.call(item)
+          result = true
+          each_collection_item(collection, deadline, "all") do |current_item, current_key, current_value|
+            unless block.call(current_item, current_key, current_value)
+              result = false
+              break
             end
-          when Hash
-            i = 0
-            collection.all? do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              # For hashes, the expression language has both @it and
-              # @key/@value. Manufacture @it from the key and value.
-              block.call([key, value], key, value)
-            end
-          else
-            raise DI::Error::ExpressionEvaluationError, "Bad collection type for all: #{collection.class}"
           end
+          result
         end
 
         # Returns true when +block+ returns a truthy value for any element
@@ -279,26 +310,14 @@ module Datadog
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
         def any(collection, deadline, &block)
-          case collection
-          when Array
-            i = 0
-            collection.any? do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              block.call(item)
+          result = false
+          each_collection_item(collection, deadline, "any") do |current_item, current_key, current_value|
+            if block.call(current_item, current_key, current_value)
+              result = true
+              break
             end
-          when Hash
-            i = 0
-            collection.any? do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              # For hashes, the expression language has both @it and
-              # @key/@value. Manufacture @it from the key and value.
-              block.call([key, value], key, value)
-            end
-          else
-            raise DI::Error::ExpressionEvaluationError, "Bad collection type for any: #{collection.class}"
           end
+          result
         end
 
         # Returns the key-value pairs of the Hash +collection+ for which
@@ -307,35 +326,38 @@ module Datadog
         # Ruby 3.1 changed Hash#select to reuse the stored key hashes
         # instead of invoking the keys' hash methods and to keep a
         # compare_by_identity hash's distinct-but-eql? keys and identity
-        # flag. Earlier Rubies invoke the keys' hash methods and collapse
-        # identity hashes, so they keep the manual iteration, whose
-        # built-in Hash#each is bound per invocation as ARRAY_EACH is.
+        # flag, so this Ruby filters through the built-in Hash#select
+        # bound per invocation. Earlier Rubies invoke the keys' hash
+        # methods and collapse identity hashes, so they keep the manual
+        # iteration through #each_collection_item, preserving the source
+        # hash's identity mode in the result.
         if Datadog::RubyVersion.is?(">= 3.1")
+          # Built-in Hash#select, resolved once at load and bound per
+          # invocation: #filter's Hash iteration then dispatches no
+          # customer select override during probe evaluation.
+          HASH_SELECT = Hash.instance_method(:select)
+          private_constant :HASH_SELECT
+
           def filter_hash(collection, deadline, &block)
             i = 0
-            collection.select do |key, value|
+            HASH_SELECT.bind(collection).call do |key, value|
               raise_if_evaluation_deadline_exceeded(i, deadline)
               i += 1
               block.call([key, value], key, value)
             end.to_h
           end
         else
-          # Built-in Hash#each and the core identity-mode check, resolved
-          # once at load and bound per invocation so that #filter dispatches
-          # no customer each or compare_by_identity? override during probe
-          # evaluation.
-          HASH_EACH = Hash.instance_method(:each)
+          # Core identity-mode check, resolved once at load and bound per
+          # invocation so that #filter dispatches no customer
+          # compare_by_identity? override during probe evaluation.
           IDENTITY_MODE_CHECK = Hash.instance_method(:compare_by_identity?)
-          private_constant :HASH_EACH, :IDENTITY_MODE_CHECK
+          private_constant :IDENTITY_MODE_CHECK
 
           def filter_hash(collection, deadline, &block)
-            i = 0
             result = {}
             result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
-            HASH_EACH.bind(collection).call do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              result[key] = value if block.call([key, value], key, value)
+            each_collection_item(collection, deadline, "filter") do |_current_item, current_key, current_value|
+              result[current_key] = current_value if block.call([current_key, current_value], current_key, current_value)
             end
             result
           end
@@ -356,12 +378,9 @@ module Datadog
         def filter(collection, deadline, &block)
           case collection
           when Array
-            i = 0
             result = []
-            ARRAY_EACH.bind(collection).call do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
-              i += 1
-              result << item if block.call(item)
+            each_collection_item(collection, deadline, "filter") do |current_item, current_key, current_value|
+              result << current_item if block.call(current_item, current_key, current_value)
             end
             result
           when Hash

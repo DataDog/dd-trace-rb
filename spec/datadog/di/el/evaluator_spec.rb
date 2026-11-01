@@ -294,6 +294,74 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
   end
 
+  describe "collection operators stop iterating when the predicate is decided" do
+    let(:nested_timeouts) { [] }
+
+    let(:trigger) do
+      nested_expr = filter_expr
+      nested_context = context_with({collection: Array.new(1000) { |i| i }})
+      nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+      recorded_timeouts = nested_timeouts
+      Object.new.tap do |trigger|
+        trigger.define_singleton_method(:nil?) do
+          begin
+            nested_expr.evaluate(nested_context, deadline: nested_deadline)
+          rescue Datadog::DI::Error::EvaluationTimeout => exc
+            recorded_timeouts << exc
+          end
+          false
+        end
+      end
+    end
+
+    let(:all_expr) do
+      compile_expr("collection.all(isUndefined(@it) != true)",
+        "all" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]}])
+    end
+
+    let(:any_expr) do
+      compile_expr("collection.any(isUndefined(@it) != true)",
+        "any" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]}])
+    end
+
+    let(:hash_all_expr) do
+      compile_expr("collection.all(isUndefined(@value) != true)",
+        "all" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@value"}}, true]}])
+    end
+
+    let(:hash_any_expr) do
+      compile_expr("collection.any(isUndefined(@value) != true)",
+        "any" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@value"}}, true]}])
+    end
+
+    # Processing the trigger reenters evaluation with an already-past
+    # deadline, recording a timeout: an empty record proves the operator
+    # stopped iterating before the trigger.
+    it "#all stops at the first falsy Array item" do
+      expect(all_expr.satisfied?(context_with({collection: [nil, trigger]}), deadline: far_future_deadline))
+        .to be(false)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#any stops at the first truthy Array item" do
+      expect(any_expr.satisfied?(context_with({collection: [1, trigger]}), deadline: far_future_deadline))
+        .to be(true)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#all stops at the first falsy Hash entry" do
+      expect(hash_all_expr.satisfied?(context_with({collection: {"a" => nil, "b" => trigger}}),
+        deadline: far_future_deadline)).to be(false)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#any stops at the first truthy Hash entry" do
+      expect(hash_any_expr.satisfied?(context_with({collection: {"a" => 1, "b" => trigger}}),
+        deadline: far_future_deadline)).to be(true)
+      expect(nested_timeouts).to be_empty
+    end
+  end
+
   describe "invocation-local evaluation state" do
     # The first collection item triggers a nested evaluate call on the same
     # Expression: isUndefined invokes nil? on the item, and the trigger's
@@ -397,6 +465,23 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
       it "selects entries without invoking the override" do
         collection = each_raising_hash_class.new
+        collection["a"] = 1
+        collection["b"] = -1
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)).to eq("a" => 1)
+      end
+    end
+
+    context "over a Hash subclass that overrides select" do
+      let(:select_raising_hash_class) do
+        Class.new(Hash) do
+          def select
+            raise "customer select dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects entries without invoking the override" do
+        collection = select_raising_hash_class.new
         collection["a"] = 1
         collection["b"] = -1
         expect(filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)).to eq("a" => 1)
