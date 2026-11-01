@@ -124,17 +124,6 @@ module Datadog
         end
         private :each_collection_item
 
-        # Resolves a per-invocation thread-CPU-time deadline (float seconds)
-        # from the configured evaluation timeout setting.
-        #
-        # @param settings [Datadog::Core::Configuration::Settings] settings to
-        #   read the evaluation timeout budget from.
-        # @return [Float] the deadline.
-        def self.evaluation_deadline(settings)
-          budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
-          Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
-        end
-
         # Returns whether the thread CPU clock has passed +evaluation_deadline+.
         #
         # @param evaluation_deadline [Float] the deadline to check.

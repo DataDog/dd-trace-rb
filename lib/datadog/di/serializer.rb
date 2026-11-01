@@ -568,6 +568,16 @@ module Datadog
           settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
       end
 
+      # Computes the absolute thread CPU time deadline (in seconds) for an
+      # expression evaluation from max_time_to_evaluate_ms.
+      #
+      # @return [Float] absolute thread CPU clock reading, in seconds, at
+      #   which the evaluation budget is exhausted
+      def evaluation_deadline
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) +
+          settings.dynamic_instrumentation.max_time_to_evaluate_ms / 1000.0
+      end
+
       private
 
       def deadline_exceeded?(deadline)

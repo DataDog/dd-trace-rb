@@ -555,7 +555,7 @@ module Datadog
                 probe: probe, settings: settings, serializer: serializer,
               )
               continue = condition.satisfied?(context,
-                evaluation_deadline: EL::Evaluator.evaluation_deadline(settings))
+                evaluation_deadline: serializer.evaluation_deadline)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
@@ -842,7 +842,7 @@ module Datadog
           begin
             context = build_trace_point_context(probe, tp)
             return unless condition.satisfied?(context,
-              evaluation_deadline: EL::Evaluator.evaluation_deadline(settings))
+              evaluation_deadline: serializer.evaluation_deadline)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"

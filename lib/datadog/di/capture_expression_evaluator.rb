@@ -71,7 +71,7 @@ module Datadog
           end
 
           begin
-            evaluation_deadline = [EL::Evaluator.evaluation_deadline(settings), deadline].min
+            evaluation_deadline = [serializer.evaluation_deadline, deadline].min
             value = capture_expression.expr.evaluate(context, evaluation_deadline: evaluation_deadline)
             limits = CaptureLimits.resolve(
               expr_limits: capture_expression.limits,
