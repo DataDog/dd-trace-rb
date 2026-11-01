@@ -174,8 +174,7 @@ module Datadog
             end
             first = false
             key = k.to_s
-            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
-            return false unless emit_json_fragment(out, budget, ":")
+            return false unless emit_key(out, budget, key)
             case key
             when "value"
               return false unless encode_scalar(val, out, budget)
@@ -284,8 +283,7 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_json_fragment(out, budget, json_dump(name.to_s))
-            return false unless emit_json_fragment(out, budget, ":")
+            return false unless emit_key(out, budget, name.to_s)
             return false unless encode_slot(slot, out, budget, item_cap: item_cap, &on_prune)
           end
           emit_json_fragment(out, budget, "}")
@@ -311,8 +309,7 @@ module Datadog
             end
             first = false
             key = k.to_s
-            return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
-            return false unless emit_json_fragment(out, budget, ":")
+            return false unless emit_key(out, budget, key)
             case key
             when "locals", "arguments", "captureExpressions"
               return false unless encode_slot_hash(val, out, budget, item_cap: nil, &on_prune)
@@ -386,6 +383,18 @@ module Datadog
           out << fragment
           budget.consume(fragment.bytesize)
           true
+        end
+
+        # Emits the JSON encoding of +key+ followed by the ":" separator
+        # between a member key and its value.
+        #
+        # @param out [String] output buffer
+        # @param budget [Budget] byte budget charged for the emission
+        # @param key [String] member key
+        # @return [Boolean] true when the key and separator were emitted
+        def emit_key(out, budget, key)
+          return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
+          emit_json_fragment(out, budget, ":")
         end
 
         # Emits the pruned marker in place of a captured value.

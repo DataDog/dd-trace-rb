@@ -65,6 +65,8 @@ module Datadog
 
       def self.emit_json_fragment: (String out, Budget budget, String fragment) -> bool
 
+      def self.emit_key: (String out, Budget budget, String key) -> bool
+
       def self.emit_pruned: (String out, Budget budget) ?{ () -> void } -> bool
 
       def self.slot_collection?: (snapshot slot) -> bool
