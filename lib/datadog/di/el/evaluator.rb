@@ -60,9 +60,8 @@ module Datadog
         private :raise_if_evaluation_deadline_exceeded
 
         # Resolves a per-invocation thread-CPU-time deadline (float seconds)
-        # for evaluating a probe condition, capture expression, or template
-        # segment, from the configured evaluation timeout setting. Returns
-        # nil when no evaluation timeout is configured, leaving evaluation
+        # from the configured evaluation timeout setting. Returns nil when
+        # no evaluation timeout is configured, leaving evaluation
         # unbounded.
         #
         # @param settings [Datadog::Core::Configuration::Settings] settings to
