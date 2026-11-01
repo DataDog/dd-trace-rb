@@ -237,7 +237,7 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            encoded = if Array === pair
+            encoded = if Array === pair && pair.length == 2
               encode_slot_pair(pair, out, budget, &on_prune)
             else
               encode_value(pair, out, budget, &on_prune)

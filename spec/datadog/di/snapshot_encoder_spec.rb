@@ -431,6 +431,35 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
         expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => ["junk"])
       end
 
+      it "encodes a three-member pair as generic JSON" do
+        pair = [
+          {type: "String", value: "k"},
+          {type: "String", value: "v"},
+          {type: "String", value: "w"},
+        ]
+        result = described_class.encode(
+          snapshot(line_captures(c: {type: "Custom", entries: [pair]})), cap,
+        )
+        expect(result.pruned).to be(false)
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => [
+          [
+            {"type" => "String", "value" => "k"},
+            {"type" => "String", "value" => "v"},
+            {"type" => "String", "value" => "w"},
+          ],
+        ])
+      end
+
+      it "encodes a one-member pair as generic JSON" do
+        result = described_class.encode(
+          snapshot(line_captures(c: {type: "Custom", entries: [[{type: "String", value: "k"}]]})), cap,
+        )
+        expect(result.pruned).to be(false)
+        expect(captured_locals(result)["c"]).to eq("type" => "Custom", "entries" => [
+          [{"type" => "String", "value" => "k"}],
+        ])
+      end
+
       it "encodes the fields value as generic JSON" do
         result = described_class.encode(
           snapshot(line_captures(c: {type: "Custom", fields: 7})), cap,
