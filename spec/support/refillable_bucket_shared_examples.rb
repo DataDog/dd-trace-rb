@@ -15,3 +15,10 @@ RSpec.shared_examples "a refillable bucket validating constructor arguments" do
     end
   end
 end
+
+RSpec.shared_examples "a refillable bucket exposing its constructor arguments" do
+  it "returns them from the rate and max_tokens readers" do
+    expect(bucket.rate).to eq(rate)
+    expect(bucket.max_tokens).to eq(max_tokens)
+  end
+end

@@ -19,6 +19,7 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
     end
 
     include_examples "a refillable bucket validating constructor arguments"
+    include_examples "a refillable bucket exposing its constructor arguments"
 
     context "with negative rate" do
       let(:rate) { -1 }

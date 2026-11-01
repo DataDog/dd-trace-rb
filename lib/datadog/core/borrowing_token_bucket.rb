@@ -20,7 +20,7 @@ module Datadog
       #   either is not a number
       # @return [void]
       def initialize(rate, max_tokens: rate)
-        super(rate, max_tokens)
+        initialize_bucket(rate, max_tokens)
 
         raise ArgumentError, "rate must not be negative: #{rate}" if rate < 0
         raise ArgumentError, "max_tokens must not be negative: #{max_tokens}" if max_tokens < 0

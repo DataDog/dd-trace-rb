@@ -15,11 +15,11 @@ module Datadog
 
       attr_reader last_refill: Numeric
 
-      def initialize: (Float | Integer rate, Numeric max_tokens) -> void
-
       def available_tokens: () -> Numeric
 
       private
+
+      def initialize_bucket: (Float | Integer rate, Numeric max_tokens) -> void
 
       def refill: () -> void
 

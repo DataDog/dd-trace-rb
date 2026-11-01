@@ -18,6 +18,7 @@ RSpec.describe Datadog::Core::TokenBucket do
     end
 
     include_examples "a refillable bucket validating constructor arguments"
+    include_examples "a refillable bucket exposing its constructor arguments"
   end
 
   describe "#allow?" do

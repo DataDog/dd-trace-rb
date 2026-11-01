@@ -44,7 +44,9 @@ module Datadog
       # @param max_tokens [Numeric] Limit of available tokens
       # @raise [ArgumentError] when rate or max_tokens is not a number
       def initialize(rate, max_tokens = rate)
-        super
+        super()
+
+        initialize_bucket(rate, max_tokens)
 
         @total_messages = 0
         @conforming_messages = 0
