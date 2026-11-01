@@ -882,7 +882,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "123"})
 
         message, evaluation_errors =
-          builder.send(:evaluate_template, template_segments, context, deadline: 1.0005)
+          builder.send(:evaluate_template, template_segments, context, evaluation_deadline: 1.0005)
 
         expect(message).to eq("prefix [evaluation error]")
         expect(evaluation_errors.length).to eq(1)

@@ -49,7 +49,7 @@ RSpec.describe Datadog::DI::EL do
           let(:expr) { Datadog::DI::EL::Expression.new("(expression)", compiled, regexps: compile_result.last) }
 
           let(:evaluated) do
-            expr.evaluate(context, deadline: far_future_deadline)
+            expr.evaluate(context, evaluation_deadline: far_future_deadline)
           end
 
           let(:context) do

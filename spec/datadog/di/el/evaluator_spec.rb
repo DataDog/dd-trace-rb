@@ -93,11 +93,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   describe "#matches" do
     context "with a well-formed pattern" do
       it "returns true when the haystack matches" do
-        expect(evaluator.matches("hello world", "hello[a-z ]+")).to be(true)
+        expect(evaluator.matches("hello world", "hello[a-z ]+", far_future_deadline)).to be(true)
       end
 
       it "returns false when the haystack does not match" do
-        expect(evaluator.matches("xyz", "hello[a-z]")).to be(false)
+        expect(evaluator.matches("xyz", "hello[a-z]", far_future_deadline)).to be(false)
       end
     end
 
@@ -105,7 +105,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       # Needle computed at evaluation time, so the regexp is compiled on
       # each call.
       def do_match
-        evaluator.matches(haystack, pattern)
+        evaluator.matches(haystack, pattern, far_future_deadline)
       end
 
       include_examples "a timeout-bounded matcher"
@@ -125,7 +125,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:compiled_pattern) { "hello[a-z ]+" }
 
         it "returns true" do
-          expect(evaluator.matches_compiled("hello world", 0)).to be(true)
+          expect(evaluator.matches_compiled("hello world", 0, far_future_deadline)).to be(true)
         end
       end
 
@@ -133,7 +133,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         let(:compiled_pattern) { "hello[a-z]" }
 
         it "returns false" do
-          expect(evaluator.matches_compiled("xyz", 0)).to be(false)
+          expect(evaluator.matches_compiled("xyz", 0, far_future_deadline)).to be(false)
         end
       end
     end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       let(:compiled_pattern) { pattern }
 
       def do_match
-        evaluator.matches_compiled(haystack, 0)
+        evaluator.matches_compiled(haystack, 0, far_future_deadline)
       end
 
       include_examples "a timeout-bounded matcher"
@@ -194,7 +194,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
     # The abort raises at i == 0, before the predicate block runs, so the
     # Hash branch aborts before the @it predicate is reached.
-    let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
 
     describe "#filter" do
       context "with the deadline already in the past" do
@@ -202,8 +202,15 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+
+          it "raises EvaluationTimeout with the class's default message" do
+            expect do
+              filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline)
+            end.to raise_error(Datadog::DI::Error::EvaluationTimeout,
+              Datadog::DI::Error::EvaluationTimeout::DEFAULT_MESSAGE)
           end
         end
 
@@ -211,7 +218,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { filter_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -219,16 +226,16 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
       context "with the deadline far in the future" do
         let(:collection) { Array.new(1000) { |i| i } }
-        let(:deadline) { far_future_deadline }
+        let(:evaluation_deadline) { far_future_deadline }
 
         it "returns the selected items without timing out" do
-          expect(filter_expr.evaluate(context_with({collection: collection}), deadline: deadline)).to eq((500..999).to_a)
+          expect(filter_expr.evaluate(context_with({collection: collection}), evaluation_deadline: evaluation_deadline)).to eq((500..999).to_a)
         end
 
         it "returns the selected entries of a Hash" do
           expect(filter_hash_expr.evaluate(
             context_with({collection: {"a" => 1, "b" => 2, "c" => -1}}),
-            deadline: deadline,
+            evaluation_deadline: evaluation_deadline,
           )).to eq({"a" => 1, "b" => 2})
         end
       end
@@ -243,7 +250,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
         it "raises after the first check interval" do
           expect do
-            filter_expr.satisfied?(context_with({collection: collection}), deadline: 1.0)
+            filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: 1.0)
           end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
         end
       end
@@ -255,7 +262,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { all_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { all_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -264,7 +271,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { all_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { all_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -277,7 +284,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| i } }
 
           it "raises EvaluationTimeout" do
-            expect { any_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { any_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -286,7 +293,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
           let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
 
           it "raises EvaluationTimeout" do
-            expect { any_expr.satisfied?(context_with({collection: collection}), deadline: deadline) }
+            expect { any_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
         end
@@ -305,7 +312,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       Object.new.tap do |trigger|
         trigger.define_singleton_method(:nil?) do
           begin
-            nested_expr.evaluate(nested_context, deadline: nested_deadline)
+            nested_expr.evaluate(nested_context, evaluation_deadline: nested_deadline)
           rescue Datadog::DI::Error::EvaluationTimeout => exc
             recorded_timeouts << exc
           end
@@ -338,27 +345,75 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     # deadline, recording a timeout: an empty record proves the operator
     # stopped iterating before the trigger.
     it "#all stops at the first falsy Array item" do
-      expect(all_expr.satisfied?(context_with({collection: [nil, trigger]}), deadline: far_future_deadline))
+      expect(all_expr.satisfied?(context_with({collection: [nil, trigger]}), evaluation_deadline: far_future_deadline))
         .to be(false)
       expect(nested_timeouts).to be_empty
     end
 
     it "#any stops at the first truthy Array item" do
-      expect(any_expr.satisfied?(context_with({collection: [1, trigger]}), deadline: far_future_deadline))
+      expect(any_expr.satisfied?(context_with({collection: [1, trigger]}), evaluation_deadline: far_future_deadline))
         .to be(true)
       expect(nested_timeouts).to be_empty
     end
 
     it "#all stops at the first falsy Hash entry" do
       expect(hash_all_expr.satisfied?(context_with({collection: {"a" => nil, "b" => trigger}}),
-        deadline: far_future_deadline)).to be(false)
+        evaluation_deadline: far_future_deadline)).to be(false)
       expect(nested_timeouts).to be_empty
     end
 
     it "#any stops at the first truthy Hash entry" do
       expect(hash_any_expr.satisfied?(context_with({collection: {"a" => 1, "b" => trigger}}),
-        deadline: far_future_deadline)).to be(true)
+        evaluation_deadline: far_future_deadline)).to be(true)
       expect(nested_timeouts).to be_empty
+    end
+  end
+
+  describe "the matches operator aborts evaluation when the deadline is exceeded" do
+    let(:matches_expr) do
+      compile_expr("str.matches(pat)",
+        "matches" => [{"ref" => "str"}, {"ref" => "pat"}])
+    end
+
+    let(:matches_compiled_expr) do
+      compile_expr("str.matches('hello')",
+        "matches" => [{"ref" => "str"}, "hello"])
+    end
+
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+
+    it "raises EvaluationTimeout before a match against a computed needle" do
+      expect do
+        matches_expr.satisfied?(context_with({str: "hello", pat: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+
+    it "raises EvaluationTimeout before a match against a precompiled needle" do
+      expect do
+        matches_compiled_expr.satisfied?(context_with({str: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+  end
+
+  describe "a per-item matches predicate aborts at the pre-match check" do
+    let(:filter_matches_expr) do
+      compile_expr("collection.filter(@it.matches('a+'))",
+        "filter" => [
+          {"ref" => "collection"},
+          {"matches" => [{"ref" => "@it"}, "a+"]},
+        ])
+    end
+
+    # The boundary check at item zero reads a time below the deadline;
+    # the pre-match check of the same item's predicate reads a time
+    # past it, so the abort happens at the pre-match check, before the
+    # first match starts.
+    stub_cpu_clock([0.999, 1.001])
+
+    it "raises EvaluationTimeout before the match starts" do
+      expect do
+        filter_matches_expr.satisfied?(context_with({collection: ["aaa", "bbb"]}), evaluation_deadline: 1.0)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
     end
   end
 
@@ -390,7 +445,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       Object.new.tap do |trigger|
         trigger.define_singleton_method(:nil?) do
           begin
-            nested_expr.evaluate(nested_context, deadline: nested_deadline)
+            nested_expr.evaluate(nested_context, evaluation_deadline: nested_deadline)
           rescue Datadog::DI::Error::EvaluationTimeout => exc
             recorded_timeouts << exc
           end
@@ -403,17 +458,17 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
     end
 
-    let(:deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
 
     it "reads locals from the invoking evaluation's context" do
-      result = filter_with_refs_expr.evaluate(context_with({collection: [trigger, 2], marker: "outer"}), deadline: deadline)
+      result = filter_with_refs_expr.evaluate(context_with({collection: [trigger, 2], marker: "outer"}), evaluation_deadline: evaluation_deadline)
       expect(result).to eq([trigger, 2])
       expect(nested_timeouts.length).to eq(1)
       expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
     end
 
     it "keeps the invoking evaluation's deadline" do
-      result = filter_with_refs_expr.evaluate(context_with({collection: collection, marker: "outer"}), deadline: deadline)
+      result = filter_with_refs_expr.evaluate(context_with({collection: collection, marker: "outer"}), evaluation_deadline: evaluation_deadline)
       expect(result).to eq(collection)
       expect(nested_timeouts.length).to eq(1)
       expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
@@ -431,7 +486,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       end
 
       it "preserves the distinct keys and the identity mode" do
-        result = filter_hash_expr.evaluate(context_with({collection: identity_collection}), deadline: far_future_deadline)
+        result = filter_hash_expr.evaluate(context_with({collection: identity_collection}), evaluation_deadline: far_future_deadline)
         expect(result.length).to eq(2)
         expect(result.compare_by_identity?).to be(true)
       end
@@ -450,7 +505,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
       it "selects items without invoking the override" do
         collection = each_raising_array_class.new([400, 600, 700])
-        expect(filter_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)).to eq([600, 700])
+        expect(filter_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq([600, 700])
       end
     end
 
@@ -467,7 +522,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         collection = each_raising_hash_class.new
         collection["a"] = 1
         collection["b"] = -1
-        expect(filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)).to eq("a" => 1)
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq("a" => 1)
       end
     end
 
@@ -484,7 +539,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         collection = select_raising_hash_class.new
         collection["a"] = 1
         collection["b"] = -1
-        expect(filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)).to eq("a" => 1)
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq("a" => 1)
       end
     end
 
@@ -501,7 +556,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         collection = identity_raising_hash_class.new.compare_by_identity
         collection["key"] = 1
         collection[+"key"] = 2
-        result = filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)
         expect(result.length).to eq(2)
         expect(result.compare_by_identity?).to be(true)
       end
@@ -541,7 +596,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
         key_b = raising_key_class.new(2)
         collection = {key_a => 1, key_b => -1}
         raising_key_class.methods_raise = true
-        result = filter_hash_expr.evaluate(context_with({collection: collection}), deadline: far_future_deadline)
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)
         raising_key_class.methods_raise = false
         expect(result).to eq(key_a => 1)
       end
@@ -554,7 +609,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "precompiles a literal matches needle at compile time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, "hello[a-z]"]})
 
-      expect(code).to eq("matches_compiled(ref(context, 'var'), 0)")
+      expect(code).to eq("matches_compiled(ref(context, 'var'), 0, evaluation_deadline)")
       expect(regexps.length).to eq(1)
       expect(regexps.first).to be_a(Regexp)
     end
@@ -562,7 +617,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     it "compiles a dynamically-computed matches needle at evaluation time" do
       code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, {"ref" => "pat"}]})
 
-      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')))")
+      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')), evaluation_deadline)")
       expect(regexps).to be_empty
     end
 

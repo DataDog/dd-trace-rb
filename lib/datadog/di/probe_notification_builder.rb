@@ -420,21 +420,21 @@ module Datadog
       # @param template_segments [Array<String, EL::Expression>] compiled
       #   template segments to render.
       # @param context [Context] evaluation context for expression segments.
-      # @param deadline [Float] cooperative evaluation deadline, as
+      # @param evaluation_deadline [Float] cooperative evaluation deadline, as
       #   CLOCK_THREAD_CPUTIME_ID float seconds.
       # @return [Array(String, Array<EvaluationFailure>)] the rendered message
       #   and the evaluation errors.
-      def evaluate_template(template_segments, context, deadline: EL::Evaluator.evaluation_deadline(settings))
+      def evaluate_template(template_segments, context, evaluation_deadline: EL::Evaluator.evaluation_deadline(settings))
         evaluation_errors = []
         message = template_segments.map do |segment|
-          if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(deadline)
-            raise DI::Error::EvaluationTimeout, EL::Evaluator::EVALUATION_TIMEOUT_MESSAGE
+          if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            raise DI::Error::EvaluationTimeout
           end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context, deadline: deadline), name: segment.redaction_identifier)
+            serializer.serialize_value_for_message(segment.evaluate(context, evaluation_deadline: evaluation_deadline), name: segment.redaction_identifier)
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end

@@ -17,12 +17,13 @@ module Datadog
 
         # Number of collection items processed between cooperative
         # evaluation-deadline checks; evaluation aborts within one
-        # interval's worth of items past the deadline.
+        # interval's worth of items past the deadline. A `matches`
+        # invocation can spend MATCHES_TIMEOUT_SECONDS of wall time, so
+        # #matches and #matches_compiled check the deadline before each
+        # match; a predicate that runs `matches` per item therefore
+        # adds at most the one match in flight when the deadline
+        # passes to the overshoot.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
-
-        # Message of DI::Error::EvaluationTimeout, raised by the
-        # cooperative evaluation-deadline checks.
-        EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
 
         # Built-in Array#each and Hash#each, resolved once at load and
         # bound per invocation: the collection operators' iteration then
@@ -42,22 +43,40 @@ module Datadog
         attr_reader :regexps
 
         # Raises DI::Error::EvaluationTimeout when the evaluation deadline
-        # has been exceeded, aborting collection-operator iteration
-        # cooperatively.
+        # has been exceeded, aborting evaluation cooperatively.
         #
-        # @param item_index [Integer] zero-based index of the collection
-        #   element being processed.
-        # @param deadline [Float] invocation-local evaluation deadline,
-        #   passed from the compiled #evaluate into the operator calls.
+        # @param evaluation_deadline [Float] invocation-local evaluation
+        #   deadline, passed from the compiled #evaluate into the operator
+        #   calls.
         # @return [void]
         # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
-        def raise_if_evaluation_deadline_exceeded(item_index, deadline)
-          if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 &&
-              self.class.evaluation_deadline_exceeded?(deadline)
-            raise DI::Error::EvaluationTimeout, EVALUATION_TIMEOUT_MESSAGE
+        def raise_if_evaluation_deadline_exceeded(evaluation_deadline)
+          if self.class.evaluation_deadline_exceeded?(evaluation_deadline)
+            raise DI::Error::EvaluationTimeout
           end
         end
         private :raise_if_evaluation_deadline_exceeded
+
+        # Raises DI::Error::EvaluationTimeout when +item_index+ falls on
+        # a cooperative check boundary and the evaluation deadline has
+        # been exceeded. The thread CPU clock is read only at every
+        # EVALUATION_DEADLINE_CHECK_INTERVAL-th item, so an already-exceeded
+        # deadline raises at the first boundary at or after it passes.
+        #
+        # @param item_index [Integer] zero-based index of the collection
+        #   element being processed.
+        # @param evaluation_deadline [Float] invocation-local evaluation
+        #   deadline, passed from the compiled #evaluate into the operator
+        #   calls.
+        # @return [void]
+        # @raise [DI::Error::EvaluationTimeout] a check boundary was reached
+        #   with the deadline exceeded.
+        def raise_if_deadline_check_due_and_exceeded(item_index, evaluation_deadline)
+          if (item_index % EVALUATION_DEADLINE_CHECK_INTERVAL).zero?
+            raise_if_evaluation_deadline_exceeded(evaluation_deadline)
+          end
+        end
+        private :raise_if_deadline_check_due_and_exceeded
 
         # Yields the evaluation values for one collection element — the
         # item alone for an Array element, or the [key, value] pair as
@@ -68,7 +87,7 @@ module Datadog
         #
         # @param collection [Array, Hash] collection whose elements the
         #   block receives.
-        # @param deadline [Float] invocation-local evaluation deadline.
+        # @param evaluation_deadline [Float] invocation-local evaluation deadline.
         # @param operator_name [String] name of the invoking collection
         #   operator, reported in the bad-collection-type error.
         # @yield [current_item, current_key, current_value] evaluation
@@ -78,19 +97,19 @@ module Datadog
         #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is
         #   not an Array or a Hash.
-        def each_collection_item(collection, deadline, operator_name)
+        def each_collection_item(collection, evaluation_deadline, operator_name)
           case collection
           when Array
             i = 0
             ARRAY_EACH.bind(collection).call do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               yield item, nil, nil
             end
           when Hash
             i = 0
             HASH_EACH.bind(collection).call do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               yield [key, value], key, value
             end
@@ -109,15 +128,15 @@ module Datadog
         # @return [Float] the deadline.
         def self.evaluation_deadline(settings)
           budget_ms = settings.dynamic_instrumentation.max_time_to_evaluate_ms
-          ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
+          Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + budget_ms / 1000.0
         end
 
-        # Returns whether the thread CPU clock has passed +deadline+.
+        # Returns whether the thread CPU clock has passed +evaluation_deadline+.
         #
-        # @param deadline [Float] the deadline to check.
+        # @param evaluation_deadline [Float] the deadline to check.
         # @return [Boolean] whether the deadline has been exceeded.
-        def self.evaluation_deadline_exceeded?(deadline)
-          ::Process.clock_gettime(::Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
+        def self.evaluation_deadline_exceeded?(evaluation_deadline)
+          Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= evaluation_deadline
         end
 
         # Resolves the value of the local variable or argument +var+ from
@@ -199,10 +218,15 @@ module Datadog
         #
         # @param haystack [String] string to match against.
         # @param needle [String] regexp source.
+        # @param evaluation_deadline [Float] invocation-local evaluation
+        #   deadline.
         # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   exceeded before the match started.
         # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
         # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
-        def matches(haystack, needle)
+        def matches(haystack, needle, evaluation_deadline)
+          raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(Evaluator.compile_regexp(needle), haystack)
         end
 
@@ -211,10 +235,15 @@ module Datadog
         #
         # @param haystack [String] string to match against.
         # @param index [Integer] position of the precompiled Regexp in +regexps+.
+        # @param evaluation_deadline [Float] invocation-local evaluation
+        #   deadline.
         # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
+        #   exceeded before the match started.
         # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
         # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
-        def matches_compiled(haystack, index)
+        def matches_compiled(haystack, index, evaluation_deadline)
+          raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(regexps.fetch(index), haystack)
         end
 
@@ -282,15 +311,15 @@ module Datadog
         # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
-        # @param deadline [Float] invocation-local evaluation deadline.
+        # @param evaluation_deadline [Float] invocation-local evaluation deadline.
         # @return [Boolean] whether the block is satisfied by every element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
-        def all(collection, deadline, &block)
+        def all(collection, evaluation_deadline, &block)
           result = true
-          each_collection_item(collection, deadline, "all") do |current_item, current_key, current_value|
+          each_collection_item(collection, evaluation_deadline, "all") do |current_item, current_key, current_value|
             unless block.call(current_item, current_key, current_value)
               result = false
               break
@@ -303,15 +332,15 @@ module Datadog
         # of +collection+.
         #
         # @param collection [Array, Hash] collection to test.
-        # @param deadline [Float] invocation-local evaluation deadline.
+        # @param evaluation_deadline [Float] invocation-local evaluation deadline.
         # @return [Boolean] whether the block is satisfied by any element.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
-        def any(collection, deadline, &block)
+        def any(collection, evaluation_deadline, &block)
           result = false
-          each_collection_item(collection, deadline, "any") do |current_item, current_key, current_value|
+          each_collection_item(collection, evaluation_deadline, "any") do |current_item, current_key, current_value|
             if block.call(current_item, current_key, current_value)
               result = true
               break
@@ -338,10 +367,10 @@ module Datadog
           HASH_SELECT = Hash.instance_method(:select)
           private_constant :HASH_SELECT
 
-          def filter_hash(collection, deadline, &block)
+          def filter_hash(collection, evaluation_deadline, &block)
             i = 0
             HASH_SELECT.bind(collection).call do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               block.call([key, value], key, value)
             end.to_h
@@ -353,10 +382,10 @@ module Datadog
           IDENTITY_MODE_CHECK = Hash.instance_method(:compare_by_identity?)
           private_constant :IDENTITY_MODE_CHECK
 
-          def filter_hash(collection, deadline, &block)
+          def filter_hash(collection, evaluation_deadline, &block)
             result = {}
             result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
-            each_collection_item(collection, deadline, "filter") do |_current_item, current_key, current_value|
+            each_collection_item(collection, evaluation_deadline, "filter") do |_current_item, current_key, current_value|
               result[current_key] = current_value if block.call([current_key, current_value], current_key, current_value)
             end
             result
@@ -369,22 +398,22 @@ module Datadog
         # Hash of the selected key-value pairs of a Hash collection.
         #
         # @param collection [Array, Hash] collection to filter.
-        # @param deadline [Float] invocation-local evaluation deadline.
+        # @param evaluation_deadline [Float] invocation-local evaluation deadline.
         # @return [Array, Hash] the selected elements.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
         #   exceeded mid-iteration.
         # @raise [DI::Error::ExpressionEvaluationError] +collection+ is not
         #   an Array or a Hash.
-        def filter(collection, deadline, &block)
+        def filter(collection, evaluation_deadline, &block)
           case collection
           when Array
             result = []
-            each_collection_item(collection, deadline, "filter") do |current_item, current_key, current_value|
+            each_collection_item(collection, evaluation_deadline, "filter") do |current_item, current_key, current_value|
               result << current_item if block.call(current_item, current_key, current_value)
             end
             result
           when Hash
-            filter_hash(collection, deadline, &block)
+            filter_hash(collection, evaluation_deadline, &block)
           else
             raise DI::Error::ExpressionEvaluationError, "Bad collection type for filter: #{collection.class}"
           end
