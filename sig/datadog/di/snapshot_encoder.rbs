@@ -17,7 +17,7 @@ module Datadog
       SLOT_STRING_FIELDS: Array[String]
       PRUNED: Hash[String, true]
       PRUNED_ENCODED: String
-      KEY_JSON: Hash[String, String]
+      KEY_JSON: Hash[String | Symbol, String]
 
       class Result < Struct[[String?, bool, Integer?]]
         attr_reader encoded: String?
@@ -65,7 +65,7 @@ module Datadog
 
       def self.emit_json_fragment: (String out, Budget budget, String fragment) -> bool
 
-      def self.emit_key: (String out, Budget budget, String key) -> bool
+      def self.emit_key: (String out, Budget budget, Symbol | Integer | String key) -> bool
 
       def self.emit_pruned: (String out, Budget budget) ?{ () -> void } -> bool
 

@@ -36,13 +36,19 @@ module Datadog
       # output buffer.
       PRUNED_ENCODED = JSON.dump(PRUNED)
 
-      # Encoded forms of the fixed snapshot keys.
+      # Encoded forms of the fixed snapshot keys, keyed by the String and
+      # Symbol spellings of each key, so a payload key of either spelling
+      # hits the cache without a String conversion.
       KEY_JSON = %w[
         type value isNull truncated size message stacktrace
         elements entries fields notCapturedReason notSerializedReason
         locals arguments throwable captureExpressions
         captures lines entry return
-      ].each_with_object({}) { |key, json| json[key] = JSON.dump(key) }.freeze
+      ].each_with_object({}) do |key, json|
+        encoded_key = JSON.dump(key)
+        json[key] = encoded_key
+        json[key.to_sym] = encoded_key
+      end.freeze
 
       # Encodes +snapshot+ to JSON, pruning captured values that exceed
       # the remaining budget.
@@ -177,16 +183,15 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            key = k.to_s
-            return false unless emit_key(out, budget, key)
-            case key
-            when "value"
+            return false unless emit_key(out, budget, k)
+            case k
+            when :value, "value"
               return false unless encode_scalar(val, out, budget)
-            when "elements"
+            when :elements, "elements"
               return false unless encode_elements(val, out, budget, &on_prune)
-            when "entries"
+            when :entries, "entries"
               return false unless encode_entries(val, out, budget, &on_prune)
-            when "fields"
+            when :fields, "fields"
               return false unless encode_slot_hash(val, out, budget, item_cap: MAX_ITEM_BYTES, &on_prune)
             else
               # Remaining serializer fields (type, capture failure
@@ -287,7 +292,7 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            return false unless emit_key(out, budget, name.to_s)
+            return false unless emit_key(out, budget, name)
             return false unless encode_slot(slot, out, budget, item_cap: item_cap, &on_prune)
           end
           emit_json_fragment(out, budget, "}")
@@ -312,12 +317,12 @@ module Datadog
               return false unless emit_json_fragment(out, budget, ",")
             end
             first = false
-            key = k.to_s
-            return false unless emit_key(out, budget, key)
-            case key
-            when "locals", "arguments", "captureExpressions"
+            return false unless emit_key(out, budget, k)
+            case k
+            when :locals, "locals", :arguments, "arguments",
+                 :captureExpressions, "captureExpressions"
               return false unless encode_slot_hash(val, out, budget, item_cap: nil, &on_prune)
-            when "throwable"
+            when :throwable, "throwable"
               if val.nil?
                 return false unless encode_scalar(val, out, budget)
               else
@@ -400,10 +405,10 @@ module Datadog
         #
         # @param out [String] output buffer
         # @param budget [Budget] byte budget charged for the emission
-        # @param key [String] member key
+        # @param key [Symbol, Integer, String] member key
         # @return [Boolean] true when the key and separator were emitted
         def emit_key(out, budget, key)
-          return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key))
+          return false unless emit_json_fragment(out, budget, KEY_JSON[key] || json_dump(key.to_s))
           emit_json_fragment(out, budget, ":")
         end
 
