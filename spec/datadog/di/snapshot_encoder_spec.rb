@@ -46,7 +46,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
   # asserts the field is emitted as generic JSON without pruning.
   def expect_generic_json_field(field, value)
     result = described_class.encode(
-      snapshot(line_captures(c: {type: "Custom", field => value})), cap,
+      snapshot(line_captures(c: {"type" => "Custom", field => value})), cap,
     )
     expect(result.pruned).to be(false)
     expect(captured_locals(result)["c"]).to eq("type" => "Custom", field => value)
