@@ -162,8 +162,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       it "logs the timeout at debug with the probe id, then the failure log" do
         expect_lazy_log_many(logger, :debug,
           /di: probe p1: capture expression evaluation timed out: Datadog::DI::Error::EvaluationTimeout/,
-          /di: probe p1: capture expression filtered: evaluation failed: Datadog::DI::Error::EvaluationTimeout/,
-        )
+          /di: probe p1: capture expression filtered: evaluation failed: Datadog::DI::Error::EvaluationTimeout/)
         evaluator.evaluate(probe, context)
       end
     end
