@@ -49,6 +49,42 @@ RSpec.describe Datadog::DI::Component do
           .to equal(component.probe_notification_builder.capture_expression_evaluator)
         component.shutdown!
       end
+
+      it "serializes snapshots with the snapshot serializer and capture expressions with the log serializer" do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component.serializer.event_type).to eq(Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
+        expect(component.capture_expression_serializer.event_type).to eq(Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
+        expect(component.instrumenter.serializer).to equal(component.serializer)
+        expect(component.probe_notification_builder.serializer).to equal(component.serializer)
+        expect(component.capture_expression_evaluator.serializer).to equal(component.capture_expression_serializer)
+        component.shutdown!
+      end
+
+      it "records the capture limit of a capture expression value with the log event type" do
+        allow(logger).to receive(:debug)
+        component = described_class.build(settings, agent_settings, logger)
+        compiled, regexps = Datadog::DI::EL::Compiler.new.compile("ref" => "nested")
+        probe = Datadog::DI::Probe.new(
+          id: "capture-expression-probe", type: :log, type_name: "Object", method_name: "to_s",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "nested",
+              expr: Datadog::DI::EL::Expression.new("nested", compiled, regexps: regexps),
+              limits: Datadog::DI::CaptureLimits.new(max_reference_depth: 1),
+            ),
+          ],
+        )
+        context = Datadog::DI::Context.new(
+          probe: probe, settings: settings, serializer: component.serializer,
+          target_self: Object.new, locals: {nested: {inner: {leaf: 1}}},
+        )
+        expect(component.guardrails_telemetry).to receive(:capture_incomplete)
+          .with(reason: Datadog::DI::GuardrailsTelemetry::Reason::DEPTH,
+            event_type: Datadog::DI::GuardrailsTelemetry::EVENT_TYPE_LOG)
+
+        component.capture_expression_evaluator.evaluate(probe, context)
+        component.shutdown!
+      end
     end
 
     # Log level on build-time precondition failures follows the customer's

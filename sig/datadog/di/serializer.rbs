@@ -16,11 +16,15 @@ module Datadog
 
       @guardrails_telemetry: DI::GuardrailsTelemetry
 
+      @event_type: String
+
       @telemetry: Core::Telemetry::Component?
 
       @evaluation_budget_seconds: Float
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, logger: DI::Logger, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
+      EVENT_TYPES: Array[String]
+
+      def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, logger: DI::Logger, guardrails_telemetry: DI::GuardrailsTelemetry, event_type: String, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
@@ -29,6 +33,8 @@ module Datadog
       attr_reader logger: DI::Logger
 
       attr_reader guardrails_telemetry: DI::GuardrailsTelemetry
+
+      attr_reader event_type: String
 
       attr_reader telemetry: Core::Telemetry::Component?
 
