@@ -8,6 +8,25 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     Datadog::DI::SnapshotEvent.new(payload: payload, event_type: event_type)
   end
 
+  # Delivers the pruned form of +payload+ through the transport, asserting
+  # the prune counter and the single chunk within the cap, and returns the
+  # parsed delivered snapshot.
+  def deliver_pruned_snapshot(payload)
+    expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
+
+    chunks = []
+    expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
+      chunks << chunked_payload
+    end
+
+    transport.send_input([snapshot_event(payload)], tags,
+      on_serialization_error: noop_serialization_error_handler)
+
+    expect(chunks.length).to eq(1)
+    expect(chunks.first.bytesize).to be <= 2_000
+    JSON.parse(chunks.first).first
+  end
+
   let(:telemetry) { nil }
 
   let(:guardrails_telemetry) do
@@ -370,20 +389,9 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
     it "prunes the snapshot to fit the cap, delivers it, and counts the prune" do
-      expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
       expect(logger).to receive(:trace).with("di: pruned snapshot to fit size cap")
 
-      chunks = []
-      expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
-        chunks << chunked_payload
-      end
-
-      transport.send_input([snapshot_event(oversized_snapshot)], tags,
-        on_serialization_error: noop_serialization_error_handler)
-
-      expect(chunks.length).to eq(1)
-      expect(chunks.first.bytesize).to be <= 2_000
-      snapshot = JSON.parse(chunks.first).first
+      snapshot = deliver_pruned_snapshot(oversized_snapshot)
       expect(snapshot.dig("debugger", "snapshot", "captures", "lines", "42", "locals", "big")).to eq("pruned" => true)
       expect(snapshot.dig("debugger", "snapshot", "captures", "lines", "42", "locals", "small")).to eq(
         "type" => "Integer",
@@ -392,19 +400,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     end
 
     it "prunes an oversized capture expression to fit the cap and delivers the snapshot" do
-      expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
-
-      chunks = []
-      expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|
-        chunks << chunked_payload
-      end
-
-      transport.send_input([snapshot_event(capture_expression_snapshot)], tags,
-        on_serialization_error: noop_serialization_error_handler)
-
-      expect(chunks.length).to eq(1)
-      expect(chunks.first.bytesize).to be <= 2_000
-      snapshot = JSON.parse(chunks.first).first
+      snapshot = deliver_pruned_snapshot(capture_expression_snapshot)
       expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "captureExpressions", "big")).to eq("pruned" => true)
       expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "captureExpressions", "small")).to eq(
         "type" => "Integer",
