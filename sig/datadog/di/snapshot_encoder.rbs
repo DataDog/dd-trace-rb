@@ -8,7 +8,7 @@ module Datadog
         | Array[snapshot_value]
         | Hash[Symbol | Integer | String, snapshot_value]
 
-      # Snapshot payload Hash, in the shape send_input receives it.
+      # Snapshot payload Hash, in its full pre-encoding shape.
       type snapshot = Hash[Symbol | Integer | String, snapshot_value]
 
       MAX_ITEM_BYTES: Integer
