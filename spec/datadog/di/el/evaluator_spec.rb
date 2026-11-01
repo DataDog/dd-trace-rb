@@ -340,10 +340,9 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     end
 
     # The boundary check at item zero reads a time below the deadline;
-    # the pre-match check of the item's predicate reads a time past it,
-    # so the abort happens at the pre-match check without waiting for
-    # the next boundary at item 64 and without spending
-    # MATCHES_TIMEOUT_SECONDS on the in-flight match.
+    # the pre-match check of the same item's predicate reads a time
+    # past it, so the abort happens at the pre-match check, before the
+    # first match starts.
     stub_cpu_clock([0.999, 1.001])
 
     it "raises EvaluationTimeout before the match starts" do
