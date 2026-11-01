@@ -109,7 +109,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
     end
 
-    context "when a collection slot's lower bound exceeds the budget" do
+    context "when a collection slot's upper bound exceeds the budget" do
       let(:big_collection) do
         snapshot(line_captures(items: {type: "Array", elements: Array.new(10) { |i| {type: "Integer", value: "v#{i}"} }}))
       end
