@@ -788,6 +788,47 @@ RSpec.describe "Instrumentation integration" do
         end
       end
 
+      context "with capture expressions whose evaluation outlasts the per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(5)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureExpressions: [
+              {name: "count", expr: {dsl: "len(arg1)", json: {len: {ref: "arg1"}}}},
+              {name: "filtered", expr: {dsl: "arg1.filter(@it >= 0)",
+                                        json: {filter: [{ref: "arg1"}, {ge: [{ref: "@it"}, 0]}]}}},
+            ],
+          }
+        end
+
+        it "captures the expression evaluated within the budget and stops the one evaluating when it runs out" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(Array.new(2_000_000) { |i| i })).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "count" => {type: "Integer", value: "2000000"},
+            "filtered" => {notCapturedReason: "timeout"},
+          )
+        end
+      end
+
       context "with snapshot capture and an exhausted per-fire time budget" do
         before do
           allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)

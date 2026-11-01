@@ -44,10 +44,12 @@ module Datadog
       # context, serializing the captured values under one capture deadline
       # resolved through the serializer and shared across all expressions.
       # Each expression resolves its own evaluation deadline immediately
-      # before its evaluation; that deadline bounds the expression's
-      # evaluation CPU alone, and the serialization of the captured value
-      # runs under the capture budget. An expression that fails to evaluate
-      # or serialize contributes an entry to the returned errors.
+      # before its evaluation and is evaluated under the earlier of that
+      # deadline and the capture deadline, so the capture expressions
+      # together stay within the capture budget. An expression the capture
+      # budget stops is reported as not captured; an expression that fails
+      # to evaluate or serialize otherwise contributes an entry to the
+      # returned errors.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
@@ -63,18 +65,13 @@ module Datadog
         probe.capture_expressions.each do |capture_expression|
           name = capture_expression.name
 
-          if Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
-            output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
-            guardrails_telemetry.skipped(
-              reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
-              probe: probe,
-            )
+          if capture_deadline_passed?(deadline)
+            record_capture_timeout(output, name, probe)
             next
           end
 
           begin
-            evaluation_deadline = EL::Evaluator.evaluation_deadline(settings)
+            evaluation_deadline = [EL::Evaluator.evaluation_deadline(settings), deadline].min
             value = capture_expression.expr.evaluate(context, evaluation_deadline: evaluation_deadline)
             limits = CaptureLimits.resolve(
               expr_limits: capture_expression.limits,
@@ -91,6 +88,10 @@ module Datadog
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
+            if exc.is_a?(DI::Error::EvaluationTimeout) && capture_deadline_passed?(deadline)
+              record_capture_timeout(output, name, probe)
+              next
+            end
             DI.report_evaluation_timeout(
               telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
               probe: probe, kind: "capture expression", exc: exc,
@@ -104,6 +105,33 @@ module Datadog
         end
 
         Result.new(serialized_values: output, errors: evaluation_errors)
+      end
+
+      private
+
+      # Returns whether the thread CPU clock has reached +capture_deadline+.
+      #
+      # @param capture_deadline [Float] the capture deadline, as
+      #   CLOCK_THREAD_CPUTIME_ID float seconds.
+      # @return [Boolean]
+      def capture_deadline_passed?(capture_deadline)
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= capture_deadline
+      end
+
+      # Reports capture expression +name+ as not captured because the
+      # capture budget ran out.
+      #
+      # @param output [Hash{String => Object}] serialized values by name.
+      # @param name [String] the capture expression's name.
+      # @param probe [Probe] the probe whose capture expression is stopped.
+      # @return [void]
+      def record_capture_timeout(output, name, probe)
+        output[name] = {notCapturedReason: "timeout"}
+        telemetry&.inc(DI::TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
+        guardrails_telemetry.skipped(
+          reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+          probe: probe,
+        )
       end
     end
   end
