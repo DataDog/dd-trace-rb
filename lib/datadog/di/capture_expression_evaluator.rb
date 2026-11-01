@@ -43,8 +43,11 @@ module Datadog
       # Evaluates each of the probe's capture expressions against the given
       # context, serializing the captured values under one capture deadline
       # resolved through the serializer and shared across all expressions.
-      # An expression that fails to evaluate or serialize contributes an entry
-      # to the returned errors.
+      # Each expression resolves its own evaluation deadline immediately
+      # before its evaluation; that deadline bounds the expression's
+      # evaluation CPU alone, and the serialization of the captured value
+      # runs under the capture budget. An expression that fails to evaluate
+      # or serialize contributes an entry to the returned errors.
       #
       # @param probe [Probe] the probe whose capture expressions are evaluated
       # @param context [Context] evaluation context the expressions are evaluated against
@@ -53,7 +56,6 @@ module Datadog
       #   to evaluate or serialize
       def evaluate(probe, context)
         deadline = serializer.serialization_deadline
-        evaluation_deadline = EL::Evaluator.evaluation_deadline(settings)
 
         output = {}
         evaluation_errors = []
@@ -72,6 +74,7 @@ module Datadog
           end
 
           begin
+            evaluation_deadline = EL::Evaluator.evaluation_deadline(settings)
             value = capture_expression.expr.evaluate(context, deadline: evaluation_deadline)
             limits = CaptureLimits.resolve(
               expr_limits: capture_expression.limits,

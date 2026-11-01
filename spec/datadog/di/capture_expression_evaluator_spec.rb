@@ -160,6 +160,69 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
     end
 
+    context "an earlier expression's serialization consumes the later expression's evaluation budget" do
+      before do
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(50)
+      end
+
+      # The first expression's serialization advances the CPU clock to
+      # 60 ms, past that expression's 50 ms evaluation deadline and
+      # inside the 200 ms capture budget, so the second expression
+      # resolves its evaluation deadline after the serialization.
+      serialization_deadline_calc = 0.0
+      first_expr_capture_check = 0.0
+      first_expr_eval_deadline_calc = 0.0
+      first_result_serialize = 0.0
+      second_expr_capture_check = 0.06
+      second_expr_eval_deadline_calc = 0.06
+      second_expr_filter_check = 0.06
+      second_result_serializes = [0.06, 0.06, 0.06, 0.06]
+      stub_cpu_clock([serialization_deadline_calc, first_expr_capture_check,
+        first_expr_eval_deadline_calc, first_result_serialize,
+        second_expr_capture_check, second_expr_eval_deadline_calc,
+        second_expr_filter_check, *second_result_serializes])
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "x", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("items.filter(@it >= 0)",
+                {"filter" => [{"ref" => "items"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {x: 42, items: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "evaluates the later expression under its fresh deadline and captures its value" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.serialized_values["filtered"]).to eq(
+          type: "Array",
+          elements: [
+            {type: "Integer", value: "1"},
+            {type: "Integer", value: "2"},
+            {type: "Integer", value: "3"},
+          ],
+        )
+        expect(result.errors).to eq([])
+      end
+    end
+
     context "expression evaluation raises a non-StandardError" do
       let(:expr) { instance_double(Datadog::DI::EL::Expression) }
 
