@@ -47,7 +47,7 @@ module Datadog
         # @param item_index [Integer] zero-based index of the collection
         #   element being processed.
         # @param deadline [Float, nil] invocation-local evaluation deadline,
-        #   threaded from the compiled #evaluate into the operator calls;
+        #   passed from the compiled #evaluate into the operator calls;
         #   nil leaves evaluation unbounded.
         # @return [void]
         # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
