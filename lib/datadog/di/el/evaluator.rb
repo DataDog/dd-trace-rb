@@ -12,8 +12,12 @@ module Datadog
       # @api private
       class Evaluator
         # Maximum wall-clock time allowed for evaluating a single `matches`
-        # operator.
-        MATCHES_TIMEOUT_SECONDS = 0.5
+        # operator. Wall clock, while the evaluation budget is thread CPU
+        # time: the regexp engine's `timeout:` keyword and Timeout.timeout
+        # offer no CPU-time mode.
+        MATCHES_TIMEOUT_SECONDS = 0.05
+
+        MATCHES_TIMEOUT_MESSAGE = "matches operator timeout"
 
         # Number of collection items processed between cooperative
         # evaluation-deadline checks; evaluation aborts within one
@@ -222,9 +226,8 @@ module Datadog
         #   deadline.
         # @return [Boolean] whether the haystack matches the regexp.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
-        #   exceeded before the match started.
-        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
-        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
+        #   exceeded before the match started, or the match exceeded
+        #   MATCHES_TIMEOUT_SECONDS.
         def matches(haystack, needle, evaluation_deadline)
           raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(Evaluator.compile_regexp(needle), haystack)
@@ -239,9 +242,8 @@ module Datadog
         #   deadline.
         # @return [Boolean] whether the haystack matches the regexp.
         # @raise [DI::Error::EvaluationTimeout] the evaluation deadline was
-        #   exceeded before the match started.
-        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
-        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
+        #   exceeded before the match started, or the match exceeded
+        #   MATCHES_TIMEOUT_SECONDS.
         def matches_compiled(haystack, index, evaluation_deadline)
           raise_if_evaluation_deadline_exceeded(evaluation_deadline)
           bounded_match?(regexps.fetch(index), haystack)
@@ -253,18 +255,32 @@ module Datadog
         # @param re [Regexp] regexp to match against.
         # @param haystack [String] string to match against.
         # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [DI::Error::EvaluationTimeout] the match exceeded
+        #   MATCHES_TIMEOUT_SECONDS.
         if Datadog::RubyVersion.is?(">= 3.2")
           def bounded_match?(re, haystack)
             # Uses Regexp#match? rather than =~ so that the
             # thread-local match data ($~, $1, ...) is not mutated as a side
             # effect of DI expression evaluation.
             re.match?(haystack)
+          rescue Regexp::TimeoutError
+            raise DI::Error::EvaluationTimeout.new(message: MATCHES_TIMEOUT_MESSAGE)
           end
         else
+          # Raised by Timeout.timeout in the matching thread. A dedicated
+          # class because Timeout.timeout passes a positional message,
+          # which EvaluationTimeout does not accept, and because rescuing
+          # Timeout::Error would also catch an enclosing customer timeout.
+          class MatchTimeoutSignal < StandardError
+          end
+          private_constant :MatchTimeoutSignal
+
           def bounded_match?(re, haystack)
-            Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
+            Timeout.timeout(MATCHES_TIMEOUT_SECONDS, MatchTimeoutSignal) do
               re.match?(haystack)
             end
+          rescue MatchTimeoutSignal
+            raise DI::Error::EvaluationTimeout.new(message: MATCHES_TIMEOUT_MESSAGE)
           end
         end
         private :bounded_match?

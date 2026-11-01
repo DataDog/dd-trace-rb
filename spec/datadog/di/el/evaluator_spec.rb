@@ -23,17 +23,6 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   let(:haystack_length) { 30 }
   let(:haystack) { ("a" * haystack_length) + "1" }
 
-  # Regexp::TimeoutError was introduced in Ruby 3.2 and inherits from
-  # RegexpError. Timeout::Error (used on older Rubies) inherits from
-  # RuntimeError. The expected class is selected by Ruby version.
-  let(:expected_timeout_error) do
-    if Datadog::RubyVersion.is?(">= 3.2")
-      Regexp::TimeoutError
-    else
-      Timeout::Error
-    end
-  end
-
   # Tolerance below the configured timeout: small margin for
   # CLOCK_MONOTONIC measurement noise between the start sample and the
   # regexp engine arming its timer.
@@ -61,11 +50,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       )
     end
 
-    it "raises a timeout error after approximately #{timeout_seconds}s" do
+    it "raises an evaluation timeout after approximately #{timeout_seconds}s" do
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       expect {
         do_match
-      }.to raise_error(expected_timeout_error)
+      }.to raise_error(Datadog::DI::Error::EvaluationTimeout, "matches operator timeout")
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
 
       # Lower bound: the regexp must have actually waited for the timeout
@@ -87,6 +76,50 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
     context "with a longer timeout" do
       include_examples "aborts after approximately the configured timeout", 1.0
+    end
+  end
+
+  describe "MATCHES_TIMEOUT_SECONDS" do
+    it "bounds a single match at 50 ms" do
+      expect(described_class::MATCHES_TIMEOUT_SECONDS).to eq(0.05)
+    end
+  end
+
+  describe ".compile_regexp" do
+    before do
+      skip "the Regexp timeout: keyword requires Ruby 3.2+" unless Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "bakes the per-match bound into the Regexp" do
+      expect(described_class.compile_regexp("hello").timeout).to eq(0.05)
+    end
+  end
+
+  describe "the per-match bound on Ruby < 3.2" do
+    before do
+      skip "Ruby 3.2+ bounds the match with the Regexp timeout: keyword" if Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "passes the 50 ms bound to Timeout.timeout" do
+      expect(Timeout).to receive(:timeout).with(0.05, anything).and_call_original
+
+      expect(evaluator.matches("hello", "hello", far_future_deadline)).to be(true)
+    end
+  end
+
+  describe "the per-match bound on Ruby 3.2+" do
+    before do
+      skip "the Regexp timeout: keyword requires Ruby 3.2+" unless Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "raises the evaluation timeout with the Regexp::TimeoutError as its cause" do
+      stub_const("Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS", 0.2)
+
+      expect {
+        evaluator.matches(haystack, pattern, far_future_deadline)
+      }.to raise_error(Datadog::DI::Error::EvaluationTimeout) { |error|
+        expect(error.cause).to be_a(Regexp::TimeoutError)
+      }
     end
   end
 

@@ -4,7 +4,12 @@ module Datadog
       class Evaluator
         type collection = Array[Object] | Hash[Object, Object]
 
-        MATCHES_TIMEOUT_SECONDS: ::Float
+        MATCHES_TIMEOUT_SECONDS: Float
+
+        MATCHES_TIMEOUT_MESSAGE: String
+
+        class MatchTimeoutSignal < StandardError
+        end
 
         EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
 

@@ -94,7 +94,8 @@ module Datadog
       end
 
       # Raised when expression evaluation exceeds the configured
-      # evaluation CPU-time budget.
+      # evaluation CPU-time budget, or a `matches` operator exceeds its
+      # per-match wall-clock bound.
       class EvaluationTimeout < ExpressionEvaluationError
         # Default message for EvaluationTimeout exceptions.
         DEFAULT_MESSAGE = "expression evaluation timeout"
