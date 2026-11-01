@@ -329,7 +329,7 @@ RSpec.describe Datadog::DI::SnapshotEncoder do
       end
     end
 
-    context "when the combined overhead of many retained slots exceeds the cap" do
+    context "with many small retained slots" do
       let(:many) do
         snapshot(line_captures(30.times.map { |i| ["v#{i}", {type: "Integer", value: "1"}] }.to_h))
       end
