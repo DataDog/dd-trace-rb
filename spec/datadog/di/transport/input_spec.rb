@@ -371,7 +371,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
     it "prunes the snapshot to fit the cap, delivers it, and counts the prune" do
       expect(telemetry).to receive(:inc).with("debugger", "snapshots_pruned_by_payload_size", 1)
-      expect_lazy_log(logger, :trace, "di: pruned snapshot to fit size cap")
+      expect(logger).to receive(:trace).with("di: pruned snapshot to fit size cap")
 
       chunks = []
       expect(transport).to receive(:send_input_chunk).once do |chunked_payload, serialized_tags|

@@ -101,7 +101,7 @@ module Datadog
                 next
               end
               if result.pruned
-                logger.trace { "di: pruned snapshot to fit size cap" }
+                logger.trace("di: pruned snapshot to fit size cap")
                 telemetry&.inc(DI::TELEMETRY_NAMESPACE, "snapshots_pruned_by_payload_size", 1)
               end
               encoded_snapshots << result.encoded
