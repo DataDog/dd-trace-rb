@@ -2215,7 +2215,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       before do
-        expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).and_return(0)
+        expect(settings.dynamic_instrumentation).to receive(:max_time_to_evaluate_ms).at_least(:once).and_return(0)
       end
 
       let(:guardrails_telemetry) do
@@ -2279,24 +2279,21 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "method probe skip after timeout" do
-        it "skips condition evaluation on the hit after the timeout" do
+      context "method probe hit after a timeout" do
+        it "evaluates the condition again on the next hit" do
           allow(logger).to receive(:debug)
-          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
-          expect_condition_timeout_skip_metric
-          expect_lazy_log(logger, :trace,
-            /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1).twice
+          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+            tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1}).twice
 
-          expect(responder).to receive(:probe_condition_evaluation_failed_callback).once do |context, expr, exc|
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).twice do |context, expr, exc|
             expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
           end
           expect(responder).not_to receive(:probe_executed_callback)
-          expect(probe.condition).to receive(:satisfied?).once.and_call_original
+          expect(probe.condition).to receive(:satisfied?).twice.and_call_original
 
           begin
             instrumenter.hook_method(probe, responder)
-            # The first hit times out evaluating the condition; the second
-            # skips the evaluation while the throttle window is open.
             expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
             expect { timeout_class.new.test_method([1, 2, 3]) }.not_to raise_error
           ensure
@@ -2472,26 +2469,23 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
-      context "line probe skip after timeout" do
+      context "line probe hit after a timeout" do
         include_context "timing-out line probe"
 
-        it "skips condition evaluation on the hit after the timeout" do
+        it "evaluates the condition again on the next hit" do
           allow(logger).to receive(:debug)
-          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
-          expect_condition_timeout_skip_metric
-          expect_lazy_log(logger, :trace,
-            /di: log probe 1: skipping condition evaluation, evaluation errors throttled/)
+          expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1).twice
+          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+            tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1}).twice
 
-          expect(responder).to receive(:probe_condition_evaluation_failed_callback).once do |context, expr, exc|
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback).twice do |context, expr, exc|
             expect(exc).to be_a(Datadog::DI::Error::EvaluationTimeout)
           end
           expect(responder).not_to receive(:probe_executed_callback)
-          expect(probe.condition).to receive(:satisfied?).once.and_call_original
+          expect(probe.condition).to receive(:satisfied?).twice.and_call_original
 
           instrumenter.hook_line(probe, responder)
 
-          # The first hit times out evaluating the condition; the second
-          # skips the evaluation while the throttle window is open.
           expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
           expect { HookLineLoadTestClass.new.test_method_with_arg([1, 2, 3]) }.not_to raise_error
         end

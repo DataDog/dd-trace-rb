@@ -544,58 +544,53 @@ module Datadog
 
           continue = true
           if condition = probe.condition
-            if probe.condition_error_throttled?
-              continue = false
-              log_condition_error_throttle_skip(probe)
-            else
-              begin
-                # This context will be recreated later, unlike for line probes.
-                #
-                # We do not need the stack for condition evaluation, therefore
-                # stack is not passed to Context here.
-                context = Context.new(
-                  locals: serializer.combine_args(args, kwargs, target_self),
-                  target_self: target_self,
-                  probe: probe, settings: settings, serializer: serializer,
-                )
-                continue = condition.satisfied?(context,
-                  evaluation_deadline: EL::Evaluator.evaluation_deadline(settings))
-              rescue Exception => exc # standard:disable Lint/RescueException
-                Datadog::DI.reraise_if_fatal(exc)
-                # Evaluation error exception can be raised for "expected"
-                # errors, we probably need another setting to control whether
-                # these exceptions are propagated.
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
+            begin
+              # This context will be recreated later, unlike for line probes.
+              #
+              # We do not need the stack for condition evaluation, therefore
+              # stack is not passed to Context here.
+              context = Context.new(
+                locals: serializer.combine_args(args, kwargs, target_self),
+                target_self: target_self,
+                probe: probe, settings: settings, serializer: serializer,
+              )
+              continue = condition.satisfied?(context,
+                evaluation_deadline: EL::Evaluator.evaluation_deadline(settings))
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
-                # An evaluation timeout is an internal budget abort, so it
-                # stays contained even under propagate_all_exceptions.
-                record_condition_evaluation_timeout(probe, exc)
+              # An evaluation timeout is an internal budget abort, so it
+              # stays contained even under propagate_all_exceptions.
+              record_condition_evaluation_timeout(probe, exc)
 
-                if context
-                  # We want to report evaluation errors for conditions
-                  # as probe snapshots. However, if we failed to create
-                  # the context, we won't be able to report anything as
-                  # the probe notifier builder requires a context.
-                  begin
-                    responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-                  rescue Exception => nested_exc # standard:disable Lint/RescueException
-                    Datadog::DI.reraise_if_fatal(nested_exc)
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                    telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-                  end
-                else
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
-                  telemetry&.report(exc, description: "Error evaluating condition without context")
-                  # If execution gets here, there is probably a bug in the tracer.
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                 end
+              else
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                continue = false
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
               end
+
+              continue = false
             end
           end
 
@@ -844,10 +839,6 @@ module Datadog
         end
 
         if condition = probe.condition
-          if probe.condition_error_throttled?
-            log_condition_error_throttle_skip(probe)
-            return
-          end
           begin
             context = build_trace_point_context(probe, tp)
             return unless condition.satisfied?(context,
@@ -923,37 +914,19 @@ module Datadog
         nil
       end
 
-      # Records a condition evaluation timeout for +probe+: reports the
-      # timeout through the shared evaluation-timeout reporter and trips
-      # the probe's condition-error throttle so condition evaluation is
-      # skipped at probe entry while the throttle window is open. Does
-      # nothing when +exc+ is not an evaluation timeout.
+      # Records a condition evaluation timeout for +probe+ through the
+      # shared evaluation-timeout reporter. Does nothing when +exc+ is not
+      # an evaluation timeout.
       #
       # @param probe [Probe] the probe whose condition evaluation timed out.
       # @param exc [Exception] the exception raised by the evaluation.
       # @return [void]
       def record_condition_evaluation_timeout(probe, exc)
-        if DI.report_evaluation_timeout(
+        DI.report_evaluation_timeout(
           telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
           probe: probe, kind: "condition", exc: exc,
         )
-          probe.trip_condition_error_throttle!
-        end
         nil
-      end
-
-      # Logs at trace level that condition evaluation is skipped at entry
-      # for +probe+ because the probe's condition-error throttle window is
-      # open.
-      #
-      # @param probe [Probe] the probe whose condition evaluation is skipped.
-      # @return [void]
-      def log_condition_error_throttle_skip(probe)
-        logger.trace do
-          "di: #{probe.type} probe #{probe.id}: skipping condition evaluation, " \
-            "evaluation errors throttled until #{probe.condition_error_throttled_until} " \
-            "(#{GuardrailsTelemetry::Reason::EVALUATION_ERROR_THROTTLED})"
-        end
       end
 
       def build_trace_point_context(probe, tp)
