@@ -440,14 +440,10 @@ module Datadog
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
-          if exc.is_a?(DI::Error::EvaluationTimeout)
-            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-            guardrails_telemetry.skipped(
-              reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
-              probe: context.probe,
-            )
-            logger.debug { "di: probe #{context.probe.id}: template evaluation timed out: #{exc.class}: #{exc.message}" }
-          end
+          DI.report_evaluation_timeout(
+            telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+            probe: context.probe, kind: "template", exc: exc,
+          )
           evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
             message: "#{exc.class}: #{exc.message}",

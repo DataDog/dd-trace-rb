@@ -91,13 +91,10 @@ module Datadog
             )
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
-            if exc.is_a?(DI::Error::EvaluationTimeout)
-              telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-              guardrails_telemetry.skipped(
-                reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
-                probe: probe,
-              )
-            end
+            DI.report_evaluation_timeout(
+              telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+              probe: probe, kind: "capture expression", exc: exc,
+            )
             evaluation_errors << EvaluationFailure.new(expr: name, message: "#{exc.class}: #{exc.message}")
             logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"

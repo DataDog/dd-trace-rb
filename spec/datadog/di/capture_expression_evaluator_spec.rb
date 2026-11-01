@@ -158,6 +158,14 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
         evaluator.evaluate(probe, context)
       end
+
+      it "logs the timeout at debug with the probe id, then the failure log" do
+        expect_lazy_log_many(logger, :debug,
+          /di: probe p1: capture expression evaluation timed out: Datadog::DI::Error::EvaluationTimeout/,
+          /di: probe p1: capture expression filtered: evaluation failed: Datadog::DI::Error::EvaluationTimeout/,
+        )
+        evaluator.evaluate(probe, context)
+      end
     end
 
     context "an earlier expression's serialization consumes the later expression's evaluation budget" do

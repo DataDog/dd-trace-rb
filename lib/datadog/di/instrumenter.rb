@@ -570,9 +570,7 @@ module Datadog
 
                 # An evaluation timeout is an internal budget abort, so it
                 # stays contained even under propagate_all_exceptions.
-                if exc.is_a?(DI::Error::EvaluationTimeout)
-                  record_condition_evaluation_timeout(probe, exc)
-                end
+                record_condition_evaluation_timeout(probe, exc)
 
                 if context
                   # We want to report evaluation errors for conditions
@@ -864,9 +862,7 @@ module Datadog
 
             # An evaluation timeout is an internal budget abort, so it
             # stays contained even under propagate_all_exceptions.
-            if exc.is_a?(DI::Error::EvaluationTimeout)
-              record_condition_evaluation_timeout(probe, exc)
-            end
+            record_condition_evaluation_timeout(probe, exc)
 
             if context
               # We want to report evaluation errors for conditions
@@ -927,24 +923,23 @@ module Datadog
         nil
       end
 
-      # Records a condition evaluation timeout for +probe+: increments the
-      # evaluation_timeouts telemetry counter, emits the canonical guardrail
-      # skip metric for the timeout, logs the timeout at debug
-      # with the probe id and the exception, and trips the probe's
-      # condition-error throttle so condition evaluation is skipped at
-      # probe entry while the throttle window is open.
+      # Records a condition evaluation timeout for +probe+: reports the
+      # timeout through the shared evaluation-timeout reporter and trips
+      # the probe's condition-error throttle so condition evaluation is
+      # skipped at probe entry while the throttle window is open. Does
+      # nothing when +exc+ is not an evaluation timeout.
       #
       # @param probe [Probe] the probe whose condition evaluation timed out.
-      # @param exc [Exception] the timeout exception that was raised.
+      # @param exc [Exception] the exception raised by the evaluation.
       # @return [void]
       def record_condition_evaluation_timeout(probe, exc)
-        telemetry&.inc(DI::TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
-        guardrails_telemetry.skipped(
-          reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
-          probe: probe,
+        if DI.report_evaluation_timeout(
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+          probe: probe, kind: "condition", exc: exc,
         )
-        logger.debug { "di: probe #{probe.id}: condition evaluation timed out: #{exc.class}: #{exc.message}" }
-        probe.trip_condition_error_throttle!
+          probe.trip_condition_error_throttle!
+        end
+        nil
       end
 
       # Logs at trace level that condition evaluation is skipped at entry
