@@ -40,9 +40,11 @@ module Datadog
 
         attr_reader :regexps
 
-        # Raises DI::Error::EvaluationTimeout when the evaluation deadline
-        # has been exceeded, aborting collection-operator iteration
-        # cooperatively.
+        # Raises DI::Error::EvaluationTimeout when +item_index+ falls on
+        # a cooperative check boundary and the evaluation deadline has
+        # been exceeded. The thread CPU clock is read only at every
+        # EVALUATION_DEADLINE_CHECK_INTERVAL-th item, so an already-exceeded
+        # deadline raises at the first boundary at or after it passes.
         #
         # @param item_index [Integer] zero-based index of the collection
         #   element being processed.
@@ -50,14 +52,15 @@ module Datadog
         #   threaded from the compiled #evaluate into the operator calls;
         #   nil leaves evaluation unbounded.
         # @return [void]
-        # @raise [DI::Error::EvaluationTimeout] the deadline has been exceeded.
-        def raise_if_evaluation_deadline_exceeded(item_index, deadline)
+        # @raise [DI::Error::EvaluationTimeout] a check boundary was reached
+        #   with the deadline exceeded.
+        def raise_if_deadline_check_due_and_exceeded(item_index, deadline)
           if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 &&
               self.class.evaluation_deadline_exceeded?(deadline)
             raise DI::Error::EvaluationTimeout, EVALUATION_TIMEOUT_MESSAGE
           end
         end
-        private :raise_if_evaluation_deadline_exceeded
+        private :raise_if_deadline_check_due_and_exceeded
 
         # Resolves a per-invocation thread-CPU-time deadline (float seconds)
         # for evaluating a probe condition, capture expression, or template
@@ -257,14 +260,14 @@ module Datadog
           when Array
             i = 0
             collection.all? do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               block.call(item)
             end
           when Hash
             i = 0
             collection.all? do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               # For hashes, the expression language has both @it and
               # @key/@value. Manufacture @it from the key and value.
@@ -291,14 +294,14 @@ module Datadog
           when Array
             i = 0
             collection.any? do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               block.call(item)
             end
           when Hash
             i = 0
             collection.any? do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               # For hashes, the expression language has both @it and
               # @key/@value. Manufacture @it from the key and value.
@@ -322,7 +325,7 @@ module Datadog
           def filter_hash(collection, deadline, &block)
             i = 0
             collection.select do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               block.call([key, value], key, value)
             end.to_h
@@ -341,7 +344,7 @@ module Datadog
             result = {}
             result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
             HASH_EACH.bind(collection).call do |key, value|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               result[key] = value if block.call([key, value], key, value)
             end
@@ -368,7 +371,7 @@ module Datadog
             i = 0
             result = []
             ARRAY_EACH.bind(collection).call do |item|
-              raise_if_evaluation_deadline_exceeded(i, deadline)
+              raise_if_deadline_check_due_and_exceeded(i, deadline)
               i += 1
               result << item if block.call(item)
             end

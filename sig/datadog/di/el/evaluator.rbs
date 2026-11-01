@@ -64,7 +64,7 @@ module Datadog
 
         private def filter_hash: (Hash[Object, Object] collection, Float? deadline) { (Object, ?Object, ?Object) -> Object } -> Hash[Object, Object]
 
-        private def raise_if_evaluation_deadline_exceeded: (Integer item_index, Float? deadline) -> void
+        private def raise_if_deadline_check_due_and_exceeded: (Integer item_index, Float? deadline) -> void
 
         def instanceof: (any object, String cls_name) -> bool
       end
