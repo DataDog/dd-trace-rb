@@ -30,7 +30,7 @@ Datadog::DI::Serializer.register(
   # nesting levels in the output.
   # This serializer could also potentially do its own depth limiting.
   #
-  # +deadline+ is the absolute monotonic-clock deadline (in seconds) of the
+  # +deadline+ is the absolute thread CPU clock deadline (in seconds) of the
   # capture point that is being serialized. Pass it through to
   # +serialize_value+ so the custom-serialized subtree draws down the same
   # capture budget as the rest of the snapshot.
