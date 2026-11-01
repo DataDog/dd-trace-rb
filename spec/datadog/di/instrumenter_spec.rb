@@ -2156,13 +2156,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         capture_expression_evaluator: capture_expression_evaluator)
     end
 
-    # Asserts the guardrails skip metric emission for a rejected probe
-    # firing.
-    def expect_rate_limit_skip_metric(reason:, event_type:, probe_id: nil)
+    # Asserts that a single guardrails skip metric was recorded for a
+    # rejected probe firing.
+    def expect_recorded_rate_limit_skip(reason:, event_type:, probe_id: nil)
       tags = {reason: reason, event_type: event_type}
       tags[:probe_id] = probe_id if probe_id
-      expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-        tags: tags)
+      expect(reported_guardrail_metrics(guardrails_telemetry)).to eq([["debugger", "events.skipped", 1, tags]])
     end
 
     describe "constants and limiters" do
@@ -2223,8 +2222,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback but still runs the target method" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "log")
-
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -2235,6 +2232,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitGlobal", event_type: "log")
         end
       end
 
@@ -2249,8 +2248,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2263,6 +2260,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitGlobal", event_type: "snapshot")
         end
       end
 
@@ -2273,8 +2272,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not consult the global limiter" do
-          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
-
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           hook_method(probe) do |payload|
@@ -2287,6 +2284,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
         end
       end
 
@@ -2309,52 +2308,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         before do
           expect(instrumenter.global_log_rate_limiter).to receive(:allow?).and_return(false)
-        end
-
-        context "when emitting the skip metric raises" do
-          let(:telemetry) { telemetry_double_raising_on_inc }
-
-          it "completes the probed method normally and logs the telemetry failure" do
-            expect_lazy_log(logger, :debug,
-              /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
-            expect(telemetry).to receive(:report).with(instance_of(StandardError),
-              description: "Error emitting debugger.events.skipped metric")
-
-            hook_method(probe) do |payload|
-              observed_calls << payload
-            end
-
-            expect(HookTestClass.new.hook_test_method).to eq 42
-
-            expect(observed_calls.length).to eq 0
-          end
-        end
-
-        context "when emitting the skip metric raises and all exceptions propagate" do
-          let(:propagate_all_exceptions) { true }
-          let(:telemetry) { telemetry_double_raising_on_inc }
-
-          it "raises the telemetry failure out of the probed method" do
-            hook_method(probe) do |payload|
-              observed_calls << payload
-            end
-
-            expect { HookTestClass.new.hook_test_method }.to raise_error(StandardError, "telemetry down")
-          end
-        end
-
-        context "when emitting the skip metric raises a fatal exception" do
-          let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
-
-          it "re-raises the fatal exception out of the probed method" do
-            hook_method(probe) do |payload|
-              observed_calls << payload
-            end
-
-            expect { HookTestClass.new.hook_test_method }.to raise_error(SystemExit)
-
-            expect(observed_calls).to be_empty
-          end
         end
 
         context "when telemetry is nil" do
@@ -2393,7 +2346,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not consult the global limiter" do
-          expect_rate_limit_skip_metric(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
           # The untargeted TracePoint#enable form is exercised by the
@@ -2411,6 +2363,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/per-probe rate limit \(rateLimitProbe\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitProbe", event_type: "log", probe_id: 1)
         end
       end
 
@@ -2420,8 +2374,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "log")
-
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
           hook_line(probe) do |payload|
@@ -2434,6 +2386,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitGlobal", event_type: "log")
         end
       end
 
@@ -2448,8 +2402,6 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it "does not invoke the callback and draws from the snapshot bucket" do
-          expect_rate_limit_skip_metric(reason: "rateLimitGlobal", event_type: "snapshot")
-
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
           expect(instrumenter.global_log_rate_limiter).not_to receive(:allow?)
 
@@ -2463,6 +2415,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
+
+          expect_recorded_rate_limit_skip(reason: "rateLimitGlobal", event_type: "snapshot")
         end
       end
 
@@ -2544,11 +2498,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(instrumenter.global_snapshot_rate_limiter).to receive(:allow?).and_return(false)
         end
 
-        it "does not emit the condition error snapshot and emits the rateLimitGlobal skip metric" do
+        it "does not emit the condition error snapshot and records the rateLimitGlobal skip metric" do
           expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
           expect(probe_notifier_worker).not_to receive(:add_snapshot)
-          expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-            tags: {reason: "rateLimitGlobal", event_type: "log"})
 
           instrumenter.hook_method(probe, manager)
 
@@ -2557,6 +2509,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
           end
+          expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+            [["debugger", "events.skipped", 1, {reason: "rateLimitGlobal", event_type: "log"}]],
+          )
         end
       end
 
@@ -2566,11 +2521,10 @@ RSpec.describe Datadog::DI::Instrumenter do
             .and_return(instance_double(Datadog::Core::TokenBucket, allow?: false))
         end
 
-        it "does not emit the condition error snapshot and emits no events.skipped metric" do
+        it "does not emit the condition error snapshot and records no events.skipped metric" do
           expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
           expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
           expect(probe_notifier_worker).not_to receive(:add_snapshot)
-          expect(telemetry).not_to receive(:inc)
 
           instrumenter.hook_method(probe, manager)
 
@@ -2579,6 +2533,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(logger).to have_received(:trace) do |&block|
             expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
           end
+          expect(reported_guardrail_metrics(guardrails_telemetry)).to eq([])
         end
       end
     end
@@ -2617,10 +2572,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         instrumenter.unhook(probe)
       end
 
-      it "still captures the truncated snapshot and emits the capture.incomplete metric" do
-        expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
-          tags: {reason: "depth", event_type: "snapshot"})
-
+      it "still captures the truncated snapshot and records the capture.incomplete metric" do
         hook_method(probe) { |payload| observed_calls << payload }
 
         # The Ruby 2.x method wrapper moves a trailing Hash argument into
@@ -2632,6 +2584,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(observed_calls.length).to eq 1
         inner = observed_calls.first.serialized_entry_args[:arg1]
         expect(inner[:elements][0][:entries][0][1][:notCapturedReason]).to eq "depth"
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "capture.incomplete", 1, {reason: "depth", event_type: "snapshot"}]],
+        )
       end
     end
 
@@ -2650,15 +2605,15 @@ RSpec.describe Datadog::DI::Instrumenter do
         instrumenter.unhook(probe)
       end
 
-      it "skips the capture expression and emits the evaluationTimeout skip metric" do
-        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: 1})
-
+      it "skips the capture expression and records the evaluationTimeout skip metric" do
         hook_method(probe) { |payload| observed_calls << payload }
 
         expect(DIGuardrailsTestClass.new.deep_arg_method(42)).to eq 42
 
         expect(observed_calls.length).to eq 1
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "events.skipped", 1, {reason: "evaluationTimeout", event_type: "log", probe_id: 1}]],
+        )
       end
     end
   end

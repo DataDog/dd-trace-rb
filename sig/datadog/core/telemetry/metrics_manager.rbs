@@ -1,6 +1,12 @@
 module Datadog
   module Core
     module Telemetry
+      interface _MetricSource
+        def report_metrics: (MetricsManager metrics_manager) -> void
+
+        def clear_metrics: () -> void
+      end
+
       class MetricsManager
         @interval: Float
 
@@ -10,9 +16,17 @@ module Datadog
 
         @collections: Hash[String, Datadog::Core::Telemetry::MetricsCollection]
 
+        @sources: Array[_MetricSource]
+
         attr_reader enabled: bool
 
+        attr_reader sources: Array[_MetricSource]
+
         def initialize: (aggregation_interval: Float, enabled: bool) -> void
+
+        def register_source: (_MetricSource source) -> void
+
+        def unregister_source: (_MetricSource source) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
@@ -31,6 +45,8 @@ module Datadog
         def clear: () -> void
 
         private
+
+        attr_reader mutex: Thread::Mutex
 
         def fetch_or_create_collection: (String namespace) -> Datadog::Core::Telemetry::MetricsCollection
       end

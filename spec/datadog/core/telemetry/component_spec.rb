@@ -424,6 +424,26 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
+    describe "#register_metric_source" do
+      let(:source) { double(:metric_source) }
+
+      it "registers the source with the metrics manager" do
+        telemetry.register_metric_source(source)
+
+        expect(metrics_manager).to have_received(:register_source).with(source)
+      end
+    end
+
+    describe "#unregister_metric_source" do
+      let(:source) { double(:metric_source) }
+
+      it "unregisters the source from the metrics manager" do
+        telemetry.unregister_metric_source(source)
+
+        expect(metrics_manager).to have_received(:unregister_source).with(source)
+      end
+    end
+
     describe "#dec" do
       subject(:dec) { telemetry.dec(namespace, metric_name, value, tags: tags, common: common) }
 

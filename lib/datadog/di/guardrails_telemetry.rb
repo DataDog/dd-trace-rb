@@ -2,6 +2,7 @@
 
 require_relative "fatal_exceptions"
 require_relative "guardrails_telemetry/reason"
+require_relative "../core/utils/time"
 
 module Datadog
   module DI
@@ -10,8 +11,14 @@ module Datadog
     # +dd.instrumentation_telemetry_data.debugger.*+.
     TELEMETRY_NAMESPACE = "debugger"
 
-    # Telemetry reporter for the DI guardrails: the reason codes and the
-    # metric emitters.
+    # Telemetry reporter for the DI guardrails: the reason codes, the
+    # recorders that count guardrail occurrences, and the metric source
+    # that reports the counts to the telemetry metrics manager.
+    #
+    # Occurrences are counted in local tables because the recorders run on
+    # instrumented hot paths, including the rate-limit skip of every
+    # rejected probe hit; the telemetry metrics manager collects the
+    # tables at each flush.
     class GuardrailsTelemetry
       # Skip count metric name, emitted under +DI::TELEMETRY_NAMESPACE+.
       EVENTS_SKIPPED = "events.skipped"
@@ -31,15 +38,15 @@ module Datadog
       # Initializes the reporter.
       #
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings the propagation escape hatch is read from
-      # @param logger [DI::Logger] logger for contained emission failures
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component the guardrails metrics are emitted through
+      # @param logger [DI::Logger] logger for contained reporting failures
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component whose metrics manager collects the counts
       def initialize(settings:, logger:, telemetry:)
         @settings = settings
         @logger = logger
         @telemetry = telemetry
-        @skipped_tags_memo = {}
-        @dropped_tags_memo = {}
-        @capture_incomplete_tags_memo = {}
+        @counts_lock = Mutex.new
+        @last_reported_at = nil
+        reset_counts
       end
 
       # The tracer settings.
@@ -48,21 +55,32 @@ module Datadog
       # The logger.
       # @return [DI::Logger]
       attr_reader :logger
-      # The component the guardrails metrics are emitted through.
+      # The component whose metrics manager collects the counts.
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
-      # The memo of frozen tag hashes for emitted skip metrics without
-      # +probe_id+, keyed by reason and event type.
-      # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
-      attr_reader :skipped_tags_memo
-      # The memo of frozen tag hashes for emitted drop metrics, keyed by
+      # The lock guarding the count tables. It is held only for count
+      # increments and for swapping the tables.
+      # @return [Thread::Mutex]
+      attr_reader :counts_lock
+      # The skip counts since the last report, keyed by reason, event
+      # type and probe id (nil for process-scoped reasons).
+      # @return [Hash{String => Hash{String => Hash{String, nil => Integer}}}]
+      attr_reader :skipped_counts
+      # The drop counts since the last report, keyed by reason and event
+      # type.
+      # @return [Hash{String => Hash{String => Integer}}]
+      attr_reader :dropped_counts
+      # The discarded byte totals since the last report, keyed by reason
+      # and event type.
+      # @return [Hash{String => Hash{String => Integer}}]
+      attr_reader :dropped_bytes
+      # The incomplete-capture counts since the last report, keyed by
       # reason and event type.
-      # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
-      attr_reader :dropped_tags_memo
-      # The memo of frozen tag hashes for emitted incomplete-capture
-      # metrics, keyed by reason and event type.
-      # @return [Hash{String => Hash{String => Hash{Symbol => String}}}]
-      attr_reader :capture_incomplete_tags_memo
+      # @return [Hash{String => Hash{String => Integer}}]
+      attr_reader :capture_incomplete_counts
+      # The time of the last #report_metrics call.
+      # @return [Time, nil] nil before the first report
+      attr_reader :last_reported_at
 
       # Returns the canonical event_type tag for a probe, derived from
       # whether the probe captures a full snapshot.
@@ -73,65 +91,174 @@ module Datadog
         probe.capture_snapshot? ? EVENT_TYPE_SNAPSHOT : EVENT_TYPE_LOG
       end
 
-      # Emits the canonical +debugger.events.skipped+ count metric for a
-      # probe firing a guardrail rejected.
+      # Returns whether occurrences are counted: telemetry is present and
+      # its metrics manager records metrics.
+      #
+      # @return [Boolean]
+      def counting?
+        component = telemetry
+        component ? !!component.metrics_manager.enabled : false
+      end
+
+      # Counts a +debugger.events.skipped+ occurrence for a probe firing a
+      # guardrail rejected.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the skip cause
       # @param probe [Probe] the probe whose firing was rejected
       # @return [void]
       def skipped(reason:, probe:)
-        probe_id = probe.id if Reason::PROBE_SCOPED_REASONS.include?(reason)
-        inc_metric(
-          DI::TELEMETRY_NAMESPACE, EVENTS_SKIPPED, 1,
-          tags: skipped_tags(reason, self.class.probe_event_type_tag(probe), probe_id),
-        )
+        return unless counting?
+
+        event_type = self.class.probe_event_type_tag(probe)
+        probe_id = Reason::PROBE_SCOPED_REASONS.include?(reason) ? probe.id : nil
+        counts_lock.synchronize do
+          by_event_type = (skipped_counts[reason] ||= {})
+          by_probe_id = (by_event_type[event_type] ||= {})
+          by_probe_id[probe_id] = (by_probe_id[probe_id] || 0) + 1
+        end
         nil
       end
 
-      # Emits the canonical +debugger.events.dropped+ count metric, and,
-      # when +bytes+ is provided, the +guardrails.queue.dropped_bytes+ count
-      # metric.
+      # Counts a +debugger.events.dropped+ occurrence and, when +bytes+ is
+      # provided, adds it to the +guardrails.queue.dropped_bytes+ total.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the drop cause
       # @param event_type [String] the canonical event_type tag value
       # @param bytes [Integer, nil] encoded bytes discarded, when the drop site knows the count
       # @return [void]
       def dropped(reason:, event_type:, bytes: nil)
-        tags = dropped_tags(reason, event_type)
-        inc_metric(DI::TELEMETRY_NAMESPACE, EVENTS_DROPPED, 1, tags: tags)
-        inc_metric(DI::TELEMETRY_NAMESPACE, QUEUE_DROPPED_BYTES, bytes, tags: tags) if bytes
+        return unless counting?
+
+        counts_lock.synchronize do
+          add_count(dropped_counts, reason, event_type, 1)
+          add_count(dropped_bytes, reason, event_type, bytes) if bytes
+        end
         nil
       end
 
-      # Emits the canonical +debugger.capture.incomplete+ count metric for
-      # a capture limit enforced on a snapshot that is still sent.
+      # Counts a +debugger.capture.incomplete+ occurrence for a capture
+      # limit enforced on a snapshot that is still sent.
       #
       # @param reason [String] a GuardrailsTelemetry::Reason constant naming the enforced capture limit
       # @param event_type [String] the canonical event_type tag value
       # @return [void]
       def capture_incomplete(reason:, event_type:)
-        inc_metric(
-          DI::TELEMETRY_NAMESPACE, CAPTURE_INCOMPLETE, 1,
-          tags: capture_incomplete_tags(reason, event_type),
-        )
+        return unless counting?
+
+        counts_lock.synchronize do
+          add_count(capture_incomplete_counts, reason, event_type, 1)
+        end
+        nil
+      end
+
+      # Records the counts accumulated since the previous report into the
+      # metrics manager, one count metric per reason and tag set, and
+      # empties the tables. Called by the metrics manager at each flush;
+      # a failing record is logged and reported, and the remaining counts
+      # are still recorded.
+      #
+      # @param metrics_manager [Datadog::Core::Telemetry::MetricsManager] the manager the counts are recorded into
+      # @return [void]
+      def report_metrics(metrics_manager)
+        skipped, dropped, bytes, incomplete = counts_lock.synchronize { take_counts }
+
+        series_count = 0
+        skipped.each do |reason, by_event_type|
+          by_event_type.each do |event_type, by_probe_id|
+            by_probe_id.each do |probe_id, count|
+              tags = {reason: reason, event_type: event_type}
+              tags[:probe_id] = probe_id if probe_id
+              record_metric(metrics_manager, EVENTS_SKIPPED, count, tags)
+              series_count += 1
+            end
+          end
+        end
+        series_count += record_table(metrics_manager, EVENTS_DROPPED, dropped)
+        series_count += record_table(metrics_manager, QUEUE_DROPPED_BYTES, bytes)
+        series_count += record_table(metrics_manager, CAPTURE_INCOMPLETE, incomplete)
+
+        @last_reported_at = Core::Utils::Time.now
+        logger.debug { "di: reported #{series_count} guardrail metric series" } if series_count > 0
+        nil
+      end
+
+      # Discards the counts accumulated since the previous report. Called
+      # by the metrics manager in a forked child, whose parent reports the
+      # counts accumulated before the fork.
+      #
+      # @return [void]
+      def clear_metrics
+        counts_lock.synchronize { reset_counts }
         nil
       end
 
       private
 
-      # Emits a guardrails count metric.
+      # Replaces the count tables with empty ones.
       #
-      # @param namespace [String] telemetry namespace the metric is emitted under
-      # @param metric_name [String] guardrails metric name
-      # @param value [Integer] increment count, or the discarded byte count
-      # @param tags [Hash{Symbol => String}] frozen metric tags for the emission
       # @return [void]
-      def inc_metric(namespace, metric_name, value, tags:)
-        telemetry&.inc(namespace, metric_name, value, tags: tags)
+      def reset_counts
+        @skipped_counts = {}
+        @dropped_counts = {}
+        @dropped_bytes = {}
+        @capture_incomplete_counts = {}
+        nil
+      end
+
+      # Returns the current count tables and replaces them with empty ones.
+      # Must be called with +counts_lock+ held.
+      #
+      # @return [Array(Hash, Hash, Hash, Hash)] the skip, drop, dropped-byte and incomplete-capture tables
+      def take_counts
+        taken = [skipped_counts, dropped_counts, dropped_bytes, capture_incomplete_counts]
+        reset_counts
+        taken
+      end
+
+      # Adds +value+ to the count of a (reason, event type) pair. Must be
+      # called with +counts_lock+ held.
+      #
+      # @param table [Hash{String => Hash{String => Integer}}] the count table to update
+      # @param reason [String] the reason key
+      # @param event_type [String] the event type key
+      # @param value [Integer] the amount to add
+      # @return [void]
+      def add_count(table, reason, event_type, value)
+        by_event_type = (table[reason] ||= {})
+        by_event_type[event_type] = (by_event_type[event_type] || 0) + value
+        nil
+      end
+
+      # Records every (reason, event type) count of a table as a metric.
+      #
+      # @param metrics_manager [Datadog::Core::Telemetry::MetricsManager] the manager the counts are recorded into
+      # @param metric_name [String] guardrails metric name
+      # @param table [Hash{String => Hash{String => Integer}}] the count table taken from the reporter
+      # @return [Integer] the number of series recorded
+      def record_table(metrics_manager, metric_name, table)
+        series_count = 0
+        table.each do |reason, by_event_type|
+          by_event_type.each do |event_type, count|
+            record_metric(metrics_manager, metric_name, count, {reason: reason, event_type: event_type})
+            series_count += 1
+          end
+        end
+        series_count
+      end
+
+      # Records a guardrails count metric, containing a recording failure.
+      #
+      # @param metrics_manager [Datadog::Core::Telemetry::MetricsManager] the manager the metric is recorded into
+      # @param metric_name [String] guardrails metric name
+      # @param value [Integer] the aggregated count, or the discarded byte total
+      # @param tags [Hash{Symbol => String}] metric tags
+      # @return [void]
+      def record_metric(metrics_manager, metric_name, value, tags)
+        metrics_manager.inc(DI::TELEMETRY_NAMESPACE, metric_name, value, tags: tags)
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        report_emission_failure(namespace, metric_name, exc)
+        report_emission_failure(DI::TELEMETRY_NAMESPACE, metric_name, exc)
         nil
       end
 
@@ -147,56 +274,6 @@ module Datadog
           end
         end
         nil
-      end
-
-      # Returns the frozen tags for a skip emission. Emissions without
-      # +probe_id+ are memoized; probe-scoped emissions allocate one
-      # frozen hash per emission: remote configuration adds and removes
-      # probes frequently, and a per-probe-id memo would grow without
-      # bound over the process lifetime.
-      #
-      # @param reason [String] the skip reason
-      # @param event_type [String] the canonical event_type tag value
-      # @param probe_id [String, nil] the rejected probe's id
-      # @return [Hash{Symbol => String}] the frozen skip-metric tags
-      def skipped_tags(reason, event_type, probe_id)
-        return {reason: reason, event_type: event_type, probe_id: probe_id}.freeze if probe_id
-
-        memoized_tags(skipped_tags_memo, reason, event_type)
-      end
-
-      # Returns the frozen tags for a drop emission, memoized per
-      # (reason, event_type) pair.
-      #
-      # @param reason [String] the drop reason
-      # @param event_type [String] the canonical event_type tag value
-      # @return [Hash{Symbol => String}] the frozen drop-metric tags
-      def dropped_tags(reason, event_type)
-        memoized_tags(dropped_tags_memo, reason, event_type)
-      end
-
-      # Returns the frozen tags for an incomplete-capture emission,
-      # memoized per (reason, event_type) pair.
-      #
-      # @param reason [String] the enforced capture limit
-      # @param event_type [String] the canonical event_type tag value
-      # @return [Hash{Symbol => String}] the frozen incomplete-capture metric tags
-      def capture_incomplete_tags(reason, event_type)
-        memoized_tags(capture_incomplete_tags_memo, reason, event_type)
-      end
-
-      # Returns the frozen tags memoized per (reason, event_type) pair,
-      # so a repeated emission allocates no tag hash. The memo is
-      # lock-free: a racy first write can only discard a duplicate
-      # frozen hash.
-      #
-      # @param memo [Hash{String => Hash{String => Hash{Symbol => String}}}] the emission-kind memo to index
-      # @param reason [String] the emission reason
-      # @param event_type [String] the canonical event_type tag value
-      # @return [Hash{Symbol => String}] the frozen metric tags
-      def memoized_tags(memo, reason, event_type)
-        reason_memos = memo[reason] ||= {}
-        reason_memos[event_type] ||= {reason: reason, event_type: event_type}.freeze
       end
     end
   end

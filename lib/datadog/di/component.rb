@@ -90,6 +90,7 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
         @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+        telemetry&.register_metric_source(guardrails_telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, logger: logger,
@@ -294,6 +295,9 @@ module Datadog
           probe_manager.clear_hooks
           probe_manager.close
           probe_notifier_worker.stop
+          # After the worker stops, so the counts recorded while it drained
+          # its queues reach the final telemetry flush.
+          telemetry&.unregister_metric_source(guardrails_telemetry)
         end
       end
 

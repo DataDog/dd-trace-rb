@@ -224,11 +224,12 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         evaluator.evaluate(probe, context)
       end
 
-      it "emits the canonical evaluationTimeout skip metric for each timed-out expression" do
-        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
-          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}).twice
-
+      it "records the canonical evaluationTimeout skip metric for each timed-out expression" do
         evaluator.evaluate(probe, context)
+
+        expect(reported_guardrail_metrics(guardrails_telemetry)).to eq(
+          [["debugger", "events.skipped", 2, {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"}]],
+        )
       end
     end
 

@@ -45,7 +45,7 @@ RSpec.describe "DI implicit enablement integration" do
 
   let(:agent_settings) { instance_double_agent_settings_with_stubs }
   let(:logger) { instance_double(Logger) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) { telemetry_component_double }
 
   let(:component) do
     Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry)
@@ -711,8 +711,7 @@ RSpec.describe "DI implicit enablement integration" do
       )
     end
     let(:rebuild_telemetry) do
-      instance_double(
-        Datadog::Core::Telemetry::Component,
+      telemetry_component_double(
         start: nil, enabled: false, shutdown!: nil, emit_closing!: nil,
         integrations_change!: nil,
       )

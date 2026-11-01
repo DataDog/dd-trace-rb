@@ -181,4 +181,35 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
   end
+
+  context "with a registered metric source, in a forked child" do
+    forking_platform_only
+
+    before do
+      # after_fork handler goes through the global variable.
+      allow(Datadog).to receive(:components).and_return(components)
+    end
+
+    let(:source) do
+      Struct.new(:pending) do
+        def report_metrics(metrics_manager)
+          metrics_manager.inc("source-ns", "source-metric", pending) if pending > 0
+          self.pending = 0
+        end
+
+        def clear_metrics
+          self.pending = 0
+        end
+      end.new(1)
+    end
+
+    it "discards the counts the source aggregated in the parent" do
+      component.register_metric_source(source)
+
+      expect_in_fork do
+        expect(source.pending).to eq(0)
+      end
+      expect(source.pending).to eq(1)
+    end
+  end
 end
