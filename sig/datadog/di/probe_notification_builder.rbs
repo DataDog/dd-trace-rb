@@ -12,7 +12,7 @@ module Datadog
       @guardrails_telemetry: GuardrailsTelemetry
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, capture_expression_evaluator: CaptureExpressionEvaluator, guardrails_telemetry: GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, capture_expression_evaluator: CaptureExpressionEvaluator, guardrails_telemetry: GuardrailsTelemetry, telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader serializer: Serializer

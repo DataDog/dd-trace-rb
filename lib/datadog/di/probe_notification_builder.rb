@@ -22,7 +22,7 @@ module Datadog
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
       # @return [void]
       def initialize(settings, serializer, logger, capture_expression_evaluator:, guardrails_telemetry:,
-        telemetry: nil)
+        telemetry:)
         @settings = settings
         @serializer = serializer
         @logger = logger
