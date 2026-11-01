@@ -798,9 +798,9 @@ module Datadog
         public :kwargs_from_splat
       end
 
-      # Trace point callback for a line probe hit. Gates the hit through
-      # the probe's condition, the per-probe rate limiter, and the global
-      # rate limiter, then invokes the responder with the built context.
+      # Trace point callback for a line probe hit. Evaluates the probe's
+      # condition, applies the per-probe rate limiter and the global rate
+      # limiter, then invokes the responder with the built context.
       #
       # @param probe [Probe] the probe the trace point was installed for.
       # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
