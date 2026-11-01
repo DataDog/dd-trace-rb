@@ -94,7 +94,7 @@ module Datadog
               result = SnapshotEncoder.encode(event.payload, MAX_SERIALIZED_SNAPSHOT_SIZE)
               if result.encoded.nil?
                 logger.debug do
-                  "di: dropping snapshot: pruning cannot bring it within the " \
+                  "di: dropping snapshot: pruning cannot fit it within the " \
                     "#{MAX_SERIALIZED_SNAPSHOT_SIZE}-byte limit (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
                 end
                 dropped_events << [event, result.bytes]

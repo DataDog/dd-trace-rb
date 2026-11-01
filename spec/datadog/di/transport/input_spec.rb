@@ -195,7 +195,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(tags).to eq(reason: "payloadTooLarge", event_type: "snapshot")
         end
         expect_lazy_log(logger, :debug,
-          "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+          "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
         transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
 
@@ -214,7 +214,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
             expect(tags).to eq(reason: "payloadTooLarge", event_type: "log")
           end
           expect_lazy_log(logger, :debug,
-            "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+            "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
           expect(transport).not_to receive(:send_input_chunk)
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
@@ -238,7 +238,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect_lazy_log(logger, :debug,
-            "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+            "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
           expect(transport).not_to receive(:send_input_chunk)
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
@@ -266,7 +266,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
           expect(telemetry).to receive(:report).twice
           expect_lazy_log_many(logger, :debug,
-            "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)",
+            "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)",
             /error emitting debugger.events.dropped metric.*StandardError.*telemetry down/,
             /error emitting debugger.guardrails.queue.dropped_bytes metric.*StandardError.*telemetry down/)
           expect(transport).to receive(:send_input_chunk).once
@@ -286,7 +286,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
             on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
             expect(transport).not_to receive(:send_input_chunk)
             expect_lazy_log(logger, :debug,
-              "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+              "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
 
             expect do
               transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
@@ -304,7 +304,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
             on_serialization_error = ->(probe_id, _exc) { serialization_errors << probe_id }
             expect(transport).not_to receive(:send_input_chunk)
             expect_lazy_log(logger, :debug,
-              "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+              "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
 
             expect do
               transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
@@ -321,7 +321,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         it "drops the oversized snapshot and still sends the other snapshots" do
           expect(transport).to receive(:send_input_chunk).once
           expect_lazy_log(logger, :debug,
-            "di: dropping snapshot: pruning cannot bring it within the 2000-byte limit (payloadTooLarge)")
+            "di: dropping snapshot: pruning cannot fit it within the 2000-byte limit (payloadTooLarge)")
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
         end
