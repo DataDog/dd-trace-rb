@@ -6,8 +6,6 @@ module Datadog
 
         EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
 
-        EVALUATION_TIMEOUT_MESSAGE: String
-
         ARRAY_EACH: UnboundMethod
 
         HASH_EACH: UnboundMethod

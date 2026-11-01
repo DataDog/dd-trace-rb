@@ -429,7 +429,7 @@ module Datadog
         evaluation_errors = []
         message = template_segments.map do |segment|
           if segment.is_a?(EL::Expression) && EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
-            raise DI::Error::EvaluationTimeout, EL::Evaluator::EVALUATION_TIMEOUT_MESSAGE
+            raise DI::Error::EvaluationTimeout
           end
           case segment
           when String

@@ -20,10 +20,6 @@ module Datadog
         # interval's worth of items past the deadline.
         EVALUATION_DEADLINE_CHECK_INTERVAL = 64
 
-        # Message of DI::Error::EvaluationTimeout, raised by the
-        # cooperative evaluation-deadline checks.
-        EVALUATION_TIMEOUT_MESSAGE = "expression evaluation timeout"
-
         # Built-in Array#each, resolved once at load and bound per
         # invocation: #filter's iteration then dispatches no customer
         # each override during probe evaluation.
@@ -57,7 +53,7 @@ module Datadog
         def raise_if_deadline_check_due_and_exceeded(item_index, evaluation_deadline)
           if item_index % EVALUATION_DEADLINE_CHECK_INTERVAL == 0 &&
               self.class.evaluation_deadline_exceeded?(evaluation_deadline)
-            raise DI::Error::EvaluationTimeout, EVALUATION_TIMEOUT_MESSAGE
+            raise DI::Error::EvaluationTimeout
           end
         end
         private :raise_if_deadline_check_due_and_exceeded

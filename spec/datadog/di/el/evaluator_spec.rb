@@ -200,6 +200,13 @@ RSpec.describe Datadog::DI::EL::Evaluator do
             expect { filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
               .to raise_error(Datadog::DI::Error::EvaluationTimeout)
           end
+
+          it "raises EvaluationTimeout with the class's default message" do
+            expect do
+              filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline)
+            end.to raise_error(Datadog::DI::Error::EvaluationTimeout,
+              Datadog::DI::Error::EvaluationTimeout::DEFAULT_MESSAGE)
+          end
         end
 
         context "over a Hash collection" do
