@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
+require_relative "data_streams/ext"
 require_relative "data_streams/processor"
 require_relative "data_streams/pathway_context"
-require_relative "data_streams/configuration"
-require_relative "data_streams/extensions"
 require_relative "core/utils/time"
 
 module Datadog
@@ -109,8 +108,5 @@ module Datadog
         Datadog.send(:components)
       end
     end
-
-    # Expose Data Streams to global shared objects
-    Extensions.activate!
   end
 end
