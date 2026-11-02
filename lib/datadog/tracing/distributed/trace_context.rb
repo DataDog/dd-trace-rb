@@ -41,26 +41,25 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          traceparent = extract_traceparent(fetcher[@traceparent_key])
+          return unless traceparent # Could not parse traceparent
 
-          return unless trace_id # Could not parse traceparent
+          trace_id, parent_id, sampled, trace_flags = traceparent
 
           trace_state = TraceState.extract(fetcher[@tracestate_key])
           dd = trace_state.datadog
           ot = trace_state.open_telemetry
 
-          tags = dd.tags
+          tags = dd.tags || {}
           sampling_priority = parse_priority_sampling(sampled, dd.sampling_priority) do |decision|
             case decision
             when String
-              tags ||= {}
               tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
             when :drop
-              tags&.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+              tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
             end
           end
 
-          tags ||= {}
           tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
             dd.ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
 
@@ -146,7 +145,7 @@ module Datadog
 
           return unless version && trace_id && parent_id && trace_flags
           return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
-          return if version[0] < "0" || version[0] > "f" || version[1] < "0" || version[1] > "f"
+          return if version.each_char.any? { |c| c < "0" || c > "f" }
 
           return if version == INVALID_VERSION
 

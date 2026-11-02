@@ -29,6 +29,8 @@ module Datadog
 
         def tag_hostname!: () -> (nil | untyped)
 
+        def tag_knuth_sampling_rate!: () -> void
+
         def tag_lang!: () -> (nil | untyped)
 
         def tag_origin!: () -> (nil | untyped)
@@ -50,6 +52,10 @@ module Datadog
         def tag_high_order_trace_id!: () -> (nil | untyped)
 
         def tag_profiling_enabled!: () -> (nil | untyped)
+
+        def tag_apm_tracing_disabled!: () -> void
+
+        def tag_process_tags!: () -> void
 
         def tag_git_repository_url!: () -> (nil | untyped)
 

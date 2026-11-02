@@ -8,21 +8,31 @@ module Datadog
           def match?: (::String) -> bool
         end
 
-        MATCH_ALL: _Matcher
+        type matcher = _Matcher & Object
 
-        def self.glob_to_regex: (::String) -> _Matcher
+        MATCH_ALL: matcher
 
-        def match?: (untyped trace) -> untyped
+        def self.glob_to_regex: (::String) -> matcher
+
+        def match?: (TraceOperation trace) -> bool
       end
+
       class SimpleMatcher < Matcher
-        attr_reader name: Matcher::_Matcher
-        attr_reader service: Matcher::_Matcher
-        attr_reader resource: Matcher::_Matcher
-        attr_reader tags: Matcher::_Matcher
+        attr_reader name: Matcher::matcher
 
-        def initialize: (?name: untyped, ?service: untyped) -> void
+        attr_reader service: Matcher::matcher
 
-        def match?: (untyped trace) -> untyped
+        attr_reader resource: Matcher::matcher
+
+        attr_reader tags: ::Hash[::String, Matcher::matcher]
+
+        def initialize: (?name: ::String, ?service: ::String, ?resource: ::String, ?tags: ::Hash[::String, ::String]) -> void
+
+        def match?: (TraceOperation trace) -> bool
+
+        private
+
+        def tags_match?: (TraceOperation trace) -> bool
       end
     end
   end

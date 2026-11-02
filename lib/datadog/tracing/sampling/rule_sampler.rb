@@ -92,6 +92,8 @@ module Datadog
         end
 
         def sample!(trace)
+          # Without a catch-all default rule, #initialize sets @default_sampler.
+          # @type ivar @default_sampler: Sampler
           sampled = sample_trace(trace) do |t|
             @default_sampler.sample!(t).tap do
               # We want to make sure the trace is tagged with the agent-derived
@@ -118,9 +120,11 @@ module Datadog
 
         # @!visibility private
         def update(*args, **kwargs)
-          return false unless @default_sampler.respond_to?(:update)
+          sampler = @default_sampler
+          return false unless sampler.respond_to?(:update)
 
-          @default_sampler.update(*args, **kwargs)
+          updatable_sampler = sampler #: Sampler & _UpdatableSampler
+          updatable_sampler.update(*args, **kwargs)
         end
 
         private
@@ -187,7 +191,10 @@ module Datadog
 
         def resource_rule?(rule)
           matcher = rule.matcher
-          matcher.respond_to?(:resource) && matcher.resource != Matcher::MATCH_ALL
+          return false unless matcher.respond_to?(:resource)
+
+          resource_matcher = matcher #: Matcher & _ResourceMatcher
+          resource_matcher.resource != Matcher::MATCH_ALL
         end
 
         def reconsider_matching_rule!(trace, rule)

@@ -157,6 +157,7 @@ module Datadog
       # spawns a worker for spans; they share the same transport which is thread-safe
       # @!visibility private
       def start_worker
+        # @type ivar @worker: Workers::AsyncTransport
         @trace_handler = ->(items, transport) { send_spans(items, transport) }
         @worker = Workers::AsyncTransport.new(
           transport: @transport,
@@ -173,8 +174,9 @@ module Datadog
       def stop_worker
         @stopped = true
 
-        if @worker
-          @worker.stop
+        worker_local = @worker
+        if worker_local
+          worker_local.stop
           @worker = nil
         end
 

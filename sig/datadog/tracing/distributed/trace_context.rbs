@@ -11,11 +11,17 @@ module Datadog
 
         SPEC_VERSION: "00"
 
-        def initialize: (fetcher: untyped, ?traceparent_key: untyped, ?tracestate_key: untyped) -> void
+        @fetcher: singleton(Fetcher)
 
-        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+        @traceparent_key: ::String
 
-        def extract: (untyped data) -> (nil | untyped)
+        @tracestate_key: ::String
+
+        def initialize: (fetcher: singleton(Fetcher), ?traceparent_key: ::String, ?tracestate_key: ::String) -> void
+
+        def inject!: (TraceDigest? digest, ::Hash[::String, ::String] data) -> ::Hash[::String, ::String]?
+
+        def extract: (::Hash[::String, ::String] data) -> TraceDigest?
 
         private
         def build_traceparent: (TraceDigest digest) -> ::String

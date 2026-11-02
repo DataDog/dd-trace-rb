@@ -2,16 +2,31 @@ module Datadog
   module Tracing
     module Sampling
       class Rule
-        attr_reader matcher: untyped
+        PROVENANCE_LOCAL: :local
 
-        attr_reader sampler: untyped
-        def initialize: (untyped matcher, untyped sampler) -> void
-        def match?: (untyped trace) -> untyped
-        def sample?: (untyped trace) -> untyped
-        def sample_rate: (untyped trace) -> untyped
+        PROVENANCE_REMOTE_USER: :customer
+
+        PROVENANCE_REMOTE_DYNAMIC: :dynamic
+
+        attr_reader matcher: Matcher
+
+        attr_reader sampler: Sampler
+
+        attr_reader provenance: ::Symbol
+
+        def initialize: (Matcher matcher, Sampler sampler, ::Symbol provenance) -> void
+
+        def match?: (TraceOperation trace) -> bool?
+
+        def sample!: (TraceOperation trace) -> untyped
+
+        def sample_rate: (TraceOperation trace) -> untyped
       end
+
       class SimpleRule < Rule
-        def initialize: (?name: untyped, ?service: untyped, ?sample_rate: ::Float) -> void
+        def matcher: () -> SimpleMatcher
+
+        def initialize: (?name: ::String, ?service: ::String, ?resource: ::String, ?tags: ::Hash[::String, ::String], ?provenance: ::Symbol, ?sample_rate: ::Float | ::Integer) -> void
       end
     end
   end

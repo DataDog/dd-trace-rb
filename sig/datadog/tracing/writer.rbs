@@ -1,39 +1,69 @@
 module Datadog
   module Tracing
     class Writer
+      @logger: Core::Logger
+
+      @buff_size: ::Integer
+
+      @flush_interval: ::Integer | ::Float
+
+      @agent_settings: Core::Configuration::AgentSettings?
+
+      @transport: untyped
+
+      @shutdown_timeout: ::Integer | ::Float
+
+      @mutex_after_fork: ::Thread::Mutex
+
+      @pid: ::Integer?
+
+      @traces_flushed: ::Integer
+
+      @worker: Workers::AsyncTransport?
+
+      @stopped: bool
+
+      @events: Events
+
+      @trace_handler: ^(::Array[TraceSegment] items, untyped transport) -> bool
+
+      attr_reader logger: Core::Logger
+
       attr_reader transport: untyped
 
-      attr_reader worker: untyped
+      attr_reader worker: Workers::AsyncTransport?
 
-      attr_reader events: untyped
+      attr_reader events: Events
 
-      def initialize: (?::Hash[untyped, untyped] options) -> void
-      def start: () -> untyped
+      attr_reader agent_settings: Core::Configuration::AgentSettings?
 
-      private
-      def start_worker: () -> untyped
+      def initialize: (?::Hash[::Symbol, untyped] options) -> void
 
-      public
-      def stop: () -> untyped
+      def start: () -> bool?
 
-      private
+      def stop: () -> true
 
-      def stop_worker: () -> (nil | true)
+      def send_spans: (::Array[TraceSegment] traces, untyped transport) -> bool
 
-      public
-      def send_spans: (untyped traces, untyped transport) -> (true | untyped)
-      def write: (untyped trace) -> untyped
-      def stats: () -> { traces_flushed: untyped, transport: untyped }
+      def write: (TraceSegment trace) -> void
+
+      def stats: () -> { traces_flushed: ::Integer, transport: untyped }
+
       class Events
-        attr_reader after_send: untyped
+        attr_reader after_send: AfterSend
 
         def initialize: () -> void
+
         class AfterSend < Tracing::Event
           def initialize: () -> void
         end
       end
 
       private
+
+      def start_worker: () -> nil
+
+      def stop_worker: () -> true
 
       def reset_stats!: () -> untyped
     end

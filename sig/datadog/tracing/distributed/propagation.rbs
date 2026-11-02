@@ -3,19 +3,42 @@ module Datadog
     module Distributed
       interface _Propagator
         def inject!: (TraceDigest? digest, untyped data) -> untyped
+
         def extract: (untyped data) -> TraceDigest?
       end
 
+      type propagator = _Propagator & Object
+
       class Propagation
+        @propagation_styles: ::Hash[::String, propagator]
+
+        @propagation_behavior_extract: ::String
+
+        @propagation_extract_first: bool
+
+        @propagation_style_inject: ::Array[propagator?]
+
+        @propagation_style_extract: ::Array[propagator?]
+
+        @baggage_propagator: propagator?
+
         def initialize: (
-          propagation_styles: ::Hash[::String, _Propagator],
+          propagation_styles: ::Hash[::String, propagator],
           propagation_style_inject: ::Array[::String],
           propagation_style_extract: ::Array[::String],
           propagation_extract_first: bool,
-          propagation_behavior_extract: String
+          propagation_behavior_extract: ::String
         ) -> void
-        def inject!: (untyped digest, untyped data) -> (nil | untyped)
-        def extract: (untyped data) -> untyped
+
+        def inject!: (TraceDigest | TraceOperation | nil digest, untyped data) -> bool?
+
+        def extract: (untyped data) -> TraceDigest?
+
+        private
+
+        def propagate_baggage: (untyped data, TraceDigest? extracted_trace_digest) -> TraceDigest?
+
+        def last_datadog_parent_id: (untyped headers, ::Hash[::String, ::String]? tracecontext_tags) -> ::String?
       end
     end
   end

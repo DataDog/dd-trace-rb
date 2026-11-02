@@ -2,29 +2,51 @@ module Datadog
   module Tracing
     module Sampling
       class RuleSampler
-        attr_reader rules: untyped
+        interface _UpdatableSampler
+          def update: (*untyped args, **untyped kwargs) -> untyped
+        end
 
-        attr_reader rate_limiter: untyped
+        interface _ResourceMatcher
+          def resource: () -> Matcher::matcher
+        end
 
-        attr_reader default_sampler: untyped
-        def initialize: (?untyped rules, ?rate_limit: untyped, ?rate_limiter: untyped?, ?default_sample_rate: untyped, ?default_sampler: untyped?) -> void
-        def sample?: (untyped _trace) -> untyped
+        @reconsider_sample_resource_enabled: bool
 
-        def sample!: (untyped trace) -> untyped
-        def reconsider_sample_resource!: (TraceOperation trace) -> TraceOperation?
+        attr_reader rules: ::Array[Rule]
+
+        attr_reader rate_limiter: Core::RateLimiter
+
+        attr_reader default_sampler: Sampler?
+
+        def initialize: (?::Array[Rule] rules, ?rate_limit: (::Float | ::Integer)?, ?rate_limiter: Core::RateLimiter?, ?default_sample_rate: ::Float?, ?default_sampler: Sampler?) -> void
+
+        def self.parse: (::String rules, (::Float | ::Integer)? rate_limit, ::Float? default_sample_rate) -> RuleSampler?
+
+        def sample!: (TraceOperation trace) -> bool
+
+        def reconsider_sample_resource!: (TraceOperation trace) -> bool?
+
         def resource_sampling?: -> bool
-        def update: (*untyped args, **untyped kwargs) -> (false | untyped)
 
-        def self.parse: (Array[Hash[Symbol, untyped]] rules, Float rate_limit, Float default_sample_rate) -> RuleSampler?
+        def update: (*untyped args, **untyped kwargs) -> untyped
 
         private
 
-        def sample_trace: (untyped trace) { (untyped) -> untyped } -> untyped
-        def set_priority: (untyped trace, untyped sampled) -> untyped
+        def sample_trace: (TraceOperation trace) { (TraceOperation) -> bool } -> bool
 
-        def set_rule_metrics: (untyped trace, untyped sample_rate) -> untyped
+        def set_priority: (TraceOperation trace, bool sampled) -> void
 
-        def set_limiter_metrics: (untyped trace, untyped limiter_rate) -> untyped
+        def set_rule_metrics: (TraceOperation trace, ::Float sample_rate) -> void
+
+        def set_limiter_metrics: (TraceOperation trace, ::Float limiter_rate) -> void
+
+        def apply_rule!: (TraceOperation trace, Rule rule) -> bool
+
+        def provenance_for: (Rule rule) -> ::String
+
+        def resource_rule?: (Rule rule) -> bool
+
+        def reconsider_matching_rule!: (TraceOperation trace, Rule rule) -> bool
       end
     end
   end

@@ -52,7 +52,8 @@ module Datadog
           begin
             traces = @trace_buffer.pop
             traces = Pipeline.process!(traces)
-            @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
+            trace_task = @trace_task
+            trace_task.call(traces, @transport) unless trace_task.nil? || traces.empty?
           rescue => e
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -66,6 +67,7 @@ module Datadog
 
         # Start the timer execution.
         def start
+          # @type ivar @worker: Thread
           @mutex.synchronize do
             return if @run
 
@@ -95,6 +97,7 @@ module Datadog
 
         # Block until executor shutdown is complete or until timeout seconds have passed.
         def join
+          # @type ivar @worker: Thread
           @worker.join(@shutdown_timeout)
         end
 

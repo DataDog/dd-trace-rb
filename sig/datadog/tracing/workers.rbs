@@ -12,22 +12,49 @@ module Datadog
 
         BACK_OFF_MAX: 5
 
-        SHUTDOWN_TIMEOUT: 1
+        DEFAULT_SHUTDOWN_TIMEOUT: 1
 
-        attr_reader trace_buffer: untyped
+        @transport: untyped
 
-        def initialize: (?::Hash[untyped, untyped] options) -> void
-        def callback_traces: () -> (true | untyped)
-        def start: () -> untyped
-        def stop: () -> (nil | true)
-        def join: () -> untyped
-        def enqueue_trace: (untyped trace) -> (nil | untyped)
+        @trace_task: (^(::Array[TraceSegment] traces, untyped transport) -> bool)?
+
+        @flush_interval: ::Integer | ::Float
+
+        @back_off: ::Integer | ::Float
+
+        @shutdown: ::Thread::ConditionVariable
+
+        @shutdown_timeout: ::Integer | ::Float
+
+        @mutex: ::Thread::Mutex
+
+        @worker: ::Thread?
+
+        @run: bool
+
+        @logger: Core::Logger
+
+        attr_reader trace_buffer: CRubyTraceBuffer | ThreadSafeTraceBuffer
+
+        attr_reader logger: Core::Logger
+
+        def initialize: (?::Hash[::Symbol, untyped] options) -> void
+
+        def callback_traces: () -> bool?
+
+        def start: () -> nil
+
+        def stop: () -> true?
+
+        def join: () -> ::Thread?
+
+        def enqueue_trace: (TraceSegment? trace) -> void
 
         private
 
         alias flush_data callback_traces
 
-        def perform: () -> untyped
+        def perform: () -> void
       end
     end
   end

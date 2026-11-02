@@ -3,15 +3,21 @@ module Datadog
     module Sampling
       module Span
         class Rule
-          attr_reader matcher: untyped
+          @sampler: Sampling::RateSampler
 
-          attr_reader sample_rate: untyped
+          @rate_limiter: Core::TokenBucket
 
-          attr_reader rate_limit: untyped
-          def initialize: (untyped matcher, ?sample_rate: untyped, ?rate_limit: untyped) -> void
-          def sample!: (untyped span_op) -> (:not_matched | untyped)
+          attr_reader matcher: Matcher
 
-          def ==: (untyped other) -> untyped
+          attr_reader sample_rate: ::Float | ::Integer
+
+          attr_reader rate_limit: ::Float | ::Integer
+
+          def initialize: (Matcher matcher, ?sample_rate: ::Float | ::Integer, ?rate_limit: ::Float | ::Integer) -> void
+
+          def sample!: (TraceOperation trace_op, SpanOperation span_op) -> (:kept | :rejected | :not_matched)
+
+          def ==: (untyped other) -> bool
         end
       end
     end
