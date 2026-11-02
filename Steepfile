@@ -63,9 +63,6 @@ target :datadog do
   # steep thinks the type of the class is 'self', whatever that is,
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
-  ignore "lib/datadog/profiling/scheduler.rb"
-  ignore "lib/datadog/profiling/tag_builder.rb"
-  ignore "lib/datadog/profiling/tasks/setup.rb"
   ignore "lib/datadog/tracing/contrib/action_cable/configuration/settings.rb"
   ignore "lib/datadog/tracing/contrib/action_cable/event.rb"
   ignore "lib/datadog/tracing/contrib/action_cable/events/broadcast.rb"

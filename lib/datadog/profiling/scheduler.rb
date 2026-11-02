@@ -58,6 +58,7 @@ module Datadog
         # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
         # successfully finish in the strict timeout.
         # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
+        # @type var interrupted: bool
         interrupted = true
 
         flush_and_wait

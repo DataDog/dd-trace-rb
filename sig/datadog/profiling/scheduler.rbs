@@ -3,20 +3,61 @@ module Datadog
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
+      include Core::Workers::IntervalLoop
+
+      include Core::Workers::Async::Thread
+
+      MINIMUM_INTERVAL_SECONDS: 0
+
+      DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS: 3
+
+      @exporter: Datadog::Profiling::Exporter
+
+      @transport: Datadog::Profiling::HttpTransport
+
+      @reporting_disabled: bool
+
+      @stop_requested: bool
+
+      private
+
+      attr_reader exporter: Datadog::Profiling::Exporter
+
+      attr_reader transport: Datadog::Profiling::HttpTransport
+
+      attr_reader reporting_disabled: bool
+
+      public
+
       def initialize: (
         exporter: Datadog::Profiling::Exporter,
         transport: Datadog::Profiling::HttpTransport,
-        ?fork_policy: untyped,
-        ?interval: ::Numeric,
+        interval: Integer | Float,
+        ?fork_policy: Core::Workers::Async::Thread::fork_policy,
         ?enabled: bool,
       ) -> void
 
       def start: (?on_failure_proc: ::Proc?) -> void
 
+      def perform: (::Proc? on_failure_proc) -> void
+
+      def loop_wait_before_first_iteration?: () -> true
+
       def running?: () -> bool
 
+      def disable_reporting: () -> void
+
+      def work_pending?: () -> bool
+
       def reset_after_fork: () -> void
-      def disable_reporting: () -> true
+
+      private
+
+      def flush_and_wait: () -> void
+
+      def flush_events: () -> bool
+
+      def stop_requested?: () -> bool
     end
   end
 end

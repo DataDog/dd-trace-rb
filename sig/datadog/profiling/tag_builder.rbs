@@ -1,8 +1,10 @@
 module Datadog
   module Profiling
     module TagBuilder
+      ALLOWED_TAGS: ::Set[::String]
+
       def self.call: (
-        settings: untyped,
+        settings: Datadog::Core::Configuration::Settings,
         ?profiler_version: ::String,
         profile_seq: ::Integer
       ) -> ::Hash[::String, ::String]
