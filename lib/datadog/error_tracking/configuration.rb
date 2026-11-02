@@ -17,6 +17,8 @@ module Datadog
           base.class_eval do
             # Error Tracking specific configurations.
             # @public_api
+            #
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :error_tracking do
               # Enable automatic reporting of handled errors and defines the scope
               # for which to report errors: user code, gems, or both. Possible

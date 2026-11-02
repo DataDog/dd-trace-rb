@@ -53,16 +53,12 @@ target :datadog do
   end
 
   # Excluded due to https://github.com/soutaro/steep/issues/1232
-  ignore "lib/datadog/appsec/configuration.rb"
   ignore "lib/datadog/appsec/contrib/devise/tracking_middleware.rb"
   ignore "lib/datadog/appsec/contrib/rack/request_middleware.rb"
   ignore "lib/datadog/appsec/contrib/rails/patcher.rb"
   ignore "lib/datadog/core/buffer/thread_safe.rb"
   ignore "lib/datadog/core/configuration.rb"
-  ignore "lib/datadog/core/configuration/base.rb"
   ignore "lib/datadog/core/configuration/components.rb"
-  ignore "lib/datadog/core/configuration/ext.rb"
-  ignore "lib/datadog/core/configuration/settings.rb"
   ignore "lib/datadog/core/contrib/rails/utils.rb"
   ignore "lib/datadog/core/encoding.rb"
   ignore "lib/datadog/core/environment/identity.rb"
@@ -90,13 +86,11 @@ target :datadog do
   ignore "lib/datadog/core/utils/time.rb"
   ignore "lib/datadog/core/vendor/multipart-post/multipart/post/multipartable.rb"
   ignore "lib/datadog/core/worker.rb"
-  ignore "lib/datadog/data_streams/configuration.rb"
   ignore "lib/datadog/core/workers/async.rb"
   ignore "lib/datadog/core/workers/interval_loop.rb"
   ignore "lib/datadog/core/workers/polling.rb"
   ignore "lib/datadog/core/workers/queue.rb"
   ignore "lib/datadog/core/workers/runtime_metrics.rb"
-  ignore "lib/datadog/di/configuration.rb"
   ignore "lib/datadog/di/contrib/railtie.rb"
   ignore "lib/datadog/di/transport/http/api.rb"
   ignore "lib/datadog/di/transport/http/diagnostics.rb"
@@ -105,7 +99,6 @@ target :datadog do
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
   ignore "lib/datadog/di/probe_notifier_worker.rb"
-  ignore "lib/datadog/error_tracking/configuration.rb"
   ignore "lib/datadog/kit/appsec/events.rb" # disabled because of https://github.com/soutaro/steep/issues/701
   ignore "lib/datadog/kit/identity.rb"      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore "lib/datadog/opentelemetry.rb"
@@ -122,8 +115,6 @@ target :datadog do
   ignore "lib/datadog/tracing/buffer.rb"
   ignore "lib/datadog/tracing/client_ip.rb"
   ignore "lib/datadog/tracing/component.rb"
-  ignore "lib/datadog/tracing/configuration/ext.rb"
-  ignore "lib/datadog/tracing/configuration/settings.rb"
   ignore "lib/datadog/tracing/context.rb"
   ignore "lib/datadog/tracing/contrib/action_cable/configuration/settings.rb"
   ignore "lib/datadog/tracing/contrib/action_cable/event.rb"

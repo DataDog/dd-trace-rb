@@ -18,6 +18,8 @@ module Datadog
           base.class_eval do
             # Data Streams Monitoring configuration
             # @public_api
+            #
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :data_streams do
               # Whether Data Streams Monitoring is enabled. When enabled, the library will
               # collect and report data lineage information for messaging systems.

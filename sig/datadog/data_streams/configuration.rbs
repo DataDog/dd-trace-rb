@@ -3,6 +3,8 @@ module Datadog
     module Configuration
       module Settings
         def self.extended: (Module base) -> void
+
+        def self.add_settings!: (Module base) -> void
       end
     end
   end

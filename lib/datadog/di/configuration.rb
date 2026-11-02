@@ -15,6 +15,7 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :dynamic_instrumentation do
               option :enabled do |o|
                 o.type :bool
@@ -160,6 +161,7 @@ module Datadog
                   end
                 end
                 o.setter do |value, _old|
+                  # @type var value: Integer
                   if value < 0
                     raise ArgumentError,
                       "The setting `dynamic_instrumentation.max_time_to_serialize_ms` must not be negative, " \

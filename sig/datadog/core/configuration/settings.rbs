@@ -4,6 +4,10 @@ module Datadog
       class Settings
         include Base
 
+        extend Options::ClassMethods
+
+        extend Base::ClassMethods
+
         interface _Remote
           def enabled: () -> bool
 
@@ -258,17 +262,23 @@ module Datadog
 
         def env: -> String?
 
+        def env=: (String? value) -> void
+
         def api_key: -> String?
 
         def hostname: -> String?
 
         def service: -> String?
 
+        def service=: (String? value) -> void
+
         def site: -> String?
 
         def service_without_fallback: -> ::String?
 
         def version: -> String?
+
+        def version=: (String? value) -> void
 
         def tags: -> ::Hash[::String, ::String]
 

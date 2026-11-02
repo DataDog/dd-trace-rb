@@ -53,10 +53,10 @@ module Datadog
           private
 
           def new_settings_class(name, settings_path, &block)
-            Class.new { include Configuration::Base }.tap do |klass|
-              klass.instance_variable_set(:@settings_path, settings_path)
-              klass.instance_eval(&block) if block
-            end
+            klass = Class.new { include Configuration::Base } #: Class & _DslContext
+            klass.instance_variable_set(:@settings_path, settings_path)
+            klass.instance_eval(&block) if block
+            klass
           end
         end
 

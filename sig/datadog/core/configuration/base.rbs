@@ -4,15 +4,14 @@ module Datadog
       module Base
         include Options
 
-        extend ClassMethods
         include InstanceMethods
 
         def self.included: (Class | Module base) -> void
 
         interface _ClassMethods
-          def settings: (Symbol | String name) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          def settings: (Symbol name) ?{ () [self: _DslContext] -> untyped } -> ::Class
 
-          def new_settings_class: (Symbol | String name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          def new_settings_class: (Symbol name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> (::Class & _DslContext)
         end
 
         interface _DslContext
@@ -20,18 +19,22 @@ module Datadog
           include Options::_ClassMethods
 
           def define_method: (Symbol name) { (?) [self: OptionDefinition::settings_execution_context] -> untyped } -> untyped
+
+          def instance_eval: [U] () { () [self: _DslContext] -> U } -> U
         end
 
-        module ClassMethods
+        module ClassMethods : Options::_ClassMethods
           include _ClassMethods
         end
 
-        module InstanceMethods
+        module InstanceMethods : Options::_InstanceMethods
           def initialize: (?::Hash[untyped, untyped] options) -> void
 
           def configure: (?::Hash[untyped, untyped] opts) ?{ (untyped) -> untyped } -> untyped
 
           def to_h: () -> Hash[Symbol, Object?]
+
+          def dig: (*Symbol options) -> untyped
 
           def reset!: () -> void
         end

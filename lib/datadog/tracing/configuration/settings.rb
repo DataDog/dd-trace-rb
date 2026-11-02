@@ -23,6 +23,8 @@ module Datadog
           base.class_eval do
             # Tracer specific configurations.
             # @public_api
+            #
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :tracing do
               # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
               #
@@ -60,6 +62,7 @@ module Datadog
                   ],
                 )
                 o.after_set do |styles|
+                  # @type var styles: Array[String]
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -81,6 +84,7 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                 ]
                 o.after_set do |styles|
+                  # @type var styles: Array[String]
                   # Make values case-insensitive
                   styles.map!(&:downcase)
                 end
@@ -100,6 +104,7 @@ module Datadog
                 o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles, _, precedence|
+                  # @type var styles: Array[String]
                   next if styles.empty?
 
                   # Make values case-insensitive
@@ -191,7 +196,10 @@ module Datadog
                 o.env Configuration::Ext::ENV_HEADER_TAGS
                 o.type :array
                 o.default []
-                o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
+                o.setter do |header_tags, _|
+                  # @type var header_tags: Array[String]
+                  Configuration::HTTP::HeaderTags.new(header_tags)
+                end
               end
 
               # Comma-separated list of baggage keys that should be converted to span tags.
@@ -593,6 +601,7 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
                   o.default 500..599
                   o.setter do |v|
+                    # @type var v: (Integer | Range[Integer] | Tracing::Contrib::StatusRangeMatcher::range_type)?
                     Tracing::Contrib::StatusRangeMatcher.new(v) if v
                   end
                   o.env_parser do |values|
@@ -611,6 +620,7 @@ module Datadog
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
                   o.default 400..499
                   o.setter do |v|
+                    # @type var v: (Integer | Range[Integer] | Tracing::Contrib::StatusRangeMatcher::range_type)?
                     Tracing::Contrib::StatusRangeMatcher.new(v) if v
                   end
                   o.env_parser do |values|
