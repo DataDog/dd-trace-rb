@@ -1062,6 +1062,39 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(res.flag_metadata["__dd_observe_full_evaluation_data"]).to be(false)
     end
 
+    it "stamps exposure fields and routes split features for an allocation that logs exposures" do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: "v", reason: "STATIC", variant: "v", flag_metadata: {}, allocation_key: "alloc-9", serial_id: 7,
+        features: [["holdout.key", "h-1", ["HOOK", "EXPOSURE"]], ["count.key", 1.5, ["EVALUATION"]]],
+        log?: true, error?: false,
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      res = provider.fetch_string_value(flag_key: "ts-flag-features", default_value: "d")
+
+      expect(res.flag_metadata).to include(
+        "__dd_do_log" => true,
+        "__dd_split_serial_id" => 7,
+        "__dd_feature.holdout.key" => "h-1",
+        "__dd_exposure_feature.holdout.key" => "h-1",
+        "__dd_evaluation_feature.count.key" => 1.5,
+      )
+    end
+
+    it "adds no exposure or feature entries for an allocation without features that does not log" do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: "v", reason: "STATIC", variant: "v", flag_metadata: {}, allocation_key: "alloc-9", serial_id: 7,
+        features: [], log?: false, error?: false,
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      res = provider.fetch_string_value(flag_key: "ts-flag-no-features", default_value: "d")
+
+      expect(res.flag_metadata.keys).to contain_exactly(
+        "dd.eval.timestamp_ms", "__dd_allocation_key", "__dd_observe_full_evaluation_data",
+      )
+    end
+
     it "does not mutate the engine result metadata when stamping evaluation metadata" do
       metadata = {"existing" => "kept"}
       result = Datadog::OpenFeature::ResolutionDetails.new(

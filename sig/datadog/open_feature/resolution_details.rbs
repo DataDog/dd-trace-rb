@@ -19,6 +19,8 @@ module Datadog
 
       attr_accessor extra_logging: ::Hash[::String, untyped]?
 
+      attr_accessor features: ::Array[Core::FeatureFlags::ResolutionDetails::feature_t]?
+
       attr_accessor log?: bool?
 
       attr_accessor error?: bool?
@@ -33,6 +35,7 @@ module Datadog
         ?allocation_key: ::String?,
         ?serial_id: ::Integer?,
         ?extra_logging: ::Hash[::String, untyped]?,
+        ?features: ::Array[Core::FeatureFlags::ResolutionDetails::feature_t]?,
         ?log?: bool?,
         ?error?: bool?
       ) -> ResolutionDetails
