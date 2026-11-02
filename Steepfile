@@ -60,13 +60,9 @@ target :datadog do
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
   # steep gets lost in module inclusions
   ignore "lib/datadog/di/contrib/railtie.rb"
-  ignore "lib/datadog/di/transport/http/api.rb"
-  ignore "lib/datadog/di/transport/http/diagnostics.rb"
-  ignore "lib/datadog/di/transport/http/input.rb"
   # steep thinks the type of the class is 'self', whatever that is,
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
-  ignore "lib/datadog/di/probe_notifier_worker.rb"
   ignore "lib/datadog/profiling/scheduler.rb"
   ignore "lib/datadog/profiling/tag_builder.rb"
   ignore "lib/datadog/profiling/tasks/setup.rb"

@@ -22,13 +22,15 @@ module Datadog
 
       @stop_requested: bool
 
-      @sleep_remaining: Numeric?
+      @sleep_remaining: (Float | Integer)?
 
-      @wake_scheduled: bool
+      @wake_scheduled: bool?
 
       @pid: Integer?
 
       @flush: Integer
+
+      @last_sent: Float?
 
       @status_transport: DI::Transport::Diagnostics::Transport?
 
@@ -67,9 +69,9 @@ module Datadog
 
       private
 
-      def last_sent: () -> Numeric
+      def last_sent: () -> Float?
 
-      def set_sleep_remaining: () -> Numeric
+      def set_sleep_remaining: () -> (Float | Integer)
 
       def status_queue: () -> Array[Hash[Symbol, untyped]]
 
@@ -87,7 +89,7 @@ module Datadog
 
       def do_send_status: (Array[Hash[Symbol, untyped]] batch) -> void
 
-      def do_send_snapshot: (Array[Hash[Symbol, untyped]] batch) -> void
+      def do_send_snapshot: (Array[SnapshotEvent] batch) -> void
 
       def handle_serialization_error: (String probe_id, Exception exception) -> void
 

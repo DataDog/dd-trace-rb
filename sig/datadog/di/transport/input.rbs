@@ -11,6 +11,10 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
+          interface _SerializationErrorHandler
+            def call: (String probe_id, Exception exception) -> void
+          end
+
           @telemetry: Datadog::Core::Telemetry::Component?
 
           @guardrails_telemetry: DI::GuardrailsTelemetry
@@ -26,12 +30,12 @@ module Datadog
           def initialize: (
             Datadog::Core::Transport::HTTP::API::Map apis,
             ::String default_api,
-            logger: Datadog::Core::Logger,
+            logger: Datadog::Core::Transport::_Logger,
             guardrails_telemetry: DI::GuardrailsTelemetry,
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void
 
-          def send_input: (Array[SnapshotEvent] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[SnapshotEvent]
+          def send_input: (Array[SnapshotEvent] payload, Hash[String, String] tags, on_serialization_error: _SerializationErrorHandler) -> Array[SnapshotEvent]
 
           def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 

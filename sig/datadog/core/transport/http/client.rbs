@@ -4,12 +4,12 @@ module Datadog
       module HTTP
         class Client
           @instance: HTTP::API::Instance
-          @logger: Core::Logger
+          @logger: Core::Transport::_Logger
 
           attr_reader instance: HTTP::API::Instance
-          attr_reader logger: Core::Logger
+          attr_reader logger: Core::Transport::_Logger
 
-          def initialize: (HTTP::API::Instance instance, logger: Core::Logger) -> void
+          def initialize: (HTTP::API::Instance instance, logger: Core::Transport::_Logger) -> void
 
           def send_request: (Symbol action, Core::Transport::Request request) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 

@@ -15,9 +15,9 @@ module Datadog
 
           attr_reader default_headers: untyped
 
-	  attr_reader logger: Core::Logger
+	  attr_reader logger: Core::Transport::_Logger
 
-          def initialize: (?logger: Core::Logger) ?{ (untyped) -> untyped } -> void
+          def initialize: (?logger: Core::Transport::_Logger) ?{ (untyped) -> untyped } -> void
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 

@@ -5,6 +5,10 @@ module Datadog
         class Client < Core::Transport::HTTP::Client
           include Datadog::Tracing::Transport::Statistics
           include Datadog::Tracing::Transport::HTTP::Statistics
+
+          def initialize: (Core::Transport::HTTP::API::Instance instance, logger: Core::Logger) -> void
+
+          def logger: () -> Core::Logger
         end
       end
     end
