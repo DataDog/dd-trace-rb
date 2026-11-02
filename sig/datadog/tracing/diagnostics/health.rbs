@@ -3,6 +3,8 @@ module Datadog
     module Diagnostics
       module Health
         module Metrics
+          def self.extended: (singleton(Core::Diagnostics::Health::Metrics) base) -> void
+
           def api_errors: (untyped ?value) ?{ (untyped) -> untyped } -> void
           def api_requests: (untyped ?value) ?{ (untyped) -> untyped } -> void
           def api_responses: (untyped ?value) ?{ (untyped) -> untyped } -> void

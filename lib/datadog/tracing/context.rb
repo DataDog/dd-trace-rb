@@ -44,6 +44,7 @@ module Datadog
       # holding references to completed traces thereby releasing
       # its memory.
       def activate!(trace)
+        # @type var original_trace: TraceOperation?
         if block_given?
           begin
             original_trace = @active_trace
@@ -77,8 +78,8 @@ module Datadog
 
         return @active_trace if previous_trace == @active_trace
 
-        if @active_trace
-          @otel_thread_context&.update_from_trace_op(@active_trace)
+        if (active_trace = @active_trace)
+          @otel_thread_context&.update_from_trace_op(active_trace)
         elsif previous_trace
           @otel_thread_context&.clear
         end

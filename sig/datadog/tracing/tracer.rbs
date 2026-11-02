@@ -1,26 +1,175 @@
 module Datadog
   module Tracing
     class Tracer
+      interface _TraceFlush
+        def consume!: (TraceOperation trace_op) -> TraceSegment?
+      end
+
+      @trace_flush: _TraceFlush
+
+      @default_service: String
+
+      @enabled: bool
 
       @logger: Core::Logger
 
+      @sampler: untyped
+
+      @span_sampler: Sampling::Span::Sampler
+
+      @tags: Hash[String, untyped]
+
+      @writer: untyped
+
+      @otel_thread_context: OTelThreadContext?
+
+      @provider: DefaultContextProvider
+
+      @trace_completed: TraceCompleted
+
+      @profiling_enabled: bool
+
+      @appsec_enabled: bool
+
+      @ai_guard_enabled: bool
+
+      @apm_tracing_enabled: bool
+
+      SAMPLE_TRACE_LOG_ONLY_ONCE: Core::Utils::OnlyOnce
+
+      RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE: Core::Utils::OnlyOnce
+
+      SAMPLE_SPAN_LOG_ONLY_ONCE: Core::Utils::OnlyOnce
+
+      FLUSH_TRACE_LOG_ONLY_ONCE: Core::Utils::OnlyOnce
+
+      attr_reader trace_flush: _TraceFlush
+
+      attr_reader provider: DefaultContextProvider
+
+      attr_reader sampler: untyped
+
+      attr_reader span_sampler: Sampling::Span::Sampler
+
+      attr_reader tags: Hash[String, untyped]
+
       attr_reader logger: Core::Logger
 
-      def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
+      attr_accessor default_service: String
 
-      def active_span: (?untyped? key) -> Datadog::Tracing::SpanOperation
+      attr_accessor enabled: bool
 
-      def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier
+      attr_accessor writer: untyped
 
-      def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool
+      def initialize: (
+        ?trace_flush: _TraceFlush,
+        ?context_provider: DefaultContextProvider?,
+        ?default_service: String,
+        ?enabled: bool,
+        ?logger: Core::Logger,
+        ?otel_thread_context: OTelThreadContext?,
+        ?sampler: untyped,
+        ?span_sampler: Sampling::Span::Sampler,
+        ?tags: Hash[String, untyped],
+        writer: untyped
+      ) -> void
 
-      def appsec_enabled: -> bool
+      def trace: [T] (
+        String name,
+        ?continue_from: TraceDigest?,
+        ?on_error: on_error?,
+        ?resource: String?,
+        ?service: String?,
+        ?start_time: Time?,
+        ?tags: Hash[String, untyped]?,
+        ?type: String?,
+        ?id: Integer?
+      ) { (SpanOperation span_op, TraceOperation trace_op) -> T } -> T
+               | (
+        String name,
+        ?continue_from: TraceDigest?,
+        ?on_error: on_error?,
+        ?resource: String?,
+        ?service: String?,
+        ?start_time: Time?,
+        ?tags: Hash[String, untyped]?,
+        ?type: String?,
+        ?id: Integer?
+      ) -> SpanOperation
 
-      def ai_guard_enabled: -> bool
+      def set_tags: (Hash[String | Symbol, untyped] tags) -> Hash[String, untyped]
 
-      def apm_tracing_enabled: -> bool
+      def active_trace: (?Thread? key) -> TraceOperation?
+
+      def active_span: (?Thread? key) -> SpanOperation?
+
+      def active_correlation: (?Thread? key) -> Correlation::Identifier
+
+      def continue_trace!: [T] (TraceDigest? digest, ?Thread? key) { () -> T } -> T
+                         | (TraceDigest? digest, ?Thread? key) -> TraceOperation?
+
+      def sample_trace: (TraceOperation trace_op) -> void
+
+      def reconsider_trace_sampling_on_resource: (TraceOperation trace_op) -> void
+
+      def trace_completed: () -> TraceCompleted
+
+      class TraceCompleted < Tracing::Event
+        def initialize: () -> void
+
+        def publish: (TraceSegment trace) -> true
+      end
 
       def after_fork: () -> void
+
+      def shutdown!: () -> void
+
+      private
+
+      def call_context: (?Thread? key) -> Context
+
+      def build_trace: (TraceDigest? digest, bool auto_finish) -> TraceOperation
+
+      def bind_trace_events!: (TraceOperation trace_op) -> void
+
+      def start_trace: (?continue_from: TraceDigest?, ?auto_finish: bool) -> TraceOperation
+
+      def start_span: (
+        String name,
+        ?continue_from: TraceDigest?,
+        ?on_error: on_error?,
+        ?resource: String?,
+        ?service: String?,
+        ?start_time: Time?,
+        ?tags: Hash[String, untyped]?,
+        ?type: String?,
+        ?_trace: TraceOperation?,
+        ?id: Integer?
+      ) ?{ (SpanOperation span_op, TraceOperation trace_op) -> untyped } -> untyped
+
+      def resolve_tags: (Hash[String, untyped]? tags, String? service) -> Hash[String, untyped]
+
+      def manual_trace_activation!: (Context context, TraceOperation trace) -> void
+
+      def subscribe_trace_deactivation!: (Context context, TraceOperation trace, TraceOperation? original_trace) -> void
+
+      def sample_span: (TraceOperation trace_op, Span span) -> void
+
+      def flush_trace: (TraceOperation trace_op) -> void
+
+      def write: (TraceSegment? trace) -> void
+
+      def skip_trace: (String name) ?{ (SpanOperation span_op, TraceOperation trace_op) -> untyped } -> untyped
+
+      def propagate_sampling_priority?: (upstream_tags: Hash[String, String]?) -> bool
+
+      def profiling_enabled: () -> bool
+
+      def appsec_enabled: () -> bool
+
+      def ai_guard_enabled: () -> bool
+
+      def apm_tracing_enabled: () -> bool
     end
   end
 end

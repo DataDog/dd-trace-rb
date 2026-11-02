@@ -109,7 +109,7 @@ module Datadog
             return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
               sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
 
-            sampler.priority_sampler.rules.map do |rule|
+            sampler.priority_sampler.rules.map do |rule| #$ Hash[Symbol, untyped]?
               next unless rule.is_a?(Tracing::Sampling::SimpleRule)
 
               {

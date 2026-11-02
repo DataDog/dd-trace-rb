@@ -3,16 +3,20 @@ module Datadog
     class Context
       include Core::Utils::Forking
 
-      attr_reader active_trace: untyped
+      attr_reader active_trace: TraceOperation?
+
       attr_writer otel_thread_context: OTelThreadContext?
 
-      def initialize: (?trace: untyped?, ?otel_thread_context: OTelThreadContext?) -> void
-      def activate!: (untyped trace) { () -> untyped } -> untyped
-      def fork_clone: () -> untyped
+      def initialize: (?trace: TraceOperation?, ?otel_thread_context: OTelThreadContext?) -> void
+
+      def activate!: [T] (TraceOperation? trace) { () -> T } -> T
+                   | (TraceOperation? trace) -> TraceOperation?
+
+      def fork_clone: () -> Context
 
       private
 
-      def set_active_trace!: (untyped trace) -> untyped
+      def set_active_trace!: (TraceOperation? trace) -> TraceOperation?
     end
   end
 end

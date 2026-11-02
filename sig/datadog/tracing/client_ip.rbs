@@ -1,6 +1,12 @@
 module Datadog
   module Tracing
     module ClientIp
+      interface _Configuration
+        def enabled: () -> bool
+
+        def header_name: () -> String?
+      end
+
       def self.set_client_ip_tag: (Span | SpanOperation span, ?headers: Core::HeaderCollection?, ?remote_ip: String?) -> void
 
       def self.set_client_ip_tag!: (Span | SpanOperation span, ?headers: Core::HeaderCollection?, ?remote_ip: String?) -> void
@@ -9,7 +15,7 @@ module Datadog
 
       private
 
-      def self.configuration: () -> Core::Configuration
+      def self.configuration: () -> _Configuration
     end
   end
 end

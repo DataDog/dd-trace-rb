@@ -11,6 +11,20 @@ module Datadog
       @span_links: ::Array[SpanLink]?
       @distributed_sampling_priority: bool
 
+      @profiling_enabled: bool?
+
+      @apm_tracing_enabled: bool?
+
+      @finished: bool
+
+      @spans: Array[Span]
+
+      @auto_finish: bool
+
+      @flushed: bool
+
+      @propagated: bool
+
       attr_reader logger: Core::Logger
 
       attr_accessor agent_sample_rate: untyped
@@ -78,11 +92,12 @@ module Datadog
       def resource_override?: () -> bool
       def reconsider_resource_sample?: () -> bool
       def service: () -> untyped
-      def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped
-      def build_span: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
-      def flush!: () { (untyped) -> untyped } -> untyped
-      def to_digest: () -> untyped
-      def fork_clone: () -> untyped
+      def measure: [T] (String op_name, ?logger: Core::Logger, ?events: SpanOperation::Events?, ?on_error: on_error?, ?resource: String?, ?service: String?, ?start_time: Time?, ?tags: Hash[String, untyped]?, ?type: String?, ?id: Integer?) { (SpanOperation span_op, TraceOperation trace_op) -> T } -> T
+      def build_span: (String op_name, ?logger: Core::Logger, ?events: SpanOperation::Events?, ?on_error: on_error?, ?resource: String?, ?service: String?, ?start_time: Time?, ?tags: Hash[String, untyped]?, ?type: String?, ?id: Integer?) -> SpanOperation
+      def flush!: () ?{ (Array[Span]) -> Array[Span] } -> TraceSegment
+      def to_digest: () -> TraceDigest
+      def to_correlation: () -> Correlation::Identifier
+      def fork_clone: () -> TraceOperation
 
       class Events
         include Tracing::Events
@@ -109,10 +124,12 @@ module Datadog
         end
 
         class TraceFinished < Tracing::Event
+          @deactivate_trace_subscribed: bool
+
           def initialize: () -> void
 
-          def deactivate_trace_subscribed?: () -> untyped
-          def subscribe_deactivate_trace: () ?{ () -> untyped } -> untyped
+          def deactivate_trace_subscribed?: () -> bool
+          def subscribe_deactivate_trace: () { (TraceOperation trace_op) -> untyped } -> Array[^(?) -> untyped]
         end
 
         class TracePropagated < Tracing::Event
@@ -135,10 +152,14 @@ module Datadog
       def before_finish_span: (untyped span_op) -> untyped
       def finish_span: (untyped span, untyped span_op, untyped parent) -> untyped
 
-      def set_root_span!: (untyped span) -> (nil | untyped)
+      def set_local_root_span!: (SpanOperation? span) -> SpanOperation?
 
       def build_trace: (untyped spans, ?bool partial) -> untyped
       def distributed_tags: () -> untyped
+
+      def reconsider_rule_sample?: () -> bool
+
+      def reset: () -> void
     end
   end
 end

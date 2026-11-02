@@ -1,24 +1,36 @@
 module Datadog
   module Tracing
     module Events
-      def self.included: (untyped base) -> untyped
-
-      module ClassMethods
-        def build: (**untyped event_handlers) -> untyped
+      interface _EventsClass
+        def new: () -> InstanceMethods
       end
 
-      module InstanceMethods
-        def subscribe: (**untyped event_handlers) -> (nil | untyped)
+      interface _WithEvents
+        def events: () -> untyped
+      end
+
+      def self.included: (Module base) -> void
+
+      module ClassMethods : _EventsClass
+        def build: (**untyped event_handlers) -> InstanceMethods
+      end
+
+      module InstanceMethods : _WithEvents
+        def subscribe: (**Hash[Symbol, ^(*untyped) -> untyped] event_handlers) -> Hash[Symbol, Hash[Symbol, ^(*untyped) -> untyped]]?
       end
     end
 
     class Event
-      attr_reader name: untyped
-      attr_reader subscriptions: untyped
+      attr_reader name: Symbol
 
-      def initialize: (untyped name) -> void
-      def subscribe: () ?{ () -> untyped } -> untyped
+      attr_reader subscriptions: Array[^(?) -> untyped]
+
+      def initialize: (Symbol name) -> void
+
+      def subscribe: () { (?) -> untyped } -> Array[^(?) -> untyped]
+
       def unsubscribe_all!: () -> true
+
       def publish: (*untyped args) -> true
     end
   end

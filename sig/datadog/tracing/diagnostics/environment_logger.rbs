@@ -19,11 +19,11 @@ module Datadog
         def self.integrations_loaded: () -> (nil | untyped)
         def self.partial_flushing_enabled: () -> untyped
         def self.priority_sampling_enabled: () -> untyped
+        def self.collect_integrations_settings!: () -> Hash[Symbol, String]
 
         private
 
         def self.instrumented_integrations: () -> untyped
-        def self.instrumented_integrations_settings: () -> untyped
       end
     end
   end
