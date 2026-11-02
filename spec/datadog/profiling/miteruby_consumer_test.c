@@ -18,8 +18,8 @@ static void *test_allocator_alloc(size_t size, const char *name) {
 #include <assert.h>
 #include <stdio.h>
 
-__attribute__((noreturn)) void miteruby_buffer_mark(DDTRACE_UNUSED miteruby_buffer_t *buffer) {
-  rb_bug("Unexpected miteruby_buffer_mark call in consumer test");
+__attribute__((noreturn)) void miteruby_raw_events_queue_mark(DDTRACE_UNUSED miteruby_raw_events_queue_t *raw_events_queue) {
+  rb_bug("Unexpected miteruby_raw_events_queue_mark call in consumer test");
 }
 
 typedef union {
@@ -54,7 +54,7 @@ static void assert_allocation_accounting(void) {
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) +
     consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
-  assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(*consumer_state.buffer) +
+  assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(*consumer_state.raw_events_queue) +
     sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_requested_bytes());
 }
 
@@ -670,33 +670,33 @@ static void test_thread_contexts_capacity(void) {
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
 }
 
-static miteruby_buffer_t invalid_buffer;
+static miteruby_raw_events_queue_t invalid_raw_events_queue;
 
-static VALUE consume_invalid_buffer(DDTRACE_UNUSED VALUE unused) {
-  miteruby_consumer_consume_loop(&invalid_buffer);
+static VALUE consume_invalid_raw_events_queue(DDTRACE_UNUSED VALUE unused) {
+  miteruby_consumer_consume_loop(&invalid_raw_events_queue);
   return Qnil;
 }
 
-static void test_buffer_internal_error(void) {
-  assert(miteruby_buffer_init(&invalid_buffer) == 0);
-  invalid_buffer.data[0] = 2;
-  atomic_store(&invalid_buffer.write_state, 1);
+static void test_raw_events_queue_internal_error(void) {
+  assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
+  invalid_raw_events_queue.data[0] = 2;
+  atomic_store(&invalid_raw_events_queue.write_state, 1);
   sigset_t original_mask, current_mask;
   sigemptyset(&sigprof_signal_mask);
   sigaddset(&sigprof_signal_mask, SIGPROF);
   assert(pthread_sigmask(SIG_UNBLOCK, &sigprof_signal_mask, &original_mask) == 0);
-  assert_runtime_error(consume_invalid_buffer, "Miteruby buffer internal error");
+  assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby raw events queue internal error");
   assert(pthread_sigmask(SIG_BLOCK, NULL, &current_mask) == 0);
   assert(sigismember(&current_mask, SIGPROF) == 0);
   assert(pthread_sigmask(SIG_SETMASK, &original_mask, NULL) == 0);
-  miteruby_buffer_destroy(&invalid_buffer);
+  miteruby_raw_events_queue_destroy(&invalid_raw_events_queue);
 }
 
 int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
-  test_buffer_internal_error();
+  test_raw_events_queue_internal_error();
   test_initialization_failure();
   assert(miteruby_stack_dedup_init());
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
