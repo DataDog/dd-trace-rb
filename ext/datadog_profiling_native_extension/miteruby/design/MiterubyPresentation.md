@@ -166,4 +166,4 @@ The committed branch introduced a direct libdatadog recorder, nanopb, bundled zs
 
 **Next:** measure application overhead, YJIT effects, export pauses, memory retention, and sample loss against the existing profiler. The branch includes a side-exit experiment and Fibonacci demo; no speedup is claimed here.
 
-Source notes: [buffer design](BufferDesign.md), [event format](EventDesign.md), [serializer experiment](CustomSerializerPresentation.md), [optimization ideas](OptimizationIdeas.md).
+Source notes: [raw events queue design](RawEventsQueueDesign.md), [event format](EventDesign.md), [serializer experiment](CustomSerializerPresentation.md), [optimization ideas](OptimizationIdeas.md).
