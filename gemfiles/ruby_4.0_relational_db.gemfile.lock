@@ -141,7 +141,8 @@ GEM
     simplecov_json_formatter (0.1.4)
     sqlite3 (1.7.3)
       mini_portile2 (~> 2.8.0)
-    trilogy (2.9.0)
+    trilogy (2.13.2)
+      bigdecimal
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     warning (1.6.0)
@@ -277,7 +278,7 @@ CHECKSUMS
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
   sqlite3 (1.7.3) sha256=fa77f63c709548f46d4e9b6bb45cda52aa3881aa12cc85991132758e8968701c
-  trilogy (2.9.0) sha256=a2d63b663ba68a4758e15d1f9afb228f5d16efc7fe7cea68699e1c106ef6067f
+  trilogy (2.13.2) sha256=2b3bf465cedc3d117c2b981e6e771da8855bc398ad77cad93815fbd6d62a82da
   tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
   webmock (3.26.4) sha256=8d8da206d217ebe6968cfb09c77f4533c23074e1432bad865f3994eacbaad50d

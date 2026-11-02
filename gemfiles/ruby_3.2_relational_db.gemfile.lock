@@ -161,7 +161,8 @@ GEM
     sqlite3 (2.9.6-x86_64-darwin)
     sqlite3 (2.9.6-x86_64-linux-gnu)
     timeout (0.6.1)
-    trilogy (2.6.0)
+    trilogy (2.13.2)
+      bigdecimal
     tsort (0.2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -301,7 +302,7 @@ CHECKSUMS
   sqlite3 (2.9.6-x86_64-darwin) sha256=b5842fea77781c14da03fa7bc0feb82db03a69e135affcb6f5399cbd2797a5f3
   sqlite3 (2.9.6-x86_64-linux-gnu) sha256=613188ce02f614126ddbc38c5e217ccffd6306d0dcd9adca9764547aa890a634
   timeout (0.6.1) sha256=78f57368a7e7bbadec56971f78a3f5ecbcfb59b7fcbb0a3ed6ddc08a5094accb
-  trilogy (2.6.0) sha256=3da50f525a092e996d7ce74a6d8c65d087d11bc99ccff7aa4e6a6210932f61c2
+  trilogy (2.13.2) sha256=2b3bf465cedc3d117c2b981e6e771da8855bc398ad77cad93815fbd6d62a82da
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
   warning (1.6.0) sha256=a49cdfae19fb77d19afff2efbe45f8ab759e9cd25b4e4ce2c79dbaf46bdb6c9e
