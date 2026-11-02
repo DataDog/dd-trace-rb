@@ -14,10 +14,6 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
   default_settings
 
-  before do
-    allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(200)
-  end
-
   let(:redactor) do
     Datadog::DI::Redactor.new(settings)
   end
@@ -116,6 +112,261 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
           an_instance_of(Datadog::DI::Error::ExpressionEvaluationError),
           description: "DI capture-expression evaluation failed",
         )
+        evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "expression evaluation exceeds the evaluation deadline" do
+      before do
+        expect(di_settings).to receive(:max_time_to_evaluate_ms).and_return(0)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("x.filter(@it >= 0)",
+                {"filter" => [{"ref" => "x"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {x: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "omits the key from output and reports the timeout as an evaluation error" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.size).to eq(1)
+        expect(result.errors.first.expr).to eq("filtered")
+        expect(result.errors.first.message).to include("EvaluationTimeout")
+      end
+
+      it "increments the evaluation_timeouts telemetry counter and emits the evaluationTimeout skip metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
+        evaluator.evaluate(probe, context)
+      end
+
+      it "logs the timeout at debug with the probe id, then the failure log" do
+        expect_lazy_log_many(logger, :debug,
+          /di: probe p1: capture expression evaluation timed out: Datadog::DI::Error::EvaluationTimeout/,
+          /di: probe p1: capture expression filtered: evaluation failed: Datadog::DI::Error::EvaluationTimeout/)
+        evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "an earlier expression's serialization consumes the later expression's evaluation budget" do
+      before do
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(50)
+      end
+
+      # The first expression's serialization advances the CPU clock to
+      # 60 ms, past that expression's 50 ms evaluation deadline and
+      # inside the 200 ms capture budget, so the second expression
+      # resolves its evaluation deadline after the serialization.
+      serialization_deadline_calc = 0.0
+      first_expr_capture_check = 0.0
+      first_expr_eval_deadline_calc = 0.0
+      first_result_serialize = 0.0
+      second_expr_capture_check = 0.06
+      second_expr_eval_deadline_calc = 0.06
+      second_expr_filter_check = 0.06
+      second_result_serializes = [0.06, 0.06, 0.06, 0.06]
+      stub_cpu_clock([serialization_deadline_calc, first_expr_capture_check,
+        first_expr_eval_deadline_calc, first_result_serialize,
+        second_expr_capture_check, second_expr_eval_deadline_calc,
+        second_expr_filter_check, *second_result_serializes])
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "x", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("items.filter(@it >= 0)",
+                {"filter" => [{"ref" => "items"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {x: 42, items: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "evaluates the later expression under its fresh deadline and captures its value" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values["x"]).to include(type: "Integer", value: "42")
+        expect(result.serialized_values["filtered"]).to eq(
+          type: "Array",
+          elements: [
+            {type: "Integer", value: "1"},
+            {type: "Integer", value: "2"},
+            {type: "Integer", value: "3"},
+          ],
+        )
+        expect(result.errors).to eq([])
+      end
+    end
+
+    context "the capture deadline bounds each expression's evaluation" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(150)
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(50)
+      end
+
+      let(:expr) { instance_double(Datadog::DI::EL::Expression) }
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "x", expr: expr)],
+        )
+      end
+
+      context "when the expression's own deadline comes first" do
+        # Capture deadline 0.15; the expression starts at 0.0, so its own
+        # deadline is 0.05.
+        stub_cpu_clock([0.0, 0.0, 0.0, 0.0, 0.0])
+
+        it "evaluates under the expression's own deadline" do
+          expect(expr).to receive(:evaluate).with(context, evaluation_deadline: 0.05).and_return(42)
+          evaluator.evaluate(probe, context)
+        end
+      end
+
+      context "when the capture deadline comes first" do
+        # Capture deadline 0.15; the expression starts at 0.12, so its own
+        # deadline 0.17 falls after the capture deadline.
+        stub_cpu_clock([0.0, 0.12, 0.12, 0.12, 0.12])
+
+        it "evaluates under the capture deadline" do
+          expect(expr).to receive(:evaluate).with(context, evaluation_deadline: 0.15).and_return(42)
+          evaluator.evaluate(probe, context)
+        end
+      end
+    end
+
+    context "an evaluation times out with the capture deadline passed" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(150)
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(50)
+      end
+
+      serialization_deadline_calc = 0.0
+      expr_capture_check = 0.12
+      expr_eval_deadline_calc = 0.12
+      filter_check_past_capture_deadline = 0.16
+      timeout_capture_check = 0.16
+      stub_cpu_clock([serialization_deadline_calc, expr_capture_check,
+        expr_eval_deadline_calc, filter_check_past_capture_deadline, timeout_capture_check])
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("items.filter(@it >= 0)",
+                {"filter" => [{"ref" => "items"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {items: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "reports the expression as not captured with reason timeout" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq("filtered" => {notCapturedReason: "timeout"})
+        expect(result.errors).to eq([])
+      end
+
+      it "counts it as skipped by the capture budget" do
+        expect(telemetry).to receive(:inc).with("debugger", "capture_expressions_skipped_by_timeout", 1)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "evaluationTimeout", event_type: "log", probe_id: "p1"})
+        expect(telemetry).not_to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "an evaluation times out with the capture deadline not yet passed" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(150)
+        allow(di_settings).to receive(:max_time_to_evaluate_ms).and_return(50)
+      end
+
+      serialization_deadline_calc = 0.0
+      expr_capture_check = 0.0
+      expr_eval_deadline_calc = 0.0
+      filter_check_past_own_deadline = 0.06
+      timeout_capture_check = 0.06
+      stub_cpu_clock([serialization_deadline_calc, expr_capture_check,
+        expr_eval_deadline_calc, filter_check_past_own_deadline, timeout_capture_check])
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "filtered",
+              expr: compile_expression("items.filter(@it >= 0)",
+                {"filter" => [{"ref" => "items"}, {"ge" => [{"ref" => "@it"}, 0]}]}),
+            ),
+          ],
+        )
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          locals: {items: [1, 2, 3]},
+          target_self: nil,
+        )
+      end
+
+      it "reports the timeout as an evaluation error" do
+        result = evaluator.evaluate(probe, context)
+        expect(result.serialized_values).to eq({})
+        expect(result.errors.map(&:expr)).to eq(["filtered"])
+        expect(result.errors.first.message).to include("EvaluationTimeout")
+      end
+
+      it "increments the evaluation_timeouts counter" do
+        expect(telemetry).to receive(:inc).with("debugger", "evaluation_timeouts", 1)
+        expect(telemetry).not_to receive(:inc).with("debugger", "capture_expressions_skipped_by_timeout", 1)
         evaluator.evaluate(probe, context)
       end
     end
@@ -241,9 +492,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       # construction; it passes through the CPU clock stub below.
       deadline_calc = 0.0
       first_expr_check = 0.0
+      first_expr_eval_deadline_calc = 0.0
       first_result_serialize = 0.0
       second_expr_check = 0.2  # past the deadline
-      stub_cpu_clock([deadline_calc, first_expr_check, first_result_serialize, second_expr_check])
+      stub_cpu_clock([deadline_calc, first_expr_check, first_expr_eval_deadline_calc,
+        first_result_serialize, second_expr_check])
 
       let(:probe) do
         Datadog::DI::Probe.new(

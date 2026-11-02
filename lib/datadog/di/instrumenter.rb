@@ -83,7 +83,7 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for instrumenter diagnostics
-      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical rate-limit skip metric
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrail skip metrics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
       # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
@@ -554,7 +554,8 @@ module Datadog
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
-              continue = condition.satisfied?(context)
+              continue = condition.satisfied?(context,
+                evaluation_deadline: serializer.evaluation_deadline)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
@@ -562,6 +563,10 @@ module Datadog
               # these exceptions are propagated.
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+              # An evaluation timeout is an internal budget abort, so it
+              # stays contained even under propagate_all_exceptions.
+              record_condition_evaluation_timeout(probe, exc)
 
               if context
                 # We want to report evaluation errors for conditions
@@ -788,12 +793,16 @@ module Datadog
         public :kwargs_from_splat
       end
 
-      # Trace point callback for a line probe.
+      # Trace point callback for a line probe hit. Evaluates the probe's
+      # condition, applies the per-probe rate limiter and the global rate
+      # limiter, then invokes the responder with the built context.
       #
-      # @param probe [Probe] the probe installed on this line
-      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence the trace point is targeted at, or nil when untargeted
-      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
-      # @param tp [TracePoint] the firing trace point
+      # @param probe [Probe] the probe the trace point was installed for.
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
+      #   the probe's target file, when the trace point is targeted.
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback, #probe_disabled_callback]
+      #   callback target for the probe hit.
+      # @param tp [TracePoint] the trace point event that fired.
       # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
@@ -832,7 +841,8 @@ module Datadog
         if condition = probe.condition
           begin
             context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
+            return unless condition.satisfied?(context,
+              evaluation_deadline: serializer.evaluation_deadline)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
@@ -840,6 +850,10 @@ module Datadog
             # these exceptions are propagated.
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            # An evaluation timeout is an internal budget abort, so it
+            # stays contained even under propagate_all_exceptions.
+            record_condition_evaluation_timeout(probe, exc)
 
             if context
               # We want to report evaluation errors for conditions
@@ -897,6 +911,21 @@ module Datadog
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+        nil
+      end
+
+      # Records a condition evaluation timeout for +probe+ through the
+      # shared evaluation-timeout reporter. Does nothing when +exc+ is not
+      # an evaluation timeout.
+      #
+      # @param probe [Probe] the probe whose condition evaluation timed out.
+      # @param exc [Exception] the exception raised by the evaluation.
+      # @return [void]
+      def record_condition_evaluation_timeout(probe, exc)
+        DI.report_evaluation_timeout(
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+          probe: probe, kind: "condition", exc: exc,
+        )
         nil
       end
 

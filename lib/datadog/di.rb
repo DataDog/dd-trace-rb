@@ -173,6 +173,33 @@ module Datadog
         Datadog.send(:components).dynamic_instrumentation
       end
 
+      # Reports an evaluation timeout: increments the evaluation_timeouts
+      # telemetry counter, emits the canonical guardrail skip metric for the
+      # timeout, and logs at debug with the probe id, the evaluation kind and
+      # the exception. Returns whether +exc+ was an evaluation timeout, so
+      # callers can run timeout-specific follow-up.
+      #
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component
+      #   the counter increments through.
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the
+      #   canonical evaluation-timeout skip metric.
+      # @param logger [DI::Logger] logger the timeout log writes through.
+      # @param probe [Probe] the probe whose evaluation timed out.
+      # @param kind [String] the evaluation kind, e.g. "condition",
+      #   "capture expression" or "template".
+      # @param exc [Exception] the exception raised by the evaluation.
+      # @return [Boolean] whether the exception was an evaluation timeout.
+      def report_evaluation_timeout(telemetry:, guardrails_telemetry:, logger:, probe:, kind:, exc:)
+        return false unless exc.is_a?(DI::Error::EvaluationTimeout)
+        telemetry&.inc(TELEMETRY_NAMESPACE, "evaluation_timeouts", 1)
+        guardrails_telemetry.skipped(
+          reason: GuardrailsTelemetry::Reason::EVALUATION_TIMEOUT,
+          probe: probe,
+        )
+        logger.debug { "di: probe #{probe.id}: #{kind} evaluation timed out: #{exc.class}: #{exc.message}" }
+        true
+      end
+
       # Track how many outstanding instrumentations are in DI.
       #
       # It is hard to find the actual instrumentations - there is no

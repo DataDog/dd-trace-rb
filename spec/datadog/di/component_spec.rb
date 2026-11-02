@@ -38,6 +38,7 @@ RSpec.describe Datadog::DI::Component do
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
           .to equal(component.guardrails_telemetry)
+        expect(component.probe_notification_builder.guardrails_telemetry).to equal(component.guardrails_telemetry)
         component.shutdown!
       end
 

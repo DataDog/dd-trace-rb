@@ -18,6 +18,8 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
+      @evaluation_budget_seconds: Float
+
       def initialize: (Datadog::Core::Configuration::Settings settings, Redactor redactor, logger: DI::Logger, guardrails_telemetry: DI::GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
@@ -37,12 +39,14 @@ module Datadog
       def serialize_vars: (Hash[Symbol, untyped] vars, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, deadline: Float) -> Hash[Symbol, untyped]
       def serialize_value: (any value, ?name: (Symbol | String)?, ?depth: Integer, ?attribute_count: Integer?, ?length: Integer?, ?collection_size: Integer?, ?type: Class?, deadline: Float) -> Hash[Symbol, untyped]
       def serialization_deadline: () -> Float
+      def evaluation_deadline: () -> Float
       def serialize_value_for_message: (any value, ?depth: ::Integer, ?name: (::Symbol | ::String)?) -> String?
 
       def self.register: (condition: Proc) {
         (Serializer serializer, any value, name: Symbol?, depth: Integer, deadline: Float) -> untyped } -> void
 
       private
+      attr_reader evaluation_budget_seconds: Float
       def deadline_exceeded?: (Float deadline) -> bool
       def max_capture_collection_size_for_message: () -> Integer
 
