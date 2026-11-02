@@ -1,10 +1,10 @@
-# Buffer design
+# Raw events queue design
 
-The buffer accepts variable-size records from multiple producers and supplies
+The raw events queue accepts variable-size records from multiple producers and supplies
 them to one consumer. Producers can write from signal handlers or other code.
 
-This document gives the design reasons and limits for `buffer.h` and
-`buffer.c`.
+This document gives the design reasons and limits for `raw_events_queue.h` and
+`raw_events_queue.c`.
 
 Go's CPU profiler and its `profBuf` buffer were the starting point.
 
