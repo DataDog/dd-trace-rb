@@ -1,0 +1,70 @@
+module Datadog
+  module OpenFeature
+    class ExposureHook
+      include ::OpenFeature::SDK::Hooks::Hook
+
+      class Evaluation
+        @flag_key: String
+
+        @evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+
+        @evaluation_details: ::OpenFeature::SDK::EvaluationDetails
+
+        @metadata: Hash[String, untyped]
+
+        @features: SplitFeatures::features_t?
+
+        attr_reader flag_key: String
+
+        attr_reader evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+
+        attr_reader evaluation_details: ::OpenFeature::SDK::EvaluationDetails
+
+        def initialize: (
+          ::OpenFeature::SDK::Hooks::HookContext hook_context,
+          ::OpenFeature::SDK::EvaluationDetails evaluation_details
+        ) -> void
+
+        def variant: () -> String?
+
+        def allocation_key: () -> String?
+
+        def split_serial_id: () -> Integer?
+
+        def targeting_key: () -> String?
+
+        def exposure?: () -> bool
+
+        def cache_hit?: () -> bool
+
+        def should_send?: () -> bool
+
+        def features: () -> SplitFeatures::features_t
+      end
+
+      @callback: _Callable
+
+      @failure_warning: Core::Utils::OnlyOnce
+
+      @unsupported_provider_warning: Core::Utils::OnlyOnce
+
+      interface _Callable
+        def call: (Evaluation evaluation) -> untyped
+      end
+
+      def initialize: (?untyped callback) ?{ (Evaluation evaluation) -> void } -> void
+
+      def finally: (
+        hook_context: ::OpenFeature::SDK::Hooks::HookContext,
+        evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
+        **any _opts
+      ) -> void
+
+      private
+
+      def datadog_provider?: (::OpenFeature::SDK::Hooks::HookContext hook_context) -> bool
+
+      def log_callback_failure: (::OpenFeature::SDK::Hooks::HookContext hook_context, Exception error) -> void
+    end
+  end
+end

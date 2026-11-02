@@ -84,6 +84,13 @@ module Datadog
                 o.default false
               end
 
+              # Stops only exposures sent to Datadog; the exposure cache and ExposureHook keep working.
+              option :exposures_datadog_logging_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED"
+                o.default true
+              end
+
               option :configuration_source do |o|
                 o.type :string
                 o.env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE"

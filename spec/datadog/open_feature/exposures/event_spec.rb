@@ -8,28 +8,19 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   before { allow(Datadog::Core::Utils::Time).to receive(:now).and_return(now) }
 
   let(:now) { Time.utc(2025, 1, 1, 0, 0, 0) }
-  let(:event) { described_class.build(result, flag_key: "feature_flag", context: context) }
+  let(:event) do
+    described_class.build(
+      flag_key: "feature_flag", allocation_key: "4-for-john-doe", variant: "4", serial_id: serial_id,
+      context: context, features: features,
+    )
+  end
   let(:serial_id) { nil }
   let(:context) do
     instance_double(
       OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe", fields: {"targeting_key" => "john-doe"},
     )
   end
-  let(:result) do
-    Datadog::OpenFeature::ResolutionDetails.new(
-      value: 4,
-      allocation_key: "4-for-john-doe",
-      variant: "4",
-      serial_id: serial_id,
-      flag_metadata: {
-        "allocationKey" => "4-for-john-doe",
-        "variationType" => "number",
-        "doLog" => true,
-      },
-      log?: true,
-      error?: false,
-    )
-  end
+  let(:features) { {} }
 
   describe ".build" do
     context "when context contains nested fields" do
@@ -116,41 +107,18 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
 
       it { expect(event).to eq(expected) }
     end
-  end
 
-  describe ".build with split features" do
-    let(:result) do
-      Datadog::OpenFeature::ResolutionDetails.new(
-        value: 4, allocation_key: "4-for-john-doe", variant: "4", flag_metadata: {}, log?: true, error?: false,
-        features: features,
-      )
-    end
+    context "when exposure features are present" do
+      let(:features) { {"holdout.key" => "h-1", "holdout.share" => 0.25, "holdout.enabled" => false} }
 
-    context "when the split has EXPOSURE features" do
-      let(:features) do
-        [
-          ["holdout.key", "h-1", ["EXPOSURE"]],
-          ["holdout.share", 0.25, ["HOOK", "EXPOSURE"]],
-          ["hook.only", true, ["HOOK"]],
-        ]
-      end
-
-      it "adds only them, as a flat features object" do
-        expect(event[:features]).to eq("holdout.key" => "h-1", "holdout.share" => 0.25)
+      it "adds them as a flat features object" do
+        expect(event).to include(
+          features: {"holdout.key" => "h-1", "holdout.share" => 0.25, "holdout.enabled" => false},
+        )
       end
     end
 
-    context "when the split has no EXPOSURE features" do
-      let(:features) { [["hook.only", true, ["HOOK"]]] }
-
-      it "omits the features object" do
-        expect(event).not_to have_key(:features)
-      end
-    end
-
-    context "when the split has no features" do
-      let(:features) { [] }
-
+    context "when there are no exposure features" do
       it "omits the features object" do
         expect(event).not_to have_key(:features)
       end
@@ -158,28 +126,26 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
   end
 
   describe ".cache_key" do
-    let(:context) { instance_double(OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe") }
-
     it "returns cache key based on flag and targeting key" do
-      expect(described_class.cache_key(result, flag_key: "feature_flag", context: context))
+      expect(described_class.cache_key(flag_key: "feature_flag", targeting_key: "john-doe"))
         .to eq("feature_flag:john-doe")
     end
   end
 
   describe ".cache_value" do
-    let(:context) { instance_double(OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe") }
+    subject(:cache_value) do
+      described_class.cache_value(allocation_key: "4-for-john-doe", variant: "4", serial_id: serial_id)
+    end
 
     it "returns cache value based on allocation and variant" do
-      expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
-        .to eq("4-for-john-doe:4:")
+      expect(cache_value).to eq("4-for-john-doe:4:")
     end
 
     context "when result has a serial id" do
       let(:serial_id) { 7 }
 
       it "returns cache value based on allocation, variant and serial id" do
-        expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
-          .to eq("4-for-john-doe:4:7")
+        expect(cache_value).to eq("4-for-john-doe:4:7")
       end
     end
 
@@ -187,8 +153,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
       let(:serial_id) { 0 }
 
       it "returns a value that differs from the value without a serial id" do
-        expect(described_class.cache_value(result, flag_key: "feature_flag", context: context))
-          .to eq("4-for-john-doe:4:0")
+        expect(cache_value).to eq("4-for-john-doe:4:0")
       end
     end
   end
