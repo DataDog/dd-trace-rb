@@ -25,15 +25,16 @@ on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
 
-## Bulk marking reference sets
+## Bulk marking references
 
-The `mark_threads_set` Verstable set stores `VALUE`-sized keys, while `mark_cme_iseq_set` stores pairs of `VALUE`-sized
-references. Both keep metadata in a separate array.
+The `mark_threads_set` Verstable set stores `VALUE`-sized keys, while `mark_cme_iseq_map` maps pairs of `VALUE`-sized
+references to IDs. Both keep metadata in a separate array.
 Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `raw_events_queue_marking.c`,
 instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
+The map's buckets also contain IDs and padding, so bulk marking must account for that layout.
 
 Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
-only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing each set to avoid
+only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing each table to avoid
 retaining objects from previous profiles. Any future individual deletions would also need to zero vacated buckets.
 
 Benchmark before adopting: this avoids metadata-driven iteration and individual marking calls, but scans every bucket,
