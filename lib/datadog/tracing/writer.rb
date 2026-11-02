@@ -158,7 +158,7 @@ module Datadog
       # @!visibility private
       def start_worker
         @trace_handler = ->(items, transport) { send_spans(items, transport) }
-        @worker = Workers::AsyncTransport.new(
+        worker = Workers::AsyncTransport.new(
           transport: @transport,
           buffer_size: @buff_size,
           on_trace: @trace_handler,
@@ -167,14 +167,16 @@ module Datadog
           logger: logger,
         )
 
-        @worker.start
+        @worker = worker
+        worker.start
       end
 
       def stop_worker
         @stopped = true
 
-        if @worker
-          @worker.stop
+        worker = @worker
+        if worker
+          worker.stop
           @worker = nil
         end
 

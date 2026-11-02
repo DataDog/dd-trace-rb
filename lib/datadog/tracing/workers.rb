@@ -52,7 +52,8 @@ module Datadog
           begin
             traces = @trace_buffer.pop
             traces = Pipeline.process!(traces)
-            @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
+            trace_task = @trace_task
+            trace_task.call(traces, @transport) unless trace_task.nil? || traces.empty?
           rescue => e
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -71,9 +72,10 @@ module Datadog
 
             @run = true
             logger.debug { "Starting thread for: #{self}" }
-            @worker = Thread.new { perform }
-            @worker.name = self.class.name
-            @worker.thread_variable_set(:fork_safe, true)
+            worker = Thread.new { perform }
+            worker.name = self.class.name
+            worker.thread_variable_set(:fork_safe, true)
+            @worker = worker
 
             nil
           end
@@ -95,7 +97,7 @@ module Datadog
 
         # Block until executor shutdown is complete or until timeout seconds have passed.
         def join
-          @worker.join(@shutdown_timeout)
+          @worker&.join(@shutdown_timeout)
         end
 
         # Enqueue an item in the trace internal buffer. This operation is thread-safe

@@ -11,6 +11,9 @@ module Datadog
         module Metrics
           def self.extended(base)
             base.class_eval do
+              # The only production host is Core::Diagnostics::Health::Metrics,
+              # whose singleton carries the Helpers registration DSL.
+              # @type self: singleton(Datadog::Core::Diagnostics::Health::Metrics)
               count :api_errors, Ext::Health::Metrics::METRIC_API_ERRORS
               count :api_requests, Ext::Health::Metrics::METRIC_API_REQUESTS
               count :api_responses, Ext::Health::Metrics::METRIC_API_RESPONSES

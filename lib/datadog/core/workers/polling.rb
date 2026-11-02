@@ -21,6 +21,7 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
+            # @type self: Datadog::Core::Workers::Polling
             super if enabled?
           end
         end

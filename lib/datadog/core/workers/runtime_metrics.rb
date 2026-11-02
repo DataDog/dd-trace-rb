@@ -60,7 +60,9 @@ module Datadog
         # dependencies.
         def stop(*args, close_metrics: true)
           self.enabled = false
-          result = super(*args)
+          # super resolves to Polling#stop via the included module.
+          # Steep cannot model super to an included-module method (steep#1232).
+          result = super(*args) # steep:ignore UnexpectedPositionalArgument
           @metrics.close if close_metrics
           result
         end

@@ -91,6 +91,10 @@ module Datadog
             # If a flush was requested, send immediately and do not
             # wait for the cooldown period.
             if @lock.synchronize { @flush } == 0
+              # The local carries the previous iteration's value into the
+              # block, so it needs an explicit type to break the circular
+              # inference with the assignment below.
+              # @type var sleep_remaining: Numeric?
               sleep_remaining = @lock.synchronize do
                 if sleep_remaining && sleep_remaining > 0
                   # Recalculate how much sleep time is remaining, then sleep that long.
@@ -100,7 +104,7 @@ module Datadog
                 end
               end
 
-              if sleep_remaining > 0
+              if sleep_remaining && sleep_remaining > 0
                 # Do not need to update @wake_scheduled here because
                 # wake-up is already scheduled for the earliest possible time.
                 wake.wait(sleep_remaining)
@@ -118,7 +122,7 @@ module Datadog
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
-              @wake_scheduled = more
+              @wake_scheduled = !!more
             end
             wake.wait(more ? min_send_interval : nil)
           end
@@ -159,7 +163,8 @@ module Datadog
         end
         begin
           loop do
-            if @thread.nil? || !@thread.alive?
+            thread = @thread
+            if thread.nil? || !thread.alive?
               return
             end
 
@@ -208,7 +213,9 @@ module Datadog
       #
       # @return [DI::Transport::Diagnostics::Transport]
       def status_transport
-        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
+        # The DI logger facade is duck-compatible with the Core::Logger the
+        # transport stack declares; the stack only ever calls debug.
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger) # steep:ignore ArgumentTypeMismatch
       end
 
       def do_send_status(batch)
@@ -219,7 +226,7 @@ module Datadog
       #
       # @return [DI::Transport::Input::Transport]
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, # steep:ignore ArgumentTypeMismatch
           telemetry: telemetry, guardrails_telemetry: guardrails_telemetry)
       end
 
@@ -231,7 +238,9 @@ module Datadog
       #
       # @param batch [Array<SnapshotEvent>] the snapshot events queued for sending
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+        # A Method object satisfies the callback contract through #call;
+        # Steep cannot see that.
+        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Handles serialization errors reported by the transport.
@@ -289,6 +298,8 @@ module Datadog
         #   snapshot event's guardrails event type
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
+          # @type self: Datadog::DI::ProbeNotifierWorker
+          # @type var probe: DI::Probe?
           # Enqueueing reads DI configuration and writes debug/trace logs, both
           # of which can call stdlib methods (e.g. Set#include? via the
           # configuration layer's supported-configuration lookup). If a customer
@@ -322,9 +333,12 @@ module Datadog
                   end
                 end
                 if event_type == :snapshot
+                  # The snapshot branch is the only nil-free assignment path
+                  # of guardrails_event_type.
+                  snapshot_event_type = guardrails_event_type #: String
                   guardrails_telemetry.dropped(
                     reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
-                    event_type: guardrails_event_type,
+                    event_type: snapshot_event_type,
                   )
                 end
               else
@@ -335,7 +349,8 @@ module Datadog
                   logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
                 end
                 queue << if event_type == :snapshot
-                  SnapshotEvent.new(payload: event, event_type: guardrails_event_type)
+                  snapshot_event_type = guardrails_event_type #: String
+                  SnapshotEvent.new(payload: event, event_type: snapshot_event_type)
                 else
                   event
                 end
@@ -372,11 +387,12 @@ module Datadog
         # types of events. Therefore on most wake-ups we expect to only
         # send one type of events.
         define_method("maybe_send_#{event_type}") do
-          batch = nil
-          @lock.synchronize do
-            batch = instance_variable_get("@#{event_type}_queue")
+          # @type self: Datadog::DI::ProbeNotifierWorker
+          batch = @lock.synchronize do
+            queued = instance_variable_get("@#{event_type}_queue") #: Array[untyped]
             instance_variable_set("@#{event_type}_queue", [])
-            @io_in_progress = batch.any?
+            @io_in_progress = queued.any?
+            queued
           end
           logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
           if batch.any?
