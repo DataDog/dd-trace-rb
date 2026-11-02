@@ -23,8 +23,10 @@ module Datadog
             )
           end
 
-          # Raises NoMethodError when the context has no trace (e.g. `Context::ROOT`).
-          @datadog_propagator.inject(context.trace.to_digest, carrier) # steep:ignore NoMethod
+          trace = context.trace
+          return unless trace
+
+          @datadog_propagator.inject(trace.to_digest, carrier)
         end
 
         def extract(
