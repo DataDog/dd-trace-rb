@@ -18,7 +18,7 @@
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
 #include "miteruby/allocator.h"
-#include "miteruby/buffer.h"
+#include "miteruby/raw_events_queue.h"
 #include "miteruby/consumer.h"
 #include "miteruby/sample_event.h"
 
@@ -271,7 +271,7 @@ static VALUE safely_call(
   VALUE (*handle_sampling_failure)(VALUE, VALUE)
 );
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
-static VALUE _native_miteruby_buffer_empty(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_raw_events_queue_empty(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
@@ -339,7 +339,7 @@ static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSE
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
-static miteruby_buffer_t *miteruby_buffer;
+static miteruby_raw_events_queue_t *miteruby_raw_events_queue;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -356,15 +356,15 @@ __thread uint64_t allocation_count = 0;
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
-  miteruby_buffer = miteruby_allocator_alloc(sizeof(*miteruby_buffer), "buffer");
-  if (miteruby_buffer == NULL) raise_syserr(errno, "Failed to allocate miteruby buffer");
-  if (miteruby_buffer_init(miteruby_buffer) != 0) {
+  miteruby_raw_events_queue = miteruby_allocator_alloc(sizeof(*miteruby_raw_events_queue), "raw_events_queue");
+  if (miteruby_raw_events_queue == NULL) raise_syserr(errno, "Failed to allocate miteruby raw events queue");
+  if (miteruby_raw_events_queue_init(miteruby_raw_events_queue) != 0) {
     int error = errno;
-    miteruby_allocator_free(miteruby_buffer);
-    miteruby_buffer = NULL;
-    raise_syserr(error, "Failed to initialize miteruby buffer");
+    miteruby_allocator_free(miteruby_raw_events_queue);
+    miteruby_raw_events_queue = NULL;
+    raise_syserr(error, "Failed to initialize miteruby raw events queue");
   }
-  miteruby_consumer_init(miteruby_buffer);
+  miteruby_consumer_init(miteruby_raw_events_queue);
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
@@ -424,7 +424,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gc_event", _native_on_gc_event, 3);
   rb_define_singleton_method(testing_module, "_native_request_prepare_on_gc_finish", _native_request_prepare_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
-  rb_define_singleton_method(testing_module, "_native_miteruby_buffer_empty?", _native_miteruby_buffer_empty, 0);
+  rb_define_singleton_method(testing_module, "_native_miteruby_raw_events_queue_empty?", _native_miteruby_raw_events_queue_empty, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_wake_reader", _native_miteruby_wake_reader, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_mask", _native_miteruby_sample_event_publish_mask, 0);
   rb_define_singleton_method(testing_module, "_native_miteruby_sample_event_publish_thread", _native_miteruby_sample_event_publish_thread, 1);
@@ -780,7 +780,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   // TODO: Event will get marked as coming from the signal handler even if we were called from simulate_sampling_signal_delivery
   if (state->miteruby_enabled) {
-    if (!rb_during_gc()) miteruby_sample_event_publish_sighandler(miteruby_buffer);
+    if (!rb_during_gc()) miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue);
     return;
   }
 
@@ -1236,15 +1236,15 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
   return Qtrue;
 }
 
-static VALUE _native_miteruby_buffer_empty(DDTRACE_UNUSED VALUE self) {
-  uint32_t write_position = (uint32_t) atomic_load(&miteruby_buffer->write_state);
+static VALUE _native_miteruby_raw_events_queue_empty(DDTRACE_UNUSED VALUE self) {
+  uint32_t write_position = (uint32_t) atomic_load(&miteruby_raw_events_queue->write_state);
   // read_position advances only after the consumer finishes copying the borrowed record.
-  return atomic_load(&miteruby_buffer->read_position) == write_position ? Qtrue : Qfalse;
+  return atomic_load(&miteruby_raw_events_queue->read_position) == write_position ? Qtrue : Qfalse;
 }
 
 // TODO: Enforce there's only one thread running a consumer loop + handle forking.
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self) {
-  miteruby_consumer_consume_loop(miteruby_buffer);
+  miteruby_consumer_consume_loop(miteruby_raw_events_queue);
   return Qnil;
 }
 
@@ -1254,30 +1254,30 @@ static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE se
 }
 
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self) {
-  return miteruby_sample_event_publish_mask(miteruby_buffer, &sigprof_signal_mask) ? Qtrue : Qfalse;
+  return miteruby_sample_event_publish_mask(miteruby_raw_events_queue, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_wake_reader(DDTRACE_UNUSED VALUE self) {
-  miteruby_buffer_wake_consumer(miteruby_buffer);
+  miteruby_raw_events_queue_wake_consumer(miteruby_raw_events_queue);
   return Qnil;
 }
 
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread) {
   ENFORCE_THREAD(thread);
-  return miteruby_sample_event_publish_thread(miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
+  return miteruby_sample_event_publish_thread(miteruby_raw_events_queue, (value_thread_t) {.value = thread}, &sigprof_signal_mask) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns) {
   ENFORCE_THREAD(thread);
   return miteruby_sample_event_publish_testing(
-    miteruby_buffer, (value_thread_t) {.value = thread}, &sigprof_signal_mask, (cpu_time_t) {.ns = NUM2LONG(cpu_time_ns)}
+    miteruby_raw_events_queue, (value_thread_t) {.value = thread}, &sigprof_signal_mask, (cpu_time_t) {.ns = NUM2LONG(cpu_time_ns)}
   ) ? Qtrue : Qfalse;
 }
 
 static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
   VALUE headers = rb_ary_new();
   while (true) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(miteruby_buffer, NULL);
+    miteruby_raw_events_queue_record_t record = miteruby_raw_events_queue_read(miteruby_raw_events_queue, NULL);
     if (record.data == NULL) {
       if (record.rejected_count != 0) continue;
       return headers;

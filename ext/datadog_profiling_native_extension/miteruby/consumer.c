@@ -1,5 +1,5 @@
 #include "allocator.h"
-#include "buffer_marking.h"
+#include "raw_events_queue_marking.h"
 #include "consumer_recorder.h"
 #include "consumer.h"
 #include "libdatadog_recorder.h"
@@ -44,7 +44,7 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 #define CONSUMED_EVENTS_BUFFER_MAX_CAPACITY (MiB_AS_BYTES(16) / sizeof(miteruby_event_deduped_sample_t))
 
 typedef struct {
-  miteruby_buffer_t *buffer;
+  miteruby_raw_events_queue_t *raw_events_queue;
   verstable_mark_threads_set mark_threads_set;
   verstable_mark_cme_iseq_set mark_cme_iseq_set;
 
@@ -59,7 +59,7 @@ typedef struct {
 static miteruby_consumer_state_t consumer_state = {0};
 
 typedef struct {
-  miteruby_buffer_t *buffer;
+  miteruby_raw_events_queue_t *raw_events_queue;
   atomic_bool interrupted;
 } consumer_consume_loop_args;
 
@@ -67,7 +67,7 @@ typedef enum {
   MITERUBY_CONSUMER_OK = 0,
   MITERUBY_CONSUMER_INTERRUPTED,
   MITERUBY_CONSUMER_END_OF_STREAM,
-  MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR,
+  MITERUBY_CONSUMER_RAW_EVENTS_QUEUE_INTERNAL_ERROR,
   MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
   MITERUBY_CONSUMER_EVENTS_BUFFER_FULL,
   MITERUBY_CONSUMER_MARK_THREADS_FULL,
@@ -115,13 +115,13 @@ static void consumer_mark(void *data) {
   // We need to block the background consumer thread from consuming events so we have a consistent view...
   mutex_lock(&consumer_state.mutex);
 
-  // ...and `miteruby_buffer_mark` marks while blocking production of any new events.
+  // ...and `miteruby_raw_events_queue_mark` marks while blocking production of any new events.
   //
-  // (Holding the consumer mutex while blocking production is safe: publishers never acquire it, and buffer marking
+  // (Holding the consumer mutex while blocking production is safe: publishers never acquire it, and queue marking
   // masks SIGPROF before taking the producer lock.)
   //
-  // Every VALUE held by miteruby is protected by the buffer or one of the marking sets; other buffers hold copies.
-  miteruby_buffer_mark(state->buffer);
+  // Every VALUE held by miteruby is protected by the queue or one of the marking sets; other buffers hold copies.
+  miteruby_raw_events_queue_mark(state->raw_events_queue);
 
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
   // so these objects must stay pinned at their current addresses.
@@ -150,7 +150,7 @@ static size_t consumer_size(const void *data) {
 
   mutex_lock(&consumer_state.mutex);
 
-  size_t size = sizeof(*state) + sizeof(*state->buffer) +
+  size_t size = sizeof(*state) + sizeof(*state->raw_events_queue) +
     miteruby_allocator_alloc_size(state->consumed_events_buffer) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(state->mark_cme_iseq_set.buckets) + miteruby_stack_dedup_size();
@@ -179,7 +179,7 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_unlock(&consumer_state.mutex);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("miteruby_buffer_max_size_bytes")), SIZET2NUM(MITERUBY_BUFFER_CAPACITY_BYTES),
+    ID2SYM(rb_intern("miteruby_raw_events_queue_max_size_bytes")), SIZET2NUM(MITERUBY_RAW_EVENTS_QUEUE_CAPACITY_BYTES),
     ID2SYM(rb_intern("miteruby_consumed_events_buffer_max_size_bytes")),
       SIZET2NUM(CONSUMED_EVENTS_BUFFER_MAX_CAPACITY * sizeof(*consumer_state.consumed_events_buffer)),
     ID2SYM(rb_intern("miteruby_consumed_events_buffer_used_size_bytes")), SIZET2NUM(consumed_events_used_size),
@@ -197,11 +197,11 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   for (size_t i = 0; i < sizeof(arguments) / sizeof(*arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
 }
 
-void miteruby_consumer_init(miteruby_buffer_t *buffer) {
+void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
   if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success)
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
 
-  consumer_state.buffer = buffer;
+  consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
   verstable_mark_cme_iseq_set_init(&consumer_state.mark_cme_iseq_set);
 
@@ -242,9 +242,9 @@ void miteruby_consumer_reset(void) {
   mutex_unlock(&consumer_state.mutex);
 }
 
-void miteruby_consumer_consume_loop(miteruby_buffer_t *buffer) {
+void miteruby_consumer_consume_loop(miteruby_raw_events_queue_t *raw_events_queue) {
   consumer_consume_loop_args args = {
-    .buffer = buffer,
+    .raw_events_queue = raw_events_queue,
   };
   atomic_init(&args.interrupted, false);
   rb_ensure(consume_loop_body, (VALUE) &args, consume_loop_ensure, Qnil);
@@ -257,7 +257,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
     rb_thread_call_without_gvl(consume_without_gvl, args, consume_unblock, args);
 
   // TODO: Maybe in the future we want to more gracefully recover, e.g. maybe clear all the state and start accumulating again?
-  if (reason == MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR) rb_raise(rb_eRuntimeError, "Miteruby buffer internal error");
+  if (reason == MITERUBY_CONSUMER_RAW_EVENTS_QUEUE_INTERNAL_ERROR) rb_raise(rb_eRuntimeError, "Miteruby raw events queue internal error");
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
   if (reason == MITERUBY_CONSUMER_EVENTS_BUFFER_FULL) rb_raise(rb_eRuntimeError, "Miteruby consumed events buffer is full");
   if (reason == MITERUBY_CONSUMER_MARK_THREADS_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_threads set is full");
@@ -269,7 +269,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
 static void consume_unblock(void *args_ptr) {
   consumer_consume_loop_args *args = args_ptr;
   atomic_store(&args->interrupted, true);
-  miteruby_buffer_wake_consumer(args->buffer);
+  miteruby_raw_events_queue_wake_consumer(args->raw_events_queue);
 }
 
 static void *consume_without_gvl(void *args_ptr) {
@@ -281,14 +281,14 @@ static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_con
   if (pthread_sigmask(SIG_BLOCK, &sigprof_signal_mask, NULL) != 0) rb_bug("Failed to block SIGPROF in miteruby consumer");
 
   for (;;) {
-    miteruby_buffer_record_t record = miteruby_buffer_read(args->buffer, &args->interrupted);
+    miteruby_raw_events_queue_record_t record = miteruby_raw_events_queue_read(args->raw_events_queue, &args->interrupted);
 
-    if (record.internal_error) return MITERUBY_CONSUMER_BUFFER_INTERNAL_ERROR;
+    if (record.internal_error) return MITERUBY_CONSUMER_RAW_EVENTS_QUEUE_INTERNAL_ERROR;
     if (record.interrupted) return MITERUBY_CONSUMER_INTERRUPTED;
     if (record.end_of_stream) return MITERUBY_CONSUMER_END_OF_STREAM;
     if (record.data == NULL) continue;
 
-    // The borrowed event stays in shared-buffer marking until the next read, after this transfer completes.
+    // The borrowed event stays in queue marking until the next read, after this transfer completes.
     mutex_lock(&consumer_state.mutex);
     miteruby_consumer_exit_reason_t reason = buffer_event((const miteruby_event_header_t *)record.data);
     mutex_unlock(&consumer_state.mutex);
@@ -350,7 +350,7 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
   if (result.error_storage_full) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
 
-  // Retain references before the next buffer read releases the record's GC protection.
+  // Retain references before the next queue read releases the record's GC protection.
   if (!retain_thread(event->thread.value)) {
     if (result.ok.inserted) miteruby_stack_dedup_rollback_insert(result.ok.id);
     return MITERUBY_CONSUMER_MARK_THREADS_FULL;

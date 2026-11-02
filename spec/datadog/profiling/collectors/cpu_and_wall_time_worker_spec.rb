@@ -1813,7 +1813,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it "exposes storage limits before starting the worker" do
         expect(cpu_and_wall_time_worker.stats).to include(
-          miteruby_buffer_max_size_bytes: 1024 * 1024, # 1 MiB
+          miteruby_raw_events_queue_max_size_bytes: 1024 * 1024, # 1 MiB
           miteruby_consumed_events_buffer_max_size_bytes: 16_777_200, # around 16 MiB, it rounds because records are 40 bytes
           miteruby_mark_threads_max_size_bytes: 100 * 1024,
           miteruby_mark_cme_iseq_max_size_bytes: 16 * 1024 * 1024,
@@ -2052,7 +2052,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # Keep each eval's distinct ISEQ among the oldest frames retained by truncation.
           expect(eval("sample.call(350)", binding, __FILE__, __LINE__)).to be true
           described_class::Testing._native_miteruby_wake_reader
-          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_buffer_empty? }
+          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_raw_events_queue_empty? }
           break unless consumer.alive?
         end
 
@@ -2071,7 +2071,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         500.times do
           1000.times { described_class::Testing._native_miteruby_sample_event_publish_mask }
           described_class::Testing._native_miteruby_wake_reader
-          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_buffer_empty? }
+          loop_until { !consumer.alive? || described_class::Testing._native_miteruby_raw_events_queue_empty? }
           break unless consumer.alive?
         end
 
@@ -2140,7 +2140,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       loop_until do
         described_class::Testing._native_miteruby_wake_reader
         Thread.pass
-        described_class::Testing._native_miteruby_buffer_empty?
+        described_class::Testing._native_miteruby_raw_events_queue_empty?
       end
     ensure
       consumer&.kill&.join

@@ -29,7 +29,7 @@ We could even "shard" some of our storage to take better advantage of this.
 
 The `mark_threads_set` Verstable set stores `VALUE`-sized keys, while `mark_cme_iseq_set` stores pairs of `VALUE`-sized
 references. Both keep metadata in a separate array.
-Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `buffer_marking.c`,
+Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `raw_events_queue_marking.c`,
 instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
 
 Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
