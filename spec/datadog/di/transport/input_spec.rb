@@ -65,7 +65,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "timestamp" => Time.now.to_i,
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary,
+              "binary_data" => {"type" => "String", "value" => escaped_binary},
             },
           },
         }
@@ -78,6 +78,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       it "successfully serializes escaped binary through transport layer" do
         # Escaped binary format is JSON-safe
+        expect(transport).to receive(:send_input_chunk).once
         expect {
           transport.send_input([snapshot_event(snapshot)], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error
@@ -90,7 +91,10 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         # Can round-trip through JSON
         parsed = JSON.parse(json_output)
-        expect(parsed["captures"]["locals"]["binary_data"]).to eq(escaped_binary)
+        expect(parsed["captures"]["locals"]["binary_data"]).to eq(
+          "type" => "String",
+          "value" => escaped_binary,
+        )
       end
     end
 
@@ -106,7 +110,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           "id" => "test-snapshot",
           "captures" => {
             "locals" => {
-              "binary_data" => escaped_binary,
+              "binary_data" => {"type" => "String", "value" => escaped_binary},
             },
           },
         }
@@ -119,6 +123,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       end
 
       it "successfully serializes escaped binary string" do
+        expect(transport).to receive(:send_input_chunk).once
         expect {
           transport.send_input([snapshot_event(snapshot)], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error

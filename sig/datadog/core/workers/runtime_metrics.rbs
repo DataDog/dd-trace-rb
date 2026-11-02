@@ -9,7 +9,7 @@ module Datadog
 
         attr_reader metrics: untyped
 
-        def initialize: (?::Hash[untyped, untyped] options) -> void
+        def initialize: (telemetry: untyped telemetry, **untyped options) -> void
 
         def perform: () -> true
 

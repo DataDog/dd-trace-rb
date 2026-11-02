@@ -2,7 +2,10 @@ module Datadog
   module Core
     module Workers
       module Queue
+        include Polling
+
         def self.included: (untyped base) -> untyped
+        include PrependedMethods
         module PrependedMethods
           def perform: (*untyped args) -> (untyped | nil)
         end
@@ -16,7 +19,7 @@ module Datadog
 
         attr_writer buffer: untyped
 
-	def flush: (?timeout: Numeric?) -> bool
+	def flush: (?timeout: Numeric?) -> bool?
 	
 	private
 	

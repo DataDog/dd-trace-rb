@@ -3,34 +3,36 @@ module Datadog
     module Component
       WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
 
-      def build_tracer: (untyped settings, untyped agent_settings) -> untyped
+      def self?.build_tracer: (untyped settings, untyped agent_settings, logger: untyped) -> untyped
 
       def self?.bind_transport_telemetry: (untyped tracer, Core::Telemetry::Component telemetry) -> void
 
-      def build_trace_flush: (untyped settings) -> untyped
-      def build_sampler: (untyped settings) -> untyped
+      def self?.build_trace_flush: (untyped settings) -> untyped
+      def self?.build_sampler: (untyped settings) -> untyped
 
-      def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
-      def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+      def self?.build_native_transport: (untyped agent_settings) -> untyped
 
-      def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
+      def self?.ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
+      def self?.build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+
+      def self?.subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped
-      def writer_update_priority_sampler_rates_callback: (untyped sampler) -> untyped
+      def self?.writer_update_priority_sampler_rates_callback: (untyped sampler) -> untyped
 
-      def build_span_sampler: (untyped settings) -> untyped
+      def self?.build_span_sampler: (untyped settings) -> untyped
 
       private
 
-      def build_tracer_tags: (untyped settings) -> untyped
+      def self?.build_tracer_tags: (untyped settings) -> untyped
 
-      def build_rate_limit_post_sampler: (seconds: Integer) -> Datadog::Tracing::Sampling::RuleSampler
+      def self?.build_rate_limit_post_sampler: (seconds: Integer) -> Datadog::Tracing::Sampling::RuleSampler
 
-      def build_test_mode_trace_flush: (untyped settings) -> untyped
+      def self?.build_test_mode_trace_flush: (untyped settings) -> untyped
 
-      def build_test_mode_sampler: () -> untyped
+      def self?.build_test_mode_sampler: () -> untyped
 
-      def build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
+      def self?.build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
 
       class SamplerDelegatorComponent
         attr_accessor sampler: untyped
