@@ -1,0 +1,25 @@
+# The rbs stdlib currently bundled with our Steep declares neither
+# `Net::HTTP#initialize`, `Net::HTTP#on_connect` nor `Net::BufferedIO`, which
+# `Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP` uses to connect
+# over a Unix socket.
+class Net::HTTP
+  def initialize: (String address, ?Integer? port) -> void
+
+  private
+
+  def on_connect: () -> void
+end
+
+class Net::BufferedIO
+  def initialize: (IO io, ?read_timeout: Numeric?, ?write_timeout: Numeric?, ?continue_timeout: Numeric?, ?debug_output: IO?) -> void
+
+  attr_reader io: IO
+
+  attr_accessor read_timeout: Numeric?
+
+  attr_accessor write_timeout: Numeric?
+
+  attr_accessor continue_timeout: Numeric?
+
+  attr_accessor debug_output: IO?
+end

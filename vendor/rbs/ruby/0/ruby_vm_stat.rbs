@@ -1,0 +1,7 @@
+# The rbs core currently bundled with our Steep does not declare `RubyVM.stat`,
+# which `Datadog::Core::Environment::VMCache` uses to report VM cache counters.
+class RubyVM
+  def self.stat: () -> Hash[Symbol, Integer]
+               | (Symbol key) -> Integer
+               | (Hash[Symbol, Integer] hash) -> Hash[Symbol, Integer]
+end

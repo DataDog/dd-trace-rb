@@ -6,7 +6,7 @@ module Datadog
 
         def self.included: (::Module base) -> void
 
-        def self.extended: (::Module base) -> void
+        def self.extended: (Forking base) -> void
 
         def after_fork!: () { () -> untyped } -> bool
 
@@ -16,8 +16,8 @@ module Datadog
 
         def fork_pid: () -> Integer
 
-        module ClassExtensions
-          def initialize: (*untyped args) { () -> untyped } -> untyped
+        module ClassExtensions : Forking
+          def initialize: (*untyped args) ?{ (?) -> untyped } -> void
         end
       end
     end

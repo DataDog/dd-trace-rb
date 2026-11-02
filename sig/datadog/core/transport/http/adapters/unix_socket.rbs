@@ -41,7 +41,9 @@ module Datadog
 
               alias uds_path filepath
 
-              def initialize: (untyped uds_path, ?::Hash[untyped, untyped] options) -> void
+              def self.new: (untyped uds_path, ?::Hash[Symbol, untyped] options) -> instance
+
+              def initialize: (untyped uds_path, ?::Hash[Symbol, untyped] options) -> void
 
               def connect: () -> untyped
             end

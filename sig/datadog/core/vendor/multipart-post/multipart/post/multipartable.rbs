@@ -3,10 +3,14 @@ module Datadog
     module Vendor
       module Multipart
         module Post
-          module Multipartable
+          module Multipartable : ::Net::HTTPRequest
+            @boundary: ::String
+
             def self.secure_boundary: () -> ::String
 
-            def initialize: (untyped path, untyped params, ?::Hash[untyped, untyped] headers, ?untyped boundary) -> void
+            def initialize: (untyped path, untyped params, ?::Hash[untyped, untyped] headers, ?::String boundary) -> void
+
+            attr_reader boundary: ::String
           end
         end
       end

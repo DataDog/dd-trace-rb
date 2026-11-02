@@ -57,24 +57,8 @@ target :datadog do
   ignore "lib/datadog/appsec/contrib/rack/request_middleware.rb"
   ignore "lib/datadog/appsec/contrib/rails/patcher.rb"
   ignore "lib/datadog/core/contrib/rails/utils.rb"
-  ignore "lib/datadog/core/encoding.rb"
-  ignore "lib/datadog/core/environment/identity.rb"
-  ignore "lib/datadog/core/environment/platform.rb"
-  ignore "lib/datadog/core/environment/socket.rb"
-  ignore "lib/datadog/core/environment/variable_helpers.rb"
-  ignore "lib/datadog/core/environment/vm_cache.rb"
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
   # steep gets lost in module inclusions
-  ignore "lib/datadog/core/remote/transport/http/config.rb"
-  ignore "lib/datadog/core/remote/transport/http/negotiation.rb"
-  ignore "lib/datadog/core/transport/http/adapters/net.rb"
-  ignore "lib/datadog/core/transport/http/adapters/unix_socket.rb"
-  ignore "lib/datadog/core/utils/at_fork_monkey_patch.rb" # @ivoanjo: I wasn't able to type this one, it's kinda weird
-  ignore "lib/datadog/core/utils/forking.rb"
-  ignore "lib/datadog/core/utils/hash.rb" # Refinement module
-  ignore "lib/datadog/core/utils/network.rb"
-  ignore "lib/datadog/core/utils/time.rb"
-  ignore "lib/datadog/core/vendor/multipart-post/multipart/post/multipartable.rb"
   ignore "lib/datadog/di/contrib/railtie.rb"
   ignore "lib/datadog/di/transport/http/api.rb"
   ignore "lib/datadog/di/transport/http/diagnostics.rb"
@@ -513,10 +497,8 @@ target :datadog do
   ignore "lib/datadog/tracing/workers.rb"
   ignore "lib/datadog/tracing/writer.rb"
 
-  # References `RubyVM::YJIT`, which does not have type information.
-  ignore "lib/datadog/core/environment/yjit.rb"
-
   library "bundler"
+  library "etc"
   library "pathname"
   library "cgi"
   library "logger", "monitor"

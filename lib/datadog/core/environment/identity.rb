@@ -23,6 +23,8 @@ module Datadog
         @parent_runtime_id = DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         def id
+          # @type self: singleton(Identity)
+
           @id ||= ::SecureRandom.uuid.freeze
 
           after_fork! do
@@ -32,7 +34,7 @@ module Datadog
             @id = ::SecureRandom.uuid.freeze
           end
 
-          @id
+          @id #: String
         end
 
         def root_runtime_id
