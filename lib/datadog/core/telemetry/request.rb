@@ -29,13 +29,11 @@ module Datadog
           private
 
           # The `ci` settings member exists only when the datadog-ci gem is
-          # loaded; respond_to? covers that at runtime but Steep cannot
-          # narrow it, hence the cast.
+          # loaded, so check for it before reading.
           def datadog_ci_enabled?(config)
             return false unless defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci)
 
-            ci_settings = config.send(:ci) #: Datadog::CI::Configuration::Settings::_CiSettings
-            ci_settings.enabled
+            config.ci.enabled # steep:ignore NoMethod
           end
 
           def application

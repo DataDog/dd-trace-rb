@@ -1,13 +1,5 @@
 module Datadog
   module CI
-    module Configuration
-      class Settings
-        interface _CiSettings
-          def enabled: () -> bool
-        end
-      end
-    end
-
     module VERSION
       STRING: String
     end
