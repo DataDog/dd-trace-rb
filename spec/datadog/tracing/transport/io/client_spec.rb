@@ -71,6 +71,23 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
         is_expected.to be response
       end
     end
+
+    context "when the block raises an error" do
+      subject(:send_request) { client.send_request(request) { raise error } }
+
+      let(:request) { instance_double(Datadog::Core::Transport::Request) }
+      let(:error) { StandardError.new("boom") }
+
+      before do
+        allow(Datadog.logger).to receive(:error)
+      end
+
+      it "returns an internal error response" do
+        is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
+        expect(send_request.error).to be(error)
+        expect(client.stats.internal_error).to eq(1)
+      end
+    end
   end
 
   describe "#write_data" do
