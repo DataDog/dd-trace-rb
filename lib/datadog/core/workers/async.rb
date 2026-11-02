@@ -29,6 +29,7 @@ module Datadog
           # Methods that must be prepended
           module PrependedMethods
             def perform(*args)
+              # @type self: Datadog::Core::Workers::Async::Thread
               unless started?
                 start_async do
                   self.result = super(*args)
@@ -45,21 +46,23 @@ module Datadog
             :fork_policy
 
           def join(timeout = nil)
-            return true unless running?
+            thread = worker
+            return true unless thread&.alive?
 
-            !worker.join(timeout).nil?
+            !thread.join(timeout).nil?
           end
 
           def terminate
-            return false unless running?
+            thread = worker
+            return false unless thread&.alive?
 
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
-            worker.terminate
+            thread.terminate
             # Wait for the worker thread to end
             begin
               Timeout.timeout(SHUTDOWN_TIMEOUT) do
-                worker.join
+                thread.join
               end
             rescue Timeout::Error
               Datadog.logger.debug { "Worker thread did not end after #{SHUTDOWN_TIMEOUT} seconds: #{self}" }
@@ -78,7 +81,8 @@ module Datadog
           end
 
           def running?
-            !worker.nil? && worker.alive?
+            thread = worker
+            !thread.nil? && thread.alive?
           end
 
           def error?
@@ -88,11 +92,13 @@ module Datadog
           end
 
           def completed?
-            !worker.nil? && worker.status == false && !error?
+            thread = worker
+            !thread.nil? && thread.status == false && !error?
           end
 
           def failed?
-            !worker.nil? && worker.status.nil?
+            thread = worker
+            !thread.nil? && thread.status.nil?
           end
 
           def forked?
@@ -162,7 +168,7 @@ module Datadog
             @error = nil
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
-            @worker = ::Thread.new do
+            worker = ::Thread.new do
               yield
             # rubocop:disable Lint/RescueException
             rescue Exception => e
@@ -174,8 +180,9 @@ module Datadog
 
               # rubocop:enable Lint/RescueException
             end
-            @worker.name = self.class.name
-            @worker.thread_variable_set(:fork_safe, true)
+            worker.name = self.class.name
+            worker.thread_variable_set(:fork_safe, true)
+            @worker = worker
 
             true
           end

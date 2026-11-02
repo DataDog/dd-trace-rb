@@ -74,7 +74,8 @@ module Datadog
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          version = dogstatsd_version
+          options = if version && version >= Gem::Version.new("5.2")
             {single_thread: true}
           else
             {}
@@ -151,6 +152,7 @@ module Datadog
           return yield unless send_stats?
 
           # Calculate time, send it as a distribution.
+          # @type var start: Float?
           start = Utils::Time.get_time
           yield
         ensure

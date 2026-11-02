@@ -278,7 +278,8 @@ module Datadog
           # SynthAppClientConfigurationChange instead of AppStarted,
           # and in that case we need to convert it to the "regular"
           # AppStarted event.
-          if defined?(@initial_event) && @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
+          initial_event = @initial_event
+          if initial_event.is_a?(Event::SynthAppClientConfigurationChange)
             # It would be great to just replace the initial event in
             # +initialize_state+ method. Unfortunately this event requires
             # the entire component tree to build its payload, which we
@@ -286,7 +287,7 @@ module Datadog
             # 2) don't want to keep a permanent reference to in any case.
             # Therefore we have this +reset!+ method that changes the
             # event type while keeping the payload.
-            @initial_event.reset!
+            initial_event.reset!
           end
 
           if enabled? && !worker.nil?

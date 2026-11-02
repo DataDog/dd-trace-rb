@@ -4,19 +4,20 @@ module Datadog
       module Time
         MONOTONIC_CLOCK_ID: Integer
 
-        def self.original_clock_gettime: (Symbol | Integer clock_id,
-             :float_second | :float_millisecond | :float_microsecond | :second | :millisecond | :microsecond | :nanosecond unit) -> (Float | Integer)
+        def self.original_clock_gettime: (Integer clock_id) -> Float
+                                       | (Integer clock_id, :float_second | :float_millisecond | :float_microsecond unit) -> Float
+                                       | (Integer clock_id, :second | :millisecond | :microsecond | :nanosecond unit) -> Integer
+                                       | (Integer clock_id, Symbol? unit) -> (Float | Integer)
 
-        def self.get_time: (?:float_second unit) -> Float
+        def self.get_time: () -> Float
                            | (:float_second | :float_millisecond | :float_microsecond unit) -> Float
                            | (:second | :millisecond | :microsecond | :nanosecond unit) -> Integer
 
         def self.now: () -> ::Time
 
-        def self.measure: (?(:float_second | :float_millisecond | :float_microsecond) unit) { () -> untyped } -> Float
-                        | ((:second | :millisecond | :microsecond | :nanosecond) unit) { () -> untyped } -> Integer
+        def self.measure: (?:float_second | :float_millisecond | :float_microsecond unit) { () -> void } -> Float
 
-        def self.as_utc_epoch_ns: (::Time time) -> ::Integer
+        def self.as_utc_epoch_ns: (::Time time) -> Integer
       end
     end
   end

@@ -5,14 +5,18 @@ module Datadog
         extend Datadog::Core::Utils::Forking
 
         ENV_ROOT_SESSION_ID: String
+
         ENV_PARENT_SESSION_ID: String
 
-        @id: String?
-        @root_runtime_id: String?
-        @parent_runtime_id: String?
-        self.@id: String?
         self.@root_runtime_id: String?
+
         self.@parent_runtime_id: String?
+
+        @id: String?
+
+        @root_runtime_id: String?
+
+        @parent_runtime_id: String?
 
         def self?.id: () -> String
 

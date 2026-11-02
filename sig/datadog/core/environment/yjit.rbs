@@ -2,18 +2,30 @@ module Datadog
   module Core
     module Environment
       module YJIT
-        def self?.inline_code_size: () -> Numeric?
-        def self?.outlined_code_size: () -> Numeric?
-        def self?.freed_page_count: () -> Numeric?
-        def self?.freed_code_size: () -> Numeric?
-        def self?.live_page_count: () -> Numeric?
-        def self?.code_gc_count: () -> Numeric?
-        def self?.code_region_size: () -> Numeric?
-        def self?.object_shape_count: () -> Numeric?
-        def self?.yjit_alloc_size: () -> Numeric?
-        def self?.ratio_in_yjit: () -> Numeric?
+        def self?.inline_code_size: () -> Integer?
+
+        def self?.outlined_code_size: () -> Integer?
+
+        def self?.freed_page_count: () -> Integer?
+
+        def self?.freed_code_size: () -> Integer?
+
+        def self?.live_page_count: () -> Integer?
+
+        def self?.code_gc_count: () -> Integer?
+
+        def self?.code_region_size: () -> Integer?
+
+        def self?.object_shape_count: () -> Integer?
+
+        def self?.yjit_alloc_size: () -> Integer?
+
+        def self?.ratio_in_yjit: () -> Float?
 
         def self?.available?: () -> bool
+
+        private
+        def self?.runtime_stats: () -> Hash[Symbol, untyped]
       end
     end
   end
