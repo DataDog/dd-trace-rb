@@ -23,7 +23,8 @@ module Datadog
             )
           end
 
-          @datadog_propagator.inject(context.trace.to_digest, carrier)
+          # Raises NoMethodError when the context has no trace (e.g. `Context::ROOT`).
+          @datadog_propagator.inject(context.trace.to_digest, carrier) # steep:ignore NoMethod
         end
 
         def extract(
@@ -74,7 +75,8 @@ module Datadog
             trace_id: trace_id,
             span_id: span_id,
             trace_flags: trace_flags,
-            tracestate: tracestate,
+            # Passes a serialized String, or nil, where OpenTelemetry expects a `Tracestate`.
+            tracestate: tracestate, # steep:ignore ArgumentTypeMismatch
             remote: true,
           )
 

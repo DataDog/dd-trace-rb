@@ -51,6 +51,7 @@ module Datadog
 
         # Captures changes to span error state.
         def status=(s)
+          # @type self: ::OpenTelemetry::SDK::Trace::Span
           super
 
           return unless status # Return if status are currently disabled by OpenTelemetry.
@@ -121,19 +122,20 @@ module Datadog
 
         # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def datadog_set_attribute(key)
+          # @type self: ::OpenTelemetry::SDK::Trace::Span
           # Return if attributes are currently disabled by OpenTelemetry.
-          return unless defined?(@attributes) && @attributes
+          return unless defined?(@attributes) && (attrs = @attributes)
           return unless (span = datadog_span)
 
           # DEV: Accesses `@attributes` directly, since using `#attributes`
           # DEV: clones the hash, causing unnecessary overhead.
-          if @attributes.key?(key)
+          if attrs.key?(key)
             # Try to find a richer operation name, unless an explicit override was provided.
-            if !@attributes.key?("operation.name") && (rich_name = Span.enrich_name(kind, @attributes))
+            if !attrs.key?("operation.name") && (rich_name = Span.enrich_name(kind, attrs))
               span.name = rich_name.downcase
             end
 
-            Tracing::Utils.serialize_attribute(key, @attributes[key]).each do |new_key, value|
+            Tracing::Utils.serialize_attribute(key, attrs[key]).each do |new_key, value|
               override_datadog_values(span, new_key, value)
 
               # When an attribute is used to override a Datadog Span property,

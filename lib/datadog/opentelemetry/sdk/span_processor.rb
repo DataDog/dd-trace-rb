@@ -33,8 +33,9 @@ module Datadog
         #
         # @param [Span] span the {Span} that just ended.
         def on_finish(span)
-          unless span.events.nil?
-            span.datadog_span.span_events = span.events.map do |event|
+          datadog_span = span.datadog_span #: Tracing::SpanOperation
+          if (events = span.events)
+            datadog_span.span_events = events.map do |event|
               Datadog::Tracing::SpanEvent.new(
                 event.name,
                 attributes: event.attributes,
@@ -42,7 +43,8 @@ module Datadog
               )
             end
           end
-          span.datadog_span.finish(ns_to_time(span.end_timestamp))
+          end_timestamp = span.end_timestamp #: Integer
+          datadog_span.finish(ns_to_time(end_timestamp))
         end
 
         # Export all ended spans to the configured `Exporter` that have not yet
@@ -92,7 +94,8 @@ module Datadog
         end
 
         def start_datadog_span(span)
-          attributes = span.attributes.dup # Dup to allow modification of frozen Hash
+          # Dup to allow modification of frozen Hash
+          attributes = span.attributes.dup #: Hash[String, untyped]
 
           name, kwargs = span_arguments(span, attributes)
 
@@ -132,7 +135,7 @@ module Datadog
 
           attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || "internal"
 
-          kwargs = {start_time: ns_to_time(span.start_timestamp)}
+          kwargs = {start_time: ns_to_time(span.start_timestamp)} #: Hash[Symbol, untyped]
 
           name = if attributes.key?("operation.name")
             attributes["operation.name"]

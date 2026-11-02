@@ -69,14 +69,6 @@ target :datadog do
   ignore "lib/datadog/di/probe_notifier_worker.rb"
   ignore "lib/datadog/kit/appsec/events.rb" # disabled because of https://github.com/soutaro/steep/issues/701
   ignore "lib/datadog/kit/identity.rb"      # disabled because of https://github.com/soutaro/steep/issues/701
-  ignore "lib/datadog/opentelemetry.rb"
-  ignore "lib/datadog/opentelemetry/api/context.rb"
-  ignore "lib/datadog/opentelemetry/api/trace/span.rb"
-  ignore "lib/datadog/opentelemetry/sdk/configurator.rb"
-  ignore "lib/datadog/opentelemetry/sdk/id_generator.rb"
-  ignore "lib/datadog/opentelemetry/sdk/propagator.rb"
-  ignore "lib/datadog/opentelemetry/sdk/span_processor.rb"
-  ignore "lib/datadog/opentelemetry/sdk/trace/span.rb"
   ignore "lib/datadog/profiling/scheduler.rb"
   ignore "lib/datadog/profiling/tag_builder.rb"
   ignore "lib/datadog/profiling/tasks/setup.rb"

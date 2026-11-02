@@ -2,18 +2,25 @@ module Datadog
   module OpenTelemetry
     module SDK
       class SpanProcessor
-        def on_start: (untyped span, untyped parent_context) -> untyped
-        def on_finish: (untyped span) -> untyped
-        def force_flush: (?timeout: untyped?) -> untyped
-        def shutdown: (?timeout: untyped?) -> untyped
+        def on_start: (::OpenTelemetry::SDK::Trace::Span span, ::OpenTelemetry::Context parent_context) -> void
+
+        def on_finish: (::OpenTelemetry::SDK::Trace::Span span) -> void
+
+        def force_flush: (?timeout: Numeric?) -> Integer
+
+        def shutdown: (?timeout: Numeric?) -> Integer
 
         private
 
         def writer: () -> untyped
 
-        def create_matching_datadog_span: (untyped span, untyped parent_context) -> untyped
+        def create_matching_datadog_span: (::OpenTelemetry::SDK::Trace::Span span, ::OpenTelemetry::Context parent_context) -> void
 
-        def start_datadog_span: (untyped span) -> untyped
+        def start_datadog_span: (::OpenTelemetry::SDK::Trace::Span span) -> Tracing::SpanOperation
+
+        def span_arguments: (::OpenTelemetry::SDK::Trace::Span span, Hash[String, untyped] attributes) -> [String | Symbol, Hash[Symbol, untyped]]
+
+        def ns_to_time: (Integer timestamp_ns) -> Time
       end
     end
   end

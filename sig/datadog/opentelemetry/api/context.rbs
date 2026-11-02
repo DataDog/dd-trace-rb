@@ -2,36 +2,64 @@ module Datadog
   module OpenTelemetry
     module API
       module Context
-        CURRENT_SPAN_KEY: untyped
-        BAGGAGE_REMOVE_KEY: Symbol
+        CURRENT_SPAN_KEY: ::OpenTelemetry::Context::Key
 
-        def initialize: (untyped entries, ?trace: untyped?) -> void
-        def ensure_trace: () -> (nil | untyped)
-        def value: (untyped key) -> (nil | untyped)
+        BAGGAGE_REMOVE_KEY: Object
+
+        @trace: Tracing::TraceOperation?
+
+        def initialize: (Hash[Object, untyped]? entries, ?trace: Tracing::TraceOperation?, ?baggage: Hash[String, String]?) -> void
+
+        def ensure_trace: () -> Tracing::TraceOperation?
+
+        def value: (Object key) -> untyped
 
         alias [] value
-        def set_value: (untyped key, untyped value) -> untyped
-        def set_values: (Hash[Symbol, Hash[String, String] | String]) -> untyped
-        def trace: () -> untyped
+
+        def set_value: (Object key, untyped value) -> ::OpenTelemetry::Context
+
+        def set_values: (Hash[Object, untyped] values) -> ::OpenTelemetry::Context
+
+        def trace: () -> Tracing::TraceOperation?
+
         module SingletonClass
-          def current: () -> untyped
-          def attach: (untyped context) -> untyped
-          def detach: (untyped token) -> untyped
-          def clear: () -> untyped
-          def from_trace: (untyped trace) -> untyped
+          def current: () -> ::OpenTelemetry::Context
+
+          def attach: (::OpenTelemetry::Context context) -> Integer
+
+          def detach: (Integer token) -> bool
+
+          def clear: () -> void
+
+          def from_trace: (Tracing::TraceOperation trace) -> ::OpenTelemetry::Context
 
           private
 
-          def continue_trace!: (untyped context) ?{ () -> untyped } -> untyped
+          def continue_trace!: (::OpenTelemetry::Context? context) ?{ () -> void } -> void
         end
 
-        def self.prepended: (untyped base) -> untyped
+        def self.prepended: (Module base) -> void
       end
+
       module TraceOperation
-        attr_accessor otel_context: untyped
-        def otel_value: (untyped key) -> untyped
-        def otel_values: () -> untyped
+        @otel_values: Hash[Object, untyped]?
+
+        attr_accessor otel_context: ::OpenTelemetry::Context?
+
+        def otel_value: (Object key) -> untyped
+
+        def otel_values: () -> Hash[Object, untyped]
       end
     end
   end
+end
+
+class OpenTelemetry::Context
+  prepend Datadog::OpenTelemetry::API::Context
+
+  extend Datadog::OpenTelemetry::API::Context::SingletonClass
+end
+
+class Datadog::Tracing::TraceOperation
+  include Datadog::OpenTelemetry::API::TraceOperation
 end

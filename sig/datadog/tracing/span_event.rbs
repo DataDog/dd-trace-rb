@@ -2,7 +2,7 @@ module Datadog
   module Tracing
     class SpanEvent
       type attributes = Hash[String,attributeValue]
-      type attributeValue = String | Integer | Float | bool | Array[String] | Array[Integer] | Array[Float] | Array[bool]
+      type attributeValue = String | Integer | Float | bool | Array[String] | Array[Integer] | Array[Float] | Array[Integer | Float] | Array[bool]
 
       MIN_INT64_SIGNED: Integer
       MAX_INT64_SIGNED: Integer

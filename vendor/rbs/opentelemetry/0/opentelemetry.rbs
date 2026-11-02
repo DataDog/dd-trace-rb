@@ -15,6 +15,62 @@ module OpenTelemetry
   end
 
   module SDK
+    class Configurator
+      attr_writer propagators: Array[untyped]?
+
+      attr_writer id_generator: untyped
+
+      def initialize: () -> void
+
+      def configure: () -> void
+
+      private
+
+      def metrics_configuration_hook: () -> void
+
+      def logs_configuration_hook: () -> void
+
+      def wrapped_exporters_from_env: () -> Array[untyped]
+
+      def configure_propagation: () -> void
+    end
+
+    module Trace
+      class Event < Struct[untyped]
+        attr_accessor name: String
+
+        attr_accessor attributes: OpenTelemetry::Trace::attributes?
+
+        attr_accessor timestamp: Integer
+      end
+
+      module Export
+        SUCCESS: Integer
+
+        FAILURE: Integer
+
+        TIMEOUT: Integer
+      end
+
+      class Span < OpenTelemetry::Trace::Span
+        attr_reader name: String
+
+        attr_reader status: OpenTelemetry::Trace::Status
+
+        attr_reader kind: Symbol
+
+        attr_reader start_timestamp: Integer
+
+        attr_reader end_timestamp: Integer?
+
+        attr_reader links: Array[OpenTelemetry::Trace::Link]?
+
+        def attributes: () -> OpenTelemetry::Trace::attributes?
+
+        def events: () -> Array[Event]?
+      end
+    end
+
     module Resources
       class Resource
         def self.create: (::Hash[::String, untyped] attributes) -> untyped
@@ -22,6 +78,14 @@ module OpenTelemetry
     end
 
     module Logs
+      module ConfiguratorPatch
+        def add_log_record_processor: (untyped log_record_processor) -> void
+
+        private
+
+        def logs_configuration_hook: () -> void
+      end
+
       class LoggerProvider
         def initialize: (?resource: untyped) -> void
 
@@ -51,6 +115,14 @@ module OpenTelemetry
     end
 
     module Metrics
+      module ConfiguratorPatch
+        def add_metric_reader: (untyped metric_reader) -> void
+
+        private
+
+        def metrics_configuration_hook: () -> void
+      end
+
       class MeterProvider
         def initialize: (?resource: untyped) -> void
 
@@ -80,6 +152,18 @@ module OpenTelemetry
           def initialize: (exporter: untyped, export_interval_millis: ::Integer, export_timeout_millis: ::Integer) -> void
         end
       end
+    end
+  end
+
+  module Common
+    module Propagation
+      class RackEnvGetter
+        def get: (Hash[String, untyped] carrier, String key) -> String?
+
+        def keys: (Hash[String, untyped] carrier) -> Array[String]
+      end
+
+      def self?.rack_env_getter: () -> RackEnvGetter
     end
   end
 

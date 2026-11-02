@@ -1,13 +1,232 @@
 module OpenTelemetry
+  def self.logger: () -> ::Logger
+
+  def self.handle_error: (?exception: Exception?, ?message: String?) -> void
+
+  class Error < StandardError
+  end
+
   class Context
-    def self.current: () -> instance
-    def ensure_trace: () -> Datadog::Tracing::TraceOperation?
-    def set_values: (Hash[Symbol, Hash[String, String] | String]) -> self
+    class DetachError < Error
+    end
+
+    class Key
+      attr_reader name: String
+
+      def initialize: (String name) -> void
+
+      def get: (?Context context) -> untyped
+    end
+
+    module Propagation
+      class TextMapGetter
+        def get: (Hash[String, String] carrier, String key) -> String?
+
+        def keys: (Hash[String, String] carrier) -> Array[String]
+      end
+
+      class TextMapSetter
+        def set: (Hash[String, String] carrier, String key, String value) -> void
+      end
+
+      class RackEnvGetter
+        def get: (Hash[String, untyped] carrier, String key) -> String?
+
+        def keys: (Hash[String, untyped] carrier) -> Array[String]
+      end
+
+      def self?.text_map_getter: () -> TextMapGetter
+
+      def self?.text_map_setter: () -> TextMapSetter
+
+      def self?.rack_env_getter: () -> RackEnvGetter
+    end
+
+    ROOT: Context
+
+    def self.create_key: (String name) -> Key
+
+    def self.current: () -> Context
+
+    def self.attach: (Context context) -> Integer
+
+    def self.detach: (Integer token) -> bool
+
+    def self.with_current: [T] (Context ctx) { (Context) -> T } -> T
+
+    def self.with_value: [T] (Key key, untyped value) { (Context, untyped) -> T } -> T
+
+    def self.with_values: [T] (Hash[Key, untyped] values) { (Context, Hash[Key, untyped]) -> T } -> T
+
+    def self.value: (Key key) -> untyped
+
+    def self.clear: () -> void
+
+    def self.empty: () -> Context
+
+    def self.stack: () -> Array[Context]
+
+    def initialize: (Hash[Key, untyped] entries) -> void
+
+    def value: (Key key) -> untyped
+
+    alias [] value
+
+    def set_value: (Key key, untyped value) -> Context
+
+    def set_values: (Hash[Key, untyped] values) -> Context
   end
 
   module Baggage
   end
 
   module Trace
+    type attribute_value = String | bool | Integer | Float | Array[String] | Array[bool] | Array[Integer | Float]
+
+    type attributes = Hash[String, attribute_value]
+
+    INVALID_TRACE_ID: String
+
+    INVALID_SPAN_ID: String
+
+    def self?.generate_trace_id: () -> String
+
+    def self?.generate_span_id: () -> String
+
+    def self?.current_span: (?Context? context) -> Span
+
+    def self?.context_with_span: (Span span, ?parent_context: Context) -> Context
+
+    def self?.with_span: [T] (Span span) { (Span, Context) -> T } -> T
+
+    def self?.non_recording_span: (SpanContext span_context) -> Span
+
+    class TraceFlags
+      DEFAULT: TraceFlags
+
+      SAMPLED: TraceFlags
+
+      def self.from_byte: (Integer flags) -> TraceFlags
+
+      def initialize: (Integer flags) -> void
+
+      def sampled?: () -> bool
+    end
+
+    class Tracestate
+      DEFAULT: Tracestate
+
+      def self.from_string: (String header) -> Tracestate
+
+      def self.from_hash: (Hash[String, String] hash) -> Tracestate
+
+      def self.create: (Hash[String, String] hash) -> Tracestate
+
+      def initialize: (Hash[String, String] hash) -> void
+
+      def value: (String key) -> String?
+
+      def set_value: (String key, String value) -> Tracestate
+
+      def delete: (String key) -> Tracestate
+
+      def to_s: () -> String
+
+      def to_h: () -> Hash[String, String]
+
+      def empty?: () -> bool
+    end
+
+    class SpanContext
+      INVALID: SpanContext
+
+      attr_reader trace_flags: TraceFlags
+
+      attr_reader tracestate: Tracestate
+
+      attr_reader trace_id: String
+
+      attr_reader span_id: String
+
+      def initialize: (?trace_id: String, ?span_id: String, ?trace_flags: TraceFlags, ?tracestate: Tracestate, ?remote: bool) -> void
+
+      def hex_trace_id: () -> String
+
+      def hex_span_id: () -> String
+
+      def valid?: () -> bool
+
+      def remote?: () -> bool
+    end
+
+    class Link
+      attr_reader span_context: SpanContext
+
+      attr_reader attributes: attributes
+
+      def initialize: (SpanContext span_context, ?attributes? attributes) -> void
+    end
+
+    module SpanKind
+      INTERNAL: :internal
+
+      SERVER: :server
+
+      CLIENT: :client
+
+      PRODUCER: :producer
+
+      CONSUMER: :consumer
+    end
+
+    class Status
+      OK: 0
+
+      UNSET: 1
+
+      ERROR: 2
+
+      def self.unset: (?String description) -> Status
+
+      def self.ok: (?String description) -> Status
+
+      def self.error: (?String description) -> Status
+
+      attr_reader code: Integer
+
+      attr_reader description: String
+
+      def initialize: (Integer code, ?description: String) -> void
+
+      def ok?: () -> bool
+    end
+
+    class Span
+      INVALID: Span
+
+      attr_reader context: SpanContext
+
+      def initialize: (?span_context: SpanContext?) -> void
+
+      def recording?: () -> bool
+
+      def set_attribute: (String key, attribute_value value) -> self
+
+      alias []= set_attribute
+
+      def add_attributes: (attributes attributes) -> self
+
+      def add_link: (Link link) -> self
+
+      def add_event: (String name, ?attributes: attributes?, ?timestamp: Time?) -> self
+
+      def record_exception: (Exception exception, ?attributes: attributes?) -> void
+
+      def status=: (Status status) -> void
+
+      def name=: (String new_name) -> void
+
+      def finish: (?end_timestamp: Time?) -> self
+    end
   end
 end

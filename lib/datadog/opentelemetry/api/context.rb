@@ -24,6 +24,8 @@ module Datadog
         BAGGAGE_REMOVE_KEY = Object.new # sentinel object to indicate the deletion of a value in baggage
 
         def initialize(entries, trace: nil, baggage: nil)
+          # @type self: ::OpenTelemetry::Context
+          # @type ivar @trace: Tracing::TraceOperation
           @trace = trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)
           @trace.otel_values.merge!(entries) if entries
           @trace.otel_context ||= self
@@ -33,11 +35,12 @@ module Datadog
         # Because Context can be reused, we have to make sure we have
         # a valid `TraceOperation` on every invocation.
         def ensure_trace
-          return nil unless @trace
+          trace = @trace
+          return nil unless trace
 
           # The Context can be reused after the root span has finished.
-          @trace.send(:reset) if @trace.finished?
-          @trace
+          trace.send(:reset) if trace.finished?
+          trace
         end
 
         # Returns the corresponding value (or nil) for key
@@ -45,9 +48,10 @@ module Datadog
         # @param [Key] key The lookup key
         # @return [Object]
         def value(key)
-          return nil unless @trace
+          trace = @trace
+          return nil unless trace
 
-          @trace.otel_value(key)
+          trace.otel_value(key)
         end
 
         # `alias` performed to match {::OpenTelemetry::Context} aliasing upstream
@@ -123,6 +127,7 @@ module Datadog
           # @param [Context] context The new context
           # @return [Object] A token to be used when detaching
           def attach(context)
+            # @type self: singleton(::OpenTelemetry::Context)
             previous_trace = Tracing.active_trace
             continue_trace!(context)
 
@@ -138,6 +143,7 @@ module Datadog
           # @param [Object] token The token provided by the matching call to attach
           # @return [Boolean] True if the calls matched, false otherwise
           def detach(token)
+            # @type self: singleton(::OpenTelemetry::Context)
             s = stack
             calls_matched = (token == s.size)
             unless calls_matched
@@ -162,6 +168,7 @@ module Datadog
 
           # Creates a new {Context} associated with a {TraceOperation}.
           def from_trace(trace)
+            # @type self: singleton(::OpenTelemetry::Context)
             new({}, trace: trace)
           end
 

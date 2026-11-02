@@ -2,8 +2,9 @@ module Datadog
   module OpenTelemetry
     module SDK
       class IdGenerator
-        include ::OpenTelemetry::Trace
-        def self.generate_trace_id: () -> untyped
+        extend ::OpenTelemetry::Trace
+
+        def self.generate_trace_id: () -> String
       end
     end
   end

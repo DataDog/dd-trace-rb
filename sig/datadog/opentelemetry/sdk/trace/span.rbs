@@ -2,17 +2,27 @@ module Datadog
   module OpenTelemetry
     module Trace
       module Span
-        # DEV: Pending OpenTelemetry::SDK typechecking
+        DATADOG_SPAN_ATTRIBUTE_OVERRIDES: Array[String]
 
-        def set_attribute: (::String key, ::String | bool | ::Numeric | ::Array[::String | ::Numeric | bool] value) -> untyped # ::OpenTelemetry::SDK::Trace::Span
+        @attributes: ::OpenTelemetry::Trace::attributes?
+
+        def set_attribute: (String key, ::OpenTelemetry::Trace::attribute_value value) -> self
+
+        def record_exception: (Exception exception, ?attributes: ::OpenTelemetry::Trace::attributes?) -> void
+
         alias []= set_attribute
-        def add_attributes: (::Hash[::String, ::String | bool | ::Numeric | ::Array[::String | ::Numeric | bool]] attributes) -> untyped # ::OpenTelemetry::SDK::Trace::Span
-        # def status=: (::OpenTelemetry::Trace::Status s s) -> void
-        def status=: (untyped s) -> void
+
+        def add_attributes: (::OpenTelemetry::Trace::attributes attributes) -> self
+
+        def status=: (::OpenTelemetry::Trace::Status s) -> void
+
+        def self.enrich_name: (Symbol kind, ::OpenTelemetry::Trace::attributes attrs) -> String
 
         private
 
         def datadog_set_attribute: (String key) -> void
+
+        def override_datadog_values: (Tracing::SpanOperation span, String key, untyped value) -> void
       end
     end
   end

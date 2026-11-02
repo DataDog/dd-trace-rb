@@ -2,10 +2,14 @@ module Datadog
   module OpenTelemetry
     module Trace
       module Span
-        attr_accessor datadog_trace: untyped
+        attr_accessor datadog_trace: Tracing::TraceOperation?
 
-        attr_accessor datadog_span: untyped
+        attr_accessor datadog_span: Tracing::SpanOperation?
       end
     end
   end
+end
+
+class OpenTelemetry::Trace::Span
+  prepend Datadog::OpenTelemetry::Trace::Span
 end

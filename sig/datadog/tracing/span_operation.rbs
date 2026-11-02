@@ -15,9 +15,9 @@ module Datadog
 
       attr_reader logger: Core::Logger
 
-      attr_reader links: untyped
+      attr_accessor links: untyped
 
-      attr_reader span_events: untyped
+      attr_accessor span_events: untyped
 
       attr_reader end_time: ::Time?
 
