@@ -16,9 +16,9 @@ module Datadog
 
         attr_reader redaction_identifier: ::String?
 
-        def evaluate: (Context context) -> any
+        def evaluate: (Context context, evaluation_deadline: Float) -> Object
 
-        def satisfied?: (Context context) -> bool
+        def satisfied?: (Context context, evaluation_deadline: Float) -> bool
       end
     end
   end

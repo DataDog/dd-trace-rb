@@ -32,6 +32,8 @@ module Datadog
 
     def self.component: () -> Component
 
+    def self.report_evaluation_timeout: (telemetry: Core::Telemetry::Component?, guardrails_telemetry: GuardrailsTelemetry, logger: DI::Logger, probe: Probe, kind: String, exc: Exception) -> bool
+
     def self.instrumented_count: (?instrumentation_kind? kind) -> Integer
 
     def self.instrumented_count_inc: (instrumentation_kind kind) -> void
