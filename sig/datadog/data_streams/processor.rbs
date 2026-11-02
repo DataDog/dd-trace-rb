@@ -40,9 +40,6 @@ module Datadog
         @consumer_lag_events: ::Array[consumer_lag_event]
 
         include Core::Workers::Polling
-        include Core::Workers::IntervalLoop
-        include Core::Workers::Async::Thread
-        include Core::Workers::Async::Thread::PrependedMethods
 
         def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, agent_info: Core::Environment::AgentInfo, ?buffer_size: ::Integer) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true

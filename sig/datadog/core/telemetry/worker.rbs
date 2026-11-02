@@ -3,9 +3,6 @@ module Datadog
     module Telemetry
       class Worker
         include Core::Workers::Polling
-        include Core::Workers::Async::Thread
-        include Core::Workers::Async::Thread::PrependedMethods
-        include Core::Workers::IntervalLoop
         include Core::Workers::Queue
 
         APP_STARTED_EVENT_RETRIES: 10

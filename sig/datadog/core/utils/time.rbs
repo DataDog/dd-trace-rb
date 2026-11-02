@@ -14,7 +14,7 @@ module Datadog
         def self.now: () -> ::Time
 
         def self.measure: (?(:float_second | :float_millisecond | :float_microsecond) unit) { () -> untyped } -> Float
-                        | ((:second | :millisecond | :microsecond | :nanosecond) unit) { () -> untyped } -> Integer
+                        | (?(:second | :millisecond | :microsecond | :nanosecond) unit) { () -> untyped } -> Integer
 
         def self.as_utc_epoch_ns: (::Time time) -> ::Integer
       end

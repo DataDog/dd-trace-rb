@@ -4,9 +4,6 @@ module Datadog
       class Worker
         include Core::Workers::Queue
         include Core::Workers::Polling
-        # NOTE: Steep is not picking it up on itself with included metaprogramming
-        include Core::Workers::Async::Thread
-        include Core::Workers::IntervalLoop
 
         GRACEFUL_SHUTDOWN_EXTRA_SECONDS: ::Integer
 

@@ -4,6 +4,9 @@ module Datadog
       module Polling
         DEFAULT_SHUTDOWN_TIMEOUT: 1
 
+        include IntervalLoop
+        include Async::Thread
+        include PrependedMethods
 
         def self.included: (Class | Module base) -> void
 
