@@ -16,9 +16,9 @@ module Datadog
 
         @propagation_extract_first: bool
 
-        @propagation_style_inject: ::Array[propagator?]
+        @propagation_style_inject: ::Array[propagator]
 
-        @propagation_style_extract: ::Array[propagator?]
+        @propagation_style_extract: ::Array[propagator]
 
         @baggage_propagator: propagator?
 

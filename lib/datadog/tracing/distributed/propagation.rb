@@ -32,8 +32,8 @@ module Datadog
           @propagation_styles = propagation_styles
           @propagation_behavior_extract = propagation_behavior_extract
           @propagation_extract_first = propagation_extract_first
-          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
-          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
+          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }.compact
+          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }.compact
 
           # The baggage propagator is unique in that baggage should always be extracted, if present.
           # Therefore we remove it from the `propagation_style_extract` list.
@@ -76,7 +76,7 @@ module Datadog
 
           # Inject all configured propagation styles
           @propagation_style_inject.each do |propagator|
-            propagator.inject!(digest, data) # steep:ignore NoMethod
+            propagator.inject!(digest, data)
             result = true
           rescue => e
             result = nil
@@ -114,7 +114,7 @@ module Datadog
           @propagation_style_extract.each do |propagator|
             # First extraction?
             unless extracted_trace_digest
-              extracted_trace_digest = propagator.extract(data) # steep:ignore NoMethod
+              extracted_trace_digest = propagator.extract(data)
               extracted_style_name = @propagation_styles.key(propagator) if extracted_trace_digest
               next
             end
