@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/0000",
+  "message": "Fix a thread spinning forever at 100% CPU when an exception that does not inherit from `StandardError`, such as `Rack::Timeout::RequestTimeoutException`, interrupts the start of a span."
+}

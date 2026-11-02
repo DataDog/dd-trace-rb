@@ -2,6 +2,7 @@ require "spec_helper"
 require "support/object_helpers"
 
 require "time"
+require "timeout"
 
 require "datadog/core"
 require "datadog/core/utils/time"
@@ -1965,6 +1966,47 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             expect(trace_op.resource).to eq("Articles#show")
           end
         end
+      end
+    end
+
+    context "when a non-StandardError exception interrupts the start of a span" do
+      let(:interrupt) { Class.new(Exception) } # rubocop:disable Lint/InheritException
+      let(:hang) { Class.new(Exception) } # rubocop:disable Lint/InheritException
+
+      it "does not activate the span as its own parent and finishes it" do
+        armed = false
+        interrupted = false
+        trace_op.send(:events).span_before_start.subscribe do |span_op, _|
+          armed = interrupted = true if span_op.name == "interrupted" && !interrupted
+        end
+
+        # Interrupt after `before_start` has activated the span, but before its start time is set
+        allow(Datadog::Core::Utils::Time).to receive(:now).and_wrap_original do |original|
+          if armed
+            armed = false
+            raise interrupt
+          end
+
+          original.call
+        end
+
+        interrupted_span = nil
+
+        expect do
+          Timeout.timeout(5, hang, "trace operation did not terminate") do
+            trace_op.measure("parent") do
+              trace_op.measure("interrupted") do |span_op|
+                interrupted_span = span_op
+                trace_op.measure("child") {}
+              end
+            end
+          end
+        end.to raise_error(interrupt)
+
+        expect(interrupted_span.send(:parent)).to_not be(interrupted_span)
+        expect(interrupted_span).to be_finished
+        expect(trace_op.active_span).to be_nil
+        expect(trace_op.active_span_count).to eq(0)
       end
     end
   end

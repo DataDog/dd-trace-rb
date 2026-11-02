@@ -565,6 +565,10 @@ module Datadog
       end
 
       def start_span(span_op)
+        # A span interrupted mid-start is started again when it stops.
+        # Re-activating it would make it its own parent.
+        return if span_op.equal?(@active_span)
+
         activate_span!(span_op)
 
         # Update active span count
