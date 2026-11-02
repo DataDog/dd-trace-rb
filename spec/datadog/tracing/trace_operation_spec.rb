@@ -2008,6 +2008,35 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(trace_op.active_span).to be_nil
         expect(trace_op.active_span_count).to eq(0)
       end
+
+      it "completes the activation bookkeeping when the exception is raised asynchronously in the middle of it" do
+        reached = Queue.new
+        release = Queue.new
+        allow(trace_op).to receive(:set_local_root_span!).and_wrap_original do |original, span_op|
+          if span_op.name == "interrupted"
+            reached << true
+            release.pop
+          end
+
+          original.call(span_op)
+        end
+
+        worker = Thread.new do
+          Thread.current.report_on_exception = false
+          trace_op.measure("interrupted") {}
+        end
+        reached.pop
+        worker.raise(interrupt)
+        release << true
+
+        expect do
+          Timeout.timeout(5, hang, "trace operation did not terminate") { worker.join }
+        end.to raise_error(interrupt)
+
+        expect(trace_op.send(:root_span).name).to eq("interrupted")
+        expect(trace_op.active_span_count).to eq(0)
+        expect(trace_op).to be_finished
+      end
     end
   end
 

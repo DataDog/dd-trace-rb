@@ -30,6 +30,7 @@ module Datadog
       DEFAULT_MAX_LENGTH = 100_000
       AUTO_SAMPLING_PRIORITIES = [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT].freeze
       RECONSIDERABLE_DECISIONS = [Sampling::Ext::Decision::DEFAULT, Sampling::Ext::Decision::AGENT_RATE].freeze
+      DEFER_ASYNC_INTERRUPTS = {Exception => :never}.freeze
 
       attr_accessor \
         :agent_sample_rate,
@@ -569,10 +570,14 @@ module Datadog
         # Re-activating it would make it its own parent.
         return if span_op.equal?(@active_span)
 
-        activate_span!(span_op)
+        # Defer asynchronous exceptions (`Thread#raise`, e.g. from Rack::Timeout) until the
+        # activation bookkeeping is complete, so the check above never sees a half-activated span.
+        Thread.handle_interrupt(DEFER_ASYNC_INTERRUPTS) do
+          activate_span!(span_op)
 
-        # Update active span count
-        @active_span_count += 1
+          # Update active span count
+          @active_span_count += 1
+        end
 
         # Publish :span_before_start event
         events.span_before_start.publish(span_op, self)
