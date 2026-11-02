@@ -33,7 +33,7 @@ static void *thread_contexts_alloc(size_t size) {
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN thread_contexts_alloc
 #define FREE_FN miteruby_allocator_free_sized
-#include "verstable.h"
+#include "hashtable/verstable.h"
 
 // Ruby thread keys are marked and pinned via mark_threads_set.
 static verstable_thread_contexts_map thread_contexts;
