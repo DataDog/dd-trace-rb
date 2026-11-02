@@ -7,7 +7,7 @@ module Datadog
           def registry: () -> untyped
         end
         module Configuration
-          def configure: () ?{ () -> untyped } -> untyped
+          def configure: () ?{ (Core::Configuration::Settings settings) -> untyped } -> untyped
           module Settings
             InvalidIntegrationError: StandardError
             def instrument: (Symbol integration_name, ?::Hash[Symbol, untyped] options) ?{ () -> untyped } -> Contrib::Integration
