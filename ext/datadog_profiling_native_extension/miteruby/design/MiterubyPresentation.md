@@ -97,7 +97,7 @@ Together, these rules prevent compaction crashes from touching Ruby objects at t
 
 ## 7. Memory footprint
 
-**Arena-style storage:** large, contiguous `mmap` regions hold consumed events and unique stacks. Events occupy fixed-size slots; stacks append into a byte array, with offsets as IDs.
+**Arena-style storage:** large, contiguous `mmap` regions hold interned events and unique stacks. Events occupy fixed-size slots; stacks append into a byte array, with offsets as IDs.
 
 - No individual `malloc`/`free` per event or stack: these regions avoid malloc heap fragmentation and per-record allocator metadata.
 - Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. Event counts and the stack write offset track occupied bytes separately.
