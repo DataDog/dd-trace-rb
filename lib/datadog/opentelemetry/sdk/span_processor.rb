@@ -58,7 +58,7 @@ module Datadog
         #   a non-specific failure occurred, Export::TIMEOUT if a timeout occurred.
         def force_flush(timeout: nil)
           writer.force_flush(timeout: timeout) if writer.respond_to? :force_flush
-          Export::SUCCESS
+          ::OpenTelemetry::SDK::Trace::Export::SUCCESS
         end
 
         # Called when {TracerProvider#shutdown} is called.
@@ -68,7 +68,7 @@ module Datadog
         #   a non-specific failure occurred, Export::TIMEOUT if a timeout occurred.
         def shutdown(timeout: nil)
           writer.stop
-          Export::SUCCESS
+          ::OpenTelemetry::SDK::Trace::Export::SUCCESS
         end
 
         private
