@@ -35,6 +35,10 @@ module Datadog
         def resolve_env: (String name, ?source_env: env_hash) -> String
 
         UNSET: Object
+
+        private
+
+        def unset_by_spec?: (String name, String? value) -> bool
       end
     end
   end
