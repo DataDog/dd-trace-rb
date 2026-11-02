@@ -4,11 +4,14 @@ module Datadog
       module Polling
         DEFAULT_SHUTDOWN_TIMEOUT: 1
 
+
         def self.included: (Class | Module base) -> void
 
         module PrependedMethods
           def perform: (*untyped args) -> untyped
         end
+
+        @enabled: bool
 
         def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> bool
 

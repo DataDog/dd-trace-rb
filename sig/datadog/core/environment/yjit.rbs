@@ -2,16 +2,16 @@ module Datadog
   module Core
     module Environment
       module YJIT
-        def self?.inline_code_size: () -> untyped
-        def self?.outlined_code_size: () -> untyped
-        def self?.freed_page_count: () -> untyped
-        def self?.freed_code_size: () -> untyped
-        def self?.live_page_count: () -> untyped
-        def self?.code_gc_count: () -> untyped
-        def self?.code_region_size: () -> untyped
-        def self?.object_shape_count: () -> untyped
-        def self?.yjit_alloc_size: () -> untyped
-        def self?.ratio_in_yjit: () -> untyped
+        def self?.inline_code_size: () -> Numeric?
+        def self?.outlined_code_size: () -> Numeric?
+        def self?.freed_page_count: () -> Numeric?
+        def self?.freed_code_size: () -> Numeric?
+        def self?.live_page_count: () -> Numeric?
+        def self?.code_gc_count: () -> Numeric?
+        def self?.code_region_size: () -> Numeric?
+        def self?.object_shape_count: () -> Numeric?
+        def self?.yjit_alloc_size: () -> Numeric?
+        def self?.ratio_in_yjit: () -> Numeric?
 
         def self?.available?: () -> bool
       end
