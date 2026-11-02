@@ -33,8 +33,9 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 #define FREE_FN miteruby_allocator_free_sized
 #include "verstable.h"
 
-#define NAME verstable_mark_cme_iseq_set
+#define NAME verstable_mark_cme_iseq_map
 #define KEY_TY miteruby_event_frame_refs_t
+#define VAL_TY miteruby_cme_iseq_id_t
 #define HASH_FN cme_iseq_hash
 #define CMPR_FN cme_iseq_equal
 #define MALLOC_FN mark_cme_iseq_calloc
@@ -46,7 +47,7 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;
   verstable_mark_threads_set mark_threads_set;
-  verstable_mark_cme_iseq_set mark_cme_iseq_set;
+  verstable_mark_cme_iseq_map mark_cme_iseq_map;
 
   // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
   mtx_t mutex;
@@ -120,7 +121,7 @@ static void consumer_mark(void *data) {
   // (Holding the consumer mutex while blocking production is safe: publishers never acquire it, and queue marking
   // masks SIGPROF before taking the producer lock.)
   //
-  // Every VALUE held by miteruby is protected by the queue or one of the marking sets; other buffers hold copies.
+  // Every VALUE held by miteruby is protected by the queue or one of the marking tables; other buffers hold copies.
   miteruby_raw_events_queue_mark(state->raw_events_queue);
 
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
@@ -134,9 +135,9 @@ static void consumer_mark(void *data) {
   }
 
   for (
-    verstable_mark_cme_iseq_set_itr itr = verstable_mark_cme_iseq_set_first(&state->mark_cme_iseq_set);
-    !verstable_mark_cme_iseq_set_is_end(itr);
-    itr = verstable_mark_cme_iseq_set_next(itr)
+    verstable_mark_cme_iseq_map_itr itr = verstable_mark_cme_iseq_map_first(&state->mark_cme_iseq_map);
+    !verstable_mark_cme_iseq_map_is_end(itr);
+    itr = verstable_mark_cme_iseq_map_next(itr)
   ) {
     if (itr.data->key.cme != NULL) rb_gc_mark((VALUE) itr.data->key.cme);
     if (itr.data->key.iseq != NULL) rb_gc_mark((VALUE) itr.data->key.iseq);
@@ -153,7 +154,7 @@ static size_t consumer_size(const void *data) {
   size_t size = sizeof(*state) + sizeof(*state->raw_events_queue) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
-    miteruby_allocator_alloc_size(state->mark_cme_iseq_set.buckets) + miteruby_stack_dedup_size();
+    miteruby_allocator_alloc_size(state->mark_cme_iseq_map.buckets) + miteruby_stack_dedup_size();
 
   mutex_unlock(&consumer_state.mutex);
 
@@ -173,7 +174,7 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_lock(&consumer_state.mutex);
   size_t interned_events_used_size = consumer_state.interned_events_count * sizeof(*consumer_state.interned_events_queue);
   size_t mark_threads_entries = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
-  size_t mark_cme_iseq_entries = verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set);
+  size_t mark_cme_iseq_entries = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
   miteruby_stack_dedup_stats_t stack_dedup = miteruby_stack_dedup_stats();
   miteruby_consumer_recorder_stats_t recorder = miteruby_consumer_recorder_stats();
   mutex_unlock(&consumer_state.mutex);
@@ -203,7 +204,7 @@ void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
 
   consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
-  verstable_mark_cme_iseq_set_init(&consumer_state.mark_cme_iseq_set);
+  verstable_mark_cme_iseq_map_init(&consumer_state.mark_cme_iseq_map);
 
   if (!miteruby_stack_dedup_init()) rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_init");
 
@@ -235,7 +236,7 @@ void miteruby_consumer_reset(void) {
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_CAPACITY;
 
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
-  verstable_mark_cme_iseq_set_clear(&consumer_state.mark_cme_iseq_set);
+  verstable_mark_cme_iseq_map_clear(&consumer_state.mark_cme_iseq_map);
 
   miteruby_consumer_recorder_init();
 
@@ -261,7 +262,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
   if (reason == MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL) rb_raise(rb_eRuntimeError, "Miteruby interned events queue is full");
   if (reason == MITERUBY_CONSUMER_MARK_THREADS_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_threads set is full");
-  if (reason == MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_cme_iseq set is full");
+  if (reason == MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_cme_iseq map is full");
 
   return Qnil;
 }
@@ -333,7 +334,14 @@ static bool retain_thread(VALUE thread) {
 
 static bool retain_cme_iseq(miteruby_event_frame_refs_t refs) {
   if (refs.cme == NULL && refs.iseq == NULL) return true;
-  return !verstable_mark_cme_iseq_set_is_end(verstable_mark_cme_iseq_set_get_or_insert(&consumer_state.mark_cme_iseq_set, refs));
+
+  // IDs stay unique until reset because entries are never removed, even when a stack insertion is rolled back.
+  size_t next_id = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
+  if (next_id > UINT16_MAX) return false;
+
+  return !verstable_mark_cme_iseq_map_is_end(verstable_mark_cme_iseq_map_get_or_insert(
+    &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = (uint16_t) next_id}
+  ));
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
