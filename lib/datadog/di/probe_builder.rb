@@ -6,6 +6,7 @@ require_relative "probe"
 require_relative "capture_expression"
 require_relative "capture_limits"
 require_relative "el"
+require_relative "../core/remote/configuration/error"
 
 module Datadog
   module DI
@@ -37,7 +38,15 @@ module Datadog
         "DEFAULT" => :exit,
       }.freeze
 
+      # Builds a Probe from a probe specification in remote configuration
+      # format.
+      #
+      # @raise [Datadog::Core::Remote::Configuration::Error] if an entry has an
+      #   unexpected type
+      # @raise [ArgumentError] if the specification is malformed or describes
+      #   a probe type that is not supported
       def build_from_remote_config(config, logger:)
+        probe_id = fetch_probe_id(config)
         # The validations here are not yet comprehensive.
         type = config.fetch("type")
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
@@ -49,14 +58,14 @@ module Datadog
           EL::Expression.new(cond_spec["dsl"], compiled, regexps: regexps)
         end
         capture_expressions = build_capture_expressions(config["captureExpressions"])
-        capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
+        capture_expressions = dedup_capture_expressions(capture_expressions, probe_id, logger)
         if !!config["captureSnapshot"] && !capture_expressions.empty?
           logger.debug do
-            "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
+            "di: probe #{probe_id}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
         end
         Probe.new(
-          id: config.fetch("id"),
+          id: probe_id,
           type: type_symbol,
           file: config["where"]&.[]("sourceFile"),
           # Sometimes lines are sometimes received as an array of nil
@@ -74,7 +83,7 @@ module Datadog
           max_capture_collection_size: config["capture"]&.[]("maxCollectionSize"),
           max_capture_string_length: config["capture"]&.[]("maxLength"),
           capture_expressions: capture_expressions,
-          evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"], logger),
+          evaluate_at: parse_evaluate_at(config["evaluateAt"], probe_id, logger),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
@@ -82,15 +91,30 @@ module Datadog
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
       end
 
+      # Returns the id of a probe specification in remote configuration
+      # format.
+      #
+      # @raise [KeyError] if the specification has no id
+      # @raise [Datadog::Core::Remote::Configuration::Error] if the id is not
+      #   a String
+      def fetch_probe_id(probe_spec)
+        probe_id = probe_spec.fetch("id")
+        unless probe_id.is_a?(String)
+          raise Core::Remote::Configuration::Error.invalid_data_type(probe_id, field: "id", expected_type: String)
+        end
+
+        probe_id
+      end
+
       def build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
-          raise ArgumentError, "captureExpressions must be an array, got: #{raw.class}"
+          raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "captureExpressions", expected_type: Array)
         end
         return [] if raw.empty?
         raw.map do |entry|
           unless Hash === entry
-            raise ArgumentError, "captureExpressions entry must be a hash, got: #{entry.class}"
+            raise Core::Remote::Configuration::Error.invalid_data_type(entry, field: "captureExpressions entry", expected_type: Hash)
           end
           name = entry["name"]
           unless String === name && CAPTURE_EXPRESSION_NAME_PATTERN.match?(name)
@@ -123,7 +147,7 @@ module Datadog
       def build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
-          raise ArgumentError, "capture-expression entry capture must be a hash, got: #{raw.class}"
+          raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "capture", expected_type: Hash)
         end
         CaptureLimits.new(
           max_reference_depth: raw["maxReferenceDepth"],

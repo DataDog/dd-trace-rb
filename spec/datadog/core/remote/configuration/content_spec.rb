@@ -234,6 +234,25 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       )
     end
 
+    describe ".parse" do
+      context "with data that is not a String" do
+        subject(:content) do
+          described_class.parse(
+            {
+              path: path.to_s,
+              content: 42,
+            }
+          )
+        end
+
+        it "raises Configuration::Error" do
+          expect { content }.to raise_error(
+            Datadog::Core::Remote::Configuration::Error, "Invalid type for data: expected String: 42"
+          )
+        end
+      end
+    end
+
     describe "#hashes" do
       context "when no hash has been computed" do
         it "return {}" do

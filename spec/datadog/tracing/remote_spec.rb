@@ -571,7 +571,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
         expect(good.apply_state).to eq(2)
         expect(non_object.apply_state).to eq(3)
-        expect(non_object.apply_error).to include("object")
+        expect(non_object.apply_error).to include("Invalid type for APM_TRACING remote config: expected Hash: nil")
       end
     end
 
