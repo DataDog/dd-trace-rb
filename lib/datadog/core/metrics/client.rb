@@ -10,6 +10,7 @@ require_relative "options"
 require_relative "helpers"
 require_relative "logging"
 require_relative "metric"
+require_relative "dogstatsd"
 
 module Datadog
   module Core
@@ -37,12 +38,7 @@ module Datadog
         end
 
         def supported?
-          version = dogstatsd_version
-
-          !version.nil? && version >= Gem::Version.new("3.3.0") &&
-            # dogstatsd-ruby >= 5.0 & < 5.2.0 has known issues with process forks
-            # and do not support the single thread mode we use to avoid this problem.
-            !(version >= Gem::Version.new("5.0") && version < Gem::Version.new("5.3"))
+          Dogstatsd.supported?(dogstatsd_version)
         end
 
         def enabled?
@@ -54,27 +50,18 @@ module Datadog
         end
 
         def default_hostname
-          DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          Dogstatsd.default_hostname
         end
 
         def default_port
-          DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          Dogstatsd.default_port
         end
 
         def default_statsd_client
           require "datadog/statsd"
 
           # Create a StatsD client that points to the agent.
-          #
-          # We use `single_thread: true`, as dogstatsd-ruby >= 5.0 creates a background thread
-          # by default, but does not handle forks correctly, causing resource leaks.
-          #
-          # Using dogstatsd-ruby >= 5.0 is still valuable, as it supports
-          # transparent batch metric submission, which reduces submission
-          # overhead.
-          #
-          # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          options = if Dogstatsd.single_thread_supported?(dogstatsd_version)
             {single_thread: true}
           else
             {}
@@ -181,12 +168,7 @@ module Datadog
         def dogstatsd_version
           return @dogstatsd_version if instance_variable_defined?(:@dogstatsd_version)
 
-          @dogstatsd_version = (
-            defined?(Datadog::Statsd::VERSION) &&
-              Datadog::Statsd::VERSION &&
-              Gem::Version.new(Datadog::Statsd::VERSION)
-          ) ||
-            Gem.loaded_specs["dogstatsd-ruby"]&.version
+          @dogstatsd_version = Dogstatsd.installed_version
         end
 
         IGNORED_STATSD_ONLY_ONCE = Utils::OnlyOnce.new
