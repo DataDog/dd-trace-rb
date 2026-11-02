@@ -359,6 +359,31 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       }
     end
 
+    context "evaluation features in the bucket key" do
+      it "separates full-tier buckets by feature values" do
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-1"}))
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+        aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+        aggregator.record(**base_event)
+
+        full = aggregator.flush_and_reset[:full]
+        expect(full.map { |key, entry| [key.last, entry[:count]] })
+          .to contain_exactly([{"holdout.key" => "h-1"}, 1], [{"holdout.key" => "h-2"}, 2], [{}, 1])
+      end
+
+      context "when the per-flag cap routes evaluations to the degraded tier" do
+        let(:per_flag_cap) { 0 }
+
+        it "separates degraded buckets by feature values" do
+          aggregator.record(**base_event.merge(features: {"holdout.key" => "h-1"}))
+          aggregator.record(**base_event.merge(features: {"holdout.key" => "h-2"}))
+
+          degraded = aggregator.flush_and_reset[:degraded]
+          expect(degraded.keys.map(&:last)).to contain_exactly({"holdout.key" => "h-1"}, {"holdout.key" => "h-2"})
+        end
+      end
+    end
+
     context "two identical evaluations" do
       it "creates one full-tier bucket with count 2 and min/max first/last" do
         aggregator.record(**base_event.merge(eval_time_ms: 1000))
@@ -510,8 +535,8 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         aggregator.record(**base_event.merge(attrs: {"env" => "prod"}, observe_full_evaluation_data: true))
 
         entries = aggregator.flush_and_reset[:full]
-        disabled_entry = entries.find { |key, _entry| key.last == false }.last
-        enabled_entry = entries.find { |key, _entry| key.last == true }.last
+        disabled_entry = entries.find { |key, _entry| key[7] == false }.last
+        enabled_entry = entries.find { |key, _entry| key[7] == true }.last
 
         expect(entries.size).to eq(2)
         expect(disabled_entry[:context_attrs]).to be_nil

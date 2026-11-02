@@ -35,6 +35,15 @@ module Datadog
       # Stamped from the UFC the evaluation ran against; the hook reads only this
       # key, never live config.
       METADATA_OBSERVE_FULL_EVALUATION_DATA = "__dd_observe_full_evaluation_data"
+
+      METADATA_DO_LOG = "__dd_do_log"
+      METADATA_SPLIT_SERIAL_ID = "__dd_split_serial_id"
+
+      # Split features are flattened into metadata as one entry per destination.
+      # `__dd_feature.` is the public prefix customers read; the others are internal.
+      METADATA_FEATURE_PREFIX = "__dd_feature."
+      METADATA_EXPOSURE_FEATURE_PREFIX = "__dd_exposure_feature."
+      METADATA_EVALUATION_FEATURE_PREFIX = "__dd_evaluation_feature."
     end
   end
 end
