@@ -11,16 +11,15 @@ module Datadog
         )
 
         def self.boot
-          return if Datadog::Core::Remote.active_remote.nil?
+          remote = Datadog::Core::Remote.active_remote
+          return if remote.nil?
 
-          barrier = nil
+          barrier = nil #: Symbol?
 
           t = Datadog::Core::Utils::Time.measure do
-            barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+            barrier = remote.barrier(:once)
           end
 
-          # steep does not permit the next line due to
-          # https://github.com/soutaro/steep/issues/1231
           Boot.new(barrier, t)
         end
       end

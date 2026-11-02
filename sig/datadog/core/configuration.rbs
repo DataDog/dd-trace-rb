@@ -1,17 +1,60 @@
 module Datadog
   module Core
     module Configuration
-      def health_metrics: -> Diagnostics::Health::Metrics
+      COMPONENTS_WRITE_LOCK: Thread::Mutex
 
-      def tracer: () -> Datadog::Tracing::Tracer
+      COMPONENTS_READ_LOCK: Thread::Mutex
 
-      def logger: () -> Datadog::Core::Logger
+      @configuration: untyped
+
+      @components: Components?
+
+      @temp_logger: Core::Logger?
+
+      @temp_config_logger: Core::Logger?
+
+      attr_writer configuration: untyped
 
       def configuration: () -> untyped # The DSL methods have to be explicitly declared for this to be typed
 
-      def config_init_logger: () -> Datadog::Core::Logger
+      def configure: () { (untyped configuration) -> void } -> untyped
 
-      def shutdown!: -> void
+      def configure_onto: (untyped target, **untyped opts) -> untyped
+
+      def configuration_for: (untyped target, ?untyped option) -> untyped
+
+      def health_metrics: () -> Diagnostics::Health::Metrics
+
+      def logger: () -> Core::Logger
+
+      def config_init_logger: () -> Core::Logger
+
+      def shutdown!: () -> void
+
+      type write_components = ^(Components? new_value) -> Components?
+
+      private
+
+      def components: (?allow_initialization: true) -> Components
+                    | (allow_initialization: bool) -> Components?
+
+      def reset!: () -> void
+
+      def safely_synchronize: [T] () { (write_components write_components) -> T } -> T?
+
+      def configuration?: () -> bool
+
+      def components?: () -> bool
+
+      def build_components: (untyped settings) -> Components
+
+      def replace_components!: (untyped settings, Components old) -> Components
+
+      def logger_without_components: () -> Core::Logger
+
+      def logger_without_configuration: () -> Core::Logger
+
+      def handle_interrupt_shutdown!: () -> nil
     end
   end
 end

@@ -2,11 +2,12 @@ module Datadog
   module Core
     module Remote
       module Tie
-        class Boot < ::Struct[[Component::Barrier, Numeric]]
-          def initialize: (Component::Barrier? barrier, Numeric? time) -> void
+        class Boot < ::Struct[Symbol | Float]
+          attr_accessor barrier: Symbol?
 
-          attr_reader barrier: Component::Barrier
-          attr_reader time: Numeric
+          attr_accessor time: Float
+
+          def self.new: (Symbol? barrier, Float time) -> instance
         end
 
         def self.boot: () -> Boot?

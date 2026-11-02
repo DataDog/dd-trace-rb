@@ -81,6 +81,7 @@ module Datadog
       #
       # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
       def configure
+        # @type ivar @components: Components
         configuration = self.configuration
         yield(configuration)
 
@@ -186,6 +187,7 @@ module Datadog
       #
       # Components won't be automatically reinitialized after a shutdown.
       def shutdown!
+        # @type ivar @components: Components
         safely_synchronize do
           @components.shutdown! if components?
         end
@@ -216,6 +218,7 @@ module Datadog
       #
       # Used internally to ensure a clean environment between test runs.
       def reset!
+        # @type ivar @components: Components
         safely_synchronize do |write_components|
           if components?
             @components.shutdown!
@@ -232,7 +235,7 @@ module Datadog
         # safely_synchronize, this forces all writers to go through this method.
         write_components = proc do |new_value|
           COMPONENTS_READ_LOCK.synchronize { @components = new_value }
-        end
+        end #: write_components
 
         COMPONENTS_WRITE_LOCK.synchronize do
           yield write_components

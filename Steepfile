@@ -57,8 +57,6 @@ target :datadog do
   ignore "lib/datadog/appsec/contrib/rack/request_middleware.rb"
   ignore "lib/datadog/appsec/contrib/rails/patcher.rb"
   ignore "lib/datadog/core/buffer/thread_safe.rb"
-  ignore "lib/datadog/core/configuration.rb"
-  ignore "lib/datadog/core/configuration/components.rb"
   ignore "lib/datadog/core/contrib/rails/utils.rb"
   ignore "lib/datadog/core/encoding.rb"
   ignore "lib/datadog/core/environment/identity.rb"
@@ -71,7 +69,6 @@ target :datadog do
   ignore "lib/datadog/core/metrics/metric.rb"
   ignore "lib/datadog/core/metrics/options.rb"
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
-  ignore "lib/datadog/core/remote/tie.rb"
   # steep gets lost in module inclusions
   ignore "lib/datadog/core/remote/transport/http/config.rb"
   ignore "lib/datadog/core/remote/transport/http/negotiation.rb"
