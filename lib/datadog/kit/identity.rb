@@ -37,7 +37,8 @@ module Datadog
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
         def set_user(
-          trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others
+          # Steep checks this definition against the union of both RBS overloads, where `id:` becomes optional.
+          trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others # steep:ignore MethodParameterMismatch
         )
           raise ArgumentError, "missing required key: :id" if id.nil?
 

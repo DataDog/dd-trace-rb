@@ -67,8 +67,6 @@ target :datadog do
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
   ignore "lib/datadog/di/probe_notifier_worker.rb"
-  ignore "lib/datadog/kit/appsec/events.rb" # disabled because of https://github.com/soutaro/steep/issues/701
-  ignore "lib/datadog/kit/identity.rb"      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore "lib/datadog/profiling/scheduler.rb"
   ignore "lib/datadog/profiling/tag_builder.rb"
   ignore "lib/datadog/profiling/tasks/setup.rb"

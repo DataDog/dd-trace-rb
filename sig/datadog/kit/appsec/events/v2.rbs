@@ -33,7 +33,7 @@ module Datadog
 
           private
 
-          def self.service_entry_trace: () -> (Datadog::Tracing::TraceSegment | Datadog::Tracing::TraceOperation)?
+          def self.service_entry_trace: () -> Datadog::Tracing::TraceOperation?
 
           def self.service_entry_span: () -> Datadog::Tracing::SpanOperation?
 
