@@ -287,7 +287,7 @@ module Datadog
       def set_checkpoint(tags:, now: nil, payload_size: 0, span: nil)
         now ||= Core::Utils::Time.now
 
-        # Copy, never mutate: on Ruby 3.2+ fibers and threads started from this fiber inherit the
+        # Copy: on Ruby 3.2+ fibers and threads started from this fiber inherit the
         # same object through fiber storage, and threads checkpoint concurrently.
         current_context = get_current_context.dup
         tags = tags.sort

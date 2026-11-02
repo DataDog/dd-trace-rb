@@ -575,9 +575,7 @@ RSpec.describe Datadog::DataStreams::Processor do
         processor.set_consume_checkpoint(type: "kafka", source: "upstream") { upstream_header }
       end
 
-      context "with fiber storage (Ruby 3.2+)" do
-        before { skip "Fiber storage requires Ruby 3.2+" unless Fiber.respond_to?(:[]) }
-
+      context "with fiber storage (Ruby 3.2+)", ruby: ">= 3.2" do
         it "chains a new thread's produces onto the consumed pathway" do
           expected_parent = consume_hash
           Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
@@ -607,9 +605,7 @@ RSpec.describe Datadog::DataStreams::Processor do
         end
       end
 
-      context "without fiber storage (Ruby < 3.2)" do
-        before { skip "Covers the Thread#[] fallback" if Fiber.respond_to?(:[]) }
-
+      context "without fiber storage (Ruby < 3.2)", ruby: "< 3.2" do
         it "starts a new pathway in a new thread" do
           Thread.new { processor.set_produce_checkpoint(type: "kafka", destination: "direct") }.join
 
