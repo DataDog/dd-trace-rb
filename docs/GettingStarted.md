@@ -2898,6 +2898,7 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | Setting | Environment variable | Type | Description | Default |
 |---|---|---|---|---|
 | `c.feature_flags.enabled` | `DD_FEATURE_FLAGS_ENABLED` | `Boolean` | Enables or disables Feature Flags. `false` takes precedence over every configuration source. | `true` |
+| `c.feature_flags.exposures_datadog_logging_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` | `Boolean` | Sends exposures to Datadog. `false` stops only those exposures: deduplication and `Datadog::OpenFeature::ExposureHook` keep working, and evaluation counts are unaffected. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
 | `c.feature_flags.agentless.base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless endpoint. Origin URLs receive the standard configuration path; URLs with a non-root path are used verbatim. | `nil` |
@@ -2910,6 +2911,61 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 The API key is sent only to the managed Datadog endpoint. A custom agentless URL is treated as opaque, and its query string is preserved without automatically adding `dd_env`.
 
 Feature Flags respects `DD_TRACE_DEBUG` and outputs debugging diagnostics when it is enabled.
+
+The provider requires `openfeature-sdk` 0.5.1 or later. It sends exposures, evaluation counts, and evaluation metrics from provider hooks, and earlier `openfeature-sdk` releases run no hooks. With an earlier release, flags still evaluate, Datadog receives no exposures or evaluation counts, and the provider logs one warning at initialization.
+
+Exposures are sent only for evaluations that run the provider's hooks, which happens when the application evaluates through an OpenFeature client with the Datadog provider registered directly:
+
+- An evaluation is sent and recorded as an exposure only after it completes successfully. When an application `after` hook raises, the evaluation returns the default value, sends no exposure, and does not mark the subject as exposed.
+- Calling `fetch_*_value` on the provider directly runs no hooks, so it sends no exposures.
+- Composed providers, such as `OpenFeature::MetaProvider` from the `openfeature-meta_provider` gem, do not run the Datadog provider's hooks, so Datadog receives no exposures from them.
+
+#### Exposures in your own data store
+
+`Datadog::OpenFeature::ExposureHook` hands each completed evaluation to your code with the same exposure decision the provider uses for Datadog, so you can record exposures in your own data store:
+
+```ruby
+require "datadog"
+require "datadog/open_feature/provider"
+
+exposure_hook = Datadog::OpenFeature::ExposureHook.new do |evaluation|
+  next unless evaluation.should_send?
+
+  # Copy the fields into your own background queue. Do not block here.
+  ExposureQueue.push(
+    flag: evaluation.flag_key,
+    subject: evaluation.targeting_key,
+    variant: evaluation.variant,
+    allocation: evaluation.allocation_key,
+    holdout_key: evaluation.features["holdout.key"],
+    holdout_group: evaluation.features["holdout.assignment_group"],
+  )
+end
+
+OpenFeature::SDK.configure do |config|
+  config.set_provider(Datadog::OpenFeature::Provider.new)
+  config.hooks << exposure_hook
+end
+```
+
+`ExposureQueue` is application code, not a Datadog API. Each evaluation passed to the callback provides:
+
+| Method | Description |
+|---|---|
+| `exposure?` | `true` for a successful evaluation of an allocation that logs exposures, repeats included. |
+| `cache_hit?` | `true` when this subject was already exposed to the same allocation, variant, and split serial ID. |
+| `should_send?` | `true` for a new or changed exposure. With `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` on, these are exactly the exposures Datadog receives. |
+| `features` | Frozen hash of the selected split's features, such as `holdout.key`, `holdout.assignment_group`, and `holdout.should_include_in_holdout_analysis`. Values are `String`, `Float`, `true`, or `false`. Empty when the split has none. |
+| `flag_key`, `variant`, `allocation_key`, `split_serial_id`, `targeting_key` | The evaluated flag and the selected assignment. |
+| `evaluation_context`, `evaluation_details` | The OpenFeature evaluation context and evaluation details. |
+
+- Register the hook on the OpenFeature API, a client, or a single evaluation. The callback receives every evaluation, including errors and repeats. Use `should_send?` to keep new or changed exposures.
+- The callback runs on the evaluation thread and must not block or do I/O. Hand the data to a background queue.
+- An exception raised by the callback never affects the evaluation. The first one is logged at warn level, later ones at debug level.
+- The exposure cache keeps the last exposure of 1,000 flag and subject pairs. A cache hit does not confirm delivery to your data store; your code owns queueing and retries.
+- To record exposures only in your own data store, set `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`. `should_send?` keeps returning the same results.
+- The hook skips its callback, with one warning, for evaluations that do not come from a directly registered Datadog provider, such as evaluations through a composed provider.
+- The provider also writes the same data into flag metadata: `__dd_exposure_cache_hit`, `__dd_do_log`, `__dd_split_serial_id`, and one `__dd_feature.<key>` entry per feature. `__dd_exposure_cache_hit` is set in the provider's `finally` hook, so other hooks read it from their own `finally` stage.
 
 #### Evaluation telemetry opt-out
 

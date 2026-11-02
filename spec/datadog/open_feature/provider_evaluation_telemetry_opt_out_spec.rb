@@ -28,7 +28,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     )
   end
   let(:reporter) { Datadog::OpenFeature::Exposures::Reporter.new(worker, telemetry: telemetry, logger: logger) }
-  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }
   let(:metrics) { Datadog::OpenFeature::Metrics::FlagEvalMetrics.new(telemetry: telemetry, logger: logger) }
   let(:meter_provider) { OpenTelemetry::SDK::Metrics::MeterProvider.new }
   let(:metric_reader) { OpenTelemetry::SDK::Metrics::Export::InMemoryMetricPullExporter.new }
@@ -87,6 +87,9 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       flag_eval_evp_hook: Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer),
       flag_eval_metrics_hook: Datadog::OpenFeature::Hooks::FlagEvalMetricsHook.new(metrics),
       debug_logging_hook: nil,
+      exposure_logging_hook: Datadog::OpenFeature::Hooks::ExposureLoggingHook.new(
+        reporter, telemetry: telemetry, logger: logger,
+      ),
       span_enrichment_hook: span_hook,
       wait_for_configuration: Datadog::OpenFeature::Component::CONFIGURATION_READY,
     )
@@ -410,7 +413,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect_signals(evaluations: 0, exposures: 0)
   end
 
-  it "preserves the default and error from a failed application after hook" do
+  it "preserves the default and error from a failed application after hook and records no exposure" do
     allow(application_hook).to receive(:after).and_raise("application after failure")
     details = nil
     trace.measure("root") { details = evaluate("subject", true, hooks: [application_hook]) }
@@ -418,7 +421,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect(details.value).to eq("fallback")
     expect(details.error_code).to eq("GENERAL")
     expect(application_hook).to have_received(:error).once
-    expect_signals(evaluations: 0, exposures: 1)
+    expect_signals(evaluations: 0, exposures: 0)
   end
 
   it "preserves native error defaults" do
@@ -448,7 +451,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect_signals(evaluations: 0, exposures: 0)
   end
 
-  it "gates direct provider span enrichment" do
+  it "gates direct provider span enrichment; direct calls run no hooks, so no exposure" do
     trace.measure("root") do
       details = provider.fetch_string_value(
         flag_key: "flag", default_value: "fallback", evaluation_context: context("subject", true),
@@ -456,7 +459,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       expect(details.value).to eq("enabled")
     end
 
-    expect_signals(evaluations: 0, exposures: 1)
+    expect_signals(evaluations: 0, exposures: 0)
   end
 
   if OpenFeature::SDK::Configuration.method_defined?(:provider_tracked?)

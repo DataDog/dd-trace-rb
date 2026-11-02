@@ -8,22 +8,32 @@ module Datadog
 
         @telemetry: Core::Telemetry::Component
 
+        @datadog_logging_enabled: bool
+
         @deduplicator: Deduplicator
 
-        def initialize: (Worker worker, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
+        def initialize: (
+          Worker worker,
+          telemetry: Core::Telemetry::Component,
+          logger: Core::Logger,
+          ?datadog_logging_enabled: bool
+        ) -> void
 
-        def report: (
-          ResolutionDetails result,
+        def record: (
           flag_key: ::String,
-          context: ::OpenFeature::SDK::EvaluationContext?
+          allocation_key: ::String,
+          variant: ::String,
+          serial_id: ::Integer?,
+          context: ::OpenFeature::SDK::EvaluationContext,
+          features: SplitFeatures::features_t
         ) -> bool
 
         private
 
-        def skip: (String flag_key, String reason) -> false
+        def enqueue: (Event::t event) -> void
+
+        def skip: (::String flag_key, ::String reason) -> void
       end
     end
   end
 end
-
-

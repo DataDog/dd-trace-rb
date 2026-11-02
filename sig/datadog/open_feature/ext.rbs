@@ -1,6 +1,8 @@
 module Datadog
   module OpenFeature
     module Ext
+      PROVIDER_NAME: ::String
+
       INITIALIZING: ::String
 
       ERROR: ::String
@@ -34,6 +36,8 @@ module Datadog
       METADATA_DO_LOG: ::String
 
       METADATA_SPLIT_SERIAL_ID: ::String
+
+      METADATA_EXPOSURE_CACHE_HIT: ::String
 
       METADATA_FEATURE_PREFIX: ::String
 
