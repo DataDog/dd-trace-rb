@@ -879,6 +879,13 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(carrier).to eq(headers)
           end
         end
+
+        context "without an active trace" do
+          it "does not inject headers" do
+            inject
+            expect(carrier).to be_empty
+          end
+        end
       end
 
       describe "#extract" do
