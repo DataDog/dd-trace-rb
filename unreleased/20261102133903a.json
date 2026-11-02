@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6601",
+  "message": "Fix the `_dd.rc.client_id` span tag occasionally carrying the client id of a different remote-configuration connection during component reconnection."
+}
