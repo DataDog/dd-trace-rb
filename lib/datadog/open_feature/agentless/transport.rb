@@ -9,6 +9,7 @@ require "zlib"
 require_relative "../../core/environment/identity"
 require_relative "../../core/transport/ext"
 require_relative "response"
+require_relative "../evaluator_capabilities"
 
 module Datadog
   module OpenFeature
@@ -63,6 +64,9 @@ module Datadog
           }
           api_key = @api_key
           headers[Core::Transport::Ext::HTTP::HEADER_DD_API_KEY] = api_key if api_key
+          if EvaluatorCapabilities.supported.include?(EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1)
+            headers["X-DD-FEATURE-FLAGS-CAPABILITIES"] = EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1
+          end
           headers["If-None-Match"] = etag if etag
           headers
         end

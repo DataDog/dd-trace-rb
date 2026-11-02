@@ -16,6 +16,15 @@ RSpec.describe Datadog::OpenFeature::Remote do
     it { expect(described_class.capabilities).to eq([70368744177664]) }
   end
 
+  [[], ["unknown-v1"], ["dependent-flag-variant-key-v1"]].each do |capabilities|
+    it "gates dependent flag RC support for #{capabilities.inspect}" do
+      allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:supported).and_return(capabilities)
+      expected = [1 << 46]
+      expected << (1 << 50) if capabilities.include?("dependent-flag-variant-key-v1")
+      expect(described_class.capabilities).to eq(expected)
+    end
+  end
+
   describe ".products" do
     it { expect(described_class.products).to eq(["FFE_FLAGS"]) }
   end
