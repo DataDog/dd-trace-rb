@@ -31,7 +31,7 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN mark_threads_calloc
 #define FREE_FN miteruby_allocator_free_sized
-#include "verstable.h"
+#include "hashtable/verstable.h"
 
 #define NAME verstable_mark_cme_iseq_map
 #define KEY_TY miteruby_event_frame_refs_t
@@ -40,7 +40,7 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 #define CMPR_FN cme_iseq_equal
 #define MALLOC_FN mark_cme_iseq_calloc
 #define FREE_FN miteruby_allocator_free_sized
-#include "verstable.h"
+#include "hashtable/verstable.h"
 
 #define INTERNED_EVENTS_QUEUE_MAX_CAPACITY (MiB_AS_BYTES(16) / sizeof(miteruby_event_deduped_sample_t))
 
