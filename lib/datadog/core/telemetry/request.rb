@@ -28,6 +28,15 @@ module Datadog
 
           private
 
+          # The `ci` settings member exists only when the datadog-ci gem is
+          # loaded, so check for it before reading.
+          def datadog_ci_enabled?(config)
+            return false unless defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci)
+
+            ci_settings = config.send(:ci) #: Datadog::CI::Configuration::Settings::_CiSettings
+            ci_settings.enabled
+          end
+
           def application
             config = Datadog.configuration
 
@@ -38,9 +47,7 @@ module Datadog
             #
             # This code checks that Datadog::CI is loaded and ci mode is enabled and adds
             # "-ci-X.Y.Z" suffix to the tracer version.
-            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled
-              tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
-            end
+            tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}" if datadog_ci_enabled?(config)
 
             app = {
               env: config.env,

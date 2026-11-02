@@ -1,6 +1,13 @@
 module Datadog
   module Tracing
     module MeasuredBuffer
+      @buffer_accepted: ::Integer
+      @buffer_accepted_lengths: ::Integer
+      @buffer_dropped: ::Integer
+      @buffer_spans: ::Integer
+      # Provided by the host buffer class (Core::Buffer::Random).
+      @max_size: ::Integer
+
       def initialize: (*untyped _) -> void
 
       def add!: (untyped trace) -> untyped
@@ -10,11 +17,11 @@ module Datadog
       def replace!: (untyped trace) -> untyped
       def drain!: () -> untyped
 
-      def measure_accept: (untyped trace) -> untyped
+      def measure_accept: (untyped trace) -> void
 
-      def measure_drop: (untyped trace) -> untyped
+      def measure_drop: (untyped trace) -> void
 
-      def measure_pop: (untyped traces) -> untyped
+      def measure_pop: (untyped traces) -> void
     end
     class ThreadSafeTraceBuffer < Core::Buffer::ThreadSafe
       prepend MeasuredBuffer

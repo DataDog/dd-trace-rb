@@ -65,7 +65,7 @@ module Datadog
 
       def build_class_method_scopes: (Class klass) -> Array[Scope]
 
-      def method_visibility: (Class klass, ::Symbol method_name) -> String
+      def method_visibility: (Module klass, ::Symbol method_name) -> String
 
       def extract_targetable_lines: (Method | UnboundMethod method, Integer start_line) -> [Array[Hash[::Symbol, Integer]]?, Integer]
 

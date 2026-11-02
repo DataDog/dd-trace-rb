@@ -53,7 +53,8 @@ module Datadog
         #                   2720459 i/s - 2.84x slower
         def key_for(trace)
           # Resolve env dynamically, if Proc is given.
-          env = @env.is_a?(Proc) ? @env.call : @env
+          env = @env
+          env = env.call if env.is_a?(Proc)
 
           "service:#{trace.service},env:#{env}"
         end

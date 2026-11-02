@@ -2,39 +2,31 @@ module Datadog
   module Core
     module Configuration
       class Components
-        def self.build_health_metrics: (untyped settings) -> untyped
+        PATCH_ONLY_ONCE: Core::Utils::OnlyOnce
 
-        def self.enable_symbol_database?: (untyped settings, Datadog::DI::Component? dynamic_instrumentation) -> bool
+        def self.build_health_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Diagnostics::Health::Metrics
 
-        def self.build_logger: (untyped settings) -> untyped
+        def self.enable_symbol_database?: (Settings settings, Datadog::DI::Component? dynamic_instrumentation) -> bool
 
-        def self.build_runtime_metrics: (untyped settings, Core::Logger logger) -> untyped
+        def self.build_logger: (Settings settings) -> Core::Logger
 
-        def self.build_runtime_metrics_worker: (untyped settings, Core::Logger logger) -> untyped
+        def self.build_runtime_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Core::Runtime::Metrics
 
-        def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
+        def self.build_runtime_metrics_worker: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Core::Workers::RuntimeMetrics
 
-        def self.build_telemetry: (untyped settings) -> untyped
+        def self.build_telemetry: (Settings settings, untyped agent_settings, Core::Logger logger) -> Core::Telemetry::Component
 
-        def self.build_data_streams: (untyped settings, untyped agent_settings, Core::Logger logger, Environment::AgentInfo agent_info) -> DataStreams::Processor?
+        def self.build_crashtracker: (Settings settings, untyped agent_settings, logger: Core::Logger) -> Datadog::Core::Crashtracking::Component?
 
-        private
+        def self.build_data_streams: (Settings settings, untyped agent_settings, Core::Logger logger, Environment::AgentInfo agent_info) -> DataStreams::Processor?
 
-        def self.build_tracer_tags: (untyped settings) -> untyped
-
-        def self.build_tracer_options: (untyped settings, untyped agent_settings) -> untyped
-
-        def self.build_tracer_test_mode_options: (untyped tracer_options, untyped settings, untyped agent_settings) -> untyped
-
-        public
-
-        attr_reader settings: untyped
+        attr_reader settings: Settings
 
         attr_reader agent_settings: untyped
 
-        attr_reader health_metrics: untyped
+        attr_reader health_metrics: Diagnostics::Health::Metrics
 
-        attr_reader logger: untyped
+        attr_reader logger: Core::Logger
 
         attr_reader profiler: untyped
 
@@ -42,25 +34,40 @@ module Datadog
 
         attr_reader appsec: Datadog::AppSec::Component?
 
-        attr_reader runtime_metrics: untyped
+        attr_reader ai_guard: Datadog::AIGuard::Component?
+
+        attr_reader symbol_database: Datadog::SymbolDatabase::Component?
+
+        attr_reader crashtracker: Datadog::Core::Crashtracking::Component?
+
+        attr_reader error_tracking: Datadog::ErrorTracking::Component?
+
+        attr_reader runtime_metrics: Core::Workers::RuntimeMetrics
 
         attr_reader telemetry: Core::Telemetry::Component
 
         attr_reader tracer: untyped
 
-        attr_reader remote: Datadog::Core::Remote::Component
+        attr_reader remote: Datadog::Core::Remote::Component?
 
         attr_reader agent_info: Datadog::Core::Environment::AgentInfo
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
-        def initialize: (untyped settings) -> untyped
+        @environment_logger_extra: Hash[Symbol, untyped]
+
+        def initialize: (Settings settings) -> void
 
         def after_fork: () -> void
 
-        def startup!: (untyped settings, ?old_state: ComponentsState?) -> untyped
+        def startup!: (Settings settings, ?old_state: ComponentsState?) -> void
 
-        def shutdown!: (?untyped? replacement) -> untyped
+        def shutdown!: (?Components? replacement) -> void
+
+        def state: () -> ComponentsState
+
+        # Hot-swaps with a new sampler, holding the Components lock.
+        def reconfigure_sampler: (?Settings settings) -> void
 
         def open_feature: () -> Datadog::OpenFeature::Component?
 

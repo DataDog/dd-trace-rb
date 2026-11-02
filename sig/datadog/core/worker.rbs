@@ -1,7 +1,17 @@
 module Datadog
   module Core
     class Worker
-      def initialize: () ?{ () -> void } -> void
+      @task: Proc?
+
+      attr_reader task: Proc?
+
+      def initialize: () ?{ () -> untyped } -> void
+
+      def perform: (*untyped args) -> untyped
+
+      # RBS has no protected modifier; the attr_writer stays accessible
+      # to subclasses at runtime.
+      attr_writer task: Proc?
     end
   end
 end

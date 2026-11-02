@@ -5,22 +5,21 @@ module Datadog
     module Remote
       # Provide Remote Configuration extensions to other components
       module Tie
-        Boot = Struct.new(
-          :barrier,
-          :time,
-        )
+        class Boot < Struct.new(:barrier, :time)
+        end
 
         def self.boot
-          return if Datadog::Core::Remote.active_remote.nil?
+          # Hoisted so the nil guard narrows the component for the calls below.
+          remote = Datadog::Core::Remote.active_remote
+          return if remote.nil?
 
+          # @type var barrier: Symbol?
           barrier = nil
 
           t = Datadog::Core::Utils::Time.measure do
-            barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+            barrier = remote.barrier(:once)
           end
 
-          # steep does not permit the next line due to
-          # https://github.com/soutaro/steep/issues/1231
           Boot.new(barrier, t)
         end
       end

@@ -2,7 +2,9 @@ module Datadog
   module OpenTelemetry
     module SDK
       class Propagator
-        def initialize: (untyped datadog_propagator) -> void
+        @datadog_propagator: singleton(Tracing::Contrib::HTTP)
+
+        def initialize: (singleton(Tracing::Contrib::HTTP) datadog_propagator) -> void
 
         def inject: (untyped carrier, ?context: untyped, ?setter: untyped) -> untyped
 

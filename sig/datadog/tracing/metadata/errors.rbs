@@ -2,6 +2,16 @@ module Datadog
   module Tracing
     module Metadata
       module Errors
+        # Hosts include Metadata (see metadata.rb), which also includes
+        # Tagging, so they provide set_tag.
+        interface _TaggingHost
+          def set_tag: (untyped key, ?untyped? value) -> untyped
+        end
+
+        include _TaggingHost
+
+        def set_error: (untyped error) -> untyped
+
         def set_error_tags: (untyped e) -> untyped
       end
     end

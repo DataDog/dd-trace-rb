@@ -23,7 +23,10 @@ module Datadog
             )
           end
 
-          @datadog_propagator.inject(context.trace.to_digest, carrier)
+          trace = context.trace
+          return unless trace
+
+          @datadog_propagator.inject(trace.to_digest, carrier)
         end
 
         def extract(

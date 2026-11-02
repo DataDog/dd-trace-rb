@@ -58,7 +58,7 @@ module Datadog
             # Update statistics
             update_stats_from_exception!(e)
 
-            InternalErrorResponse.new(e)
+            Datadog::Core::Transport::InternalErrorResponse.new(e)
           end
 
           def write_data(out, data)

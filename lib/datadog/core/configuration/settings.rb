@@ -235,7 +235,10 @@ module Datadog
           option :instance do |o|
             # Telemetry for this option is manually modified and added in the AppStarted event.
             o.skip_telemetry true
-            o.after_set { |value| set_option(:level, value.level) unless value.nil? }
+            o.after_set do |value|
+              logger = value #: ::Logger
+              set_option(:level, logger.level) unless logger.nil?
+            end
           end
 
           # Log level for `Datadog.logger`.
@@ -570,12 +573,16 @@ module Datadog
                 end
               end
               o.setter do |value|
-                if value == true
-                  :both
-                elsif ["only", "both", :only, :both].include?(value)
+                next :both if value == true
+                next false if value == false || value == "false"
+
+                if value.is_a?(::String) || value.is_a?(::Symbol)
+                  raise ArgumentError, "expects one of only/both, got #{value.inspect}" \
+                    unless ["only", "both", :only, :both].include?(value)
+
                   value.to_sym
                 else
-                  false
+                  raise ArgumentError, "expects a String, Symbol, or boolean, got #{value.inspect}"
                 end
               end
             end
@@ -706,13 +713,16 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
-            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
+            # The option framework types callbacks as option_type (Object?);
+            # this option is declared :string, nilable: true, so the value is String?.
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service)) # steep:ignore ArgumentTypeMismatch
           end
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
+            # @type self: Datadog::Core::Configuration::Settings
             service_name = service
             service_name unless using_default?(:service)
           end
@@ -759,7 +769,7 @@ module Datadog
                 key, val = tag.split(/[:=]/, 2).map(&:strip)
                 val ||= ""
                 # maps OpenTelemetry semantic attributes to Datadog tags
-                key = case key.downcase
+                key = case key.downcase # steep:ignore NoMethod
                 when "deployment.environment.name"
                   result["env"] = val
                   nil
@@ -774,7 +784,8 @@ module Datadog
             result
           end
           o.setter do |new_value, old_value|
-            raw_tags = new_value || {}
+            # @type self: Datadog::Core::Configuration::Settings
+            raw_tags = new_value.is_a?(::Hash) ? new_value : {}
 
             env_value = env
             version_value = version
@@ -801,7 +812,8 @@ module Datadog
             end
 
             # Merge with previous tags
-            (old_value || {}).merge(string_tags)
+            old_tags = old_value.is_a?(::Hash) ? old_value : {}
+            old_tags.merge(string_tags)
           end
         end
 

@@ -48,6 +48,8 @@ module Datadog
             end
 
             # Re-implements Net:HTTP with underlying Unix socket
+            # Missing stdlib members these overrides rely on are declared in
+            # sig/stdlib/net-http.rbs.
             class HTTP < ::Net::HTTP
               DEFAULT_TIMEOUT = 30
 

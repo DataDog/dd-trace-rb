@@ -2,7 +2,14 @@ module Datadog
   module Core
     module Workers
       module Queue
+        # Hosts of Queue also include Polling; see the comment in
+        # queue.rb. Modeling it here makes the host contract visible
+        # inside Queue's own methods (flush, idle?).
+        include Polling
+
         def self.included: (untyped base) -> untyped
+        # Hosts get these methods via prepend in Queue.included.
+        include PrependedMethods
         module PrependedMethods
           def perform: (*untyped args) -> (untyped | nil)
         end
@@ -16,7 +23,7 @@ module Datadog
 
         attr_writer buffer: untyped
 
-	def flush: (?timeout: Numeric?) -> bool
+	def flush: (?timeout: Numeric?) -> bool?
 	
 	private
 	

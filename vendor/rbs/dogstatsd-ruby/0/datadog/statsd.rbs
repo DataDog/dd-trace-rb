@@ -1,0 +1,30 @@
+# Stub for the dogstatsd-ruby gem. Datadog::Statsd lives in that gem, but its
+# Datadog namespace merges with the one this gem defines. Declared against the
+# dogstatsd-ruby 5.7.1 source; only the surface dd-trace-rb touches is typed.
+module Datadog
+  class Statsd
+    VERSION: String
+
+    def initialize: (
+      ?String? host,
+      ?Integer? port,
+      ?socket_path: String?,
+      ?namespace: String?,
+      ?tags: Array[String] | Hash[String, String]?,
+      ?sample_rate: Float?,
+      ?buffer_max_payload_size: Integer?,
+      ?buffer_max_pool_size: Integer?,
+      ?buffer_overflowing_stategy: Symbol,
+      ?buffer_flush_interval: Integer?,
+      ?sender_queue_size: Integer?,
+      ?logger: untyped?,
+      ?single_thread: bool,
+      ?delay_serialization: bool,
+      ?telemetry_enable: bool,
+      ?telemetry_flush_interval: Integer,
+      ?origin_detection: bool,
+      ?container_id: String?,
+      ?cardinality: String?
+    ) -> void
+  end
+end

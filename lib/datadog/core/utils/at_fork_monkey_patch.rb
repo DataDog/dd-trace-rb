@@ -60,20 +60,30 @@ module Datadog
           callbacks = blocks_for(snapshot, stage)
           if stage == :before
             return callbacks.each do |callback|
-              started[callback.group] = true if started && callback.group
+              group = callback.group
+              started[group] = true if started && group
               callback.block.call
             end
           end
 
+          # @type var error: Exception?
           error = nil
           callbacks.each do |callback|
-            next if started && callback.group && !started.key?(callback.group)
+            group = callback.group
+            next if started && group && !started.key?(group)
 
             callback.block.call
           rescue Exception => e # rubocop:disable Lint/RescueException -- finish cleanup, then re-raise the first failure
             error ||= e
           end
-          raise error if error
+          # Hoisted out of the block-local `error` variable: Steep leaves
+          # variables written from inside a block untyped, and `raise` cannot
+          # resolve its overloads on an untyped argument.
+          # @type var first_error: Exception?
+          first_error = error
+          if first_error
+            raise first_error
+          end
         end
 
         def self.run_parent_cleanup(snapshot, started, fork_error)
@@ -169,7 +179,7 @@ module Datadog
 
                 # Invoke original block
                 yield
-              end
+              end #: fork_block
             end
 
             begin

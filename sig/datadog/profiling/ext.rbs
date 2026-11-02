@@ -1,0 +1,12 @@
+# Empty module declarations: the constants live in lib/datadog/profiling/ext.rb,
+# which is checked with inline RBS, so they must not be redeclared here.
+module Datadog
+  module Profiling
+    module Ext
+      module Transport
+        module HTTP
+        end
+      end
+    end
+  end
+end

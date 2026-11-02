@@ -24,16 +24,33 @@ module Datadog
               def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
 
               def inspect: () -> ::String
+
+              # When an expected key is missing
               class KeyError < StandardError
                 def initialize: (untyped key) -> void
               end
-              class TypeError < StandardError
+
+              # Base class for Remote Configuration Config errors
+              class ConfigError < StandardError
+              end
+
+              # When the agent returned an error response to our request
+              class AgentErrorResponse < ConfigError
+                def initialize: (untyped code, untyped body) -> void
+              end
+
+              # When an expected value type is incorrect
+              class TypeError < ConfigError
                 def initialize: (untyped type, untyped value) -> void
               end
-              class DecodeError < StandardError
+
+              # When value decoding fails
+              class DecodeError < ConfigError
                 def initialize: (untyped key, untyped value) -> void
               end
-              class ParseError < StandardError
+
+              # When value parsing fails
+              class ParseError < ConfigError
                 def initialize: (untyped key, untyped value) -> void
               end
             end

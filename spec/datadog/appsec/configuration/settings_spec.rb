@@ -225,6 +225,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           expect(settings.appsec.ip_passlist).to eq(["1.1.1.1"])
         end
 
+        it "raises ArgumentError for a non-Array value" do
+          expect { settings.appsec.ip_passlist = 42 }.to raise_error(ArgumentError)
+        end
+
         it "does not log a deprecation warning when set to default value" do
           expect { settings.appsec.ip_passlist = [] }.not_to log_deprecation
         end
@@ -251,6 +255,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           expect(settings.appsec.ip_denylist).to eq(["1.1.1.1"])
         end
 
+        it "raises ArgumentError for a non-Array value" do
+          expect { settings.appsec.ip_denylist = 42 }.to raise_error(ArgumentError)
+        end
+
         it "does not log a deprecation warning when set to default value" do
           expect { settings.appsec.ip_denylist = [] }.not_to log_deprecation
         end
@@ -275,6 +283,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           settings.appsec.user_id_denylist = ["1"]
 
           expect(settings.appsec.user_id_denylist).to eq(["1"])
+        end
+
+        it "raises ArgumentError for a non-Array value" do
+          expect { settings.appsec.user_id_denylist = 42 }.to raise_error(ArgumentError)
         end
 
         it "does not log a deprecation warning when set to default value" do
@@ -985,6 +997,21 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
               end
 
               it { expect { is_expected }.to raise_error(ArgumentError) }
+            end
+
+            context "is not a String" do
+              it "raises ArgumentError" do
+                expect { settings.appsec.block.templates.send("#{test_info[:method_name]}=", 42) }
+                  .to raise_error(ArgumentError)
+              end
+            end
+
+            context "is nil" do
+              it "accepts nil and unsets the template" do
+                settings.appsec.block.templates.send("#{test_info[:method_name]}=", nil)
+
+                expect(settings.appsec.block.templates.send(test_info[:method_name])).to be_nil
+              end
             end
           end
         end

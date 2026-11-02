@@ -3,6 +3,9 @@ module Datadog
     class TraceOperation
       include Metadata::Tagging
 
+      # The runtime does this in the OpenTelemetry API extension.
+      include Datadog::OpenTelemetry::API::TraceOperation
+
       DEFAULT_MAX_LENGTH: ::Integer
       AUTO_SAMPLING_PRIORITIES: ::Array[::Integer]
       RECONSIDERABLE_DECISIONS: ::Array[::String]
@@ -10,6 +13,34 @@ module Datadog
       @logger: Core::Logger
       @span_links: ::Array[SpanLink]?
       @distributed_sampling_priority: bool
+      @id: ::Integer
+      @max_length: ::Integer
+      @parent_span_id: ::Integer?
+      # Sampled accepts any truthy value; #sampled? narrows with `== true`.
+      @sampled: untyped
+      @remote_parent: untyped
+      @agent_sample_rate: untyped
+      @hostname: untyped
+      @name: untyped
+      @origin: untyped
+      @rate_limiter_rate: untyped
+      @resource: untyped
+      @rule_sample_rate: untyped
+      @sample_rate: untyped
+      @sampling_priority: ::Integer?
+      @service: untyped
+      @profiling_enabled: untyped
+      @apm_tracing_enabled: untyped
+      @baggage: untyped
+      @root_span: SpanOperation?
+      @active_span: SpanOperation?
+      @active_span_count: ::Integer
+      @events: Events
+      @finished: bool
+      @spans: ::Array[SpanOperation]
+      @auto_finish: bool
+      @flushed: bool
+      @propagated: bool
 
       attr_reader logger: Core::Logger
 
@@ -65,6 +96,14 @@ module Datadog
 
       def finish!: -> void
 
+      def set_local_root_span!: (untyped span) -> void
+
+      def to_correlation: () -> Correlation::Identifier
+
+      def reset: () -> void
+
+      def reconsider_rule_sample?: () -> bool
+
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped
@@ -78,8 +117,8 @@ module Datadog
       def resource_override?: () -> bool
       def reconsider_resource_sample?: () -> bool
       def service: () -> untyped
-      def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped
-      def build_span: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
+      def measure: (untyped op_name, ?logger: untyped logger, ?events: untyped?, ?on_error: on_error?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?, ?id: untyped?) { (untyped, untyped) -> untyped } -> untyped
+      def build_span: (untyped op_name, ?logger: untyped logger, ?events: untyped?, ?on_error: on_error?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?, ?id: untyped? id) -> untyped
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
       def fork_clone: () -> untyped
@@ -109,9 +148,11 @@ module Datadog
         end
 
         class TraceFinished < Tracing::Event
+          @deactivate_trace_subscribed: bool
+
           def initialize: () -> void
 
-          def deactivate_trace_subscribed?: () -> untyped
+          def deactivate_trace_subscribed?: () -> bool
           def subscribe_deactivate_trace: () ?{ () -> untyped } -> untyped
         end
 

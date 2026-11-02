@@ -12,6 +12,8 @@ module Datadog
       # Class methods
       module ClassMethods
         def build(**event_handlers)
+          # The host is the class that includes this module.
+          # @type self: Class
           events = new
           events.subscribe(**event_handlers)
           events
@@ -21,6 +23,8 @@ module Datadog
       # Instance methods
       module InstanceMethods
         def subscribe(**event_handlers)
+          # The host instance provides the events registry.
+          # @type self: Object & Datadog::Tracing::Events::_EventsHost
           return unless event_handlers
 
           event_handlers.each do |event_name, handlers|
