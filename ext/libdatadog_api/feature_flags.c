@@ -28,6 +28,7 @@ static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
 static VALUE resolution_details_get_flag_metadata(VALUE self);
+static VALUE resolution_details_get_features(VALUE self);
 
 static const rb_data_type_t configuration_data_type = {
   .wrap_struct_name = "Datadog::Core::FeatureFlags::Configuration",
@@ -52,6 +53,7 @@ static const rb_data_type_t resolution_details_typed_data = {
 // Cached values to use in function later in the code.
 static VALUE feature_flags_error_class = Qnil;
 static VALUE resolution_details_class = Qnil;
+static VALUE empty_features = Qnil;
 static ID id_boolean;
 static ID id_string;
 static ID id_number;
@@ -110,6 +112,10 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
   rb_define_method(resolution_details_class, "log?", resolution_details_get_do_log, 0);
   rb_define_method(resolution_details_class, "flag_metadata", resolution_details_get_flag_metadata, 0);
+  rb_define_method(resolution_details_class, "features", resolution_details_get_features, 0);
+
+  rb_gc_register_address(&empty_features);
+  empty_features = rb_obj_freeze(rb_ary_new());
 
   // Cache symbol IDs for expected types
   id_boolean = rb_intern_const("boolean");
@@ -585,4 +591,53 @@ static VALUE resolution_details_get_flag_metadata(VALUE self) {
   // }
 
   return hash;
+}
+
+static VALUE feature_value_to_ruby(const struct ddog_ffe_FeatureValue *value) {
+  switch (value->tag) {
+    case DDOG_FFE_FEATURE_VALUE_STRING:
+      return rb_utf8_str_new((const char *)value->string.ptr, value->string.len);
+    case DDOG_FFE_FEATURE_VALUE_FLOAT:
+      return rb_float_new(value->float_);
+    case DDOG_FFE_FEATURE_VALUE_BOOLEAN:
+      return value->boolean ? Qtrue : Qfalse;
+    default:
+      // This should never happen as we checked for all possible tag values.
+      raise_error(feature_flags_error_class, "Internal: Unexpected feature value tag");
+  }
+}
+
+/*
+ * call-seq:
+ *   resolution_details.features() -> Array
+ *
+ * Get the features of the selected split, in configuration order.
+ *
+ * @return [Array<Array(String, String | Float | Boolean, Array<String>)>]
+ *   `[key, value, destinations]` triples; a shared frozen empty array when the split has none
+ */
+static VALUE resolution_details_get_features(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  // Borrowed from the handle, which `self` keeps alive while Ruby allocates below.
+  struct ddog_ffe_FeatureArray features = ddog_ffe_assignment_get_features(resolution_details);
+  if (features.count == 0) {
+    return empty_features;
+  }
+
+  VALUE result = rb_ary_new_capa((long)features.count);
+  for (size_t i = 0; i < features.count; i++) {
+    const struct ddog_ffe_Feature *feature = &features.elements[i];
+
+    VALUE destinations = rb_ary_new_capa((long)feature->destinations.count);
+    for (size_t j = 0; j < feature->destinations.count; j++) {
+      const struct ddog_ffe_BorrowedStr destination = feature->destinations.elements[j];
+      rb_ary_push(destinations, rb_utf8_str_new((const char *)destination.ptr, destination.len));
+    }
+
+    VALUE key = rb_utf8_str_new((const char *)feature->key.ptr, feature->key.len);
+    rb_ary_push(result, rb_ary_new_from_args(3, key, feature_value_to_ruby(&feature->value), destinations));
+  }
+
+  return result;
 }

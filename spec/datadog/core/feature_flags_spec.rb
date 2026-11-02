@@ -171,5 +171,130 @@ RSpec.describe Datadog::Core::FeatureFlags do
         end
       end
     end
+
+    describe "ResolutionDetails#features" do
+      subject(:features) do
+        described_class::Configuration.new(JSON.generate(config))
+          .get_assignment("split-flag", :string, {"targeting_key" => "subject"})
+          .features
+      end
+
+      let(:split) { {"variationKey" => "on", "shards" => []} }
+      let(:config) do
+        {
+          "createdAt" => "2024-04-17T19:40:53.716Z",
+          "environment" => {"name" => "Test"},
+          "flags" => {
+            "split-flag" => {
+              "key" => "split-flag",
+              "enabled" => true,
+              "variationType" => "STRING",
+              "variations" => {"on" => {"key" => "on", "value" => "enabled"}},
+              "allocations" => [{"key" => "allocation", "splits" => [split], "doLog" => true}],
+            },
+          },
+        }
+      end
+
+      context "when the split has features of every supported value type" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "holdout.key", "value" => "h-1", "destinations" => ["HOOK"]},
+              {"key" => "holdout.share", "value" => 0.25, "destinations" => ["EXPOSURE", "EVALUATION"]},
+              {"key" => "holdout.should_include_in_holdout_analysis", "value" => false, "destinations" => ["HOOK"]},
+            ],
+          }
+        end
+
+        it "returns key, typed value and destinations in configuration order" do
+          expect(features).to eq(
+            [
+              ["holdout.key", "h-1", ["HOOK"]],
+              ["holdout.share", 0.25, ["EXPOSURE", "EVALUATION"]],
+              ["holdout.should_include_in_holdout_analysis", false, ["HOOK"]],
+            ],
+          )
+          expect(features.first.first.encoding).to eq(Encoding::UTF_8)
+        end
+      end
+
+      context "when a feature has an unsupported value type" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "object", "value" => {"nested" => true}, "destinations" => ["HOOK"]},
+              {"key" => "kept", "value" => "yes", "destinations" => ["HOOK"]},
+            ],
+          }
+        end
+
+        it "skips only that feature" do
+          expect(features).to eq([["kept", "yes", ["HOOK"]]])
+        end
+      end
+
+      context "when a key repeats" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [
+              {"key" => "holdout.key", "value" => {"invalid" => true}, "destinations" => ["HOOK"]},
+              {"key" => "holdout.key", "value" => "first-valid", "destinations" => ["HOOK"]},
+              {"key" => "holdout.key", "value" => "second-valid", "destinations" => ["HOOK", "EXPOSURE"]},
+            ],
+          }
+        end
+
+        it "keeps the first valid feature" do
+          expect(features).to eq([["holdout.key", "first-valid", ["HOOK"]]])
+        end
+      end
+
+      context "when destinations are unknown to the SDK" do
+        let(:split) do
+          {
+            "variationKey" => "on",
+            "shards" => [],
+            "features" => [{"key" => "holdout.key", "value" => "h-1", "destinations" => ["hook", "FUTURE"]}],
+          }
+        end
+
+        it "passes them through unchanged" do
+          expect(features).to eq([["holdout.key", "h-1", ["hook", "FUTURE"]]])
+        end
+      end
+
+      [
+        ["missing", nil],
+        ["null", :null],
+        ["not a list", {"key" => "holdout.key"}],
+        ["a list of malformed entries", ["holdout.key", 1, nil, {"key" => "no-value"}]],
+      ].each do |description, raw_features|
+        context "when the features field is #{description}" do
+          let(:split) do
+            base = {"variationKey" => "on", "shards" => []}
+            base["features"] = (raw_features == :null) ? nil : raw_features unless raw_features.nil?
+            base
+          end
+
+          it "evaluates the flag and returns the shared frozen empty array" do
+            result = described_class::Configuration.new(JSON.generate(config))
+              .get_assignment("split-flag", :string, {"targeting_key" => "subject"})
+
+            expect(result.value).to eq("enabled")
+            expect(result.error_code).to be_nil
+            expect(result.features).to eq([])
+            expect(result.features).to be_frozen
+            expect(result.features).to be(features)
+          end
+        end
+      end
+    end
   end
 end
