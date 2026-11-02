@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AI Guard",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6601",
+  "message": "Fix a rare crash when building the AI Guard client endpoint while the Datadog site setting changes concurrently."
+}

@@ -69,7 +69,7 @@ module Datadog
               record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push("appsec.events.user_lifecycle", LOGIN_SUCCESS_EVENT)
 
-              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id)
+              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id) # steep:ignore InsufficientKeywordArguments
 
               # NOTE: This is a fallback for the case when we don't have an ID,
               #       but need to trigger WAF.
@@ -174,7 +174,7 @@ module Datadog
               record_event_telemetry_metric(SIGNUP_EVENT)
 
               if user_attributes.key?(:id)
-                Kit::Identity.set_user(trace, span, **user_attributes)
+                Kit::Identity.set_user(trace, span, **user_attributes) # steep:ignore InsufficientKeywordArguments
               else
                 # NOTE: {Datadog::Kit::Identity.set_user} requires an ID,
                 #       but WAF can evaluate login alone
