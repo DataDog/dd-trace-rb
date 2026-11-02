@@ -169,7 +169,7 @@ typedef struct {
 } miteruby_event_deduped_sample_t;
 ```
 
-- Consumer-only format, stored in `consumed_events_buffer`; producers still publish inline stack samples.
+- Consumer-only format, stored in `interned_events_queue`; producers still publish inline stack samples.
 - `header.type` is `MITERUBY_EVENT_DEDUPED_SAMPLE` and `header.size_bytes` is 40.
   Frame count, flags, timestamps, CPU time, and thread are preserved for each sample.
 - `stack_id.offset` is a byte offset into `unique_stacks_array`, including zero as a valid ID.

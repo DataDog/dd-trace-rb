@@ -53,7 +53,7 @@ static void assert_allocation_accounting(void) {
     miteruby_allocator_alloc_size(consumer_state.mark_cme_iseq_set.buckets) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) +
-    consumer_state.consumed_events_capacity * sizeof(*consumer_state.consumed_events_buffer));
+    consumer_state.interned_events_capacity * sizeof(*consumer_state.interned_events_queue));
   assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(*consumer_state.raw_events_queue) +
     sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_requested_bytes());
 }
@@ -106,9 +106,9 @@ static void test_reset_failure(const char *allocation, const char *message) {
   storage.event.refs[0].iseq = (const rb_iseq_t *)&storage.words[15];
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
 
-  miteruby_event_deduped_sample_t *buffer = consumer_state.consumed_events_buffer;
-  size_t events_count = consumer_state.consumed_events_count;
-  size_t capacity = consumer_state.consumed_events_capacity;
+  miteruby_event_deduped_sample_t *queue = consumer_state.interned_events_queue;
+  size_t events_count = consumer_state.interned_events_count;
+  size_t capacity = consumer_state.interned_events_capacity;
   size_t cme_iseq_count = verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set);
   size_t threads_count = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
   uint8_t *array = stack_dedup_state.unique_stacks_array;
@@ -121,9 +121,9 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert_runtime_error(reset_consumer, message);
   failed_allocation_name = NULL;
 
-  assert(consumer_state.consumed_events_buffer == buffer);
-  assert(consumer_state.consumed_events_count == 0);
-  assert(consumer_state.consumed_events_capacity == capacity);
+  assert(consumer_state.interned_events_queue == queue);
+  assert(consumer_state.interned_events_count == 0);
+  assert(consumer_state.interned_events_capacity == capacity);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == threads_count);
   assert(verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set) == cme_iseq_count);
   if (strcmp(allocation, "unique_stacks_array") == 0) {
@@ -144,13 +144,13 @@ static void test_reset_failure(const char *allocation, const char *message) {
   assert(result_code == 0);
 
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
-  assert(consumer_state.consumed_events_count == 1);
-  miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(buffer[0].stack_id);
+  assert(consumer_state.interned_events_count == 1);
+  miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(queue[0].stack_id);
   assert(view.frame_count == 1);
   assert(view.refs[0].cme == storage.event.refs[0].cme && view.refs[0].iseq == storage.event.refs[0].iseq);
 
   miteruby_consumer_reset();
-  assert(consumer_state.consumed_events_count == 0);
+  assert(consumer_state.interned_events_count == 0);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 0);
   assert(verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set) == 0);
@@ -409,11 +409,11 @@ static void test_fixed_array_capacity(void) {
   sample_storage storage = {0};
   storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
   storage.event.thread.value = Qtrue;
-  size_t previous_events_count = consumer_state.consumed_events_count;
+  size_t previous_events_count = consumer_state.interned_events_count;
   size_t previous_cme_iseq_count = verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set);
   size_t previous_threads_count = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL);
-  assert(consumer_state.consumed_events_count == previous_events_count);
+  assert(consumer_state.interned_events_count == previous_events_count);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == previous_threads_count);
   assert(verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set) == previous_cme_iseq_count);
   assert_allocation_accounting();
@@ -439,9 +439,9 @@ static void test_compact_events_and_reset(void) {
   event->thread.value = Qnil;
   event->refs[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
   event->refs[0].iseq = (const rb_iseq_t *)&storage.words[15];
-  miteruby_event_deduped_sample_t *buffer = consumer_state.consumed_events_buffer;
-  size_t capacity = consumer_state.consumed_events_capacity;
-  assert(capacity == (16U * 1024U * 1024U) / sizeof(*buffer));
+  miteruby_event_deduped_sample_t *queue = consumer_state.interned_events_queue;
+  size_t capacity = consumer_state.interned_events_capacity;
+  assert(capacity == (16U * 1024U * 1024U) / sizeof(*queue));
   for (size_t i = 0; i < capacity; i++) {
     event->header.timestamp.ns = 123 + i;
     assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
@@ -449,19 +449,19 @@ static void test_compact_events_and_reset(void) {
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 1);
   assert(verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set) == 1);
-  assert(consumer_state.consumed_events_count == capacity);
-  assert(consumer_state.consumed_events_capacity == capacity);
-  assert(consumer_state.consumed_events_buffer == buffer);
+  assert(consumer_state.interned_events_count == capacity);
+  assert(consumer_state.interned_events_capacity == capacity);
+  assert(consumer_state.interned_events_queue == queue);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) > 0);
   assert_allocation_accounting();
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
   size_t stacks_pos = stack_dedup_state.unique_stacks_pos;
   event->thread.value = Qtrue;
   positions_for(event)[0].value++;
-  assert(buffer_event(&event->header) == MITERUBY_CONSUMER_EVENTS_BUFFER_FULL);
-  assert(consumer_state.consumed_events_count == capacity);
-  assert(consumer_state.consumed_events_capacity == capacity);
-  assert(consumer_state.consumed_events_buffer == buffer);
+  assert(buffer_event(&event->header) == MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL);
+  assert(consumer_state.interned_events_count == capacity);
+  assert(consumer_state.interned_events_capacity == capacity);
+  assert(consumer_state.interned_events_queue == queue);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(stack_dedup_state.unique_stacks_pos == stacks_pos);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 1);
@@ -470,7 +470,7 @@ static void test_compact_events_and_reset(void) {
   positions_for(event)[0].value--;
 
   for (size_t i = 0; i < capacity; i++) {
-    const miteruby_event_deduped_sample_t *deduped = &consumer_state.consumed_events_buffer[i];
+    const miteruby_event_deduped_sample_t *deduped = &consumer_state.interned_events_queue[i];
     assert(deduped->header.type == MITERUBY_EVENT_DEDUPED_SAMPLE);
     assert(deduped->header.size_bytes == sizeof(*deduped));
     assert(deduped->header.frame_count == 2);
@@ -481,14 +481,14 @@ static void test_compact_events_and_reset(void) {
   }
 
   miteruby_event_overflow_t overflow = {.header = {.type = MITERUBY_EVENT_OVERFLOW, .size_bytes = sizeof(overflow)}};
-  size_t previous_count = consumer_state.consumed_events_count;
+  size_t previous_count = consumer_state.interned_events_count;
   assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
-  assert(consumer_state.consumed_events_count == previous_count);
+  assert(consumer_state.interned_events_count == previous_count);
   overflow.header.type = MITERUBY_EVENT_INVALID;
   assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
-  assert(consumer_state.consumed_events_count == previous_count);
+  assert(consumer_state.interned_events_count == previous_count);
 
-  consumer_state.consumed_events_count = 0;
+  consumer_state.interned_events_count = 0;
   event->thread.value = Qtrue;
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
@@ -497,14 +497,14 @@ static void test_compact_events_and_reset(void) {
 
   miteruby_consumer_reset();
   assert_allocation_accounting();
-  assert(consumer_state.consumed_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
+  assert(consumer_state.interned_events_count == 0 && stack_dedup_state.unique_stacks_pos == 0);
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 0);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 0);
   assert(verstable_mark_cme_iseq_set_size(&consumer_state.mark_cme_iseq_set) == 0);
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
-  assert(consumer_state.consumed_events_buffer[0].stack_id.offset == 0);
+  assert(consumer_state.interned_events_queue[0].stack_id.offset == 0);
 }
 
 static void assert_allocator_limit(void *(*allocate)(size_t), void (*release)(void *, size_t), size_t limit) {
@@ -582,8 +582,8 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
     (fail_threads ? MITERUBY_CONSUMER_MARK_THREADS_FULL : MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL));
   failed_allocation_name = NULL;
 
-  assert(consumer_state.consumed_events_count == 1);
-  assert(consumer_state.consumed_events_buffer[0].thread.value == Qnil);
+  assert(consumer_state.interned_events_count == 1);
+  assert(consumer_state.interned_events_queue[0].thread.value == Qnil);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == 1);
   assert(stack_dedup_state.unique_stacks_pos == stacks_pos);
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == (fail_threads ? 7U : 2U));
@@ -595,7 +595,7 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
   assert(thrd_join(thread, &result) == thrd_success && result == 0);
 
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
-  assert(consumer_state.consumed_events_count == 2);
+  assert(consumer_state.interned_events_count == 2);
   assert(verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks) == (frame_count ? 2U : 1U));
   assert(!verstable_mark_threads_set_is_end(verstable_mark_threads_set_get(&consumer_state.mark_threads_set, event->thread.value)));
   for (uint16_t i = 0; i < frame_count; i++) {
@@ -711,7 +711,7 @@ int main(int argc, char **argv) {
   test_fixed_array_capacity();
   test_compact_events_and_reset();
   test_cme_iseq_pair_identity();
-  test_reset_failure("consumed_events_buffer", "Failed to allocate miteruby.consumed_events_buffer");
+  test_reset_failure("interned_events_queue", "Failed to allocate miteruby.interned_events_queue");
   test_reset_failure("unique_stacks_array", "Failure during miteruby_stack_dedup_reset");
   assert_allocator_limit(mark_threads_calloc, miteruby_allocator_free_sized, MARK_THREADS_MAX_SIZE);
   assert_allocator_limit(mark_cme_iseq_calloc, miteruby_allocator_free_sized, MARK_CME_ISEQ_MAX_SIZE);
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
   test_retention_failure(false, 7, 1);
   test_retention_failure(false, 6, 2);
   miteruby_consumer_reset();
-  assert(consumer_state.consumed_events_count == 0);
+  assert(consumer_state.interned_events_count == 0);
   assert(stack_dedup_state.unique_stacks_pos == 0);
   test_mark_threads_capacity();
   test_mark_cme_iseq_capacity();
@@ -734,7 +734,7 @@ int main(int argc, char **argv) {
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) == 0);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_cme_iseq_set.buckets) == 0);
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
-  miteruby_allocator_free(consumer_state.consumed_events_buffer);
+  miteruby_allocator_free(consumer_state.interned_events_queue);
   assert(miteruby_allocator_requested_bytes() == 0);
   mtx_destroy(&consumer_state.mutex);
   puts("Miteruby consumer tests passed");
