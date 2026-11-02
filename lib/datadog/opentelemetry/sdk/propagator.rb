@@ -63,7 +63,7 @@ module Datadog
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)
-            tracestate = Tracing::Distributed::TraceState.serialize_digest(digest)
+            tracestate = ::OpenTelemetry::Trace::Tracestate.from_string(Tracing::Distributed::TraceState.serialize_digest(digest).to_s)
           else
             trace_flags = if Tracing::Sampling::PrioritySampler.sampled?(digest.trace_sampling_priority)
               ::OpenTelemetry::Trace::TraceFlags::SAMPLED
@@ -77,8 +77,7 @@ module Datadog
             trace_id: trace_id,
             span_id: span_id,
             trace_flags: trace_flags,
-            # Passes a serialized String, or nil, where OpenTelemetry expects a `Tracestate`.
-            tracestate: tracestate, # steep:ignore ArgumentTypeMismatch
+            tracestate: tracestate,
             remote: true,
           )
 
