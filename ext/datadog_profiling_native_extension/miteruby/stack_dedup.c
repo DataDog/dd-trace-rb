@@ -40,7 +40,7 @@ static void *unique_stacks_calloc(size_t size);
 #define CMPR_FN stack_key_equal
 #define MALLOC_FN unique_stacks_calloc
 #define FREE_FN miteruby_allocator_free_sized
-#include "verstable.h"
+#include "hashtable/verstable.h"
 
 // Stack deduping design
 //
