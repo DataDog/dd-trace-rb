@@ -1,7 +1,16 @@
 module Datadog
   module Core
     module Metrics
-      module Helpers
+      module Helpers : Module
+        def count: (Symbol | String name, String stat) -> Symbol
+
+        def distribution: (Symbol | String name, String stat) -> Symbol
+
+        def increment: (Symbol | String name, String stat) -> Symbol
+
+        def gauge: (Symbol | String name, String stat) -> Symbol
+
+        def time: (Symbol | String name, String stat) -> Symbol
       end
     end
   end

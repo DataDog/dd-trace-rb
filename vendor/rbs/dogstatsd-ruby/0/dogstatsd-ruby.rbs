@@ -1,0 +1,37 @@
+module Datadog
+  class Statsd
+    VERSION: String
+
+    def initialize: (
+      ?String? host,
+      ?Integer? port,
+      ?socket_path: String?,
+      ?namespace: String?,
+      ?tags: (Array[String] | Hash[untyped, untyped])?,
+      ?sample_rate: Numeric?,
+      ?buffer_max_payload_size: Integer?,
+      ?buffer_max_pool_size: Integer?,
+      ?buffer_overflowing_stategy: Symbol,
+      ?buffer_flush_interval: Numeric?,
+      ?sender_queue_size: Integer?,
+      ?logger: untyped,
+      ?single_thread: bool,
+      ?delay_serialization: bool,
+      ?telemetry_enable: bool,
+      ?telemetry_flush_interval: Numeric,
+      ?origin_detection: bool,
+      ?container_id: String?,
+      ?cardinality: (String | Symbol)?
+    ) -> void
+
+    def increment: (String stat, ?(Hash[Symbol, untyped] | Numeric) opts) -> void
+
+    def count: (String stat, Integer count, ?(Hash[Symbol, untyped] | Numeric) opts) -> void
+
+    def gauge: (String stat, Numeric value, ?(Hash[Symbol, untyped] | Numeric) opts) -> void
+
+    def distribution: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def close: (?flush: bool) -> void
+  end
+end

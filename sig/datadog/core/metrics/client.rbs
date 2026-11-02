@@ -7,51 +7,62 @@ module Datadog
         extend Options
 
         extend Helpers
-	
-	@logger: Core::Logger
+
+        @telemetry: Core::Telemetry::Component
+
+        @logger: Core::Logger
+
+        @statsd: untyped
+
+        @enabled: bool
+
+        @dogstatsd_version: Gem::Version?
 
         attr_reader statsd: untyped
-	attr_reader logger: Core::Logger
 
-        def initialize: (telemetry: Core::Telemetry::Component, ?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
+        attr_reader logger: Core::Logger
 
-        def supported?: () -> untyped
+        attr_reader telemetry: Core::Telemetry::Component
 
-        def enabled?: () -> untyped
+        def initialize: (telemetry: Core::Telemetry::Component, ?logger: Core::Logger, ?statsd: untyped, ?enabled: bool, **untyped _) -> void
 
-        def enabled=: (untyped enabled) -> untyped
+        def supported?: () -> bool
 
-        def default_hostname: () -> untyped
+        def enabled?: () -> bool
 
-        def default_port: () -> untyped
+        def enabled=: (bool enabled) -> bool
 
-        def default_statsd_client: () -> untyped
+        def default_hostname: () -> String
 
-        def configure: (?::Hash[untyped, untyped] options) -> untyped
+        def default_port: () -> Integer
 
-        def send_stats?: () -> untyped
+        def default_statsd_client: () -> Datadog::Statsd
 
-        def count: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def configure: (?Hash[Symbol, untyped] options) -> void
 
-        def distribution: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def send_stats?: () -> bool
 
-        def increment: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
+        def count: (String stat, ?Integer? value, ?Hash[Symbol, untyped]? options) ?{ () -> [Integer, Hash[Symbol, untyped]?] } -> void
 
-        def gauge: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+        def distribution: (String stat, ?Numeric? value, ?Hash[Symbol, untyped]? options) ?{ () -> [Numeric, Hash[Symbol, untyped]?] } -> void
 
-        def time: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
+        def increment: (String stat, ?Hash[Symbol, untyped]? options) ?{ () -> Hash[Symbol, untyped]? } -> void
 
-        def send_metrics: (untyped metrics) -> untyped
+        def gauge: (String stat, ?Numeric? value, ?Hash[Symbol, untyped]? options) ?{ () -> [Numeric, Hash[Symbol, untyped]?] } -> void
 
-        def close: () -> (untyped | nil)
+        def time: [T] (String stat, ?Hash[Symbol, untyped]? options) { () -> T } -> T
+
+        def send_metrics: (Array[Metric] metrics) -> void
+
+        def close: () -> void
 
         private
 
-        def dogstatsd_version: () -> untyped
+        def dogstatsd_version: () -> Gem::Version?
 
-        IGNORED_STATSD_ONLY_ONCE: untyped
+        IGNORED_STATSD_ONLY_ONCE: Utils::OnlyOnce
 
-        def ignored_statsd_warning: () -> untyped
+        def ignored_statsd_warning: () -> void
       end
     end
   end

@@ -2,31 +2,45 @@ module Datadog
   module Core
     module Runtime
       class Metrics < Core::Metrics::Client
-        def initialize: (**untyped options) -> void
-        def register_service: (untyped service) -> (nil | untyped)
-        def flush: () -> (nil | untyped)
+        @services: Set[String]
 
-        def gc_metrics: () -> untyped
+        @service_tags: Array[String]?
 
-        def try_flush: () { () -> untyped } -> untyped
+        @runtime_id_enabled: bool
 
-        def default_metric_options: () -> untyped
+        @process_tags_enabled: bool
+
+        def initialize: (telemetry: Core::Telemetry::Component, **untyped options) -> void
+
+        def register_service: (String? service) -> Array[String]?
+
+        def flush: () -> void
+
+        def gc_metrics: () -> Hash[String, Integer]
+
+        def try_flush: () { () -> void } -> void
+
+        def default_metric_options: () -> Hash[Symbol, untyped]
 
         private
 
-        attr_reader service_tags: untyped
+        attr_reader service_tags: Array[String]?
 
-        attr_reader services: untyped
+        attr_reader services: Set[String]
 
-        attr_reader process_tags_enabled: untyped
+        attr_reader runtime_id_enabled: bool
 
-        def compile_service_tags!: () -> untyped
+        attr_reader process_tags_enabled: bool
 
-        def nested_gc_metric: (untyped prefix, untyped k, untyped v) -> untyped
+        def compile_service_tags!: () -> Array[String]
 
-        def to_metric_name: (untyped str) -> untyped
+        def nested_gc_metric: (String prefix, Symbol | String k, Integer | Hash[Symbol | String, untyped] v) -> Array[[String, Integer]]
 
-        def gauge_if_not_nil: (untyped metric_name, untyped metric_value) -> (untyped | nil)
+        def to_metric_name: (String str) -> String
+
+        def gauge_if_not_nil: (String metric_name, Numeric? metric_value) -> void
+
+        def flush_yjit_stats: () -> void
       end
     end
   end

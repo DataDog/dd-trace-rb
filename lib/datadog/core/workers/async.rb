@@ -47,7 +47,8 @@ module Datadog
           def join(timeout = nil)
             return true unless running?
 
-            !worker.join(timeout).nil?
+            thread = worker #: ::Thread
+            !thread.join(timeout).nil?
           end
 
           def terminate
@@ -55,11 +56,12 @@ module Datadog
 
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
-            worker.terminate
+            thread = worker #: ::Thread
+            thread.terminate
             # Wait for the worker thread to end
             begin
               Timeout.timeout(SHUTDOWN_TIMEOUT) do
-                worker.join
+                thread.join
               end
             rescue Timeout::Error
               Datadog.logger.debug { "Worker thread did not end after #{SHUTDOWN_TIMEOUT} seconds: #{self}" }
@@ -157,6 +159,7 @@ module Datadog
           # Returns true if worker thread is successfully started,
           # which should generally be always.
           def start_worker
+            # @type ivar @worker: ::Thread
             @run_async = true
             @pid = Process.pid
             @error = nil
