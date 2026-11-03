@@ -16,9 +16,11 @@
 //   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
 //   Hashing itself remains O(frames).
 //
-// Wyhash documents ~62 effective bits of collision resistance: https://github.com/wangyi-fudan/wyhash#readme.
-// Applying that model here, P(any collision) ~= n*(n-1)/(2*2^62), or about 1 in 922 million for
+// Rapidhash V3's collision study reports results close to the ideal 64-bit model:
+// https://github.com/Nicoshev/rapidhash/tree/rapidhash_v3#collision-based-hash-quality-study
+// Using that model, P(any collision) ~= n*(n-1)/(2*2^64), or about 1 in 3.69 billion for
 // 100,000 distinct stacks since reset. This is an estimate, not a measured bound for our stack inputs.
+// (We use rapidhash and not verstable's wyhash here as it's expected to both be better performing and have fewer collisions)
 //
 // A collision assigns samples of the later stack to the first stack with that hash,
 // including subsequent occurrences until reset.
