@@ -16,37 +16,15 @@ typedef struct {
 
 _Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
 
-// When deduplicating stacks, we treat stacks with the same hash as identical.
-//
-// This allows us to save CPU and memory:
-// * We plan to store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
-// * Converting every incoming stack to those indexes requires O(frames) lookups in `verstable_mark_cme_iseq_map`.
-//   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
-//   Hashing itself remains O(frames).
-//
-// Wyhash documents ~62 effective bits of collision resistance: https://github.com/wangyi-fudan/wyhash#readme.
-// Applying that model here, P(any collision) ~= n*(n-1)/(2*2^62), or about 1 in 922 million for
-// 100,000 distinct stacks since reset. This is an estimate, not a measured bound for our two Wyhash calls
-// combined with vt_wymix.
-//
-// A collision assigns samples of the later stack to the first stack with that hash,
-// including subsequent occurrences until reset.
-//
-// Design note: If we're worried about collisions, we can use more bits for hash (see for instance
-// https://www.mckusick.com/bookrefs/zfs_dedup.html on how zfs uses sha256 to dedup on-disk storage)
-typedef struct {
-  uint64_t hash;
-} stack_key;
-
-static uint64_t stack_key_hash(stack_key key);
-static bool stack_key_equal(stack_key left, stack_key right);
+static uint64_t stack_hash_value(miteruby_stack_hash_t key);
+static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right);
 static void *unique_stacks_calloc(size_t size);
 
 #define NAME verstable_unique_stacks_map
-#define KEY_TY stack_key
+#define KEY_TY miteruby_stack_hash_t
 #define VAL_TY miteruby_stack_dedup_id_t
-#define HASH_FN stack_key_hash
-#define CMPR_FN stack_key_equal
+#define HASH_FN stack_hash_value
+#define CMPR_FN stack_hash_equal
 #define MALLOC_FN unique_stacks_calloc
 #define FREE_FN miteruby_allocator_free_sized
 #include "hashtable/verstable.h"
@@ -92,19 +70,16 @@ typedef struct {
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
-static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
-  if (view.frame_count == 0) return 0;
-
-  uint64_t refs_hash = vt_wyhash(view.refs, view.frame_count * sizeof(*view.refs));
-  uint64_t positions_hash = vt_wyhash(view.positions, view.frame_count * sizeof(*view.positions));
-  return vt_wymix(refs_hash, positions_hash);
+miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event) {
+  size_t size = event->header.frame_count * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
+  return (miteruby_stack_hash_t) {.hash = vt_wyhash(event->refs, size)};
 }
 
-static uint64_t stack_key_hash(stack_key key) {
+static uint64_t stack_hash_value(miteruby_stack_hash_t key) {
   return key.hash;
 }
 
-static bool stack_key_equal(stack_key left, stack_key right) {
+static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right) {
   return left.hash == right.hash;
 }
 
@@ -156,7 +131,7 @@ miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup
   };
 }
 
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view) {
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(const miteruby_event_stack_sample_t *event, miteruby_stack_hash_t stack_hash) {
   if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < MITERUBY_MAX_SIZE_BYTES) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
@@ -164,7 +139,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(
     &stack_dedup_state.unique_stacks,
-    (stack_key) {.hash = stack_view_hash(view)},
+    stack_hash,
     next_stack_id
   );
   if (verstable_unique_stacks_map_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
@@ -174,17 +149,13 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
     return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
   }
 
-  size_t stack_size = sizeof(miteruby_stack_t) + view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
+  size_t payload_size = event->header.frame_count * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
+  size_t stack_size = sizeof(miteruby_stack_t) + payload_size;
   size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
 
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
-  stack->frame_count = view.frame_count;
-
-  if (view.frame_count > 0) {
-    miteruby_event_stack_sample_view_t stored = miteruby_stack_dedup_get(next_stack_id);
-    memcpy(stored.refs, view.refs, view.frame_count * sizeof(*stored.refs));
-    memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
-  }
+  stack->frame_count = event->header.frame_count;
+  memcpy(stack->refs, event->refs, payload_size);
 
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
@@ -195,9 +166,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
 // 1. Check if the stack exists, and store it if it doesn't
 // 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ pair to `mark_cme_iseq_map` (caller)
 // 3. In step 2 either table might run out of space. So this allows us to back out of 1 if step 2 fails.
-void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
-  verstable_unique_stacks_map_erase(&stack_dedup_state.unique_stacks, (stack_key) {
-    .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),
-  });
+void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash) {
+  verstable_unique_stacks_map_erase(&stack_dedup_state.unique_stacks, stack_hash);
   stack_dedup_state.unique_stacks_pos = stack_id.offset;
 }
