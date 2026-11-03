@@ -2048,7 +2048,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        4096.times do
+        16_384.times do
           # Keep each eval's distinct ISEQ among the oldest frames retained by truncation.
           expect(eval("sample.call(350)", binding, __FILE__, __LINE__)).to be true
           described_class::Testing._native_miteruby_wake_reader
