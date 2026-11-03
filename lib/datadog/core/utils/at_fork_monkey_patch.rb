@@ -65,7 +65,7 @@ module Datadog
             end
           end
 
-          error = nil
+          error = nil #: Exception?
           callbacks.each do |callback|
             next if started && callback.group && !started.key?(callback.group)
 
@@ -177,7 +177,7 @@ module Datadog
               AtForkMonkeyPatch.run_at_fork_blocks(:before, snapshot: snapshot, started: started)
 
               # Start fork. If a block is provided, use the wrapped version.
-              result = child_block.nil? ? super : super(&child_block)
+              result = child_block.nil? ? super : super(&child_block) # steep:ignore BlockTypeMismatch
             rescue Exception => e # rubocop:disable Lint/RescueException -- re-raised unchanged; we only need to run parent cleanup first
               # The fork or a before-fork callback failed and we are still in
               # the parent. Restore any state set up by earlier callbacks.

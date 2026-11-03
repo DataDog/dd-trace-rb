@@ -122,7 +122,7 @@ module Datadog
 
           def strip_ipv6_port(ip)
             if /\[([^\]]*+)\](?::\d+)?/ =~ ip
-              Regexp.last_match(1)
+              Regexp.last_match(1) #: String
             else
               ip
             end

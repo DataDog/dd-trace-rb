@@ -64,7 +64,7 @@ module Datadog
 
           def mutex_after_fork: () -> ::Mutex
 
-          def worker: () -> ::Thread?
+          %a{pure} def worker: () -> ::Thread?
 
           def start_async: () ?{ () -> untyped } -> untyped
 

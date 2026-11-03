@@ -32,7 +32,7 @@ module Datadog
             @id = ::SecureRandom.uuid.freeze
           end
 
-          @id
+          @id #: String
         end
 
         def root_runtime_id

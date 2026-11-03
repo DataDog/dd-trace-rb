@@ -12,7 +12,7 @@ module Datadog
         # If not present we assume these methods have not been monkey-patched and are the original.
 
         original_clock_gettime_name = Process.respond_to?(:clock_gettime_without_mock) ? :clock_gettime_without_mock : :clock_gettime
-        define_singleton_method(:original_clock_gettime, &Process.method(original_clock_gettime_name))
+        define_singleton_method(:original_clock_gettime, &Process.method(original_clock_gettime_name)) # steep:ignore BlockTypeMismatch
 
         MONOTONIC_CLOCK_ID = RUBY_PLATFORM.include?("darwin") ? Process::CLOCK_MONOTONIC_RAW : Process::CLOCK_MONOTONIC
 
@@ -30,12 +30,12 @@ module Datadog
         #
         # @return [Time] current time object
         original_time_now_name = ::Time.respond_to?(:now_without_mock_time) ? :now_without_mock_time : :now
-        define_singleton_method(:now, &::Time.method(original_time_now_name))
+        define_singleton_method(:now, &::Time.method(original_time_now_name)) # steep:ignore BlockTypeMismatch
 
         def self.measure(unit = :float_second)
-          before = get_time(unit)
+          before = get_time(unit) # steep:ignore UnresolvedOverloading
           yield
-          after = get_time(unit)
+          after = get_time(unit) # steep:ignore UnresolvedOverloading
           after - before
         end
 
