@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define UNIQUE_STACKS_ARRAY_MAX_SIZE MiB_AS_BYTES(16)
-#define UNIQUE_STACKS_SET_MAX_SIZE MiB_AS_BYTES(16)
+#define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(16)
 
 typedef struct {
   uint16_t frame_count;
@@ -34,8 +34,9 @@ static uint64_t stack_key_hash(stack_key key);
 static bool stack_key_equal(stack_key left, stack_key right);
 static void *unique_stacks_calloc(size_t size);
 
-#define NAME verstable_unique_stacks_set
+#define NAME verstable_unique_stacks_map
 #define KEY_TY stack_key
+#define VAL_TY miteruby_stack_dedup_id_t
 #define HASH_FN stack_key_hash
 #define CMPR_FN stack_key_equal
 #define MALLOC_FN unique_stacks_calloc
@@ -50,7 +51,8 @@ static void *unique_stacks_calloc(size_t size);
 // (Currently: frame_count, then CME, ISEQ for all frames and then the bytecode positions)
 // Padding keeps each stack record and its CME/ISEQ pairs aligned to 8-byte boundaries.
 //
-// * `verstable_unique_stacks_set`: A set of stacks, with each stored key holding its hash and byte offset in `unique_stacks_array`.
+// * `verstable_unique_stacks_map`: Maps stacks to IDs (byte offsets in `unique_stacks_array`).
+// Stored keys also retain the offset so equality checks can compare stack contents.
 //
 // Here's how it looks as an example (each letter is a CME/ISEQ pair):
 // * Input:
@@ -64,9 +66,9 @@ static void *unique_stacks_calloc(size_t size);
 //     |                                                          |
 //     Events 1 and 3                                             Event 2
 //
-// * Unique stacks set (view_borrowed = false):
-//   [ hash(A B C D; 0 1 2 3) | offset:  0 ]  (Events 1 and 3)
-//   [ hash(E F; 0 1)         | offset: 80 ]  (Event 2)
+// * Unique stacks map (view_borrowed = false):
+//   [ hash(A B C D; 0 1 2 3) | offset:  0 ] -> stack_id:  0  (Events 1 and 3)
+//   [ hash(E F; 0 1)         | offset: 80 ] -> stack_id: 80  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
@@ -75,7 +77,7 @@ static void *unique_stacks_calloc(size_t size);
 // in `verstable_mark_cme_iseq_map` so we don't need to mark them again here.
 
 typedef struct {
-  verstable_unique_stacks_set unique_stacks;
+  verstable_unique_stacks_map unique_stacks;
 
   uint8_t *unique_stacks_array;
   size_t unique_stacks_pos;
@@ -113,13 +115,13 @@ static bool stack_key_equal(stack_key left, stack_key right) {
 }
 
 static void *unique_stacks_calloc(size_t size) {
-  if (size > UNIQUE_STACKS_SET_MAX_SIZE) return NULL;
+  if (size > UNIQUE_STACKS_MAP_MAX_SIZE) return NULL;
 
-  return miteruby_allocator_alloc(size, "unique_stacks_set");
+  return miteruby_allocator_alloc(size, "unique_stacks_map");
 }
 
 bool miteruby_stack_dedup_init(void) {
-  verstable_unique_stacks_set_init(&stack_dedup_state.unique_stacks);
+  verstable_unique_stacks_map_init(&stack_dedup_state.unique_stacks);
   return miteruby_stack_dedup_reset();
 }
 
@@ -127,7 +129,7 @@ bool miteruby_stack_dedup_reset(void) {
   uint8_t *new_array = miteruby_allocator_alloc(UNIQUE_STACKS_ARRAY_MAX_SIZE, "unique_stacks_array");
   if (new_array == NULL) return false;
 
-  verstable_unique_stacks_set_clear(&stack_dedup_state.unique_stacks);
+  verstable_unique_stacks_map_clear(&stack_dedup_state.unique_stacks);
   miteruby_allocator_free(stack_dedup_state.unique_stacks_array);
 
   stack_dedup_state.unique_stacks_array = new_array;
@@ -145,8 +147,8 @@ miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
   return (miteruby_stack_dedup_stats_t) {
     .array_max_size_bytes = UNIQUE_STACKS_ARRAY_MAX_SIZE,
     .array_used_size_bytes = stack_dedup_state.unique_stacks_pos,
-    .set_max_size_bytes = UNIQUE_STACKS_SET_MAX_SIZE,
-    .set_entries = verstable_unique_stacks_set_size(&stack_dedup_state.unique_stacks),
+    .map_max_size_bytes = UNIQUE_STACKS_MAP_MAX_SIZE,
+    .map_entries = verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks),
   };
 }
 
@@ -165,24 +167,25 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
-  verstable_unique_stacks_set_itr entry = verstable_unique_stacks_set_get_or_insert(
+  miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
+  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(
     &stack_dedup_state.unique_stacks,
     (stack_key) {
       .hash = stack_view_hash(view),
       .location.as.view = &view,
       .view_borrowed = true,
-    }
+    },
+    next_stack_id
   );
-  if (verstable_unique_stacks_set_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
+  if (verstable_unique_stacks_map_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
 
   if (!entry.data->key.view_borrowed) {
-    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->key.location.as.stack_id, .inserted = false}};
+    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
   }
 
   size_t stack_size = sizeof(miteruby_stack_t) + view.frame_count * (sizeof(*view.refs) + sizeof(*view.positions));
   size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
 
-  miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
   miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = view.frame_count;
 
@@ -205,7 +208,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
 // 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ pair to `mark_cme_iseq_map` (caller)
 // 3. In step 2 either table might run out of space. So this allows us to back out of 1 if step 2 fails.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
-  verstable_unique_stacks_set_erase(&stack_dedup_state.unique_stacks, (stack_key) {
+  verstable_unique_stacks_map_erase(&stack_dedup_state.unique_stacks, (stack_key) {
     .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),
     .location.as.stack_id = stack_id,
     .view_borrowed = false,
