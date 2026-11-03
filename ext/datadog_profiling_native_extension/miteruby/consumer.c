@@ -368,13 +368,12 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
   miteruby_stack_hash_t stack_hash = miteruby_stack_hash(event);
-  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(header->frame_count, stack_hash);
+  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_reserve(header->frame_count, stack_hash);
   if (result.error_storage_full) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
-  bool new_stack = result.ok.inserted;
+  bool new_stack = result.ok.reserved;
 
   // Retain references before the next queue read releases the record's GC protection.
   if (!retain_thread(event->thread.value)) {
-    if (new_stack) miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
     return MITERUBY_CONSUMER_MARK_THREADS_FULL;
   }
 
@@ -384,11 +383,11 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
       // As we turn the (cme, iseq) into an id, we write those ids into the deduped stack storage
       miteruby_consumer_exit_reason_t reason = retain_cme_iseq(event->refs[i], &stack.ids[i]);
       if (reason != MITERUBY_CONSUMER_OK) {
-        miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
         return reason;
       }
     }
     memcpy(stack.positions, &event->refs[header->frame_count], header->frame_count * sizeof(*stack.positions));
+    if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
   }
 
   miteruby_event_deduped_sample_t *deduped = &consumer_state.interned_events_queue[consumer_state.interned_events_count++];
