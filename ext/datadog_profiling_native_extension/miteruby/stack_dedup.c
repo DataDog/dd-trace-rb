@@ -131,34 +131,33 @@ miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   };
 }
 
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(uint16_t frame_count, miteruby_stack_hash_t stack_hash) {
+static size_t aligned_stack_size(uint16_t frame_count) {
+  size_t stack_size = sizeof(miteruby_stored_stack_t) + frame_count * (sizeof(miteruby_cme_iseq_id_t) + sizeof(miteruby_event_frame_position_t));
+  return ((stack_size + 7) / 8) * 8;
+}
+
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame_count, miteruby_stack_hash_t stack_hash) {
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get(&stack_dedup_state.unique_stacks, stack_hash);
   if (!verstable_unique_stacks_map_is_end(entry)) {
-    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
+    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .reserved = false}};
   }
 
-  size_t stack_size = sizeof(miteruby_stored_stack_t) + frame_count * (sizeof(miteruby_cme_iseq_id_t) + sizeof(miteruby_event_frame_position_t));
-  size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
-  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < aligned_stack_size) {
+  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < aligned_stack_size(frame_count)) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
-  entry = verstable_unique_stacks_map_get_or_insert(&stack_dedup_state.unique_stacks, stack_hash, next_stack_id);
-  if (verstable_unique_stacks_map_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
-
   miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = frame_count;
-  stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
-  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true, .stack = miteruby_stack_dedup_get(next_stack_id)}};
+  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .reserved = true, .stack = miteruby_stack_dedup_get(next_stack_id)}};
 }
 
-// This weird thing currently exists because we:
-// 1. Check if the stack exists, and reserve its storage if it does not
-// 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ pair to `mark_cme_iseq_map` (caller)
-// 3. In step 2 either table might run out of space. So this allows us to back out of 1 if step 2 fails.
-void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash) {
-  verstable_unique_stacks_map_erase(&stack_dedup_state.unique_stacks, stack_hash);
-  stack_dedup_state.unique_stacks_pos = stack_id.offset;
+bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash) {
+  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(&stack_dedup_state.unique_stacks, stack_hash, stack_id);
+  if (verstable_unique_stacks_map_is_end(entry)) return false;
+
+  miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
+  stack_dedup_state.unique_stacks_pos += aligned_stack_size(stack->frame_count);
+  return true;
 }
