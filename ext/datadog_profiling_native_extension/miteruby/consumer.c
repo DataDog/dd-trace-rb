@@ -190,8 +190,8 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
     ID2SYM(rb_intern("miteruby_mark_cme_iseq_entries")), SIZET2NUM(mark_cme_iseq_entries),
     ID2SYM(rb_intern("miteruby_unique_stacks_array_max_size_bytes")), SIZET2NUM(stack_dedup.array_max_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_array_used_size_bytes")), SIZET2NUM(stack_dedup.array_used_size_bytes),
-    ID2SYM(rb_intern("miteruby_unique_stacks_set_max_size_bytes")), SIZET2NUM(stack_dedup.set_max_size_bytes),
-    ID2SYM(rb_intern("miteruby_unique_stacks_set_entries")), SIZET2NUM(stack_dedup.set_entries),
+    ID2SYM(rb_intern("miteruby_unique_stacks_map_max_size_bytes")), SIZET2NUM(stack_dedup.map_max_size_bytes),
+    ID2SYM(rb_intern("miteruby_unique_stacks_map_entries")), SIZET2NUM(stack_dedup.map_entries),
     ID2SYM(rb_intern("miteruby_thread_contexts_max_size_bytes")), SIZET2NUM(recorder.thread_contexts_max_size_bytes),
     ID2SYM(rb_intern("miteruby_thread_contexts_entries")), SIZET2NUM(recorder.thread_contexts_entries),
   };

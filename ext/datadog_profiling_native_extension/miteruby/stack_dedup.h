@@ -25,8 +25,8 @@ size_t miteruby_stack_dedup_size(void);
 typedef struct {
   size_t array_max_size_bytes;
   size_t array_used_size_bytes;
-  size_t set_max_size_bytes;
-  size_t set_entries;
+  size_t map_max_size_bytes;
+  size_t map_entries;
 } miteruby_stack_dedup_stats_t;
 
 miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
