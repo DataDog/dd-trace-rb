@@ -37,13 +37,15 @@ module Datadog
         nil
       end
 
-      # Writes the block's message to the target logger at debug level when
-      # the trace-logging gate resolved at construction is enabled.
+      # Writes the given message or the block's message to the target
+      # logger at debug level when the trace-logging gate resolved at
+      # construction is enabled.
       #
+      # @param message [String, nil] message written when no block is given
       # @return [void]
-      def trace
+      def trace(message = nil, &block)
         if trace_logging
-          debug { yield }
+          debug(message, &block)
         end
         nil
       end

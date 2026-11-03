@@ -1,0 +1,135 @@
+require "datadog/di/spec_helper"
+require "datadog/di"
+require "json"
+
+class SnapshotPruningTestClass
+  def capture_method(huge, small)
+    small
+  end
+
+  def raising_method(huge)
+    raise "boom"
+  end
+end
+
+RSpec.describe "Snapshot size pruning integration" do
+  di_test
+
+  let(:diagnostics_transport) do
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport, send_diagnostics: nil)
+  end
+
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: di_logger, telemetry: nil)
+  end
+
+  let(:di_logger) do
+    Datadog::DI::Logger.new(settings, logger)
+  end
+
+  let(:input_transport) do
+    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: di_logger, telemetry: nil,
+      guardrails_telemetry: guardrails_telemetry)
+  end
+
+  let(:delivered_chunks) { [] }
+
+  let(:agent_settings) do
+    instance_double_agent_settings_with_stubs
+  end
+
+  let(:logger) { logger_allowing_debug }
+
+  before do
+    allow(Datadog::DI::Transport::HTTP).to receive_messages(
+      diagnostics: diagnostics_transport,
+      input: input_transport,
+    )
+    allow(input_transport).to receive(:send_input_chunk) do |chunked_payload, _serialized_tags|
+      delivered_chunks << chunked_payload
+    end
+  end
+
+  after do
+    component.shutdown!
+  end
+
+  let(:settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |settings|
+      settings.remote.enabled = true
+      settings.dynamic_instrumentation.enabled = true
+      settings.dynamic_instrumentation.internal.development = true
+      settings.dynamic_instrumentation.internal.propagate_all_exceptions = true
+    end
+  end
+
+  let(:component) do
+    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+      if component.nil?
+        raise "Component failed to create - unsuitable environment? Check log entries"
+      end
+      component.start!
+    end
+  end
+
+  let(:probe_manager) do
+    component.probe_manager
+  end
+
+  let(:probe) do
+    Datadog::DI::Probe.new(id: "snapshot-pruning-probe", type: :log,
+      type_name: "SnapshotPruningTestClass", method_name: "capture_method",
+      capture_snapshot: true,
+      max_capture_string_length: 2_000_000)
+  end
+
+  let(:raising_probe) do
+    Datadog::DI::Probe.new(id: "snapshot-pruning-raising-probe", type: :log,
+      type_name: "SnapshotPruningTestClass", method_name: "raising_method",
+      capture_snapshot: true,
+      max_capture_string_length: 2_000_000)
+  end
+
+  before do
+    allow(Datadog::DI).to receive(:current_component).and_return(component)
+  end
+
+  # Flushes the probe notifier worker, asserts that a single snapshot chunk
+  # within the size cap is delivered, and returns the parsed snapshot.
+  def delivered_snapshot
+    component.probe_notifier_worker.flush
+
+    expect(delivered_chunks.length).to eq(1)
+    chunked_payload = delivered_chunks.first
+    expect(chunked_payload.bytesize)
+      .to be <= Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE + 2
+
+    JSON.parse(chunked_payload).first
+  end
+
+  it "delivers a pruned snapshot within the size cap" do
+    probe_manager.add_probe(probe)
+
+    expect(SnapshotPruningTestClass.new.capture_method("x" * 2_000_000, "small")).to eq("small")
+
+    snapshot = delivered_snapshot
+    arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
+    expect(arguments["arg1"]).to eq("pruned" => true)
+    expect(arguments["arg2"]).to eq("type" => "String", "value" => "small")
+  end
+
+  it "delivers a pruned snapshot with the throwable when the probe target raises" do
+    probe_manager.add_probe(raising_probe)
+
+    expect { SnapshotPruningTestClass.new.raising_method("x" * 2_000_000) }
+      .to raise_error(RuntimeError, "boom")
+
+    snapshot = delivered_snapshot
+    entry_arguments = snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments")
+    expect(entry_arguments["arg1"]).to eq("pruned" => true)
+    throwable = snapshot.dig("debugger", "snapshot", "captures", "return", "throwable")
+    expect(throwable["type"]).to eq("RuntimeError")
+    expect(throwable["message"]).to eq("boom")
+    expect(throwable["stacktrace"]).not_to be_empty
+  end
+end

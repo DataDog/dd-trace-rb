@@ -83,6 +83,20 @@ RSpec.describe Datadog::DI::Logger do
 
         expect(io.string).to include("di: hello")
       end
+
+      context "when called with a message argument" do
+        it "delegates the message to the target logger" do
+          expect(target).to receive(:debug).with("di: hello")
+
+          logger.trace("di: hello")
+        end
+
+        it "writes the message to the target's output" do
+          logger.trace("di: hello")
+
+          expect(io.string).to include("di: hello")
+        end
+      end
     end
 
     context "when trace logging is disabled" do
