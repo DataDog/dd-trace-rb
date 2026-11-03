@@ -94,7 +94,7 @@ RSpec.describe Datadog::Profiling::Exporter do
       let(:miteruby_stats) do
         {
           miteruby_interned_events_queue_max_size_bytes: 16_777_200,
-          miteruby_unique_stacks_set_entries: 42,
+          miteruby_unique_stacks_map_entries: 42,
         }
       end
       let(:worker_stats) { super().merge(miteruby_stats) }
