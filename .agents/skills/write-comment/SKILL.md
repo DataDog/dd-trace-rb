@@ -96,12 +96,12 @@ def baggage
 
 ## Removing existing comments
 
-Applies only to reviewing/deleting existing comments, not writing new ones:
+When reviewing or deleting existing comments:
 
-- **Fix the named defect, don't just delete.** Rename the identifier (repetition), relocate to `sig/` (type restatement), add a shared reference (copy-paste) — apply it, or verify the destination already carries the information (e.g. the `.rbs` actually declares the type), before removing.
-- **A deletable comment can contain a keeper.** Judge multi-line comments per line: delete the narration, keep an embedded hazard/why/citation line.
-- **A tag and its wrapped continuation are one unit.** Remove both together, then re-read the docstring for a complete, consistent signature.
-- **Bulk sweeps hide repeated defects.** One file or module per commit, so a systematic mistake surfaces on file one.
+- **Don't lose information.** Before deleting, move it where it belongs: rename the identifier the comment repeats, move a type to `sig/`, or replace copy-pasted comments with a shared one. Or check that the information is already there (e.g. the `.rbs` actually declares the type).
+- **Check multi-line comments line by line.** Delete the narration, but keep a line that explains a hazard, a why, or cites a source.
+- **A tag and its continuation lines go together.** Remove both, then re-read the docstring to check it is still complete and consistent.
+- **One file or module per commit** for bulk cleanups, so a repeated mistake shows up in the first file.
 
 ## Style
 

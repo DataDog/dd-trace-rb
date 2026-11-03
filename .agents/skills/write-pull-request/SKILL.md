@@ -5,80 +5,73 @@ description: 'Use when opening a pull request in this repo, or when writing or u
 
 # Writing pull request descriptions
 
-One reader: a senior Ruby engineer deciding whether to care and how
-carefully to look. The size limits are the signal-extraction mechanism:
-every sentence past the cap is noise the reviewer pays for.
-Implementation narration is the worst noise, because it goes stale
-when code changes. Why, What, and Risk carry intent and stance. The
-diff carries the how.
+The reader is a senior Ruby engineer who knows the codebase and wants to
+know quickly whether to review this PR and how carefully. Keep it short.
+Don't describe the implementation: the diff already shows it, and the
+description gets out of date when the code changes.
 
-The template is `.github/PULL_REQUEST_TEMPLATE.md`. CI (check.yml,
-`pr-body` job) enforces the caps on every PR, drafts included.
+The template is `.github/PULL_REQUEST_TEMPLATE.md`. CI (`check.yml`,
+`pr-body` job) checks the length limits on every PR, drafts included.
 
-## The contract
+## Rules
 
-Four slots in order. `### Why`, `### What`, and `### Risk` are
-required. `### Details` is optional.
+Four sections, in this order: `### Why`, `### What`, `### Risk` (required)
+and `### Details` (optional).
 
-- ALWAYS at most 2 sentences and 50 words per required field
-- ALWAYS high level and terse in Why and What: these slots reveal the
-  intent of the change. Senior Ruby engineers know the codebase. Name
-  the effect and its trigger, not the mechanism. A sentence that names
-  a file or a spec helper is too deep
-- ALWAYS ground What and Risk in the diff, never in memory of the work
-  session. Why grounds in the request or issue that motivated the
-  work: intent is not in the diff
-- ALWAYS make the required fields stand alone: a reader who opens
-  nothing else can decide whether to care
-- NEVER narrate the implementation
-- NEVER use the `<!-- pr-body: skip -->` marker. It is an escape hatch
-  for exceptions a human judge calls, not for agent drafts. Fit the
-  message into the caps
-- Links in required fields use markdown style: link text carries the
-  meaning, the URL is optional context. Bare URLs go in Details
+- Each required section has at most 2 sentences and 50 words.
+- Keep Why and What high level: the effect and when it happens, not how
+  it is implemented. If a sentence names a file or a spec helper, it is
+  too detailed.
+- Base What and Risk on the diff, not on what you remember doing. Base Why
+  on the request or issue that motivated the change.
+- The required sections must make sense on their own, without opening
+  anything else.
+- Never use the `<!-- pr-body: skip -->` marker. It is for exceptions
+  decided by a human. Make the description fit instead.
+- Links in required sections use markdown syntax, with meaningful link
+  text. Put bare URLs in Details.
 
 ### Why
 
-The change's intent, in terms the reviewer recognizes. One sentence
-for the problem, one for the trigger or scope when it decides who
-cares.
+Why the change is needed: one sentence for the problem, and optionally one
+for who is affected or when it happens.
 
 ### What
 
-The effect at the level that decides review effort.
+What the change does, at the level needed to judge how much review it
+needs.
 
 ### Risk
 
-The merge stance: door type (two-way or one-way), the blast radius, and
-the mechanical revert. Categorize with the taxonomy in `risk.md`. Merge
-preconditions live here, not in Details. A whole field: "Two-way door,
-scoped to the AppSec rules engine. Revert by re-running the update
+Whether the change can be undone (two-way door) or not (one-way door), what
+it can affect, and how to revert it. See `risk.md` for how to assess it.
+Conditions to meet before merging go here, not in Details. Example: "Two-way
+door, scoped to the AppSec rules engine. Revert by re-running the update
 task."
 
 ### Details
 
-Optional, and always collapsible. Everything that overflows the caps
-goes here, wrapped in `<details><summary>Notes</summary>` and
-`</details>`: links, benchmarks, plans, test instructions, any longer
-explanation. Never appended to a required field, never loose in the
-body. A reader must not need it.
+Optional, collapsed in `<details><summary>Notes</summary>` ... `</details>`.
+Anything that doesn't fit in the other sections goes here: links,
+benchmarks, plans, testing instructions, longer explanations. Never put it
+after a required section or loose in the body. The PR must be
+understandable without reading it.
 
-## Grounding and drift
+## Keeping it up to date
 
-Ground What and Risk in the diff at creation. When review changes the
-diff, re-ground Why, What, and Risk against the final diff before
-merge: dead effects come out, new effects go in. The caps hold after
-every edit.
+If the diff changes during review, update Why, What, and Risk before
+merging: remove what no longer applies, add what is new, and stay within
+the limits.
 
 ## Examples
 
-The CI fixtures are worked examples:
+The CI fixtures in `.github/scripts/check/fixtures/` are examples:
 
-- Imitate `.github/scripts/check/fixtures/pass_contract_body.md`
-- Automation shape: `pass_automation_shape.md`
-- Each `fail_*.md` fixture names one rejection
+- `pass_contract_body.md` is the one to imitate
+- `pass_automation_shape.md` is the shape for automated PRs
+- each `fail_*.md` shows one rejected case
 
-Verify a draft before opening the PR:
+Check a draft before opening the PR:
 
 ```
 PR_BODY="$(cat draft.md)" ruby .github/scripts/check/pr_body.rb

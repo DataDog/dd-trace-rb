@@ -1,14 +1,13 @@
 # Steep annotations
 
-Reach for these when the Ruby is correct but Steep cannot infer a type – never to
-reshape working code or loosen a signature. There are two forms plus a last
-resort: a trailing **assertion**, an above-the-line **annotation**, and
-`steep:ignore`
+Use these when the Ruby code is correct but Steep cannot infer a type. There
+are two forms, a trailing **assertion** and an **annotation** on the line
+above, plus `steep:ignore` as a last resort
 
 ## Rules
 
-- SHOULD reach for one only when the code is correct and uninferrable – NEVER
-  reshape working Ruby or loosen a signature to satisfy the checker
+- SHOULD use one only when the code is correct and Steep can't infer the
+  type – NEVER change working Ruby or loosen a signature to satisfy the checker
 - A **type assertion** trails an expression as `#: Type` – it narrows a value
   Steep infers too widely, most often an empty literal that has no element type
   to infer; NEVER assert to `untyped`

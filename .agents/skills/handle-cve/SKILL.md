@@ -5,78 +5,70 @@ description: 'Use when the dependency audit goes red — `.github/scripts/check/
 
 # Handling a CVE that blocks CI (bundler-audit)
 
-Goal: turn the red audit task green, locally. Run the audit on your
-machine, research the CVE, triage the impact, decide the fix, and
-validate before you push. CI runs the same audit later and only
-confirms what you already saw.
+Goal: make the failing dependency audit pass. Run the audit locally,
+research the CVE, decide on a fix, and validate it before pushing. CI runs
+the same audit afterwards.
 
-## 1. Role and priority
+## 1. Who handles it, and how urgently
 
-The owner is whoever hits the red audit, locally or on a PR. There
-is no security on-call. This is routine maintenance. The whole purpose
-of the audit is supply-chain health: the gems under `gemfiles/` get
-installed and run, locally and in CI. We protect the machines that run
-the audit and the test suite, not the shipped gem. The `datadog` gem
-declares its runtime dependencies as version ranges. Each customer
-picks the versions that install, so we control only what we install
+Whoever hits the failing audit handles it, locally or on a PR. There is no
+security on-call, this is routine maintenance.
+
+The audit protects the machines that install and run the gems under
+`gemfiles/` (developer machines and CI), not the shipped gem. The `datadog`
+gem declares its runtime dependencies as version ranges, so customers
+choose which versions they install. We only control what we install
 ourselves.
 
 Priority:
 
-1. The advisory is supply-chain (a compromised or malicious package),
-   or the vulnerable code runs during our tests. Tell the maintainers,
-   and get the gem off the lockfiles.
-2. The audit fails on `master` or a shared branch. Run it locally
-   to confirm. Unblock the same day, with the loop below.
-3. The audit fails only in your branch. Fix it before you open the PR.
-   Same loop, but branch off your branch, and merge into your PR.
+1. The advisory is about a compromised or malicious package, or the
+   vulnerable code runs during our tests: tell the maintainers, and remove
+   the gem from the lockfiles.
+2. The audit fails on `master` or a shared branch: confirm locally, and fix
+   it the same day as described below.
+3. The audit fails only on your branch: fix it before opening the PR, the
+   same way, but branch off your branch and merge the fix into your PR.
 
-The unblock loop:
+When the audit fails on `master` (and therefore on every open PR):
 
-```text
-red audit on master, and on every open PR
-→ branch off the latest master
-→ run sections 2 to 5
-→ fast draft PR, merge
-→ other PRs merge the updated master, and turn green
-```
+1. Branch off the latest `master`.
+2. Follow sections 2 to 5.
+3. Open a draft PR and get it merged quickly.
+4. Other PRs merge the updated `master` and pass again.
 
-## 2. Identify the CVE and its blast radius
+## 2. Find the affected gems, lockfiles, and tests
 
-Run the audit. It scans every covered lockfile, so one container is
-enough. `docs/DependencyAudit.md` is
-authoritative on what the job covers and which advisories fail it.
+Run the audit. It checks every covered lockfile, so one container is
+enough. `docs/DependencyAudit.md` describes what the audit covers and which
+advisories make it fail.
 
-The audit runs standalone, outside any bundle: the script installs its
-own pinned gems and loads only the audit task. The findings JSON is
-written only on failure, and the command below prints it because the
-file stays in the container's `tmp/` volume. Each entry gives the
-advisory id, the gem and version, the criticality, and the lockfile.
+The audit script installs its own pinned gems and doesn't need a bundle. It
+writes a findings JSON file only on failure, and the command below prints
+it, since the file stays inside the container. Each finding lists the
+advisory id, the gem and version, the severity, and the lockfile.
 
 ```bash
 docker compose run --rm tracer-4.0 sh -c \
   '.github/scripts/check/dependency_audit.sh || cat tmp/dependency_audit_findings.json'
 ```
 
-Every command in this skill runs inside the containers from
-`docker-compose.yml`. Each `tracer-X.Y` service pins one Ruby and
-its own default Gemfile.
+All commands in this skill run in the containers from `docker-compose.yml`.
+Each `tracer-X.Y` service uses one Ruby version and its own default Gemfile.
 
-To map the blast radius, walk each finding from the lockfile to the
-tests that run it, through the `Matrixfile`. The blast radius is the
-full matrix a gemset covers, which runs wider than audit coverage: an
-unaudited Ruby still runs the gem, so an upgrade can break it, but it
-never turns the audit red on its own.
+Then find which tests use each affected lockfile, using the `Matrixfile`.
+This can include more Ruby versions than the audit covers: a Ruby version
+the audit skips still runs the gem, so an upgrade can break it there, even
+though it never makes the audit fail.
 
-1. The lockfile name carries the gemset:
-   `ruby_3.3_mongo_latest.gemfile.lock` is gemset `mongo-latest`.
-   Underscores in the file name become hyphens in the `Matrixfile`.
-2. Open the `Matrixfile` and find the gemset. The entry names the
-   rake task and the Rubies it covers.
-3. A gem can have more than one gemset. `mongo` also has
-   `mongo-min`, which pins the oldest tested driver. Both gemsets
-   map to `test:mongodb`, so one advisory can hit two lockfiles per
-   Ruby.
+1. The lockfile name contains the gemset:
+   `ruby_3.3_mongo_latest.gemfile.lock` is gemset `mongo-latest`
+   (underscores become hyphens in the `Matrixfile`).
+2. Find the gemset in the `Matrixfile`. The entry gives the rake task and
+   the Ruby versions it runs on.
+3. A gem can have several gemsets. `mongo` also has `mongo-min`, which pins
+   the oldest tested version. Both map to `test:mongodb`, so one advisory
+   can affect two lockfiles per Ruby version.
 
 ```ruby
 "mongodb" => {
@@ -85,43 +77,31 @@ never turns the audit red on its own.
 },
 ```
 
-After this section you must be able to answer:
+At the end of this step you should know:
 
-- Which advisory hits which gem, at which pinned versions?
-- Which lockfiles pin those versions?
-- Which rake tasks install and run the affected gem, and on which
-  Rubies?
-
-Section 4 picks the lockfiles to update from these answers. Section
-5 runs the tasks from these answers, on the earliest and the latest
-Ruby.
-
+- which advisory affects which gem, at which versions
+- which lockfiles contain those versions
+- which rake tasks install and run the gem, and on which Ruby versions
 
 ## 3. Research the CVE
 
-Goal: turn the advisory id from section 2 into the facts that
-section 4 needs to pick a resolution path. Research stops when the
-questions below have answers. More depth does not change the
-decision.
+Research only until you can answer the questions below, more doesn't
+change the decision.
 
-Process:
+1. Read the advisory: the GHSA entry on github.com/advisories, or the CVE
+   record. It has the description, the affected versions, and the patched
+   versions. Read it on the web, the audit's copy of ruby-advisory-db is
+   recreated inside the container on each run.
+2. The gem's repository has the changelog, the upstream issue, and the fix
+   commit.
+3. Check that the patched version supports every Ruby version from step 2:
+   `gem specification -r -v VERSION GEM required_ruby_version`. If it
+   requires a newer Ruby than one the audit covers, that lockfile can't be
+   upgraded and needs an exception, while the others are upgraded. If the
+   unsupported Ruby isn't covered by the audit, that lockfile simply stays
+   on the old version.
 
-1. Read the advisory record: the GHSA entry at github.com/advisories,
-   or the CVE record. It carries the description, the affected
-   range, and the patched versions. The audit's ruby-advisory-db
-   clone lives inside the container, and a new run recreates it.
-   Read the record from the web.
-2. The gem's own repository adds the changelog entry, the upstream
-   issue, and the fix commit.
-3. Check the patch against our constraints: the patched version's
-   `required_ruby_version` against every Ruby in the blast radius
-   (`gem specification -r -v VERSION GEM required_ruby_version`). A
-   floor above an audited Ruby splits the lockfiles: that one cannot
-   take the patch and needs an exception entry, while the rest
-   upgrade. A floor above an unaudited Ruby only limits how far the
-   fix reaches, since that lockfile had no finding to clear.
-
-Example advisory record, the mongo case from section 2:
+Example advisory, for the mongo case above:
 
 ```yaml
 ---
@@ -138,130 +118,113 @@ related:
     - https://github.com/advisories/GHSA-4ww7-gqv6-mffc
 ```
 
-After this section you must be able to answer:
+At the end of this step you should know:
 
-- What is vulnerable: the component, the bug class, and what an
-  attacker must control.
-- Is it exploited in the wild?
-- How dangerous is it for us: the CVSS vector, plus whether the
-  vulnerable component runs in the blast radius tasks.
-- What fixes it: the patched versions, and is it a breaking major?
-- Can we install the fix on the Rubies in the blast radius?
+- What is vulnerable: the component, the kind of bug, and what an attacker
+  needs to control.
+- Whether it is exploited in the wild.
+- How serious it is for us: the CVSS vector, and whether the vulnerable
+  code runs in our tests.
+- Which versions fix it, and whether that is a new major version.
+- Whether the fix can be installed on all the Ruby versions from step 2.
 
-Close with one sentence: what is vulnerable, what fixes it, and
-what the fix requires of this repo.
+Summarize in one sentence: what is vulnerable, what fixes it, and what the
+fix requires in this repo.
 
 ## 4. Decide how to unblock
 
-Separate two jobs. The **unblock** turns the audit green and is due
-now. The **fix** removes the vulnerable code and can be due later.
+Making the audit pass is urgent. Removing the vulnerable version can come
+later if it is a lot of work.
 
-Two outcomes exist, per lockfile:
+For each lockfile, there are two options:
 
-1. Upgrade: the lockfile moves to a patched version, so the unblock
-   and the fix are the same change. Small breakage in the integration
-   rides along in it.
-2. Exception: the lockfile keeps the vulnerable pin, and a documented
-   `.bundler-audit.yml` entry suppresses the finding. The entry is the
-   unblock; a follow-up issue carries the fix. The entry takes one of
-   two forms: the entire advisory id, or one exact gem and version.
+1. Upgrade the lockfile to a patched version. This both unblocks and fixes.
+   Small fixes needed for the integration go in the same change.
+2. Add an exception: keep the vulnerable version and add a documented
+   entry in `.bundler-audit.yml` to ignore the finding, plus a follow-up
+   issue for the real fix. An entry ignores either a whole advisory id, or
+   one exact gem version.
 
-Ship the unblock by the fastest safe path, and let a large fix follow
-on its own schedule. The one case with no exception is section 1 case
-1 — a supply-chain advisory, or vulnerable code that runs in our
-tests — which needs the gem gone from the lockfiles.
+Exceptions are not allowed for case 1 of section 1 (a malicious package, or
+vulnerable code that runs in our tests): the gem must be removed from the
+lockfiles.
 
-Decision tree. Walk every affected lockfile:
+For each affected lockfile:
 
 ```text
-Can this lockfile take a patched version?
-│  The patch must resolve on the lockfile's Ruby, and inside the
-│  appraisal constraints.
-├─ yes → lock the update, then ask:
-│      Does the integration survive the update?
-│      │  Run the task from the blast radius.
-│      ├─ passes → upgrade
-│      ├─ fails, fix is small → upgrade, with the fix in the same change
-│      └─ fails, fix is large → revert the lockfile, keep the
-│         vulnerable pin
-└─ no → keep the vulnerable pin
+Can this lockfile use a patched version (on its Ruby version, and within
+the gemset's constraints)?
+├─ yes → update the lockfile and run the tests from step 2:
+│      ├─ pass → upgrade
+│      ├─ fail, small fix → upgrade, with the fix in the same change
+│      └─ fail, large fix → revert the lockfile, keep the vulnerable version
+└─ no → keep the vulnerable version
 
-Every kept pin is the exception. Collect the versions left:
-├─ one version left → one `ignore_gem_versions` entry
-└─ many versions left, and no upgrade can shrink them → one
-   advisory-id `ignore` entry
+Then add an exception for the kept versions:
+├─ one version → one `ignore_gem_versions` entry
+└─ several versions, and upgrades can't reduce them → one `ignore` entry
+   for the advisory id
 ```
 
-To lock the update, use the container whose Ruby matches the
-lockfile:
+To update a lockfile, use the container matching its Ruby version:
 
 ```bash
 docker compose run --rm -e BUNDLE_GEMFILE=gemfiles/<affected>.gemfile \
   tracer-<RUBY> bundle lock --update GEM_NAME
 ```
 
-This command changes only the lockfile. It does not install the
-gem. `bundle update GEM_NAME` writes the same lockfile, but it
-also installs the gem.
+This only changes the lockfile, without installing the gem (unlike
+`bundle update GEM_NAME`).
 
-To run the blast-radius task:
+To run the tests:
 
 ```bash
 docker compose run --rm tracer-<RUBY> bundle exec rake test:<TASK>
 ```
 
-To record the exception, write the entries in `.bundler-audit.yml` and
-land them. The tree above picks the form; the existing entries in that
-file show the shape. Every entry documents the advisory id, the gem and
-exact version, why it cannot upgrade, the removal conditions, and the
+To add an exception, add the entry to `.bundler-audit.yml`, following the
+existing entries. Each entry documents the advisory id, the gem and exact
+version, why it can't be upgraded, when the entry can be removed, and the
 follow-up issue if the fix is deferred.
 
-For sizing an upgrade when the lockfile diff does not settle it, read
-`CASE-STUDIES.md`: two real advisories where the blocker was a
-deliberately pinned gemset, the test infrastructure, or a patch that
-shipped only as a prerelease.
+If it's unclear how much work an upgrade is, read `CASE-STUDIES.md`: two
+real cases where the blocker was a deliberately pinned gemset, the test
+infrastructure, or a fix only available as a prerelease.
 
-Section 4 is done when every lockfile from section 2 has a verdict —
-upgraded, or kept with its vulnerable version recorded — and the kept
-versions are collected into the narrowest entry form that covers them.
+This step is done when every lockfile from step 2 is either upgraded or
+kept with its vulnerable version recorded in the narrowest possible
+exception.
 
 ## 5. Validate and ship
 
-Run every command in a `tracer-X.Y` container, per section 2.
+Run every command in a `tracer-X.Y` container.
 
-Validate what you changed:
-
-- Lockfile changed: `bundle exec rake dependency:checksum_coverage`.
-  A lockfile rewrite can drop its `CHECKSUMS` section, which pins
-  the content digest of every gem. This task catches the loss.
-- `.bundler-audit.yml` changed: the audit re-run at the end of this
-  section validates it. The ignore lists are consumed only by the
-  audit, so a green re-run is the check.
-- Gem version changed: run the blast-radius task in the containers of
-  the earliest and the latest Ruby among the lockfiles that actually
-  moved. A partial upgrade leaves the others on the old version, so
-  the matrix's earliest Ruby may not run the new gem at all.
-
-Then re-run the audit. It must print `No high or critical
-advisories found.`
+- If a lockfile changed, run `bundle exec rake dependency:checksum_coverage`.
+  Rewriting a lockfile can drop its `CHECKSUMS` section, and this task
+  catches that.
+- If the gem version changed, run the tests from step 2 on the oldest and
+  newest Ruby versions among the lockfiles that changed. With a partial
+  upgrade, the oldest Ruby in the matrix might not use the new version at
+  all.
+- Re-run the audit. It must print `No high or critical advisories found.`
+  This also validates any `.bundler-audit.yml` changes.
 
 Ship:
 
-- No changelog fragment. Internal tooling.
-- Never commit on `master`. Draft PR, `AI Generated` label, title
-  `chore(security): ...`.
-- The PR states the advisory id, the affected lockfiles, the
-  decision, and the follow-up issue for deferred work. Ignore
-  entries also state their removal conditions.
+- No changelog fragment, this is internal tooling.
+- Never commit on `master`. Open a draft PR with the `AI Generated` label
+  and a `chore(security): ...` title.
+- The PR description gives the advisory id, the affected lockfiles, the
+  decision, and the follow-up issue for deferred work. For exceptions, it
+  also says when they can be removed.
 
-## Hard guardrails
+## Never do this
 
-Two failures are unrecoverable by a later commit, so they get a stop
-rather than a rule:
+These mistakes can't be fixed by a later commit:
 
-- Every file under `gemfiles/` is Bundler's output. Regenerate it with
-  `bundle lock --update`; a hand edit produces a lockfile that resolves
-  differently from the one Bundler would write.
-- A supply-chain advisory, or one reachable in our tests, goes to the
-  maintainers before anything else. An ignore entry here hides a live
-  compromise on the machines running the suite.
+- Never edit files under `gemfiles/` by hand, they are generated by
+  Bundler. Use `bundle lock --update`. A hand-edited lockfile can resolve
+  differently from what Bundler would produce.
+- Never add an exception for a malicious package or for vulnerable code
+  that runs in our tests. Tell the maintainers first. An exception would
+  hide an active compromise on the machines running the tests.

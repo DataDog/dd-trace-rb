@@ -21,8 +21,8 @@ new one
 - ALWAYS write a nilable as `Type?`, never `Type | nil`
 - NEVER copy Ruby comments into the `.rbs`
 - NEVER use `untyped` when the type is inferable from the code
-- NEVER loosen a signature just to satisfy Steep – a signature MUST harden the
-  code's real contract, not paper over a checker error
+- NEVER loosen a signature just to satisfy Steep – the signature MUST describe
+  what the code really accepts and returns
 - Use `any` only when every possible type is intentionally valid and the code
   does not depend on the concrete type; use `untyped` when the type is merely
   not-yet-modeled, and be sparing with `any`
