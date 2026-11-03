@@ -2,6 +2,8 @@
 
 #include <ruby.h>
 
+#include "stack_dedup.h"
+
 #include "../private_vm_api_access.h"
 #include "../time_helpers.h"
 
@@ -20,6 +22,6 @@ miteruby_consumer_recorder_stats_t miteruby_consumer_recorder_stats(void);
 void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_deduped_sample_t *event,
-  miteruby_event_stack_sample_view_t view,
+  miteruby_stack_t stack,
   monotonic_to_system_epoch_state *time_converter
 );
