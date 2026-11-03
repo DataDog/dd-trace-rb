@@ -2,12 +2,16 @@ module Datadog
   module Core
     module Workers
       module Polling
+        include IntervalLoop
+
+        include Async::Thread
+
         DEFAULT_SHUTDOWN_TIMEOUT: 1
 
 
         def self.included: (Class | Module base) -> void
 
-        module PrependedMethods
+        module PrependedMethods : Polling
           def perform: (*untyped args) -> untyped
         end
 

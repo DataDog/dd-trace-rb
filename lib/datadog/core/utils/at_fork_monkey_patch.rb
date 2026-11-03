@@ -65,7 +65,7 @@ module Datadog
             end
           end
 
-          error = nil
+          error = nil #: Exception?
           callbacks.each do |callback|
             next if started && callback.group && !started.key?(callback.group)
 
@@ -169,7 +169,7 @@ module Datadog
 
                 # Invoke original block
                 yield
-              end
+              end #: ^() -> void
             end
 
             begin

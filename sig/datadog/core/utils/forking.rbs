@@ -20,9 +20,8 @@ module Datadog
 
         def fork_pid: () -> Integer
 
-        module ClassExtensions
-          def initialize: (*untyped args) { () -> untyped } -> untyped
-                           | (*untyped args, **untyped kwargs) { () -> untyped } -> untyped
+        module ClassExtensions : Forking
+          def initialize: (*untyped args, **untyped kwargs) ?{ (?) -> untyped } -> void
         end
       end
     end

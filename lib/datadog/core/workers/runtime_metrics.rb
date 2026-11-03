@@ -58,9 +58,9 @@ module Datadog
         # This should be avoided, as it prevents this class from
         # ensuring correct resource decommission of its internal
         # dependencies.
-        def stop(*args, close_metrics: true)
+        def stop(force_stop = false, timeout = DEFAULT_SHUTDOWN_TIMEOUT, close_metrics: true)
           self.enabled = false
-          result = super(*args)
+          result = super(force_stop, timeout)
           @metrics.close if close_metrics
           result
         end

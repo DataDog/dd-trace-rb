@@ -3,10 +3,11 @@
 module Datadog
   module Core
     module Metrics
-      Metric = Struct.new(:type, :name, :value, :options) do
-        def initialize(*args)
-          super
-          self.options = options || {}
+      Metric = Struct.new(:type, :name, :value, :options)
+
+      class Metric
+        def initialize(type, name, value, options = nil)
+          super(type, name, value, options || {}) # steep:ignore UnexpectedPositionalArgument
         end
       end
     end

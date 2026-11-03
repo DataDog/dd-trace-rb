@@ -26,7 +26,7 @@ module Datadog
 
           def perform: (*untyped args) -> untyped
 
-          def in_iteration?: () -> bool
+          def in_iteration?: () -> bool?
         end
 
         def stop_loop: () -> (false | true)
