@@ -46,6 +46,7 @@ module Datadog
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
         cpu_sampling_interval_ms =
           valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
+        max_frames = valid_max_frames(settings.profiling.advanced.max_frames, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           alloc_samples_enabled: allocation_profiling_enabled,
@@ -54,7 +55,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
           heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
         )
-        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer)
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings, logger),
           no_signals_workaround_enabled: no_signals_workaround_enabled,
@@ -97,10 +98,10 @@ module Datadog
         [nil, {profiling_enabled: false}]
       end
 
-      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer)
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
         Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
-          max_frames: settings.profiling.advanced.max_frames,
+          max_frames: max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
@@ -425,6 +426,17 @@ module Datadog
         else
           cpu_sampling_interval_ms
         end
+      end
+
+      private_class_method def self.valid_max_frames(max_frames, logger)
+        clamped = max_frames.clamp(400, 600)
+        if clamped != max_frames
+          logger.warn(
+            "Profiling max_frames is set to #{max_frames}, but only values between 400 and 600 are supported. " \
+            "Using #{clamped} instead.",
+          )
+        end
+        clamped
       end
 
       # MariaDB's client has diverged from Oracle's and has no reported need for the "no signals" workaround, as

@@ -89,7 +89,7 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
           expect(settings.profiling.advanced)
-            .to receive(:max_frames).and_return(:max_frames_config)
+            .to receive(:max_frames).and_return(500)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
@@ -99,13 +99,22 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
-            max_frames: :max_frames_config,
+            max_frames: 500,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
             show_classes: :experimental_show_classes_enabled_config,
           )
+
+          build_profiler_component
+        end
+
+        it "clamps max_frames to the supported range" do
+          settings.profiling.advanced.max_frames = 100
+          allow(logger).to receive(:warn)
+
+          expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(hash_including(max_frames: 400))
 
           build_profiler_component
         end
@@ -799,6 +808,42 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "returns the value" do
         expect(valid_overhead_target).to eq 1.5
+      end
+    end
+  end
+
+  describe ".valid_max_frames" do
+    subject(:valid_max_frames) { described_class.send(:valid_max_frames, max_frames, logger) }
+
+    {399 => 400, 601 => 600}.each do |invalid_value, clamped_value|
+      context "when max_frames is outside of the supported range (#{invalid_value})" do
+        let(:max_frames) { invalid_value }
+
+        it "logs a warning" do
+          expect(logger).to receive(:warn).with(
+            /max_frames is set to #{invalid_value}, but only values between 400 and 600 are supported. Using #{clamped_value}/,
+          )
+
+          valid_max_frames
+        end
+
+        it "clamps the value to the supported range" do
+          allow(logger).to receive(:warn)
+
+          expect(valid_max_frames).to eq clamped_value
+        end
+      end
+    end
+
+    [400, 600].each do |valid_value|
+      context "when max_frames is within the supported range (#{valid_value})" do
+        let(:max_frames) { valid_value }
+
+        it "returns the value without logging" do
+          expect(logger).to_not receive(:warn)
+
+          expect(valid_max_frames).to eq valid_value
+        end
       end
     end
   end
