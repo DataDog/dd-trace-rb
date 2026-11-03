@@ -8,6 +8,27 @@
 //
 // None of this code is thread-safe, caller is expected to take care of that
 
+// When deduplicating stacks, we treat stacks with the same hash as identical.
+//
+// This allows us to save CPU and memory:
+// * We plan to store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
+// * Converting every incoming stack to those indexes requires O(frames) lookups in `verstable_mark_cme_iseq_map`.
+//   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
+//   Hashing itself remains O(frames).
+//
+// Wyhash documents ~62 effective bits of collision resistance: https://github.com/wangyi-fudan/wyhash#readme.
+// Applying that model here, P(any collision) ~= n*(n-1)/(2*2^62), or about 1 in 922 million for
+// 100,000 distinct stacks since reset. This is an estimate, not a measured bound for our stack inputs.
+//
+// A collision assigns samples of the later stack to the first stack with that hash,
+// including subsequent occurrences until reset.
+//
+// Design note: If we're worried about collisions, we can use more bits for hash (see for instance
+// https://www.mckusick.com/bookrefs/zfs_dedup.html on how zfs uses sha256 to dedup on-disk storage)
+typedef struct {
+  uint64_t hash;
+} miteruby_stack_hash_t;
+
 typedef struct {
   bool error_storage_full;
 
@@ -33,7 +54,8 @@ miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
 
 // Returned views borrow storage until the next reset; callers must not modify it.
 miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_stack_sample_view_t view);
+miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event);
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(const miteruby_event_stack_sample_t *event, miteruby_stack_hash_t stack_hash);
 
 // Only the latest newly inserted stack may be rolled back, before any sample references it.
-void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id);
+void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash);
