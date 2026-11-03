@@ -36,7 +36,12 @@ module Datadog
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 
-        build_resolution_details(result, default_value)
+        details = build_resolution_details(result, default_value)
+        dependencies = result.respond_to?(:dependency_evaluations) ? result.dependency_evaluations : []
+        details.dependency_evaluations = dependencies.map do |key, dependency, eligible|
+          [key, build_resolution_details(dependency, nil), eligible]
+        end
+        details
       end
 
       private

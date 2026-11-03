@@ -15,6 +15,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:resolution_details_class) do
     Class.new do
       attr_reader(
+        :dependency_evaluations,
         :value,
         :reason,
         :error_code,
@@ -43,6 +44,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:assignment) do
     instance_double(
       resolution_details_class,
+      dependency_evaluations: [],
       value: value,
       reason: reason,
       error_code: error_code,
@@ -134,6 +136,48 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
     context "when the native configuration does not opt in" do
       it { is_expected.to be(false) }
+    end
+  end
+  context "with native prerequisite evaluation" do
+    let(:configuration_json) { File.read(File.expand_path("../../fixtures/ffe/dependent_flags.json", __dir__)) }
+
+    before do
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:new).and_call_original
+      skip "requires the prerequisite-aware native library" unless Datadog::Core::FeatureFlags.evaluator_capabilities.include?("dependent-flag-variant-key-v1")
+    end
+
+    it "returns each prerequisite once and preserves exposure metadata after GC" do
+      result = evaluator.get_assignment("root", default_value: false, expected_type: :boolean, context: context)
+      GC.start
+      expect(result.value).to be(true)
+      expect(result.dependency_evaluations.size).to eq(1)
+      key, dependency, eligible = result.dependency_evaluations.first
+      expect(key).to eq("parent")
+      expect(dependency.variant).to eq("on")
+      expect(dependency.allocation_key).to eq("parent-allocation")
+      expect(dependency.log?).to be(true)
+      expect(eligible).to be(true)
+    end
+
+    it "keeps a rejected prerequisite evaluation but suppresses its exposure" do
+      result = evaluator.get_assignment("rejected", default_value: true, expected_type: :boolean, context: context)
+      expect(result.value).to be(false)
+      expect(result.dependency_evaluations.map { |key, _details, eligible| [key, eligible] }).to eq([["parent", false]])
+    end
+
+    ["missing", "cycle", "requires-disabled"].each do |key|
+      it "returns the caller default when #{key} cannot be evaluated" do
+        result = evaluator.get_assignment(key, default_value: false, expected_type: :boolean, context: context)
+        expect(result.value).to be(false)
+        expect(result.error?).to be(true)
+        if key == "cycle"
+          expect(result.dependency_evaluations).to be_empty # The root is not counted again as a prerequisite.
+        else
+          expect(result.dependency_evaluations).not_to be_empty
+        end
+        expect(result.dependency_evaluations.map { |_key, _details, eligible| eligible }).to all(be(false))
+        expect(evaluator.get_assignment("parent", default_value: false, expected_type: :boolean, context: context).value).to be(true)
+      end
     end
   end
 end

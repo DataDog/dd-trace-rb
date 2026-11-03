@@ -50,6 +50,22 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     ).to have_been_made.once
   end
 
+  [false, true].each do |supported|
+    context "when dependent flags support is #{supported}" do
+      before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(supported) }
+
+      [nil, "previous"].each do |etag_value|
+        it "negotiates capabilities with ETag #{etag_value.inspect}" do
+          transport.get(etag_value)
+          expect(a_request(:get, "https://example.test/config?dd_env=test").with do |request|
+            request.headers["X-Dd-Feature-Flags-Capabilities"] == (supported ? "dependent-flag-variant-key-v1" : nil) &&
+              request.headers["If-None-Match"] == etag_value
+          end).to have_been_made.once
+        end
+      end
+    end
+  end
+
   context "with a custom endpoint" do
     let(:managed) { false }
 

@@ -1096,3 +1096,58 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
   end
 end
+
+RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
+  subject(:record) { provider.send(:record_dependency_evaluations, result, nil, 1234) }
+
+  let(:provider) { described_class.new(enable_evaluation_telemetry_opt_out_parameter: false) }
+  let(:evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook, capture: nil) }
+  let(:metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook, capture: nil) }
+  let(:component) do
+    instance_double(Datadog::OpenFeature::Component, flag_eval_evp_hook: evp_hook, flag_eval_metrics_hook: metrics_hook)
+  end
+  let(:components) { instance_double(Datadog::Core::Configuration::Components, open_feature: component) }
+  let(:dependency) do
+    Datadog::OpenFeature::ResolutionDetails.new(
+      value: true, variant: "on", reason: "STATIC", allocation_key: "parent-allocation",
+      flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false},
+    )
+  end
+  let(:result) do
+    Datadog::OpenFeature::ResolutionDetails.new(dependency_evaluations: [["parent", dependency, false]])
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+  end
+
+  it "records reached prerequisites even when their exposure is ineligible" do
+    record
+    expect(evp_hook).to have_received(:capture) do |key, context, details|
+      expect(key).to eq("parent")
+      expect(context).to be_nil
+      expect(details.variant).to eq("on")
+      expect(details.flag_metadata).to include("dd.eval.timestamp_ms" => 1234,
+        Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false)
+    end
+    expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+  end
+
+  it "preserves prerequisite errors" do
+    dependency.error_code = "FLAG_NOT_FOUND"
+    dependency.error_message = "missing prerequisite"
+    dependency.reason = "ERROR"
+    dependency[:error?] = true
+    record
+    expect(metrics_hook).to have_received(:capture) do |_key, details|
+      expect(details.error_code).to eq("FLAG_NOT_FOUND")
+      expect(details.reason).to eq("ERROR")
+    end
+  end
+
+  it "does not let telemetry failures escape" do
+    allow(evp_hook).to receive(:capture).and_raise(StandardError)
+    expect { record }.not_to raise_error
+  end
+end

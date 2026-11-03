@@ -31,6 +31,10 @@ module Datadog
         # finally covers success, error, AND default paths (not just After).
         # Cheap extraction only — no aggregation on the caller thread.
         def finally(hook_context:, evaluation_details:, **_opts)
+          capture(hook_context.flag_key, hook_context.evaluation_context, evaluation_details)
+        end
+
+        def capture(flag_key, evaluation_context, evaluation_details)
           writer = @writer
           return unless writer
 
@@ -46,7 +50,7 @@ module Datadog
           observe_full_evaluation_data = false unless observe_full_evaluation_data == true
 
           attrs = if observe_full_evaluation_data
-            extract_attributes(hook_context.evaluation_context)
+            extract_attributes(evaluation_context)
           end
 
           # Raw messages may contain high-cardinality data, so only error codes enter EVP.
@@ -56,12 +60,12 @@ module Datadog
           error_code = Ext::GENERAL if reason == Ext::ERROR && error_code.to_s.empty?
 
           writer.enqueue(
-            flag_key: hook_context.flag_key,
+            flag_key: flag_key,
             variant: runtime_default ? nil : evaluation_details.variant,
             allocation_key: runtime_default ? nil : extract_allocation_key(evaluation_details),
             error_message: error_code,
             runtime_default: runtime_default,
-            targeting_key: extract_targeting_key(hook_context.evaluation_context),
+            targeting_key: extract_targeting_key(evaluation_context),
             eval_time_ms: eval_time_ms,
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,

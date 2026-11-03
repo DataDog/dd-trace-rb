@@ -16,6 +16,8 @@ module Datadog
           **untyped _opts
         ) -> void
 
+        def capture: (String flag_key, ::OpenFeature::SDK::EvaluationDetails evaluation_details) -> void
+
         private
 
         def extract_allocation_key: (

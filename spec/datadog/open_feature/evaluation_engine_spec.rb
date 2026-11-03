@@ -261,6 +261,20 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(result.flag_metadata).to include(observe_full_evaluation_data_key => false)
       end
 
+      it "reports only eligible prerequisite exposures and preserves snapshot consent" do
+        dependency = Datadog::OpenFeature::ResolutionDetails.new(value: true, variant: "on", log?: true, error?: false)
+        rejected = dependency.dup
+        details.dependency_evaluations = [["selected", dependency, true], ["rejected", rejected, false]]
+        expect(reporter).to receive(:report).with(dependency, flag_key: "selected", context: evaluation_context)
+        expect(reporter).not_to receive(:report).with(rejected, flag_key: "rejected", context: evaluation_context)
+        expect(reporter).to receive(:report).with(details, flag_key: "test", context: evaluation_context)
+
+        result
+
+        expect(dependency.flag_metadata).to include(observe_full_evaluation_data_key => false)
+        expect(rejected.flag_metadata).to include(observe_full_evaluation_data_key => false)
+      end
+
       it "logs the raw provider resolution while debug logging is enabled" do
         allow(reporter).to receive(:report)
         messages = []

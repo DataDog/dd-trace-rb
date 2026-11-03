@@ -25,11 +25,15 @@ module Datadog
         end
 
         def finally(hook_context:, evaluation_details:, **_opts)
+          capture(hook_context.flag_key, evaluation_details)
+        end
+
+        def capture(flag_key, evaluation_details)
           metrics = @metrics
           return unless metrics
 
           metrics.record(
-            hook_context.flag_key,
+            flag_key,
             variant: evaluation_details.variant,
             reason: evaluation_details.reason,
             error_code: evaluation_details.error_code,
