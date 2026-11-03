@@ -98,6 +98,8 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
+have_func("ddog_ffe_assignment_dependency_result", "datadog/ffe.h")
+
 have_func("rb_iseq_type")
 have_func("ddog_ffe_get_assignment_with_options", ["datadog/common.h", "datadog/ffe.h"])
 have_func("ddog_ffe_get_assignment_with_opt_out_mode", ["datadog/common.h", "datadog/ffe.h"])

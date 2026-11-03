@@ -1,6 +1,8 @@
 module Datadog
   module Core
     module FeatureFlags
+      def self.evaluator_capabilities: () -> Array[String]
+
       class Error < StandardError
       end
 
@@ -36,6 +38,8 @@ module Datadog
         type feature_t = [String, String | Float | bool, Array[String]]
 
         @value: Datadog::Helpers::json
+
+        def dependency_evaluations: () -> Array[[String, ResolutionDetails, bool]]
 
         def flag_type: () -> Symbol?
 
