@@ -1,4 +1,5 @@
 #include "consumer_recorder.h"
+#include "consumer.h"
 #include "allocator.h"
 
 #include "../datadog_ruby_common.h"
@@ -69,7 +70,7 @@ miteruby_consumer_recorder_stats_t miteruby_consumer_recorder_stats(void) {
 void miteruby_consumer_record_stack_sample(
   VALUE recorder_instance,
   const miteruby_event_deduped_sample_t *event,
-  miteruby_event_stack_sample_view_t view,
+  miteruby_stack_t stack,
   monotonic_to_system_epoch_state *time_converter
 ) {
   VALUE thread = event->thread.value;
@@ -93,7 +94,7 @@ void miteruby_consumer_record_stack_sample(
     {.key = DDOG_CHARSLICE_C("miteruby"), .num = 1},
   };
 
-  uint16_t count = view.frame_count;
+  uint16_t count = stack.frame_count;
   uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
   bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || count == 0;
   size_t frame_offset = MITERUBY_DEBUG_SIGHANDLER_FRAME && (event->header.flags & MITERUBY_EVENT_FROM_SIGNAL_HANDLER) ? 1 : 0;
@@ -121,10 +122,10 @@ void miteruby_consumer_record_stack_sample(
     int line = 0;
 
     for (uint16_t i = 0; i < count; i++) {
-      const miteruby_event_frame_refs_t frame = view.refs[i];
+      const miteruby_event_frame_refs_t frame = miteruby_hack_id_to_frame_refs(stack.ids[i]);
       if (frame.iseq != NULL) {
         filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
-        line = view.positions[i].value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, view.positions[i].value);
+        line = stack.positions[i].value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, stack.positions[i].value);
       }
       VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
       // Walk root-first to inherit Ruby caller locations for C frames; libdatadog expects the opposite order.
