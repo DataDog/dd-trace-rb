@@ -27,14 +27,6 @@ typedef union {
   uint64_t words[16];
 } sample_storage;
 
-static stack_key key_for(const miteruby_event_stack_sample_view_t *view) {
-  return (stack_key) {
-    .hash = stack_view_hash(*view),
-    .location.as.view = view,
-    .view_borrowed = true,
-  };
-}
-
 static miteruby_event_frame_position_t *positions_for(miteruby_event_stack_sample_t *event) {
   return (miteruby_event_frame_position_t *)&event->refs[event->header.frame_count];
 }
@@ -161,7 +153,9 @@ static miteruby_stack_dedup_id_t assert_dedup(miteruby_event_stack_sample_view_t
   miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
   assert(!result.error_storage_full);
   assert(result.ok.inserted == inserted);
-  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get(&stack_dedup_state.unique_stacks, key_for(&view));
+  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get(
+    &stack_dedup_state.unique_stacks, (stack_key) {.hash = stack_view_hash(view)}
+  );
   assert(!verstable_unique_stacks_map_is_end(entry));
   assert(entry.data->val.offset == result.ok.id.offset);
   return result.ok.id;
@@ -191,7 +185,7 @@ static void test_empty_stack_before_nonempty(void) {
   assert(miteruby_stack_dedup_reset());
 }
 
-static void test_identity_and_collisions(void) {
+static void test_stack_identity(void) {
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
   event->header.frame_count = 2;
@@ -226,23 +220,6 @@ static void test_identity_and_collisions(void) {
   event->header.frame_count = 1;
   assert(assert_dedup(view_for(event), true).offset != first.offset);
 
-  miteruby_event_stack_sample_view_t collision_view = view_for(&duplicate.event);
-  stack_key collision = key_for(&collision_view);
-  collision.hash = 42;
-  stack_key stored_collision = {.hash = 42, .location.as.stack_id = first, .view_borrowed = false};
-  assert(stack_key_equal(collision, stored_collision));
-  collision_view.positions[0].value++;
-  assert(!stack_key_equal(collision, stored_collision));
-  collision_view.positions[0].value--;
-  assert(stack_key_equal(collision, stored_collision));
-  stored_collision.location.as.stack_id = other_cme;
-  assert(!stack_key_equal(collision, stored_collision));
-  stored_collision.location.as.stack_id = first;
-  collision_view.frame_count = 1;
-  assert(!stack_key_equal(collision, stored_collision));
-  collision_view.frame_count = 0;
-  assert(!stack_key_equal(collision, stored_collision));
-
   event->header.frame_count = 0;
   used = stack_dedup_state.unique_stacks_pos;
   miteruby_stack_dedup_id_t empty = assert_dedup(view_for(event), true);
@@ -251,8 +228,30 @@ static void test_identity_and_collisions(void) {
   assert(stack_dedup_state.unique_stacks_pos == used + 8);
   assert(miteruby_stack_dedup_get(empty).frame_count == 0);
   assert(miteruby_stack_dedup_get(first).frame_count == 2);
-  stored_collision.location.as.stack_id = empty;
-  assert(stack_key_equal(collision, stored_collision));
+}
+
+static void test_hash_collision_reuses_first_stack(void) {
+  assert(miteruby_stack_dedup_reset());
+  sample_storage storage = {0};
+  storage.event.header.frame_count = 1;
+  positions_for(&storage.event)[0].value = 12;
+  miteruby_stack_dedup_id_t first = assert_dedup(view_for(&storage.event), true);
+  size_t used = stack_dedup_state.unique_stacks_pos;
+
+  positions_for(&storage.event)[0].value = 13;
+  stack_key collision = {.hash = stack_view_hash(view_for(&storage.event))};
+  // Inject a colliding mapping instead of searching for a natural 64-bit hash collision.
+  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(
+    &stack_dedup_state.unique_stacks, collision, first
+  );
+  assert(!verstable_unique_stacks_map_is_end(entry));
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
+
+  assert(assert_dedup(view_for(&storage.event), false).offset == first.offset);
+  assert(stack_dedup_state.unique_stacks_pos == used);
+  assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
+  assert(miteruby_stack_dedup_get(first).positions[0].value == 12);
+  assert(miteruby_stack_dedup_reset());
 }
 
 static void test_separate_arrays(void) {
@@ -311,9 +310,8 @@ static void test_map_growth_and_stable_storage(void) {
     !verstable_unique_stacks_map_is_end(entry);
     entry = verstable_unique_stacks_map_next(entry)
   ) {
-    assert(!entry.data->key.view_borrowed);
+    assert(entry.data->key.hash == stack_view_hash(miteruby_stack_dedup_get(entry.data->val)));
     assert(entry.data->val.offset < used);
-    assert(entry.data->key.location.as.stack_id.offset == entry.data->val.offset);
   }
 }
 
@@ -330,7 +328,7 @@ static void assert_failed_dedup(miteruby_event_stack_sample_view_t view) {
     !verstable_unique_stacks_map_is_end(entry);
     entry = verstable_unique_stacks_map_next(entry)
   ) {
-    assert(!entry.data->key.view_borrowed);
+    assert(entry.data->key.hash == stack_view_hash(miteruby_stack_dedup_get(entry.data->val)));
   }
 }
 
@@ -730,8 +728,9 @@ int main(int argc, char **argv) {
   assert(miteruby_stack_dedup_init());
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE && stack_dedup_state.unique_stacks_array != NULL);
   assert_allocation_accounting();
+  test_hash_collision_reuses_first_stack();
   test_empty_stack_before_nonempty();
-  test_identity_and_collisions();
+  test_stack_identity();
   test_separate_arrays();
   test_map_growth_and_stable_storage();
   miteruby_consumer_reset();
