@@ -74,7 +74,8 @@ module Datadog
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          version = dogstatsd_version
+          options = if version && version >= Gem::Version.new("5.2")
             {single_thread: true}
           else
             {}
@@ -152,19 +153,21 @@ module Datadog
 
           # Calculate time, send it as a distribution.
           start = Utils::Time.get_time
-          yield
-        ensure
           begin
-            if send_stats? && !start.nil?
-              finished = Utils::Time.get_time
-              distribution(stat, (finished - start) * 1000, options)
+            yield
+          ensure
+            begin
+              if send_stats?
+                finished = Utils::Time.get_time
+                distribution(stat, (finished - start) * 1000, options)
+              end
+            rescue => e
+              # TODO: Likely to be redundant, since `distribution` handles its own errors.
+              logger.error(
+                "Failed to send time stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
+              )
+              telemetry.report(e, description: "Failed to send time stat")
             end
-          rescue => e
-            # TODO: Likely to be redundant, since `distribution` handles its own errors.
-            logger.error(
-              "Failed to send time stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
-            )
-            telemetry.report(e, description: "Failed to send time stat")
           end
         end
 

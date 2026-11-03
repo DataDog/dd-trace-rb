@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Environment
-      module Socket
+      module Socket : Datadog::Core::Utils::Forking
         extend Datadog::Core::Utils::Forking
 
         @hostname: String?

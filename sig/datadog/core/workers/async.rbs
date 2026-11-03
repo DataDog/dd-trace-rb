@@ -19,10 +19,8 @@ module Datadog
           @result: untyped
           @fork_policy: (:stop | :restart)?
 
-          include PrependedMethods
-
           def self.included: (untyped base) -> untyped
-          module PrependedMethods
+          module PrependedMethods : Thread
             def perform: (*untyped args) -> (untyped | nil)
           end
 

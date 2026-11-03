@@ -53,7 +53,8 @@ module Datadog
               update_fork_pid!
             end
           else
-            def initialize(*args, &block)
+            # Steep only checks against the Ruby 3 signature, which also takes keyword arguments
+            def initialize(*args, &block) # steep:ignore MethodArityMismatch
               super
               update_fork_pid!
             end

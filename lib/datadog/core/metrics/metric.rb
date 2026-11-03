@@ -3,8 +3,8 @@
 module Datadog
   module Core
     module Metrics
-      Metric = Struct.new(:type, :name, :value, :options) do
-        def initialize(*args)
+      class Metric < Struct.new(:type, :name, :value, :options)
+        def initialize(type, name, value, options = nil)
           super
           self.options = options || {}
         end

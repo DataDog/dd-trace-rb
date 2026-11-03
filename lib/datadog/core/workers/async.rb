@@ -45,21 +45,23 @@ module Datadog
             :fork_policy
 
           def join(timeout = nil)
-            return true unless running?
+            worker_thread = worker
+            return true unless worker_thread && running?
 
-            !worker.join(timeout).nil?
+            !worker_thread.join(timeout).nil?
           end
 
           def terminate
-            return false unless running?
+            worker_thread = worker
+            return false unless worker_thread && running?
 
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
-            worker.terminate
+            worker_thread.terminate
             # Wait for the worker thread to end
             begin
               Timeout.timeout(SHUTDOWN_TIMEOUT) do
-                worker.join
+                worker_thread.join
               end
             rescue Timeout::Error
               Datadog.logger.debug { "Worker thread did not end after #{SHUTDOWN_TIMEOUT} seconds: #{self}" }
@@ -78,7 +80,8 @@ module Datadog
           end
 
           def running?
-            !worker.nil? && worker.alive?
+            worker_thread = worker
+            !worker_thread.nil? && worker_thread.alive?
           end
 
           def error?
@@ -88,11 +91,13 @@ module Datadog
           end
 
           def completed?
-            !worker.nil? && worker.status == false && !error?
+            worker_thread = worker
+            !worker_thread.nil? && worker_thread.status == false && !error?
           end
 
           def failed?
-            !worker.nil? && worker.status.nil?
+            worker_thread = worker
+            !worker_thread.nil? && worker_thread.status.nil?
           end
 
           def forked?
@@ -162,7 +167,7 @@ module Datadog
             @error = nil
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
-            @worker = ::Thread.new do
+            worker_thread = ::Thread.new do
               yield
             # rubocop:disable Lint/RescueException
             rescue Exception => e
@@ -174,8 +179,9 @@ module Datadog
 
               # rubocop:enable Lint/RescueException
             end
-            @worker.name = self.class.name
-            @worker.thread_variable_set(:fork_safe, true)
+            @worker = worker_thread
+            worker_thread.name = self.class.name
+            worker_thread.thread_variable_set(:fork_safe, true)
 
             true
           end

@@ -5,8 +5,7 @@ module Datadog
         include Polling
 
         def self.included: (untyped base) -> untyped
-        include PrependedMethods
-        module PrependedMethods
+        module PrependedMethods : Queue
           def perform: (*untyped args) -> (untyped | nil)
         end
 

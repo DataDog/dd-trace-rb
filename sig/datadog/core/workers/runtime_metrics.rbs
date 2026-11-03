@@ -14,7 +14,7 @@ module Datadog
         def perform: () -> true
 
         def register_service: (untyped service) -> untyped
-        def stop: (*untyped args, ?close_metrics: bool) -> untyped
+        def stop: (?bool force_stop, ?(::Integer | ::Float) timeout, ?close_metrics: bool) -> untyped
       end
     end
   end

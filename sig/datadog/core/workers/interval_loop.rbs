@@ -18,15 +18,13 @@ module Datadog
         @mutex: Mutex?
         @shutdown: ::ConditionVariable?
 
-        include PrependedMethods
-
         def self.included: (untyped base) -> untyped
-        module PrependedMethods
+        module PrependedMethods : IntervalLoop
           @in_iteration: bool
 
           def perform: (*untyped args) -> untyped
 
-          def in_iteration?: () -> bool
+          def in_iteration?: () -> bool?
         end
 
         def stop_loop: () -> (false | true)

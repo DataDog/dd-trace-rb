@@ -9,53 +9,58 @@ module Datadog
 
         # Inline code size
         def inline_code_size
-          ::RubyVM::YJIT.runtime_stats[:inline_code_size]
+          runtime_stats[:inline_code_size]
         end
 
         # Outlined code size
         def outlined_code_size
-          ::RubyVM::YJIT.runtime_stats[:outlined_code_size]
+          runtime_stats[:outlined_code_size]
         end
 
         # GCed pages
         def freed_page_count
-          ::RubyVM::YJIT.runtime_stats[:freed_page_count]
+          runtime_stats[:freed_page_count]
         end
 
         # GCed code size
         def freed_code_size
-          ::RubyVM::YJIT.runtime_stats[:freed_code_size]
+          runtime_stats[:freed_code_size]
         end
 
         # Live pages
         def live_page_count
-          ::RubyVM::YJIT.runtime_stats[:live_page_count]
+          runtime_stats[:live_page_count]
         end
 
         # Code GC count
         def code_gc_count
-          ::RubyVM::YJIT.runtime_stats[:code_gc_count]
+          runtime_stats[:code_gc_count]
         end
 
         # Size of memory region allocated for JIT code
         def code_region_size
-          ::RubyVM::YJIT.runtime_stats[:code_region_size]
+          runtime_stats[:code_region_size]
         end
 
         # Total number of object shapes
         def object_shape_count
-          ::RubyVM::YJIT.runtime_stats[:object_shape_count]
+          runtime_stats[:object_shape_count]
         end
 
         # Size of memory Rust allocated for metadata
         def yjit_alloc_size
-          ::RubyVM::YJIT.runtime_stats[:yjit_alloc_size]
+          runtime_stats[:yjit_alloc_size]
         end
 
         # Ratio of YJIT-executed instructions
         def ratio_in_yjit
-          stats = ::RubyVM::YJIT.runtime_stats
+          stats = runtime_stats
           stats[:ratio_in_yjit] if stats.key?(:ratio_in_yjit)
+        end
+
+        # `RubyVM::YJIT.runtime_stats` returns nil when YJIT is not enabled
+        def runtime_stats
+          ::RubyVM::YJIT.runtime_stats || {}
         end
 
         def available?

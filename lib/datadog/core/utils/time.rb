@@ -12,7 +12,7 @@ module Datadog
         # If not present we assume these methods have not been monkey-patched and are the original.
 
         original_clock_gettime_name = Process.respond_to?(:clock_gettime_without_mock) ? :clock_gettime_without_mock : :clock_gettime
-        define_singleton_method(:original_clock_gettime, &Process.method(original_clock_gettime_name))
+        define_singleton_method(:original_clock_gettime, Process.method(original_clock_gettime_name).to_proc)
 
         MONOTONIC_CLOCK_ID = RUBY_PLATFORM.include?("darwin") ? Process::CLOCK_MONOTONIC_RAW : Process::CLOCK_MONOTONIC
 
@@ -23,19 +23,21 @@ module Datadog
         # @param unit [Symbol] unit for the resulting value, same as ::Process#clock_gettime, defaults to :float_second
         # @return [Float|Integer] timestamp in the requested unit, since some unspecified starting point
         def self.get_time(unit = :float_second)
-          original_clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          # Steep merges the overloads' optional and required `unit` into a nilable type
+          original_clock_gettime(MONOTONIC_CLOCK_ID, unit) # steep:ignore ArgumentTypeMismatch
         end
 
         # Current wall time.
         #
         # @return [Time] current time object
         original_time_now_name = ::Time.respond_to?(:now_without_mock_time) ? :now_without_mock_time : :now
-        define_singleton_method(:now, &::Time.method(original_time_now_name))
+        define_singleton_method(:now, ::Time.method(original_time_now_name).to_proc)
 
         def self.measure(unit = :float_second)
-          before = get_time(unit)
+          # Steep cannot pick a `get_time` overload for the union of `measure`'s overloads' `unit`
+          before = get_time(unit) # steep:ignore UnresolvedOverloading
           yield
-          after = get_time(unit)
+          after = get_time(unit) # steep:ignore UnresolvedOverloading
           after - before
         end
 
