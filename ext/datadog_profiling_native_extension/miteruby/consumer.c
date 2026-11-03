@@ -350,29 +350,26 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   if (consumer_state.interned_events_count == consumer_state.interned_events_capacity) return MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL;
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
-  miteruby_event_stack_sample_view_t view = {
-    .refs = (miteruby_event_frame_refs_t *)event->refs,
-    .positions = (miteruby_event_frame_position_t *)&event->refs[header->frame_count],
-    .frame_count = header->frame_count,
-  };
-  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(view);
+  miteruby_stack_hash_t stack_hash = miteruby_stack_hash(event);
+  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(event, stack_hash);
   if (result.error_storage_full) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
+  bool new_stack = result.ok.inserted;
 
   // Retain references before the next queue read releases the record's GC protection.
   if (!retain_thread(event->thread.value)) {
-    if (result.ok.inserted) miteruby_stack_dedup_rollback_insert(result.ok.id);
+    if (new_stack) miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
     return MITERUBY_CONSUMER_MARK_THREADS_FULL;
   }
 
   bool retained = true;
-  if (result.ok.inserted) {
+  if (new_stack) {
     for (uint16_t i = 0; retained && i < header->frame_count; i++) {
       retained = retain_cme_iseq(event->refs[i]);
     }
   }
 
   if (!retained) {
-    if (result.ok.inserted) miteruby_stack_dedup_rollback_insert(result.ok.id);
+    if (new_stack) miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
     return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   }
 
