@@ -1818,7 +1818,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           miteruby_mark_threads_max_size_bytes: 100 * 1024,
           miteruby_mark_cme_iseq_max_size_bytes: 16 * 1024 * 1024,
           miteruby_unique_stacks_array_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
-          miteruby_unique_stacks_set_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_unique_stacks_map_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_thread_contexts_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
         )
       end
@@ -2180,7 +2180,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         miteruby_mark_threads_entries: 0,
         miteruby_mark_cme_iseq_entries: 0,
         miteruby_unique_stacks_array_used_size_bytes: 0,
-        miteruby_unique_stacks_set_entries: 0,
+        miteruby_unique_stacks_map_entries: 0,
         miteruby_thread_contexts_entries: 0,
       }
       expect(cpu_and_wall_time_worker.stats).to include(empty_usage)
@@ -2197,7 +2197,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         miteruby_mark_threads_entries: 1,
         miteruby_mark_cme_iseq_entries: be > 0,
         miteruby_unique_stacks_array_used_size_bytes: be > 0,
-        miteruby_unique_stacks_set_entries: 1,
+        miteruby_unique_stacks_map_entries: 1,
         miteruby_thread_contexts_entries: 0,
       )
 
