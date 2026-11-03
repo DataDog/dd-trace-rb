@@ -32,7 +32,7 @@ module Datadog
 
             def post: (untyped env) -> untyped
 
-            def url: () -> ::String
+            def url: () -> String
 
             def net_http_path_from_env: (untyped env) -> untyped
 
@@ -41,7 +41,7 @@ module Datadog
 
               def initialize: (untyped verb) -> void
 
-              def message: () -> ::String
+              def message: () -> String
             end
 
             class Response
@@ -67,7 +67,7 @@ module Datadog
 
               def server_error?: () -> untyped
 
-              def inspect: () -> ::String
+              def inspect: () -> String
             end
           end
         end

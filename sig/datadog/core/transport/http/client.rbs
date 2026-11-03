@@ -21,7 +21,7 @@ module Datadog
           def on_response: (Core::Transport::HTTP::Response response) -> void
           def on_exception: (Exception exception) -> void
 
-          def build_exception_message: (Exception exception) -> ::String
+          def build_exception_message: (Exception exception) -> String
         end
       end
     end

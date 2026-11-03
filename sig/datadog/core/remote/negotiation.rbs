@@ -3,17 +3,17 @@ module Datadog
     module Remote
       class Negotiation
         @transport_root: Datadog::Core::Remote::Transport::Negotiation::Transport
-        @logged: ::Hash[::Symbol, bool]
+        @logged: Hash[Symbol, bool]
 
 	attr_reader logger: Core::Logger
 
-        def initialize: (Datadog::Core::Configuration::Settings _settings, Datadog::Core::Configuration::AgentSettings agent_settings, ?logger: Core::Logger, ?suppress_logging: ::Hash[::Symbol, bool]) -> void
+        def initialize: (Datadog::Core::Configuration::Settings _settings, Datadog::Core::Configuration::AgentSettings agent_settings, ?logger: Core::Logger, ?suppress_logging: Hash[Symbol, bool]) -> void
 
-        def endpoint?: (::String path) -> bool
+        def endpoint?: (String path) -> bool
 
         private
 
-        def network_error?: (::Exception error) -> bool
+        def network_error?: (Exception error) -> bool
       end
     end
   end
