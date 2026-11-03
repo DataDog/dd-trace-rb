@@ -43,8 +43,8 @@ typedef struct {
   // Valid only when error_storage_full is false; an ID with offset zero is a successful result.
   struct {
     miteruby_stack_dedup_id_t id;
-    bool inserted;
-    // Empty for an existing stack. Fill a new reservation before publishing a sample, or roll back under the same mutex.
+    bool reserved;
+    // Empty for an existing stack. A reservation borrows unused storage until the next reservation or reset.
     miteruby_stack_t stack;
   } ok;
 } miteruby_stack_dedup_result_t;
@@ -65,7 +65,8 @@ miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
 // Returned views borrow storage until the next reset; callers must not modify stored stacks.
 miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
 miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event);
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(uint16_t frame_count, miteruby_stack_hash_t stack_hash);
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame_count, miteruby_stack_hash_t stack_hash);
 
-// Only the latest newly inserted stack may be rolled back, before any sample references it.
-void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash);
+// Hold the consumer mutex from reservation through filling and commit. Commit only the latest reservation, once.
+// Failure leaves the map and storage position unchanged; abandoned reservations need no cleanup.
+bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash);
