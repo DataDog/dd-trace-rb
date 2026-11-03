@@ -40,7 +40,10 @@ module Datadog
           # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
           # @return [void]
           def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
-            super(apis, default_api, logger: logger)
+            # The DI logger facade satisfies the base transport's logging
+            # contract (debug with a block or message); the declared
+            # Core::Logger type cannot name it.
+            super(apis, default_api, logger: logger) # steep:ignore ArgumentTypeMismatch
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
           end
