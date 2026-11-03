@@ -357,9 +357,15 @@ module Datadog
         end
 
         interface _Profiling
-          include Options::_InstanceMethods
+          include Options::_Settings
 
           def enabled: () -> bool
+
+          def advanced: () -> _ProfilingAdvanced
+        end
+
+        interface _ProfilingAdvanced
+          include Options::_Settings
         end
 
         interface _OpenFeature

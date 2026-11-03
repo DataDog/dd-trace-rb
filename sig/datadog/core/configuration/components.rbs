@@ -20,6 +20,8 @@ module Datadog
 
         def self.build_data_streams: (Settings settings, untyped agent_settings, Core::Logger logger, Environment::AgentInfo agent_info) -> DataStreams::Processor?
 
+        def self.reconfigure_profiler: () -> void
+
         attr_reader settings: Settings
 
         attr_reader agent_settings: untyped
@@ -54,11 +56,17 @@ module Datadog
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
+        attr_reader profiler_build_error: Exception?
+
         @environment_logger_extra: Hash[Symbol, untyped]
 
         def initialize: (Settings settings) -> void
 
         def after_fork: () -> void
+
+        def rebuild_profiler: () -> void
+
+        def profiler_outdated?: () -> bool
 
         def startup!: (Settings settings, ?old_state: ComponentsState?) -> void
 
@@ -73,6 +81,14 @@ module Datadog
         private
 
         attr_reader open_feature_activation: Datadog::OpenFeature::Activation
+
+        @profiler_settings_values: Hash[Symbol, untyped]
+
+        def profiling_settings_values: (?untyped settings_object) -> Hash[Symbol, untyped]
+
+        def build_profiler: () -> void
+
+        def start_profiler: () -> void
       end
     end
   end

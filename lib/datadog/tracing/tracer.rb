@@ -351,6 +351,11 @@ module Datadog
         @otel_thread_context&.after_fork
       end
 
+      # For when the profiler is replaced, as it can be enabled or disabled after the tracer is built.
+      def reset_profiling_enabled
+        @profiling_enabled = nil
+      end
+
       # Shorthand that calls the `shutdown!` method of a registered worker.
       # It's useful to ensure that the Trace Buffer is properly flushed before
       # shutting down the application.

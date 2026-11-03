@@ -76,6 +76,8 @@ module Datadog
 
       def after_fork: () -> void
 
+      def reset_profiling_enabled: () -> void
+
       def shutdown!: () -> void
 
       def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool

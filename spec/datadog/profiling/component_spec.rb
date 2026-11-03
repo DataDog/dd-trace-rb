@@ -71,14 +71,18 @@ RSpec.describe Datadog::Profiling::Component do
           )
         end
 
-        it "logs a warning, reports via telemetry, and returns nil" do
+        it "logs a warning, reports via telemetry, and returns nil with the error" do
           expect(logger).to receive(:warn) do |&block|
             expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
           end
           expect(Datadog::Core::Telemetry::Logger).to receive(:report)
             .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
 
-          is_expected.to eq [nil, {profiling_enabled: false}]
+          is_expected.to match [
+            nil,
+            {profiling_enabled: false},
+            an_instance_of(ArgumentError).and(have_attributes(message: "Failed to initialize transport: something went wrong")),
+          ]
         end
       end
 

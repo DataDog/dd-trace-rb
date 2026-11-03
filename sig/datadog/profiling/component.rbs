@@ -6,7 +6,7 @@ module Datadog
         agent_settings: Datadog::Core::Configuration::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
         logger: Datadog::Core::Logger,
-      ) -> [Datadog::Profiling::Profiler?, {profiling_enabled: bool}]
+      ) -> ([Datadog::Profiling::Profiler, {profiling_enabled: true}] | [nil, {profiling_enabled: false}] | [nil, {profiling_enabled: false}, Exception])
 
       def self.build_thread_context_collector: (
         untyped settings,

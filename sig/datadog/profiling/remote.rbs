@@ -1,0 +1,78 @@
+module Datadog
+  module Profiling
+    module Remote
+      type validator = ^(untyped value) -> bool
+
+      type target = { service: String?, env: String?, tags: Array[String] }
+
+      type profiler_values = Hash[String, bool]
+
+      type setting_values = Hash[String, bool | Integer]
+
+      type remote_values = Hash[Symbol, bool | Integer | nil]
+
+      type config = {
+        id: String,
+        targets: Array[target],
+        profilers: profiler_values,
+        settings: setting_values,
+      }
+
+      type remote_option = [Core::Configuration::Options::_Settings, Symbol]
+
+      PRODUCTS: Array[String]
+
+      BOOLEAN: validator
+
+      INTEGER: validator
+
+      PROFILER_FIELDS: Hash[String, validator]
+
+      SETTING_FIELDS: Hash[String, validator]
+
+      SCOPE_LABELS: Hash[Integer, String]
+
+      def self.products: () -> Array[String]
+
+      def self.receivers: (Core::Telemetry::Component? telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.apply_configs: (Core::Remote::Configuration::Repository repository, Core::Telemetry::Component? telemetry) -> nil
+
+      private
+
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> [Core::Remote::Configuration::Content, Array[String], config?]?
+
+      def self.profiler_error: (Core::Configuration::Settings settings) -> String?
+
+      def self.profiling_unsupported_reason: () -> String?
+
+      def self.acknowledge: (Core::Remote::Configuration::Content content, Array[String] problems) -> void
+
+      def self.parse_json: (Core::Remote::Configuration::Content content) -> untyped
+
+      def self.parse_fields: (untyped section, String section_name, Hash[String, validator] fields, Array[String] problems, ?required: bool) -> Hash[String, untyped]
+
+      def self.parse_targets: (untyped targets, Array[String] problems) -> Array[target]?
+
+      def self.valid_target?: (untyped target) -> bool
+
+      def self.merge: (Array[config] configs, Core::Configuration::Settings settings) -> [profiler_values, setting_values]
+
+      def self.specificity: (Array[target] targets, String service, String env) -> Integer?
+
+      def self.target_specificity: (target target, String service, String env) -> Integer?
+
+      def self.to_values: (profiler_values profilers, setting_values settings) -> remote_values
+
+      def self.apply_values: (Core::Configuration::Settings settings, remote_values values, Core::Telemetry::Component? telemetry) -> void
+
+      def self.remote_options: (Core::Configuration::Settings settings) -> Array[remote_option]
+
+      def self.option_env_var: (Core::Configuration::Options::_Settings object, Symbol name) -> String
+
+      def self.remote_value: (Core::Configuration::Options::_InstanceMethods object, Symbol name) -> Core::Configuration::Option::option_value?
+
+      def self.apply_option: (Core::Configuration::Options::_InstanceMethods object, Symbol name, Object? value) -> void
+    end
+  end
+end

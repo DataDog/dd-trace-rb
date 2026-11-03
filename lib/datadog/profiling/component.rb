@@ -95,7 +95,7 @@ module Datadog
         end
         Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
 
-        [nil, {profiling_enabled: false}]
+        [nil, {profiling_enabled: false}, e]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, max_frames)

@@ -485,4 +485,22 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers.count(receiver)).to eq(1)
     end
   end
+
+  context "Profiling" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it "registers the APM_PROFILING and DEBUG products and a receiver for them, without a capability" do
+      expect(capabilities.products).to include("APM_PROFILING", "DEBUG")
+      ["APM_PROFILING", "DEBUG"].each do |product|
+        expect(capabilities.receivers).to include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/#{product}/preset-default/config")
+          },
+        )
+      end
+      # Same bits as "tracing and DI capabilities": the backend defines no capability for profiling, so
+      # profiling only subscribes to its products.
+      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
+    end
+  end
 end
