@@ -12,10 +12,10 @@
 
 typedef struct {
   uint16_t frame_count;
-  miteruby_event_frame_refs_t refs[];
-} miteruby_stack_t;
+  miteruby_cme_iseq_id_t ids[];
+} miteruby_stored_stack_t;
 
-_Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
+_Static_assert(offsetof(miteruby_stored_stack_t, ids) == 2, "miteruby_stored_stack_t IDs must start after a 2-byte prefix");
 
 static uint64_t stack_hash_value(miteruby_stack_hash_t key);
 static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right);
@@ -35,8 +35,8 @@ static void *unique_stacks_calloc(size_t size);
 // We keep two data structures:
 //
 // * `unique_stacks_array`: Contiguous storage of stacks in a very similar format as the sample event
-// (Currently: frame_count, then CME, ISEQ for all frames and then the bytecode positions)
-// Padding keeps each stack record and its CME/ISEQ pairs aligned to 8-byte boundaries.
+// (Currently: frame_count, then CME/ISEQ IDs for all frames and then the bytecode positions)
+// Trailing padding keeps each stack record aligned to 8-byte boundaries.
 //
 // * `verstable_unique_stacks_map`: Maps stack hashes to IDs (byte offsets in `unique_stacks_array`).
 //
@@ -46,15 +46,15 @@ static void *unique_stacks_calloc(size_t size);
 //   * Event 2: [E, F, 0, 1] (frame_count: 2)
 //   * Event 3: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
 //
-// * Unique stacks array:
-//   [ frame_count: 4 | padding | A | B | C | D | 0 | 1 | 2 | 3 | frame_count: 2 | padding | E | F | 0 | 1 | padding ]
-//     ^                                                          ^
-//     |                                                          |
-//     Events 1 and 3                                             Event 2
+// * Unique stacks array (id(X) is the miteruby_cme_iseq_id_t for pair X):
+//   [ frame_count: 4 | id(A) | id(B) | id(C) | id(D) | 0 | 1 | 2 | 3 | padding | frame_count: 2 | id(E) | id(F) | 0 | 1 | padding ]
+//     ^                                                                          ^
+//     |                                                                          |
+//     Events 1 and 3                                                             Event 2
 //
 // * Unique stacks map:
 //   hash(A B C D; 0 1 2 3) -> stack_id:  0  (Events 1 and 3)
-//   hash(E F; 0 1)         -> stack_id: 80  (Event 2)
+//   hash(E F; 0 1)         -> stack_id: 24  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
@@ -122,49 +122,40 @@ miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
   };
 }
 
-miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
-  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
-
-  return (miteruby_event_stack_sample_view_t) {
-    .refs = stack->refs,
-    .positions = (miteruby_event_frame_position_t *)&stack->refs[stack->frame_count],
+miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
+  miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
+  return (miteruby_stack_t) {
     .frame_count = stack->frame_count,
+    .ids = stack->ids,
+    .positions = (miteruby_event_frame_position_t *)&stack->ids[stack->frame_count],
   };
 }
 
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(const miteruby_event_stack_sample_t *event, miteruby_stack_hash_t stack_hash) {
-  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < MITERUBY_MAX_SIZE_BYTES) {
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(uint16_t frame_count, miteruby_stack_hash_t stack_hash) {
+  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get(&stack_dedup_state.unique_stacks, stack_hash);
+  if (!verstable_unique_stacks_map_is_end(entry)) {
+    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
+  }
+
+  size_t stack_size = sizeof(miteruby_stored_stack_t) + frame_count * (sizeof(miteruby_cme_iseq_id_t) + sizeof(miteruby_event_frame_position_t));
+  size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
+  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < aligned_stack_size) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
-  verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(
-    &stack_dedup_state.unique_stacks,
-    stack_hash,
-    next_stack_id
-  );
+  entry = verstable_unique_stacks_map_get_or_insert(&stack_dedup_state.unique_stacks, stack_hash, next_stack_id);
   if (verstable_unique_stacks_map_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
 
-  bool inserted = entry.data->val.offset == next_stack_id.offset;
-  if (!inserted) {
-    return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
-  }
-
-  size_t payload_size = event->header.frame_count * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
-  size_t stack_size = sizeof(miteruby_stack_t) + payload_size;
-  size_t aligned_stack_size = ((stack_size + 7) / 8) * 8;
-
-  miteruby_stack_t *stack = (miteruby_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
-  stack->frame_count = event->header.frame_count;
-  memcpy(stack->refs, event->refs, payload_size);
-
+  miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
+  stack->frame_count = frame_count;
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
-  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true}};
+  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true, .stack = miteruby_stack_dedup_get(next_stack_id)}};
 }
 
 // This weird thing currently exists because we:
-// 1. Check if the stack exists, and store it if it doesn't
+// 1. Check if the stack exists, and reserve its storage if it does not
 // 2. Try to add the thread to `mark_threads_set` and, for a new stack, every CME/ISEQ pair to `mark_cme_iseq_map` (caller)
 // 3. In step 2 either table might run out of space. So this allows us to back out of 1 if step 2 fails.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash) {

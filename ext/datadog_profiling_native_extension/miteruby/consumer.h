@@ -3,6 +3,7 @@
 #include <ruby.h>
 
 #include "raw_events_queue.h"
+#include "../private_vm_api_access.h"
 
 void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue);
 void miteruby_consumer_reset(void);
@@ -17,3 +18,6 @@ void miteruby_consumer_consume_loop(miteruby_raw_events_queue_t *raw_events_queu
 
 // Requires the main ractor's GVL throughout; may allocate and raise while holding the consumer mutex.
 void miteruby_consumer_prepare_serialize(VALUE recorder_instance);
+
+// Caller holds the main ractor's GVL and consumer mutex; missing IDs raise an internal error.
+miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_t id);

@@ -73,6 +73,7 @@ typedef enum {
   MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL,
   MITERUBY_CONSUMER_MARK_THREADS_FULL,
   MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL,
+  MITERUBY_CONSUMER_INVALID_FRAME,
 } miteruby_consumer_exit_reason_t;
 
 static VALUE consume_loop_body(VALUE args);
@@ -264,6 +265,8 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   if (reason == MITERUBY_CONSUMER_MARK_THREADS_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_threads set is full");
   if (reason == MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_cme_iseq map is full");
 
+  if (reason == MITERUBY_CONSUMER_INVALID_FRAME) rb_raise(rb_eRuntimeError, "Miteruby invalid frame: both CME and ISEQ are NULL");
+
   return Qnil;
 }
 
@@ -314,8 +317,8 @@ static VALUE prepare_serialize_locked(VALUE recorder_instance) {
 
   for (size_t i = 0; i < consumer_state.interned_events_count; i++) {
     const miteruby_event_deduped_sample_t *event = &consumer_state.interned_events_queue[i];
-    miteruby_event_stack_sample_view_t view = miteruby_stack_dedup_get(event->stack_id);
-    miteruby_consumer_record_stack_sample(recorder_instance, event, view, &time_converter);
+    miteruby_stack_t stack = miteruby_stack_dedup_get(event->stack_id);
+    miteruby_consumer_record_stack_sample(recorder_instance, event, stack, &time_converter);
   }
 
   consumer_state.interned_events_count = 0;
@@ -332,16 +335,30 @@ static bool retain_thread(VALUE thread) {
   return !verstable_mark_threads_set_is_end(verstable_mark_threads_set_get_or_insert(&consumer_state.mark_threads_set, thread));
 }
 
-static bool retain_cme_iseq(miteruby_event_frame_refs_t refs) {
-  if (refs.cme == NULL && refs.iseq == NULL) return true;
+static miteruby_consumer_exit_reason_t retain_cme_iseq(miteruby_event_frame_refs_t refs, miteruby_cme_iseq_id_t *id) {
+  if (refs.cme == NULL && refs.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FRAME;
 
-  // IDs stay unique until reset because entries are never removed, even when a stack insertion is rolled back.
   size_t next_id = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
-  if (next_id > UINT16_MAX) return false;
-
-  return !verstable_mark_cme_iseq_map_is_end(verstable_mark_cme_iseq_map_get_or_insert(
+  if (next_id > UINT16_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
+  verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_get_or_insert(
     &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = (uint16_t) next_id}
-  ));
+  );
+  if (verstable_mark_cme_iseq_map_is_end(entry)) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
+  *id = entry.data->val;
+  return MITERUBY_CONSUMER_OK;
+}
+
+// TODO: Temporary hack, until we have a better way of mapping ids to the data they represent at serialization time
+miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_t id) {
+  // IDs are map values, so reverse lookup currently scans the map during serialization.
+  for (
+    verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_first(&consumer_state.mark_cme_iseq_map);
+    !verstable_mark_cme_iseq_map_is_end(entry);
+    entry = verstable_mark_cme_iseq_map_next(entry)
+  ) {
+    if (entry.data->val.value == id.value) return entry.data->key;
+  }
+  rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value);
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
@@ -351,7 +368,7 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
   miteruby_stack_hash_t stack_hash = miteruby_stack_hash(event);
-  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(event, stack_hash);
+  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_insert(header->frame_count, stack_hash);
   if (result.error_storage_full) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
   bool new_stack = result.ok.inserted;
 
@@ -361,16 +378,17 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     return MITERUBY_CONSUMER_MARK_THREADS_FULL;
   }
 
-  bool retained = true;
   if (new_stack) {
-    for (uint16_t i = 0; retained && i < header->frame_count; i++) {
-      retained = retain_cme_iseq(event->refs[i]);
+    miteruby_stack_t stack = result.ok.stack;
+    for (uint16_t i = 0; i < header->frame_count; i++) {
+      // As we turn the (cme, iseq) into an id, we write those ids into the deduped stack storage
+      miteruby_consumer_exit_reason_t reason = retain_cme_iseq(event->refs[i], &stack.ids[i]);
+      if (reason != MITERUBY_CONSUMER_OK) {
+        miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
+        return reason;
+      }
     }
-  }
-
-  if (!retained) {
-    if (new_stack) miteruby_stack_dedup_rollback_insert(result.ok.id, stack_hash);
-    return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
+    memcpy(stack.positions, &event->refs[header->frame_count], header->frame_count * sizeof(*stack.positions));
   }
 
   miteruby_event_deduped_sample_t *deduped = &consumer_state.interned_events_queue[consumer_state.interned_events_count++];
