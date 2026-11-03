@@ -11,7 +11,7 @@
 // When deduplicating stacks, we treat stacks with the same hash as identical.
 //
 // This allows us to save CPU and memory:
-// * We plan to store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
+// * We store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
 // * Converting every incoming stack to those indexes requires O(frames) lookups in `verstable_mark_cme_iseq_map`.
 //   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
 //   Hashing itself remains O(frames).
@@ -32,12 +32,20 @@ typedef struct {
 } miteruby_stack_hash_t;
 
 typedef struct {
+  uint16_t frame_count;
+  miteruby_cme_iseq_id_t *ids;
+  miteruby_event_frame_position_t *positions;
+} miteruby_stack_t;
+
+typedef struct {
   bool error_storage_full;
 
   // Valid only when error_storage_full is false; an ID with offset zero is a successful result.
   struct {
     miteruby_stack_dedup_id_t id;
     bool inserted;
+    // Empty for an existing stack. Fill a new reservation before publishing a sample, or roll back under the same mutex.
+    miteruby_stack_t stack;
   } ok;
 } miteruby_stack_dedup_result_t;
 
@@ -54,10 +62,10 @@ typedef struct {
 
 miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void);
 
-// Returned views borrow storage until the next reset; callers must not modify it.
-miteruby_event_stack_sample_view_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
+// Returned views borrow storage until the next reset; callers must not modify stored stacks.
+miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id);
 miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event);
-miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(const miteruby_event_stack_sample_t *event, miteruby_stack_hash_t stack_hash);
+miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(uint16_t frame_count, miteruby_stack_hash_t stack_hash);
 
 // Only the latest newly inserted stack may be rolled back, before any sample references it.
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash);
