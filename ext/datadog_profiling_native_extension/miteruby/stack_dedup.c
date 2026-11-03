@@ -16,18 +16,26 @@ typedef struct {
 
 _Static_assert(offsetof(miteruby_stack_t, refs) == 8, "miteruby_stack_t frames must start after an 8-byte prefix");
 
+// When deduplicating stacks, we treat stacks with the same hash as identical.
+//
+// This allows us to save CPU and memory:
+// * We plan to store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
+// * Converting every incoming stack to those indexes requires O(frames) lookups in `verstable_mark_cme_iseq_map`.
+//   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
+//   Hashing itself remains O(frames).
+//
+// Wyhash documents ~62 effective bits of collision resistance: https://github.com/wangyi-fudan/wyhash#readme.
+// Applying that model here, P(any collision) ~= n*(n-1)/(2*2^62), or about 1 in 922 million for
+// 100,000 distinct stacks since reset. This is an estimate, not a measured bound for our two Wyhash calls
+// combined with vt_wymix.
+//
+// A collision assigns samples of the later stack to the first stack with that hash,
+// including subsequent occurrences until reset.
+//
+// Design note: If we're worried about collisions, we can use more bits for hash (see for instance
+// https://www.mckusick.com/bookrefs/zfs_dedup.html on how zfs uses sha256 to dedup on-disk storage)
 typedef struct {
   uint64_t hash;
-  struct {
-    union {
-      // Used at insertion time to point to input data
-      const miteruby_event_stack_sample_view_t *view;
-
-      miteruby_stack_dedup_id_t stack_id;
-    } as;
-  } location;
-
-  bool view_borrowed; // if false, the union has a stack_id
 } stack_key;
 
 static uint64_t stack_key_hash(stack_key key);
@@ -51,8 +59,7 @@ static void *unique_stacks_calloc(size_t size);
 // (Currently: frame_count, then CME, ISEQ for all frames and then the bytecode positions)
 // Padding keeps each stack record and its CME/ISEQ pairs aligned to 8-byte boundaries.
 //
-// * `verstable_unique_stacks_map`: Maps stacks to IDs (byte offsets in `unique_stacks_array`).
-// Stored keys also retain the offset so equality checks can compare stack contents.
+// * `verstable_unique_stacks_map`: Maps stack hashes to IDs (byte offsets in `unique_stacks_array`).
 //
 // Here's how it looks as an example (each letter is a CME/ISEQ pair):
 // * Input:
@@ -66,9 +73,9 @@ static void *unique_stacks_calloc(size_t size);
 //     |                                                          |
 //     Events 1 and 3                                             Event 2
 //
-// * Unique stacks map (view_borrowed = false):
-//   [ hash(A B C D; 0 1 2 3) | offset:  0 ] -> stack_id:  0  (Events 1 and 3)
-//   [ hash(E F; 0 1)         | offset: 80 ] -> stack_id: 80  (Event 2)
+// * Unique stacks map:
+//   hash(A B C D; 0 1 2 3) -> stack_id:  0  (Events 1 and 3)
+//   hash(E F; 0 1)         -> stack_id: 80  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
@@ -85,10 +92,6 @@ typedef struct {
 
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
-static miteruby_event_stack_sample_view_t stack_key_view(stack_key key) {
-  return key.view_borrowed ? *key.location.as.view : miteruby_stack_dedup_get(key.location.as.stack_id);
-}
-
 static uint64_t stack_view_hash(miteruby_event_stack_sample_view_t view) {
   if (view.frame_count == 0) return 0;
 
@@ -102,16 +105,7 @@ static uint64_t stack_key_hash(stack_key key) {
 }
 
 static bool stack_key_equal(stack_key left, stack_key right) {
-  if (left.hash != right.hash) return false;
-
-  miteruby_event_stack_sample_view_t left_view = stack_key_view(left);
-  miteruby_event_stack_sample_view_t right_view = stack_key_view(right);
-
-  if (left_view.frame_count != right_view.frame_count) return false;
-  if (left_view.frame_count == 0) return true;
-
-  return memcmp(left_view.refs, right_view.refs, left_view.frame_count * sizeof(*left_view.refs)) == 0 &&
-    memcmp(left_view.positions, right_view.positions, left_view.frame_count * sizeof(*left_view.positions)) == 0;
+  return left.hash == right.hash;
 }
 
 static void *unique_stacks_calloc(size_t size) {
@@ -170,16 +164,13 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
   miteruby_stack_dedup_id_t next_stack_id = {.offset = stack_dedup_state.unique_stacks_pos};
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(
     &stack_dedup_state.unique_stacks,
-    (stack_key) {
-      .hash = stack_view_hash(view),
-      .location.as.view = &view,
-      .view_borrowed = true,
-    },
+    (stack_key) {.hash = stack_view_hash(view)},
     next_stack_id
   );
   if (verstable_unique_stacks_map_is_end(entry)) return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
 
-  if (!entry.data->key.view_borrowed) {
+  bool inserted = entry.data->val.offset == next_stack_id.offset;
+  if (!inserted) {
     return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .inserted = false}};
   }
 
@@ -195,9 +186,6 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
     memcpy(stored.positions, view.positions, view.frame_count * sizeof(*stored.positions));
   }
 
-  // Switching to owned storage must preserve the key's hash and contents.
-  entry.data->key.location.as.stack_id = next_stack_id;
-  entry.data->key.view_borrowed = false;
   stack_dedup_state.unique_stacks_pos += aligned_stack_size;
 
   return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .inserted = true}};
@@ -210,8 +198,6 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_insert(miteruby_event_
 void miteruby_stack_dedup_rollback_insert(miteruby_stack_dedup_id_t stack_id) {
   verstable_unique_stacks_map_erase(&stack_dedup_state.unique_stacks, (stack_key) {
     .hash = stack_view_hash(miteruby_stack_dedup_get(stack_id)),
-    .location.as.stack_id = stack_id,
-    .view_borrowed = false,
   });
   stack_dedup_state.unique_stacks_pos = stack_id.offset;
 }
