@@ -2958,7 +2958,9 @@ end
 - The exposure cache keeps the last exposure of 1,000 flag and subject pairs. A cache hit does not confirm delivery to your data store; your code owns queueing and retries.
 - To record exposures only in your own data store, set `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`. `should_send?` keeps returning the same results.
 - The hook skips its callback, with one warning, for evaluations that do not come from a directly registered Datadog provider, such as evaluations through a composed provider.
-- The provider also writes the same data into flag metadata: `__dd_exposure_cache_hit`, `__dd_do_log`, `__dd_split_serial_id`, and one `__dd_feature.<key>` entry per feature. `__dd_exposure_cache_hit` is set in the provider's `finally` hook, so other hooks read it from their own `finally` stage.
+- Flag metadata contains one `__dd_feature.<key>` entry for each feature of the selected split. These entries are public.
+- Other flag metadata keys that start with `__dd_` are internal. They can change or be missing.
+- To get the exposure decision, use `ExposureHook` (`exposure?`, `cache_hit?` and `should_send?`).
 
 #### Evaluation telemetry opt-out
 
