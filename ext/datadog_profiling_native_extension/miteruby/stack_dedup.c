@@ -15,7 +15,7 @@ typedef struct {
   miteruby_cme_iseq_id_t ids[];
 } miteruby_stored_stack_t;
 
-_Static_assert(offsetof(miteruby_stored_stack_t, ids) == 2, "miteruby_stored_stack_t IDs must start after a 2-byte prefix");
+_Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
 
 static uint64_t stack_hash_value(miteruby_stack_hash_t key);
 static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right);
@@ -54,7 +54,7 @@ static void *unique_stacks_calloc(size_t size);
 //
 // * Unique stacks map:
 //   hash(A B C D; 0 1 2 3) -> stack_id:  0  (Events 1 and 3)
-//   hash(E F; 0 1)         -> stack_id: 24  (Event 2)
+//   hash(E F; 0 1)         -> stack_id: 32  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
