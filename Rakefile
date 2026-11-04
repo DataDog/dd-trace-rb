@@ -55,6 +55,7 @@ DI_WITH_EXT = %w[
 DSM_ENABLED_LIBRARIES = [
   :kafka,
   :karafka,
+  :racecar,
 ].freeze
 
 # The Rakefile is only for development, enable testing the profiler on macOS
