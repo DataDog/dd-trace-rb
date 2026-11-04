@@ -420,6 +420,21 @@ miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_
   rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value.value);
 }
 
+// TODO: Temporary hack, until we have a better way of mapping ids to the data they represent at serialization time
+miteruby_cme_iseq_id_t miteruby_hack_location_id_to_cme_seq_id(miteruby_location_id_t id, miteruby_event_frame_position_t *position) {
+  for (
+    verstable_location_map_itr entry = verstable_location_map_first(&consumer_state.location_map);
+    !verstable_location_map_is_end(entry);
+    entry = verstable_location_map_next(entry)
+  ) {
+    if (entry.data->val.location_id.value.value == id.value.value) {
+      *position = entry.data->key.position;
+      return entry.data->key.cme_iseq_id;
+    }
+  }
+  rb_raise(rb_eRuntimeError, "Miteruby unknown location ID: %u", (unsigned int) id.value.value);
+}
+
 static miteruby_consumer_exit_reason_t intern_location(miteruby_location_key_t key, const rb_iseq_t *iseq, miteruby_location_id_t *id) {
   size_t next_id = verstable_location_map_size(&consumer_state.location_map);
   // We fail early if map is already at capacity
@@ -456,20 +471,17 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     miteruby_stack_t stack = result.ok.stack;
     const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
-      // As we turn the (cme, iseq) into an id, we write those ids into the deduped stack storage
-      miteruby_consumer_exit_reason_t reason = retain_cme_iseq(event->refs[i], &stack.ids[i]);
-      if (reason != MITERUBY_CONSUMER_OK) {
-        return reason;
-      }
+      miteruby_cme_iseq_id_t cme_iseq_id;
+      miteruby_consumer_exit_reason_t reason = retain_cme_iseq(event->refs[i], &cme_iseq_id);
+      if (reason != MITERUBY_CONSUMER_OK) return reason;
       miteruby_location_id_t location_id;
       reason = intern_location(
-        (miteruby_location_key_t) {.cme_iseq_id = stack.ids[i], .position = positions[i]}, event->refs[i].iseq, &location_id
+        (miteruby_location_key_t) {.cme_iseq_id = cme_iseq_id, .position = positions[i]}, event->refs[i].iseq, &location_id
       );
-      if (reason != MITERUBY_CONSUMER_OK) {
-        return reason;
-      }
+      if (reason != MITERUBY_CONSUMER_OK) return reason;
+      // As we turn the (cme_iseq_id, position), into an id, we write those ids into the deduped stack storage
+      stack.ids[i] = location_id;
     }
-    memcpy(stack.positions, positions, header->frame_count * sizeof(*stack.positions));
     if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
   }
 

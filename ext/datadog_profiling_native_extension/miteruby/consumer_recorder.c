@@ -122,10 +122,12 @@ void miteruby_consumer_record_stack_sample(
     int line = 0;
 
     for (uint16_t i = 0; i < count; i++) {
-      const miteruby_event_frame_refs_t frame = miteruby_hack_id_to_frame_refs(stack.ids[i]);
+      miteruby_event_frame_position_t position;
+      miteruby_cme_iseq_id_t cme_iseq_id = miteruby_hack_location_id_to_cme_seq_id(stack.ids[i], &position);
+      const miteruby_event_frame_refs_t frame = miteruby_hack_id_to_frame_refs(cme_iseq_id);
       if (frame.iseq != NULL) {
         filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
-        line = stack.positions[i].value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, stack.positions[i].value);
+        line = position.value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, position.value);
       }
       VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
       // Walk root-first to inherit Ruby caller locations for C frames; libdatadog expects the opposite order.

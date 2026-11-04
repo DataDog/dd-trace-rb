@@ -21,3 +21,4 @@ void miteruby_consumer_prepare_serialize(VALUE recorder_instance);
 
 // Caller holds the main ractor's GVL and consumer mutex; missing IDs raise an internal error.
 miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_t id);
+miteruby_cme_iseq_id_t miteruby_hack_location_id_to_cme_seq_id(miteruby_location_id_t id, miteruby_event_frame_position_t *position);
