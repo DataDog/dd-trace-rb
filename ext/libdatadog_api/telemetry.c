@@ -58,9 +58,15 @@ static VALUE _native_worker_register_metric_context(
 static VALUE _native_worker_add_point(VALUE self, VALUE context, VALUE value, VALUE tags_as_array);
 static VALUE _native_worker_add_log(
     VALUE self, VALUE identifier, VALUE message, VALUE level, VALUE stack_trace);
+static VALUE _native_worker_add_config(
+    VALUE self, VALUE name, VALUE value, VALUE origin, VALUE config_id, VALUE seq_id);
+static VALUE _native_worker_add_endpoint(
+    VALUE self, VALUE kind, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name);
 
 static bool metric_type_symbol_to_enum(VALUE symbol, ddog_MetricType *out_type);
 static bool namespace_symbol_to_enum(VALUE symbol, ddog_MetricNamespace *out_namespace);
+static bool configuration_origin_symbol_to_enum(VALUE symbol, ddog_ConfigurationOrigin *out_origin);
+static bool float_or_fixnum(VALUE rb_val);
 
 void telemetry_init(VALUE core_module) {
   VALUE telemetry_module = rb_define_module_under(core_module, "Telemetry");
@@ -74,6 +80,8 @@ void telemetry_init(VALUE core_module) {
   rb_define_method(telemetry_worker_class, "_register_metric_context", _native_worker_register_metric_context, 4);
   rb_define_method(telemetry_worker_class, "_add_point", _native_worker_add_point, 3);
   rb_define_method(telemetry_worker_class, "_add_log", _native_worker_add_log, 4);
+  rb_define_method(telemetry_worker_class, "_add_config", _native_worker_add_config, 5);
+  rb_define_method(telemetry_worker_class, "_add_endpoint", _native_worker_add_endpoint, 5);
 
   rb_undef_alloc_func(telemetry_worker_class);
 
@@ -150,6 +158,9 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   VALUE rb_kernel_name = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_name")));
   VALUE rb_kernel_release = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_release")));
   VALUE rb_kernel_version = rb_hash_lookup(options, ID2SYM(rb_intern("kernel_version")));
+  VALUE rb_heartbeat_interval = rb_hash_lookup(options, ID2SYM(rb_intern("heartbeat_interval_seconds")));
+  VALUE rb_extended_heartbeat_interval =
+      rb_hash_lookup(options, ID2SYM(rb_intern("extended_heartbeat_interval_seconds")));
 
   ENFORCE_TYPE(rb_url, T_STRING);
   ENFORCE_TYPE(rb_timeout_ms, T_FIXNUM);
@@ -166,6 +177,16 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   if (rb_kernel_name != Qnil) ENFORCE_TYPE(rb_kernel_name, T_STRING);
   if (rb_kernel_release != Qnil) ENFORCE_TYPE(rb_kernel_release, T_STRING);
   if (rb_kernel_version != Qnil) ENFORCE_TYPE(rb_kernel_version, T_STRING);
+  if (rb_heartbeat_interval != Qnil) {
+    if (!float_or_fixnum(rb_heartbeat_interval)) {
+      raise_error(rb_eArgError, "heartbeat_interval_seconds must be a number");
+    }
+  }
+  if (rb_extended_heartbeat_interval != Qnil) {
+    if (!float_or_fixnum(rb_extended_heartbeat_interval)) {
+      raise_error(rb_eArgError, "extended_heartbeat_interval_seconds must be a number");
+    }
+  }
 
   ddog_TelemetryWorkerBuilder *builder = NULL;
   ddog_MaybeError err;
@@ -204,6 +225,18 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   set_builder_str_field(builder, ddog_telemetry_builder_with_str_host_kernel_version, rb_kernel_version,
                         "Failed to set telemetry kernel version");
 
+  // Optional overrides of the Rust defaults (60s heartbeat, 24h extended).
+  // The heartbeat also drives the metrics and logs flush cadence.
+  if (rb_heartbeat_interval != Qnil) {
+    err = ddog_telemetry_builder_with_heartbeat_interval(builder, NUM2DBL(rb_heartbeat_interval));
+    CHECK_TELEMETRY_ERROR("Failed to set telemetry heartbeat interval", err);
+  }
+  if (rb_extended_heartbeat_interval != Qnil) {
+    err =
+        ddog_telemetry_builder_with_extended_heartbeat_interval(builder, NUM2DBL(rb_extended_heartbeat_interval));
+    CHECK_TELEMETRY_ERROR("Failed to set telemetry extended heartbeat interval", err);
+  }
+
   // Empty api_key and test_token select agent-based submission. Passing false
   // for use_system_resolver keeps libdatadog's fork-safe in-process resolver.
   err = ddog_telemetry_builder_with_endpoint_config_endpoint(
@@ -216,9 +249,15 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
   CHECK_TELEMETRY_ERROR("Failed to set telemetry endpoint", err);
 
   // The metric_logs flavor only processes metrics and logs. Lifecycle events
-  // stay on the Ruby event layer until the lifecycle migration step.
+  // stay on the Ruby event layer until the lifecycle migration step. The
+  // full_flavor option selects the full worker for testing that migration.
   ddog_TelemetryWorkerHandle *handle = NULL;
-  err = ddog_telemetry_builder_run_metric_logs(builder, &handle);
+  VALUE rb_full_flavor = rb_hash_lookup(options, ID2SYM(rb_intern("full_flavor")));
+  if (rb_full_flavor == Qtrue) {
+    err = ddog_telemetry_builder_run(builder, &handle);
+  } else {
+    err = ddog_telemetry_builder_run_metric_logs(builder, &handle);
+  }
   CHECK_TELEMETRY_ERROR("Failed to run telemetry worker", err);
 
   telemetry_worker_t *worker = ruby_xmalloc(sizeof(telemetry_worker_t));
@@ -374,5 +413,98 @@ static VALUE _native_worker_add_log(
       level_enum,
       stack_trace_slice);
   CHECK_TELEMETRY_ERROR("Failed to add telemetry log", err);
+  return Qtrue;
+}
+
+static bool configuration_origin_symbol_to_enum(VALUE symbol, ddog_ConfigurationOrigin *out_origin) {
+  ID id = SYM2ID(symbol);
+#define CHECK_ORIGIN(name, value) \
+  if (id == rb_intern(name)) { *out_origin = (value); return true; }
+  CHECK_ORIGIN("env_var", DDOG_CONFIGURATION_ORIGIN_ENV_VAR)
+  CHECK_ORIGIN("code", DDOG_CONFIGURATION_ORIGIN_CODE)
+  CHECK_ORIGIN("dd_config", DDOG_CONFIGURATION_ORIGIN_DD_CONFIG)
+  CHECK_ORIGIN("remote_config", DDOG_CONFIGURATION_ORIGIN_REMOTE_CONFIG)
+  CHECK_ORIGIN("default", DDOG_CONFIGURATION_ORIGIN_DEFAULT)
+  CHECK_ORIGIN("local_stable_config", DDOG_CONFIGURATION_ORIGIN_LOCAL_STABLE_CONFIG)
+  CHECK_ORIGIN("fleet_stable_config", DDOG_CONFIGURATION_ORIGIN_FLEET_STABLE_CONFIG)
+  CHECK_ORIGIN("calculated", DDOG_CONFIGURATION_ORIGIN_CALCULATED)
+  CHECK_ORIGIN("otel_env_var", DDOG_CONFIGURATION_ORIGIN_OTEL_ENV_VAR)
+  CHECK_ORIGIN("ini", DDOG_CONFIGURATION_ORIGIN_INI)
+  CHECK_ORIGIN("unknown", DDOG_CONFIGURATION_ORIGIN_UNKNOWN)
+#undef CHECK_ORIGIN
+  return false;
+}
+
+static bool float_or_fixnum(VALUE rb_val) {
+  return RB_FIXNUM_P(rb_val) || RB_FLOAT_TYPE_P(rb_val);
+}
+
+static VALUE _native_worker_add_config(
+    VALUE self, VALUE name, VALUE value, VALUE origin, VALUE config_id, VALUE seq_id) {
+  ENFORCE_TYPE(name, T_STRING);
+  if (value != Qnil) ENFORCE_TYPE(value, T_STRING);
+  ENFORCE_TYPE(origin, T_SYMBOL);
+  if (config_id != Qnil) ENFORCE_TYPE(config_id, T_STRING);
+  if (seq_id != Qnil) ENFORCE_TYPE(seq_id, T_FIXNUM);
+
+  ddog_ConfigurationOrigin origin_enum;
+  if (!configuration_origin_symbol_to_enum(origin, &origin_enum)) {
+    raise_error(rb_eArgError, "Unexpected configuration origin: %+"PRIsVALUE, origin);
+  }
+
+  // All slices borrow from the Ruby strings. The call owns no heap memory.
+  ddog_CharSlice value_slice;
+  if (value == Qnil) {
+    // libdatadog takes a string value. dd-trace-rb configuration values
+    // can also be booleans or numbers, and the caller serializes them before
+    // this binding.
+    value_slice = (ddog_CharSlice){.ptr = "", .len = 0};
+  } else {
+    value_slice = char_slice_from_ruby_string(value);
+  }
+  ddog_CharSlice config_id_slice;
+  if (config_id == Qnil) {
+    // An empty config_id maps to None on the Rust side.
+    config_id_slice = (ddog_CharSlice){.ptr = "", .len = 0};  } else {
+    config_id_slice = char_slice_from_ruby_string(config_id);
+  }
+  ddog_Option_U64 seq;
+  if (seq_id == Qnil) {
+    seq = (ddog_Option_U64){.tag = DDOG_OPTION_U64_NONE_U64};
+  } else {
+    seq = (ddog_Option_U64){.tag = DDOG_OPTION_U64_SOME_U64, .some = NUM2ULL(seq_id)};
+  }
+
+  ddog_MaybeError err = ddog_telemetry_handle_add_config(
+      get_worker_handle(self),
+      char_slice_from_ruby_string(name),
+      value_slice,
+      origin_enum,
+      config_id_slice,
+      seq);
+  CHECK_TELEMETRY_ERROR("Failed to add telemetry configuration change", err);
+  return Qtrue;
+}
+
+static VALUE _native_worker_add_endpoint(
+    VALUE self, VALUE kind, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name) {
+  ENFORCE_TYPE(kind, T_STRING);
+  ENFORCE_TYPE(method, T_STRING);
+  ENFORCE_TYPE(path, T_STRING);
+  ENFORCE_TYPE(operation_name, T_STRING);
+  ENFORCE_TYPE(resource_name, T_STRING);
+
+  // The call passes EndpointData by value, and all its slices borrow from
+  // the Ruby strings. libdatadog owns no heap memory from this call.
+  ddog_EndpointData endpoint = {
+    .kind = char_slice_from_ruby_string(kind),
+    .method = char_slice_from_ruby_string(method),
+    .path = char_slice_from_ruby_string(path),
+    .operation_name = char_slice_from_ruby_string(operation_name),
+    .resource_name = char_slice_from_ruby_string(resource_name),
+  };
+
+  ddog_MaybeError err = ddog_telemetry_handle_add_endpoint(get_worker_handle(self), endpoint);
+  CHECK_TELEMETRY_ERROR("Failed to add telemetry endpoint", err);
   return Qtrue;
 }

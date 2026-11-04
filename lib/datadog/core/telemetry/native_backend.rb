@@ -157,6 +157,10 @@ module Datadog
             kernel_name: Core::Environment::Platform.kernel_name,
             kernel_release: Core::Environment::Platform.kernel_release,
             kernel_version: Core::Environment::Platform.kernel_version,
+            # Consumed by the C binding once libdatadog ships interval
+            # setters. Older builds ignore these keys.
+            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
           }
         end
 
