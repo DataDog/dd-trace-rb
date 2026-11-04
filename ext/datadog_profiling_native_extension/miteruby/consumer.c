@@ -339,9 +339,9 @@ static miteruby_consumer_exit_reason_t retain_cme_iseq(miteruby_event_frame_refs
   if (refs.cme == NULL && refs.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FRAME;
 
   size_t next_id = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
-  if (next_id > UINT16_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
+  if (next_id > UINT20_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_get_or_insert(
-    &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = (uint16_t) next_id}
+    &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = {.value = (unsigned int) next_id}}
   );
   if (verstable_mark_cme_iseq_map_is_end(entry)) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   *id = entry.data->val;
@@ -356,9 +356,9 @@ miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_
     !verstable_mark_cme_iseq_map_is_end(entry);
     entry = verstable_mark_cme_iseq_map_next(entry)
   ) {
-    if (entry.data->val.value == id.value) return entry.data->key;
+    if (entry.data->val.value.value == id.value.value) return entry.data->key;
   }
-  rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value);
+  rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value.value);
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
