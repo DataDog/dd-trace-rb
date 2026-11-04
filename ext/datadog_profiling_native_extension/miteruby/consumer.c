@@ -4,6 +4,7 @@
 #include "consumer.h"
 #include "libdatadog_recorder.h"
 #include "stack_dedup.h"
+#include "compressed_deltas.h"
 
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
@@ -469,6 +470,8 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
   if (new_stack) {
     miteruby_stack_t stack = result.ok.stack;
+    uint8_t *cursor = stack.ids;
+    uint20_t previous_value = {0};
     const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
       miteruby_cme_iseq_id_t cme_iseq_id;
@@ -480,9 +483,10 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
       );
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       // As we turn the (cme_iseq_id, position), into an id, we write those ids into the deduped stack storage
-      stack.ids[i] = location_id;
+      if (!miteruby_compressed_deltas_write(previous_value, location_id.value, &cursor, stack.end)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
+      previous_value = location_id.value;
     }
-    if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
+    if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash, cursor)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
   }
 
   miteruby_event_deduped_sample_t *deduped = &consumer_state.interned_events_queue[consumer_state.interned_events_count++];
