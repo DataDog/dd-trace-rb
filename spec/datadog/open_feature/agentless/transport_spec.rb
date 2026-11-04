@@ -55,10 +55,16 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
       before { allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(supported) }
 
       [nil, "previous"].each do |etag_value|
-        it "negotiates capabilities with ETag #{etag_value.inspect}" do
+        it "negotiates the capability parameter with ETag #{etag_value.inspect}" do
+          expected = if supported
+            "https://example.test/config?dd_env=test&dependent-flags-variant-key=v1"
+          else
+            "https://example.test/config?dd_env=test"
+          end
+          stub_request(:get, expected).to_return(status: 200, body: "configuration")
           transport.get(etag_value)
-          expect(a_request(:get, "https://example.test/config?dd_env=test").with do |request|
-            request.headers["X-Dd-Feature-Flags-Capabilities"] == (supported ? "dependent-flag-variant-key-v1" : nil) &&
+          expect(a_request(:get, expected).with do |request|
+            !request.headers.key?("X-Dd-Feature-Flags-Capabilities") &&
               request.headers["If-None-Match"] == etag_value
           end).to have_been_made.once
         end
