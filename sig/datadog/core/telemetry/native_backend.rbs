@@ -1,0 +1,68 @@
+module Datadog
+  module Core
+    module Telemetry
+      class NativeBackend < RubyBackend
+        LOG_LEVELS: Hash[String, Symbol]
+
+        @shutdown_timeout_ms: Integer
+
+        @native_worker: Native::Worker?
+
+        @native_worker_args: Hash[Symbol, untyped]?
+
+        @metric_contexts: Hash[String, Native::MetricContext]
+
+        @metric_contexts_mutex: Thread::Mutex
+
+        def self.unsupported_reason: () -> String?
+
+        attr_reader native_worker: Native::Worker?
+
+        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool) -> void
+
+        def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def dec: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def gauge: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def rate: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def add_log: (Event::Log event) -> void
+
+        def start: (Telemetry::Event::AppStarted initial_event) -> void
+
+        def after_fork: () -> void
+
+        def shutdown!: () -> void
+
+        private
+
+        def add_metric_point: (
+          Symbol metric_type,
+          String namespace,
+          String metric_name,
+          Datadog::Core::Telemetry::Metric::input_value value,
+          Datadog::Core::Telemetry::Metric::tags_input tags,
+          bool common
+        ) -> void
+
+        def metric_context: (
+          Native::Worker worker,
+          Symbol metric_type,
+          String namespace,
+          String metric_name,
+          bool common
+        ) -> Native::MetricContext
+
+        def tag_pairs: (Datadog::Core::Telemetry::Metric::tags_input tags) -> Array[Array[String]]
+
+        def native_worker_args: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings) -> Hash[Symbol, untyped]?
+
+        def start_native_worker: () -> Native::Worker?
+      end
+    end
+  end
+end

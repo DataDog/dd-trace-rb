@@ -91,6 +91,10 @@ module Datadog
           @worker.enqueue(event)
         end
 
+        def add_log(event)
+          enqueue(event)
+        end
+
         def flush(timeout: nil)
           @worker.flush(timeout: timeout)
         end

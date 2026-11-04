@@ -895,6 +895,13 @@
         "default": "true"
       }
     ],
+    "DD_TELEMETRY_NATIVE_WORKER": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": [
       {
         "version": "A",
