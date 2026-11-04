@@ -33,7 +33,7 @@ module Datadog
           def patch
             ActiveSupport.on_load :active_record do
               ::ActiveRecord::ConnectionAdapters::AbstractAdapter.singleton_class.prepend(
-                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher::AdapterInheritancePatch
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher::AdapterInheritancePatch,
               )
 
               if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
