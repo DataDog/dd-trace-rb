@@ -23,7 +23,7 @@ module Datadog
           def self?.get_option: (untyped option) -> untyped
         end
         module Patcher
-          PATCHERS: ::Array[untyped]
+          PATCHERS: Array[untyped]
 
           def self?.patched?: () -> untyped
 

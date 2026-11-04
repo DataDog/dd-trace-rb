@@ -2,8 +2,8 @@ module Datadog
   module Tracing
     module Distributed
       class TraceContext
-        type traceparent_fields = [::Integer, ::Integer, ::Integer]
-        type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
+        type traceparent_fields = [Integer, Integer, Integer]
+        type extracted_traceparent = [Integer, Integer, Integer, Integer]
 
         @fetcher: singleton(Fetcher)?
 
@@ -24,15 +24,15 @@ module Datadog
         def extract: (untyped data) -> (nil | untyped)
 
         private
-        def build_traceparent: (TraceDigest digest) -> ::String
-        def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
-        def build_trace_flags: (TraceDigest digest) -> ::Integer
-        def extract_traceparent: (::String? traceparent) -> extracted_traceparent?
+        def build_traceparent: (TraceDigest digest) -> String
+        def build_traceparent_string: (Integer trace_id, Integer parent_id, Integer trace_flags) -> String
+        def build_trace_flags: (TraceDigest digest) -> Integer
+        def extract_traceparent: (String? traceparent) -> extracted_traceparent?
 
-        def parse_traceparent_string: (::String? traceparent) -> traceparent_fields?
+        def parse_traceparent_string: (String? traceparent) -> traceparent_fields?
 
-        def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
-        def parse_priority_sampling: (::Integer sampled, ::Integer? sampling_priority) { (::String | :drop decision) -> void } -> ::Integer
+        def parse_sampled_flag: (Integer trace_flags) -> Integer
+        def parse_priority_sampling: (Integer sampled, Integer? sampling_priority) { (String | :drop decision) -> void } -> Integer
         TRACEPARENT_MAX_SIZE_LIMIT: 512
         INVALID_VERSION: "ff"
         DEFAULT_TRACE_FLAGS: 0

@@ -16,9 +16,9 @@ module Datadog
 
             private
 
-            def host_and_port: (untyped request) -> ::Array[untyped]
+            def host_and_port: (untyped request) -> Array[untyped]
 
-            def datadog_configuration: (?::Symbol host) -> untyped
+            def datadog_configuration: (?Symbol host) -> untyped
 
             def analytics_enabled?: (untyped request_options) -> untyped
 

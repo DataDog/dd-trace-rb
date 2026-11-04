@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module ActiveRecord
         module Events
-          ALL: ::Array[untyped]
+          ALL: Array[untyped]
 
           def self?.all: () -> untyped
 
