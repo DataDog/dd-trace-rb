@@ -174,8 +174,9 @@ is affected, and how to enable or opt out.
   Add detection of response splitting.
   ```
 
-- Give exact versions and platforms when they decide who is affected, not
-  "recent" or "newer".
+- Say who is affected when it is not everyone: exact versions and platforms
+  (not "recent" or "newer"), and the triggers or workloads (for example
+  "applications with many idle threads").
 
   ```markdown
   <!-- Bad -->

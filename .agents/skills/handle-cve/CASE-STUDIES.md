@@ -17,8 +17,8 @@ Why we did not upgrade:
    also needed a spec fix for a changed server error message.
 
 Resolution: one `ignore` entry for the advisory id, because `mongo-min`
-keeps a vulnerable version indefinitely. It can be removed once no
-lockfile has `mongo` below 2.26.0.
+keeps vulnerable versions indefinitely and no upgrade can reduce them. It
+can be removed once no lockfile has `mongo` below 2.26.0.
 
 Lesson: an upgrade can break the code, the tests, or the test
 infrastructure. Both problems only showed up by running the tests.

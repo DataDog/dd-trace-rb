@@ -53,8 +53,8 @@ task."
 
 Optional, collapsed in `<details><summary>Notes</summary>` ... `</details>`.
 Anything that does not fit in the other sections goes here: links,
-benchmarks, plans, steps for testing, longer explanations. Never put it
-after a required section or loose in the body. The PR must be
+benchmarks, plans, steps for testing, longer explanations. Never add it
+to a required section or leave it loose in the body. The PR must be
 understandable without reading it.
 
 ## Keeping it up to date
