@@ -27,8 +27,9 @@ Nobody notices until wrong data has already been ingested.
 
 ## Security
 
-- Data that may contain PII: HTTP headers carry credentials, and tag values
-  can contain user data. Sending such data somewhere new can leak it.
+- Metadata that may contain PII: HTTP headers carry credentials, and tag
+  values can contain user data. Sending such metadata somewhere new can
+  leak it.
 - Sanitization and obfuscation: API keys must never be logged. Weakening or
   bypassing a scrubber is a leak.
 
