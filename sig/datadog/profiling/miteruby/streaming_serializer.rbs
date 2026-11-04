@@ -4,13 +4,13 @@ module Datadog
       class StreamingSerializer
         def initialize: () -> void
 
-        def serialize: () -> nil
+        def serialize: () -> EncodedProfile
 
         def reset_after_fork: () -> true
 
         def stats: () -> Hash[Symbol, Integer]
 
-        def self._native_serialize: (StreamingSerializer serializer) -> nil
+        def self._native_serialize: (StreamingSerializer serializer) -> EncodedProfile
 
         def self._native_reset_after_fork: (StreamingSerializer serializer) -> true
 

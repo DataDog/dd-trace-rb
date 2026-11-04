@@ -98,26 +98,52 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
       end
 
-      it "selects the persistent streaming serializer and prepares both backends" do
+      it "returns both persistent recorders when requested and prepares both backends" do
         expect(described_class).to receive(:_native_miteruby_consumer_prepare_serialize).with(
           an_instance_of(Datadog::Profiling::Miteruby::LibdatadogRecorder),
           an_instance_of(Datadog::Profiling::Miteruby::StreamingSerializer),
         ).twice.and_call_original
 
-        serializer = cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)
+        recorders = cpu_and_wall_time_worker.prepare_serialize(return_both: true)
+        libdatadog_recorder, serializer = recorders
 
+        expect(libdatadog_recorder).to be_a(Datadog::Profiling::Miteruby::LibdatadogRecorder)
         expect(serializer).to be_a(Datadog::Profiling::Miteruby::StreamingSerializer)
-        expect(serializer.serialize).to be_nil
-        expect(cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)).to equal(serializer)
+        encoded = serializer.serialize
+        expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
+        expect(Zstd.decompress(encoded._native_bytes)).to eq("hello world")
+        expect(cpu_and_wall_time_worker.prepare_serialize(return_both: true)).to equal(recorders)
       end
 
       it "resets both backends after fork" do
-        libdatadog_recorder = cpu_and_wall_time_worker.prepare_serialize
-        streaming_serializer = cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)
+        libdatadog_recorder, streaming_serializer = cpu_and_wall_time_worker.prepare_serialize(return_both: true)
         expect(libdatadog_recorder).to receive(:reset_after_fork).and_call_original
         expect(streaming_serializer).to receive(:reset_after_fork).and_call_original
 
         expect(cpu_and_wall_time_worker.reset_after_fork).to be true
+      end
+
+      it "produces equivalent profiles from both recorders after running miteruby for 200ms" do
+        cpu_and_wall_time_worker.start
+        cpu_and_wall_time_worker.wait_until_running
+        deadline = Datadog::Core::Utils::Time.get_time + 0.2
+        loop_until { Datadog::Core::Utils::Time.get_time >= deadline }
+        loop_until do
+          described_class::Testing._native_miteruby_wake_reader
+          Thread.pass
+          described_class::Testing._native_miteruby_raw_events_queue_empty?
+        end
+        cpu_and_wall_time_worker.stop
+
+        libdatadog_recorder, streaming_serializer = cpu_and_wall_time_worker.prepare_serialize(return_both: true)
+        original = libdatadog_recorder.serialize!
+        streaming = streaming_serializer.serialize
+        expect(samples_from_pprof(original)).to_not be_empty
+
+        pending("Streaming serialization currently contains only hello world")
+        expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
+      ensure
+        cpu_and_wall_time_worker.stop
       end
     end
 
@@ -2257,7 +2283,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(recorded_miteruby_samples.size).to eq(3)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
-      expect(streaming_serializer.serialize).to be_nil
+      expect(Zstd.decompress(streaming_serializer.serialize._native_bytes)).to eq("hello world")
       expect(recorded_miteruby_samples).to be_empty
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
