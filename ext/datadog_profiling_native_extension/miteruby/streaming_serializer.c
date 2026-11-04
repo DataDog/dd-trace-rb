@@ -8,6 +8,8 @@
 #include "../helpers.h"
 #include "../time_helpers.h"
 
+#include <string.h>
+
 enum { COMPRESSION_LEVEL = 1 };
 
 enum fixed_strings {
@@ -20,6 +22,18 @@ enum fixed_strings {
   PPROF_STRING_ALLOC_SAMPLES,
   PPROF_STRING_ALLOC_SAMPLES_UNSCALED,
   PPROF_STRING_TIMELINE,
+};
+
+static const char *const fixed_string_values[] = {
+  [PPROF_STRING_EMPTY] = "",
+  [PPROF_STRING_CPU_TIME] = "cpu-time",
+  [PPROF_STRING_NANOSECONDS] = "nanoseconds",
+  [PPROF_STRING_CPU_SAMPLES] = "cpu-samples",
+  [PPROF_STRING_COUNT] = "count",
+  [PPROF_STRING_WALL_TIME] = "wall-time",
+  [PPROF_STRING_ALLOC_SAMPLES] = "alloc-samples",
+  [PPROF_STRING_ALLOC_SAMPLES_UNSCALED] = "alloc-samples-unscaled",
+  [PPROF_STRING_TIMELINE] = "timeline",
 };
 
 static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
@@ -84,14 +98,26 @@ static void record_stack_sample(
 void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
+
   pb_ostream_t stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
+
+  // Emit FragmentSampleType
   for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
     miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
   }
+
+  // Emit FragmentStringTable
+  for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
+    const char *string = fixed_string_values[i];
+    if (!pb_encode_tag(&stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
+        !pb_encode_string(&stream, (const pb_byte_t *) string, strlen(string)))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(&stream));
+  }
+
   state->uncompressed_serialization_size = stream.bytes_written;
 
   for (size_t pos = 0; pos < interned_events_pos;) {
