@@ -26,6 +26,11 @@ typedef struct {
   miteruby_event_frame_position_t position;
 } miteruby_location_key_t;
 
+typedef struct {
+  miteruby_location_id_t location_id;
+  const rb_iseq_t *iseq; // TODO: I think this will be useful for serialization, keep an eye out to remove it if doesn't end up being needed.
+} miteruby_location_value_t;
+
 static void *mark_threads_calloc(size_t size);
 static void *mark_cme_iseq_calloc(size_t size);
 static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs);
@@ -53,7 +58,7 @@ static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t
 
 #define NAME verstable_location_map
 #define KEY_TY miteruby_location_key_t
-#define VAL_TY miteruby_location_id_t
+#define VAL_TY miteruby_location_value_t
 #define HASH_FN location_hash
 #define CMPR_FN location_equal
 #define MALLOC_FN location_calloc
