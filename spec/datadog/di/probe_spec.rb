@@ -180,6 +180,28 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "#normalized_type_name" do
+    subject(:normalized_type_name) { probe.normalized_type_name }
+
+    context "when the type name has a root namespace prefix" do
+      let(:probe) { described_class.new(id: "42", type: :log, type_name: "::Object::Foo", method_name: "bar") }
+
+      it "is the type name without the prefix" do
+        is_expected.to eq "Foo"
+      end
+
+      it "leaves the type name as written" do
+        expect(probe.type_name).to eq "::Object::Foo"
+      end
+    end
+
+    context "when the probe has no type name" do
+      include_context "line probe"
+
+      it { is_expected.to be nil }
+    end
+  end
+
   describe "#line_no!" do
     context "one line number" do
       let(:probe) { described_class.new(id: "x", type: :log, file: "x", line_no: 5) }
