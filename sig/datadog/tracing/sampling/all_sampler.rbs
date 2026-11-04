@@ -6,7 +6,7 @@ module Datadog
 
         def sample!: (untyped trace) -> untyped
 
-        def sample_rate: (*untyped _) -> ::Float
+        def sample_rate: (*untyped _) -> Float
       end
     end
   end

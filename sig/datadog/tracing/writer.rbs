@@ -25,7 +25,7 @@ module Datadog
 
       attr_reader agent_settings: untyped?
 
-      def initialize: (?::Hash[untyped, untyped] options) -> void
+      def initialize: (?Hash[untyped, untyped] options) -> void
 
       public
 

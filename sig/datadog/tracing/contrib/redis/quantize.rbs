@@ -11,11 +11,11 @@ module Datadog
 
           CMD_MAX_LEN: 500
 
-          AUTH_COMMANDS: ::Array["AUTH" | "auth"]
+          AUTH_COMMANDS: Array["AUTH" | "auth"]
 
-          CONNECTION_SETUP_COMMANDS: ::Set[::String]
+          CONNECTION_SETUP_COMMANDS: Set[String]
 
-          CLIENT_CONNECTION_SETUP_SUBCOMMANDS: ::Set[::String]
+          CLIENT_CONNECTION_SETUP_SUBCOMMANDS: Set[String]
 
           MULTI_VERB_COMMANDS: untyped
 
@@ -23,7 +23,7 @@ module Datadog
 
           def self?.format_command_args: (untyped command_args) -> ("AUTH ?" | untyped)
 
-          def self?.get_verb: (untyped command_args) -> (nil | untyped | ::String)
+          def self?.get_verb: (untyped command_args) -> (nil | untyped | String)
 
           def self?.auth_command?: (untyped command_args) -> (false | untyped)
           def self?.hello_auth_command?: (any command_args) -> bool

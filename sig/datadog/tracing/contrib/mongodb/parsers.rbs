@@ -2,9 +2,9 @@ module Datadog
   module Tracing
     module Contrib
       module MongoDB
-        EXCLUDE_KEYS: ::Array[:_id]
+        EXCLUDE_KEYS: Array[:_id]
 
-        SHOW_KEYS: ::Array[untyped]
+        SHOW_KEYS: Array[untyped]
 
         DEFAULT_OPTIONS: { exclude: untyped, show: untyped }
         PLACEHOLDER: "?"
