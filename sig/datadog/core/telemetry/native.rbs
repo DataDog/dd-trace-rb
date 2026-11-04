@@ -1,0 +1,38 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Native
+        # Defined by the C extension in +ext/libdatadog_api/telemetry.c+.
+        class Worker
+          def self._native_new: (
+            url: String,
+            timeout_milliseconds: Integer,
+            service_name: String,
+            language_name: String,
+            language_version: String,
+            tracer_version: String,
+            ?hostname: String?,
+            ?env: String?,
+            ?service_version: String?,
+            ?runtime_name: String?,
+            ?runtime_version: String?,
+            ?runtime_id: String?,
+            ?kernel_name: String?,
+            ?kernel_release: String?,
+            ?kernel_version: String?
+          ) -> Worker
+
+          def _start: () -> bool
+          def _stop: () -> bool
+          def _shutdown: (Integer timeout_milliseconds) -> bool
+          def _register_metric_context: (String name, Symbol metric_type, bool common, Symbol namespace) -> MetricContext
+          def _add_point: (MetricContext context, Numeric value, Array[Array[String]] tags_as_array) -> bool
+          def _add_log: (String identifier, String message, Symbol level, String? stack_trace) -> bool
+        end
+
+        class MetricContext
+        end
+      end
+    end
+  end
+end

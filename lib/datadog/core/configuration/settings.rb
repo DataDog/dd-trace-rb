@@ -918,6 +918,17 @@ module Datadog
             o.default true
           end
 
+          # Send telemetry metrics and logs through the native (Rust) telemetry worker instead of the
+          # Ruby telemetry worker. Lifecycle events are still sent by the Ruby worker.
+          # Agentless telemetry is not supported with the native worker.
+          # @default `DD_TELEMETRY_NATIVE_WORKER` environment variable, otherwise `false`.
+          # @return [Boolean]
+          option :native_worker do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_NATIVE_WORKER
+            o.default false
+          end
+
           # The interval in seconds when telemetry must be sent.
           #
           # This method is used internally, for testing purposes only.

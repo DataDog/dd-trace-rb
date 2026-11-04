@@ -1,0 +1,51 @@
+module Datadog
+  module Core
+    module Telemetry
+      class RubyBackend
+        @enabled: bool
+
+        @logger: Core::Logger
+
+        @stopped: bool
+
+        @metrics_manager: Datadog::Core::Telemetry::MetricsManager
+
+        @transport: Core::Telemetry::Transport::Telemetry::Transport
+
+        @worker: Datadog::Core::Telemetry::Worker
+
+        attr_reader metrics_manager: Datadog::Core::Telemetry::MetricsManager
+
+        attr_reader transport: Core::Telemetry::Transport::Telemetry::Transport
+
+        attr_reader worker: Datadog::Core::Telemetry::Worker
+
+        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool) -> void
+
+        def disable!: () -> void
+
+        def start: (Telemetry::Event::AppStarted initial_event) -> void
+
+        def enqueue: (Event::Base event) -> void
+
+        def add_log: (Event::Log event) -> void
+
+        def flush: (?timeout: Numeric?) -> bool?
+
+        def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def dec: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def gauge: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def rate: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def after_fork: () -> void
+
+        def shutdown!: () -> void
+      end
+    end
+  end
+end

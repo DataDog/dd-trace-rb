@@ -7,6 +7,7 @@
 #include "library_config.h"
 #include "otel_thread_context.h"
 #include "process_discovery.h"
+#include "telemetry.h"
 #include "trace_exporter.h"
 
 void ddsketch_init(VALUE core_module);
@@ -25,6 +26,7 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   library_config_init(core_module);
   ddsketch_init(core_module);
   feature_flags_init(core_module);
+  telemetry_init(core_module);
   #ifndef TRUFFLERUBY
     di_init(datadog_module);
   #endif
