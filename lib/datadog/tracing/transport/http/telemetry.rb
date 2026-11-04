@@ -24,7 +24,7 @@ module Datadog
             def initialize(reporter, traces)
               @reporter = reporter
               @remaining_chunks = traces.length
-              @remaining_spans = traces.sum(&:length)
+              @remaining_spans = traces.sum { |trace| trace.length }
               @reporter.record(spans_enqueued_for_serialization: @remaining_spans)
             end
 
