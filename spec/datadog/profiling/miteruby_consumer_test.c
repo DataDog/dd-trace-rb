@@ -2,6 +2,7 @@
 #include <string.h>
 
 static const char *failed_allocation_name;
+static void assert_consumer_storage_full(void);
 
 static void *test_allocator_alloc(size_t size, const char *name) {
   if (failed_allocation_name != NULL && strcmp(name, failed_allocation_name) == 0) return NULL;
@@ -29,6 +30,29 @@ typedef union {
 
 static miteruby_event_frame_position_t *positions_for(miteruby_event_stack_sample_t *event) {
   return (miteruby_event_frame_position_t *)&event->refs[event->header.frame_count];
+}
+
+static miteruby_location_id_t stack_location_id(miteruby_stack_t stack, uint16_t index) {
+  assert(index < stack.frame_count);
+  const uint8_t *cursor = stack.ids;
+  miteruby_location_id_t id = {0};
+  for (uint16_t i = 0; i <= index; i++) {
+    assert(miteruby_compressed_deltas_read(id.value, &id.value, &cursor, stack.end));
+  }
+  if (index + 1 == stack.frame_count) assert(cursor == stack.end);
+  return id;
+}
+
+static const uint8_t *fill_max_size_ids(miteruby_stack_t stack) {
+  uint8_t *cursor = stack.ids;
+  uint20_t previous = {0};
+  for (uint16_t i = 0; i < stack.frame_count; i++) {
+    uint20_t current = {.value = i % 2 == 0 ? UINT20_MAX : 0};
+    assert(miteruby_compressed_deltas_write(previous, current, &cursor, stack.end));
+    previous = current;
+  }
+  assert(cursor == stack.end);
+  return cursor;
 }
 
 static void assert_allocation_accounting(void) {
@@ -133,7 +157,7 @@ static void test_reset_failure(const char *allocation, const char *message) {
   miteruby_stack_t stack = miteruby_stack_dedup_get(queue[0].stack_id);
   assert(stack.frame_count == 1);
   miteruby_event_frame_position_t position;
-  miteruby_event_frame_refs_t refs = miteruby_hack_id_to_frame_refs(miteruby_hack_location_id_to_cme_seq_id(stack.ids[0], &position));
+  miteruby_event_frame_refs_t refs = miteruby_hack_id_to_frame_refs(miteruby_hack_location_id_to_cme_seq_id(stack_location_id(stack, 0), &position));
   assert(refs.cme == storage.event.refs[0].cme && refs.iseq == storage.event.refs[0].iseq);
   assert(position.value == positions_for(&storage.event)[0].value);
 
@@ -157,8 +181,14 @@ static miteruby_stack_dedup_id_t assert_dedup(const miteruby_event_stack_sample_
   if (inserted) {
     assert(result.ok.stack.ids != NULL);
     const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[event->header.frame_count];
-    for (uint16_t i = 0; i < event->header.frame_count; i++) result.ok.stack.ids[i].value.value = positions[i].value + i;
-    assert(miteruby_stack_dedup_commit(result.ok.id, stack_hash));
+    uint8_t *cursor = result.ok.stack.ids;
+    uint20_t previous = {0};
+    for (uint16_t i = 0; i < event->header.frame_count; i++) {
+      uint20_t current = {.value = positions[i].value + i};
+      assert(miteruby_compressed_deltas_write(previous, current, &cursor, result.ok.stack.end));
+      previous = current;
+    }
+    assert(miteruby_stack_dedup_commit(result.ok.id, stack_hash, cursor));
   } else {
     assert(result.ok.stack.ids == NULL);
   }
@@ -181,15 +211,22 @@ static void test_empty_stack_before_nonempty(void) {
   event->header.frame_count = 1;
   positions_for(event)[0].value = 7;
   assert(assert_dedup(event, true).offset == 4);
-  assert(stack_dedup_state.unique_stacks_pos == 12);
+  assert(stack_dedup_state.unique_stacks_pos == 9);
   miteruby_stack_t stored = miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 4});
   assert(stored.frame_count == 1);
-  assert(stored.ids[0].value.value == 7);
+  assert(stack_location_id(stored, 0).value.value == 7);
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
   assert(miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 0}).frame_count == 0);
   assert(assert_dedup(event, false).offset == 4);
-  assert(stack_dedup_state.unique_stacks_pos == 12);
+  assert(stack_dedup_state.unique_stacks_pos == 9);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
+  event->header.frame_count = 2;
+  positions_for(event)[0].value = 9;
+  positions_for(event)[1].value = 8;
+  assert(assert_dedup(event, true).offset == 9);
+  stored = miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 9});
+  assert(stack_location_id(stored, 0).value.value == 9 && stack_location_id(stored, 1).value.value == 9);
+  assert(stack_dedup_state.unique_stacks_pos == 15);
   assert(miteruby_stack_dedup_reset());
 }
 
@@ -206,9 +243,9 @@ static void test_stack_identity(void) {
   miteruby_stack_dedup_id_t first = assert_dedup(event, true);
   assert(first.offset == 0);
   size_t used = stack_dedup_state.unique_stacks_pos;
-  assert(used == 12);
+  assert(used == 8);
   size_t data_size = 2 * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
-  assert(miteruby_stack_dedup_get(first).ids[0].value.value == 12 && miteruby_stack_dedup_get(first).ids[1].value.value == UINT16_MAX + 1U);
+  assert(stack_location_id(miteruby_stack_dedup_get(first), 0).value.value == 12 && stack_location_id(miteruby_stack_dedup_get(first), 1).value.value == UINT16_MAX + 1U);
   sample_storage duplicate = storage;
   duplicate.event.header.timestamp.ns = 123;
   duplicate.event.header.cpu_time.ns = 456;
@@ -263,7 +300,7 @@ static void test_hash_collision_reuses_first_stack(void) {
   assert(result.ok.id.offset == first.offset);
   assert(stack_dedup_state.unique_stacks_pos == used);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 1);
-  assert(miteruby_stack_dedup_get(first).ids[0].value.value == 12);
+  assert(stack_location_id(miteruby_stack_dedup_get(first), 0).value.value == 12);
   assert(miteruby_stack_dedup_reset());
 }
 
@@ -278,11 +315,11 @@ static void test_fills_reserved_stack(void) {
   miteruby_stack_dedup_id_t stack_id = assert_dedup(event, true);
   miteruby_stack_t stored = miteruby_stack_dedup_get(stack_id);
   assert(stored.frame_count == 2);
-  assert(stored.ids[0].value.value == 19 && stored.ids[1].value.value == 28);
+  assert(stack_location_id(stored, 0).value.value == 19 && stack_location_id(stored, 1).value.value == 28);
 
   positions_for(event)[0].value++;
   event->refs[0].cme = NULL;
-  assert(stored.ids[0].value.value == 19);
+  assert(stack_location_id(stored, 0).value.value == 19);
   assert(assert_dedup(event, true).offset != stack_id.offset);
   positions_for(event)[0].value--;
   event->refs[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
@@ -298,7 +335,7 @@ static void test_map_growth_and_stable_storage(void) {
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
     ids[i] = assert_dedup(event, true);
-    assert(ids[i].offset % 4 == 0);
+    assert(miteruby_stack_dedup_get(ids[i]).end == array + stack_dedup_state.unique_stacks_pos);
   }
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert(stack_dedup_state.unique_stacks_array == array);
@@ -311,7 +348,7 @@ static void test_map_growth_and_stable_storage(void) {
     assert(assert_dedup(event, false).offset == ids[i].offset);
     miteruby_stack_t stored = miteruby_stack_dedup_get(ids[i]);
     assert(stored.frame_count == 3);
-    assert(stored.ids[0].value.value == i && stored.ids[1].value.value == 1 && stored.ids[2].value.value == 2);
+    assert(stack_location_id(stored, 0).value.value == i && stack_location_id(stored, 1).value.value == 1 && stack_location_id(stored, 2).value.value == 2);
   }
   assert(stack_dedup_state.unique_stacks_pos == used);
   miteruby_stack_dedup_id_t empty = assert_dedup(&(miteruby_event_stack_sample_t) {0}, false);
@@ -334,7 +371,7 @@ static void assert_failed_dedup(const miteruby_event_stack_sample_t *event) {
   if (!result.error_storage_full) {
     assert(result.ok.reserved);
     memset(result.ok.stack.ids, 0, event->header.frame_count * sizeof(*result.ok.stack.ids));
-    assert(!miteruby_stack_dedup_commit(result.ok.id, stack_hash));
+    assert(!miteruby_stack_dedup_commit(result.ok.id, stack_hash, result.ok.stack.ids + event->header.frame_count));
   }
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == count);
   assert(stack_dedup_state.unique_stacks_pos == pos);
@@ -382,7 +419,7 @@ static void test_dedup_errors(void) {
   assert(stack_id.offset == stacks_pos);
   miteruby_stack_t stack = miteruby_stack_dedup_get(stack_id);
   miteruby_event_frame_position_t position;
-  assert(miteruby_hack_location_id_to_cme_seq_id(stack.ids[0], &position).value.value == retained_id.value.value);
+  assert(miteruby_hack_location_id_to_cme_seq_id(stack_location_id(stack, 0), &position).value.value == retained_id.value.value);
   assert(position.value == 7);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 8);
   failed_allocation_name = "unique_stacks_map";
@@ -405,14 +442,14 @@ static void test_unique_stacks_map_capacity(void) {
     miteruby_stack_hash_t stack_hash = miteruby_stack_hash(event);
     miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_reserve(event->header.frame_count, stack_hash);
     assert(!result.error_storage_full && result.ok.reserved);
-    result.ok.stack.ids[0].value.value = 0;
-    if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash)) break;
+    result.ok.stack.ids[0] = 0;
+    if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash, result.ok.stack.ids + 1)) break;
     count++;
   }
   assert(count > 20000 && count < upper_bound);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == count);
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) <= UNIQUE_STACKS_MAP_MAX_SIZE);
-  assert(stack_dedup_state.unique_stacks_pos + 8 <= UNIQUE_STACKS_ARRAY_MAX_SIZE);
+  assert(stack_dedup_state.unique_stacks_pos + 7 <= UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert_failed_dedup(event);
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
   event->refs[0].iseq = (const rb_iseq_t *)(uintptr_t)1;
@@ -431,12 +468,15 @@ static void test_fixed_array_capacity(void) {
   miteruby_event_stack_sample_t *event = &full_storage.event;
   event->header.frame_count = MITERUBY_MAX_FRAMES;
   miteruby_event_frame_position_t *positions = positions_for(event);
-  assert(assert_dedup(event, true).offset == 0);
-  size_t compact_stack_size = 1604;
-  uint16_t position = 1;
+  size_t compact_stack_size = 1204;
+  uint16_t position = 0;
   while (UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos >= compact_stack_size) {
     positions[0].value = position++;
-    assert_dedup(event, true);
+    miteruby_stack_hash_t hash = miteruby_stack_hash(event);
+    miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_reserve(event->header.frame_count, hash);
+    assert(!result.error_storage_full && result.ok.reserved);
+    const uint8_t *end = fill_max_size_ids(result.ok.stack);
+    assert(miteruby_stack_dedup_commit(result.ok.id, hash, end));
   }
 
   positions[0].value = position;
@@ -445,15 +485,15 @@ static void test_fixed_array_capacity(void) {
   assert(remaining < compact_stack_size);
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == 16U * 1024U * 1024U);
   assert(stack_dedup_state.unique_stacks_array == array);
-  if (remaining > 0) {
+  if (remaining >= 4) {
     miteruby_stack_dedup_result_t last = miteruby_stack_dedup_get_or_reserve(
-      (uint16_t) ((remaining - 4) / 4), (miteruby_stack_hash_t) {.hash = UINT64_MAX}
+      (uint16_t) ((remaining - 4) / 3), (miteruby_stack_hash_t) {.hash = UINT64_MAX}
     );
     assert(!last.error_storage_full && last.ok.reserved);
-    memset(last.ok.stack.ids, 0, last.ok.stack.frame_count * sizeof(*last.ok.stack.ids));
-    assert(miteruby_stack_dedup_commit(last.ok.id, (miteruby_stack_hash_t) {.hash = UINT64_MAX}));
+    const uint8_t *end = fill_max_size_ids(last.ok.stack);
+    assert(miteruby_stack_dedup_commit(last.ok.id, (miteruby_stack_hash_t) {.hash = UINT64_MAX}, end));
   }
-  assert(stack_dedup_state.unique_stacks_pos == UNIQUE_STACKS_ARRAY_MAX_SIZE);
+  assert(UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos < 4);
   assert_failed_dedup(&(miteruby_event_stack_sample_t) {0});
   positions[0].value = 0;
   assert(assert_dedup(event, false).offset == 0);
@@ -469,6 +509,7 @@ static void test_fixed_array_capacity(void) {
   assert(verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == previous_threads_count);
   assert(verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map) == previous_cme_iseq_count);
   assert_allocation_accounting();
+  assert_consumer_storage_full();
 
   assert(miteruby_stack_dedup_reset());
   assert(assert_dedup(event, true).offset == 0);
@@ -616,7 +657,7 @@ static void test_cme_iseq_pair_identity(void) {
     assert_cme_iseq_id(pairs[i], i);
     assert_location_id(pairs[i], positions_for(event)[0], i);
     miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue[i].stack_id);
-    assert(stack.frame_count == 1 && stack.ids[0].value.value == i);
+    assert(stack.frame_count == 1 && stack_location_id(stack, 0).value.value == i);
   }
 
   positions_for(event)[0].value++;
@@ -626,7 +667,7 @@ static void test_cme_iseq_pair_identity(void) {
     assert(verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map) == count);
     assert_location_id(pairs[i], positions_for(event)[0], count + i);
     miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue[count + i].stack_id);
-    assert(stack.frame_count == 1 && stack.ids[0].value.value == count + i);
+    assert(stack.frame_count == 1 && stack_location_id(stack, 0).value.value == count + i);
   }
 
   assert(verstable_location_map_size(&consumer_state.location_map) == count * 2);
@@ -640,7 +681,7 @@ static void test_cme_iseq_pair_identity(void) {
   assert_location_id(event->refs[0], positions_for(event)[0], count * 2 - 1);
   miteruby_stack_t repeated = miteruby_stack_dedup_get(consumer_state.interned_events_queue[consumer_state.interned_events_count - 1].stack_id);
   assert(repeated.frame_count == 2);
-  assert(repeated.ids[0].value.value == count * 2 - 1 && repeated.ids[1].value.value == count * 2 - 1);
+  assert(stack_location_id(repeated, 0).value.value == count * 2 - 1 && stack_location_id(repeated, 1).value.value == count * 2 - 1);
   event->header.frame_count = 1;
 
   event->refs[0] = (miteruby_event_frame_refs_t) {0};
@@ -705,9 +746,9 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
   for (uint16_t i = 0; i < frame_count; i++) {
     assert_cme_iseq_id(event->refs[i], (fail_threads ? 0 : retained_objects) + i);
     miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue[1].stack_id);
-    assert(stack.ids[i].value.value == i);
+    assert(stack_location_id(stack, i).value.value == i);
     miteruby_event_frame_position_t position;
-    assert(miteruby_hack_location_id_to_cme_seq_id(stack.ids[i], &position).value.value == (fail_threads ? 0 : retained_objects) + i);
+    assert(miteruby_hack_location_id_to_cme_seq_id(stack_location_id(stack, i), &position).value.value == (fail_threads ? 0 : retained_objects) + i);
     assert(position.value == positions_for(event)[i].value);
   }
   assert_allocation_accounting();
@@ -763,9 +804,9 @@ static void test_mark_cme_iseq_capacity(void) {
   positions_for(&storage.event)[0].value = UINT16_MAX;
   assert(buffer_event(&storage.event.header) == MITERUBY_CONSUMER_OK);
   miteruby_stack_t stored = miteruby_stack_dedup_get(consumer_state.interned_events_queue[0].stack_id);
-  assert(stored.frame_count == 1 && stored.ids[0].value.value == 0);
+  assert(stored.frame_count == 1 && stack_location_id(stored, 0).value.value == 0);
   miteruby_event_frame_position_t position;
-  assert(miteruby_hack_location_id_to_cme_seq_id(stored.ids[0], &position).value.value == count - 1);
+  assert(miteruby_hack_location_id_to_cme_seq_id(stack_location_id(stored, 0), &position).value.value == count - 1);
   assert(position.value == UINT16_MAX);
 }
 
@@ -808,6 +849,20 @@ static miteruby_raw_events_queue_t invalid_raw_events_queue;
 static VALUE consume_invalid_raw_events_queue(DDTRACE_UNUSED VALUE unused) {
   miteruby_consumer_consume_loop(&invalid_raw_events_queue);
   return Qnil;
+}
+
+static void assert_consumer_storage_full(void) {
+  sample_storage storage = {0};
+  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
+  storage.event.header.size_bytes = sizeof(miteruby_event_stack_sample_t);
+  storage.event.thread.value = Qnil;
+  assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
+  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL));
+  assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby stack dedup storage is full");
+  sigset_t mask;
+  assert(pthread_sigmask(SIG_BLOCK, NULL, &mask) == 0);
+  assert(sigismember(&mask, SIGPROF) == 0);
+  miteruby_raw_events_queue_destroy(&invalid_raw_events_queue);
 }
 
 static void test_raw_events_queue_internal_error(void) {
@@ -984,6 +1039,39 @@ static void test_location_map_capacity(void) {
   miteruby_consumer_reset();
 }
 
+static void test_compressed_stack_storage(void) {
+  assert(miteruby_stack_dedup_reset());
+  uint20_t values[] = {{.value = 0}, {.value = 0}, {.value = UINT20_MAX}, {.value = 0}, {.value = 64}, {.value = 63}, {.value = 8192}};
+  const uint8_t expected[] = {0, 0, 0xfe, 0xff, 0x7f, 0xfd, 0xff, 0x7f, 0x80, 1, 1, 0x82, 0x7f};
+  miteruby_stack_hash_t hash = {.hash = 1};
+  miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_reserve(7, hash);
+  assert(!result.error_storage_full && result.ok.reserved);
+  assert(result.ok.stack.end - result.ok.stack.ids == 21);
+  uint8_t *cursor = result.ok.stack.ids;
+  uint20_t previous = {0};
+  for (size_t i = 0; i < 7; i++) {
+    assert(miteruby_compressed_deltas_write(previous, values[i], &cursor, result.ok.stack.end));
+    previous = values[i];
+  }
+  assert(miteruby_stack_dedup_commit(result.ok.id, hash, cursor));
+  miteruby_stack_t stored = miteruby_stack_dedup_get(result.ok.id);
+  assert((size_t) (stored.end - stored.ids) == sizeof(expected));
+  assert(memcmp(stored.ids, expected, sizeof(expected)) == 0);
+  assert(stack_dedup_state.unique_stacks_pos == 17);
+  for (uint16_t i = 0; i < 7; i++) assert(stack_location_id(stored, i).value.value == values[i].value);
+
+  hash.hash++;
+  result = miteruby_stack_dedup_get_or_reserve(1, hash);
+  assert(!result.error_storage_full && result.ok.reserved && result.ok.id.offset == 17);
+  cursor = result.ok.stack.ids;
+  assert(miteruby_compressed_deltas_write((uint20_t) {0}, (uint20_t) {.value = 1}, &cursor, result.ok.stack.end));
+  assert(miteruby_stack_dedup_commit(result.ok.id, hash, cursor));
+  assert(stack_location_id(miteruby_stack_dedup_get(result.ok.id), 0).value.value == 1);
+  assert(stack_dedup_state.unique_stacks_pos == 22);
+  assert(stack_location_id(stored, 6).value.value == 8192);
+  assert(miteruby_stack_dedup_reset());
+}
+
 int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
@@ -995,6 +1083,7 @@ int main(int argc, char **argv) {
   assert_allocation_accounting();
   test_invalid_frame();
   test_hash_collision_reuses_first_stack();
+  test_compressed_stack_storage();
   test_empty_stack_before_nonempty();
   test_stack_identity();
   test_fills_reserved_stack();
