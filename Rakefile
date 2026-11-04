@@ -43,6 +43,8 @@ CORE_WITH_LIBDATADOG_API = [
 # task keeps them in a separate process.
 NATIVE_TRANSPORT_SPECS = [
   "spec/datadog/tracing/transport/native/**/*_spec.rb",
+  # Forked, wire-level specs that need the compiled libdatadog_api extension:
+  "spec/datadog/core/telemetry/backend_parity_spec.rb",
 ].freeze
 
 DI_WITH_EXT = %w[
