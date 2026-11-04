@@ -2090,15 +2090,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect { described_class::Testing._native_miteruby_read_sample_headers }.to_not raise_error
       end
 
-      it "stops with an exception when dedup storage fills and still serializes collected samples" do
-        cleanup = Queue.new
-        allow(described_class).to receive(:_native_miteruby_consumer_consume_loop).and_wrap_original do |original|
-          consumer_threads << Thread.current
-          original.call
-        ensure
-          cleanup << described_class::Testing._native_is_sigprof_blocked_in_current_thread
-        end
-
+      it "compresses deep stacks and still serializes their locations" do
         consumer = start_miteruby_consumer_for_manual_samples
         sample = lambda do |depth|
           if depth.zero?
@@ -2108,21 +2100,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        16_384.times do
-          # Keep each eval's distinct ISEQ among the oldest frames retained by truncation.
+        initial_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_unique_stacks_array_used_size_bytes)
+        64.times do
           expect(eval("sample.call(350)", binding, __FILE__, __LINE__)).to be true
           described_class::Testing._native_miteruby_wake_reader
           loop_until { !consumer.alive? || described_class::Testing._native_miteruby_raw_events_queue_empty? }
-          break unless consumer.alive?
         end
 
+        expect(consumer).to be_alive
+        used_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_unique_stacks_array_used_size_bytes) - initial_bytes
+        expect(used_bytes).to be < 64 * 350 * 2
+        consumer.kill
         expect(consumer.join(5)).to equal(consumer)
-        error = cpu_and_wall_time_worker.send(:failure_exception)
-        expect(error).to be_a(RuntimeError)
-        expect(error.message).to eq("Miteruby stack dedup storage is full")
-        expect(cleanup.pop).to be false
         GC.start
-        expect(cpu_and_wall_time_worker.prepare_serialize.serialize!).to_not be_nil
+        samples = samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)
+        expect(samples.map { |recorded_sample| recorded_sample.locations.length }.max).to be >= 350
       end
 
       it "stops with an exception when the interned events queue fills and still serializes collected samples" do
