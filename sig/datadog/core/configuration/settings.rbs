@@ -11,17 +11,17 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def poll_interval_seconds: () -> ::Float
+          def poll_interval_seconds: () -> Float
 
-          def poll_interval_seconds=: (::Float) -> void
+          def poll_interval_seconds=: (Float) -> void
 
-          def boot_timeout_seconds: () -> ::Float
+          def boot_timeout_seconds: () -> Float
 
-          def boot_timeout_seconds=: (::Float) -> void
+          def boot_timeout_seconds=: (Float) -> void
 
-          def service: () -> ::String?
+          def service: () -> String?
 
-          def service=: (::String) -> void
+          def service=: (String) -> void
         end
 
         interface _ErrorTracking
@@ -35,35 +35,35 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def instrument: (::Symbol) -> void
+          def instrument: (Symbol) -> void
 
-          def trace_rate_limit: () -> ::Integer
+          def trace_rate_limit: () -> Integer
 
-          def trace_rate_limit=: (::Integer) -> void
+          def trace_rate_limit=: (Integer) -> void
 
-          def obfuscator_key_regex: () -> ::String
+          def obfuscator_key_regex: () -> String
 
-          def obfuscator_key_regex=: (::String) -> void
+          def obfuscator_key_regex=: (String) -> void
 
-          def obfuscator_value_regex: () -> ::String
+          def obfuscator_value_regex: () -> String
 
-          def obfuscator_value_regex=: (::String) -> void
+          def obfuscator_value_regex=: (String) -> void
 
           def waf_debug: () -> bool
 
           def waf_debug=: (bool) -> void
 
-          def ruleset: () -> (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped])
+          def ruleset: () -> (String | Symbol |  File | StringIO | Hash[untyped, untyped])
 
-          def ruleset=: (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
+          def ruleset=: (String | Symbol |  File | StringIO | Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
 
-          def ip_passlist: () -> ::Array[::String]
+          def ip_passlist: () -> Array[String]
 
-          def ip_denylist: () -> ::Array[::String]
+          def ip_denylist: () -> Array[String]
 
-          def user_id_denylist: () -> ::Array[::String]
+          def user_id_denylist: () -> Array[String]
 
           include Options::_InstanceMethods
 
@@ -157,25 +157,25 @@ module Datadog
 
           def redaction_enabled=: (bool) -> void
 
-          def instrument: (::Symbol) -> void
+          def instrument: (Symbol) -> void
 
-          def endpoint: () -> ::String
+          def endpoint: () -> String
 
-          def endpoint=: (::String) -> void
+          def endpoint=: (String) -> void
 
-          def app_key: () -> ::String
+          def app_key: () -> String
 
-          def app_key=: (::String) -> void
+          def app_key=: (String) -> void
 
-          def timeout_ms: () -> ::Integer
+          def timeout_ms: () -> Integer
 
           def timeout_ms=: () -> void
 
-          def max_content_size_bytes: () -> ::Integer
+          def max_content_size_bytes: () -> Integer
 
-          def max_content_size_bytes=: (::Integer) -> void
+          def max_content_size_bytes=: (Integer) -> void
 
-          def max_messages_length: () -> ::Integer
+          def max_messages_length: () -> Integer
 
           def max_messages_length=: () -> void
         end
@@ -261,17 +261,17 @@ module Datadog
 
           def send: (Symbol) -> String
 
-          def html=: (::String) -> void
+          def html=: (String) -> void
 
-          def html: () -> ::String
+          def html: () -> String
 
-          def json=: (::String) -> void
+          def json=: (String) -> void
 
-          def json: () -> ::String
+          def json: () -> String
 
-          def text=: (::String) -> void
+          def text=: (String) -> void
 
-          def text: () -> ::String
+          def text: () -> String
         end
 
         interface _Diagnostics

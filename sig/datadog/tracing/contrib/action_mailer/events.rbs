@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module ActionMailer
         module Events
-          ALL: ::Array[untyped]
+          ALL: Array[untyped]
 
           def self?.all: () -> untyped
 

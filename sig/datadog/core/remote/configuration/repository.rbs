@@ -17,7 +17,7 @@ module Datadog
 
           def initialize: () -> void
 
-          def paths: () -> ::Array[Path]
+          def paths: () -> Array[Path]
 
           def []: (Configuration::Path path) -> Content?
 
@@ -135,7 +135,7 @@ module Datadog
 
               def initialize: (untyped path, Configuration::Content previous) -> void
 
-              def type: () -> ::Symbol
+              def type: () -> Symbol
             end
 
             class Inserted
@@ -145,7 +145,7 @@ module Datadog
 
               def initialize: (Configuration::Path path, Configuration::Content content) -> void
 
-              def type: () -> ::Symbol
+              def type: () -> Symbol
             end
 
             class Updated
@@ -157,7 +157,7 @@ module Datadog
 
               def initialize: (Configuration::Path path, Configuration::Content content, Configuration::Content previous) -> void
 
-              def type: () -> ::Symbol
+              def type: () -> Symbol
             end
           end
         end

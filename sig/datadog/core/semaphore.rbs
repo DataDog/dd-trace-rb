@@ -1,9 +1,9 @@
 module Datadog
   module Core
     class Semaphore
-      @wake_lock: ::Mutex
+      @wake_lock: Mutex
 
-      @wake: ::ConditionVariable
+      @wake: ConditionVariable
 
       def initialize: () -> void
 
@@ -13,9 +13,9 @@ module Datadog
 
       private
 
-      attr_reader wake_lock: ::Mutex
+      attr_reader wake_lock: Mutex
 
-      attr_reader wake: ::ConditionVariable
+      attr_reader wake: ConditionVariable
     end
   end
 end

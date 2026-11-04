@@ -6,7 +6,7 @@ module Datadog
           include Contrib::Patcher
 
           # Returns Integration.version which can be nil
-          def self?.target_version: () -> ::Gem::Version?
+          def self?.target_version: () -> Gem::Version?
 
           def self?.patch: () -> void
 

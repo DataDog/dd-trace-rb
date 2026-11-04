@@ -3,7 +3,7 @@ module Datadog
     module Configuration
       class OptionDefinition
         type settings_context = Options::_Settings
-        type settings_execution_context = settings_context & ::Object
+        type settings_execution_context = settings_context & Object
         type option_type = Object?
         type generic_proc = (^(?) [self: settings_execution_context] -> any)
         type default_value = any

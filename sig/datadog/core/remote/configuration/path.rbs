@@ -7,27 +7,27 @@ module Datadog
           class ParseError < StandardError
           end
 
-          RE: ::Regexp
+          RE: Regexp
 
-          def self.parse: (::String path) -> Path
+          def self.parse: (String path) -> Path
 
-          attr_reader source: ::String
+          attr_reader source: String
 
-          attr_reader org_id: ::Integer?
+          attr_reader org_id: Integer?
 
-          attr_reader product: ::String
+          attr_reader product: String
 
-          attr_reader config_id: ::String
+          attr_reader config_id: String
 
-          attr_reader name: ::String
+          attr_reader name: String
 
-          def initialize: (source: ::String, product: ::String, config_id: ::String, name: ::String, ?org_id: ::Integer?) -> void
+          def initialize: (source: String, product: String, config_id: String, name: String, ?org_id: Integer?) -> void
 
-          def to_s: () -> ::String
+          def to_s: () -> String
 
           def ==: (Path other) -> bool
 
-          def hash: () -> ::Integer
+          def hash: () -> Integer
 
           def eql?: (Path other) -> bool
         end

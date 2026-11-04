@@ -1,7 +1,7 @@
 module Datadog
   module Core
     class Logger < ::Logger
-      PREFIX: ::String
+      PREFIX: String
 
       def initialize: (*untyped args) ?{ () -> untyped } -> void
 

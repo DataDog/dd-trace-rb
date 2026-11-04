@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Utils
       module Duration
-        def self.call: (String value, ?base: ::Symbol) -> Numeric
+        def self.call: (String value, ?base: Symbol) -> Numeric
       end
     end
   end

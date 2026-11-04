@@ -32,8 +32,8 @@ module Datadog
           @propagation_styles = propagation_styles
           @propagation_behavior_extract = propagation_behavior_extract
           @propagation_extract_first = propagation_extract_first
-          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
-          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
+          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }.compact
+          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }.compact
 
           # The baggage propagator is unique in that baggage should always be extracted, if present.
           # Therefore we remove it from the `propagation_style_extract` list.

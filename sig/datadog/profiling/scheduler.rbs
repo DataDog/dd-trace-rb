@@ -3,6 +3,10 @@ module Datadog
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
+      include Core::Workers::IntervalLoop
+
+      include Core::Workers::Async::Thread
+
       MINIMUM_INTERVAL_SECONDS: Integer
 
       DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS: Integer
@@ -18,7 +22,7 @@ module Datadog
       def initialize: (
         exporter: Datadog::Profiling::Exporter exporter,
         transport: Datadog::Profiling::HttpTransport transport,
-        interval: Numeric interval,
+        interval: (Integer | Float) interval,
         ?fork_policy: untyped fork_policy,
         ?enabled: bool enabled,
       ) -> void
