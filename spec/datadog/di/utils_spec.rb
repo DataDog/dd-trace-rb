@@ -109,4 +109,27 @@ RSpec.describe Datadog::DI::Utils do
       end
     end
   end
+
+  describe ".normalize_type_name" do
+    subject(:normalize_type_name) { described_class.normalize_type_name(type_name) }
+
+    [
+      ["bare name", "Foo::Bar", "Foo::Bar"],
+      ["leading ::", "::Foo::Bar", "Foo::Bar"],
+      ["leading Object::", "Object::Foo", "Foo"],
+      ["leading :: followed by repeated Object::", "::Object::Object::Foo", "Foo"],
+      ["Object itself", "Object", "Object"],
+      ["Object itself with leading ::", "::Object", "Object"],
+      ["Object:: after the first segment", "Foo::Object::Bar", "Foo::Object::Bar"],
+      ["first segment that starts with Object", "ObjectSpace::WeakMap", "ObjectSpace::WeakMap"],
+    ].each do |name, type_name_, result_|
+      context name do
+        let(:type_name) { type_name_ }
+
+        it "is #{result_}" do
+          is_expected.to eq result_
+        end
+      end
+    end
+  end
 end
