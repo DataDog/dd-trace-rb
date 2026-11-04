@@ -23,6 +23,7 @@ RSpec.describe "gem release process" do
            |\.rubocop_todo.yml
            |\.semgrepignore
            |\.simplecov
+           |\.simple-english.yml
            |\.vale\.ini
            |\.yardopts
            |\.yamllint.yml
