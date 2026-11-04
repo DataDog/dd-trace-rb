@@ -1,32 +1,28 @@
 name: Add milestone to merged pull requests
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] reads merged version data without evaluating Ruby
     types: [closed]
+
+permissions: {}
 
 jobs:
   add_milestone:
     permissions:
       contents: read
       id-token: write
-      issues: write
-      pull-requests: write
     runs-on: ubuntu-24.04
     if: github.event.pull_request.merged == true && github.event.pull_request.milestone == null
     steps:
       - name: Checkout code
-        # Checks out the branch that the pull request is merged into
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.base.ref }}
-
-      - name: Get major version from gemspec
-        # Parse the gemspec and return the major version
-        id: version
-        run: |
-          VERSION=$(ruby -e "puts Gem::Specification.load(Dir.glob('*.gemspec').first).version.to_s.split('.').first")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ref: ${{ github.workflow_sha }}
+      - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
+        with:
+          ruby-version: "4.0.1"
+          bundler: none
 
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
@@ -35,34 +31,8 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.add-milestone-to-pull-requests
 
-      - name: Get project milestones
-        id: milestones
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          github-token: ${{ steps.generate-token.outputs.token }}
-          script: |
-            const milestones = await github.rest.issues.listMilestones({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open'
-            })
-            return milestones.data
-
       - name: Update Pull Request
-        # Update the merged pull request with the milestone starts with the major version
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          github-token: ${{ steps.generate-token.outputs.token }}
-          script: |
-            const milestones = ${{steps.milestones.outputs.result}}
-            const majorVersion = ${{steps.version.outputs.version}}
-            const milestone = milestones.find(m => m.title.startsWith(majorVersion))
-
-            if (milestone) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: ${{ github.event.pull_request.number }},
-                milestone: milestone.number
-              })
-            }
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: ruby .github/scripts/ci/milestone.rb "$GITHUB_REPOSITORY" "$PR_NUMBER"

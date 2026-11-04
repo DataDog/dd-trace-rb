@@ -19,6 +19,12 @@ ignore:
       # RBS support in https://github.com/standardrb/standard/pull/709) is merged and released.
       - Layout/LeadingCommentSpace
 
+  - ".github/**/*.rb":
+      - Style/TrailingCommaInArguments
+      - Style/TrailingCommaInArrayLiteral
+      - Style/TrailingCommaInHashLiteral
+      - Layout/LeadingCommentSpace
+
   # This disables standardrb for third-party and generated code.
   - appraisal/**/**
   - gemfiles/**/**

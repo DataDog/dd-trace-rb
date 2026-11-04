@@ -50,8 +50,12 @@ jobs:
 
   complete:
     name: CodeQL (complete)
+    if: always()
     runs-on: ubuntu-24.04
     needs:
       - analyze
     steps:
-      - run: echo "DONE!"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS" | jq -e 'length > 0 and all(.[]; .result == "success")'

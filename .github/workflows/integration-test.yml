@@ -97,9 +97,13 @@ jobs:
 
   complete:
     name: Integration Apps (complete)
+    if: always()
     needs:
       - rails
       - other-apps
     runs-on: ubuntu-24.04
     steps:
-      - run: echo "Done"
+      - name: Check required jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS" | jq -e 'length > 0 and all(.[]; .result == "success")'

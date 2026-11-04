@@ -1,43 +1,20 @@
-name: Comment typing stats on PR
+name: Typing statistics
 
 on: # yamllint disable-line rule:truthy
   pull_request:
 
-# TODO:
-# Upload the report somewhere not limited by the 64k char limit (maybe FPD ?) to be able to include links to the files
-# Create a Datadog dashboard to track the progress on a larger timescale
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compute-stats:
     permissions:
-      id-token: write
-      pull-requests: write
+      contents: read
     runs-on: ubuntu-24.04
     steps:
-      - name: Get GitHub Token via dd-octo-sts
-        id: generate-token
-        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
-        with:
-          scope: DataDog/dd-trace-rb
-          policy: self.typing-stats
-
-      - name: Find existing comment
-        id: comment
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          github-token: ${{ steps.generate-token.outputs.token }}
-          script: |
-            const options = github.rest.issues.listComments.endpoint.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-            });
-            const comments = await github.paginate(options)
-            const comment = comments.find((cmnt) => {
-              return cmnt.body.startsWith("<!-- TYPING_STATS_HIDDEN_MARKER -->")
-            })
-
-            return undefined === comment ? null : comment.id
-
       - name: Checkout current branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,6 +24,7 @@ jobs:
         uses: ruby/setup-ruby@824c0e29fdfc7d689c191c27acc969d2d04b7dd8 # v1.331.0
         with:
           ruby-version: "4.0"
+          bundler: none
 
       - name: Install steep
         # zizmor: ignore[adhoc-packages] pinned tool install for computing typing stats, not an app dependency
@@ -54,16 +32,16 @@ jobs:
 
       - name: Copy scripts to directory outside of workspace
         run: |
-          cp .github/scripts/typing_stats_compute.rb ${{ runner.temp }}/typing_stats_compute.rb
-          cp .github/scripts/typing_stats_compare.rb ${{ runner.temp }}/typing_stats_compare.rb
+          cp .github/scripts/typing_stats_compute.rb "$RUNNER_TEMP/typing_stats_compute.rb"
+          cp .github/scripts/typing_stats_compare.rb "$RUNNER_TEMP/typing_stats_compare.rb"
 
       - name: Run typing stats on current branch
         id: typing-stats-current
         env:
           STEEPFILE_PATH: ${{ github.workspace }}/Steepfile
         run: |
-          mkdir -p "${{ github.workspace }}/tmp"
-          ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
+          mkdir -p "$GITHUB_WORKSPACE/tmp"
+          ruby "$RUNNER_TEMP/typing_stats_compute.rb" > "$RUNNER_TEMP/typing-stats-current.json"
 
       - name: Checkout base commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,42 +53,26 @@ jobs:
         id: typing-stats-base
         env:
           STEEPFILE_PATH: ${{ github.workspace }}/Steepfile
-        run: ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-base.json"
+        run: ruby "$RUNNER_TEMP/typing_stats_compute.rb" > "$RUNNER_TEMP/typing-stats-base.json"
 
       - name: Run typing stats compare
         id: typing-stats-compare
         env:
           CURRENT_STATS_PATH: ${{ runner.temp }}/typing-stats-current.json
           BASE_STATS_PATH: ${{ runner.temp }}/typing-stats-base.json
-        run: ruby ${{ runner.temp }}/typing_stats_compare.rb >> "${{ runner.temp }}/typing-stats-compare.md"
+        run: |
+          ruby "$RUNNER_TEMP/typing_stats_compare.rb" > "$RUNNER_TEMP/typing-stats-compare.md"
+          if [ -s "$RUNNER_TEMP/typing-stats-compare.md" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/typing-stats-compare.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No typing changes compared with the base branch." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-      - name: Write comment
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - name: Upload typing comparison
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          github-token: ${{ steps.generate-token.outputs.token }}
-          script: |
-            var fs = require('fs')
-
-            const previousCommentId = ${{steps.comment.outputs.result}}
-            const commentContent = fs.readFileSync("${{ runner.temp }}/typing-stats-compare.md", "utf8")
-            const commentBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
-            ## Typing analysis
-            ${commentContent}
-            `
-            const thankYouBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
-            ## Typing analysis
-            *This PR does not change typing compared to the base branch.*
-            `
-
-            const options = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: commentContent !== "" ? commentBody : thankYouBody
-            }
-
-            if (null === previousCommentId && commentContent !== "") {
-              await github.rest.issues.createComment(options)
-            } else if (previousCommentId) {
-              await github.rest.issues.updateComment({...options, comment_id: previousCommentId})
-            }
+          name: typing-stats-${{ github.run_attempt }}-${{ steps.typing-stats-compare.outputs.changed == 'true' && 'changed' || 'unchanged' }}
+          path: ${{ runner.temp }}/typing-stats-compare.md
+          if-no-files-found: error
