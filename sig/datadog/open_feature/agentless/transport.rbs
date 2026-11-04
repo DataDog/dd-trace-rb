@@ -23,6 +23,8 @@ module Datadog
 
         private
 
+        def request_uri: () -> String
+
         def apply_custom_authentication: (Net::HTTP::Get request) -> void
 
         def flag_selection_ignored: (Net::HTTPResponse response, Integer status) -> String?
