@@ -20,6 +20,8 @@ module Datadog
 
       private
 
+      def build_dependency_resolution_details: (Core::FeatureFlags::ResolutionDetails result) -> ResolutionDetails
+
       def build_resolution_details: (
         Core::FeatureFlags::ResolutionDetails result,
         untyped default_value

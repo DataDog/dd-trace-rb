@@ -1150,4 +1150,19 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
     allow(evp_hook).to receive(:capture).and_raise(StandardError)
     expect { record }.not_to raise_error
   end
+
+  ["EVP", "metrics"].each do |sink|
+    it "continues other observations after a prerequisite #{sink} capture fails" do
+      result.dependency_evaluations << ["other-parent", dependency, true]
+      failing_hook = (sink == "EVP") ? evp_hook : metrics_hook
+      allow(failing_hook).to receive(:capture).with("parent", any_args).and_raise(StandardError)
+
+      record
+
+      expect(evp_hook).to have_received(:capture).with("parent", nil, kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(metrics_hook).to have_received(:capture).with("parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(evp_hook).to have_received(:capture).with("other-parent", nil, kind_of(OpenFeature::SDK::EvaluationDetails))
+      expect(metrics_hook).to have_received(:capture).with("other-parent", kind_of(OpenFeature::SDK::EvaluationDetails))
+    end
+  end
 end

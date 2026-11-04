@@ -133,6 +133,8 @@ module Datadog
         Integer eval_time_ms
       ) -> void
 
+      def capture_dependency_telemetry: () { () -> void } -> void
+
       def fetch_engine_value: (
         EvaluationEngine engine,
         ::String flag_key,

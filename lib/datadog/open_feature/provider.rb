@@ -482,12 +482,23 @@ module Datadog
             details = sdk_error_details(dependency.value, dependency.error_code, dependency.error_message, dependency.reason, metadata)
           end
           evaluation_details = ::OpenFeature::SDK::EvaluationDetails.new(flag_key: key, resolution_details: details)
-          component.flag_eval_evp_hook&.capture(key, evaluation_context, evaluation_details)
-          component.flag_eval_metrics_hook&.capture(key, evaluation_details)
+          capture_dependency_telemetry do
+            component.flag_eval_evp_hook&.capture(key, evaluation_context, evaluation_details)
+          end
+          capture_dependency_telemetry do
+            component.flag_eval_metrics_hook&.capture(key, evaluation_details)
+          end
         end
       # Best-effort prerequisite telemetry must not replace the root's result.
       rescue => e
         Datadog.logger.debug { "OpenFeature: prerequisite telemetry failed: #{e.class}" }
+      end
+
+      def capture_dependency_telemetry
+        yield
+      # A failed sink must not suppress other prerequisite observations.
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: prerequisite telemetry capture failed: #{e.class}" }
       end
 
       def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
