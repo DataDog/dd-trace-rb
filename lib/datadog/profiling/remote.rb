@@ -36,6 +36,10 @@ module Datadog
         "rubySignalWorkaround" => BOOLEAN,
       }.freeze
 
+      # How long the remote-config worker thread waits for the profiler to start. It normally starts within
+      # milliseconds, and failing to start ends the wait right away.
+      START_TIMEOUT_SECONDS = 1
+
       # Diagnostic scope label per target specificity.
       SCOPE_LABELS = {
         4 => "service+env",
@@ -118,12 +122,19 @@ module Datadog
           [content, problems, config]
         end
 
-        # The profiler builder logs failures instead of raising them, so this checks that it built one.
+        # The profiler builder logs failures instead of raising them, so this checks that it built one. The
+        # worker starts on its own thread, so it can also fail later, e.g. when another gem uses SIGPROF.
         def profiler_error(settings)
           return unless settings.profiling.enabled
 
           components = Datadog.send(:components, allow_initialization: false)
-          return if components&.profiler
+          profiler = components&.profiler
+          if profiler
+            start_failure = profiler.start_failure(timeout_seconds: START_TIMEOUT_SECONDS)
+            return "Profiling failed to start: #{start_failure.class}: #{start_failure.message}" if start_failure
+
+            return
+          end
 
           unsupported_reason = profiling_unsupported_reason
           build_error = components&.profiler_build_error

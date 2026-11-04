@@ -123,6 +123,25 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
     )
   end
 
+  context "when another gem uses SIGPROF" do
+    before { Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_install_testing_signal_handler }
+    after { Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_remove_testing_signal_handler }
+
+    it "reports why the profiler failed to start in the next request" do
+      deliver(profilers: {cpuTime: true, wallTime: true}, settings: {rubySignalWorkaround: false}, targets: [target])
+      sync_remote_config
+      sync_remote_config
+
+      expect(last_config_request.dig("client", "state", "config_states")).to contain_exactly(
+        include(
+          "id" => "preset-default",
+          "apply_state" => Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR,
+          "apply_error" => start_with("Profiling failed to start: Datadog::Profiling::ExistingSignalHandler: "),
+        ),
+      )
+    end
+  end
+
   it "reports why the profiler failed to initialize in the next request" do
     Datadog.configuration.profiling.advanced.experimental_heap_sample_rate = 0
 

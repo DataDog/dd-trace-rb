@@ -108,6 +108,7 @@ module Datadog
               Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
             rescue Profiling::ExistingSignalHandler => e
               @failure_exception = e
+              signal_running
               Datadog.logger.warn(
                 "Profiling was not started as another profiler or gem is already using the SIGPROF signal. " \
                 "Please disable the other profiler to use Datadog profiling.",
@@ -115,6 +116,7 @@ module Datadog
               on_failure_proc&.call(log_failure: false)
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
+              signal_running
               operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
@@ -191,8 +193,22 @@ module Datadog
           end
         end
 
+        # Waits until the worker runs or fails to start, and returns its failure. Unlike wait_until_running,
+        # this doesn't raise, including when the worker doesn't start on time.
+        # @rbs timeout_seconds: Integer
+        # @rbs return: Exception?
+        def start_failure(timeout_seconds:)
+          @wait_until_running_mutex.synchronize do
+            unless failure_exception || self.class._native_is_running?(self)
+              @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
+            end
+            failure_exception
+          end
+        end
+
         private
 
+        # Also called when the worker fails, to wake up start_failure.
         #: () -> void
         def signal_running
           @wait_until_running_mutex.synchronize { @wait_until_running_condition.broadcast }

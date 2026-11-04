@@ -1900,6 +1900,47 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "#start_failure" do
+    after { cpu_and_wall_time_worker.stop }
+
+    context "when the worker starts" do
+      it "returns nil" do
+        cpu_and_wall_time_worker.start
+
+        expect(cpu_and_wall_time_worker.start_failure(timeout_seconds: 30)).to be_nil
+      end
+    end
+
+    context "when the worker fails to start" do
+      before do
+        described_class::Testing._native_install_testing_signal_handler
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      after do
+        described_class::Testing._native_remove_testing_signal_handler
+      end
+
+      it "stops waiting and returns the failure" do
+        waiter = Thread.new { cpu_and_wall_time_worker.start_failure(timeout_seconds: 60) }
+        try_wait_until(backoff: 0.01) { waiter.status == "sleep" }
+
+        cpu_and_wall_time_worker.start
+
+        expect(waiter.join(10)&.value).to be_a(Datadog::Profiling::ExistingSignalHandler)
+      ensure
+        waiter&.kill
+        waiter&.join
+      end
+    end
+
+    context "when the worker doesn't start on time" do
+      it "returns nil" do
+        expect(cpu_and_wall_time_worker.start_failure(timeout_seconds: 0)).to be_nil
+      end
+    end
+  end
+
   describe "._native_hold_signals and _native_resume_signals" do
     it "blocks/unblocks interruptions for the current thread" do
       expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false

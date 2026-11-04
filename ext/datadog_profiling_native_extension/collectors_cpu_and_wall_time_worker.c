@@ -1002,8 +1002,6 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   return Qnil;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
-// It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 

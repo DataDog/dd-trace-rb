@@ -42,6 +42,15 @@ RSpec.describe Datadog::Profiling::Profiler do
     end
   end
 
+  describe "#start_failure" do
+    it "returns the worker's start failure" do
+      error = RuntimeError.new("test error")
+      expect(worker).to receive(:start_failure).with(timeout_seconds: 3).and_return(error)
+
+      expect(profiler.start_failure(timeout_seconds: 3)).to be(error)
+    end
+  end
+
   describe "#shutdown!" do
     subject(:shutdown!) { profiler.shutdown!(report_last_profile: report_last_profile) }
 

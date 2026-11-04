@@ -6,7 +6,7 @@ RSpec.describe Datadog::Profiling::Remote do
   let(:remote) { described_class }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, client_configuration_change!: nil, report: nil) }
-  let(:profiler) { instance_double(Datadog::Profiling::Profiler) }
+  let(:profiler) { instance_double(Datadog::Profiling::Profiler, start_failure: nil) }
   let(:profiler_build_error) { nil }
   let(:components) do
     instance_double(
@@ -666,6 +666,21 @@ RSpec.describe Datadog::Profiling::Remote do
         apply_configs
 
         expect(contents.first.apply_error).to eq("Profiling is not supported: test reason")
+      end
+    end
+
+    context "when the profiler fails to start" do
+      let(:contents) { [profiling_content("preset-default", profilers: default_preset)] }
+
+      it "reports the config as errored with the failure, instead of applied" do
+        expect(profiler).to receive(:start_failure).with(timeout_seconds: described_class::START_TIMEOUT_SECONDS)
+          .and_return(Datadog::Profiling::ExistingSignalHandler.new("test failure"))
+
+        apply_configs
+
+        expect(contents.first.apply_state).to eq(apply_state::ERROR)
+        expect(contents.first.apply_error)
+          .to eq("Profiling failed to start: Datadog::Profiling::ExistingSignalHandler: test failure")
       end
     end
 

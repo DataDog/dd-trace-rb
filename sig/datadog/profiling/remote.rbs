@@ -30,6 +30,8 @@ module Datadog
 
       SETTING_FIELDS: Hash[String, validator]
 
+      START_TIMEOUT_SECONDS: Integer
+
       SCOPE_LABELS: Hash[Integer, String]
 
       def self.products: () -> Array[String]
