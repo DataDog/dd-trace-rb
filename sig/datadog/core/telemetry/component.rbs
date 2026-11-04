@@ -6,18 +6,22 @@ module Datadog
 
         @enabled: bool
         @log_collection_enabled: bool
-        @stopped: bool
-        @metrics_manager: Datadog::Core::Telemetry::MetricsManager
-        @worker: Datadog::Core::Telemetry::Worker
+        @backend: Datadog::Core::Telemetry::RubyBackend
         @logger: Core::Logger
+        @settings: untyped
+        @agent_settings: Datadog::Core::Configuration::AgentSettings
 
         attr_reader enabled: bool
         attr_reader logger: Core::Logger
-        attr_reader transport: Core::Telemetry::Transport::Telemetry::Transport
-        attr_reader worker: Datadog::Core::Telemetry::Worker
+        attr_reader settings: untyped
         attr_reader agent_settings: Datadog::Core::Configuration::AgentSettings
+        attr_reader backend: Datadog::Core::Telemetry::RubyBackend
 
-        attr_reader metrics_manager: Datadog::Core::Telemetry::MetricsManager
+        def transport: -> Core::Telemetry::Transport::Telemetry::Transport
+
+        def worker: -> Datadog::Core::Telemetry::Worker
+
+        def metrics_manager: -> Datadog::Core::Telemetry::MetricsManager
 
         include Core::Telemetry::Logging
         include Core::Telemetry::_Logging
