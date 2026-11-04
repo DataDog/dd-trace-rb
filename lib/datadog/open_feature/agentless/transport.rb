@@ -23,7 +23,7 @@ module Datadog
         end
 
         def get(etag)
-          request = Net::HTTP::Get.new(@endpoint.uri.request_uri, headers(etag))
+          request = Net::HTTP::Get.new(request_uri, headers(etag))
           apply_custom_authentication(request)
           response = request(request)
           status = response.code.to_i
@@ -41,6 +41,17 @@ module Datadog
         end
 
         private
+
+        def request_uri
+          uri = @endpoint.uri.dup
+          if EvaluatorCapabilities.supported.include?(EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1)
+            query = URI.decode_www_form(uri.query.to_s)
+            query.reject! { |name, _value| name == "dependent-flags-variant-key" }
+            query << ["dependent-flags-variant-key", "v1"]
+            uri.query = URI.encode_www_form(query)
+          end
+          uri.request_uri
+        end
 
         def apply_custom_authentication(request)
           return if @endpoint.managed?
@@ -64,9 +75,6 @@ module Datadog
           }
           api_key = @api_key
           headers[Core::Transport::Ext::HTTP::HEADER_DD_API_KEY] = api_key if api_key
-          if EvaluatorCapabilities.supported.include?(EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1)
-            headers["X-DD-FEATURE-FLAGS-CAPABILITIES"] = EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1
-          end
           headers["If-None-Match"] = etag if etag
           headers
         end
