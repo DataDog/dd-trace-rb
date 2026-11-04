@@ -1,2 +1,3 @@
-disabled-rules:
-  - SE_MODAL_RESTRICTED
+rule-ignores:
+  SE_MODAL_RESTRICTED:
+    - .agents/skills/**
