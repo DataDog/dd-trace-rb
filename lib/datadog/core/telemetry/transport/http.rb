@@ -20,11 +20,9 @@ module Datadog
             Core::Encoding::JSONEncoder,
           )
 
-          module_function
-
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def agentless_telemetry(
+          def self.agentless_telemetry(
             agent_settings:,
             logger:,
             api_key: nil,
@@ -45,7 +43,7 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def agent_telemetry(
+          def self.agent_telemetry(
             agent_settings:,
             logger:,
             headers: nil

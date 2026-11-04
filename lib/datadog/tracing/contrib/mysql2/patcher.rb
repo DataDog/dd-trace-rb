@@ -11,17 +11,15 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_mysql2_client
           end
 
-          def patch_mysql2_client
+          def self.patch_mysql2_client
             ::Mysql2::Client.include(Instrumentation)
           end
         end

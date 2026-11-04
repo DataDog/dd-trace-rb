@@ -13,11 +13,11 @@ module Datadog
 
           EQUALS_BYTE: Integer
 
-          def self?.parse: (String?, ?limit: Integer) -> params
+          def self.parse: (String?, ?limit: Integer) -> params
 
           private
 
-          def self?.add_param: (params params, String key, String? value) -> void
+          def self.add_param: (params params, String key, String? value) -> void
         end
       end
     end

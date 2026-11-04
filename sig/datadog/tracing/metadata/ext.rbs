@@ -73,19 +73,19 @@ module Datadog
           module Headers
             INVALID_TAG_CHARACTERS: Regexp
 
-            def self?.to_tag: (String name, ?allow_nested: bool) -> String
+            def self.to_tag: (String name, ?allow_nested: bool) -> String
           end
 
           module RequestHeaders
             PREFIX: String
 
-            def self?.to_tag: (String name) -> String
+            def self.to_tag: (String name) -> String
           end
 
           module ResponseHeaders
             PREFIX: String
 
-            def self?.to_tag: (String name) -> String
+            def self.to_tag: (String name) -> String
           end
         end
 

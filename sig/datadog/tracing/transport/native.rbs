@@ -4,7 +4,7 @@ module Datadog
       module Native
         UNSUPPORTED_REASON: String?
 
-        def self?.supported?: () -> bool
+        def self.supported?: () -> bool
 
         # Defined by the C extension in +ext/libdatadog_api/trace_exporter.c+.
         class TraceExporter

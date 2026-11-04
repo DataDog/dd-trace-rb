@@ -19,9 +19,7 @@ module Datadog
           BASE64_BYTES_PER_GROUP = 3
           BASE64_PADDING_BYTE = "=".ord
 
-          module_function
-
-          def from_request(payload)
+          def self.from_request(payload)
             return {} if payload.nil? || payload.empty?
 
             headers = parse_headers(payload)
@@ -42,7 +40,7 @@ module Datadog
             data
           end
 
-          def from_response(payload)
+          def self.from_response(payload)
             return {} if payload.nil? || payload.empty?
 
             headers = parse_headers(payload)
@@ -58,13 +56,13 @@ module Datadog
             data
           end
 
-          def parse_headers(payload)
+          def self.parse_headers(payload)
             (payload["headers"] || {}).each_with_object({}) do |(key, value), hash|
               hash[key.downcase] = value
             end
           end
 
-          def parse_cookies(payload, headers)
+          def self.parse_cookies(payload, headers)
             raw_pairs = payload["cookies"] || headers["cookie"]&.split(";")
             return unless raw_pairs
 
@@ -74,7 +72,7 @@ module Datadog
             end
           end
 
-          def build_fullpath(payload)
+          def self.build_fullpath(payload)
             path = payload["path"]
             return unless path
 
@@ -82,7 +80,7 @@ module Datadog
             query_string ? "#{path}?#{query_string}" : path
           end
 
-          def build_query_string(payload)
+          def self.build_query_string(payload)
             query_string = payload["query_string"]
             return query_string if query_string && !query_string.empty?
 
@@ -92,12 +90,12 @@ module Datadog
             URI.encode_www_form(query)
           end
 
-          def extract_client_ip(remote_ip, headers)
+          def self.extract_client_ip(remote_ip, headers)
             header_collection = Datadog::Core::HeaderCollection.from_hash(headers)
             Datadog::Tracing::ClientIp.extract_client_ip(header_collection, remote_ip)
           end
 
-          def parse_body(payload, headers)
+          def self.parse_body(payload, headers)
             body = payload["body"]
             return unless body
 
@@ -121,7 +119,7 @@ module Datadog
             nil
           end
 
-          def body_byte_length(payload)
+          def self.body_byte_length(payload)
             body = payload["body"]
 
             return unless body

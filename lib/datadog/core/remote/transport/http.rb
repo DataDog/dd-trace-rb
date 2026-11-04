@@ -28,11 +28,9 @@ module Datadog
             Core::Encoding::JSONEncoder,
           )
 
-          module_function
-
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def root(
+          def self.root(
             agent_settings:,
             logger:,
             headers: nil
@@ -51,7 +49,7 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def v7(
+          def self.v7(
             agent_settings:,
             logger:,
             headers: nil

@@ -20,17 +20,15 @@ module Datadog
             end
           end
 
-          module_function
-
-          def patched?
+          def self.patched?
             !!Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             ActiveSupport.on_load :active_record do
               ::ActiveRecord::ConnectionAdapters::AbstractAdapter.singleton_class.prepend(
                 ::Datadog::AppSec::Contrib::ActiveRecord::Patcher::AdapterInheritancePatch,
@@ -50,7 +48,7 @@ module Datadog
             end
           end
 
-          def patch_sqlite3_adapter
+          def self.patch_sqlite3_adapter
             instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
               Instrumentation::PreprocessQueryAdapterPatch
             elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
@@ -65,7 +63,7 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_mysql2_adapter
+          def self.patch_mysql2_adapter
             instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
               Instrumentation::PreprocessQueryAdapterPatch
             elsif ::ActiveRecord.gem_version >= Gem::Version.new("7.1")
@@ -80,7 +78,7 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_postgresql_adapter
+          def self.patch_postgresql_adapter
             instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new("8.0")
               Instrumentation::PreprocessQueryAdapterPatch
             elsif ::ActiveRecord.gem_version.segments.first == 4

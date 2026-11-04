@@ -27,8 +27,6 @@ module Datadog
         "LOG_PROBE" => :log,
       }.freeze
 
-      module_function
-
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
       EVALUATE_AT_STRINGS = {
@@ -37,7 +35,7 @@ module Datadog
         "DEFAULT" => :exit,
       }.freeze
 
-      def build_from_remote_config(config, logger:)
+      def self.build_from_remote_config(config, logger:)
         # The validations here are not yet comprehensive.
         type = config.fetch("type")
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
@@ -82,7 +80,7 @@ module Datadog
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
       end
 
-      def build_capture_expressions(raw)
+      def self.build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
           raise ArgumentError, "captureExpressions must be an array, got: #{raw.class}"
@@ -107,7 +105,7 @@ module Datadog
         end
       end
 
-      def dedup_capture_expressions(capture_expressions, probe_id, logger)
+      def self.dedup_capture_expressions(capture_expressions, probe_id, logger)
         return capture_expressions if capture_expressions.size < 2
         by_name = {}
         capture_expressions.each do |capture_expression|
@@ -120,7 +118,7 @@ module Datadog
         by_name.values
       end
 
-      def build_capture_limits(raw)
+      def self.build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
           raise ArgumentError, "capture-expression entry capture must be a hash, got: #{raw.class}"
@@ -133,7 +131,7 @@ module Datadog
         )
       end
 
-      def parse_evaluate_at(raw, probe_id, logger)
+      def self.parse_evaluate_at(raw, probe_id, logger)
         return :exit if raw.nil?
         EVALUATE_AT_STRINGS[raw] || begin
           logger.debug do
@@ -143,7 +141,7 @@ module Datadog
         end
       end
 
-      def build_template_segments(segments)
+      def self.build_template_segments(segments)
         segments&.map do |segment|
           if Hash === segment
             if str = segment["str"]

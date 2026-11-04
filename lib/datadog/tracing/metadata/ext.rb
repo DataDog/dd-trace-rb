@@ -128,15 +128,13 @@ module Datadog
 
           # General header functionality
           module Headers
-            module_function
-
             INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}.freeze
 
             # Normalizes an HTTP header string into a valid tag string.
             #
             # By default, tags cannot create nested span tag levels:
             # `allow_nested` allows you to override this behavior.
-            def to_tag(name, allow_nested: false)
+            def self.to_tag(name, allow_nested: false)
               # Tag normalization based on: https://docs.datadoghq.com/getting_started/tagging/#defining-tags.
               #
               # Only the following characters are accepted.
@@ -164,9 +162,7 @@ module Datadog
           module RequestHeaders
             PREFIX = "http.request.headers"
 
-            module_function
-
-            def to_tag(name)
+            def self.to_tag(name)
               "#{PREFIX}.#{Headers.to_tag(name)}"
             end
           end
@@ -175,9 +171,7 @@ module Datadog
           module ResponseHeaders
             PREFIX = "http.response.headers"
 
-            module_function
-
-            def to_tag(name)
+            def self.to_tag(name)
               "#{PREFIX}.#{Headers.to_tag(name)}"
             end
           end
