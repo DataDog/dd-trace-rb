@@ -6,18 +6,18 @@ above, plus `steep:ignore` as a last resort
 
 ## Rules
 
-- SHOULD use one only when the code is correct and Steep can't infer the
-  type – NEVER change working Ruby or loosen a signature to satisfy the checker
-- A **type assertion** trails an expression as `#: Type` – it narrows a value
+- SHOULD use one only when the code is correct and Steep cannot infer the
+  type. NEVER change working Ruby or loosen a signature to satisfy the checker
+- A **type assertion** trails an expression as `#: Type`. It narrows a value
   Steep infers too widely, most often an empty literal that has no element type
-  to infer; NEVER assert to `untyped`
-- An **annotation** sits on its own `# @type` line above the code it governs:
-  `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block Steep
-  cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
-  block parameter, or instance variable Steep infers wrong; pin the real type,
-  NEVER `untyped`
-- `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
-  (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
+  to infer. NEVER assert to `untyped`
+- An **annotation** sits on its own `# @type` line above the code it governs.
+  Use `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block
+  Steep cannot follow. Use `# @type var x: Type` / `# @type ivar @x: Type`
+  when Steep infers a local, block parameter, or instance variable wrong. Pin
+  the real type, NEVER `untyped`
+- `steep:ignore` is the last resort. SHOULD scope it to the specific diagnostic
+  (`steep:ignore NoMethod`), NEVER bare. Bracket a run with
   `steep:ignore:start` / `steep:ignore:end`
 
 ## Examples

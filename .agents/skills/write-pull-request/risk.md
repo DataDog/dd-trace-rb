@@ -10,20 +10,20 @@ systems already rely on, in code or in data, without a deprecation period?
 - Constants: users reference them directly. Renaming them or changing
   their value breaks that code.
 - Default configuration: changing a default changes behavior for every
-  user who didn't configure it.
+  user who did not configure it.
 
 ## Data: what downstream consumers expect
 
 - Values used as identifiers or grouping keys, for example the span
-  `resource`: users build monitors, alerts, and dashboards on exact
+  `resource`. Users build monitors, alerts, and dashboards on exact
   values.
 - Data schemas: a telemetry event that changes shape breaks whatever
   receives it.
-- Data formats: distributed tracing headers are read by other tracers, so
-  both the old and the new formats must stay readable.
+- Data formats: other tracers read distributed tracing headers, so both
+  the old and the new formats must stay readable.
 
-Breaking data is the worst case: consumers can't opt out by not upgrading,
-and nobody notices until wrong data has already been ingested.
+Breaking data is the worst case. Consumers cannot opt out by not upgrading.
+Nobody notices until wrong data has already been ingested.
 
 ## Security
 
@@ -34,12 +34,12 @@ and nobody notices until wrong data has already been ingested.
 
 ## One-way or two-way door
 
-One-way (can't be undone): a released gem version, a shipped schema or
+One-way (cannot be undone): a released gem version, a shipped schema or
 format, and data already sent. Everything else is two-way: say how to undo
-it, e.g. revert, re-run, or restore the setting. If there is no way to undo
-it, say so, that is the risk.
+it, for example revert, re-run, or restore the setting. If there is no way
+to undo it, say so, that is the risk.
 
 ## Writing the section
 
-Name what is affected concretely, e.g. "span resource values for HTTP
-spans", not "low risk".
+Name what is affected concretely, for example "span resource values for
+HTTP spans", not "low risk".

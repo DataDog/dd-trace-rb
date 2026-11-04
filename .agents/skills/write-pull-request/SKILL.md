@@ -7,7 +7,7 @@ description: 'Use when opening a pull request in this repo, or when writing or u
 
 The reader is a senior Ruby engineer who knows the codebase and wants to
 know quickly whether to review this PR and how carefully. Keep it short.
-Don't describe the implementation: the diff already shows it, and the
+Do not describe the implementation: the diff already shows it, and the
 description gets out of date when the code changes.
 
 The template is `.github/PULL_REQUEST_TEMPLATE.md`. CI (`check.yml`,
@@ -52,15 +52,15 @@ task."
 ### Details
 
 Optional, collapsed in `<details><summary>Notes</summary>` ... `</details>`.
-Anything that doesn't fit in the other sections goes here: links,
-benchmarks, plans, testing instructions, longer explanations. Never put it
+Anything that does not fit in the other sections goes here: links,
+benchmarks, plans, steps for testing, longer explanations. Never put it
 after a required section or loose in the body. The PR must be
 understandable without reading it.
 
 ## Keeping it up to date
 
 If the diff changes during review, update Why, What, and Risk before
-merging: remove what no longer applies, add what is new, and stay within
+merging. Remove what no longer applies, add what is new, and stay within
 the limits.
 
 ## Examples
