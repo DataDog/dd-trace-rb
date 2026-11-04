@@ -175,8 +175,8 @@ is affected, and how to enable or opt out.
   ```
 
 - Say who is affected when it is not everyone: exact versions and platforms
-  (not "recent" or "newer"), and the triggers or workloads (for example
-  "applications with many idle threads").
+  (not "recent" or "newer"). Also name the triggers or workloads, for example
+  "applications with many idle threads".
 
   ```markdown
   <!-- Bad -->
