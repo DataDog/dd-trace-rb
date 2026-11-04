@@ -29,7 +29,6 @@ module Datadog
           # Methods that must be prepended
           module PrependedMethods
             def perform(*args)
-              # @type self: Datadog::Core::Workers::Async::Thread
               unless started?
                 start_async do
                   self.result = super(*args)
@@ -81,8 +80,7 @@ module Datadog
           end
 
           def running?
-            thread = worker
-            !thread.nil? && thread.alive?
+            !!worker&.alive?
           end
 
           def error?
@@ -92,8 +90,7 @@ module Datadog
           end
 
           def completed?
-            thread = worker
-            !thread.nil? && thread.status == false && !error?
+            worker&.status == false && !error?
           end
 
           def failed?
@@ -150,18 +147,16 @@ module Datadog
                   stop_fork
                   false
                 when FORK_POLICY_RESTART
-                  # restart_after_fork should return true
                   restart_after_fork(&block)
                 end
               elsif !run_async?
-                # start_worker should return true
                 start_worker(&block)
               end
             end
           end
 
           # Returns true if worker thread is successfully started,
-          # which should generally be always.
+          # which is always the case.
           def start_worker
             @run_async = true
             @pid = Process.pid
