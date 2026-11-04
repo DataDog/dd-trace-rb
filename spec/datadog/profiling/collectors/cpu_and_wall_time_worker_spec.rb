@@ -97,6 +97,28 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(miteruby_recorder).to_not equal(stack_recorder)
         expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
       end
+
+      it "selects the persistent streaming serializer and prepares both backends" do
+        expect(described_class).to receive(:_native_miteruby_consumer_prepare_serialize).with(
+          an_instance_of(Datadog::Profiling::Miteruby::LibdatadogRecorder),
+          an_instance_of(Datadog::Profiling::Miteruby::StreamingSerializer),
+        ).twice.and_call_original
+
+        serializer = cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)
+
+        expect(serializer).to be_a(Datadog::Profiling::Miteruby::StreamingSerializer)
+        expect(serializer.serialize).to be_nil
+        expect(cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)).to equal(serializer)
+      end
+
+      it "resets both backends after fork" do
+        libdatadog_recorder = cpu_and_wall_time_worker.prepare_serialize
+        streaming_serializer = cpu_and_wall_time_worker.prepare_serialize(miteruby_recorder_idx: 1)
+        expect(libdatadog_recorder).to receive(:reset_after_fork).and_call_original
+        expect(streaming_serializer).to receive(:reset_after_fork).and_call_original
+
+        expect(cpu_and_wall_time_worker.reset_after_fork).to be true
+      end
     end
 
     it "collects profiler-internal thread samples before serialization", :memcheck_valgrind_skip do
@@ -2174,6 +2196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
     let(:miteruby_recorder) { Datadog::Profiling::Miteruby::LibdatadogRecorder.new }
+    let(:streaming_serializer) { Datadog::Profiling::Miteruby::StreamingSerializer.new }
 
     before do
       allow(cpu_and_wall_time_worker).to receive(:create_miteruby_consumer)
@@ -2218,8 +2241,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     def recorded_miteruby_samples
-      described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
+      described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder, streaming_serializer)
       samples_from_pprof(miteruby_recorder.serialize!)
+    end
+
+    it "passes every buffered event to both backends before clearing the queue" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      streaming_serializer.reset_after_fork
+
+      3.times do
+        expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
+      end
+      consume_miteruby
+
+      expect(recorded_miteruby_samples.size).to eq(3)
+      expect(streaming_serializer.stats).to eq(recorded_samples: 3)
+      expect(streaming_serializer.serialize).to be_nil
+      expect(recorded_miteruby_samples).to be_empty
+      expect(streaming_serializer.stats).to eq(recorded_samples: 3)
+      expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
+
+      streaming_serializer.reset_after_fork
+      expect(streaming_serializer.stats).to eq(recorded_samples: 0)
     end
 
     it "tracks storage usage through consumption, serialization, and reset" do
@@ -2291,7 +2335,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       begin
         GC.stress = true
         consume_miteruby
-        described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
+        described_class._native_miteruby_consumer_prepare_serialize(miteruby_recorder, streaming_serializer)
       ensure
         GC.stress = previous_gc_stress
       end
