@@ -112,6 +112,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         encoded = serializer.serialize
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
         profile = decode_profile(encoded)
+        expect(profile.string_table).to eq(
+          ["", "cpu-time", "nanoseconds", "cpu-samples", "count", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline"],
+        )
         expect(profile.sample_type.map { |type| [type.type, type.unit] }).to eq(
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
@@ -145,7 +148,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         streaming = streaming_serializer.serialize
         expect(samples_from_pprof(original)).to_not be_empty
 
-        pending("Streaming serialization currently contains only sample types")
+        pending("Streaming serialization currently contains only sample types and their strings")
         expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
       ensure
         cpu_and_wall_time_worker.stop
