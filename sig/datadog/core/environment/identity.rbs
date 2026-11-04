@@ -12,35 +12,35 @@ module Datadog
 
         self.@parent_runtime_id: String?
 
-        @id: String?
+        self.@id: String
 
-        @root_runtime_id: String?
+#         @root_runtime_id: String?
+#
+#         @parent_runtime_id: String?
 
-        @parent_runtime_id: String?
+        def self.id: () -> String
 
-        def self?.id: () -> String
+        def self.root_runtime_id: () -> String?
 
-        def self?.root_runtime_id: () -> String?
+        def self.parent_runtime_id: () -> String?
 
-        def self?.parent_runtime_id: () -> String?
+        def self.runtime_propagation_envs: () -> Hash[String, String]
 
-        def self?.runtime_propagation_envs: () -> Hash[String, String]
+        def self.pid: () -> Integer
 
-        def self?.pid: () -> Integer
+        def self.lang: () -> String
 
-        def self?.lang: () -> String
+        def self.lang_engine: () -> String
 
-        def self?.lang_engine: () -> String
+        def self.lang_interpreter: () -> String
 
-        def self?.lang_interpreter: () -> String
+        def self.lang_platform: () -> String
 
-        def self?.lang_platform: () -> String
+        def self.lang_version: () -> String
 
-        def self?.lang_version: () -> String
+        def self.gem_datadog_version: () -> String
 
-        def self?.gem_datadog_version: () -> String
-
-        def self?.gem_datadog_version_semver2: () -> String
+        def self.gem_datadog_version_semver2: () -> String
       end
     end
   end
