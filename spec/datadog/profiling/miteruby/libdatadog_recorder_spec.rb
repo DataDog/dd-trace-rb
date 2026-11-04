@@ -218,8 +218,11 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
       expect { recorder.serialize }.to raise_error(RuntimeError, /being serialized/)
       expect { record_sample }.to raise_error(RuntimeError, /being serialized/)
       expect { recorder.reset_after_fork }.to raise_error(RuntimeError, /being serialized/)
-      expect { Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_miteruby_consumer_prepare_serialize(recorder) }
-        .to raise_error(RuntimeError, /being serialized/)
+      expect do
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_miteruby_consumer_prepare_serialize(
+          recorder, Datadog::Profiling::Miteruby::StreamingSerializer.new,
+        )
+      end.to raise_error(RuntimeError, /being serialized/)
     ensure
       serializer.kill
       serializer.join
@@ -233,6 +236,7 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
     expect do
       Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_miteruby_consumer_prepare_serialize(
         Datadog::Profiling::StackRecorder.for_testing,
+        Datadog::Profiling::Miteruby::StreamingSerializer.new,
       )
     end.to raise_error(TypeError)
   end
