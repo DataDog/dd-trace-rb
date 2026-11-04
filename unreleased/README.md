@@ -26,6 +26,10 @@ change. Its fields:
 - `message`: customer-facing message in Markdown.
 - `author` (external contributors only): GitHub handle with the leading `@`
   (e.g. `"@octocat"`), for credit in `CHANGELOG.md`.
+- `waive_<unit>_cap` (`waive_word_cap`, `waive_sentence_cap`, `waive_char_cap`,
+  rare): a positive integer raising that one cap for this fragment. The defaults
+  are 25 words, 2 sentences, 240 characters. A person who chose the wording
+  themselves may raise a cap, a coding agent never does.
 
 [`examples/`](examples/) holds a complete fragment for each type and shape,
 grounded in real merged PRs — they show the fields; message style lives in

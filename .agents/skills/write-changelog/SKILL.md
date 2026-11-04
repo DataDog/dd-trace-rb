@@ -25,6 +25,13 @@ they observe, do, or get. The exact version they run is their context.
 
 - ALWAYS write for the customer, not the diff
 - ALWAYS lead with the customer effect; supporting detail follows
+- ALWAYS fit the budget: one sentence, about 15 words, 25 at the
+  outside. Only a long setting name or version list may cross 25.
+  Draft long, then cut every clause whose removal does not change
+  what the affected reader does
+- NEVER stack: one symptom, one trigger, one scope clause. Every
+  further effect or example platform belongs to the PR description,
+  not the entry
 - ALWAYS scope who is affected — versions, platforms, triggers, workloads
   — whenever the scope decides it
 - NEVER narrate the implementation
@@ -102,6 +109,9 @@ Then keep every written claim grounded:
 
 - ALWAYS set `author` to the external contributor's `@`-prefixed GitHub
   handle; NEVER set `author` for a Datadog contributor
+- NEVER set a `waive_word_cap`/`waive_sentence_cap`/`waive_char_cap`
+  field: the 25-word, 2-sentence, 240-character caps are the agent's gate,
+  and a person who wrote the message themselves raises one
 
 ## The floor and the standard
 
@@ -113,14 +123,17 @@ none lean on it.
 
 ## Writing the message
 
-The rules follow in drafting order. When the structure will not fit the
-caps, keep the customer effect, its scope, and any access point or escape
+The rules follow in drafting order, under one budget: one sentence,
+about 15 words, 25 at the outside. When the structure will not fit the
+budget, keep the customer effect, its scope, and any access point or escape
 hatch — the compressible rest is the explanatory detail, never the
 actionable.
 
 - Structure by type — the reader's question differs:
-  - `Fixed`: ALWAYS name the symptom they recognize, then the trigger
-    they can perform or observe (a call they make, a setting they use);
+  - `Fixed`: ALWAYS name the one symptom they recognize — the log
+    line, the error, the visible breakage they would search for; NEVER
+    an inventory of effects — then the trigger they can perform or
+    observe (a call they make, a setting they use);
     when nothing is observable, bottom out at what the evidence
     establishes, and NEVER below it, into internal sequencing
 
@@ -133,25 +146,27 @@ actionable.
     ```
 
   - `Added`: ALWAYS name the capability, then the access point — the
-    setting/API that gets it for them
+    setting/API that gets it for them; a why or an example earns its
+    place only when the budget still holds after both
 
     ```markdown
     <!-- Bad: the capability stated, but no access point to enable it -->
     Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify.
 
-    <!-- Good: capability + example + why it helps + the exact access point -->
-    Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
+    <!-- Good: capability + the exact access point -->
+    Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`); enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
   - `Changed`: ALWAYS name the new behavior and the escape hatch when
-    one exists; SHOULD follow with why it matters
+    one exists; the why earns its place only when the budget still
+    holds
 
     ```markdown
     <!-- Bad: the new behavior and why, but no way back -->
     Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output.
 
-    <!-- Good: new behavior + why it matters + escape hatch -->
-    Move the gem's diagnostic logs from stdout to stderr, so stdout stays clean for application output; restore the old default with `c.logger.instance = Datadog::Core::Logger.new($stdout)` in `Datadog.configure`.
+    <!-- Good: new behavior + escape hatch -->
+    Move the gem's diagnostic logs from stdout to stderr; restore the old default with `c.logger.instance = Datadog::Core::Logger.new($stdout)` in `Datadog.configure`.
     ```
 
 - ALWAYS state what changed, in customer terms; NEVER code-review
@@ -187,7 +202,7 @@ actionable.
   Enforce a process-wide rate limit across all probes: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
 
   <!-- Good: the customer's observable delta leads, the numbers follow -->
-  Cap probe output process-wide: with multiple probes set, they can emit less than their individual limits allow — combined output is capped at 20 snapshots/s and 5000 log events/s per process.
+  Cap probe output process-wide: combined output is capped at 20 snapshots/s and 5000 log events/s per process.
   ```
 
 - ALWAYS make the CamelCase code-span call: span what names the code the
