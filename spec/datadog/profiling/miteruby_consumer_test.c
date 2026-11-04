@@ -833,18 +833,24 @@ static void test_location_map(void) {
   verstable_location_map *map = &consumer_state.location_map;
   assert(verstable_location_map_size(map) == 0);
   miteruby_location_key_t key = {.cme_iseq_id = {.value = {.value = UINT20_MAX}}, .position = {.value = UINT16_MAX}};
-  miteruby_location_id_t id = {.value = {.value = UINT20_MAX}};
-  verstable_location_map_itr entry = verstable_location_map_get_or_insert(map, key, id);
+  sample_storage storage = {0};
+  miteruby_location_value_t value = {
+    .location_id = {.value = {.value = UINT20_MAX}},
+    .iseq = (const rb_iseq_t *)&storage,
+  };
+  verstable_location_map_itr entry = verstable_location_map_get_or_insert(map, key, value);
   assert(!verstable_location_map_is_end(entry));
-  assert(entry.data->val.value.value == UINT20_MAX);
+  assert(entry.data->val.location_id.value.value == UINT20_MAX);
+  assert(entry.data->val.iseq == value.iseq);
 
   miteruby_location_key_t same_key;
   memset(&same_key, 0xff, sizeof(same_key));
   same_key.cme_iseq_id.value.value = key.cme_iseq_id.value.value;
   same_key.position.value = key.position.value;
-  entry = verstable_location_map_get_or_insert(map, same_key, (miteruby_location_id_t) {0});
+  entry = verstable_location_map_get_or_insert(map, same_key, (miteruby_location_value_t) {0});
   assert(!verstable_location_map_is_end(entry));
-  assert(entry.data->val.value.value == UINT20_MAX);
+  assert(entry.data->val.location_id.value.value == UINT20_MAX);
+  assert(entry.data->val.iseq == value.iseq);
   assert(verstable_location_map_size(map) == 1);
 
   key.position.value--;
