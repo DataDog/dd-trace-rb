@@ -253,7 +253,7 @@ module Datadog
           probe_repository.pending_probes.each do |probe_id, probe|
             if probe.method?
               # TODO move this stringification elsewhere
-              if probe.type_name == cls.name
+              if probe.normalized_type_name == cls.name
                 begin
                   # TODO is it OK to hook from trace point handler?
                   # TODO the class is now defined, but can hooking still fail?

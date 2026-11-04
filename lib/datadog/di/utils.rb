@@ -163,6 +163,24 @@ module Datadog
         end
         false
       end
+
+      # Root namespace prefix of a constant path: an optional leading "::"
+      # followed by any number of "Object::" segments.
+      ROOT_NAMESPACE_PREFIX = /\A(?:::)?(?:Object::)*/
+      private_constant :ROOT_NAMESPACE_PREFIX
+
+      # Returns +type_name+ with its root namespace prefix removed, which is
+      # the form Module#name reports for the named class or module.
+      #
+      # Top-level constants are constants of Object, so Object.const_get
+      # resolves "::Foo", "Object::Foo" and "::Object::Object::Foo" to the
+      # same constant as "Foo".
+      #
+      # @param type_name [String] class or module name as written in a probe
+      # @return [String] the name without the root namespace prefix
+      module_function def normalize_type_name(type_name)
+        type_name.sub(ROOT_NAMESPACE_PREFIX, "")
+      end
     end
   end
 end
