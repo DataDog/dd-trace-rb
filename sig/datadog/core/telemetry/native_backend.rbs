@@ -18,7 +18,7 @@ module Datadog
 
         attr_reader native_worker: Native::Worker?
 
-        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool) -> void
+        def initialize: (settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, logger: Core::Logger, enabled: bool, ?previous_backend: RubyBackend?) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
@@ -38,7 +38,13 @@ module Datadog
 
         def shutdown!: () -> void
 
+        def can_share_native_worker_with?: (Hash[Symbol, untyped]? other_native_worker_args) -> bool
+
+        def hand_over_native_worker: () -> [Native::Worker?, Hash[String, Native::MetricContext]]
+
         private
+
+        def adopt_or_start_native_worker: (RubyBackend? previous_backend) -> Native::Worker?
 
         def add_metric_point: (
           Symbol metric_type,

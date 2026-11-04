@@ -130,6 +130,110 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
     end
   end
 
+  describe "native worker adoption" do
+    let(:previous_backend) do
+      described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+      )
+    end
+    let(:native_worker2) do
+      instance_double(Datadog::Core::Telemetry::Native::Worker).tap do |worker|
+        allow(worker).to receive(:_start)
+        allow(worker).to receive(:_shutdown)
+        allow(worker).to receive(:_register_metric_context).and_return(:context2)
+        allow(worker).to receive(:_add_point)
+        allow(worker).to receive(:_add_log)
+      end
+    end
+
+    it "adopts the previous worker when the settings are unchanged" do
+      previous_backend
+      worker = previous_backend.native_worker
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(worker)
+      expect(native_worker_class).to have_received(:_native_new).once
+    end
+
+    it "keeps the previous metric context cache so metrics are not registered twice" do
+      previous_backend.inc("tracers", "metric", 1)
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+      new_backend.inc("tracers", "metric", 1)
+
+      expect(native_worker).to have_received(:_register_metric_context).once
+      expect(native_worker).to have_received(:_add_point).twice
+    end
+
+    it "leaves an adopted worker running when the previous backend shuts down" do
+      previous_backend
+      described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      previous_backend.shutdown!
+
+      expect(native_worker).not_to have_received(:_shutdown)
+    end
+
+    it "builds a new worker and stops the old one when the settings diverge" do
+      previous_backend
+      allow(native_worker_class).to receive(:_native_new).and_return(native_worker2)
+      settings.service = "other_service"
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(native_worker2)
+      expect(previous_backend.native_worker).to be(native_worker)
+
+      previous_backend.shutdown!
+
+      expect(native_worker).to have_received(:_shutdown)
+      expect(native_worker2).not_to have_received(:_shutdown)
+    end
+
+    it "builds a new worker when the previous backend has none" do
+      previous_backend.after_fork
+
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+
+      expect(new_backend.native_worker).to be(native_worker)
+      expect(native_worker_class).to have_received(:_native_new).twice
+    end
+  end
+
   describe "metric methods" do
     it "registers one context per metric and adds points with tag pairs" do
       backend.inc("tracers", "metric", 5, tags: ["a:b"], common: true)

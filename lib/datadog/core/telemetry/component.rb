@@ -31,7 +31,7 @@ module Datadog
         include Core::Utils::Forking
         include Telemetry::Logging
 
-        def self.build(settings, agent_settings, logger)
+        def self.build(settings, agent_settings, logger, previous_telemetry: nil)
           enabled = settings.telemetry.enabled
           agentless_enabled = settings.telemetry.agentless_enabled
 
@@ -45,6 +45,7 @@ module Datadog
             agent_settings: agent_settings,
             enabled: enabled,
             logger: logger,
+            previous_telemetry: previous_telemetry,
           )
         end
 
@@ -61,11 +62,15 @@ module Datadog
         end
 
         # @param enabled [Boolean] Determines whether telemetry events will be sent to the API
+        # @param previous_telemetry [Component, nil] telemetry component of
+        #   the tree a reconfigure replaces. The native worker is adopted
+        #   from it when the settings still select it.
         def initialize(
           settings:,
           agent_settings:,
           logger:,
-          enabled:
+          enabled:,
+          previous_telemetry: nil
         )
           @enabled = enabled
           @log_collection_enabled = settings.telemetry.log_collection_enabled
@@ -79,6 +84,7 @@ module Datadog
               agent_settings: agent_settings,
               logger: logger,
               enabled: enabled,
+              previous_backend: previous_telemetry&.backend,
             )
           else
             RubyBackend.new(

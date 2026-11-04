@@ -106,8 +106,8 @@ module Datadog
             Core::Workers::RuntimeMetrics.new(telemetry: telemetry, **options)
           end
 
-          def build_telemetry(settings, agent_settings, logger)
-            Telemetry::Component.build(settings, agent_settings, logger)
+          def build_telemetry(settings, agent_settings, logger, previous_telemetry: nil)
+            Telemetry::Component.build(settings, agent_settings, logger, previous_telemetry: previous_telemetry)
           end
 
           def build_crashtracker(settings, agent_settings, logger:)
@@ -186,7 +186,7 @@ module Datadog
           :symbol_database,
           :profiler_unavailable_reason
 
-        def initialize(settings)
+        def initialize(settings, previous_telemetry: nil)
           @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
@@ -215,7 +215,7 @@ module Datadog
           # Exposes agent capability information for detection by any components
           @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
 
-          @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
+          @telemetry = self.class.build_telemetry(settings, agent_settings, @logger, previous_telemetry: previous_telemetry)
 
           @remote = Remote::Component.build(
             settings,

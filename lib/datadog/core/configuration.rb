@@ -262,7 +262,11 @@ module Datadog
       end
 
       def replace_components!(settings, old)
-        components = Components.new(settings)
+        old_state = old.state
+        # Captured before the new tree builds so a native telemetry worker
+        # is handed over instead of being stopped and rebuilt.
+        previous_telemetry = old.telemetry
+        components = Components.new(settings, previous_telemetry: previous_telemetry)
 
         # Carry over state from existing components to the new ones.
         # Currently:
@@ -272,7 +276,6 @@ module Datadog
         # 2. If telemetry has been enabled and is enabled in the new
         #    component tree, we send AppConfigurationChange event instead
         #    of AppStarted event.
-        old_state = old.state
 
         old.shutdown!(components)
         components.startup!(settings, old_state: old_state)

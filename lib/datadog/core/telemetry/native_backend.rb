@@ -33,14 +33,19 @@ module Datadog
           nil
         end
 
-        def initialize(settings:, agent_settings:, logger:, enabled:)
-          super
+        def initialize(settings:, agent_settings:, logger:, enabled:, previous_backend: nil)
+          super(
+            settings: settings,
+            agent_settings: agent_settings,
+            logger: logger,
+            enabled: enabled,
+          )
 
           @shutdown_timeout_ms = (settings.telemetry.shutdown_timeout_seconds * 1000).to_i
           @native_worker_args = native_worker_args(settings, agent_settings)
-          @native_worker = start_native_worker
           @metric_contexts = {}
           @metric_contexts_mutex = Mutex.new
+          @native_worker = adopt_or_start_native_worker(previous_backend)
         end
 
         def inc(namespace, metric_name, value, tags: {}, common: true)
@@ -110,7 +115,39 @@ module Datadog
           @native_worker&._shutdown(@shutdown_timeout_ms)
         end
 
+        # Whether this backend's native worker is usable by a replacement
+        # backend built with the given worker arguments.
+        def can_share_native_worker_with?(other_native_worker_args)
+          !@native_worker.nil? && @native_worker_args == other_native_worker_args
+        end
+
+        # Transfers the native worker and its metric context cache to the
+        # replacement backend, so a reconfigure reuses them instead of
+        # building a second worker. After the handover this backend's
+        # shutdown! leaves the adopted worker running.
+        def hand_over_native_worker
+          contexts = @metric_contexts_mutex.synchronize do
+            contexts = @metric_contexts
+            @metric_contexts = {}
+            contexts
+          end
+          worker = @native_worker
+          @native_worker = nil
+          [worker, contexts]
+        end
+
         private
+
+        # The metric context cache travels with the worker: Rust registers
+        # each context as a separate payload entry, so re-registering a
+        # metric on an adopted worker duplicates it on the wire.
+        def adopt_or_start_native_worker(previous_backend)
+          return start_native_worker unless previous_backend.is_a?(NativeBackend)
+          return start_native_worker unless previous_backend.can_share_native_worker_with?(@native_worker_args)
+
+          @native_worker, @metric_contexts = previous_backend.hand_over_native_worker
+          @native_worker
+        end
 
         def add_metric_point(metric_type, namespace, metric_name, value, tags, common)
           worker = @native_worker
