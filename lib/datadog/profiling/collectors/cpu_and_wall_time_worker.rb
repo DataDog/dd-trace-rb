@@ -15,7 +15,7 @@ module Datadog
         # @rbs @idle_sampling_helper: IdleSamplingHelper
         # @rbs @wait_until_running_mutex: ::Thread::Mutex
         # @rbs @wait_until_running_condition: ::Thread::ConditionVariable
-        # @rbs @miteruby_recorder: Datadog::Profiling::Miteruby::LibdatadogRecorder?
+        # @rbs @miteruby_recorder: [Miteruby::LibdatadogRecorder, Miteruby::StreamingSerializer]?
         # @rbs @miteruby_consumer_thread: Thread?
 
         private
@@ -96,7 +96,7 @@ module Datadog
           @idle_sampling_helper = idle_sampling_helper
           @wait_until_running_mutex = Mutex.new
           @wait_until_running_condition = ConditionVariable.new
-          @miteruby_recorder = miteruby_enabled ? Miteruby::LibdatadogRecorder.new : nil
+          @miteruby_recorder = miteruby_enabled ? [Miteruby::LibdatadogRecorder.new, Miteruby::StreamingSerializer.new] : nil
           @miteruby_consumer_thread = nil
         end
 
@@ -161,20 +161,21 @@ module Datadog
           end
         end
 
-        # @rbs return: Datadog::Profiling::StackRecorder | Datadog::Profiling::Miteruby::LibdatadogRecorder
-        def prepare_serialize
+        # @rbs miteruby_recorder_idx: Integer
+        # @rbs return: StackRecorder | Miteruby::LibdatadogRecorder | Miteruby::StreamingSerializer
+        def prepare_serialize(miteruby_recorder_idx: 0)
           recorder = self.class._native_prepare_serialize(self)
           miteruby_recorder = @miteruby_recorder
           return recorder unless miteruby_recorder
 
           recorder.serialize
-          self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
-          miteruby_recorder
+          self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder[0], miteruby_recorder[1])
+          miteruby_recorder.fetch(miteruby_recorder_idx)
         end
 
         #: () -> true
         def reset_after_fork
-          @miteruby_recorder&.reset_after_fork
+          @miteruby_recorder&.each(&:reset_after_fork)
           self.class._native_reset_after_fork(self)
         end
 
