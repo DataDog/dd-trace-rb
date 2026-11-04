@@ -51,6 +51,14 @@
 #define ZSTD_LEGACY_SUPPORT 0
 #undef ZSTD_MULTITHREAD
 #define ZSTD_TRACE 0
+/* We compress profiles at level 1, which only uses ZSTD_fast, so exclude all other strategies to reduce binary size. */
+#define ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_BTLAZY2_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_BTOPT_BLOCK_COMPRESSOR
+#define ZSTD_EXCLUDE_BTULTRA_BLOCK_COMPRESSOR
 /* TODO: Can't amalgamate ASM function */
 #define ZSTD_DISABLE_ASM 1
 
