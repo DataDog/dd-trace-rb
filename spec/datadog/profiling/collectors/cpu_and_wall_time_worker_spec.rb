@@ -126,6 +126,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
         expect(profile.sample).to be_empty
+        expect(profile.function).to be_empty
         expect(profile.time_nanos).to be > 0
         expect(profile.duration_nanos).to be > 0
         expect(cpu_and_wall_time_worker.prepare_serialize(return_both: true)).to equal(recorders)
@@ -162,7 +163,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         streaming = streaming_serializer.serialize
         expect(samples_from_pprof(original)).to_not be_empty
 
-        pending("Streaming serialization currently contains only sample types, their strings, and profile metadata")
+        pending("Streaming serialization does not yet emit samples or function strings")
         expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
       ensure
         cpu_and_wall_time_worker.stop
@@ -2305,8 +2306,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(recorded_miteruby_samples.size).to eq(3)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
-      expect(decode_profile(streaming_serializer.serialize).sample_type.size).to eq(6)
+      profile = decode_profile(streaming_serializer.serialize)
+      expect(profile.sample_type.size).to eq(6)
+      function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)
+      expect(function_count).to be > 1
+      expect(profile.function.map { |function| [function.id, function.name, function.filename] }).to match_array(
+        Array.new(function_count) { |map_id| [map_id + 1, 9 + map_id * 2, 10 + map_id * 2] },
+      )
       expect(recorded_miteruby_samples).to be_empty
+      expect(decode_profile(streaming_serializer.serialize).function).to eq(profile.function)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
 

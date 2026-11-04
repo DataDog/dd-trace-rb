@@ -97,9 +97,15 @@ static void record_stack_sample(
   state->recorded_samples++;
 }
 
+// After the fixed strings, each zero-based function ID from the CME/ISEQ map reserves two
+// consecutive strings: name, then filename. These pairs must be emitted in map-ID order.
+static int64_t string_table_id_for(uint64_t function_id) {
+  return PPROF_STRING_TIMELINE + 1 + function_id * 2;
+}
+
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  DDTRACE_UNUSED const verstable_mark_cme_iseq_map *mark_cme_iseq_map
+  const verstable_mark_cme_iseq_map *mark_cme_iseq_map
 ) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
@@ -114,6 +120,22 @@ void miteruby_streaming_serializer_prepare_serialize(
     miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
+  }
+
+  // Emit FragmentFunction
+  for (
+    verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_first(mark_cme_iseq_map);
+    !verstable_mark_cme_iseq_map_is_end(entry);
+    entry = verstable_mark_cme_iseq_map_next(entry)
+  ) {
+    uint64_t map_id = entry.data->val.value.value;
+    int64_t name_id = string_table_id_for(map_id);
+    miteruby_pprof_fragment_function_t fragment = {
+      .has_function = true,
+      .function = {.id = map_id + 1, .name = name_id, .filename = name_id + 1},
+    };
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
   }
 
   // Emit FragmentStringTable
