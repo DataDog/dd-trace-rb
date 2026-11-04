@@ -4,12 +4,11 @@ module Datadog
       module Socket
         extend Datadog::Core::Utils::Forking
 
-        @hostname: String?
         self.@hostname: String?
 
-        def self?.hostname: () -> String
+        def self.hostname: () -> String
 
-        def self?.resolved_hostname: (untyped settings) -> String?
+        def self.resolved_hostname: (Datadog::Core::Configuration::Settings settings) -> String?
       end
     end
   end

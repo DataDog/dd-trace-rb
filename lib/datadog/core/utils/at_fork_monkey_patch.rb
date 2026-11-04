@@ -65,7 +65,7 @@ module Datadog
             end
           end
 
-          error = nil
+          error = nil #: Exception?
           callbacks.each do |callback|
             next if started && callback.group && !started.key?(callback.group)
 
@@ -170,7 +170,7 @@ module Datadog
                 # Invoke original block
                 yield
               end
-            end
+            end #: (^() -> void)?
 
             begin
               # Run pre-fork callbacks in the parent, just before forking.
