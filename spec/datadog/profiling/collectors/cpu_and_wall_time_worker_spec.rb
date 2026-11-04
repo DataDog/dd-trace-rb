@@ -111,8 +111,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(serializer).to be_a(Datadog::Profiling::Miteruby::StreamingSerializer)
         encoded = serializer.serialize
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
-        expect(Zstd.decompress(encoded._native_bytes)).to eq("hello world")
+        profile = decode_profile(encoded)
+        expect(profile.sample_type.map { |type| [type.type, type.unit] }).to eq(
+          [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
+        )
+        expect(profile.sample).to be_empty
         expect(cpu_and_wall_time_worker.prepare_serialize(return_both: true)).to equal(recorders)
+        expect(decode_profile(serializer.serialize)).to eq(profile)
       end
 
       it "resets both backends after fork" do
@@ -140,7 +145,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         streaming = streaming_serializer.serialize
         expect(samples_from_pprof(original)).to_not be_empty
 
-        pending("Streaming serialization currently contains only hello world")
+        pending("Streaming serialization currently contains only sample types")
         expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
       ensure
         cpu_and_wall_time_worker.stop
@@ -2223,7 +2228,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(recorded_miteruby_samples.size).to eq(3)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
-      expect(Zstd.decompress(streaming_serializer.serialize._native_bytes)).to eq("hello world")
+      expect(decode_profile(streaming_serializer.serialize).sample_type.size).to eq(6)
       expect(recorded_miteruby_samples).to be_empty
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)

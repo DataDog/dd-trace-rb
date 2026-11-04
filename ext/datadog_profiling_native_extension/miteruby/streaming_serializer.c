@@ -1,14 +1,35 @@
 #include "streaming_serializer.h"
 #include "allocator.h"
 #include "stack_dedup.h"
+#include "pprof/pb_encode.h"
+#include "pprof/pprof_fragments.pb.h"
 #include "pprof/zstd.h"
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
 #include "../time_helpers.h"
 
-#include <string.h>
-
 enum { COMPRESSION_LEVEL = 1 };
+
+enum fixed_strings {
+  PPROF_STRING_EMPTY = 0,
+  PPROF_STRING_CPU_TIME,
+  PPROF_STRING_NANOSECONDS,
+  PPROF_STRING_CPU_SAMPLES,
+  PPROF_STRING_COUNT,
+  PPROF_STRING_WALL_TIME,
+  PPROF_STRING_ALLOC_SAMPLES,
+  PPROF_STRING_ALLOC_SAMPLES_UNSCALED,
+  PPROF_STRING_TIMELINE,
+};
+
+static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
+  {.type = PPROF_STRING_CPU_TIME, .unit = PPROF_STRING_NANOSECONDS},
+  {.type = PPROF_STRING_CPU_SAMPLES, .unit = PPROF_STRING_COUNT},
+  {.type = PPROF_STRING_WALL_TIME, .unit = PPROF_STRING_NANOSECONDS},
+  {.type = PPROF_STRING_ALLOC_SAMPLES, .unit = PPROF_STRING_COUNT},
+  {.type = PPROF_STRING_ALLOC_SAMPLES_UNSCALED, .unit = PPROF_STRING_COUNT},
+  {.type = PPROF_STRING_TIMELINE, .unit = PPROF_STRING_NANOSECONDS},
+};
 
 typedef struct {
   // TODO: This can probably be max-sized better given limits on stack depth, etc
@@ -62,9 +83,16 @@ static void record_stack_sample(
 
 void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
   streaming_serializer_state *state = get_state(serializer);
-  const char placeholder[] = "hello world";
-  memcpy(state->uncompressed_serialization_buffer, placeholder, sizeof(placeholder) - 1);
-  state->uncompressed_serialization_size = sizeof(placeholder) - 1;
+  state->uncompressed_serialization_size = 0;
+  pb_ostream_t stream = pb_ostream_from_buffer(
+    state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
+  );
+  for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
+    miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
+  }
+  state->uncompressed_serialization_size = stream.bytes_written;
 
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
