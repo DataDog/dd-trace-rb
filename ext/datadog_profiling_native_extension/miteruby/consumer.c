@@ -19,11 +19,20 @@
 
 #define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
 #define MARK_CME_ISEQ_MAX_SIZE MiB_AS_BYTES(16)
+#define LOCATION_MAP_MAX_SIZE MiB_AS_BYTES(16)
+
+typedef struct {
+  miteruby_cme_iseq_id_t cme_iseq_id;
+  miteruby_event_frame_position_t position;
+} miteruby_location_key_t;
 
 static void *mark_threads_calloc(size_t size);
 static void *mark_cme_iseq_calloc(size_t size);
 static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs);
 static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right);
+static void *location_calloc(size_t size);
+static uint64_t location_hash(miteruby_location_key_t key);
+static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t right);
 
 #define NAME verstable_mark_threads_set
 #define KEY_TY VALUE
@@ -42,12 +51,22 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
 #define FREE_FN miteruby_allocator_free_sized
 #include "hashtable/verstable.h"
 
+#define NAME verstable_location_map
+#define KEY_TY miteruby_location_key_t
+#define VAL_TY miteruby_location_id_t
+#define HASH_FN location_hash
+#define CMPR_FN location_equal
+#define MALLOC_FN location_calloc
+#define FREE_FN miteruby_allocator_free_sized
+#include "hashtable/verstable.h"
+
 #define INTERNED_EVENTS_QUEUE_MAX_CAPACITY (MiB_AS_BYTES(16) / sizeof(miteruby_event_deduped_sample_t))
 
 typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;
   verstable_mark_threads_set mark_threads_set;
   verstable_mark_cme_iseq_map mark_cme_iseq_map;
+  verstable_location_map location_map;
 
   // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
   mtx_t mutex;
@@ -103,6 +122,19 @@ static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_fram
   return left.cme == right.cme && left.iseq == right.iseq;
 }
 
+static void *location_calloc(size_t size) {
+  if (size > LOCATION_MAP_MAX_SIZE) return NULL;
+  return miteruby_allocator_alloc(size, "location_map");
+}
+
+static uint64_t location_hash(miteruby_location_key_t key) {
+  return vt_hash_integer(((uint64_t) key.cme_iseq_id.value.value << 16) | key.position.value);
+}
+
+static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t right) {
+  return left.cme_iseq_id.value.value == right.cme_iseq_id.value.value && left.position.value == right.position.value;
+}
+
 static void mutex_lock(mtx_t *mutex) {
   if (mtx_lock(mutex) != thrd_success) rb_bug("Failed to lock miteruby consumer mutex");
 }
@@ -155,7 +187,9 @@ static size_t consumer_size(const void *data) {
   size_t size = sizeof(*state) + sizeof(*state->raw_events_queue) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
-    miteruby_allocator_alloc_size(state->mark_cme_iseq_map.buckets) + miteruby_stack_dedup_size();
+    miteruby_allocator_alloc_size(state->mark_cme_iseq_map.buckets) +
+    miteruby_allocator_alloc_size(state->location_map.buckets) +
+    miteruby_stack_dedup_size();
 
   mutex_unlock(&consumer_state.mutex);
 
@@ -176,6 +210,7 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   size_t interned_events_used_size = consumer_state.interned_events_count * sizeof(*consumer_state.interned_events_queue);
   size_t mark_threads_entries = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
   size_t mark_cme_iseq_entries = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
+  size_t location_entries = verstable_location_map_size(&consumer_state.location_map);
   miteruby_stack_dedup_stats_t stack_dedup = miteruby_stack_dedup_stats();
   miteruby_consumer_recorder_stats_t recorder = miteruby_consumer_recorder_stats();
   mutex_unlock(&consumer_state.mutex);
@@ -189,6 +224,8 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
     ID2SYM(rb_intern("miteruby_mark_threads_entries")), SIZET2NUM(mark_threads_entries),
     ID2SYM(rb_intern("miteruby_mark_cme_iseq_max_size_bytes")), SIZET2NUM(MARK_CME_ISEQ_MAX_SIZE),
     ID2SYM(rb_intern("miteruby_mark_cme_iseq_entries")), SIZET2NUM(mark_cme_iseq_entries),
+    ID2SYM(rb_intern("miteruby_location_map_max_size_bytes")), SIZET2NUM(LOCATION_MAP_MAX_SIZE),
+    ID2SYM(rb_intern("miteruby_location_map_entries")), SIZET2NUM(location_entries),
     ID2SYM(rb_intern("miteruby_unique_stacks_array_max_size_bytes")), SIZET2NUM(stack_dedup.array_max_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_array_used_size_bytes")), SIZET2NUM(stack_dedup.array_used_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_map_max_size_bytes")), SIZET2NUM(stack_dedup.map_max_size_bytes),
@@ -206,6 +243,7 @@ void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
   consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
   verstable_mark_cme_iseq_map_init(&consumer_state.mark_cme_iseq_map);
+  verstable_location_map_init(&consumer_state.location_map);
 
   if (!miteruby_stack_dedup_init()) rb_raise(rb_eRuntimeError, "Failure during miteruby_stack_dedup_init");
 
@@ -238,6 +276,7 @@ void miteruby_consumer_reset(void) {
 
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
   verstable_mark_cme_iseq_map_clear(&consumer_state.mark_cme_iseq_map);
+  verstable_location_map_clear(&consumer_state.location_map);
 
   miteruby_consumer_recorder_init();
 
