@@ -62,6 +62,14 @@
 /* TODO: Can't amalgamate ASM function */
 #define ZSTD_DISABLE_ASM 1
 
+/* All compression state must live in miteruby-owned workspace supplied to ZSTD_initStaticCCtx().
+ * Reject dynamic allocations in zstd and its bundled xxHash so new code paths cannot silently use malloc. */
+#define ZSTD_DEPS_MALLOC
+#define ZSTD_malloc(size) ((void)(size), (void *)0)
+#define ZSTD_calloc(count, size) ((void)(count), (void)(size), (void *)0)
+#define ZSTD_free(pointer) ((void)(pointer))
+#define XXH_NO_STDLIB
+
 /* Include zstd_deps.h first with all the options we need enabled. */
 #define ZSTD_DEPS_NEED_MALLOC
 #define ZSTD_DEPS_NEED_MATH64
