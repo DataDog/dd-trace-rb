@@ -51,16 +51,19 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
   end
 
   [[], ["unknown-v1"], ["dependent-flag-variant-key-v1"]].each do |capabilities|
-    it "gates initial and conditional request capabilities for #{capabilities.inspect}" do
+    it "gates initial and conditional request capability parameters for #{capabilities.inspect}" do
       allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:supported).and_return(capabilities)
+      expected = if capabilities.include?("dependent-flag-variant-key-v1")
+        "https://example.test/config?dd_env=test&cap_dependent-flags-variant-key=v1"
+      else
+        "https://example.test/config?dd_env=test"
+      end
+      stub_request(:get, expected).to_return(status: 200, body: "configuration")
       transport.get(nil)
       transport.get("previous")
 
-      expected = capabilities.include?("dependent-flag-variant-key-v1") ? "dependent-flag-variant-key-v1" : nil
       expect(
-        a_request(:get, "https://example.test/config?dd_env=test").with do |request|
-          request.headers["X-Dd-Feature-Flags-Capabilities"] == expected
-        end,
+        a_request(:get, expected),
       ).to have_been_made.twice
     end
   end
