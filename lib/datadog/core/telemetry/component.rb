@@ -2,6 +2,7 @@
 
 require_relative "event"
 require_relative "logging"
+require_relative "native_backend"
 require_relative "ruby_backend"
 
 require_relative "../configuration/ext"
@@ -72,12 +73,21 @@ module Datadog
           @settings = settings
           @agent_settings = agent_settings
 
-          @backend = RubyBackend.new(
-            settings: settings,
-            agent_settings: agent_settings,
-            logger: logger,
-            enabled: enabled,
-          )
+          @backend = if settings.telemetry.native_worker && NativeBackend.unsupported_reason.nil?
+            NativeBackend.new(
+              settings: settings,
+              agent_settings: agent_settings,
+              logger: logger,
+              enabled: enabled,
+            )
+          else
+            RubyBackend.new(
+              settings: settings,
+              agent_settings: agent_settings,
+              logger: logger,
+              enabled: enabled,
+            )
+          end
         end
 
         def disable!
@@ -120,7 +130,7 @@ module Datadog
         def log!(event)
           return unless enabled? && @log_collection_enabled
 
-          @backend.enqueue(event)
+          @backend.add_log(event)
         end
 
         # Wait for the worker to send out all events that have already

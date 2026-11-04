@@ -28,6 +28,8 @@ module Datadog
 
         def enqueue: (Event::Base event) -> void
 
+        def add_log: (Event::Log event) -> void
+
         def flush: (?timeout: Numeric?) -> bool?
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
