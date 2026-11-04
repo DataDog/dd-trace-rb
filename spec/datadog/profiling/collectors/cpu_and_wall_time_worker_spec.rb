@@ -99,6 +99,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "returns both persistent recorders when requested and prepares both backends" do
+        expect(Datadog::Profiling::EncodedProfile).to receive(:from_custom).twice.and_wrap_original do |original, start, finish, bytes|
+          encoded = original.call(start, finish, bytes)
+          profile = decode_profile(encoded)
+          expect(profile.time_nanos).to eq((start.to_r * 1_000_000_000).to_i)
+          expect(profile.duration_nanos).to eq(((finish.to_r - start.to_r) * 1_000_000_000).to_i)
+          encoded
+        end
         expect(described_class).to receive(:_native_miteruby_consumer_prepare_serialize).with(
           an_instance_of(Datadog::Profiling::Miteruby::LibdatadogRecorder),
           an_instance_of(Datadog::Profiling::Miteruby::StreamingSerializer),
@@ -119,8 +126,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
         expect(profile.sample).to be_empty
+        expect(profile.time_nanos).to be > 0
+        expect(profile.duration_nanos).to be > 0
         expect(cpu_and_wall_time_worker.prepare_serialize(return_both: true)).to equal(recorders)
-        expect(decode_profile(serializer.serialize)).to eq(profile)
+        next_profile = decode_profile(serializer.serialize)
+        expect(next_profile.time_nanos).to eq(profile.time_nanos + profile.duration_nanos)
+        expect(next_profile.duration_nanos).to be > 0
+        expect(next_profile.to_h.reject { |key, _| [:time_nanos, :duration_nanos].include?(key) }).to eq(
+          profile.to_h.reject { |key, _| [:time_nanos, :duration_nanos].include?(key) },
+        )
       end
 
       it "resets both backends after fork" do
@@ -148,7 +162,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         streaming = streaming_serializer.serialize
         expect(samples_from_pprof(original)).to_not be_empty
 
-        pending("Streaming serialization currently contains only sample types and their strings")
+        pending("Streaming serialization currently contains only sample types, their strings, and profile metadata")
         expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
       ensure
         cpu_and_wall_time_worker.stop
