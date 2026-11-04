@@ -21,9 +21,9 @@ module Datadog
 
               include Core::Remote::Transport::Config::Response
 
-              def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped http_response, ?Hash[untyped, untyped] options) -> void
 
-              def inspect: () -> ::String
+              def inspect: () -> String
 
               class KeyError < StandardError
                 def initialize: (untyped key) -> void
