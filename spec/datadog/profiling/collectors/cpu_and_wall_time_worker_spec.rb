@@ -1814,10 +1814,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "exposes storage limits before starting the worker" do
         expect(cpu_and_wall_time_worker.stats).to include(
           miteruby_raw_events_queue_max_size_bytes: 1024 * 1024, # 1 MiB
-          miteruby_interned_events_queue_max_size_bytes: 16_777_200, # around 16 MiB, it rounds because records are 40 bytes
+          miteruby_interned_events_queue_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_mark_threads_max_size_bytes: 100 * 1024,
           miteruby_mark_cme_iseq_max_size_bytes: 16 * 1024 * 1024,
-          miteruby_unique_stacks_array_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_unique_stacks_map_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_thread_contexts_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
         )
@@ -2100,7 +2099,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        initial_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_unique_stacks_array_used_size_bytes)
+        initial_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)
         64.times do
           expect(eval("sample.call(350)", binding, __FILE__, __LINE__)).to be true
           described_class::Testing._native_miteruby_wake_reader
@@ -2108,7 +2107,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         expect(consumer).to be_alive
-        used_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_unique_stacks_array_used_size_bytes) - initial_bytes
+        used_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes) - initial_bytes
         expect(used_bytes).to be < 64 * 350 * 2
         consumer.kill
         expect(consumer.join(5)).to equal(consumer)
@@ -2231,7 +2230,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
         miteruby_mark_cme_iseq_entries: 0,
-        miteruby_unique_stacks_array_used_size_bytes: 0,
         miteruby_unique_stacks_map_entries: 0,
         miteruby_thread_contexts_entries: 0,
       }
@@ -2245,10 +2243,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consume_miteruby
       consumed_stats = cpu_and_wall_time_worker.stats.select { |key, _| key.to_s.start_with?("miteruby_") }
       expect(consumed_stats).to include(
-        miteruby_interned_events_queue_used_size_bytes: 80,
+        miteruby_interned_events_queue_used_size_bytes: be >= 96,
         miteruby_mark_threads_entries: 1,
         miteruby_mark_cme_iseq_entries: be > 0,
-        miteruby_unique_stacks_array_used_size_bytes: be > 0,
         miteruby_unique_stacks_map_entries: 1,
         miteruby_thread_contexts_entries: 0,
       )
@@ -2258,7 +2255,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       recorded_miteruby_samples
       expect(cpu_and_wall_time_worker.stats).to include(
-        consumed_stats.merge(miteruby_interned_events_queue_used_size_bytes: 0, miteruby_thread_contexts_entries: 1),
+        consumed_stats.merge(miteruby_interned_events_queue_used_size_bytes: 0, miteruby_unique_stacks_map_entries: 0, miteruby_thread_contexts_entries: 1),
       )
 
       capture_miteruby {}
