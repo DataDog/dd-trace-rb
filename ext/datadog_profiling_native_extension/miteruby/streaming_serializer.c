@@ -1,17 +1,29 @@
 #include "streaming_serializer.h"
+#include "allocator.h"
+#include "stack_dedup.h"
 #include "../datadog_ruby_common.h"
+#include "../helpers.h"
 
 typedef struct {
+  // TODO: This can probably be max-sized better given limits on stack depth, etc
+  uint8_t *uncompressed_serialization_buffer;
   uint64_t recorded_samples;
 } streaming_serializer_state;
 
+static void serializer_free(void *data) {
+  streaming_serializer_state *state = data;
+  miteruby_allocator_free(state->uncompressed_serialization_buffer);
+  ruby_xfree(state);
+}
+
 static size_t serializer_size(const void *data) {
-  return data ? sizeof(streaming_serializer_state) : 0;
+  const streaming_serializer_state *state = data;
+  return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) : 0;
 }
 
 static const rb_data_type_t serializer_type = {
   .wrap_struct_name = "Datadog::Profiling::Miteruby::StreamingSerializer",
-  .function = {.dfree = RUBY_DEFAULT_FREE, .dsize = serializer_size},
+  .function = {.dfree = serializer_free, .dsize = serializer_size},
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
@@ -23,13 +35,28 @@ static streaming_serializer_state *get_state(VALUE serializer) {
 
 static VALUE serializer_new(VALUE klass) {
   streaming_serializer_state *state;
-  return TypedData_Make_Struct(klass, streaming_serializer_state, &serializer_type, state);
+  VALUE serializer = TypedData_Make_Struct(klass, streaming_serializer_state, &serializer_type, state);
+  state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
+  if (state->uncompressed_serialization_buffer == NULL)
+    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
+  return serializer;
 }
 
-void miteruby_streaming_serializer_record_stack_sample(
-  VALUE serializer, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event, DDTRACE_UNUSED miteruby_stack_t stack
+static void record_stack_sample(
+  streaming_serializer_state *state, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event, DDTRACE_UNUSED miteruby_stack_t stack
 ) {
-  get_state(serializer)->recorded_samples++;
+  state->recorded_samples++;
+}
+
+void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
+  streaming_serializer_state *state = get_state(serializer);
+
+  for (size_t pos = 0; pos < interned_events_pos;) {
+    const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
+    miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
+    record_stack_sample(state, event, stack);
+    pos += event->header.size_bytes;
+  }
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
@@ -38,7 +65,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 }
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  *get_state(serializer) = (streaming_serializer_state) {0};
+  get_state(serializer)->recorded_samples = 0;
   return Qtrue;
 }
 
