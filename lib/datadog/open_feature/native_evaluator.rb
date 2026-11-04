@@ -59,7 +59,7 @@ module Datadog
         details = build_resolution_details(result, default_value)
         dependencies = result.respond_to?(:dependency_evaluations) ? result.dependency_evaluations : []
         details.dependency_evaluations = dependencies.map do |key, dependency, eligible|
-          [key, build_resolution_details(dependency, nil), eligible]
+          [key, build_dependency_resolution_details(dependency), eligible]
         end
         details
       end
@@ -71,6 +71,21 @@ module Datadog
 
         native_timestamp = timestamp.dup.force_encoding(Encoding::UTF_8)
         native_timestamp.valid_encoding? && !native_timestamp.include?("\0")
+      end
+
+      def build_dependency_resolution_details(result)
+        if result.variant.nil? && (result.reason == "DISABLED" || result.reason == Ext::DEFAULT)
+          return ResolutionDetails.new(
+            value: nil,
+            reason: Ext::ERROR,
+            error_code: Ext::GENERAL,
+            error_message: "prerequisite has no assignment",
+            error?: true,
+            log?: false,
+          )
+        end
+
+        build_resolution_details(result, nil)
       end
 
       def build_resolution_details(result, default_value)
