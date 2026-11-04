@@ -57,7 +57,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
       [nil, "previous"].each do |etag_value|
         it "negotiates the capability parameter with ETag #{etag_value.inspect}" do
           expected = if supported
-            "https://example.test/config?dd_env=test&dependent-flags-variant-key=v1"
+            "https://example.test/config?dd_env=test&cap_dependent-flags-variant-key=v1"
           else
             "https://example.test/config?dd_env=test"
           end
