@@ -5,12 +5,12 @@ module Datadog
         MATCH_ALL_PATTERN: String
 
         interface _Matcher
-          def match?: (::String) -> bool
+          def match?: (String) -> bool
         end
 
         MATCH_ALL: _Matcher
 
-        def self.glob_to_regex: (::String) -> _Matcher
+        def self.glob_to_regex: (String) -> _Matcher
 
         def match?: (untyped trace) -> untyped
       end

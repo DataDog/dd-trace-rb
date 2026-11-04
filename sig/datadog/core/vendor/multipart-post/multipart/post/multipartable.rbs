@@ -14,9 +14,9 @@ module Datadog
 
             include _HTTPRequestHost
 
-            def self.secure_boundary: () -> ::String
+            def self.secure_boundary: () -> String
 
-            def initialize: (untyped path, untyped params, ?::Hash[untyped, untyped] headers, ?untyped boundary) -> void
+            def initialize: (untyped path, untyped params, ?Hash[untyped, untyped] headers, ?untyped boundary) -> void
 
             attr_reader boundary: untyped
           end

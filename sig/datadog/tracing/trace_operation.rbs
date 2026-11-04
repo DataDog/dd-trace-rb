@@ -5,13 +5,13 @@ module Datadog
 
       include Datadog::OpenTelemetry::API::TraceOperation
 
-      DEFAULT_MAX_LENGTH: ::Integer
-      AUTO_SAMPLING_PRIORITIES: ::Array[::Integer]
-      RECONSIDERABLE_DECISIONS: ::Array[::String]
+      DEFAULT_MAX_LENGTH: Integer
+      AUTO_SAMPLING_PRIORITIES: Array[Integer]
+      RECONSIDERABLE_DECISIONS: Array[String]
       DEFER_ASYNC_INTERRUPTS: Hash[singleton(Exception), Symbol]
 
       @logger: Core::Logger
-      @span_links: ::Array[SpanLink]?
+      @span_links: Array[SpanLink]?
       @distributed_sampling_priority: bool
       @id: Integer
       @max_length: Integer
@@ -73,7 +73,7 @@ module Datadog
         ?name: untyped?,
         ?origin: untyped?,
         ?parent_span_id: untyped?,
-        ?span_links: ::Array[SpanLink]?,
+        ?span_links: Array[SpanLink]?,
         ?rate_limiter_rate: untyped?,
         ?resource: untyped?,
         ?rule_sample_rate: untyped?,

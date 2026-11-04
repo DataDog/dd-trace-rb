@@ -3,7 +3,7 @@ module Datadog
     type instrumentation_kind = :line | :method
     INSTRUMENTED_COUNTERS_LOCK: Mutex
 
-    self.@instrumented_count: ::Hash[instrumentation_kind, ::Integer]
+    self.@instrumented_count: Hash[instrumentation_kind, Integer]
 
     def self.enabled?: () -> bool
 
@@ -39,7 +39,7 @@ module Datadog
 
     private
 
-    def self.unsupported_platform_reason: () -> ::String?
+    def self.unsupported_platform_reason: () -> String?
 
     def self.validate_kind!: (instrumentation_kind kind) -> void
   end

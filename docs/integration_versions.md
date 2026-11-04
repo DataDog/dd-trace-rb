@@ -15,7 +15,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | action_view              | 4.2.11.3            | 8.1.4               |
 | active_job               | 4.2.11.3            | 8.1.3.1             |
 | active_model_serializers | 0.10.13             | 0.10.16             |
-| active_record            | 4.2.11.3            | 8.1.3.1             |
+| active_record            | 4.2.11.3            | 8.1.4               |
 | active_support           | 4.2.11.3            | 8.1.4               |
 | aws                      | 3.1.0               | 3.3.0               |
 | concurrent_ruby          | 1.3.8               | 1.3.8               |
@@ -26,7 +26,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | excon                    | 0.109.0             | 1.7.1               |
 | faraday                  | 0.14.0              | 2.14.4              |
 | grape                    | 1.7.0               | 4.0.1               |
-| graphql                  | 1.13.25             | 2.6.11              |
+| graphql                  | 1.13.25             | 2.6.14              |
 | grpc                     | 1.48.0              | 1.84.0              |
 | hanami                   | 1.3.5               | 1.3.5               |
 | http                     | 5.0.4               | 6.0.4               |
@@ -41,11 +41,11 @@ For a list of available integrations, and their supported version ranges, refer 
 | mongo                    | 2.11.0              | 2.26.0              |
 | mysql2                   | 0.5.5               | 0.5.7               |
 | opensearch               | 2.1.0               | 3.4.0               |
-| pg                       | 0.21.0              | 1.6.2               |
+| pg                       | 0.21.0              | 1.7.0               |
 | presto                   | 0.6.6               | 0.6.6               |
 | que                      | 1.4.1               | 2.4.1               |
 | racecar                  | 2.6.0               | 2.12.0              |
-| rack                     | 1.6.13              | 3.2.7               |
+| rack                     | 1.6.13              | 3.2.8               |
 | rails                    | 4.2.11.3            | 8.1.3.1             |
 | rake                     | 12.3.3              | 13.4.2              |
 | redis                    | 3.3.5               | 6.0.0               |
@@ -60,5 +60,5 @@ For a list of available integrations, and their supported version ranges, refer 
 | sneakers                 | 2.12.0              | 2.12.0              |
 | stripe                   | 5.15.0              | 19.6.2              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
-| trilogy                  | 2.6.0               | 2.9.0               |
+| trilogy                  | 2.6.0               | 2.13.2              |
 | waterdrop                | 2.6.14              | 2.10.5              |

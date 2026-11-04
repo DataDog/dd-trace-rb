@@ -10,12 +10,12 @@ module Datadog
               include ActiveSupport::Cache::Event
               def self?.subscribe!: () -> untyped
 
-              def self?.event_name: () -> ::Regexp
+              def self?.event_name: () -> Regexp
 
               def self?.span_name: () -> untyped
 
               def self?.span_options: () -> { type: untyped }
-              MAPPING: ::Hash[::String, { resource: untyped } | { resource: untyped, multi_key: true }]
+              MAPPING: Hash[String, { resource: untyped } | { resource: untyped, multi_key: true }]
 
               def self?.trace?: (untyped event, untyped _payload) -> (false | untyped)
 

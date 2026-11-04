@@ -8,7 +8,7 @@ module Datadog
 
         DEFAULT_TIMEOUT: Integer
 
-        BACK_OFF_RATIO: ::Float
+        BACK_OFF_RATIO: Float
 
         BACK_OFF_MAX: Integer
 
@@ -19,7 +19,7 @@ module Datadog
         @flush_interval: untyped
         @back_off: untyped
         @trace_buffer: (ThreadSafeTraceBuffer | CRubyTraceBuffer)
-        @shutdown: ::ConditionVariable
+        @shutdown: ConditionVariable
         @shutdown_timeout: untyped
         @mutex: Mutex
         @worker: Thread?

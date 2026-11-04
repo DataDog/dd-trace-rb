@@ -13,7 +13,7 @@ module Datadog
 
           def empty?: () -> bool
 
-          def length: () -> ::Integer
+          def length: () -> Integer
 
           def original_hash: () -> ::Hash[untyped, untyped]
         end

@@ -4,7 +4,7 @@ module Datadog
       module ActiveSupport
         module Cache
           module Events
-            ALL: ::Array[untyped]
+            ALL: Array[untyped]
 
             def self?.all: () -> untyped
 

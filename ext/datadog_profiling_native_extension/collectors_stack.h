@@ -5,8 +5,10 @@
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 
-#define MAX_FRAMES_LIMIT            3000
-#define MAX_FRAMES_LIMIT_AS_STRING "3000"
+#define MIN_FRAMES_LIMIT            400
+#define MIN_FRAMES_LIMIT_AS_STRING "400"
+#define MAX_FRAMES_LIMIT            600
+#define MAX_FRAMES_LIMIT_AS_STRING "600"
 
 // Longest qualified frame name we keep per frame in `sampling_buffer`. Longer names are still reported, they just get
 // composed again on every sample; this bounds the per-thread memory the cache costs (max_frames * this).

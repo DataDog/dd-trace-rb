@@ -1,17 +1,16 @@
-# TODO: Fix and remove `ignore 'lib/datadog/core/utils/at_fork_monkey_patch.rb` from `Steep`
 module Datadog
   module Core
     module Utils
       module AtForkMonkeyPatch
-        type fork_block = ^() -> untyped
         self.@at_fork_blocks: ::Hash[Symbol, Array[Callback]]
 
         EMPTY_AT_FORK_BLOCKS: ::Hash[Symbol, Array[Callback]]
 
-        AT_FORK_REGISTRY_MUTEX: Mutex
+        AT_FORK_REGISTRY_MUTEX: Thread::Mutex
 
         class Callback
           attr_reader block: Proc
+
           attr_reader group: Object?
 
           def initialize: (Proc block, ?Object? group) -> void
