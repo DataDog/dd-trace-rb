@@ -11,7 +11,7 @@
 // When deduplicating stacks, we treat stacks with the same hash as identical.
 //
 // This allows us to save CPU and memory:
-// * We store frames as `miteruby_location_id_t` indexes, saving memory.
+// * We store delta-encoded location IDs, saving memory.
 // * Converting every incoming stack to those indexes requires O(frames) lookups in the CME/ISEQ and location maps.
 //   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
 //   Hashing itself remains O(frames).
@@ -33,7 +33,8 @@ typedef struct {
 
 typedef struct {
   uint16_t frame_count;
-  miteruby_location_id_t *ids;
+  uint8_t *ids;
+  const uint8_t *end;
 } miteruby_stack_t;
 
 typedef struct {
@@ -43,7 +44,7 @@ typedef struct {
   struct {
     miteruby_stack_dedup_id_t id;
     bool reserved;
-    // Empty for an existing stack. A reservation borrows unused storage until the next reservation or reset.
+    // Empty for an existing stack. A reservation borrows worst-case storage until the next reservation or reset.
     miteruby_stack_t stack;
   } ok;
 } miteruby_stack_dedup_result_t;
@@ -68,4 +69,5 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame
 
 // Hold the consumer mutex from reservation through filling and commit. Commit only the latest reservation, once.
 // Failure leaves the map and storage position unchanged; abandoned reservations need no cleanup.
-bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash);
+// ids_end is the cursor after writing all frame IDs, within the reservation.
+bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash, const uint8_t *ids_end);
