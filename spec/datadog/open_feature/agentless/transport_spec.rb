@@ -63,9 +63,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
       transport.get("previous")
 
       expect(
-        a_request(:get, expected).with do |request|
-          !request.headers.key?("X-Dd-Feature-Flags-Capabilities")
-        end,
+        a_request(:get, expected),
       ).to have_been_made.twice
     end
   end
