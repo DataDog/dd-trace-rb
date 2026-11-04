@@ -17,8 +17,8 @@ above, plus `steep:ignore` as a last resort
   when Steep infers a local, block parameter, or instance variable wrong. Pin
   the real type, NEVER `untyped`
 - `steep:ignore` is the last resort. SHOULD scope it to the specific diagnostic
-  (`steep:ignore NoMethod`), NEVER bare. Bracket a run with
-  `steep:ignore:start` / `steep:ignore:end`
+  (`steep:ignore NoMethod`), NEVER bare. To ignore several consecutive lines,
+  put `# steep:ignore:start` before them and `# steep:ignore:end` after them
 
 ## Examples
 
