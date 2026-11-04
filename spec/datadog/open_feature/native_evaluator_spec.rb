@@ -15,6 +15,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:resolution_details_class) do
     Class.new do
       attr_reader(
+        :dependency_evaluations,
         :value,
         :reason,
         :error_code,
@@ -43,6 +44,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:assignment) do
     instance_double(
       resolution_details_class,
+      dependency_evaluations: [],
       value: value,
       reason: reason,
       error_code: error_code,
@@ -121,6 +123,54 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         expect(result.flag_metadata).to eq("native" => "kept")
       end
     end
+
+    context "with a prerequisite result" do
+      let(:dependency) do
+        instance_double(
+          resolution_details_class,
+          value: false, reason: dependency_reason, variant: dependency_variant,
+          error_code: nil, error_message: nil, flag_metadata: {}, allocation_key: nil,
+          serial_id: nil, log?: false, error?: false,
+        )
+      end
+      let(:dependency_reason) { "DEFAULT" }
+      let(:dependency_variant) { nil }
+
+      before do
+        allow(assignment).to receive(:dependency_evaluations).and_return([["parent", dependency, false]])
+      end
+
+      ["DISABLED", "DEFAULT"].each do |native_reason|
+        context "when the prerequisite has no assignment with reason #{native_reason}" do
+          let(:dependency_reason) { native_reason }
+
+          it "normalizes the prerequisite to an error" do
+            key, details, eligible = result.dependency_evaluations.fetch(0)
+            expect(key).to eq("parent")
+            expect(eligible).to be(false)
+            expect(details.value).to be_nil
+            expect(details.reason).to eq("ERROR")
+            expect(details.error_code).to eq("GENERAL")
+            expect(details.error_message).to eq("prerequisite has no assignment")
+            expect(details.error?).to be(true)
+            expect(details.log?).to be(false)
+          end
+        end
+      end
+
+      context "when the prerequisite has a default allocation assignment" do
+        let(:dependency_variant) { "off" }
+
+        it "preserves the assigned variant and default reason" do
+          details = result.dependency_evaluations.fetch(0).fetch(1)
+          expect(details.value).to be(false)
+          expect(details.variant).to eq("off")
+          expect(details.reason).to eq("DEFAULT")
+          expect(details.error_code).to be_nil
+          expect(details.error?).to be(false)
+        end
+      end
+    end
   end
 
   describe "#observe_full_evaluation_data" do
@@ -134,6 +184,81 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
     context "when the native configuration does not opt in" do
       it { is_expected.to be(false) }
+    end
+  end
+  context "with native prerequisite evaluation" do
+    let(:configuration_json) { File.read(File.expand_path("../../fixtures/ffe/dependent_flags.json", __dir__)) }
+
+    before do
+      allow(Datadog::Core::FeatureFlags::Configuration).to receive(:new).and_call_original
+      skip "requires the prerequisite-aware native library" unless Datadog::Core::FeatureFlags.evaluator_capabilities.include?("dependent-flag-variant-key-v1")
+    end
+
+    it "returns each prerequisite once and preserves exposure metadata after GC" do
+      result = evaluator.get_assignment("root", default_value: false, expected_type: :boolean, context: context)
+      GC.start
+      expect(result.value).to be(true)
+      expect(result.dependency_evaluations.size).to eq(1)
+      key, dependency, eligible = result.dependency_evaluations.first
+      expect(key).to eq("parent")
+      expect(dependency.variant).to eq("on")
+      expect(dependency.allocation_key).to eq("parent-allocation")
+      expect(dependency.log?).to be(true)
+      expect(eligible).to be(true)
+    end
+
+    it "keeps a rejected prerequisite evaluation but suppresses its exposure" do
+      result = evaluator.get_assignment("rejected", default_value: true, expected_type: :boolean, context: context)
+      expect(result.value).to be(false)
+      expect(result.dependency_evaluations.map { |key, _details, eligible| [key, eligible] }).to eq([["parent", false]])
+    end
+
+    ["missing", "cycle", "requires-disabled"].each do |key|
+      it "returns the caller default when #{key} cannot be evaluated" do
+        result = evaluator.get_assignment(key, default_value: false, expected_type: :boolean, context: context)
+        expect(result.value).to be(false)
+        expect(result.error?).to be(true)
+        if key == "cycle"
+          expect(result.dependency_evaluations).to be_empty # The root is not counted again as a prerequisite.
+        else
+          expect(result.dependency_evaluations).not_to be_empty
+        end
+        expect(result.dependency_evaluations.map { |_key, _details, eligible| eligible }).to all(be(false))
+        expect(evaluator.get_assignment("parent", default_value: false, expected_type: :boolean, context: context).value).to be(true)
+      end
+    end
+
+    ["disabled", "unassigned"].each do |failure|
+      context "when a reached prerequisite is #{failure}" do
+        let(:configuration_json) do
+          configuration = JSON.parse(super())
+          parent = configuration.fetch("flags").fetch("parent")
+          if failure == "disabled"
+            parent["enabled"] = false
+          else
+            parent["allocations"] = []
+          end
+          JSON.generate(configuration)
+        end
+
+        it "reports the prerequisite failure and preserves direct evaluation behavior" do
+          result = evaluator.get_assignment("root", default_value: false, expected_type: :boolean, context: context)
+          expect(result.value).to be(false)
+          expect(result.error_code).to eq("GENERAL")
+          key, dependency, eligible = result.dependency_evaluations.fetch(0)
+          expect(key).to eq("parent")
+          expect(eligible).to be(false)
+          expect(dependency.reason).to eq("ERROR")
+          expect(dependency.error_code).to eq("GENERAL")
+          expect(dependency.error?).to be(true)
+
+          direct = evaluator.get_assignment("parent", default_value: false, expected_type: :boolean, context: context)
+          expect(direct.value).to be(false)
+          expect(direct.reason).to eq((failure == "disabled") ? "DISABLED" : "DEFAULT")
+          expect(direct.error_code).to be_nil
+          expect(direct.error?).to be(false)
+        end
+      end
     end
   end
 end

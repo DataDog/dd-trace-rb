@@ -85,8 +85,37 @@ static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
   return rb_str_new((const char *)str.ptr, str.len);
 }
 
+static VALUE evaluator_capabilities(DDTRACE_UNUSED VALUE self) {
+#ifdef HAVE_DDOG_FFE_ASSIGNMENT_DEPENDENCY_RESULT
+  return rb_ary_new_from_args(1, rb_str_new_lit("dependent-flag-variant-key-v1"));
+#else
+  return rb_ary_new();
+#endif
+}
+
+static VALUE resolution_details_dependencies(VALUE self) {
+  VALUE dependencies = rb_ary_new();
+#ifdef HAVE_DDOG_FFE_ASSIGNMENT_DEPENDENCY_RESULT
+  ddog_ffe_Handle_ResolutionDetails root =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  size_t count = ddog_ffe_assignment_dependency_count(root);
+  for (size_t index = 0; index < count; index++) {
+    VALUE key = str_from_borrow(ddog_ffe_assignment_dependency_key(root, index));
+    VALUE eligible = ddog_ffe_assignment_dependency_exposure_eligible(root, index) ? Qtrue : Qfalse;
+    VALUE result = TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, NULL);
+    DATA_PTR(result) = ddog_ffe_assignment_dependency_result(root, index);
+    rb_ary_push(dependencies, rb_ary_new_from_args(3, key, result, eligible));
+  }
+#else
+  (void)self;
+#endif
+  RB_GC_GUARD(self);
+  return dependencies;
+}
+
 void feature_flags_init(VALUE core_module) {
   VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
+  rb_define_singleton_method(feature_flags_module, "evaluator_capabilities", evaluator_capabilities, 0);
 
   rb_gc_register_address(&feature_flags_error_class);
   feature_flags_error_class = rb_define_class_under(feature_flags_module, "Error", rb_eStandardError);
@@ -100,6 +129,7 @@ void feature_flags_init(VALUE core_module) {
   rb_gc_register_address(&resolution_details_class);
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
   rb_undef_alloc_func(resolution_details_class);
+  rb_define_method(resolution_details_class, "dependency_evaluations", resolution_details_dependencies, 0);
   rb_define_method(resolution_details_class, "raw_value", resolution_details_get_raw_value, 0);
   rb_define_method(resolution_details_class, "flag_type", resolution_details_get_flag_type, 0);
   rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);

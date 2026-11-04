@@ -17,6 +17,7 @@ module Datadog
       :allocation_key,
       :serial_id,
       :extra_logging,
+      :dependency_evaluations,
       :log?,
       :error?,
       keyword_init: true,

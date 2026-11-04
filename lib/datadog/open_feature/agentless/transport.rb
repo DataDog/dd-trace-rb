@@ -9,6 +9,7 @@ require "zlib"
 require_relative "../../core/environment/identity"
 require_relative "../../core/transport/ext"
 require_relative "response"
+require_relative "../evaluator_capabilities"
 
 module Datadog
   module OpenFeature
@@ -61,6 +62,9 @@ module Datadog
             "DD-Client-Library-Version" => Core::Environment::Identity.gem_datadog_version_semver2,
             Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => "1",
           }
+          if EvaluatorCapabilities.dependent_flags?
+            headers["X-DD-FEATURE-FLAGS-CAPABILITIES"] = EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1
+          end
           api_key = @api_key
           headers[Core::Transport::Ext::HTTP::HEADER_DD_API_KEY] = api_key if api_key
           headers["If-None-Match"] = etag if etag

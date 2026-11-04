@@ -127,6 +127,14 @@ module Datadog
         ::Integer eval_time_ms
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
+      def record_dependency_evaluations: (
+        ResolutionDetails result,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context,
+        Integer eval_time_ms
+      ) -> void
+
+      def capture_dependency_telemetry: () { () -> void } -> void
+
       def fetch_engine_value: (
         EvaluationEngine engine,
         ::String flag_key,

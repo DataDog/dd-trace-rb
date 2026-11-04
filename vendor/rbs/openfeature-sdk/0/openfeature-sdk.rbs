@@ -74,6 +74,12 @@ module OpenFeature
     end
 
     class EvaluationDetails < ::Struct[untyped]
+      def self.new: (?flag_key: String?, ?resolution_details: Provider::ResolutionDetails?) -> instance
+
+      attr_accessor flag_key: String?
+
+      attr_accessor resolution_details: Provider::ResolutionDetails?
+
       def variant: () -> ::String?
       def reason: () -> ::String?
       def error_code: () -> ::String?

@@ -36,10 +36,30 @@ module Datadog
 
         return invalid_flag_configuration_error(default_value) if invalid_flag_configuration?(result)
 
-        build_resolution_details(result, default_value)
+        details = build_resolution_details(result, default_value)
+        dependencies = result.respond_to?(:dependency_evaluations) ? result.dependency_evaluations : []
+        details.dependency_evaluations = dependencies.map do |key, dependency, eligible|
+          [key, build_dependency_resolution_details(dependency), eligible]
+        end
+        details
       end
 
       private
+
+      def build_dependency_resolution_details(result)
+        if result.variant.nil? && (result.reason == "DISABLED" || result.reason == Ext::DEFAULT)
+          return ResolutionDetails.new(
+            value: nil,
+            reason: Ext::ERROR,
+            error_code: Ext::GENERAL,
+            error_message: "prerequisite has no assignment",
+            error?: true,
+            log?: false,
+          )
+        end
+
+        build_resolution_details(result, nil)
+      end
 
       def build_resolution_details(result, default_value)
         ResolutionDetails.new(

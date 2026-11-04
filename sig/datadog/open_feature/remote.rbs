@@ -3,6 +3,8 @@ module Datadog
     module Remote
       FFE_FLAG_CONFIGURATION_RULES: ::Integer
 
+      FFE_FLAG_DEPENDENT_FLAG_VARIANT_KEY_V1: Integer
+
       FFE_PRODUCTS: ::Array[::String]
 
       FFE_CAPABILITIES: ::Array[::Integer]

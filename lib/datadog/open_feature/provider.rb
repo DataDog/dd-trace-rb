@@ -439,6 +439,8 @@ module Datadog
         # Build metadata before branching so provider-returned details carry eval-entry time.
         flag_meta = build_flag_metadata(result, eval_time_ms)
 
+        record_dependency_evaluations(result, evaluation_context, eval_time_ms)
+
         if result.error?
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
         end
@@ -464,6 +466,39 @@ module Datadog
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
+      end
+
+      def record_dependency_evaluations(result, evaluation_context, eval_time_ms)
+        return if evaluation_telemetry_opted_out?(evaluation_context)
+        return if result.dependency_evaluations.nil? || result.dependency_evaluations.empty?
+
+        component = Datadog.send(:components).open_feature
+        return unless component
+
+        result.dependency_evaluations.each do |key, dependency, _eligible|
+          metadata = build_flag_metadata(dependency, eval_time_ms)
+          details = sdk_success_details(dependency, metadata)
+          if dependency.error?
+            details = sdk_error_details(dependency.value, dependency.error_code, dependency.error_message, dependency.reason, metadata)
+          end
+          evaluation_details = ::OpenFeature::SDK::EvaluationDetails.new(flag_key: key, resolution_details: details)
+          capture_dependency_telemetry do
+            component.flag_eval_evp_hook&.capture(key, evaluation_context, evaluation_details)
+          end
+          capture_dependency_telemetry do
+            component.flag_eval_metrics_hook&.capture(key, evaluation_details)
+          end
+        end
+      # Best-effort prerequisite telemetry must not replace the root's result.
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: prerequisite telemetry failed: #{e.class}" }
+      end
+
+      def capture_dependency_telemetry
+        yield
+      # A failed sink must not suppress other prerequisite observations.
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: prerequisite telemetry capture failed: #{e.class}" }
       end
 
       def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)

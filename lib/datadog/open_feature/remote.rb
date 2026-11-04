@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../core/remote/dispatcher"
+require_relative "evaluator_capabilities"
 
 module Datadog
   module OpenFeature
@@ -8,11 +9,14 @@ module Datadog
     module Remote
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
+        FFE_FLAG_DEPENDENT_FLAG_VARIANT_KEY_V1 = 1 << 50
         FFE_PRODUCTS = ["FFE_FLAGS"].freeze
         FFE_CAPABILITIES = [FFE_FLAG_CONFIGURATION_RULES].freeze
 
         def capabilities
-          FFE_CAPABILITIES
+          return FFE_CAPABILITIES unless EvaluatorCapabilities.dependent_flags?
+
+          FFE_CAPABILITIES + [FFE_FLAG_DEPENDENT_FLAG_VARIANT_KEY_V1]
         end
 
         def products

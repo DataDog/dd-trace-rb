@@ -1,6 +1,10 @@
 module Datadog
   module OpenFeature
     class ResolutionDetails < ::Struct[untyped]
+      type dependency_evaluation = [String, ResolutionDetails, bool]
+
+      attr_accessor dependency_evaluations: Array[dependency_evaluation]?
+
       attr_accessor value: untyped
 
       attr_accessor reason: ::String?
@@ -24,6 +28,7 @@ module Datadog
       attr_accessor error?: bool?
 
       def self.new: (
+        ?dependency_evaluations: Array[dependency_evaluation]?,
         ?value: untyped,
         ?reason: ::String?,
         ?variant: ::String?,
