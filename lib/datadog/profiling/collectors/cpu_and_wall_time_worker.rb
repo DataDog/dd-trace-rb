@@ -161,16 +161,16 @@ module Datadog
           end
         end
 
-        # @rbs miteruby_recorder_idx: Integer
-        # @rbs return: StackRecorder | Miteruby::LibdatadogRecorder | Miteruby::StreamingSerializer
-        def prepare_serialize(miteruby_recorder_idx: 0)
+        #: (?return_both: false) -> (StackRecorder | Miteruby::LibdatadogRecorder)
+        #: (return_both: true) -> (StackRecorder | [Miteruby::LibdatadogRecorder, Miteruby::StreamingSerializer])
+        def prepare_serialize(return_both: false)
           recorder = self.class._native_prepare_serialize(self)
           miteruby_recorder = @miteruby_recorder
           return recorder unless miteruby_recorder
 
           recorder.serialize
           self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder[0], miteruby_recorder[1])
-          miteruby_recorder.fetch(miteruby_recorder_idx)
+          return_both ? miteruby_recorder : miteruby_recorder[0]
         end
 
         #: () -> true
