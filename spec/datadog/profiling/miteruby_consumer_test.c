@@ -35,6 +35,7 @@ static void assert_allocation_accounting(void) {
   assert(miteruby_allocator_requested_bytes() ==
     miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(consumer_state.mark_cme_iseq_map.buckets) +
+    miteruby_allocator_alloc_size(consumer_state.location_map.buckets) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) +
     consumer_state.interned_events_capacity * sizeof(*consumer_state.interned_events_queue));
@@ -828,6 +829,36 @@ static void test_invalid_frame(void) {
   miteruby_consumer_reset();
 }
 
+static void test_location_map(void) {
+  verstable_location_map *map = &consumer_state.location_map;
+  assert(verstable_location_map_size(map) == 0);
+  miteruby_location_key_t key = {.cme_iseq_id = {.value = {.value = UINT20_MAX}}, .position = {.value = UINT16_MAX}};
+  miteruby_location_id_t id = {.value = {.value = UINT20_MAX}};
+  verstable_location_map_itr entry = verstable_location_map_get_or_insert(map, key, id);
+  assert(!verstable_location_map_is_end(entry));
+  assert(entry.data->val.value.value == UINT20_MAX);
+
+  miteruby_location_key_t same_key;
+  memset(&same_key, 0xff, sizeof(same_key));
+  same_key.cme_iseq_id.value.value = key.cme_iseq_id.value.value;
+  same_key.position.value = key.position.value;
+  entry = verstable_location_map_get_or_insert(map, same_key, (miteruby_location_id_t) {0});
+  assert(!verstable_location_map_is_end(entry));
+  assert(entry.data->val.value.value == UINT20_MAX);
+  assert(verstable_location_map_size(map) == 1);
+
+  key.position.value--;
+  assert(verstable_location_map_is_end(verstable_location_map_get(map, key)));
+  key.position.value++;
+  key.cme_iseq_id.value.value--;
+  assert(verstable_location_map_is_end(verstable_location_map_get(map, key)));
+  assert_allocation_accounting();
+
+  miteruby_consumer_reset();
+  assert(verstable_location_map_size(map) == 0);
+  assert_allocation_accounting();
+}
+
 int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
@@ -849,10 +880,12 @@ int main(int argc, char **argv) {
   test_fixed_array_capacity();
   test_compact_events_and_reset();
   test_cme_iseq_pair_identity();
+  test_location_map();
   test_reset_failure("interned_events_queue", "Failed to allocate miteruby.interned_events_queue");
   test_reset_failure("unique_stacks_array", "Failure during miteruby_stack_dedup_reset");
   assert_allocator_limit(mark_threads_calloc, miteruby_allocator_free_sized, MARK_THREADS_MAX_SIZE);
   assert_allocator_limit(mark_cme_iseq_calloc, miteruby_allocator_free_sized, MARK_CME_ISEQ_MAX_SIZE);
+  assert_allocator_limit(location_calloc, miteruby_allocator_free_sized, LOCATION_MAP_MAX_SIZE);
   assert_allocator_limit(unique_stacks_calloc, miteruby_allocator_free_sized, UNIQUE_STACKS_MAP_MAX_SIZE);
   assert_allocator_limit(thread_contexts_alloc, miteruby_allocator_free_sized, THREAD_CONTEXTS_MAX_CAPACITY);
   test_retention_failure(true, 7, 0);
@@ -868,6 +901,7 @@ int main(int argc, char **argv) {
   verstable_unique_stacks_map_cleanup(&stack_dedup_state.unique_stacks);
   verstable_mark_threads_set_cleanup(&consumer_state.mark_threads_set);
   verstable_mark_cme_iseq_map_cleanup(&consumer_state.mark_cme_iseq_map);
+  verstable_location_map_cleanup(&consumer_state.location_map);
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) == 0);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) == 0);
   assert(miteruby_allocator_alloc_size(consumer_state.mark_cme_iseq_map.buckets) == 0);
