@@ -97,6 +97,7 @@ typedef enum {
   MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL,
   MITERUBY_CONSUMER_MARK_THREADS_FULL,
   MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL,
+  MITERUBY_CONSUMER_LOCATION_MAP_FULL,
   MITERUBY_CONSUMER_INVALID_FRAME,
 } miteruby_consumer_exit_reason_t;
 
@@ -308,6 +309,7 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   if (reason == MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL) rb_raise(rb_eRuntimeError, "Miteruby interned events queue is full");
   if (reason == MITERUBY_CONSUMER_MARK_THREADS_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_threads set is full");
   if (reason == MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_cme_iseq map is full");
+  if (reason == MITERUBY_CONSUMER_LOCATION_MAP_FULL) rb_raise(rb_eRuntimeError, "Miteruby location map is full");
 
   if (reason == MITERUBY_CONSUMER_INVALID_FRAME) rb_raise(rb_eRuntimeError, "Miteruby invalid frame: both CME and ISEQ are NULL");
 
@@ -383,6 +385,7 @@ static miteruby_consumer_exit_reason_t retain_cme_iseq(miteruby_event_frame_refs
   if (refs.cme == NULL && refs.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FRAME;
 
   size_t next_id = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
+  // We fail early if map is already at capacity
   if (next_id > UINT20_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_get_or_insert(
     &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = {.value = (unsigned int) next_id}}
@@ -405,6 +408,22 @@ miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_
   rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value.value);
 }
 
+static miteruby_consumer_exit_reason_t intern_location(miteruby_location_key_t key, const rb_iseq_t *iseq, miteruby_location_id_t *id) {
+  size_t next_id = verstable_location_map_size(&consumer_state.location_map);
+  // We fail early if map is already at capacity
+  if (next_id > UINT20_MAX) return MITERUBY_CONSUMER_LOCATION_MAP_FULL;
+
+  verstable_location_map_itr entry = verstable_location_map_get_or_insert(
+    &consumer_state.location_map, key, (miteruby_location_value_t) {
+      .location_id = {.value = {.value = (unsigned int) next_id}},
+      .iseq = iseq,
+    }
+  );
+  if (verstable_location_map_is_end(entry)) return MITERUBY_CONSUMER_LOCATION_MAP_FULL;
+  *id = entry.data->val.location_id;
+  return MITERUBY_CONSUMER_OK;
+}
+
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
   // TODO: Handle overflow and other kinds of events
   if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return MITERUBY_CONSUMER_OK;
@@ -423,14 +442,22 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
 
   if (new_stack) {
     miteruby_stack_t stack = result.ok.stack;
+    const miteruby_event_frame_position_t *positions = (const miteruby_event_frame_position_t *)&event->refs[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
       // As we turn the (cme, iseq) into an id, we write those ids into the deduped stack storage
       miteruby_consumer_exit_reason_t reason = retain_cme_iseq(event->refs[i], &stack.ids[i]);
       if (reason != MITERUBY_CONSUMER_OK) {
         return reason;
       }
+      miteruby_location_id_t location_id;
+      reason = intern_location(
+        (miteruby_location_key_t) {.cme_iseq_id = stack.ids[i], .position = positions[i]}, event->refs[i].iseq, &location_id
+      );
+      if (reason != MITERUBY_CONSUMER_OK) {
+        return reason;
+      }
     }
-    memcpy(stack.positions, &event->refs[header->frame_count], header->frame_count * sizeof(*stack.positions));
+    memcpy(stack.positions, positions, header->frame_count * sizeof(*stack.positions));
     if (!miteruby_stack_dedup_commit(result.ok.id, stack_hash)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
   }
 
