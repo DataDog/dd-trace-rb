@@ -449,6 +449,34 @@ RSpec.describe Datadog::DI::ProbeManager do
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
       end
     end
+
+    context "when the pending probe type name has a root namespace prefix" do
+      [
+        "::ProbeManagerSpecTestClass",
+        "Object::ProbeManagerSpecTestClass",
+        "::Object::ProbeManagerSpecTestClass",
+      ].each do |type_name|
+        context "when the type name is #{type_name}" do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "prefixed", type: :log, type_name: type_name, method_name: "bar")
+          end
+
+          before do
+            probe_repository.add_pending(probe)
+          end
+
+          it "installs the probe when the class body ends" do
+            expect(instrumenter).to receive(:hook).with(probe, manager)
+
+            manager.reopen
+            class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+
+            expect(probe_repository.installed_probes).to eq("prefixed" => probe)
+            expect(probe_repository.pending_probes).to be_empty
+          end
+        end
+      end
+    end
   end
 
   describe "#probe_executed_callback" do
