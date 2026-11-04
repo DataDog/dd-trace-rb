@@ -38,6 +38,18 @@ RSpec.describe Datadog::Profiling::Miteruby::LibdatadogRecorder do
       expect(decode_raw(custom)).to eq(decode_raw(original))
     end
 
+    it "compresses a profile larger than the fixed compression workspace" do
+      label = "x" * (2 * 1024 * 1024)
+      record_sample(labels: [["large label", label, 0]])
+
+      status, results = described_class._native_serialize(recorder)
+      expect(status).to eq(:ok)
+      original, custom = results.map { |result| decode_profile(result[2]) }
+      expect(custom.string_table).to eq(original.string_table)
+      expect(custom.string_table).to include(label)
+      expect(custom.sample).to eq(original.sample)
+    end
+
     it "preserves metric values, timestamps, strings, numeric labels, and shared stack frames" do
       frames = [["leaf", "app/例.rb", 42], ["caller", "app/main.rb", 10], ["leaf", "app/例.rb", 43]]
       labels = [["thread name", "worker\0名前", 0], ["allocation size", "", 4096], ["zero", "", 0]]
