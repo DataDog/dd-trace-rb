@@ -163,11 +163,38 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
 
         it "preserves the assigned variant and default reason" do
           details = result.dependency_evaluations.fetch(0).fetch(1)
-          expect(details.value).to be(false)
           expect(details.variant).to eq("off")
           expect(details.reason).to eq("DEFAULT")
           expect(details.error_code).to be_nil
           expect(details.error?).to be(false)
+        end
+      end
+
+      context "when the prerequisite has a nested JSON value" do
+        let(:dependency_reason) { "STATIC" }
+        let(:dependency_variant) { "on" }
+
+        it "copies assignment metadata without parsing a nested JSON value" do
+          allow(dependency).to receive(:value).and_raise(Datadog::Core::FeatureFlags::Error, "JSON nesting exceeds the parser limit")
+          allow(dependency).to receive(:flag_metadata).and_return("native" => "kept")
+          allow(dependency).to receive(:allocation_key).and_return("parent-allocation")
+          allow(dependency).to receive(:serial_id).and_return(42)
+          allow(dependency).to receive(:log?).and_return(true)
+
+          key, details, eligible = result.dependency_evaluations.fetch(0)
+
+          expect(result.value).to be(true)
+          expect(key).to eq("parent")
+          expect(eligible).to be(false)
+          expect(details.variant).to eq("on")
+          expect(details.reason).to eq("STATIC")
+          expect(details.error_code).to be_nil
+          expect(details.error?).to be(false)
+          expect(details.allocation_key).to eq("parent-allocation")
+          expect(details.serial_id).to eq(42)
+          expect(details.log?).to be(true)
+          expect(details.flag_metadata).to eq("native" => "kept")
+          expect(dependency).not_to have_received(:value)
         end
       end
     end

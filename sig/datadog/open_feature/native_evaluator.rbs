@@ -24,7 +24,7 @@ module Datadog
 
       def build_resolution_details: (
         Core::FeatureFlags::ResolutionDetails result,
-        untyped default_value
+        untyped value
       ) -> ResolutionDetails
 
       def invalid_flag_configuration?: (Core::FeatureFlags::ResolutionDetails result) -> bool
