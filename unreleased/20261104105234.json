@@ -1,6 +1,6 @@
 {
   "type": "Added",
   "product": "Core",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/NNNN",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6629",
   "message": "Send telemetry metrics and logs through the native (Rust) worker with `DD_TELEMETRY_NATIVE_WORKER=true` or `c.telemetry.native_worker = true`; lifecycle events, forked processes, and missing `libdatadog` fall back to the Ruby worker."
 }
