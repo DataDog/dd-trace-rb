@@ -94,14 +94,11 @@ module Datadog
         logger.trace { "di: starting probe notifier: pid #{$$}" }
         @thread = Thread.new do
           loop do
-            # TODO If stop is requested, we stop immediately without
-            # flushing the submissions. Should we send pending submissions
-            # and then quit?
-            break if @stop_requested
+            stopping = @stop_requested
 
             # If a flush was requested, send immediately and do not
             # wait for the cooldown period.
-            if @lock.synchronize { @flush } == 0
+            if !stopping && @lock.synchronize { @flush } == 0
               sleep_remaining = @lock.synchronize do
                 if sleep_remaining && sleep_remaining > 0
                   # Recalculate how much sleep time is remaining, then sleep that long.
@@ -128,10 +125,12 @@ module Datadog
               logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
+            break if stopping && !more
+
             @lock.synchronize do
               @wake_scheduled = more
             end
-            wake.wait(more ? min_send_interval : nil)
+            wake.wait(more ? min_send_interval : nil) unless @stop_requested
           end
         end
         @pid = Process.pid
