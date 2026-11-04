@@ -162,18 +162,32 @@ typedef struct {
   size_t offset;
 } miteruby_stack_dedup_id_t;
 
+typedef struct __attribute__((packed)) {
+  uint16_t frame_count;
+  uint16_t ids_size;
+  uint8_t ids[];
+} miteruby_stored_stack_t;
+
 typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
   miteruby_stack_dedup_id_t stack_id;
+  miteruby_stored_stack_t stack;
 } miteruby_event_deduped_sample_t;
 ```
 
 - Consumer-only format, stored in `interned_events_queue`; producers still publish inline stack samples.
-- `header.type` is `MITERUBY_EVENT_DEDUPED_SAMPLE` and `header.size_bytes` is 40.
-  Frame count, flags, timestamps, CPU time, and thread are preserved for each sample.
-- `stack_id.offset` is a byte offset into `unique_stacks_array`, including zero as a valid ID.
-  See [ConsumerDesign.md](ConsumerDesign.md) for stack storage, deduplication, and lifetime.
+- `header.type` is `MITERUBY_EVENT_DEDUPED_SAMPLE`. Frame count, flags, timestamps, CPU time, and thread
+  are preserved for each sample.
+- A new stack stores its frame count, encoded length, and delta-encoded location IDs inline at the end of the sample.
+  (The compressed deltas encoding starts from a previous ID of 0 for each stack).
+- A known stack stores its `stack_id` with a zeroed inline stack header and no encoded IDs.
+- `header.size_bytes` includes padding to align the next sample to 8 bytes. Known-stack samples occupy 48 bytes;
+  new-stack samples occupy `round_up(44 + stack.ids_size, 8)` bytes. Padding is ignored.
+- `stack_id.offset` is the byte offset of the first sample containing the stack in `interned_events_queue`.
+  0 is a valid ID. Stack lookup, reservation, and commit live in `stack_dedup.c`, which borrows the consumer's queue.
+- Successful serialization empties the queue and clears the stack map together. Reset does the same;
+  neither operation leaves stack IDs referring to reused event storage.
 
 ### miteruby_event_overflow_t
 
