@@ -51,6 +51,7 @@ typedef struct {
   size_t uncompressed_serialization_size;
   ZSTD_CCtx *compression_context;
   long start_time_ns;
+  long finish_time_ns;
   uint64_t recorded_samples;
 } streaming_serializer_state;
 
@@ -86,6 +87,7 @@ static VALUE serializer_new(VALUE klass) {
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
   state->start_time_ns = system_epoch_time_now_ns();
+  state->finish_time_ns = state->start_time_ns;
   return serializer;
 }
 
@@ -98,6 +100,7 @@ static void record_stack_sample(
 void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
+  long finish_time_ns = system_epoch_time_now_ns();
 
   pb_ostream_t stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
@@ -118,7 +121,17 @@ void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *
       rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(&stream));
   }
 
+  // Emit FragmentProfile
+  int64_t duration_ns = finish_time_ns - state->start_time_ns;
+  miteruby_pprof_fragment_profile_t profile = {
+    .time_nanos = state->start_time_ns,
+    .duration_nanos = duration_ns > 0 ? duration_ns : 0,
+  };
+  if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, &profile))
+    rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata: %s", PB_GET_ERROR(&stream));
+
   state->uncompressed_serialization_size = stream.bytes_written;
+  state->finish_time_ns = finish_time_ns;
 
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
@@ -130,7 +143,7 @@ void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
-  long finish_time_ns = system_epoch_time_now_ns();
+  long finish_time_ns = state->finish_time_ns;
   size_t capacity = ZSTD_compressBound(state->uncompressed_serialization_size);
   if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
   VALUE bytes_string = rb_str_new(NULL, capacity);
@@ -165,6 +178,7 @@ static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serialize
   state->recorded_samples = 0;
   state->uncompressed_serialization_size = 0;
   state->start_time_ns = system_epoch_time_now_ns();
+  state->finish_time_ns = state->start_time_ns;
   return Qtrue;
 }
 
