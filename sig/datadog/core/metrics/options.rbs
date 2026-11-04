@@ -4,11 +4,11 @@ module Datadog
       module Options
         DEFAULT_TAGS: Array[String]
 
-        DEFAULT: { tags: Array[String] }
+        DEFAULT: Hash[Symbol, Array[String]]
 
-        def metric_options: (?untyped? options) -> untyped
+        def metric_options: (?Hash[Symbol, untyped]? options) -> Hash[Symbol, untyped]
 
-        def default_metric_options: () -> untyped
+        def default_metric_options: () -> Hash[Symbol, untyped]
       end
     end
   end

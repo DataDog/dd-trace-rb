@@ -16,7 +16,7 @@ module Datadog
 
         def internal_error?: () -> nil
 
-        def inspect: () -> ::String
+        def inspect: () -> String
       end
 
       class InternalErrorResponse
@@ -30,9 +30,9 @@ module Datadog
 
         def internal_error?: () -> true
 
-        def to_s: () -> ::String
+        def to_s: () -> String
 
-        def inspect: () -> ::String
+        def inspect: () -> String
       end
     end
   end

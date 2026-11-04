@@ -15,7 +15,7 @@ module Datadog
         FARGATE_14_CONTAINER_REGEX: Regexp
 
         HOST_CGROUP_NAMESPACE_INODE: Integer
-        class Descriptor < ::Struct[[String, String, String]]
+        class Descriptor < Struct[[String, String, String]]
           def self.new: (?String? platform, ?String? container_id, ?String? task_uid) -> instance
 
           attr_accessor platform: String
