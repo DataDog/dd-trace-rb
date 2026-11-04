@@ -336,14 +336,15 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
       allow(ruby_worker).to receive(:prepare_initial_event)
     end
 
-    it "feeds the configuration snapshot to the native worker and does not run the Ruby event worker" do
+    it "feeds the configuration snapshot through the builder and does not run the Ruby event worker" do
       allow(native_worker).to receive(:_add_dependency)
 
       backend.start(app_started_event)
 
-      expect(native_worker).to have_received(:_add_config)
-        .with("tracing.auto_instrument.enabled", "false", :default, nil, 1)
-        .at_least(:once)
+      expect(native_worker_args[:initial_configuration]).to include(
+        ["tracing.auto_instrument.enabled", "false", :default, nil, 1],
+      )
+      expect(native_worker).not_to have_received(:_add_config)
       expect(native_worker).to have_received(:_start).once
       expect(ruby_worker).not_to have_received(:start)
       expect(ruby_worker).to have_received(:prepare_initial_event).with(app_started_event)
@@ -364,6 +365,29 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
 
         expect(native_worker).not_to have_received(:_add_dependency)
       end
+    end
+
+    it "feeds a reconfigure snapshot through handle calls on an adopted worker" do
+      previous_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+      )
+      new_backend = described_class.new(
+        settings: settings,
+        agent_settings: agent_settings,
+        logger: logger,
+        enabled: enabled,
+        previous_backend: previous_backend,
+      )
+      synth = Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange.new(components: components)
+
+      new_backend.start(synth)
+
+      expect(native_worker).to have_received(:_add_config).at_least(:once)
+      expect(native_worker).to have_received(:_start).once
+      expect(ruby_worker).to have_received(:prepare_initial_event).with(synth)
     end
 
     context "when there is no native worker" do

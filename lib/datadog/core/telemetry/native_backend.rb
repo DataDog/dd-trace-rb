@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "ruby_backend"
+require_relative "configuration_snapshot"
 require_relative "../environment/ext"
 require_relative "../environment/identity"
 require_relative "../environment/platform"
@@ -46,6 +47,7 @@ module Datadog
           @native_worker_args = native_worker_args(settings, agent_settings)
           @metric_contexts = {}
           @metric_contexts_mutex = Mutex.new
+          @adopted = false
           @native_worker = adopt_or_start_native_worker(previous_backend)
         end
 
@@ -102,7 +104,15 @@ module Datadog
             return
           end
 
-          add_native_configurations(worker, initial_event.payload[:configuration])
+          # A fresh worker carries its configuration snapshot in the builder
+          # already, so app-started needs no post-start feed: the worker's
+          # message channel is small, and a few hundred queued config
+          # messages can block or drop the metric and log traffic behind
+          # them. An adopted worker already sent its app-started, so a
+          # reconfigure snapshot flushes as a configuration change instead.
+          if initial_event.is_a?(Event::SynthAppClientConfigurationChange) && @adopted
+            add_native_configurations(worker, initial_event.payload[:configuration])
+          end
 
           if initial_event.app_started? && @dependency_collection
             add_native_dependencies(worker)
@@ -233,6 +243,7 @@ module Datadog
           return start_native_worker unless previous_backend.is_a?(NativeBackend)
           return start_native_worker unless previous_backend.can_share_native_worker_with?(@native_worker_args)
 
+          @adopted = true
           @native_worker, @metric_contexts = previous_backend.hand_over_native_worker
           @native_worker
         end
@@ -282,11 +293,21 @@ module Datadog
             kernel_name: Core::Environment::Platform.kernel_name,
             kernel_release: Core::Environment::Platform.kernel_release,
             kernel_version: Core::Environment::Platform.kernel_version,
-            # Consumed by the C binding once libdatadog ships interval
-            # setters. Older builds ignore these keys.
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
             extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
+            # Fed to the builder before the worker runs, so app-started
+            # carries it without filling the worker's message channel.
+            initial_configuration: native_initial_configuration(settings, agent_settings),
           }
+        end
+
+        def native_initial_configuration(settings, agent_settings)
+          # libdatadog takes string values, so booleans and numbers
+          # serialize and the wire values diverge in type from the Ruby
+          # event payload.
+          ConfigurationSnapshot.call(settings, agent_settings).map do |conf|
+            [conf[:name], conf[:value].to_s, conf[:origin].to_sym, conf[:config_id], conf[:seq_id]]
+          end
         end
 
         def start_native_worker

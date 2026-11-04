@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "app_started"
+require_relative "../configuration_snapshot"
 
 module Datadog
   module Core
@@ -9,7 +10,7 @@ module Datadog
         # Telemetry class for the 'app-extended-heartbeat' event
         class AppExtendedHeartbeat < AppStarted
           def initialize(settings:, agent_settings:)
-            @configuration = configuration(settings, agent_settings)
+            @configuration = ConfigurationSnapshot.call(settings, agent_settings)
           end
 
           def type

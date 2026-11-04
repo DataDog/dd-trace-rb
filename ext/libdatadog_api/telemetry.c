@@ -253,9 +253,52 @@ static VALUE _native_worker_new(int argc, VALUE *argv, DDTRACE_UNUSED VALUE klas
       false);
   CHECK_TELEMETRY_ERROR("Failed to set telemetry endpoint", err);
 
+  // Initial configuration, fed to the builder so app-started carries it
+  // without passing through the worker's bounded message channel.
+  VALUE rb_initial_configuration = rb_hash_lookup(options, ID2SYM(rb_intern("initial_configuration")));
+  if (rb_initial_configuration != Qnil) {
+    ENFORCE_TYPE(rb_initial_configuration, T_ARRAY);
+    for (long i = 0; i < RARRAY_LEN(rb_initial_configuration); i++) {
+      VALUE entry = RARRAY_AREF(rb_initial_configuration, i);
+      if (!RB_TYPE_P(entry, T_ARRAY) || RARRAY_LEN(entry) != 5) {
+        raise_error(rb_eArgError, "initial_configuration entries must be 5-element arrays");
+      }
+      VALUE rb_name = RARRAY_AREF(entry, 0);
+      VALUE rb_value = RARRAY_AREF(entry, 1);
+      VALUE rb_origin = RARRAY_AREF(entry, 2);
+      VALUE rb_config_id = RARRAY_AREF(entry, 3);
+      VALUE rb_seq_id = RARRAY_AREF(entry, 4);
+      ENFORCE_TYPE(rb_name, T_STRING);
+      ENFORCE_TYPE(rb_value, T_STRING);
+      ENFORCE_TYPE(rb_origin, T_SYMBOL);
+      if (rb_config_id != Qnil) ENFORCE_TYPE(rb_config_id, T_STRING);
+      if (rb_seq_id != Qnil) ENFORCE_TYPE(rb_seq_id, T_FIXNUM);
+
+      ddog_ConfigurationOrigin origin_enum;
+      if (!configuration_origin_symbol_to_enum(rb_origin, &origin_enum)) {
+        raise_error(rb_eArgError, "Unexpected configuration origin: %+"PRIsVALUE, rb_origin);
+      }
+      ddog_CharSlice config_id_slice = (rb_config_id == Qnil)
+          ? (ddog_CharSlice){.ptr = "", .len = 0}
+          : char_slice_from_ruby_string(rb_config_id);
+      ddog_Option_U64 seq = (rb_seq_id == Qnil)
+          ? (ddog_Option_U64){.tag = DDOG_OPTION_U64_NONE_U64}
+          : (ddog_Option_U64){.tag = DDOG_OPTION_U64_SOME_U64, .some = NUM2ULL(rb_seq_id)};
+
+      err = ddog_telemetry_builder_with_config(
+          builder,
+          char_slice_from_ruby_string(rb_name),
+          char_slice_from_ruby_string(rb_value),
+          origin_enum,
+          config_id_slice,
+          seq);
+      CHECK_TELEMETRY_ERROR("Failed to add telemetry configuration to the builder", err);
+    }
+  }
+
   // The metric_logs flavor only processes metrics and logs. Lifecycle events
   // stay on the Ruby event layer until the lifecycle migration step. The
-  // full_flavor option selects the full worker for testing that migration.
+  // full_flavor option selects the full worker for that migration.
   ddog_TelemetryWorkerHandle *handle = NULL;
   VALUE rb_full_flavor = rb_hash_lookup(options, ID2SYM(rb_intern("full_flavor")));
   if (rb_full_flavor == Qtrue) {

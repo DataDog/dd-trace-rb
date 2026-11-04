@@ -1,127 +1,178 @@
 # Telemetry migration: session progress and handoff notes
 
-Status date: 2026-11-04. This file is local working notes; it is not part of
-the PR. Delete it when the migration work is done.
-
-Status date: 2026-11-04 (evening, before step 3). This file is local working
+Status date: 2026-11-04 (night, mid step 3). This file is local working
 notes; it is not part of the PR. Delete it when the migration work is done.
 
 ## Where things stand
 
-Branch `tonyc.t.hsu/telemetry-migration-doc`, pushed to `DataDog/dd-trace-rb`
-EXCEPT the parity commit. Draft PR #6629 (label: AI Generated), base master.
-Working tree is clean except this file and pre-existing untracked
-`Steepfile.probe` and `review-followups.md`. PUSH PENDING: parity commit
-`456f1d5eda` (backend parity spec + Rakefile registration) is committed
-locally but not pushed; user consent was requested.
+Branch `tonyc.t.hsu/telemetry-native-lifecycle` (local, step-3 work), based
+on `tonyc.t.hsu/telemetry-native-poc-bindings` (`0acd97b522`), which is
+based on the PR branch `tonyc.t.hsu/telemetry-migration-doc`. All of this
+is LOCAL ONLY: it needs the POC libdatadog build to compile (see the
+build recipe below).
 
-Commits on the branch, in order:
+Commits on this branch, in order:
 
-1. `34b42b44b4` Add telemetry migration planning document
-2. `543eeb1476` Split telemetry migration doc into shared proposal and internal design
-3. `d846b3b8b6` Extract RubyBackend telemetry seam (step 1 of the migration doc)
-4. `e4a78d7942` Bind native telemetry worker behind native_worker setting (step 2)
-5. `0e37cb82c9` Use a block for trace length sum to satisfy Steep (unrelated fix found by full typecheck)
-6. `f6a894825d` Fill changelog fragment PR number
-7. `456f1d5eda` Add telemetry backend parity spec (NOT pushed)
+1. `f13bf92e92` Reuse the native telemetry worker across reconfigures
+   (item 1 of the step-3 plan; fully verified: unit specs + a real
+   Datadog.configure reuse spec + 677 configuration specs + 239
+   native-transport specs + Steep/RuboCop clean)
+2. `2e81ef345f` WIP checkpoint (user commit, 18:27): the C bindings for
+   dependency/integration, the full-flavor lifecycle routing, the worker
+   fork-guard change, adoption specs, and an earlier version of this
+   notes file
 
-Step 1 and step 2 are done and verified. The libdatadog POC closed all
-three remaining gaps (verified on the wire, see the POC verification
-section). Step 3 development starts NOW on a local branch off the bindings
-branch, working against the local POC build via
-`LIBDATADOG_VENDOR_OVERRIDE`; shipping stays gated on the libdatadog
-release + gemspec pin bump. Step 4 (remove the in-process hop) still
-needs a libdatadog setter that hands an existing `TelemetryWorkerHandle`
-to the trace exporter; file it as a follow-up item in the upstream POC
-PR.
+Uncommitted on top (each verified individually except the parity suite,
+see the parity section below):
 
-## Files added or changed in steps 1-2
+- `lib/datadog/core/telemetry/configuration_snapshot.rb` (NEW): the
+  configuration-list builder extracted from `Event::AppStarted`, shared
+  by the event and the native worker's builder feed.
+- `lib/datadog/core/telemetry/event/app_started.rb` and
+  `app_extended_heartbeat.rb`: refactored to use ConfigurationSnapshot.
+- `lib/datadog/core/telemetry/native_backend.rb`: builder config feed
+  (`initial_configuration` in worker args), and the Synth handle-feed
+  now applying only to adopted workers.
+- `ext/libdatadog_api/telemetry.c`: `initial_configuration` kwarg loop
+  calling `ddog_telemetry_builder_with_config` (a stock 46.1 symbol, no
+  POC needed) before `builder_run`.
+- `spec/datadog/core/telemetry/backend_parity_spec.rb`: reworked, exec
+  based (see the parity section below). NOT GREEN YET: the first full
+  run timed out after 900 seconds and the cause is not yet diagnosed.
+- `spec/datadog/core/telemetry/backend_parity_child.rb` (NEW): the
+  self-contained child script for the parity suite.
 
-- `ext/libdatadog_api/telemetry.c` + `telemetry.h`: bindings for the
-  telemetry FFI. Registered in `init.c` under
-  `Datadog::Core::Telemetry::Native::Worker` and `Native::MetricContext`.
-- `lib/datadog/core/telemetry/ruby_backend.rb`: RubyBackend seam (step 1).
-- `lib/datadog/core/telemetry/native_backend.rb`: NativeBackend (step 2).
-- `lib/datadog/core/telemetry/component.rb`: builds events, delegates to
-  `@backend`, selects the backend at build time. `log!` goes through
-  `backend.add_log(event)`.
-- `lib/datadog/core/telemetry/ext.rb`: `ENV_NATIVE_WORKER`.
-- `lib/datadog/core/configuration/settings.rb`:
-  `c.telemetry.native_worker`, default false.
-- `supported-configurations.json` + regenerated
-  `lib/datadog/core/configuration/supported_configurations.rb`.
-- `docs/GettingStarted.md`: settings table row for
-  `telemetry.native_worker`.
-- `unreleased/20261104105234.json`: changelog fragment, PR number filled.
-- Specs: `spec/datadog/core/telemetry/native_backend_spec.rb` (stubbed
-  extension), all other telemetry specs unchanged and passing.
-- Signatures: `sig/datadog/core/telemetry/{native,native_backend,`
-  `ruby_backend,component,ext}.rbs`.
+PR branch `tonyc.t.hsu/telemetry-migration-doc` (PR #6629): unchanged.
+Parity commit `456f1d5eda` on it is still unpushed (user consent pending).
 
-Gate: `DD_TELEMETRY_NATIVE_WORKER` env var or `c.telemetry.native_worker`.
-Default off. Agent-based only: agentless or missing extension silently
-selects RubyBackend.
+Step 4 (remove the in-process hop) still needs a libdatadog setter that
+hands an existing `TelemetryWorkerHandle` to the trace exporter; file it
+as a follow-up item in the upstream POC PR.
 
-## Open items for step 3
+## Step 3 status
 
-All four gaps from `docs/NativeTelemetryAdoption.md` are resolved as of
-2026-11-04 evening: gaps 1, 2, 3 implemented in the libdatadog POC and
-verified on the wire (see the POC verification section); gap 4 (log dedup)
-verified working in vendored 46.1, no ask needed. The only remaining
-upstream item is the step 4 ask: a setter handing an existing
-`TelemetryWorkerHandle` to the trace exporter. File it as a follow-up
-item in the upstream POC PR.
+1. Worker adoption across reconfigures: DONE (`f13bf92e92`). Facts
+   worth keeping: bare `super` in a method with new kwargs forwards them
+   upstream, use an explicit `super(...)`; an `attr_reader` collides
+   with a same-named private method.
+2. Full flavor + Ruby lifecycle stopped when native is on: DONE in code,
+   wire-verified via `/tmp/poc_lifecycle_smoke.rb` (details below).
+3. Config-change + endpoints on the native worker: DONE. The Synth hack
+   stays for the Ruby backend. Natively a reconfigure flushes only the
+   CHANGED entries (Rust dedupes exact-duplicate entries by the full
+   entry key), which is better wire behavior than Ruby's full snapshot
+   resend.
+4. Dependency/integration bindings: DONE (`_add_dependency`,
+   `_add_integration` with tri-state compatible/auto_enabled).
+5. Decisions: rate divergence ACCEPTED and documented (no internal
+   callers; the parity spec asserts backend-specific values 0.7 vs 7.0).
+   Fork story: children fall back to full Ruby telemetry, wire-verified
+   (the child's app-started carries products + install_signature).
+6. Parity suite extension: IN PROGRESS, blocked on the exec-rework
+   debug. See the parity section below.
 
-## Step 3 work plan (starting now, local branch)
+### Wire verification (all green, `/tmp/poc_lifecycle_smoke.rb`)
 
-Working mode: branch off the local bindings branch
-`tonyc.t.hsu/telemetry-native-poc-bindings` (commit `0acd97b522`). The
-extension is compiled with `LIBDATADOG_VENDOR_OVERRIDE` pointing at the
-POC build. Everything is locally verifiable (specs, parity suite,
-mock-agent smokes). Shipping stays gated on the libdatadog release plus
-the gemspec pin bump. The C binding layer isolates any upstream
-signature drift; re-verify with the parity suite after the real release.
+Run with `require "datadog"` (NOT `datadog/core`: the minimal require
+lacks appsec settings and AppClientConfigurationChange#payload raises on
+`config.dig("appsec", ...)`, silently rescued inside enqueue). Set
+DD_TELEMETRY_HEARTBEAT_INTERVAL=2 and point the agent with
+`c.agent.host`/`c.agent.port` (DD_AGENT_PORT does not resolve).
 
-Work items, in order:
+Observed on the wire through the real component, all native: one
+app-started (220 config entries) across a reconfigure, app-closing,
+app-dependencies-loaded (23), app-integrations-change, app-heartbeat at
+the configured interval, app-client-configuration-change with the
+correct remote_config entry, app-endpoints with is_first,
+generate-metrics, logs. A reconfigure with a changed setting flushes
+exactly the one changed entry as config-change. A fork child replays a
+full Ruby-shaped app-started (products + install_signature present).
 
-1. One worker instance across reconfigures (`components.rb`), so a
-   double `Datadog.configure` never produces a second emitter. Not
-   libdatadog-dependent. About 30 minutes.
-   DONE 2026-11-04 (commit `f13bf92e92` on branch
-   `tonyc.t.hsu/telemetry-native-lifecycle`): `replace_components!`
-   captures `old.telemetry` before building the new tree and passes it
-   through `Components.new(previous_telemetry:)` -> `build_telemetry`
-   -> `Component.build` -> `NativeBackend.new(previous_backend:)`.
-   Adoption requires identical worker args; otherwise a fresh worker is
-   built and the old one stopped. The metric context cache travels with
-   the worker (Rust registers each context as a separate payload entry,
-   re-registering would duplicate wire metrics). Verified: adoption
-   specs + a Datadog.configure-driven reuse spec, 677 configuration
-   specs, 239 native-transport specs including the parity suite, Steep
-   and RuboCop clean. Rediscovered: bare `super` in a method with new
-   kwargs forwards them upstream; use an explicit `super(...)`, and an
-   `attr_reader` collides with a same-named private method.
-2. Switch `NativeBackend` to `full_flavor: true` (`builder_run`) and
-   stop lifecycle events on the Ruby event layer when native is on.
-   One to two hours.
-3. Integrate `_add_config` and `_add_endpoint` into the component
-   (`client_configuration_change!`, `app_endpoints_loaded`), and delete
-   the `SynthAppClientConfigurationChange` hack. Two to three hours
-   including wire verification. Note: `handle_add_config` takes string
-   values only; serialize booleans and nil at the seam.
-4. Bind `add_dependency` and `add_integration`, and route
-   `app-dependencies-loaded` and `app-integrations-loaded` natively.
-   About two hours.
-5. Decide the rate divergence (RubyBackend divides by the 10s aggregation
-   interval, NativeBackend submits raw; fix at the seam means dividing
-   by the effective heartbeat interval) and the fork story (children
-   currently fall back to Ruby aggregation; `ponytail:` marker in
-   `NativeBackend#after_fork`). About one hour for the rate fix.
-6. Extend the parity suite to the new event types (config-change,
-   endpoints, dependencies, integrations) so step 3 has the same gate as
-   steps 1-2. About two hours.
+Known native divergences (documented, need FFI upstream): app-started
+lacks products and install_signature (no FFI), config values are
+strings (booleans serialize), integrations lack the error field,
+endpoints lack body/response fields, and app-dependencies-loaded is
+delayed to the first heartbeat instead of following app-started
+immediately.
 
-Total: roughly two days of focused work.
+## Parity suite: findings and current block
+
+The parity spec runs each backend+scenario in a child process against a
+capturing mock agent. Three separate problems were found while extending
+it to lifecycle events:
+
+1. An in-process THREAD agent starves: the native shutdown FFI call
+   blocks the main thread holding the GVL, the agent thread cannot
+   accept the worker's final POST, and the 1s shutdown cancel deadline
+   kills it. Fix (in place): fork-based agent, the conformance-spec
+   pattern.
+2. A forked child that then BUILDS a native worker has an unreliable
+   worker: the tokio runtime threads do not survive the fork, the task
+   runs late (~2s or more), and the Stop-flush POST often lands after
+   the shutdown cancel deadline. Nondeterministic (~4 of 9 children)
+   when forked from the rspec process. Direct `_add_point` calls all
+   succeed; only the flush is lost. Real applications do not hit this
+   (after_fork drops the native worker), but it is worth an upstream
+   issue: building the telemetry worker in a forked process is not
+   fork-safe.
+3. Feeding the initial configuration as ~200 `_add_config` handle
+   messages before `_start` is wrong regardless: it pressures the worker
+   channel and risks dropping traffic behind it. Fix (in place): feed
+   `ddog_telemetry_builder_with_config` (stock 46.1 symbol) at
+   construction, so app-started carries the config with no channel
+   traffic. The Synth reconfigure snapshot still goes through handle
+   calls, but only on an ADOPTED (already running) worker; a fresh
+   worker built during a reconfigure gets the new snapshot from its own
+   builder.
+
+The suite was restructured so children are FRESH processes, not forks:
+`run_child` spawns `RbConfig.ruby -I <repo>/lib
+spec/datadog/core/telemetry/backend_parity_child.rb <native> <scenario>`
+with DD_TELEMETRY_HEARTBEAT_INTERVAL=2 in the environment. The child
+script contains the agent, the configure block, `run_scenario(name,
+component)`, the sleeps, and prints the JSON report as its last stdout
+line. The spec scenarios are now names (:metrics, :logs, :lifecycle).
+
+CURRENT BLOCK: the first full run of the reworked suite TIMED OUT at
+900 seconds. Not yet diagnosed. Debug entry points:
+
+1. Run the child standalone:
+   `DD_TELEMETRY_HEARTBEAT_INTERVAL=2 ruby -I lib spec/datadog/core/telemetry/backend_parity_child.rb true metrics`
+   It must print one JSON line and exit within ~6 seconds. Suspects:
+   `require "bundler/setup"` in the child (check the spawn environment
+   carries BUNDLE_GEMFILE), the agent fork holding the stdout pipe write
+   end (the parent's read only sees EOF after the agent exits, and
+   agent.stop's TERM sits AFTER read_requests), or the child waiting on
+   something else entirely.
+2. If the child is fine standalone, time each run_child from rspec and
+   find which example hangs.
+3. After green: run the whole suite twice with different seeds to check
+   determinism.
+
+The lifecycle parity expectations already in the spec: config-change
+entry parity (value stringified on the native side), endpoint field
+parity (5 shared fields), and shared types app-started +
+app-dependencies-loaded + app-closing (the native child also sends
+heartbeat and integrations-change; Ruby child timing differs, so type
+equality is NOT asserted).
+
+## Remaining work for step 3
+
+1. Debug the parity suite exec rework (entry points above), get 18/18
+   green twice with different seeds.
+2. Sigs: `native_backend.rbs` (start/enqueue/flush, add_native_* helpers,
+   @adopted), a NEW sig for configuration_snapshot.rb, and
+   worker.rbs prepare_initial_event. Read
+   `.agents/skills/write-rbs/SKILL.md` first.
+3. Full verification: `bundle exec rake test:main` (telemetry specs),
+   `spec:native_transport` (parity suite), standard + rubocop +
+   typecheck.
+4. Commits: do NOT amend the WIP commit (repo rule); add new commits on
+   top. Suggested split: (a) ConfigurationSnapshot extraction, (b)
+   lifecycle on the native worker (C + Ruby + specs), (c) parity suite
+   lifecycle scenarios.
+5. A changelog fragment when this ships (the work is behind
+   DD_TELEMETRY_NATIVE_WORKER, still default-off).
 
 ## Wiring a local libdatadog prototype into dd-trace-rb
 
@@ -323,7 +374,8 @@ The current compiled extension in `lib/` is built against the POC; run
 - The dd-trace-rb extension currently in `lib/` is compiled against the
   POC. Return to stock with `bundle exec rake clean compile` and no
   `LIBDATADOG_VENDOR_OVERRIDE`.
-- Smoke scripts in `/tmp` are throwaway: `poc_full_flavor_smoke.rb`
-  (full-flavor config/endpoints verification), `poc_gap_smoke.rb`
-  (metric_logs + interval cadence), `dedup_smoke.rb`,
-  `parity_probe.rb`, `min_trace_smoke.rb`, `lldb_trace_smoke.rb`.
+- Smoke scripts in `/tmp` are throwaway: `poc_lifecycle_smoke.rb` (the main
+  step-3 wire smoke, full gem require), `poc_full_flavor_smoke.rb`
+  (direct worker construction), `probe_parity_child2.rb` and
+  `probe_agentproc.rb` (the parity child and the separate-process agent
+  experiments). All have the FakeAgent inlined.
