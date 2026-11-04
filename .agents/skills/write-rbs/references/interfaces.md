@@ -1,17 +1,17 @@
 # Interfaces
 
 Use an interface when a parameter or return is duck-typed – you depend on a set
-of methods, not a concrete class
+of methods, not a concrete class.
 
 ## Rules
 
-- MUST name an interface with a leading `_` – `interface _Name`
-- MUST list only the domain methods you actually call
+- MUST name an interface with a leading `_` – `interface _Name`.
+- MUST list only the domain methods you actually call.
 - NEVER pad an interface with predicates like `nil?` or `is_a?` only to satisfy
-  the checker
+  the checker.
 - SHOULD prefer an interface over a concrete type when the real object varies
-  across versions or frameworks
-- NEVER let a prose comment stand in for a contract you could state as an interface
+  across versions or frameworks.
+- NEVER let a prose comment stand in for a contract you could state as an interface.
 
 ## Examples
 
@@ -71,4 +71,4 @@ end
 
 `untyped` is fine when you genuinely cannot enumerate the methods. The
 anti-pattern above is the comment that describes a contract you can state
-as an interface
+as an interface.

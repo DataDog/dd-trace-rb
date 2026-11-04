@@ -42,7 +42,7 @@ new one.
 
 Open the matching reference when a value calls for more than a plain type:
 
-- duck-typed, you call methods, not a concrete class → `references/interfaces.md`
+- a duck-typed value: you call its methods, whatever its class → `references/interfaces.md`
 - a shape that repeats or carries a domain meaning → `references/type-aliases.md`
 - an output type that depends on the input type → `references/generics.md`
 - a callable → `references/procs.md`

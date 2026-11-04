@@ -2,7 +2,7 @@
 
 Team conventions for writing RBS type signatures in dd-trace-rb, enforced on
 every edit to `sig/**/*.rbs` and `vendor/rbs/**/*.rbs` by the `require-skill`
-hook (see `../../hooks/README.md`)
+hook (see `../../hooks/README.md`).
 
 ## Layout
 
@@ -18,9 +18,9 @@ hook (see `../../hooks/README.md`)
 - **RFC keywords.** Rules use `MUST` / `NEVER` / `SHOULD` (RFC 2119 sense) so the
   strength of each rule is unambiguous. Reserve `MUST`/`NEVER` for hard rules and
   `SHOULD` for judgment calls.
-- **Good/bad contrast in SKILL.md is inline**. Show it on one line, for example
+- **Good/bad contrast in SKILL.md is inline.** Show it on one line, for example
   `` write `Hash`, not `::Hash` ``. Never use a fenced block. Put full `# Good` /
   `# Bad` code blocks in `references/`, where the extra length pays for itself.
-- **Every reference example is a code block**. A reference entry shows the rule,
+- **Every reference example is a code block.** A reference entry shows the rule,
   then a fenced RBS block with `# Good` and `# Bad` forms. It reads and edits
   like the signatures it describes.
