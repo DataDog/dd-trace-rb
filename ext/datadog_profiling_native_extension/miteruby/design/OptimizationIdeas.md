@@ -46,3 +46,20 @@ including empty ones, and adds the cost of zeroing keys on clear.
 * Reduce temporary allocations and copies, including the Ruby string passed to `EncodedProfile.from_custom`.
 * Explore streaming protobuf output into zstd to avoid keeping the entire uncompressed pprof in memory.
 * Move custom encoding outside the GVL once ownership and interruption handling have been designed for that path.
+
+## Reuse stack prefixes when deduping stacks
+
+It's very common to have stacks that share a prefix:
+
+* [A, B, C, D, E, F]
+* [A, B, C]
+
+Right now we would store both of the above stacks separately, as they are unique. We could consider instead having
+the ability to reuse chunks -- e.g. we could split the stack into groups of N, and hash those as well into the
+unique_stacks map.
+
+Then, for instance for N = 3, we could store only
+* [A, B, C, D, E, F]
+* [3 frames from previous stack]
+
+This can be as stupid as "prefix reuse only" or a bit fancier.
