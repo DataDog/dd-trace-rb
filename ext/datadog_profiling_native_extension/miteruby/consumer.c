@@ -3,6 +3,7 @@
 #include "consumer_recorder.h"
 #include "consumer.h"
 #include "libdatadog_recorder.h"
+#include "streaming_serializer.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
 
@@ -107,7 +108,7 @@ static VALUE consume_loop_ensure(VALUE args);
 static void *consume_without_gvl(void *args);
 static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_consume_loop_args *args);
 static void consume_unblock(void *args);
-static VALUE prepare_serialize_locked(VALUE recorder_instance);
+static VALUE prepare_serialize_locked(VALUE args);
 static VALUE prepare_serialize_unlock_ensure(VALUE unused);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
@@ -359,19 +360,35 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-void miteruby_consumer_prepare_serialize(VALUE recorder_instance) {
+typedef struct {
+  VALUE recorder_instance;
+  VALUE streaming_serializer_instance;
+} prepare_serialize_args;
+
+void miteruby_consumer_prepare_serialize(VALUE recorder_instance, VALUE streaming_serializer_instance) {
   miteruby_libdatadog_recorder_enforce_available(recorder_instance);
+  prepare_serialize_args args = {recorder_instance, streaming_serializer_instance};
   mutex_lock(&consumer_state.mutex);
-  rb_ensure(prepare_serialize_locked, recorder_instance, prepare_serialize_unlock_ensure, Qnil);
+  rb_ensure(prepare_serialize_locked, (VALUE) &args, prepare_serialize_unlock_ensure, Qnil);
+  RB_GC_GUARD(recorder_instance);
+  RB_GC_GUARD(streaming_serializer_instance);
 }
 
-static VALUE prepare_serialize_locked(VALUE recorder_instance) {
+static VALUE prepare_serialize_locked(VALUE args) {
+  prepare_serialize_args *recorders = (prepare_serialize_args *) args;
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
   for (size_t pos = 0; pos < consumer_state.interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(consumer_state.interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue, event->stack_id);
-    miteruby_consumer_record_stack_sample(recorder_instance, event, stack, &time_converter);
+    miteruby_consumer_record_stack_sample(recorders->recorder_instance, event, stack, &time_converter);
+    pos += event->header.size_bytes;
+  }
+
+  for (size_t pos = 0; pos < consumer_state.interned_events_pos;) {
+    const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(consumer_state.interned_events_queue + pos);
+    miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue, event->stack_id);
+    miteruby_streaming_serializer_record_stack_sample(recorders->streaming_serializer_instance, event, stack);
     pos += event->header.size_bytes;
   }
 
