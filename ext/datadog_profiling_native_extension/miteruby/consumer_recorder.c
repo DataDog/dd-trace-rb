@@ -1,6 +1,7 @@
 #include "consumer_recorder.h"
 #include "consumer.h"
 #include "allocator.h"
+#include "compressed_deltas.h"
 
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
@@ -120,10 +121,16 @@ void miteruby_consumer_record_stack_sample(
   } else {
     ddog_CharSlice filename = DDOG_CHARSLICE_C("");
     int line = 0;
+    const uint8_t *cursor = stack.ids;
+    uint20_t previous_value = {0};
 
     for (uint16_t i = 0; i < count; i++) {
+      miteruby_location_id_t location_id;
+      if (!miteruby_compressed_deltas_read(previous_value, &location_id.value, &cursor, stack.end))
+        rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
+      previous_value = location_id.value;
       miteruby_event_frame_position_t position;
-      miteruby_cme_iseq_id_t cme_iseq_id = miteruby_hack_location_id_to_cme_seq_id(stack.ids[i], &position);
+      miteruby_cme_iseq_id_t cme_iseq_id = miteruby_hack_location_id_to_cme_seq_id(location_id, &position);
       const miteruby_event_frame_refs_t frame = miteruby_hack_id_to_frame_refs(cme_iseq_id);
       if (frame.iseq != NULL) {
         filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
@@ -137,6 +144,8 @@ void miteruby_consumer_record_stack_sample(
         .line = line,
       };
     }
+
+    if (cursor != stack.end) rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
 
     if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) {
       locations[frame_offset] = (ddog_prof_Location) {
