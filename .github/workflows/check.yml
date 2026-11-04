@@ -149,8 +149,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install and run document lint
-        run: .github/scripts/check/document_lint.sh
+      - name: Lint docs and agent skills
+        uses: TonyCTHsu/simple-english@1f6e849a0d88acf66a6bf60a814d8968c15ef2c1 # v0.13.0
+        with:
+          files: |
+            docs/DependencyAudit.md
+            .agents/skills
+          version: 0.13.0
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
