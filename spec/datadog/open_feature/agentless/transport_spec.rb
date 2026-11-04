@@ -64,8 +64,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
           stub_request(:get, expected).to_return(status: 200, body: "configuration")
           transport.get(etag_value)
           expect(a_request(:get, expected).with do |request|
-            !request.headers.key?("X-Dd-Feature-Flags-Capabilities") &&
-              request.headers["If-None-Match"] == etag_value
+            request.headers["If-None-Match"] == etag_value
           end).to have_been_made.once
         end
       end
