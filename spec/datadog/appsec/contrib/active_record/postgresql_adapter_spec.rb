@@ -155,6 +155,7 @@ RSpec.describe "AppSec ActiveRecord integration for Postgresql adapter" do
     end
 
     context "when adapter is loaded after AppSec is configured", execute_in_fork: true do
+      # NOTE: Emulates the adapter being loaded after AppSec patched ActiveRecord
       before do
         ActiveRecord::ConnectionAdapters.send(:remove_const, :PostgreSQLAdapter)
         $LOADED_FEATURES.delete_if { |path| path.end_with?("active_record/connection_adapters/postgresql_adapter.rb") }
