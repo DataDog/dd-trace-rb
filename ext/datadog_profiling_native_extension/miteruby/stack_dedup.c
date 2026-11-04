@@ -1,5 +1,6 @@
 #include "stack_dedup.h"
 #include "allocator.h"
+#include "compressed_deltas.h"
 #include "hashtable/rapidhash.h"
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
@@ -10,9 +11,10 @@
 #define UNIQUE_STACKS_ARRAY_MAX_SIZE MiB_AS_BYTES(16)
 #define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(16)
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t frame_count;
-  miteruby_location_id_t ids[];
+  uint16_t ids_size;
+  uint8_t ids[];
 } miteruby_stored_stack_t;
 
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
@@ -34,8 +36,8 @@ static void *unique_stacks_calloc(size_t size);
 //
 // We keep two data structures:
 //
-// * `unique_stacks_array`: Contiguous storage of frame counts followed by location IDs.
-// The 4-byte prefix and 4-byte IDs keep consecutive records aligned without trailing padding.
+// * `unique_stacks_array`: Frame counts and encoded lengths followed by delta-encoded location IDs.
+// Records can start at any byte offset, so their headers are packed. Each stack starts its deltas from 0.
 //
 // * `verstable_unique_stacks_map`: Maps stack hashes to IDs (byte offsets in `unique_stacks_array`).
 //
@@ -45,15 +47,21 @@ static void *unique_stacks_calloc(size_t size);
 //   * Event 2: [E, F, 0, 1] (frame_count: 2)
 //   * Event 3: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
 //
-// * Unique stacks array (id(X, p) is the location ID for CME/ISEQ pair X at position p):
-//   [ frame_count: 4 | id(A, 0) | id(B, 1) | id(C, 2) | id(D, 3) | frame_count: 2 | id(E, 0) | id(F, 1) ]
-//     ^                                                          ^
-//     |                                                          |
-//     Events 1 and 3                                             Event 2
+// * Unique stacks array (assuming these locations get IDs 0 through 5):
+//   [ frame_count: 4 | ids_size: 4 | 00 02 02 02 | frame_count: 2 | ids_size: 2 | 08 02 ]
+//     ^                                          ^
+//     |                                          |
+//     Events 1 and 3                             Event 2
+//
+//   Conceptually, those bytes represent:
+//   [ frame_count: 4 | (A, 0) (B, 1) (C, 2) (D, 3) | frame_count: 2 | (E, 0) (F, 1) ]
+//     ^                                             ^
+//     |                                             |
+//     Events 1 and 3                                Event 2
 //
 // * Unique stacks map:
 //   hash(A B C D; 0 1 2 3) -> stack_id:  0  (Events 1 and 3)
-//   hash(E F; 0 1)         -> stack_id: 20  (Event 2)
+//   hash(E F; 0 1)         -> stack_id:  8  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
@@ -126,11 +134,8 @@ miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   return (miteruby_stack_t) {
     .frame_count = stack->frame_count,
     .ids = stack->ids,
+    .end = stack->ids + stack->ids_size,
   };
-}
-
-static size_t stored_stack_size(uint16_t frame_count) {
-  return sizeof(miteruby_stored_stack_t) + frame_count * sizeof(miteruby_location_id_t);
 }
 
 miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame_count, miteruby_stack_hash_t stack_hash) {
@@ -139,7 +144,9 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame
     return (miteruby_stack_dedup_result_t) {.ok = {.id = entry.data->val, .reserved = false}};
   }
 
-  if (miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < stored_stack_size(frame_count)) {
+  size_t max_ids_size = miteruby_compressed_deltas_max_size_of(frame_count);
+  if (max_ids_size > UINT16_MAX ||
+      miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) - stack_dedup_state.unique_stacks_pos < sizeof(miteruby_stored_stack_t) + max_ids_size) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
 
@@ -147,14 +154,19 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(uint16_t frame
   miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + next_stack_id.offset);
   stack->frame_count = frame_count;
 
-  return (miteruby_stack_dedup_result_t) {.ok = {.id = next_stack_id, .reserved = true, .stack = miteruby_stack_dedup_get(next_stack_id)}};
+  return (miteruby_stack_dedup_result_t) {.ok = {
+    .id = next_stack_id,
+    .reserved = true,
+    .stack = {.frame_count = frame_count, .ids = stack->ids, .end = stack->ids + max_ids_size},
+  }};
 }
 
-bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash) {
+bool miteruby_stack_dedup_commit(miteruby_stack_dedup_id_t stack_id, miteruby_stack_hash_t stack_hash, const uint8_t *ids_end) {
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get_or_insert(&stack_dedup_state.unique_stacks, stack_hash, stack_id);
   if (verstable_unique_stacks_map_is_end(entry)) return false;
 
   miteruby_stored_stack_t *stack = (miteruby_stored_stack_t *)(stack_dedup_state.unique_stacks_array + stack_id.offset);
-  stack_dedup_state.unique_stacks_pos += stored_stack_size(stack->frame_count);
+  stack->ids_size = (uint16_t) (ids_end - stack->ids);
+  stack_dedup_state.unique_stacks_pos += sizeof(*stack) + stack->ids_size;
   return true;
 }
