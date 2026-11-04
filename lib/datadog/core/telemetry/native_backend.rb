@@ -42,6 +42,7 @@ module Datadog
           )
 
           @shutdown_timeout_ms = (settings.telemetry.shutdown_timeout_seconds * 1000).to_i
+          @dependency_collection = settings.telemetry.dependency_collection
           @native_worker_args = native_worker_args(settings, agent_settings)
           @metric_contexts = {}
           @metric_contexts_mutex = Mutex.new
@@ -89,10 +90,74 @@ module Datadog
           nil
         end
 
+        # Lifecycle events on the native worker. The full-flavor Rust worker
+        # emits app-started, app-heartbeat, app-extended-heartbeat, and
+        # app-closing on its own schedule. The other lifecycle events map
+        # to handle calls below. When the native worker is absent (fork
+        # children), everything falls back to the Ruby event layer.
         def start(initial_event)
-          super
+          worker = @native_worker
+          if worker.nil?
+            super
+            return
+          end
 
-          @native_worker&._start
+          add_native_configurations(worker, initial_event.payload[:configuration])
+
+          if initial_event.app_started? && @dependency_collection
+            add_native_dependencies(worker)
+          end
+
+          # Idempotent in libdatadog: an already-running adopted worker is
+          # unaffected, a fresh one emits app-started with the configuration
+          # entries added above.
+          worker._start
+
+          # Keep the Ruby worker ready to take over in a fork child without
+          # running its event loop in this process.
+          @worker.prepare_initial_event(initial_event)
+        end
+
+        # Returns true if event was enqueued, nil if not.
+        def enqueue(event)
+          worker = @native_worker
+          return super if worker.nil?
+
+          case event
+          when Event::AppClientConfigurationChange
+            add_native_configurations(worker, event.payload[:configuration])
+          when Event::AppDependenciesLoaded
+            event.payload[:dependencies].each { |dep| worker._add_dependency(dep[:name], dep[:version]) }
+          when Event::AppIntegrationsChange
+            event.payload[:integrations].each do |integration|
+              worker._add_integration(
+                integration[:name], integration[:version].to_s, integration[:enabled],
+                integration[:compatible], integration[:auto_enabled]
+              )
+            end
+          when Event::AppEndpointsLoaded
+            event.payload[:endpoints].each do |endpoint|
+              worker._add_endpoint(
+                endpoint[:type], endpoint[:method], endpoint[:path],
+                endpoint[:operation_name], endpoint[:resource_name]
+              )
+            end
+          when Event::AppClosing, Event::AppHeartbeat, Event::AppExtendedHeartbeat
+            # Emitted by the native worker on its own schedule.
+            nil
+          else
+            @logger.debug { "Dropping telemetry event #{event.type.inspect}: no native equivalent" }
+            nil
+          end
+        rescue
+          nil
+        end
+
+        def flush(timeout: nil)
+          return super if @native_worker.nil?
+
+          # Native flushes on its internal schedule. There is no flush FFI.
+          true
         end
 
         # Runs in the forked child. The Rust worker thread does not survive a
@@ -134,6 +199,29 @@ module Datadog
           worker = @native_worker
           @native_worker = nil
           [worker, contexts]
+        end
+
+        # The native API has no representation for products, install
+        # signatures, or integration patch errors. Those fields are absent
+        # from the native payloads until libdatadog exposes them.
+        def add_native_configurations(worker, configurations)
+          configurations.each do |conf|
+            worker._add_config(
+              conf[:name],
+              # libdatadog takes string values. The Ruby payload keeps
+              # booleans and numbers, so the wire values diverge in type.
+              conf[:value].to_s,
+              conf[:origin].to_sym,
+              conf[:config_id],
+              conf[:seq_id],
+            )
+          end
+        end
+
+        def add_native_dependencies(worker)
+          Gem.loaded_specs.each do |name, spec|
+            worker._add_dependency(name, spec.version.to_s)
+          end
         end
 
         private
@@ -207,9 +295,10 @@ module Datadog
 
           # The runtime_id is read at build time: each process that builds a
           # worker reports its own identity. The hash always carries the
-          # required keys, see native_worker_args.
+          # required keys, see native_worker_args. The full flavor runs the
+          # lifecycle events on the worker and matches this backend's routing.
           Native::Worker._native_new(
-            **args, runtime_id: Core::Environment::Identity.id,
+            **args, runtime_id: Core::Environment::Identity.id, full_flavor: true,
           ) # steep:ignore InsufficientKeywordArguments
         end
       end

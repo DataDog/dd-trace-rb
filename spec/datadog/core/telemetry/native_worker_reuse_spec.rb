@@ -24,6 +24,10 @@ RSpec.describe "Native telemetry worker reuse across reconfigures" do
     allow(native_worker).to receive(:_register_metric_context).and_return(:context)
     allow(native_worker).to receive(:_add_point)
     allow(native_worker).to receive(:_add_log)
+    allow(native_worker).to receive(:_add_config)
+    allow(native_worker).to receive(:_add_dependency)
+    allow(native_worker).to receive(:_add_integration)
+    allow(native_worker).to receive(:_add_endpoint)
 
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).and_return(ruby_worker)
     allow(ruby_worker).to receive(:start)
@@ -32,6 +36,7 @@ RSpec.describe "Native telemetry worker reuse across reconfigures" do
     allow(ruby_worker).to receive(:flush)
     allow(ruby_worker).to receive(:"enabled=")
     allow(ruby_worker).to receive(:after_fork_monkey_patched)
+    allow(ruby_worker).to receive(:prepare_initial_event)
 
     Datadog.send(:reset!)
     Datadog.configure do |c|

@@ -67,6 +67,10 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
     allow(native_worker).to receive(:_register_metric_context).and_return(:context)
     allow(native_worker).to receive(:_add_point)
     allow(native_worker).to receive(:_add_log)
+    allow(native_worker).to receive(:_add_config)
+    allow(native_worker).to receive(:_add_dependency)
+    allow(native_worker).to receive(:_add_integration)
+    allow(native_worker).to receive(:_add_endpoint)
   end
 
   after do
@@ -315,11 +319,124 @@ RSpec.describe Datadog::Core::Telemetry::NativeBackend do
   end
 
   describe "#start" do
-    it "starts the native worker and the Ruby event worker" do
-      backend.start(:initial_event)
+    let(:components) do
+      instance_double(Datadog::Core::Configuration::Components).tap do |components|
+        allow(components).to receive(:settings).and_return(settings)
+        allow(components).to receive(:agent_settings).and_return(agent_settings)
+        allow(components).to receive(:appsec).and_return(nil)
+        allow(components).to receive(:profiler).and_return(nil)
+        allow(components).to receive(:dynamic_instrumentation).and_return(nil)
+      end
+    end
+    let(:app_started_event) do
+      Datadog::Core::Telemetry::Event::AppStarted.new(components: components)
+    end
 
-      expect(ruby_worker).to have_received(:start).with(:initial_event)
-      expect(native_worker).to have_received(:_start)
+    before do
+      allow(ruby_worker).to receive(:prepare_initial_event)
+    end
+
+    it "feeds the configuration snapshot to the native worker and does not run the Ruby event worker" do
+      allow(native_worker).to receive(:_add_dependency)
+
+      backend.start(app_started_event)
+
+      expect(native_worker).to have_received(:_add_config)
+        .with("tracing.auto_instrument.enabled", "false", :default, nil, 1)
+        .at_least(:once)
+      expect(native_worker).to have_received(:_start).once
+      expect(ruby_worker).not_to have_received(:start)
+      expect(ruby_worker).to have_received(:prepare_initial_event).with(app_started_event)
+    end
+
+    it "feeds dependencies when collection is enabled" do
+      backend.start(app_started_event)
+
+      expect(native_worker).to have_received(:_add_dependency)
+        .with("rspec-core", Gem.loaded_specs["rspec-core"].version.to_s)
+    end
+
+    context "when dependency collection is disabled" do
+      before { settings.telemetry.dependency_collection = false }
+
+      it "does not feed dependencies" do
+        backend.start(app_started_event)
+
+        expect(native_worker).not_to have_received(:_add_dependency)
+      end
+    end
+
+    context "when there is no native worker" do
+      before { backend.after_fork }
+
+      it "starts the Ruby event worker with the initial event" do
+        backend.start(:initial_event)
+
+        expect(ruby_worker).to have_received(:start).with(:initial_event)
+        expect(native_worker).not_to have_received(:_start)
+      end
+    end
+  end
+
+  describe "#enqueue" do
+    let(:worker_nil_backend) do
+      backend.after_fork
+      backend
+    end
+
+    it "routes remote configuration changes to _add_config" do
+      changes = Datadog::Core::Telemetry::Event::AppClientConfigurationChange.new({"tracing.sample_rate" => 1.0}, "remote_config")
+
+      backend.enqueue(changes)
+
+      expect(native_worker).to have_received(:_add_config)
+        .with("tracing.sample_rate", "1.0", :remote_config, nil, 6)
+    end
+
+    it "routes dependencies-loaded to _add_dependency" do
+      deps = Datadog::Core::Telemetry::Event::AppDependenciesLoaded.new
+
+      backend.enqueue(deps)
+
+      expect(native_worker).to have_received(:_add_dependency).at_least(:once)
+      expect(ruby_worker).not_to have_received(:enqueue)
+    end
+
+    it "routes integrations-change to _add_integration" do
+      integrations = Datadog::Core::Telemetry::Event::AppIntegrationsChange.new
+
+      backend.enqueue(integrations)
+
+      expect(native_worker).to have_received(:_add_integration).at_least(:once)
+    end
+
+    it "routes endpoints to _add_endpoint without page slicing" do
+      endpoints = [
+        {type: "REST", method: "GET", path: "/events", operation_name: "http.request", resource_name: "GET /events"},
+        {type: "REST", method: "POST", path: "/events", operation_name: "http.request", resource_name: "POST /events"},
+      ]
+      event = Datadog::Core::Telemetry::Event::AppEndpointsLoaded.new(endpoints, is_first: true)
+
+      backend.enqueue(event)
+
+      expect(native_worker).to have_received(:_add_endpoint)
+        .with("REST", "GET", "/events", "http.request", "GET /events")
+        .with("REST", "POST", "/events", "http.request", "POST /events")
+    end
+
+    it "drops closing and heartbeat events, emitted by the native worker itself" do
+      backend.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+      backend.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
+
+      expect(ruby_worker).not_to have_received(:enqueue)
+    end
+
+    context "when there is no native worker" do
+      it "enqueues on the Ruby event worker" do
+        worker_nil_backend.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+
+        expect(ruby_worker).to have_received(:enqueue)
+      end
     end
   end
 

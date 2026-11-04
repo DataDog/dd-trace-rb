@@ -62,6 +62,9 @@ static VALUE _native_worker_add_config(
     VALUE self, VALUE name, VALUE value, VALUE origin, VALUE config_id, VALUE seq_id);
 static VALUE _native_worker_add_endpoint(
     VALUE self, VALUE kind, VALUE method, VALUE path, VALUE operation_name, VALUE resource_name);
+static VALUE _native_worker_add_dependency(VALUE self, VALUE name, VALUE version);
+static VALUE _native_worker_add_integration(
+    VALUE self, VALUE name, VALUE version, VALUE enabled, VALUE compatible, VALUE auto_enabled);
 
 static bool metric_type_symbol_to_enum(VALUE symbol, ddog_MetricType *out_type);
 static bool namespace_symbol_to_enum(VALUE symbol, ddog_MetricNamespace *out_namespace);
@@ -82,6 +85,8 @@ void telemetry_init(VALUE core_module) {
   rb_define_method(telemetry_worker_class, "_add_log", _native_worker_add_log, 4);
   rb_define_method(telemetry_worker_class, "_add_config", _native_worker_add_config, 5);
   rb_define_method(telemetry_worker_class, "_add_endpoint", _native_worker_add_endpoint, 5);
+  rb_define_method(telemetry_worker_class, "_add_dependency", _native_worker_add_dependency, 2);
+  rb_define_method(telemetry_worker_class, "_add_integration", _native_worker_add_integration, 5);
 
   rb_undef_alloc_func(telemetry_worker_class);
 
@@ -506,5 +511,43 @@ static VALUE _native_worker_add_endpoint(
 
   ddog_MaybeError err = ddog_telemetry_handle_add_endpoint(get_worker_handle(self), endpoint);
   CHECK_TELEMETRY_ERROR("Failed to add telemetry endpoint", err);
+  return Qtrue;
+}
+
+static ddog_Option_Bool tri_state_bool(VALUE rb_val) {
+  if (rb_val == Qnil || rb_val == Qfalse) {
+    return (ddog_Option_Bool){.tag = DDOG_OPTION_BOOL_NONE_BOOL};
+  }
+  return (ddog_Option_Bool){.tag = DDOG_OPTION_BOOL_SOME_BOOL, .some = true};
+}
+
+static VALUE _native_worker_add_dependency(VALUE self, VALUE name, VALUE version) {
+  ENFORCE_TYPE(name, T_STRING);
+  ENFORCE_TYPE(version, T_STRING);
+
+  ddog_MaybeError err = ddog_telemetry_handle_add_dependency(
+      get_worker_handle(self),
+      char_slice_from_ruby_string(name),
+      char_slice_from_ruby_string(version));
+  CHECK_TELEMETRY_ERROR("Failed to add telemetry dependency", err);
+  return Qtrue;
+}
+
+static VALUE _native_worker_add_integration(
+    VALUE self, VALUE name, VALUE version, VALUE enabled, VALUE compatible, VALUE auto_enabled) {
+  ENFORCE_TYPE(name, T_STRING);
+  ENFORCE_TYPE(version, T_STRING);
+  ENFORCE_TYPE(enabled, T_TRUE | T_FALSE);
+  if (compatible != Qnil) ENFORCE_TYPE(compatible, T_TRUE | T_FALSE);
+  if (auto_enabled != Qnil) ENFORCE_TYPE(auto_enabled, T_TRUE | T_FALSE);
+
+  ddog_MaybeError err = ddog_telemetry_handle_add_integration(
+      get_worker_handle(self),
+      char_slice_from_ruby_string(name),
+      char_slice_from_ruby_string(version),
+      enabled == Qtrue,
+      tri_state_bool(compatible),
+      tri_state_bool(auto_enabled));
+  CHECK_TELEMETRY_ERROR("Failed to add telemetry integration", err);
   return Qtrue;
 }
