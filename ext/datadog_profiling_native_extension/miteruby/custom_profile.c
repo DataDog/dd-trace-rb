@@ -1,18 +1,16 @@
 #include "custom_profile.h"
+#include "allocator.h"
 #include "../datadog_ruby_common.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
+#include "pprof/zstd.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-// The bundled single-file zstd build has no separate header.
-size_t ZSTD_compressBound(size_t src_size);
-size_t ZSTD_compress(void *dst, size_t capacity, const void *src, size_t size, int level);
-unsigned ZSTD_isError(size_t result);
-const char *ZSTD_getErrorName(size_t result);
-
 enum { END_TIMESTAMP_NS = 3 };
+// Match libdatadog's profile compression level, which uses zstd's fast strategy.
+enum { COMPRESSION_LEVEL = 1 };
 
 typedef struct allocation {
   struct allocation *next;
@@ -40,6 +38,7 @@ typedef struct {
 
 struct custom_profile {
   allocation *allocations;
+  ZSTD_CCtx *compression_context;
   messages strings;
   messages functions;
   messages locations;
@@ -78,6 +77,7 @@ custom_profile *custom_profile_new(void) {
 
 void custom_profile_free(custom_profile *profile) {
   if (profile == NULL) return;
+  miteruby_allocator_free(profile->compression_context);
   for (size_t i = 0; i < profile->samples.count; i++) {
     sample *item = profile->samples.items[i];
     free(item->labels.items);
@@ -303,7 +303,19 @@ VALUE custom_profile_serialize(custom_profile *profile, VALUE start, VALUE finis
   size_t capacity = ZSTD_compressBound(size);
   if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
   void *compressed = allocate(profile, capacity, 1);
-  size_t compressed_size = ZSTD_compress(compressed, capacity, bytes, stream.bytes_written, 1);
+  if (profile->compression_context == NULL) {
+    // TODO: Size for streaming compression, which we expect to enable soon.
+    size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
+    if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace: %s", ZSTD_getErrorName(workspace_size));
+    void *workspace = miteruby_allocator_alloc(workspace_size, "zstd");
+    if (workspace == NULL) rb_memerror();
+    profile->compression_context = ZSTD_initStaticCCtx(workspace, workspace_size);
+    if (profile->compression_context == NULL) {
+      miteruby_allocator_free(workspace);
+      rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
+    }
+  }
+  size_t compressed_size = ZSTD_compressCCtx(profile->compression_context, compressed, capacity, bytes, stream.bytes_written, COMPRESSION_LEVEL);
   if (ZSTD_isError(compressed_size)) rb_raise(rb_eRuntimeError, "Failed to compress custom pprof: %s", ZSTD_getErrorName(compressed_size));
   VALUE bytes_string = rb_str_new(compressed, compressed_size);
   return rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
