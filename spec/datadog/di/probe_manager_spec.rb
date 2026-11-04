@@ -449,6 +449,32 @@ RSpec.describe Datadog::DI::ProbeManager do
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
       end
     end
+
+    context "when two pending probes target the class being defined" do
+      let(:first_probe) do
+        Datadog::DI::Probe.new(id: "first", type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "foo")
+      end
+
+      let(:second_probe) do
+        Datadog::DI::Probe.new(id: "second", type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")
+      end
+
+      before do
+        probe_repository.add_pending(first_probe)
+        probe_repository.add_pending(second_probe)
+      end
+
+      it "installs both probes when the class body ends" do
+        expect(instrumenter).to receive(:hook).with(first_probe, manager)
+        expect(instrumenter).to receive(:hook).with(second_probe, manager)
+
+        manager.reopen
+        class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+
+        expect(probe_repository.installed_probes).to eq("first" => first_probe, "second" => second_probe)
+        expect(probe_repository.pending_probes).to be_empty
+      end
+    end
   end
 
   describe "#probe_executed_callback" do
