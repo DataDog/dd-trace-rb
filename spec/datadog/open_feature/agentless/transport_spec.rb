@@ -54,7 +54,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     it "gates initial and conditional request capability parameters for #{capabilities.inspect}" do
       allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:supported).and_return(capabilities)
       expected = if capabilities.include?("dependent-flag-variant-key-v1")
-        "https://example.test/config?dd_env=test&dependent-flags-variant-key=v1"
+        "https://example.test/config?dd_env=test&cap_dependent-flags-variant-key=v1"
       else
         "https://example.test/config?dd_env=test"
       end

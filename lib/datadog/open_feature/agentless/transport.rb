@@ -46,8 +46,8 @@ module Datadog
           uri = @endpoint.uri.dup
           if EvaluatorCapabilities.supported.include?(EvaluatorCapabilities::DEPENDENT_FLAG_VARIANT_KEY_V1)
             query = URI.decode_www_form(uri.query.to_s)
-            query.reject! { |name, _value| name == "dependent-flags-variant-key" }
-            query << ["dependent-flags-variant-key", "v1"]
+            query.reject! { |name, _value| name == "cap_dependent-flags-variant-key" }
+            query << ["cap_dependent-flags-variant-key", "v1"]
             uri.query = URI.encode_www_form(query)
           end
           uri.request_uri
