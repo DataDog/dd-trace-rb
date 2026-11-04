@@ -1,24 +1,35 @@
 #include "streaming_serializer.h"
 #include "allocator.h"
 #include "stack_dedup.h"
+#include "pprof/zstd.h"
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
+#include "../time_helpers.h"
+
+#include <string.h>
+
+enum { COMPRESSION_LEVEL = 1 };
 
 typedef struct {
   // TODO: This can probably be max-sized better given limits on stack depth, etc
   uint8_t *uncompressed_serialization_buffer;
+  size_t uncompressed_serialization_size;
+  ZSTD_CCtx *compression_context;
+  long start_time_ns;
   uint64_t recorded_samples;
 } streaming_serializer_state;
 
 static void serializer_free(void *data) {
   streaming_serializer_state *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
+  miteruby_allocator_free(state->compression_context);
   ruby_xfree(state);
 }
 
 static size_t serializer_size(const void *data) {
   const streaming_serializer_state *state = data;
-  return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) : 0;
+  return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
+    miteruby_allocator_alloc_size(state->compression_context) : 0;
 }
 
 static const rb_data_type_t serializer_type = {
@@ -39,6 +50,7 @@ static VALUE serializer_new(VALUE klass) {
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
+  state->start_time_ns = system_epoch_time_now_ns();
   return serializer;
 }
 
@@ -50,6 +62,9 @@ static void record_stack_sample(
 
 void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
   streaming_serializer_state *state = get_state(serializer);
+  const char placeholder[] = "hello world";
+  memcpy(state->uncompressed_serialization_buffer, placeholder, sizeof(placeholder) - 1);
+  state->uncompressed_serialization_size = sizeof(placeholder) - 1;
 
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
@@ -60,12 +75,42 @@ void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  get_state(serializer);
-  return Qnil;
+  streaming_serializer_state *state = get_state(serializer);
+  long finish_time_ns = system_epoch_time_now_ns();
+  size_t capacity = ZSTD_compressBound(state->uncompressed_serialization_size);
+  if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
+  VALUE bytes_string = rb_str_new(NULL, capacity);
+  if (state->compression_context == NULL) {
+    size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
+    if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace: %s", ZSTD_getErrorName(workspace_size));
+    void *workspace = miteruby_allocator_alloc(workspace_size, "streaming_serializer_zstd");
+    if (workspace == NULL) rb_memerror();
+    state->compression_context = ZSTD_initStaticCCtx(workspace, workspace_size);
+    if (state->compression_context == NULL) {
+      miteruby_allocator_free(workspace);
+      rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
+    }
+  }
+  size_t compressed_size = ZSTD_compressCCtx(
+    state->compression_context, RSTRING_PTR(bytes_string), capacity,
+    state->uncompressed_serialization_buffer, state->uncompressed_serialization_size, COMPRESSION_LEVEL
+  );
+  if (ZSTD_isError(compressed_size)) rb_raise(rb_eRuntimeError, "Failed to compress streaming profile: %s", ZSTD_getErrorName(compressed_size));
+  rb_str_resize(bytes_string, compressed_size);
+  VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
+  VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
+  VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
+  state->start_time_ns = finish_time_ns;
+  RB_GC_GUARD(serializer);
+  RB_GC_GUARD(bytes_string);
+  return result;
 }
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  get_state(serializer)->recorded_samples = 0;
+  streaming_serializer_state *state = get_state(serializer);
+  state->recorded_samples = 0;
+  state->uncompressed_serialization_size = 0;
+  state->start_time_ns = system_epoch_time_now_ns();
   return Qtrue;
 }
 
