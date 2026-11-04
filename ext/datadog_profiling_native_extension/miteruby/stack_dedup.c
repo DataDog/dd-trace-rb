@@ -12,7 +12,7 @@
 
 typedef struct {
   uint16_t frame_count;
-  miteruby_cme_iseq_id_t ids[];
+  miteruby_location_id_t ids[];
 } miteruby_stored_stack_t;
 
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
@@ -34,8 +34,7 @@ static void *unique_stacks_calloc(size_t size);
 //
 // We keep two data structures:
 //
-// * `unique_stacks_array`: Contiguous storage of stacks in a very similar format as the sample event
-// (Currently: frame_count, then CME/ISEQ IDs for all frames and then the bytecode positions)
+// * `unique_stacks_array`: Contiguous storage of frame counts followed by location IDs.
 // Trailing padding keeps each stack record aligned to 8-byte boundaries.
 //
 // * `verstable_unique_stacks_map`: Maps stack hashes to IDs (byte offsets in `unique_stacks_array`).
@@ -46,15 +45,15 @@ static void *unique_stacks_calloc(size_t size);
 //   * Event 2: [E, F, 0, 1] (frame_count: 2)
 //   * Event 3: [A, B, C, D, 0, 1, 2, 3] (frame_count: 4)
 //
-// * Unique stacks array (id(X) is the miteruby_cme_iseq_id_t for pair X):
-//   [ frame_count: 4 | id(A) | id(B) | id(C) | id(D) | 0 | 1 | 2 | 3 | padding | frame_count: 2 | id(E) | id(F) | 0 | 1 | padding ]
-//     ^                                                                          ^
-//     |                                                                          |
-//     Events 1 and 3                                                             Event 2
+// * Unique stacks array (id(X, p) is the location ID for CME/ISEQ pair X at position p):
+//   [ frame_count: 4 | id(A, 0) | id(B, 1) | id(C, 2) | id(D, 3) | padding | frame_count: 2 | id(E, 0) | id(F, 1) | padding ]
+//     ^                                                                    ^
+//     |                                                                    |
+//     Events 1 and 3                                                       Event 2
 //
 // * Unique stacks map:
 //   hash(A B C D; 0 1 2 3) -> stack_id:  0  (Events 1 and 3)
-//   hash(E F; 0 1)         -> stack_id: 32  (Event 2)
+//   hash(E F; 0 1)         -> stack_id: 24  (Event 2)
 //
 // Both of the above data structures are allocated with the miteruby allocator, since they're expected to be large and
 // we want to manage them carefully.
@@ -127,12 +126,11 @@ miteruby_stack_t miteruby_stack_dedup_get(miteruby_stack_dedup_id_t stack_id) {
   return (miteruby_stack_t) {
     .frame_count = stack->frame_count,
     .ids = stack->ids,
-    .positions = (miteruby_event_frame_position_t *)&stack->ids[stack->frame_count],
   };
 }
 
 static size_t aligned_stack_size(uint16_t frame_count) {
-  size_t stack_size = sizeof(miteruby_stored_stack_t) + frame_count * (sizeof(miteruby_cme_iseq_id_t) + sizeof(miteruby_event_frame_position_t));
+  size_t stack_size = sizeof(miteruby_stored_stack_t) + frame_count * sizeof(miteruby_location_id_t);
   return ((stack_size + 7) / 8) * 8;
 }
 

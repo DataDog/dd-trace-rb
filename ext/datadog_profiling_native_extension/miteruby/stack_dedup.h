@@ -11,8 +11,8 @@
 // When deduplicating stacks, we treat stacks with the same hash as identical.
 //
 // This allows us to save CPU and memory:
-// * We store ISEQ/CME pairs as `miteruby_cme_iseq_id_t` indexes, saving memory.
-// * Converting every incoming stack to those indexes requires O(frames) lookups in `verstable_mark_cme_iseq_map`.
+// * We store frames as `miteruby_location_id_t` indexes, saving memory.
+// * Converting every incoming stack to those indexes requires O(frames) lookups in the CME/ISEQ and location maps.
 //   Hash-only identity avoids those lookups for already-seen stacks; new stacks still need conversion.
 //   Hashing itself remains O(frames).
 //
@@ -33,8 +33,7 @@ typedef struct {
 
 typedef struct {
   uint16_t frame_count;
-  miteruby_cme_iseq_id_t *ids;
-  miteruby_event_frame_position_t *positions;
+  miteruby_location_id_t *ids;
 } miteruby_stack_t;
 
 typedef struct {
