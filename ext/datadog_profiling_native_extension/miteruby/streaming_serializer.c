@@ -97,7 +97,10 @@ static void record_stack_sample(
   state->recorded_samples++;
 }
 
-void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos) {
+void miteruby_streaming_serializer_prepare_serialize(
+  VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
+  DDTRACE_UNUSED const verstable_mark_cme_iseq_map *mark_cme_iseq_map
+) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
   long finish_time_ns = system_epoch_time_now_ns();
