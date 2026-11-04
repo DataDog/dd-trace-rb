@@ -175,20 +175,20 @@ static void test_empty_stack_before_nonempty(void) {
   miteruby_event_stack_sample_t *event = &storage.event;
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, true).offset == 0);
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
-  assert(stack_dedup_state.unique_stacks_pos == 8);
+  assert(stack_dedup_state.unique_stacks_pos == 4);
   assert(miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 0}).frame_count == 0);
 
   event->header.frame_count = 1;
   positions_for(event)[0].value = 7;
-  assert(assert_dedup(event, true).offset == 8);
-  assert(stack_dedup_state.unique_stacks_pos == 16);
-  miteruby_stack_t stored = miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 8});
+  assert(assert_dedup(event, true).offset == 4);
+  assert(stack_dedup_state.unique_stacks_pos == 12);
+  miteruby_stack_t stored = miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 4});
   assert(stored.frame_count == 1);
   assert(stored.ids[0].value.value == 7);
   assert(assert_dedup(&(miteruby_event_stack_sample_t) {0}, false).offset == 0);
   assert(miteruby_stack_dedup_get((miteruby_stack_dedup_id_t) {.offset = 0}).frame_count == 0);
-  assert(assert_dedup(event, false).offset == 8);
-  assert(stack_dedup_state.unique_stacks_pos == 16);
+  assert(assert_dedup(event, false).offset == 4);
+  assert(stack_dedup_state.unique_stacks_pos == 12);
   assert(verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks) == 2);
   assert(miteruby_stack_dedup_reset());
 }
@@ -206,7 +206,7 @@ static void test_stack_identity(void) {
   miteruby_stack_dedup_id_t first = assert_dedup(event, true);
   assert(first.offset == 0);
   size_t used = stack_dedup_state.unique_stacks_pos;
-  assert(used == 16);
+  assert(used == 12);
   size_t data_size = 2 * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
   assert(miteruby_stack_dedup_get(first).ids[0].value.value == 12 && miteruby_stack_dedup_get(first).ids[1].value.value == UINT16_MAX + 1U);
   sample_storage duplicate = storage;
@@ -241,7 +241,7 @@ static void test_stack_identity(void) {
   miteruby_stack_dedup_id_t empty = assert_dedup(event, true);
   assert(empty.offset == used);
   assert(assert_dedup(event, false).offset == empty.offset);
-  assert(stack_dedup_state.unique_stacks_pos == used + 8);
+  assert(stack_dedup_state.unique_stacks_pos == used + 4);
   assert(miteruby_stack_dedup_get(empty).frame_count == 0);
   assert(miteruby_stack_dedup_get(first).frame_count == 2);
 }
@@ -298,7 +298,7 @@ static void test_map_growth_and_stable_storage(void) {
   for (uint16_t i = 0; i < 20000; i++) {
     positions_for(event)[0].value = i;
     ids[i] = assert_dedup(event, true);
-    assert(ids[i].offset % 8 == 0);
+    assert(ids[i].offset % 4 == 0);
   }
   assert(miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks_array) == UNIQUE_STACKS_ARRAY_MAX_SIZE);
   assert(stack_dedup_state.unique_stacks_array == array);
@@ -432,7 +432,7 @@ static void test_fixed_array_capacity(void) {
   event->header.frame_count = MITERUBY_MAX_FRAMES;
   miteruby_event_frame_position_t *positions = positions_for(event);
   assert(assert_dedup(event, true).offset == 0);
-  size_t compact_stack_size = 1608;
+  size_t compact_stack_size = 1604;
   uint16_t position = 1;
   while (UNIQUE_STACKS_ARRAY_MAX_SIZE - stack_dedup_state.unique_stacks_pos >= compact_stack_size) {
     positions[0].value = position++;
