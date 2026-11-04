@@ -4,7 +4,7 @@ Use a proc type when a value is callable – a stored block, lambda, or proc
 
 ## Rules
 
-- MUST type a callable as a proc `^(args) -> ret`, even a loose one – NEVER
+- MUST type a callable as a proc `^(args) -> ret`, even a loose one. NEVER
   erase its shape to the bare `Proc` class or `untyped`
 - SHOULD annotate a rebound receiver with `[self: Type]` inside the proc type
 

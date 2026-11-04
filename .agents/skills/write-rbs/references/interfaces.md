@@ -5,9 +5,9 @@ of methods, not a concrete class
 
 ## Rules
 
-- MUST name an interface with a leading underscore – `interface _Name`
+- MUST name an interface with a leading `_` – `interface _Name`
 - MUST list only the domain methods you actually call
-- NEVER pad an interface with predicates like `nil?` or `is_a?` just to satisfy
+- NEVER pad an interface with predicates like `nil?` or `is_a?` only to satisfy
   the checker
 - SHOULD prefer an interface over a concrete type when the real object varies
   across versions or frameworks
@@ -34,7 +34,7 @@ class Writer
 end
 ```
 
-Keep it to the methods you call; don't grow it to silence the checker:
+Keep it to the methods you call. Do not grow it to silence the checker:
 
 ```rbs
 # Good – only the domain method the caller uses
@@ -69,5 +69,6 @@ class Stack
 end
 ```
 
-`untyped` is fine when you genuinely can't enumerate the methods – the
-anti-pattern above is the comment describing a contract you could have typed
+`untyped` is fine when you genuinely cannot enumerate the methods. The
+anti-pattern above is the comment that describes a contract you can state
+as an interface

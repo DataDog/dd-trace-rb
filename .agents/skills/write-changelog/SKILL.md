@@ -1,28 +1,28 @@
 ---
 name: write-changelog
-description: 'Use when a change in this repo needs a customer-facing changelog entry — e.g. "add a changelog entry" — or when an approved PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md is about to merge.'
+description: 'Use when a change in this repo needs a customer-facing changelog entry, for example "add a changelog entry". Also use it when an approved PR that changes user-visible behavior in lib/, ext/, or docs/GettingStarted.md is about to merge.'
 ---
 
 # Writing changelog fragments
 
 Read `unreleased/README.md` first: it explains the fragment format and its fields.
 
-You can write the fragment as soon as the PR exists, but check it again
+You can write the fragment as soon as the PR exists. Check it again
 against the final diff once the PR is approved, right before merging.
 
 ## Audience
 
-A Ruby developer using this gem, reading `CHANGELOG.md` to decide whether
-upgrading affects their application. Tell them what changes for them: what
-they will see, what they need to do, or what they get. Don't describe the
-implementation.
+The reader is a Ruby developer using this gem. They read `CHANGELOG.md` to
+decide whether an upgrade affects their application. Tell them what changes
+for them: what they will see, what they need to do, or what they get. Do not
+describe the implementation.
 
 ## Before writing
 
 Read the diff and answer these questions:
 
 - What does this PR change for users once merged? If nothing yet
-  (groundwork, a feature flag that is still off), don't write a fragment.
+  (groundwork, a feature flag that is still off), do not write a fragment.
 - Does it have one user-visible effect or several? Write one fragment per
   effect, never combine them. If there are several, ask the user to confirm
   the split first.
@@ -51,28 +51,28 @@ Read the diff and answer these questions:
 - Check versions against the diff (gemspec, `Matrixfile`, CI config).
 - Only cite numbers found in the diff, its benchmark output, or the PR
   description.
-- Only claim a behavior change if a test in the diff shows it. If a
-  reproducible bug has no test, ask for one. If the PR merges without it,
-  limit the message to what reading the code confirms, and note the
-  missing test in the review.
-- If the bug can't be reproduced by a deterministic test (it depends on
-  timing or external state), limit the message to what the code change
-  itself shows.
-- If a claim can't be verified, remove it or make it less specific. Don't
+- If a test in the diff shows the behavior change, claim it. If a
+  reproducible bug has no test, ask for one. If the PR merges without one,
+  limit the message to what reading the code confirms. Note the missing
+  test in the review.
+- If a deterministic test cannot reproduce the bug, because it depends on
+  timing or external state, limit the message. State only what the code
+  change itself shows.
+- If a claim cannot be verified, remove it or make it less specific. Do not
   hedge it.
 
 ## When to add a fragment
 
 - Add one for new features, behavior changes, and bug fixes users can
   notice.
-- Don't add one for internal refactors, test-only changes, CI/tooling, or
+- Do not add one for internal refactors, test-only changes, CI/tooling, or
   docs other than `docs/GettingStarted.md`.
 - When unsure, add one. A reviewer can delete it, but a missing entry
   leaves customers unaware.
 
 ## Creating the fragment
 
-- Generate it with `bundle exec rake unreleased:new`, don't create the file
+- Generate it with `bundle exec rake unreleased:new`. Do not create the file
   by hand. The placeholders describe each field. Complete examples are in
   `unreleased/examples/`.
 - Use the real PR number. If there is no PR yet, open a draft first.
@@ -85,7 +85,7 @@ Read the diff and answer these questions:
 ## Writing the message
 
 `bundle exec rake unreleased:lint` and `unreleased:vale` check some of the
-rules below. Passing them doesn't mean the message is good: follow all the
+rules below. Passing them does not mean the message is good. Follow all the
 rules.
 
 If the message is too long, cut the explanation first. Keep the effect, who
@@ -114,8 +114,8 @@ is affected, and how to enable or opt out.
     Show class and module names in profiler stack frames (`Foo::Bar#baz` instead of `baz`), making hot methods easier to identify; enable it with `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true`.
     ```
 
-  - `Changed`: the new behavior, how to get the old behavior back if
-    possible, and ideally why it matters.
+  - `Changed`: the new behavior, then how to restore the old behavior
+    when that is possible, and ideally why it matters.
 
     ```markdown
     <!-- Bad: no way to get the old behavior back -->
@@ -163,7 +163,7 @@ is affected, and how to enable or opt out.
 - Put code names in backticks (`ActiveRecord`), but not product names
   (Bundler).
 
-- Don't repeat the product name, it is already shown next to the entry.
+- Do not repeat the product name. It is already shown next to the entry.
   Lowercase technical terms like "GC profiling" are fine.
 
   ```markdown
@@ -185,8 +185,8 @@ is affected, and how to enable or opt out.
   Disable live heap size profiling on Ruby 4.0 due to incompatibility.
   ```
 
-- Back performance claims with numbers from the PR. Without numbers, just
-  say what improves, without "significantly" and similar.
+- Back performance claims with numbers from the PR. Without numbers, say
+  what improves. Leave out "significantly" and similar words.
 
   ```markdown
   <!-- Bad: "significantly" with no number behind it -->

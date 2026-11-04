@@ -16,7 +16,7 @@ domain meaning worth naming
 
 ## Examples
 
-Bind every signature to one name, so the shape can't drift apart:
+Bind every signature to one name, so the shape cannot drift apart:
 
 ```rbs
 # Good – one shape, one name
@@ -42,7 +42,7 @@ type dependency = Hash[Symbol, String]
 type struct = Hash[Symbol, String]
 ```
 
-Don't alias a shape used once – the indirection buys nothing:
+Do not alias a shape used once. The indirection buys nothing:
 
 ```rbs
 # Good – used once, inline it

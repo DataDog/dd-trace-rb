@@ -140,8 +140,8 @@ jobs:
       - name: Install and run dependency audit
         run: .github/scripts/check/dependency_audit.sh
 
-  document-lint:
-    name: document-lint
+  simple-english:
+    name: simple-english
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
@@ -149,8 +149,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install and run document lint
-        run: .github/scripts/check/document_lint.sh
+      - name: Lint docs and agent skills
+        uses: TonyCTHsu/simple-english@1f6e849a0d88acf66a6bf60a814d8968c15ef2c1 # v0.13.0
+        with:
+          files: |
+            docs/DependencyAudit.md
+            .agents/skills
+          version: 0.13.0
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
@@ -323,7 +328,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
-      - 'document-lint'
+      - 'simple-english'
       - 'green-ci-exclude-metrics'
       - 'changelog'
     runs-on: ubuntu-24.04

@@ -1,0 +1,3 @@
+rule-ignores:
+  SE_MODAL_RESTRICTED:
+    - .agents/skills/**
