@@ -165,6 +165,8 @@ static void consumer_mark(void *data) {
 
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
   // so these objects must stay pinned at their current addresses.
+
+  // Mark the verstable_mark_threads_set
   for (
     verstable_mark_threads_set_itr itr = verstable_mark_threads_set_first(&state->mark_threads_set);
     !verstable_mark_threads_set_is_end(itr);
@@ -173,6 +175,16 @@ static void consumer_mark(void *data) {
     rb_gc_mark(itr.data->key);
   }
 
+  // Mark the verstable_mark_cme_iseq_map
+  //
+  // Note: Because `verstable_mark_cme_iseq_map` holds pairs of <cme, iseq>, we could be marking the same cme or iseq
+  // more than once if it shows up in more than one pair. This is a bit of a classic space/time trade-off: we could
+  // introduce another set just for marking, which would be less work at GC time but more memory for us to keep.
+  // Something to keep in mind if Ruby's GC marking shows up as a hotspot?
+  //
+  // Note 2: While it would be tempting to consider marking only the cme when we know the iseq is the one the cme
+  // points to, remember that we're marking **and pinning** so we really need to tell Ruby here to mark && pin both to
+  // make sure Ruby doesn't move the iseq.
   for (
     verstable_mark_cme_iseq_map_itr itr = verstable_mark_cme_iseq_map_first(&state->mark_cme_iseq_map);
     !verstable_mark_cme_iseq_map_is_end(itr);

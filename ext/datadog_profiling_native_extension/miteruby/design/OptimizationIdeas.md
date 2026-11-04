@@ -27,11 +27,9 @@ We could even "shard" some of our storage to take better advantage of this.
 
 ## Bulk marking references
 
-The `mark_threads_set` Verstable set stores `VALUE`-sized keys, while `mark_cme_iseq_map` maps pairs of `VALUE`-sized
-references to IDs. Both keep metadata in a separate array.
-Consider using `rb_gc_mark_locations` over the bucket array (excluding metadata), as we already do in `raw_events_queue_marking.c`,
-instead of iterating occupied buckets and calling `rb_gc_mark` individually. Bulk marking also pins the objects.
-The map's buckets also contain IDs and padding, so bulk marking must account for that layout.
+The `mark_threads_set` Verstable set stores `VALUE`-sized keys. We could consider using `rb_gc_mark_locations` over the
+bucket array, as we already do in `raw_events_queue_marking.c`, instead of iterating occupied buckets and calling
+`rb_gc_mark` individually.
 
 Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
 only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing each table to avoid
