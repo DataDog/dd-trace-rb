@@ -12,7 +12,7 @@ the same audit afterwards.
 ## 1. Who handles it, and how urgently
 
 Whoever hits the failing audit handles it, locally or on a PR. There is no
-security on-call, this is routine maintenance.
+security on-call. This is routine maintenance.
 
 The audit protects the machines that install and run the gems under
 `gemfiles/` (developer machines and CI), not the shipped gem. The `datadog`
@@ -56,9 +56,9 @@ All commands in this skill run in the containers from `docker-compose.yml`.
 Each `tracer-X.Y` service uses one Ruby version and its own default Gemfile.
 
 Then use the `Matrixfile` to find which tests run each affected lockfile.
-This can include more Ruby versions than the audit covers. A Ruby version
-the audit skips still runs the gem, so an upgrade can break it there. The
-break never makes the audit fail.
+These tests can run on more Ruby versions than the audit covers. The audit
+reports nothing for those other versions, but an upgrade can still break
+them, so test them too.
 
 1. The lockfile name contains the gemset:
    `ruby_3.3_mongo_latest.gemfile.lock` is gemset `mongo-latest`
@@ -76,7 +76,7 @@ break never makes the audit fail.
 },
 ```
 
-At the end of this step you should know:
+At the end of this section you should know:
 
 - which advisory affects which gem, at which versions
 - which lockfiles contain those versions
@@ -93,12 +93,12 @@ not change the decision.
    recreated inside the container on each run.
 2. The gem's repository has the changelog, the upstream issue, and the fix
    commit.
-3. Check that the patched version supports every Ruby version from step 2:
+3. Check that the patched version supports every Ruby version from section 2:
    `gem specification -r -v VERSION GEM required_ruby_version`. If it
-   requires a newer Ruby than one the audit covers, that lockfile cannot be
-   upgraded. It needs an exception, while the others are upgraded. If the
-   audit does not cover that Ruby version, the lockfile stays on the old
-   version.
+   requires a newer Ruby than a lockfile uses, that lockfile cannot be
+   upgraded. If the audit covers that Ruby version, the lockfile needs an
+   exception. If not, it stays on the old version without an exception,
+   since the audit reports nothing for it.
 
 Example advisory, for the mongo case above:
 
@@ -117,7 +117,7 @@ related:
     - https://github.com/advisories/GHSA-4ww7-gqv6-mffc
 ```
 
-At the end of this step you should know:
+At the end of this section you should know:
 
 - What is vulnerable: the component, the kind of bug, and what an attacker
   needs to control.
@@ -125,7 +125,7 @@ At the end of this step you should know:
 - How serious it is for us: the CVSS vector, and whether the vulnerable
   code runs in our tests.
 - Which versions fix it, and whether that is a new major version.
-- Whether the fix can be installed on all the Ruby versions from step 2.
+- Whether the fix can be installed on all the Ruby versions from section 2.
 
 Summarize in one sentence: what is vulnerable, what fixes it, and what the
 fix requires in this repo.
@@ -152,13 +152,13 @@ For each affected lockfile:
 ```text
 Can this lockfile use a patched version (on its Ruby version, and within
 the gemset's constraints)?
-├─ yes → update the lockfile and run the tests from step 2:
+├─ yes → update the lockfile and run the tests from section 2:
 │      ├─ pass → upgrade
 │      ├─ fail, small fix → upgrade, with the fix in the same change
 │      └─ fail, large fix → revert the lockfile, keep the vulnerable version
 └─ no → keep the vulnerable version
 
-Then add an exception for the kept versions:
+Then add an exception for the kept versions the audit reports:
 ├─ one version → one `ignore_gem_versions` entry
 └─ several versions, and upgrades can't reduce them → one `ignore` entry
    for the advisory id
@@ -190,7 +190,7 @@ If it is unclear how much work an upgrade is, read `CASE-STUDIES.md`. It
 holds two real cases. In both, the blocker was a deliberately pinned
 gemset, the test infrastructure, or a fix only available as a prerelease.
 
-This step is done when every lockfile from step 2 is either upgraded or
+This section is done when every lockfile from section 2 is either upgraded or
 kept with its vulnerable version recorded in the narrowest possible
 exception.
 
@@ -201,7 +201,7 @@ Run every command in a `tracer-X.Y` container.
 - If a lockfile changed, run `bundle exec rake dependency:checksum_coverage`.
   Rewriting a lockfile can drop its `CHECKSUMS` section, and this task
   catches that.
-- If the gem version changed, run the tests from step 2. Use the oldest
+- If the gem version changed, run the tests from section 2. Use the oldest
   and newest Ruby versions among the lockfiles that changed. With a partial
   upgrade, the oldest Ruby in the matrix might not use the new version at
   all.
@@ -210,7 +210,7 @@ Run every command in a `tracer-X.Y` container.
 
 Ship:
 
-- No changelog fragment, this is internal tooling.
+- No changelog fragment. This is internal tooling.
 - Never commit on `master`. Open a draft PR with the `AI Generated` label
   and a `chore(security): ...` title.
 - The PR description gives the advisory id, the affected lockfiles, the
@@ -219,11 +219,10 @@ Ship:
 
 ## Never do this
 
-No later commit can fix these mistakes:
-
-- Bundler generates the files under `gemfiles/`. Never edit them by hand.
-  Use `bundle lock --update`. A hand-edited lockfile can resolve
-  differently from what Bundler would produce.
+- Never edit the lockfiles under `gemfiles/` by hand. Use
+  `bundle lock --update`. A hand-edited lockfile can resolve differently
+  from what Bundler would produce. For the `.gemfile` files, use
+  `bundle exec rake dependency:generate`.
 - Never add an exception for a malicious package or for vulnerable code
   that runs in our tests. Tell the maintainers first. An exception would
   hide an active compromise on the machines running the tests.

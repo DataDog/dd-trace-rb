@@ -7,8 +7,6 @@ description: 'Use when opening a pull request in this repo, or when writing or u
 
 The reader is a senior Ruby engineer who knows the codebase and wants to
 know quickly whether to review this PR and how carefully. Keep it short.
-Do not describe the implementation: the diff already shows it, and the
-description gets out of date when the code changes.
 
 The template is `.github/PULL_REQUEST_TEMPLATE.md`. CI (`check.yml`,
 `pr-body` job) checks the length limits on every PR, drafts included.
@@ -19,6 +17,8 @@ Four sections, in this order: `### Why`, `### What`, `### Risk` (required)
 and `### Details` (optional).
 
 - Each required section has at most 2 sentences and 50 words.
+- Never describe the implementation: the diff already shows it, and the
+  description gets out of date when the code changes.
 - Keep Why and What high level: the effect and when it happens, not how
   it is implemented. If a sentence names a file or a spec helper, it is
   too detailed.

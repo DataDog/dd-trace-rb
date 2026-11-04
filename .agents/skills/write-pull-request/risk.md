@@ -38,7 +38,7 @@ Nobody notices until wrong data has already been ingested.
 One-way (cannot be undone): a released gem version, a shipped schema or
 format, and data already sent. Everything else is two-way: say how to undo
 it, for example revert, re-run, or restore the setting. If there is no way
-to undo it, say so, that is the risk.
+to undo it, say so. That is the risk.
 
 ## Writing the section
 

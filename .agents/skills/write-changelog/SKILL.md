@@ -204,7 +204,7 @@ Repeat these steps until a pass makes no changes:
 1. Run `bundle exec rake unreleased:lint` and
    `bundle exec rake unreleased:vale`, and fix every violation.
 2. Run `bundle exec rake unreleased:render` and check the rendered entry
-   against each rule in "Writing the message".
+   against "Audience" and each rule in "Writing the message".
 3. Check the fragment against the final diff again, as in "Before writing"
    and "Only claim what you can verify". If there is a new effect, ask about
    the split and give it its own fragment.
