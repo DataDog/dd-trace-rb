@@ -575,7 +575,6 @@ module Datadog
         Thread.handle_interrupt(DEFER_ASYNC_INTERRUPTS) do
           activate_span!(span_op)
 
-          # Update active span count
           @active_span_count += 1
         end
 

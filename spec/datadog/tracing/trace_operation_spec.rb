@@ -1971,7 +1971,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     context "when a non-StandardError exception interrupts the start of a span" do
       let(:interrupt) { Class.new(Exception) } # rubocop:disable Lint/InheritException
-      let(:hang) { Class.new(Exception) } # rubocop:disable Lint/InheritException
 
       it "does not activate the span as its own parent and finishes it" do
         armed = false
@@ -1990,11 +1989,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           original.call
         end
 
+        parent_span = nil
         interrupted_span = nil
 
         expect do
-          Timeout.timeout(5, hang, "trace operation did not terminate") do
-            trace_op.measure("parent") do
+          Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") do # rubocop:disable Lint/InheritException
+            trace_op.measure("parent") do |parent_op|
+              parent_span = parent_op
               trace_op.measure("interrupted") do |span_op|
                 interrupted_span = span_op
                 trace_op.measure("child") {}
@@ -2003,7 +2004,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end.to raise_error(interrupt)
 
-        expect(interrupted_span.send(:parent)).to_not be(interrupted_span)
+        expect(interrupted_span.send(:parent)).to be(parent_span)
         expect(interrupted_span).to be_finished
         expect(trace_op.active_span).to be_nil
         expect(trace_op.active_span_count).to eq(0)
@@ -2030,7 +2031,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         release << true
 
         expect do
-          Timeout.timeout(5, hang, "trace operation did not terminate") { worker.join }
+          Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") { worker.join } # rubocop:disable Lint/InheritException
         end.to raise_error(interrupt)
 
         expect(trace_op.send(:root_span).name).to eq("interrupted")
