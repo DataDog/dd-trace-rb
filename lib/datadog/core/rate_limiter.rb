@@ -37,10 +37,12 @@ module Datadog
       #  if rate is negative, always allow
       #  if rate is zero, never allow
       # @param max_tokens [Numeric] Limit of available tokens
-      def initialize(rate, max_tokens = rate)
+      def initialize(rate, max_tokens = nil)
         super()
 
         raise ArgumentError, "rate must be a number: #{rate}" unless rate.is_a?(Numeric)
+        # Capacity must reach the one-token admission cost; a rate below 1 otherwise never admits.
+        max_tokens = [rate, 1].max if max_tokens.nil?
         raise ArgumentError, "max_tokens must be a number: #{max_tokens}" unless max_tokens.is_a?(Numeric)
 
         @rate = rate
