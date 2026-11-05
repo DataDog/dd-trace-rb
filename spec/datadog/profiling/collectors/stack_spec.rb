@@ -1112,8 +1112,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   context "when sampling a thread with a stack that is deeper than the configured max_frames" do
-    let(:max_frames) { 5 }
-    let(:target_stack_depth) { 100 }
+    let(:max_frames) { 400 }
+    let(:target_stack_depth) { 500 }
     let(:thread_with_deep_stack) { DeepStackSimulator.thread_with_stack_depth(target_stack_depth) }
 
     let(:in_gc) { false }
@@ -1130,16 +1130,17 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     context "when adjusted for missing frames" do
       let(:reference_stack) { super()[-(max_frames - 1)..-1] }
-      include_examples "matches the Ruby backtrace API in range", (-4..-1)
+      include_examples "matches the Ruby backtrace API in range", (-399..-1)
     end
 
     it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
-      expect(gathered_stack).to contain_exactly(
-        have_attributes(label: "Truncated Frames", path: "", lineno: 0),
-        have_attributes(label: "DeepStackSimulator#deep_stack_4"),
-        have_attributes(label: "DeepStackSimulator#deep_stack_3"),
-        have_attributes(label: "DeepStackSimulator.thread_with_stack_depth (block)"),
-        have_attributes(label: "DatadogThreadDebugger#initialize (block)"),
+      expect(gathered_stack).to match(
+        [
+          have_attributes(label: "Truncated Frames", path: "", lineno: 0),
+          *399.downto(3).map { |depth| have_attributes(label: "DeepStackSimulator#deep_stack_#{depth}") },
+          have_attributes(label: "DeepStackSimulator.thread_with_stack_depth (block)"),
+          have_attributes(label: "DatadogThreadDebugger#initialize (block)"),
+        ],
       )
     end
 
@@ -1253,16 +1254,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context "when max_frames is too small" do
     it "raises an ArgumentError" do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 4)
-      end.to raise_error(ArgumentError)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 399)
+      end.to raise_error(ArgumentError, "Invalid max_frames: value must be >= 400")
     end
   end
 
   context "when max_frames is too large" do
     it "raises an ArgumentError" do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 10_001)
-      end.to raise_error(ArgumentError)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 601)
+      end.to raise_error(ArgumentError, "Invalid max_frames: value must be <= 600")
     end
   end
 

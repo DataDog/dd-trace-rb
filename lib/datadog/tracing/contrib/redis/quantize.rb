@@ -31,9 +31,7 @@ module Datadog
             ],
           ).freeze
 
-          module_function
-
-          def format_arg(arg)
+          def self.format_arg(arg)
             str = Core::Utils.utf8_encode(arg, binary: true, placeholder: PLACEHOLDER)
             Core::Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
           rescue => e
@@ -41,7 +39,7 @@ module Datadog
             PLACEHOLDER
           end
 
-          def format_command_args(command_args)
+          def self.format_command_args(command_args)
             command_args = resolve_command_args(command_args)
             return "AUTH ?" if auth_command?(command_args) || hello_auth_command?(command_args)
 
@@ -49,7 +47,7 @@ module Datadog
             Core::Utils.truncate("#{verb.upcase} #{args.join(" ")}", CMD_MAX_LEN, TOO_LONG_MARK)
           end
 
-          def get_verb(command_args)
+          def self.get_verb(command_args)
             return unless command_args.is_a?(Array)
 
             return get_verb(command_args.first) if command_args.first.is_a?(Array)
@@ -62,7 +60,7 @@ module Datadog
             "#{verb} #{command_args[1]}"
           end
 
-          def auth_command?(command_args)
+          def self.auth_command?(command_args)
             return false unless command_args.is_a?(Array) && !command_args.empty?
 
             verb = command_args.first.to_s
@@ -73,7 +71,7 @@ module Datadog
           # credentials the same way a standalone `AUTH` command does and must be redacted
           # (and kept visible as its own span) rather than treated as a silent connection
           # bootstrap command.
-          def hello_auth_command?(command_args)
+          def self.hello_auth_command?(command_args)
             return false unless command_args.is_a?(Array) && !command_args.empty?
 
             # `redis-client` always emits this as `["HELLO", "3", "AUTH", username, password]` — check
@@ -87,7 +85,7 @@ module Datadog
           # `CLIENT SETNAME`) that `redis-client` sends as part of its per-connection handshake,
           # so they can be excluded from pipeline resource naming. A `HELLO` carrying `AUTH`
           # credentials is excluded from this so authentication remains visible as its own span.
-          def connection_setup_command?(command_args)
+          def self.connection_setup_command?(command_args)
             command_args = resolve_command_args(command_args)
             return false unless command_args.is_a?(Array) && !command_args.empty?
             return false if hello_auth_command?(command_args)
@@ -100,7 +98,7 @@ module Datadog
 
           # Unwraps command array when Redis is called with the following syntax:
           #   redis.call([:cmd, 'arg1', ...])
-          def resolve_command_args(command_args)
+          def self.resolve_command_args(command_args)
             return command_args.first if command_args.is_a?(Array) && command_args.first.is_a?(Array)
 
             command_args

@@ -38,6 +38,28 @@ RSpec.describe TestBatching::Runner do
     expect(written_run.timings.map { |entry| entry["test_seconds"] }).to eq([10.0, 10.0])
   end
 
+  it "quiets bundle install by default" do
+    cmds = []
+    allow(described_class).to receive(:run_command) { |_env, cmd| cmds << cmd }
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with("RUNNER_DEBUG").and_return(nil)
+
+    described_class.run([task_json("main")])
+
+    expect(cmds.first).to include("bundle install --quiet")
+  end
+
+  it "shows full bundle install output when the job runs with debug logging" do
+    cmds = []
+    allow(described_class).to receive(:run_command) { |_env, cmd| cmds << cmd }
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with("RUNNER_DEBUG").and_return("1")
+
+    described_class.run([task_json("main")])
+
+    expect(cmds.first).not_to include("--quiet")
+  end
+
   it "writes the durations completed before a failing task" do
     allow(described_class).to receive(:run_command) do |env, _cmd|
       raise "Command failed" if env.fetch("BUNDLE_GEMFILE").include?("contrib")

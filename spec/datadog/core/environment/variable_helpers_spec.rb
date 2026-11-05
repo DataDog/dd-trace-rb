@@ -3,7 +3,7 @@ require "spec_helper"
 require "datadog/core/environment/variable_helpers"
 
 RSpec.describe Datadog::Core::Environment::VariableHelpers do
-  let(:variable_helpers) { Class.new { extend Datadog::Core::Environment::VariableHelpers } }
+  let(:variable_helpers) { described_class }
   let(:env_key) { var }
   let(:var) { "TEST_VAR" }
   let(:options) { {} }

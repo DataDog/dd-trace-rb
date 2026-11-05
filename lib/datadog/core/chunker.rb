@@ -4,8 +4,6 @@ module Datadog
   module Core
     # Chunks list of elements into batches
     module Chunker
-      module_function
-
       # Chunks a list into batches of at most +max_chunk_size+ elements each.
       #
       # An exception can occur if a single element is too large. That single
@@ -15,7 +13,7 @@ module Datadog
       # @param list [Enumerable] list of elements
       # @param max_chunk_size [Numeric] maximum acceptable chunk size
       # @return [Enumerable] lazy list of chunks
-      def chunk_by_size(list, max_chunk_size)
+      def self.chunk_by_size(list, max_chunk_size)
         chunk_agg = 0
         list.slice_before do |elem|
           size = elem.size

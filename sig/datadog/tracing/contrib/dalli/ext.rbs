@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Dalli
         module Ext
-          ENV_COMMAND_ENABLED: ::String
+          ENV_COMMAND_ENABLED: String
 
           ENV_ENABLED: "DD_TRACE_DALLI_ENABLED"
 

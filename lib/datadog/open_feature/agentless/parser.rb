@@ -9,9 +9,7 @@ module Datadog
       module Parser
         RESOURCE_TYPE = "universal-flag-configuration"
 
-        module_function
-
-        def parse(body)
+        def self.parse(body)
           payload = JSON.parse(body)
           return unless payload.is_a?(Hash)
 
@@ -26,7 +24,7 @@ module Datadog
           nil
         end
 
-        def valid_attributes?(attributes)
+        def self.valid_attributes?(attributes)
           return false unless attributes.is_a?(Hash)
 
           environment = attributes["environment"]

@@ -5,7 +5,7 @@ module Datadog
         attr_reader pre_sampler: untyped
         attr_reader priority_sampler: untyped
 
-        def initialize: (?::Hash[untyped, untyped] opts) -> void
+        def initialize: (?Hash[untyped, untyped] opts) -> void
 
         def sample?: (untyped trace) -> untyped
         def sample!: (untyped trace) -> untyped

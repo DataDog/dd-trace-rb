@@ -8,9 +8,7 @@ module Datadog
         module RailsRouteSerializer
           FORMAT_SUFFIX = "(.:format)"
 
-          module_function
-
-          def serialize(route, method_override: nil)
+          def self.serialize(route, method_override: nil)
             method = if method_override
               method_override
             elsif route.verb.empty?

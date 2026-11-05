@@ -13,24 +13,22 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "middleware"
 
             register_middleware!
             add_default_middleware!
           end
 
-          def register_middleware!
+          def self.register_middleware!
             ::Faraday::Middleware.register_middleware(datadog_tracing: Middleware)
           end
 
-          def add_default_middleware!
+          def self.add_default_middleware!
             if target_version >= Gem::Version.new("1.0.0")
               # Patch the default connection (e.g. +Faraday.get+)
               ::Faraday.default_connection.use(:datadog_tracing)

@@ -12,9 +12,9 @@ module Datadog
 
           def settings_children: () -> Hash[Symbol, _SettingsClass]
 
-          def settings_path: () -> ::String?
+          def settings_path: () -> String?
 
-          def settings_path=: (::String? path) -> void
+          def settings_path=: (String? path) -> void
 
           def option: (Symbol name, ?OptionDefinition::attributes attributes) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
         end
@@ -60,7 +60,7 @@ module Datadog
 
           @options: Hash[Symbol, OptionDefinition]
           @settings_children: Hash[Symbol, _SettingsClass]
-          @settings_path: ::String?
+          @settings_path: String?
 
           private
 

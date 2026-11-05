@@ -3,9 +3,9 @@ module Datadog
     class CounterSampler
       @sampler: Core::KnuthSampler
 
-      @counter: ::Integer
+      @counter: Integer
 
-      def initialize: (?::Float | ::Integer rate) -> void
+      def initialize: (?Float | Integer rate) -> void
 
       def sample?: () -> bool
     end

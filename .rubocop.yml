@@ -65,6 +65,14 @@ CustomCops/TimeNowUsageCop:
     # This file defines Utils::Time.now itself, by aliasing the original ::Time.now.
     - "lib/datadog/core/utils/time.rb"
 
+# module_function and extend self also define instance methods, unneeded in
+# modules that are never mixed in. Use def self.foo instead.
+Style/ModuleFunction:
+  Enabled: true
+  EnforcedStyle: forbidden
+  Include:
+    - "lib/**/*"
+
 # The trailing-comma and leading-comment cops below should stay in sync with
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.

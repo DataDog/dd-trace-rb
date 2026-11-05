@@ -2,12 +2,12 @@ module Datadog
   module Core
     module Utils
       class Sequence
-        @seed: ::Integer
-        @current: ::Integer
+        @seed: Integer
+        @current: Integer
 
-        def initialize: (?::Integer seed) -> void
+        def initialize: (?Integer seed) -> void
 
-        def next: () -> ::Integer
+        def next: () -> Integer
 
         def reset!: () -> void
       end

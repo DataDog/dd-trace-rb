@@ -5,7 +5,7 @@ module Datadog
         class Settings
           include Core::Configuration::Base
 
-          def configure: (?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+          def configure: (?Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
 
           def []: (untyped name) -> untyped
 

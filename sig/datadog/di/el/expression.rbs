@@ -6,15 +6,15 @@ module Datadog
 
         @evaluator: Evaluator
 
-        @redaction_identifier: ::String?
+        @redaction_identifier: String?
 
-        def initialize: (::String dsl_expr, ::String compiled_expr, ?regexps: ::Array[::Regexp], ?redaction_identifier: ::String?) -> void
+        def initialize: (String dsl_expr, String compiled_expr, ?regexps: Array[Regexp], ?redaction_identifier: String?) -> void
 
         attr_reader dsl_expr: String
 
         attr_reader evaluator: Evaluator
 
-        attr_reader redaction_identifier: ::String?
+        attr_reader redaction_identifier: String?
 
         def evaluate: (Context context, evaluation_deadline: Float) -> Object
 

@@ -9,7 +9,7 @@ module Datadog
 
           MINIMUM_ACCEPTABLE_TIME_VALUE: 1000000000
 
-          def self?.get_request_start: (untyped env, ?untyped now) -> untyped
+          def self.get_request_start: (untyped env, ?untyped now) -> untyped
         end
       end
     end

@@ -17,13 +17,11 @@ module Datadog
 
       private
 
-      def extract_normalized_route: (::Rack::env rack_env, ?prefix: String?, ?pattern: String?) -> String?
+      def self.normalize_rails_route: (untyped route, ::Rack::env rack_env, String? route_prefix) -> String?
 
-      def normalize_rails_route: (untyped route, ::Rack::env rack_env, String? route_prefix) -> String?
+      def self.normalize_route_string: (String? route) -> String?
 
-      def normalize_route_string: (String? route) -> String?
-
-      def path_without_prefix: (String path, String? prefix) -> String
+      def self.path_without_prefix: (String path, String? prefix) -> String
     end
   end
 end

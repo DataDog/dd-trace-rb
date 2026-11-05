@@ -142,9 +142,7 @@ module Datadog
 
         # Encodes traces using {Datadog::Core::Encoding::Encoder} instances.
         module Encoder
-          module_function
-
-          def encode_trace(encoder, trace, logger:, native_events_supported:)
+          def self.encode_trace(encoder, trace, logger:, native_events_supported:)
             # Format the trace for transport
             TraceFormatter.format!(trace, transport: "ruby")
 

@@ -10,12 +10,10 @@ module Datadog
       module GraphQL
         # Provides instrumentation for `graphql` through the GraphQL's tracing with methods defined in UnifiedTrace
         module UnifiedTracePatcher
-          module_function
-
           # TODO: `GraphQL::Schema.trace_with` and `YOUR_SCHEMA.trace_with` don't mix.
           # TODO: They create duplicate spans when combined.
           # TODO: We should measure how frequently users use `YOUR_SCHEMA.trace_with`, and hopefully we can remove it.
-          def patch!(schemas)
+          def self.patch!(schemas)
             if schemas.empty?
               ::GraphQL::Schema.trace_with(UnifiedTrace)
             else
