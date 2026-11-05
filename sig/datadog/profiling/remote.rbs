@@ -42,7 +42,7 @@ module Datadog
 
       private
 
-      def self.parse_content: (Core::Remote::Configuration::Content content) -> [Core::Remote::Configuration::Content, Array[String], config?]?
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> [Core::Remote::Configuration::Content, Array[String], config?]
 
       def self.profiler_error: (Core::Configuration::Settings settings) -> String?
 

@@ -14,8 +14,7 @@ module Datadog
     #
     # @api private
     module Remote
-      # Currently we register both to help testing in staging. DEBUG is only available in staging.
-      PRODUCTS = ["APM_PROFILING", "DEBUG"].freeze
+      PRODUCTS = ["APM_PROFILING"].freeze
 
       BOOLEAN = ->(value) { value == true || value == false }
       INTEGER = ->(value) { value.is_a?(Integer) }
@@ -101,16 +100,11 @@ module Datadog
 
         private
 
-        # Returns nil for DEBUG content that isn't profiling configuration. Otherwise returns the content, the
-        # problems found in it, and its config, which is nil when it is invalid or all of its targets are.
+        # Returns the content, the problems found in it, and its config, which is nil when it is invalid or all of
+        # its targets are.
         def parse_content(content)
           payload = parse_json(content)
-          unless payload.is_a?(Hash) && payload.key?("profilers")
-            # Unlike DEBUG, all APM_PROFILING content is meant as profiling configuration.
-            return [content, ["not a JSON object with profilers"], nil] if content.path.product == "APM_PROFILING"
-
-            return
-          end
+          return [content, ["not a JSON object with profilers"], nil] unless payload.is_a?(Hash) && payload.key?("profilers")
 
           problems = []
           profilers = parse_fields(payload["profilers"], "profilers", PROFILER_FIELDS, problems, required: true)
@@ -164,7 +158,6 @@ module Datadog
           end
         end
 
-        # Other DEBUG users' content need not be JSON.
         def parse_json(content)
           JSON.parse(content.data)
         rescue JSON::ParserError

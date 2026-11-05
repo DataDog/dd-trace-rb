@@ -33,7 +33,7 @@ RSpec.describe Datadog::Profiling::Remote do
   end
   let(:disabled_preset) { default_preset.transform_values { false } }
 
-  def content(config_id, payload, product: "DEBUG")
+  def content(config_id, payload, product: "APM_PROFILING")
     Datadog::Core::Remote::Configuration::Content.parse(
       {
         path: "datadog/2/#{product}/#{config_id}/config",
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Profiling::Remote do
     )
   end
 
-  def profiling_content(config_id, profilers: nil, settings: nil, targets: service_env_target, product: "DEBUG")
+  def profiling_content(config_id, profilers: nil, settings: nil, targets: service_env_target, product: "APM_PROFILING")
     payload = {"targets" => targets}
     payload["profilers"] = profilers if profilers
     payload["settings"] = settings if settings
@@ -62,8 +62,8 @@ RSpec.describe Datadog::Profiling::Remote do
   end
 
   describe ".products" do
-    it "subscribes to the APM_PROFILING and DEBUG products" do
-      expect(remote.products).to eq(["APM_PROFILING", "DEBUG"])
+    it "subscribes to the APM_PROFILING product" do
+      expect(remote.products).to eq(["APM_PROFILING"])
     end
   end
 
@@ -75,9 +75,9 @@ RSpec.describe Datadog::Profiling::Remote do
       receivers.any? { |receiver| receiver.match?(path) }
     end
 
-    it "matches only APM_PROFILING and DEBUG content" do
+    it "matches only APM_PROFILING content" do
       expect(matches?("APM_PROFILING")).to be true
-      expect(matches?("DEBUG")).to be true
+      expect(matches?("DEBUG")).to be false
       expect(matches?("APM_TRACING")).to be false
     end
 
@@ -507,14 +507,14 @@ RSpec.describe Datadog::Profiling::Remote do
       it "doesn't report the unchanged values to telemetry again" do
         expect(telemetry).to_not receive(:client_configuration_change!)
 
-        contents << content("other-team", {"something" => "else"})
+        contents << content("other-team", {"something" => "else"}, product: "APM_TRACING")
         apply_configs
       end
 
       it "doesn't reconfigure the profiler again" do
         expect(Datadog::Core::Configuration::Components).to_not receive(:reconfigure_profiler)
 
-        contents << content("other-team", {"something" => "else"})
+        contents << content("other-team", {"something" => "else"}, product: "APM_TRACING")
         apply_configs
       end
     end
@@ -542,39 +542,12 @@ RSpec.describe Datadog::Profiling::Remote do
       end
     end
 
-    context "with content from other DEBUG users" do
+    context "with malformed content" do
       let(:contents) do
         [
-          content("json", {"something" => "else"}),
           content("text", "not json"),
-          # A generic settings section, even with a key profiling also uses, doesn't make it profiling content.
-          content("settings", {"settings" => {"maxStackDepth" => 100, "verbose" => true}}),
-        ]
-      end
-
-      it "leaves it unacknowledged" do
-        apply_configs
-
-        expect(contents.map(&:apply_state)).to all(eq(apply_state::UNACKNOWLEDGED))
-      end
-    end
-
-    context "with content of the APM_PROFILING product" do
-      let(:contents) { [profiling_content("preset-default", profilers: default_preset, product: "APM_PROFILING")] }
-
-      it "applies it" do
-        expect { apply_configs }.to change { settings.profiling.enabled }.from(false).to(true)
-
-        expect(contents.first.apply_state).to eq(apply_state::ACKNOWLEDGED)
-      end
-    end
-
-    context "with malformed content of the APM_PROFILING product" do
-      let(:contents) do
-        [
-          content("text", "not json", product: "APM_PROFILING"),
-          content("array", [1], product: "APM_PROFILING"),
-          content("no-profilers", {"targets" => []}, product: "APM_PROFILING"),
+          content("array", [1]),
+          content("no-profilers", {"targets" => []}),
         ]
       end
 
@@ -788,8 +761,10 @@ RSpec.describe Datadog::Profiling::Remote do
         expect(contents.first.apply_error).to start_with("RuntimeError: test failure")
       end
 
-      context "with content from other DEBUG users" do
-        let(:contents) { [profiling_content("preset-default", profilers: default_preset), content("other", {"x" => 1})] }
+      context "with content of another product" do
+        let(:contents) do
+          [profiling_content("preset-default", profilers: default_preset), content("other", {"x" => 1}, product: "APM_TRACING")]
+        end
 
         it "leaves it unacknowledged" do
           apply_configs

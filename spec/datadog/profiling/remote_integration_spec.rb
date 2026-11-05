@@ -6,7 +6,7 @@ require "digest"
 # starts, stops and restarts accordingly. Syncs are triggered directly instead of through the polling
 # worker, so every step completes before the next one.
 RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
-  let(:config_path) { "datadog/2/DEBUG/preset-default/config" }
+  let(:config_path) { "datadog/2/APM_PROFILING/preset-default/config" }
   let!(:config_requests) { Queue.new }
   let!(:profile_uploads) { Queue.new }
   let(:target) { {service: "rc-test", env: "test"} }
@@ -106,7 +106,7 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
   it "starts the profiler, disabled by default, when profiling is enabled remotely" do
     sync_remote_config
 
-    expect(last_config_request.dig("client", "products")).to include("APM_PROFILING", "DEBUG")
+    expect(last_config_request.dig("client", "products")).to include("APM_PROFILING")
     expect(components.profiler).to be_nil
 
     enable_profiling
@@ -119,7 +119,7 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
     sync_remote_config
 
     expect(last_config_request.dig("client", "state", "config_states")).to contain_exactly(
-      include("id" => "preset-default", "product" => "DEBUG", "apply_state" => 2),
+      include("id" => "preset-default", "product" => "APM_PROFILING", "apply_state" => 2),
     )
   end
 
@@ -197,16 +197,6 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
 
     expect(components.profiler).to be_nil
     expect(Datadog.configuration.profiling.enabled).to be false
-  end
-
-  context "when the config is delivered through the APM_PROFILING product" do
-    let(:config_path) { "datadog/2/APM_PROFILING/preset-default/config" }
-
-    it "starts the profiler" do
-      enable_profiling
-
-      expect(Datadog.configuration.profiling.enabled).to be true
-    end
   end
 
   it "stops the profiler and restores the local configuration when the config is removed" do
