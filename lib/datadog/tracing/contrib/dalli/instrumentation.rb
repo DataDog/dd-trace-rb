@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative 'quantize'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "quantize"
 
 module Datadog
   module Tracing
@@ -28,7 +28,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 

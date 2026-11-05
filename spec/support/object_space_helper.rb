@@ -1,4 +1,4 @@
-require 'objspace'
+require "objspace"
 
 module ObjectSpaceHelper
   class << self

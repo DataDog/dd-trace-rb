@@ -7,9 +7,9 @@ module Datadog
           max_frames: ::Integer,
           tracer: Datadog::Tracing::Tracer?,
           endpoint_collection_enabled: bool,
-          waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          show_classes: bool,
         ) -> void
 
         def self._native_initialize: (
@@ -18,9 +18,9 @@ module Datadog
           max_frames: ::Integer,
           tracer_context_key: ::Symbol?,
           endpoint_collection_enabled: bool,
-          waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          show_classes: bool,
           overhead_filename: ::String,
         ) -> void
 
@@ -29,11 +29,18 @@ module Datadog
           ?max_frames: ::Integer,
           ?tracer: Datadog::Tracing::Tracer?,
           ?endpoint_collection_enabled: bool,
-          ?waiting_for_gvl_threshold_ns: ::Integer,
           ?otel_context_enabled: (::Symbol? | bool),
           ?native_filenames_enabled: bool,
+          ?show_classes: bool,
+          ?trigger_global_reset: bool,
           **untyped
         ) -> Datadog::Profiling::Collectors::ThreadContext
+
+        module Testing
+          def self._native_global_reset_per_thread_context: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> void
+
+          def self._native_prepare_serialize: (ThreadContext collector_instance) -> Datadog::Profiling::StackRecorder
+        end
 
         def inspect: () -> ::String
 
@@ -46,8 +53,6 @@ module Datadog
         private
 
         def safely_extract_context_key_from: (untyped tracer) -> ::Symbol?
-
-        def validate_native_filenames: (bool native_filenames_enabled) -> bool
       end
     end
   end

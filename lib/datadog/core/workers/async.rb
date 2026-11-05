@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../logger'
+require_relative "../logger"
 
 module Datadog
   module Core
@@ -45,21 +45,23 @@ module Datadog
             :fork_policy
 
           def join(timeout = nil)
-            return true unless running?
+            thread = worker
+            return true unless thread&.alive?
 
-            !worker.join(timeout).nil?
+            !thread.join(timeout).nil?
           end
 
           def terminate
-            return false unless running?
+            thread = worker
+            return false unless thread&.alive?
 
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
-            worker.terminate
+            thread.terminate
             # Wait for the worker thread to end
             begin
               Timeout.timeout(SHUTDOWN_TIMEOUT) do
-                worker.join
+                thread.join
               end
             rescue Timeout::Error
               Datadog.logger.debug { "Worker thread did not end after #{SHUTDOWN_TIMEOUT} seconds: #{self}" }
@@ -78,7 +80,7 @@ module Datadog
           end
 
           def running?
-            !worker.nil? && worker.alive?
+            !!worker&.alive?
           end
 
           def error?
@@ -88,11 +90,12 @@ module Datadog
           end
 
           def completed?
-            !worker.nil? && worker.status == false && !error?
+            worker&.status == false && !error?
           end
 
           def failed?
-            !worker.nil? && worker.status.nil?
+            thread = worker
+            !thread.nil? && thread.status.nil?
           end
 
           def forked?
@@ -144,38 +147,37 @@ module Datadog
                   stop_fork
                   false
                 when FORK_POLICY_RESTART
-                  # restart_after_fork should return true
                   restart_after_fork(&block)
                 end
               elsif !run_async?
-                # start_worker should return true
                 start_worker(&block)
               end
             end
           end
 
           # Returns true if worker thread is successfully started,
-          # which should generally be always.
+          # which is always the case.
           def start_worker
             @run_async = true
             @pid = Process.pid
             @error = nil
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
-            @worker = ::Thread.new do
+            worker = ::Thread.new do
               yield
             # rubocop:disable Lint/RescueException
             rescue Exception => e
               @error = e
               Datadog.logger.debug(
-                "Worker thread error. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+                "Worker thread error. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
               )
               raise
 
               # rubocop:enable Lint/RescueException
             end
-            @worker.name = self.class.name
-            @worker.thread_variable_set(:fork_safe, true)
+            worker.name = self.class.name
+            worker.thread_variable_set(:fork_safe, true)
+            @worker = worker
 
             true
           end

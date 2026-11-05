@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'distributed/propagation'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "distributed/propagation"
 
 module Datadog
   module Tracing
@@ -44,9 +44,9 @@ module Datadog
                     end
 
                     Datadog::DataStreams.set_consume_checkpoint(
-                      type: 'kafka',
+                      type: "kafka",
                       source: message.topic,
-                      auto_instrumentation: true
+                      auto_instrumentation: true,
                     ) { |key| headers[key] }
                   rescue => e
                     Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
@@ -71,22 +71,20 @@ module Datadog
 
           ACTIVATE_FRAMEWORK_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'monitor'
-            require_relative 'framework'
-            require_relative '../waterdrop'
+          def self.patch
+            require_relative "monitor"
+            require_relative "framework"
+            require_relative "../waterdrop"
 
             ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
 
             if Contrib::WaterDrop::Integration.compatible?
-              ::Karafka.monitor.subscribe('app.initialized') do |event|
+              ::Karafka.monitor.subscribe("app.initialized") do |event|
                 ACTIVATE_FRAMEWORK_ONLY_ONCE.run do
                   Contrib::Karafka::Framework.setup
                 end

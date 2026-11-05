@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'path'
-require_relative 'digest'
+require_relative "path"
+require_relative "digest"
 
 module Datadog
   module Core
@@ -11,15 +11,15 @@ module Datadog
         class TargetMap < Hash
           class << self
             def parse(hash)
-              signed = hash.fetch('signed')
+              signed = hash.fetch("signed")
               # Note that the +dig+ call permits +hash['signed']+ to be
               # missing the +custom+ subtree entirely.
               # Previously the subtree was required but +opaque_backend_state+
               # could still be missing (and obtained here as nil).
-              opaque_backend_state = signed.dig('custom', 'opaque_backend_state')
+              opaque_backend_state = signed.dig("custom", "opaque_backend_state")
               # The version appears to be optional to the rest of this class,
               # and we have tests that do not provide it.
-              version = signed['version']
+              version = signed["version"]
 
               map = new
 
@@ -28,7 +28,7 @@ module Datadog
                 @version = version
               end
 
-              signed.fetch('targets').each_with_object(map) do |(p, t), m|
+              signed.fetch("targets").each_with_object(map) do |(p, t), m|
                 path = Configuration::Path.parse(p)
                 target = Configuration::Target.parse(t)
 
@@ -53,9 +53,9 @@ module Datadog
         class Target
           class << self
             def parse(hash)
-              length = Integer(hash.fetch('length'))
-              digests = Configuration::DigestList.parse(hash.fetch('hashes'))
-              version = Integer(hash.dig('custom', 'v'))
+              length = Integer(hash.fetch("length"))
+              digests = Configuration::DigestList.parse(hash.fetch("hashes"))
+              version = Integer(hash.dig("custom", "v"))
 
               new(digests: digests, length: length, version: version)
             end

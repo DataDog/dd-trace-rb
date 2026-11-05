@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../integration'
-require_relative '../patcher'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../integration"
+require_relative "../patcher"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -16,12 +16,10 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def patch
-            require 'uri'
-            require 'json'
-            require_relative 'quantize'
+          def self.patch
+            require "uri"
+            require "json"
+            require_relative "quantize"
 
             ::OpenSearch::Transport::Client.prepend(Client)
           end
@@ -33,7 +31,7 @@ module Datadog
             def perform_request(method, path, params = {}, body = nil, headers = nil)
               response = nil
               # rubocop:disable Metrics/BlockLength
-              Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
+              Tracing.trace("opensearch.query", service: datadog_configuration[:service_name]) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 # Set generic tags
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -59,7 +57,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 
@@ -96,10 +94,10 @@ module Datadog
                   if response.respond_to?(:status)
                     span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                   end
-                  if response.respond_to?(:headers) && (response.headers || {})['content-length']
+                  if response.respond_to?(:headers) && (response.headers || {})["content-length"]
                     span.set_tag(
                       OpenSearch::Ext::TAG_RESPONSE_CONTENT_LENGTH,
-                      response.headers['content-length'].to_i
+                      response.headers["content-length"].to_i,
                     )
                   end
                 end
@@ -123,7 +121,7 @@ module Datadog
               quantize_options = datadog_configuration[:quantize]
               quantized_body = OpenSearch::Quantize.format_body(
                 body,
-                quantize_options
+                quantize_options,
               )
               span.set_tag(OpenSearch::Ext::TAG_BODY, quantized_body)
             end

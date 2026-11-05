@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative 'request_queue'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "request_queue"
 
 module Datadog
   module Tracing
@@ -11,9 +11,7 @@ module Datadog
       module Rack
         # Module to create virtual proxy span
         module TraceProxyMiddleware
-          module_function
-
-          def call(env, configuration, &block)
+          def self.call(env, configuration, &block)
             if configuration[:inferred_proxy_enabled] &&
                 (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
               return call_with_inferred_proxy(env, proxy_type, &block)
@@ -27,7 +25,7 @@ module Datadog
             options = {
               service: configuration[:web_service_name],
               start_time: start_time,
-              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY
+              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
             }
 
             request_span = Tracing.trace(Ext::SPAN_HTTP_PROXY_REQUEST, **options)
@@ -62,7 +60,7 @@ module Datadog
           # that wraps the actual request processing.
           #
           # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-          def call_with_inferred_proxy(env, proxy_type)
+          def self.call_with_inferred_proxy(env, proxy_type)
             span_name = Ext::PROXY_SPAN_NAMES[proxy_type]
             return yield unless span_name
 
@@ -87,7 +85,7 @@ module Datadog
             inferred_span.resource = resource if resource
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, proxy_type)
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
-            inferred_span.set_tag('stage', stage) if stage
+            inferred_span.set_tag("stage", stage) if stage
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method) if http_method
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, "https://#{domain}#{path}") if domain && path
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, resource_path) if resource_path
@@ -118,35 +116,35 @@ module Datadog
           # Sets cloud provider metadata and constructs the resource ARN.
           #
           # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-          def set_optional_tags(span, env:, proxy_type:)
+          def self.set_optional_tags(span, env:, proxy_type:)
             api_id = env[Ext::HEADER_X_DD_PROXY_API_ID]
             region = env[Ext::HEADER_X_DD_PROXY_REGION]
 
             # API Gateway v1 sends region as a single-quoted string
             region = region.delete("'") if region
 
-            span.set_tag('apiid', api_id) if api_id
-            span.set_tag('region', region) if region
+            span.set_tag("apiid", api_id) if api_id
+            span.set_tag("region", region) if region
 
             if (account_id = env[Ext::HEADER_X_DD_PROXY_ACCOUNT_ID])
-              span.set_tag('account_id', account_id)
+              span.set_tag("account_id", account_id)
             end
 
             if (user = env[Ext::HEADER_X_DD_PROXY_USER])
-              span.set_tag('aws_user', user)
+              span.set_tag("aws_user", user)
             end
 
             if api_id && region
               # NOTE: Update this when adding non-AWS proxy types.
-              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? 'restapis' : 'apis'
-              span.set_tag('dd_resource_key', "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
+              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? "restapis" : "apis"
+              span.set_tag("dd_resource_key", "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
             end
           end
           # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           # Propagates response-level and security tags from the request span to
           # the inferred parent.
-          def propagate_request_span_tags(span, env:)
+          def self.propagate_request_span_tags(span, env:)
             rack_span = env[Ext::RACK_ENV_REQUEST_SPAN]
             return unless rack_span
 
@@ -160,13 +158,13 @@ module Datadog
             end
 
             # NOTE: Tracing shouldn't know about AppSec tags.
-            if (appsec_enabled = rack_span.get_metric('_dd.appsec.enabled'))
-              span.set_metric('_dd.appsec.enabled', appsec_enabled)
+            if (appsec_enabled = rack_span.get_metric("_dd.appsec.enabled"))
+              span.set_metric("_dd.appsec.enabled", appsec_enabled)
             end
 
             # NOTE: Tracing shouldn't know about AppSec tags.
-            if (appsec_json = rack_span.get_tag('_dd.appsec.json'))
-              span.set_tag('_dd.appsec.json', appsec_json)
+            if (appsec_json = rack_span.get_tag("_dd.appsec.json"))
+              span.set_tag("_dd.appsec.json", appsec_json)
             end
           end
         end

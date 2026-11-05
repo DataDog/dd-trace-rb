@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "message_adapter"
 require_relative "chat_instrumentation"
 
 module Datadog
@@ -8,17 +9,15 @@ module Datadog
       module RubyLLM
         # AIGuard patcher module for RubyLLM
         module Patcher
-          module_function
-
-          def patched?
+          def self.patched?
             !!Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             ::RubyLLM::Chat.prepend(ChatInstrumentation)
 
             Patcher.instance_variable_set(:@patched, true)

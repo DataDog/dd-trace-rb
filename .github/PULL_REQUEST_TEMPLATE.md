@@ -1,46 +1,38 @@
 <!--
+Every required field has a cap: at most 2 sentences and 50 words.
+CI (check.yml "pr-body" job) enforces this on every pull request, drafts
+included. Longer material goes in Details as links or references.
+A `pr-body: skip` body comment opts out of the
+check. The opt-out is an exception mechanism (for example, automation
+that cannot carry the fields), not a substitute for fitting the caps.
+See .agents/skills/write-pull-request/ for how to fill this in.
+
 Check out the
 https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 for guidance on how to set up your development environment,
 run the test suite, write new integrations, and more.
 -->
 
-**What does this PR do?**
-<!-- A brief description of the change being made with this pull request. -->
+### Why
 
-**Motivation:**
-<!-- What inspired you to submit this pull request? -->
+<!-- The problem or motivation, in customer or reviewer terms. -->
 
-**Change log entry**
+### What
+
+<!-- What this PR changes at the level a reviewer needs to decide whether to care. -->
+
+### Risk
+
+<!-- One-way or two-way door, and the blast radius. How can this be reverted? -->
+
+### Details
+
+<details><summary>Notes</summary>
+
 <!--
-If you are a Datadog employee:
-
-If this is a customer-visible change, use:
-`Yes. A brief summary to be placed into the CHANGELOG.md`
-Or opt out with `None/No/Nope`.
-
-This will be the ONLY mention of the change in the release notes;
-it should be self-contained and understandable by customers.
-
-If you are not a Datadog employee:
-
-You can skip this section and it will be filled or deleted during PR review.
-Please do not remove this section from the PR though.
+Optional. Links, benchmarks, plans, test instructions, anything longer
+than two sentences. A reader must not need this section to understand the
+PR.
 -->
 
-**Additional Notes:**
-<!--
-If you used AI, have you read and understood what AI wrote?
-
-Anything else we should know when reviewing?
--->
-
-**How to test the change?**
-<!--
-Describe here how the change can be validated.
-You are strongly encouraged to provide automated tests for this PR (unit or integration).
-If this change cannot be feasibly tested, please explain why,
-unless the change does not modify code (e.g. only modifies docs, comments).
--->
-
-<!-- Unsure? Have a question? Request a review! -->
+</details>

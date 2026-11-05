@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'subscriber'
+require_relative "subscriber"
 
 module Datadog
   module Tracing

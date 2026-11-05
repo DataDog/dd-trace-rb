@@ -21,13 +21,11 @@ module Datadog
         #  169 => %A9   (UTF-8 continuation byte)
         BYTE_ENCODING_TABLE = Array.new(256) do |byte|
           char = byte.chr
-          char.match?(DISALLOWED_CHARS) ? -('%%%02X' % byte) : -char
+          char.match?(DISALLOWED_CHARS) ? -("%%%02X" % byte) : -char
         end.freeze
 
         # Max bytes one input byte expands to as percent-encoded `%XX`
         MAX_ENCODED_BYTE_SIZE = 3
-
-        module_function
 
         # Escapes literal route text into normalized-route form
         #
@@ -39,7 +37,7 @@ module Datadog
         #
         # NOTE: {URI::Parser#escape} with {DISALLOWED_CHARS} gives the same output,
         #       but the generic gsub/sprintf path is slower and allocates more per request
-        def escape(text)
+        def self.escape(text)
           return text unless text.match?(DISALLOWED_CHARS)
 
           buffer = String.new(capacity: text.bytesize * MAX_ENCODED_BYTE_SIZE, encoding: Encoding::UTF_8)
@@ -48,8 +46,8 @@ module Datadog
         # NOTE: Defensive only — this can never happen. {String#each_byte} yields
         #       integers in 0-255 and {BYTE_ENCODING_TABLE} has an entry for every one
         rescue IndexError => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Route text byte outside 0-255 escape table')
-          '~invalid~'
+          AppSec.telemetry&.report(e, description: "AppSec: Route text byte outside 0-255 escape table")
+          "~invalid~"
         end
       end
     end

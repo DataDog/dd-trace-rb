@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -10,15 +10,13 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'client_tracer'
-            require_relative 'server_tracer'
+          def self.patch
+            require_relative "client_tracer"
+            require_relative "server_tracer"
 
             ::Sidekiq.configure_client do |config|
               config.client_middleware do |chain|
@@ -41,16 +39,16 @@ module Datadog
             end
           end
 
-          def patch_server_internals
+          def self.patch_server_internals
             patch_server_heartbeat
             patch_server_job_fetch
             patch_server_scheduled_push
             patch_redis_info
           end
 
-          def patch_server_heartbeat
-            require_relative 'server_internal_tracer/stop'
-            require_relative 'server_internal_tracer/heartbeat'
+          def self.patch_server_heartbeat
+            require_relative "server_internal_tracer/stop"
+            require_relative "server_internal_tracer/heartbeat"
 
             ::Sidekiq::Launcher.prepend(ServerInternalTracer::Stop)
 
@@ -62,20 +60,20 @@ module Datadog
             ::Sidekiq::Launcher.prepend(ServerInternalTracer::Beat) if ::Sidekiq::Launcher.private_method_defined? :beat
           end
 
-          def patch_server_job_fetch
-            require_relative 'server_internal_tracer/job_fetch'
+          def self.patch_server_job_fetch
+            require_relative "server_internal_tracer/job_fetch"
 
             ::Sidekiq::Processor.prepend(ServerInternalTracer::JobFetch)
           end
 
-          def patch_server_scheduled_push
-            require_relative 'server_internal_tracer/scheduled_poller'
+          def self.patch_server_scheduled_push
+            require_relative "server_internal_tracer/scheduled_poller"
 
             ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPoller)
           end
 
-          def patch_redis_info
-            require_relative 'server_internal_tracer/redis_info'
+          def self.patch_redis_info
+            require_relative "server_internal_tracer/redis_info"
 
             if Integration.supports_capsules?
               ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)

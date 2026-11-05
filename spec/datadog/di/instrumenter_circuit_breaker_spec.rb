@@ -1,27 +1,25 @@
 # frozen_string_literal: true
 
-require 'datadog/di/spec_helper'
-require 'datadog/di/instrumenter'
-require_relative 'hook_method'
-require_relative 'hook_line_basic'
+require "datadog/di/spec_helper"
+require "datadog/di/instrumenter"
+require_relative "hook_method"
+require_relative "hook_line_basic"
 
-RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
+RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
   di_test
 
   let(:observed_calls) { [] }
   let(:disabled_calls) { [] }
 
   mock_settings_for_di do |settings|
-    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(10)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(20)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_collection_size).and_return(20)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
-    allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+    stub_di_settings(settings.dynamic_instrumentation,
+      max_capture_depth: 10,
+      max_capture_attribute_count: 20,
+      max_capture_collection_size: 20)
+    allow(settings.dynamic_instrumentation.internal).to receive_messages(
+      untargeted_trace_points: false,
+      propagate_all_exceptions: true,
+    )
   end
 
   let(:redactor) do
@@ -29,13 +27,24 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   end
 
   let(:serializer) do
-    Datadog::DI::Serializer.new(settings, redactor)
+    Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry)
   end
 
   let(:logger) { logger_allowing_debug }
 
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
+  let(:capture_expression_evaluator) do
+    Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil)
+  end
+
   let(:instrumenter) do
-    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil)
+    Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
+      guardrails_telemetry: guardrails_telemetry,
+      capture_expression_evaluator: capture_expression_evaluator)
   end
 
   let(:responder) do
@@ -50,7 +59,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
         @observed_calls << context
       end
 
-      def probe_condition_evaluation_failed_callback(context, exc)
+      def probe_condition_evaluation_failed_callback(context, _expr, exc)
         raise "Unexpected condition failure: #{exc}"
       end
 
@@ -60,13 +69,13 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     end.new(observed_calls, disabled_calls)
   end
 
-  context 'method probe' do
+  context "method probe" do
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: 'test-probe-1',
+        id: "test-probe-1",
         type: :log,
-        type_name: 'HookTestClass',
-        method_name: 'hook_test_method',
+        type_name: "HookTestClass",
+        method_name: "hook_test_method",
       )
     end
 
@@ -74,12 +83,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       instrumenter.unhook(probe)
     end
 
-    context 'when max_processing_time is zero' do
+    context "when max_processing_time is zero" do
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
       end
 
-      it 'disables probe after first execution' do
+      it "disables probe after first execution" do
         # Instrument the method
         instrumenter.hook_method(probe, responder)
 
@@ -105,12 +114,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
     end
 
-    context 'when max_processing_time is high' do
+    context "when max_processing_time is high" do
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1000)
       end
 
-      it 'keeps probe enabled after multiple executions' do
+      it "keeps probe enabled after multiple executions" do
         # Instrument the method
         instrumenter.hook_method(probe, responder)
 
@@ -129,26 +138,33 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
     end
 
-    context 'when max_processing_time is very small with snapshot capture' do
+    context "when max_processing_time is very small with snapshot capture" do
       let(:snapshot_probe) do
         Datadog::DI::Probe.new(
-          id: 'test-probe-snapshot',
+          id: "test-probe-snapshot",
           type: :log,
-          type_name: 'HookTestClass',
-          method_name: 'hook_test_method_with_arg',
+          type_name: "HookTestClass",
+          method_name: "hook_test_method_with_arg",
           capture_snapshot: true,
         )
       end
 
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1e-8)
+        # Serializing the deep hash takes longer than the 150 ms capture
+        # budget on slower machines, which would truncate the snapshot;
+        # this example verifies the circuit breaker, so the capture budget
+        # is raised out of the way. The breaker measures processing time
+        # on the thread CPU-time clock, the same clock the capture budget
+        # reads.
+        allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(10_000_000)
       end
 
       after do
         instrumenter.unhook(snapshot_probe)
       end
 
-      it 'disables probe after first execution due to snapshot overhead' do
+      it "disables probe after first execution due to snapshot overhead" do
         # Generate a deeply nested hash (10 keys per level, 5 levels deep)
         # Wrap in array to avoid keyword argument ambiguity in different Ruby versions
         deep_hash = generate_deep_hash(10, 5)
@@ -174,13 +190,13 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
         arg_data = context.serialized_entry_args[:arg1]
         expect(arg_data).to be_a(Hash)
-        expect(arg_data[:type]).to eq('Array')
+        expect(arg_data[:type]).to eq("Array")
         expect(arg_data[:elements]).to be_a(Array)
 
         # Verify the array contains the deep hash
         expect(arg_data[:elements].size).to eq(1)
         hash_data = arg_data[:elements][0]
-        expect(hash_data[:type]).to eq('Hash')
+        expect(hash_data[:type]).to eq("Hash")
         expect(hash_data[:entries]).to be_a(Array)
         expect(hash_data[:entries].size).to eq(10)
 
@@ -193,12 +209,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     end
   end
 
-  context 'line probe' do
+  context "line probe" do
     let(:line_probe) do
       Datadog::DI::Probe.new(
-        id: 'test-line-probe-1',
+        id: "test-line-probe-1",
         type: :log,
-        file: 'hook_line_basic.rb',
+        file: "hook_line_basic.rb",
         line_no: 3,
       )
     end
@@ -212,12 +228,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       instrumenter.unhook(line_probe)
     end
 
-    context 'when max_processing_time is zero' do
+    context "when max_processing_time is zero" do
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
       end
 
-      it 'disables probe after first execution' do
+      it "disables probe after first execution" do
         # Instrument the line
         instrumenter.hook_line(line_probe, responder)
 
@@ -243,12 +259,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
     end
 
-    context 'when max_processing_time is high' do
+    context "when max_processing_time is high" do
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1000)
       end
 
-      it 'keeps probe enabled after multiple executions' do
+      it "keeps probe enabled after multiple executions" do
         # Instrument the line
         instrumenter.hook_line(line_probe, responder)
 
@@ -267,12 +283,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
     end
 
-    context 'when max_processing_time is very small with snapshot capture' do
+    context "when max_processing_time is very small with snapshot capture" do
       let(:snapshot_line_probe) do
         Datadog::DI::Probe.new(
-          id: 'test-line-probe-snapshot',
+          id: "test-line-probe-snapshot",
           type: :log,
-          file: 'hook_line_basic.rb',
+          file: "hook_line_basic.rb",
           line_no: 7,
           capture_snapshot: true,
         )
@@ -286,7 +302,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
         instrumenter.unhook(snapshot_line_probe)
       end
 
-      it 'disables probe after first execution due to snapshot overhead' do
+      it "disables probe after first execution due to snapshot overhead" do
         # Generate a deeply nested hash (10 keys per level, 5 levels deep)
         deep_hash = generate_deep_hash(10, 5)
 
@@ -324,13 +340,13 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     end
   end
 
-  context 'probe status payload when circuit breaker triggers' do
+  context "probe status payload when circuit breaker triggers" do
     # Need to add additional settings mocks for ProbeNotificationBuilder
     before do
-      allow(settings).to receive(:service).and_return('rspec')
-      allow(settings).to receive(:env).and_return('test')
+      allow(settings).to receive(:service).and_return("rspec")
+      allow(settings).to receive(:env).and_return("test")
       allow(settings).to receive(:tags).and_return({})
-      allow(settings).to receive(:version).and_return('1.0')
+      allow(settings).to receive(:version).and_return("1.0")
       allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       # di_logger_double only stubs trace, but ProbeManager also calls debug
       allow(logger).to receive(:debug)
@@ -338,10 +354,10 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: 'test-probe-status',
+        id: "test-probe-status",
         type: :log,
-        type_name: 'HookTestClass',
-        method_name: 'hook_test_method',
+        type_name: "HookTestClass",
+        method_name: "hook_test_method",
       )
     end
 
@@ -350,7 +366,11 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     di_logger_double
 
     let(:probe_notification_builder) do
-      Datadog::DI::ProbeNotificationBuilder.new(settings, serializer)
+      Datadog::DI::ProbeNotificationBuilder.new(
+        settings, serializer, logger,
+        capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: nil,
+      )
     end
 
     let(:probe_notifier_worker) do
@@ -364,7 +384,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
           @status_payloads << payload
         end
 
-        def add_snapshot(payload)
+        def add_snapshot(payload, probe: nil)
           # Not used in this test
         end
       end.new(status_payloads)
@@ -382,6 +402,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
         probe_notifier_worker,
         logger,
         probe_repository,
+        guardrails_telemetry: guardrails_telemetry,
       )
     end
 
@@ -389,12 +410,12 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       instrumenter.unhook(probe)
     end
 
-    context 'when max_processing_time is zero' do
+    context "when max_processing_time is zero" do
       before do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
       end
 
-      it 'sends ERROR status with exception field when probe is disabled' do
+      it "sends ERROR status with exception field when probe is disabled" do
         # Instrument the method
         instrumenter.hook_method(probe, probe_manager)
 
@@ -409,7 +430,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
         # Find the ERROR status payload
         error_payload = status_payloads.find do |payload|
-          payload.dig(:debugger, :diagnostics, :status) == 'ERROR'
+          payload.dig(:debugger, :diagnostics, :status) == "ERROR"
         end
 
         # Verify ERROR status payload was sent
@@ -417,22 +438,22 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
         # Verify payload structure
         expect(error_payload).to match(
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           debugger: {
             diagnostics: {
               parentId: nil,
-              probeId: 'test-probe-status',
+              probeId: "test-probe-status",
               probeVersion: 0,
               runtimeId: String,
-              status: 'ERROR',
+              status: "ERROR",
               exception: {
-                type: 'Error',
+                type: "Error",
                 message: String,
               },
             },
           },
           message: String,
-          service: 'rspec',
+          service: "rspec",
           timestamp: Integer,
         )
 

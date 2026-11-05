@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'pathname'
+require "pathname"
 
 # Default matchers are loaded immediately,
 # so any new matcher we catch loading is ours.
-require 'rspec/expectations'
+require "rspec/expectations"
 
 module RakeMatchersHook
   class << self
@@ -16,7 +16,7 @@ module RakeMatchersHook
   [:define, :define_negated_matcher, :alias_matcher].each do |name|
     define_method(name) do |matcher, *args, &block|
       location = caller_locations(1, 1).first.to_s # e.g. "bin.rb:4:in 'Kernel#load'"
-      location.gsub!(/:in .*/, '') # Remove the `:in 'method'` suffix. e.g. "bin.rb:4"
+      location.gsub!(/:in .*/, "") # Remove the `:in 'method'` suffix. e.g. "bin.rb:4"
       relative_location = Pathname.new(location).relative_path_from(root_dir).to_s
 
       RakeMatchersHook.lines << [relative_location, matcher.to_s]

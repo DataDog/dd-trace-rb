@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../event'
-require_relative '../../../trace_keeper'
-require_relative '../../../security_event'
-require_relative '../../../instrumentation/gateway'
+require_relative "../../../event"
+require_relative "../../../trace_keeper"
+require_relative "../../../security_event"
+require_relative "../../../instrumentation/gateway"
 
 module Datadog
   module AppSec
@@ -22,10 +22,10 @@ module Datadog
               end
 
               def watch_request_dispatch(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.dispatch') do |stack, gateway_request|
+                gateway.watch("sinatra.request.dispatch") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
-                  context.state[:web_framework] = 'sinatra'
+                  context.state[:web_framework] = "sinatra"
 
                   request = gateway_request.request
                   next stack.call(request) unless gateway_request.collectable_body?
@@ -38,16 +38,16 @@ module Datadog
                   byte_length = gateway_request.body_bytesize(limit)
 
                   if byte_length
-                    persistent_data['server.request.body.byte_length'] = byte_length
+                    persistent_data["server.request.body.byte_length"] = byte_length
 
                     if byte_length <= limit
                       body = gateway_request.form_hash
-                      persistent_data['server.request.body'] = body if body
+                      persistent_data["server.request.body"] = body if body
                     end
                   # NOTE: Body was parsed before measurement, keep byte_length unset
-                  elsif gateway_request.env.key?('rack.request.form_hash')
-                    body = gateway_request.env['rack.request.form_hash']
-                    persistent_data['server.request.body'] = body if body
+                  elsif gateway_request.env.key?("rack.request.form_hash")
+                    body = gateway_request.env["rack.request.form_hash"]
+                    persistent_data["server.request.body"] = body if body
                   end
 
                   next stack.call(request) if persistent_data.empty?
@@ -56,7 +56,7 @@ module Datadog
 
                   if result.match? || !result.attributes.empty?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
                   end
 
@@ -72,12 +72,12 @@ module Datadog
               end
 
               def watch_request_routed(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.routed') do |stack, args|
+                gateway.watch("sinatra.request.routed") do |stack, args|
                   gateway_request, gateway_route_params = args # : [Gateway::Request, Gateway::RouteParams]
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
                   persistent_data = {
-                    'server.request.path_params' => gateway_route_params.params
+                    "server.request.path_params" => gateway_route_params.params,
                   }
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
@@ -87,7 +87,7 @@ module Datadog
                     TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::ActionsHandler.handle(result.actions)
@@ -98,17 +98,29 @@ module Datadog
               end
 
               def watch_response_body_json(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.response.body.json') do |stack, container|
+                gateway.watch("sinatra.response.body.json") do |stack, container|
                   context = container.context # : Context
 
+                  body_bytesize = container.data.bytesize
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+
                   persistent_data = {
-                    'server.response.body' => container.data
+                    "server.response.body.byte_length" => body_bytesize,
                   }
-                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                  if limit > 0 && body_bytesize <= limit
+                    persistent_data["server.response.body"] = WAF::JSONString.new(container.data)
+                  end
+
+                  result = begin
+                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  rescue WAF::ConversionError
+                    next stack.call(container)
+                  end
 
                   if result.match?
                     context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                     )
 
                     AppSec::Event.tag(context, result)

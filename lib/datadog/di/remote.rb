@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'fatal_exceptions'
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -15,14 +15,14 @@ module Datadog
     # @api private
     module Remote
       class << self
-        PRODUCT = 'LIVE_DEBUGGING'
+        PRODUCT = "LIVE_DEBUGGING"
 
         # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
         # registered only with the gated DI block in Capabilities#register:
         # when DI is explicitly disabled, or the runtime cannot run DI
         # (JRuby, Ruby 2.5), that block — including this bit — is skipped.
         # The enable signal itself is delivered in APM_TRACING payloads and
-        # routed here by Tracing::Remote.process_config.
+        # routed here by Tracing::Remote.merge_and_apply_configs.
         CAPABILITIES = [
           1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
         ].freeze
@@ -37,7 +37,7 @@ module Datadog
 
         # Entry point for the RC-driven DI enable/disable path.
         #
-        # Invoked from {Datadog::Tracing::Remote.process_config} when an
+        # Invoked from {Datadog::Tracing::Remote.merge_and_apply_configs} when an
         # APM_TRACING payload carries `dynamic_instrumentation_enabled`. Runs
         # on the remote-config thread; never raises.
         #
@@ -45,7 +45,7 @@ module Datadog
         #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
         #   env var blocks an enable here (see {.explicitly_disabled?}).
         # @param repository [Datadog::Core::Remote::Configuration::Repository, nil]
-        #   the RC repository, passed by {Datadog::Tracing::Remote.process_config}
+        #   the RC repository, passed by {Datadog::Tracing::Remote.apply_lib_config}
         #   so that a stopped->started transition can reconcile against probes that
         #   were delivered in an earlier poll. nil when called outside the RC
         #   dispatch path (e.g. unit tests), in which case no reconcile happens.
@@ -98,6 +98,9 @@ module Datadog
             # and DI.activate_tracking is defined.
             DI.activate_tracking
             was_started = component.started?
+            if repository && !was_started
+              remove_withdrawn_probes(repository, component)
+            end
             component.start!
             # A probe delivered in an earlier poll while the component was stopped
             # was dropped by #receivers (which ignores changes while !started?) and
@@ -145,7 +148,9 @@ module Datadog
             # DEV: Apply this refactor to AppSec as well if implemented.
 
             component = DI.component
-            if component&.started?
+            if changes.empty?
+              remove_withdrawn_probes(repository, component) if component
+            elsif component&.started?
               changes.each do |change|
                 case change.type
                 when :insert
@@ -176,7 +181,7 @@ module Datadog
 
         def receiver(products = [PRODUCT], &block)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
-          [Core::Remote::Dispatcher::Receiver.new(matcher, &block)]
+          [Core::Remote::Dispatcher::Receiver.new(matcher, initial_reconcile: true, &block)]
         end
 
         private
@@ -228,7 +233,7 @@ module Datadog
           # we need to note it as being current so that we do not
           # try to remove instrumentation that is still supposed to be
           # active.
-          #current_probe_ids[probe_spec.fetch('id')] = true
+          # current_probe_ids[probe_spec.fetch('id')] = true
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -266,6 +271,45 @@ module Datadog
           end
         end
 
+        # Removes every probe the component tracks whose id is absent from all
+        # LIVE_DEBUGGING contents in the repository. Reconciles backend deletions that
+        # produced no delete change for {.receivers}. Skips removal while a
+        # LIVE_DEBUGGING content fails to parse, because that content can hold any
+        # tracked probe.
+        def remove_withdrawn_probes(repository, component)
+          # @type var present_probe_ids: Array[String]
+          present_probe_ids = []
+          content_failed_to_parse = false
+          repository.contents.each do |content|
+            next unless content.path.product == PRODUCT
+
+            begin
+              present_probe_ids << parse_content(content)["id"]
+            rescue => exc
+              component.logger.debug do
+                "di: skipping withdrawn-probe reconcile, a LIVE_DEBUGGING content failed to parse: " \
+                "#{exc.class}: #{exc.message}"
+              end
+              content_failed_to_parse = true
+              break
+            end
+          end
+          return if content_failed_to_parse
+
+          probe_repository = component.probe_manager.probe_repository
+          tracked_probe_ids = probe_repository.installed_probes.keys | probe_repository.pending_probes.keys
+          (tracked_probe_ids - present_probe_ids).each do |probe_id|
+            component.logger.trace { "di: removing probe #{probe_id} withdrawn from remote configuration" }
+            component.probe_manager.remove_probe(probe_id)
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
+            raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+            component.logger.debug { "di: error removing withdrawn probe #{probe_id}: #{exc.class}: #{exc.message}" }
+            component.telemetry&.report(exc, description: "Error removing withdrawn probe")
+          end
+        end
+
         def probe_known?(probe_id, component)
           repo = component.probe_manager.probe_repository
           !!(repo.find_installed(probe_id) ||
@@ -291,7 +335,7 @@ module Datadog
         def remove_probe(previous_content, component)
           # TODO test exception capture
           probe_spec = parse_content(previous_content)
-          probe_id = probe_spec.fetch('id')
+          probe_id = probe_spec.fetch("id")
           component.probe_manager.remove_probe(probe_id)
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)

@@ -35,7 +35,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       ssl: ssl,
       hostname: hostname,
       port: port,
-      timeout_seconds: nil
+      timeout_seconds: nil,
     )
   end
   let(:adapter) { Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER }
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   let(:metrics) {
     [
-      ["ruby_global_lock_wait_time_total", 123]
+      ["ruby_global_lock_wait_time_total", 123],
     ]
   }
 
@@ -76,27 +76,27 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:pprof_file_name) { "profile.pprof" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
-  let(:process_tags) { '' }
+  let(:process_tags) { "" }
   let(:info_json) do
     JSON.generate(
       {
         application: {
-          start_time: "2024-01-24T11:17:22Z"
+          start_time: "2024-01-24T11:17:22Z",
         },
         runtime: {
-          engine: "ruby"
+          engine: "ruby",
         },
-      }
+      },
     )
   end
   # Like above but with string keys (JSON parsing unsymbolizes keys by default)
   let(:info_string_keys) do
     {
       "application" => {
-        "start_time" => "2024-01-24T11:17:22Z"
+        "start_time" => "2024-01-24T11:17:22Z",
       },
       "runtime" => {
-        "engine" => "ruby"
+        "engine" => "ruby",
       },
     }
   end
@@ -255,7 +255,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "logs an error message" do
           expect(Datadog.logger).to receive(:warn).with(
             "Failed to report profiling data (agent: http://192.168.0.1:12345/): " \
-            "server returned unexpected HTTP 500 status code"
+            "server returned unexpected HTTP 500 status code",
           )
 
           export
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "sends a telemetry log" do
           expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
-            "Failed to report profiling data: unexpected HTTP 500 status code"
+            "Failed to report profiling data: unexpected HTTP 500 status code",
           )
 
           export
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "sends a telemetry log" do
           expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
-            "Failed to report profiling data"
+            "Failed to report profiling data",
           )
 
           export
@@ -305,7 +305,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         :agent,
         upload_timeout_seconds * 1_000,
         false,
-        "http://192.168.0.1:12345/"
+        "http://192.168.0.1:12345/",
       ]
     end
   end
@@ -319,7 +319,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   context "integration testing" do
     shared_context "HTTP server" do
       http_server do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
       let(:server_proc) do
@@ -402,7 +402,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context "when process tags are enabled" do
-      let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+      let(:process_tags) { "entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script" }
 
       it "includes the process tags in the payload" do
         success = http_transport.export(flush)
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         event_data = JSON.parse(body.fetch("event"))
 
         expect(event_data).to match(
-          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json"))
+          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json")),
         )
 
         expect(body["code-provenance.json"]).to be nil
@@ -440,7 +440,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     context "via unix domain socket" do
       define_http_server_uds do |http_server|
-        http_server.mount_proc('/', &server_proc)
+        http_server.mount_proc("/", &server_proc)
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { uds_socket_path }

@@ -1,0 +1,47 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        class RedactionChangeSet
+          @content_replacement: String?
+
+          @content_part_replacements: Hash[Integer, Evaluation::ContentPart::Text]
+
+          @tool_call_replacements: Hash[String, Evaluation::ToolCall]
+
+          def initialize: (
+            Evaluation::Message original_message,
+            Evaluation::Message redacted_message
+          ) -> void
+
+          def apply_to: (::RubyLLM::Message message) -> ::RubyLLM::Message
+
+          private
+
+          def content_replacement: (
+            Evaluation::Message::content? original_content,
+            Evaluation::Message::content? redacted_content
+          ) -> String?
+
+          def content_part_replacements: (
+            Evaluation::Message::content? original_content,
+            Evaluation::Message::content? redacted_content
+          ) -> Hash[Integer, Evaluation::ContentPart::Text]
+
+          def tool_call_replacements: (
+            Array[Evaluation::ToolCall] original_tool_calls,
+            Array[Evaluation::ToolCall] redacted_tool_calls
+          ) -> Hash[String, Evaluation::ToolCall]
+
+          def changed?: () -> bool
+
+          def build_content: (::RubyLLM::Message message) -> String?
+
+          def build_attachments: (::RubyLLM::Message message) -> Array[::RubyLLM::Attachment]
+
+          def build_tool_calls: (::RubyLLM::Message message) -> Hash[String, ::RubyLLM::ToolCall]?
+        end
+      end
+    end
+  end
+end

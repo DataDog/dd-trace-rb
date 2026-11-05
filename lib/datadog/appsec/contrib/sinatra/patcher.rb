@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/contrib'
+require_relative "../../../tracing/contrib"
 
-require_relative '../../response'
-require_relative '../rack/request_middleware'
-require_relative 'framework'
-require_relative 'gateway/watcher'
-require_relative 'gateway/route_params'
-require_relative 'gateway/request'
-require_relative 'patches/json_patch'
-require_relative '../../../tracing/contrib/sinatra/framework'
+require_relative "../../response"
+require_relative "../rack/request_middleware"
+require_relative "framework"
+require_relative "gateway/watcher"
+require_relative "gateway/route_params"
+require_relative "gateway/request"
+require_relative "patches/json_patch"
+require_relative "../../../tracing/contrib/sinatra/framework"
 
 module Datadog
   module AppSec
@@ -37,7 +37,7 @@ module Datadog
                 tracing_sinatra_framework.add_middleware_after(
                   tracing_middleware,
                   Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-                  builder
+                  builder,
                 )
               else
                 tracing_sinatra_framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
@@ -59,7 +59,7 @@ module Datadog
             # TODO: handle exceptions, except for super
 
             gateway_request = Gateway::Request.new(env)
-            request_return, _gateway_request = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
+            request_return, _gateway_request = Instrumentation.gateway.push("sinatra.request.dispatch", gateway_request) do
               super
             end
 
@@ -91,7 +91,7 @@ module Datadog
               gateway_request = Gateway::Request.new(env)
               gateway_route_params = Gateway::RouteParams.new(route_params)
 
-              Instrumentation.gateway.push('sinatra.request.routed', [gateway_request, gateway_route_params])
+              Instrumentation.gateway.push("sinatra.request.routed", [gateway_request, gateway_route_params])
 
               yield(*super_args)
             end
@@ -100,17 +100,15 @@ module Datadog
 
         # Patcher for AppSec on Sinatra
         module Patcher
-          module_function
-
-          def patched?
+          def self.patched?
             Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Gateway::Watcher.watch
 
             ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
@@ -122,7 +120,7 @@ module Datadog
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def patch_json?
+          def self.patch_json?
             !!(defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON)
           end
         end

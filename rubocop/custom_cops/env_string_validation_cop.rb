@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/datadog/core/configuration/supported_configurations'
+require_relative "../../lib/datadog/core/configuration/supported_configurations"
 
 module CustomCops
   # Custom cop that validates environment variable strings starting with DD_ or OTEL_
@@ -22,9 +22,9 @@ module CustomCops
     extend RuboCop::Cop::AutoCorrector
 
     MSG = 'Environment variable string "%<var>s" is not in the supported configurations list. ' \
-          'False positives are possible. If you are sure this string is NEVER used as an environment variable, ' \
-          'you can inline disable this cop using `rubocop:disable CustomCops/EnvStringValidationCop`. ' \
-          'See docs/AccessEnvironmentVariables.md for details.'
+          "False positives are possible. If you are sure this string is NEVER used as an environment variable, " \
+          "you can inline disable this cop using `rubocop:disable CustomCops/EnvStringValidationCop`. " \
+          "See docs/AccessEnvironmentVariables.md for details."
 
     # Configuration for allowed environment variable names
     # This list should be populated with the allowed environment variable names

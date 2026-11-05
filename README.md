@@ -17,8 +17,11 @@ For descriptions of terminology used in APM, take a look at the [APM Terms and C
 
 For contributing, checkout the [contribution guidelines][contribution docs] and [development guide][development docs].
 
+To check that a downloaded gem file was published by this repository, see [how to verify gem provenance][provenance docs].
+
 [public docs]: https://docs.datadoghq.com/tracing/setup/ruby/
 [api docs]: https://datadog.github.io/dd-trace-rb/
 [APM glossary]: https://docs.datadoghq.com/tracing/glossary/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+[provenance docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/Provenance.md

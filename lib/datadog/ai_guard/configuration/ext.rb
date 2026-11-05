@@ -6,6 +6,8 @@ module Datadog
       # This module contains constants for AI Guard component
       module Ext
         ENV_AI_GUARD_ENABLED = "DD_AI_GUARD_ENABLED"
+        ENV_AI_GUARD_REDACTION_ENABLED = "DD_AI_GUARD_REDACTION_ENABLED"
+
         ENV_AI_GUARD_ENDPOINT = "DD_AI_GUARD_ENDPOINT"
         ENV_AI_GUARD_TIMEOUT = "DD_AI_GUARD_TIMEOUT"
         ENV_AI_GUARD_MAX_CONTENT_SIZE = "DD_AI_GUARD_MAX_CONTENT_SIZE"

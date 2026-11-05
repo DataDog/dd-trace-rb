@@ -4,14 +4,8 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
-      # A workaround to trigger the workflow for pull requests from forked repository,
-      # which does not have access to secrets.
-      #
-      # This is also useful for testing the workflow without opening a pull request.
-      - tmp/*
   pull_request:
-    branches:
-      - master
+  workflow_dispatch: {}
   schedule:
     - cron: 0 */4 * * 1-5
     - cron: 0 3 * * 0,6
@@ -27,7 +21,7 @@ jobs:
   # ADD NEW RUBIES HERE
   ruby-40:
     name: "Ruby 4.0"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "4.0"
@@ -35,7 +29,7 @@ jobs:
 
   ruby-34:
     name: "Ruby 3.4"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "3.4"
@@ -43,7 +37,7 @@ jobs:
 
   ruby-33:
     name: "Ruby 3.3"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "3.3"
@@ -51,7 +45,7 @@ jobs:
 
   ruby-32:
     name: "Ruby 3.2"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "3.2"
@@ -59,7 +53,7 @@ jobs:
 
   ruby-31:
     name: "Ruby 3.1"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "3.1"
@@ -67,7 +61,7 @@ jobs:
 
   ruby-30:
     name: "Ruby 3.0"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "3.0"
@@ -75,7 +69,7 @@ jobs:
 
   ruby-27:
     name: "Ruby 2.7"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "2.7"
@@ -83,7 +77,7 @@ jobs:
 
   ruby-26:
     name: "Ruby 2.6"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "2.6"
@@ -91,7 +85,7 @@ jobs:
 
   ruby-25:
     name: "Ruby 2.5"
-    uses: ./.github/workflows/_unit_test.yml
+    uses: $/.github/workflows/_unit_test.yml
     with:
       engine: ruby
       version: "2.5"
@@ -104,7 +98,7 @@ jobs:
     permissions:
       id-token: write
     container:
-      image: datadog/ci:v3.7.1
+      image: datadog/ci:v5.7.0 # MANUAL-PIN: datadog/ci
       env:
         DD_ENV: ci
         DATADOG_SITE: datadoghq.com
@@ -124,7 +118,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/rspec && datadog-ci version
       - name: Download all junit reports
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: tmp/rspec
           pattern: junit-*
@@ -148,7 +142,7 @@ jobs:
       - run: echo "$DD_GIT_COMMIT_SHA"
       - name: Get Datadog credentials via dd-sts
         id: dd-sts
-        uses: DataDog/dd-sts-action@7d2d231c02fd54a3da912e582ff87cb995d1fd30
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
         with:
           policy: public-datadog-dd-trace-rb
       - name: Upload junit reports
@@ -173,7 +167,7 @@ jobs:
       - ruby-26
       - ruby-25
     container:
-      image: datadog/ci:v5.7.0
+      image: datadog/ci:v5.7.0 # MANUAL-PIN: datadog/ci
       env:
         DD_ENV: ci
         DATADOG_SITE: datadoghq.com
@@ -182,14 +176,14 @@ jobs:
     steps:
       - run: mkdir -p tmp/coverage && datadog-ci version
       - name: Download all coverage data
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: tmp/coverage
           pattern: coverage-*
           merge-multiple: true
       - name: Get Datadog credentials via dd-sts
         id: dd-sts
-        uses: DataDog/dd-sts-action@7d2d231c02fd54a3da912e582ff87cb995d1fd30
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
         with:
           policy: public-datadog-dd-trace-rb
       - name: Upload coverage reports to Datadog

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'database'
-require_relative 'dataset'
+require_relative "../patcher"
+require_relative "database"
+require_relative "dataset"
 
 module Datadog
   module Tracing
@@ -12,22 +12,20 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_sequel_database
             patch_sequel_dataset
           end
 
-          def patch_sequel_database
+          def self.patch_sequel_database
             ::Sequel::Database.include(Database)
           end
 
-          def patch_sequel_dataset
+          def self.patch_sequel_dataset
             ::Sequel::Dataset.include(Dataset)
           end
         end

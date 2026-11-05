@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative '../patcher'
+require_relative "ext"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -11,19 +11,17 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'intercept_with_datadog'
+          def self.patch
+            require_relative "intercept_with_datadog"
 
             prepend_interceptor
           end
 
-          def prepend_interceptor
+          def self.prepend_interceptor
             ::GRPC::InterceptionContext
               .prepend(InterceptWithDatadog)
           end

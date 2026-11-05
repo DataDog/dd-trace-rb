@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module SymbolDatabase
@@ -28,13 +28,13 @@ module Datadog
       # @param final [Boolean, nil] true if this is the last batch of the upload
       # @raise [ArgumentError] if service empty or scopes not an array
       def initialize(service:, env:, version:, scopes:, upload_id: nil, batch_num: nil, final: nil)
-        raise ArgumentError, 'service is required' if service.nil? || service.empty?
-        raise ArgumentError, 'scopes must be an array' unless scopes.is_a?(Array)
+        raise ArgumentError, "service is required" if service.nil? || service.empty?
+        raise ArgumentError, "scopes must be an array" unless scopes.is_a?(Array)
 
         @service = service
         @env = env
         @version = version
-        @language = 'ruby'
+        @language = "ruby"
         @scopes = scopes
         @upload_id = upload_id
         @batch_num = batch_num

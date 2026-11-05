@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../../core/telemetry/configuration_value"
+
 module Datadog
   module Tracing
     module Configuration
@@ -47,15 +49,17 @@ module Datadog
               # Restore the local configuration value
               configuration_object.unset_option(
                 @setting_key,
-                precedence: Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+                precedence: Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
               )
             else
               configuration_object.set_option(
                 @setting_key,
                 value,
-                precedence: Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+                precedence: Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
               )
             end
+
+            Core::Telemetry::ConfigurationValue.convert(value)
           end
 
           protected

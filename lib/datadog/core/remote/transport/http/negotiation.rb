@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../../../transport/http/client'
-require_relative '../../../transport/http/response'
-require_relative '../../../transport/http/api/endpoint'
+require_relative "../../../transport/http/client"
+require_relative "../../../transport/http/response"
+require_relative "../../../transport/http/api/endpoint"
 
 module Datadog
   module Core

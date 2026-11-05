@@ -1,14 +1,14 @@
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/rate_limiter'
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/rate_limiter"
 
 RSpec.describe Datadog::AppSec::RateLimiter do
   before { described_class.reset! }
 
-  describe '#limit' do
-    context 'in different threads' do
+  describe "#limit" do
+    context "in different threads" do
       before { stub_const("#{described_class}::THREAD_KEY", :__spec_instance) }
 
-      it 'creates separate rate limiter per thread' do
+      it "creates separate rate limiter per thread" do
         thread_1 = Thread.new do
           described_class.thread_local
         end

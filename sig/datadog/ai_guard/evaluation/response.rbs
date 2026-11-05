@@ -1,0 +1,57 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Response
+        type action = String
+
+        type reason = String
+
+        type tags = Array[String]
+
+        type sds_finding = Hash[String, Helpers::json]
+
+        type sds_findings = Array[sds_finding]
+
+        type tag_probabilities = Hash[String, Float]
+
+        type redaction_replacement = Hash[String, String]
+
+        type redaction_replacements = Array[redaction_replacement]
+
+        type attributes = {
+          "action" => action,
+          "reason" => reason,
+          "tags" => tags,
+          "tag_probs" => tag_probabilities,
+          "is_blocking_enabled" => bool,
+          ?"sds_findings" => sds_findings,
+          ?"redaction_replacements" => redaction_replacements
+        }
+
+        type raw_response = {
+          "data" => {
+            "attributes" => attributes
+          }
+        }
+
+        attr_reader action: action
+
+        attr_reader reason: reason
+
+        attr_reader tags: tags
+
+        attr_reader sds_findings: sds_findings
+
+        attr_reader tag_probabilities: tag_probabilities
+
+        attr_reader redaction_replacements: redaction_replacements
+
+        @is_blocking_enabled: bool
+
+        def initialize: (raw_response raw_response) -> void
+
+        def blocking_enabled?: () -> bool
+      end
+    end
+  end
+end

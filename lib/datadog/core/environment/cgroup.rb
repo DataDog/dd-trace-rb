@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Core
@@ -15,15 +15,13 @@ module Datadog
           :hierarchy,
           :controllers,
           :path,
-          :inode
+          :inode,
         )
-
-        module_function
 
         # Parses the /proc/self/cgroup file,
         # @return [Array<Entry>] one entry for each valid cgroup line
-        def entries
-          filepath = '/proc/self/cgroup'
+        def self.entries
+          filepath = "/proc/self/cgroup"
           return [] unless File.exist?(filepath)
 
           ret = []
@@ -45,14 +43,14 @@ module Datadog
         #
         # @see https://man7.org/linux/man-pages/man7/cgroups.7.html#:~:text=%2Fproc%2Fpid%2Fcgroup
         # @return [Entry]
-        def parse(entry_line)
-          hierarchy, controllers, path = entry_line.split(':', 3)
+        def self.parse(entry_line)
+          hierarchy, controllers, path = entry_line.split(":", 3)
 
           Entry.new(
             hierarchy,
             controllers,
             path,
-            inode_for(controllers, path)
+            inode_for(controllers, path),
           )
         end
 
@@ -60,7 +58,7 @@ module Datadog
         # Example:
         #   For the entry `0:cpu:/docker/abc123`,
         #   we read `stat -c '%i' /sys/fs/cgroup/cpu/docker/abc123`
-        def inode_for(controllers, path)
+        def self.inode_for(controllers, path)
           return if controllers.nil? || path.nil?
 
           # In cgroup v1, when multiple controllers are co-mounted, the controllers
@@ -68,7 +66,7 @@ module Datadog
           # Example entry:
           #   For the line "10:cpu,cpuacct:/docker/abc123", the path is
           #   "/sys/fs/cgroup/cpu,cpuacct/docker/abc123"
-          inode_path = File.join('/sys/fs/cgroup', controllers, path)
+          inode_path = File.join("/sys/fs/cgroup", controllers, path)
 
           File.stat(inode_path).ino if File.exist?(inode_path)
         end

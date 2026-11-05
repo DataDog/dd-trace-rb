@@ -34,6 +34,19 @@ module Datadog
                 o.default false
               end
 
+              # Redact sensitive data from evaluated messages.
+              #
+              # When enabled, values flagged by AI Guard are replaced before the messages are
+              # stored in the span or returned to the caller. Disable to skip redaction entirely.
+              #
+              # @default `DD_AI_GUARD_REDACTION_ENABLED`, otherwise `true`
+              # @return [Boolean]
+              option :redaction_enabled do |o|
+                o.type :bool
+                o.env Ext::ENV_AI_GUARD_REDACTION_ENABLED
+                o.default true
+              end
+
               define_method(:instrument) do |integration_name|
                 return unless enabled # steep:ignore
 

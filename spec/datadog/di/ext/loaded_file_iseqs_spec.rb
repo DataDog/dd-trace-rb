@@ -1,6 +1,6 @@
 require "datadog/di/spec_helper"
 
-RSpec.describe 'all_iseqs' do
+RSpec.describe "all_iseqs" do
   let(:iseqs) do
     Datadog::DI.all_iseqs
   end
@@ -9,12 +9,22 @@ RSpec.describe 'all_iseqs' do
     Datadog::DI.file_iseqs
   end
 
-  it 'returns iseqs' do
+  it "returns iseqs" do
     expect(iseqs).not_to be_empty
 
     iseqs.each do |iseq|
       expect(iseq).to be_a(RubyVM::InstructionSequence)
     end
+  end
+
+  # We don't compile libdatadog_api with the private headers, but we can ask
+  # the profiler to tell us what it got so we validate the hardcoded value in DI
+  it "uses the same IMEMO_MASK as Ruby's private headers" do
+    skip "Profiling is not available" unless Datadog::Profiling.supported?
+
+    expect(Datadog::DI::Testing._native_imemo_mask).to eq(
+      Datadog::Profiling::NativeExtension::Testing._native_imemo_mask,
+    )
   end
 
   # We would like to assert that the iseqs we are getting from the VM are
@@ -26,7 +36,7 @@ RSpec.describe 'all_iseqs' do
   # be expecting here.
   # Since we do have some knowledge about our own library, for now assert
   # that we have a reasonable set of files from dd-trace-rb in the iseqs.
-  it 'returns iseqs for loaded files' do
+  it "returns iseqs for loaded files" do
     datadog_iseqs = file_iseqs.select do |iseq|
       iseq.absolute_path =~ %r{lib/datadog/}
     end

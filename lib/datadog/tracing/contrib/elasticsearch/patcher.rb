@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../ext'
-require_relative '../integration'
-require_relative '../patcher'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../ext"
+require_relative "../integration"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -15,16 +15,14 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require 'uri'
-            require 'json'
-            require_relative 'quantize'
+          def self.patch
+            require "uri"
+            require "json"
+            require_relative "quantize"
 
             transport_module::Client.prepend(DatadogPin)
             transport_module::Client.prepend(Client)
@@ -53,7 +51,7 @@ module Datadog
               Tracing.trace(
                 Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_QUERY,
                 service: service,
-                on_error: on_error
+                on_error: on_error,
               ) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 connection = transport.connections.first
@@ -63,7 +61,7 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
                 end
 
@@ -121,7 +119,7 @@ module Datadog
               quantize_options = datadog_configuration[:quantize]
               quantized_body = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_body(
                 body,
-                quantize_options
+                quantize_options,
               )
               span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
             end
@@ -154,8 +152,8 @@ module Datadog
 
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
-          def transport_module
-            if Integration.version >= Gem::Version.new('8.0.0')
+          def self.transport_module
+            if Integration.version >= Gem::Version.new("8.0.0")
               ::Elastic::Transport
             else
               ::Elasticsearch::Transport

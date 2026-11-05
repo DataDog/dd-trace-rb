@@ -1,7 +1,9 @@
 stages:
   - manual-images
   - package
-  - shared-pipeline
+  - shared-pipeline-build
+  - shared-pipeline-test
+  - shared-pipeline-publish
   - macrobenchmarks
   - microbenchmarks
   # These benchmarks should ultimately replace the old macrobenchmarks setup
@@ -12,24 +14,73 @@ stages:
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
-  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
-    file: '.gitlab/ci-ruby-acme-parallel.yml'
-    ref: 'fbd5855de233ea9ade5a5e571770e7cbe407ea35'
+  - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
+    file: ".gitlab/ci-ruby-acme-parallel.yml"
+    ref: "e6d019540e3522c644914f175e5669fc18baee87" # apm-sdks-benchmarks#303 merge commit
+  # LLM validation gate (prompt/AGENTS.md regression testing) — see ci/README.md in that repo.
+  # Pin both refs identically; bump together to adopt a new release.
+  - project: "ddoghq/llm-validation-platform"
+    file: "/ci/llm-validation.gitlab-ci.yml"
+    ref: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+
+# Re-open the gate job to pin the ref that actually runs (must match the include ref above).
+"llm validation":
+  variables:
+    LLMVAL_PLATFORM_PROJECT: "ddoghq/llm-validation-platform"
+    LLMVAL_PLATFORM_REF: "4bb157a2cbb50ef608b9ec8e14b886e0cf838ca3" # v0.1.4
+    LLMVAL_BASE_REF: "master"
+    LLMVAL_LEVEL: "minimum"
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
   REPO_LANG: ruby # ruby is used rather that "rb"
   BUILD_JOB_NAME: save_versions
-  REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
+  REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby-notifications"
   OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
-  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
+  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 40000000
 
 default:
   tags: ["arch:amd64"]
 
+# Paths that change the shipped tracer code or how the SSI artifacts are
+# built. Pushes and MRs touching none of these run the pipeline without the
+# shared SSI pipeline (artifact builds + system tests), via the
+# SKIP_SHARED_PIPELINE variable that every one-pipeline job already guards on.
+.ssi_relevant_paths: &ssi_relevant_paths
+  # "**/*" not "**": GitLab matches paths with File.fnmatch(FNM_PATHNAME),
+  # where plain "**" does not match nested files like lib/datadog/tracing.rb.
+  - lib/**/*
+  - ext/**/*
+  - datadog.gemspec
+  - Gemfile.lock
+  - .gitlab-ci.yml
+  - .gitlab/install_datadog_deps.rb
+  - .gitlab/prepare-oci-package.sh
+  - .gitlab/one-pipeline.locked.yml
+  - lib-injection/requirements.json
+
 workflow:
   auto_cancel:
     on_new_commit: interruptible
+  rules:
+    # Escape hatch to force the full SSI pipeline on an otherwise-skipped push.
+    - if: '$FORCE_SHARED_PIPELINE == "true"'
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths: *ssi_relevant_paths
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        compare_to: 'refs/heads/$CI_DEFAULT_BRANCH'
+        paths: *ssi_relevant_paths
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"'
+      variables:
+        SKIP_SHARED_PIPELINE: "true"
+    # workflow:rules accepts only always or never, never on_success.
+    - when: always
 
 .build-image-base:
   stage: manual-images
@@ -89,7 +140,13 @@ promote-image:
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
+# Both jobs only feed package-oci, which skips on SKIP_SHARED_PIPELINE, so
+# they skip too in a skipped shared pipeline.
 build-gem:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
@@ -129,13 +186,18 @@ build-gem:
       - lib/datadog/version.rb
 
 install-dependencies:
+  rules:
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
+    - when: on_success
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
   tags: ["arch:$ARCH"]
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      # TODO: Ruby 4.0 - Not added here yet to avoid increasing SSI OCI image size and adding premature support for 4.0.
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      # TEMPORARY: Ruby 4.0 added to package a ruby/4.0.0 gem home so SSI can
+      # inject on Ruby 4.0 (system-tests#7249). Revisit OCI size before merge.
+      - RUBY_VERSION: ["4.0", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCH: ["amd64", "arm64"]
   stage: package
   needs:
@@ -143,6 +205,9 @@ install-dependencies:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version)
     - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    # TEMPORARY (Ruby 4.0): the centos custom image builds Ruby with devtoolset-10
+    # but defaults to an older gcc at runtime; enable it so native gems (ffi) build.
+    - if [ -f /opt/rh/devtoolset-10/enable ]; then export MANPATH="${MANPATH:-}"; . /opt/rh/devtoolset-10/enable; fi
     - ruby -v
     - gem -v
     - bundler -v
@@ -160,6 +225,13 @@ package-oci:
 
 requirements_json_test:
   rules:
+    # The one-pipeline job needs package-oci and consumes its
+    # packaging/sources/requirements.json artifact, but package-oci skips on
+    # SKIP_SHARED_PIPELINE. Skip together so a skipped shared pipeline stays
+    # creatable. Removable once the locked template carries the guard
+    # (libdatadog-build#285). Drop this override at the next one-pipeline bump.
+    - if: '$SKIP_SHARED_PIPELINE == "true"'
+      when: never
     - when: on_success
   variables:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
@@ -167,12 +239,14 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 8abbb15d9d5c699f796952225c301ce40c5d99dc # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: 1f289cff86f5ec2a61502f179ede8960bda417fb # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
-  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  # git >= 2.32 is required so the runner-injected GIT_CONFIG_GLOBAL
+  # (gitretriever mirror auth) is honored. ruby:3.2.x images ship git 2.30.
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.4.4
   stage: package
   needs: []
   script:

@@ -1,33 +1,33 @@
 # frozen_string_literal: true
 
-require_relative 'agent_settings_resolver'
-require_relative 'components_state'
-require_relative 'ext'
-require_relative 'deprecations'
-require_relative '../diagnostics/environment_logger'
-require_relative '../diagnostics/health'
-require_relative '../logger'
-require_relative '../runtime/metrics'
-require_relative '../telemetry/component'
-require_relative '../workers/runtime_metrics'
-require_relative '../remote/component'
-require_relative '../utils/at_fork_monkey_patch'
-require_relative '../utils/spawn_monkey_patch'
-require_relative '../utils/only_once'
-require_relative '../../tracing/component'
-require_relative '../../profiling/component'
-require_relative '../../appsec/component'
-require_relative '../../ai_guard/component'
-require_relative '../../di/component'
-require_relative '../../symbol_database'
-require_relative '../../symbol_database/component'
-require_relative '../../open_feature/component'
-require_relative '../../error_tracking/component'
-require_relative '../crashtracking/component'
-require_relative '../environment/agent_info'
-require_relative '../environment/identity'
-require_relative '../process_discovery'
-require_relative '../../data_streams/processor'
+require_relative "agent_settings_resolver"
+require_relative "components_state"
+require_relative "ext"
+require_relative "deprecations"
+require_relative "../diagnostics/environment_logger"
+require_relative "../diagnostics/health"
+require_relative "../logger"
+require_relative "../runtime/metrics"
+require_relative "../telemetry/component"
+require_relative "../workers/runtime_metrics"
+require_relative "../remote/component"
+require_relative "../utils/at_fork_monkey_patch"
+require_relative "../utils/spawn_monkey_patch"
+require_relative "../utils/only_once"
+require_relative "../../tracing/component"
+require_relative "../../profiling/component"
+require_relative "../../appsec/component"
+require_relative "../../ai_guard/component"
+require_relative "../../di/component"
+require_relative "../../symbol_database"
+require_relative "../../symbol_database/component"
+require_relative "../../open_feature/activation"
+require_relative "../../error_tracking/component"
+require_relative "../crashtracking/component"
+require_relative "../environment/agent_info"
+require_relative "../environment/identity"
+require_relative "../process_discovery"
+require_relative "../../data_streams/processor"
 
 module Datadog
   module Core
@@ -55,7 +55,7 @@ module Datadog
           # extension, remote config off, non-MRI). Under the always-build model
           # it is non-nil even when the DI setting defaults to off, so a built
           # SymbolDatabase component is inert until an upload is actually
-          # permitted: the component's own gate (see Component#upload_allowed?)
+          # permitted: the component's own gate, SymbolDatabase::Component#upload_allowed?,
           # only extracts and uploads when DI is truly active or the customer
           # opted in explicitly. This mirrors DI advertising/building a component
           # by default while installing no probes until it is enabled.
@@ -129,7 +129,7 @@ module Datadog
               logger: logger,
               settings: settings,
               agent_settings: agent_settings,
-              agent_info: agent_info
+              agent_info: agent_info,
             )
           rescue => e
             logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e.message}")
@@ -154,8 +154,7 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
-          :symbol_database,
-          :open_feature
+          :symbol_database
 
         def initialize(settings)
           @settings = settings
@@ -188,8 +187,14 @@ module Datadog
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          @remote = Remote::Component.build(
+            settings,
+            agent_settings,
+            logger: @logger,
+            telemetry: telemetry,
+          )
           @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
+          Datadog::Tracing::Component.bind_transport_telemetry(@tracer, telemetry)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
@@ -204,7 +209,13 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
-          @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
+          @open_feature_activation = OpenFeature::Activation.new(
+            settings,
+            agent_settings,
+            remote,
+            logger: @logger,
+            telemetry: telemetry,
+          )
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           # Only build symbol database when enabled, so a disabled component is
           # never constructed.
@@ -237,17 +248,20 @@ module Datadog
 
           # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
           if defined?(::Rails::Railtie)
-            require_relative '../contrib/rails/railtie'
+            require_relative "../contrib/rails/railtie"
           end
         end
 
         # Called when a fork is detected
         def after_fork
+          tracer.after_fork
           telemetry.after_fork
           remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
           symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
+          @open_feature_activation.after_fork
         end
 
         # Hot-swaps with a new sampler.
@@ -262,6 +276,8 @@ module Datadog
         def startup!(settings, old_state: nil)
           telemetry.start(old_state&.telemetry_enabled?, components: self)
 
+          @open_feature_activation.startup!
+
           if settings.profiling.enabled
             if profiler
               profiler.start
@@ -272,12 +288,20 @@ module Datadog
             end
           end
 
+          if dynamic_instrumentation && old_state
+            dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
+          end
+
           if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
+            #
+            # The DI signal-path restore above must precede this: the
+            # replacement client's first sync can dispatch the APM_TRACING
+            # merge, whose withdrawal branch reads the recorded paths.
             remote.start
           end
 
@@ -290,6 +314,10 @@ module Datadog
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
               DI.activate_tracking
               dynamic_instrumentation.start!
+              remote&.add_products(
+                *Datadog::DI::Remote.products,
+                *Datadog::SymbolDatabase::Remote.deferred_products(settings),
+              )
             end
           end
 
@@ -316,8 +344,14 @@ module Datadog
           # Shutdown Symbol Database
           symbol_database&.shutdown!
 
-          # Shutdown OpenFeature component
-          open_feature&.shutdown!
+          begin
+            @open_feature_activation.shutdown!
+          rescue => e
+            # Feature Flags is optional and must never interrupt library shutdown.
+            description = "Feature Flags delivery failed to shut down"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
 
           # Decommission AppSec
           appsec&.shutdown!
@@ -348,13 +382,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []
@@ -379,21 +413,22 @@ module Datadog
           # di_implicitly_enabled distinguishes RC-driven start from explicit
           # start (env var or programmatic) so that an explicit
           # `enabled = false` on reconfiguration can take effect.
-          #
-          # using_default? — not `!enabled` — because Datadog.configure has
-          # already mutated the singleton settings by the time #state runs,
-          # so `!enabled` would treat a customer's explicit
-          # `enabled = false` as "implicitly enabled" and restart DI.
-          # using_default? asks "did the customer ever touch this setting",
-          # which is the right question for RC carry-over.
-          di_implicit = dynamic_instrumentation&.started? &&
-            @settings.dynamic_instrumentation.using_default?(:enabled)
+          di_implicit = dynamic_instrumentation&.implicitly_enabled?
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
             di_implicitly_enabled: di_implicit || false,
+            rc_enablement_signal_paths: dynamic_instrumentation&.rc_enablement_signal_paths || [],
           )
         end
+
+        def open_feature
+          @open_feature_activation.component
+        end
+
+        private
+
+        attr_reader :open_feature_activation
       end
     end
   end

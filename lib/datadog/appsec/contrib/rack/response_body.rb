@@ -25,7 +25,7 @@ module Datadog
 
             body_ary.sum { |part| part.is_a?(String) ? part.bytesize : 0 }
           rescue => e
-            AppSec.telemetry.report(e, description: 'AppSec: Failed to compute body content length')
+            AppSec.telemetry.report(e, description: "AppSec: Failed to compute body content length")
 
             nil
           end

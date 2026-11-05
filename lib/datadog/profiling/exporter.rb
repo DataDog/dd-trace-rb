@@ -20,7 +20,6 @@ module Datadog
 
       private
 
-      attr_reader :pprof_recorder #: Datadog::Profiling::StackRecorder
       # The code provenance collector acts both as collector and as a recorder
       attr_reader :code_provenance_collector #: Datadog::Profiling::Collectors::CodeProvenance?
       attr_reader :minimum_duration_seconds #: ::Integer
@@ -28,12 +27,11 @@ module Datadog
       attr_reader :last_flush_finish_at #: ::Time?
       attr_reader :created_at #: ::Time
       attr_reader :internal_metadata #: ::Hash[::Symbol, untyped]
-      attr_reader :info_json #: ::String
+      attr_reader :info_collector #: Datadog::Profiling::Collectors::Info
       attr_reader :sequence_tracker #: singleton(Datadog::Profiling::SequenceTracker)
 
       public
 
-      # @rbs pprof_recorder: Datadog::Profiling::StackRecorder
       # @rbs worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
       # @rbs info_collector: Datadog::Profiling::Collectors::Info
       # @rbs code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
@@ -43,7 +41,6 @@ module Datadog
       # @rbs sequence_tracker: singleton(Datadog::Profiling::SequenceTracker)
       # @rbs return: void
       def initialize(
-        pprof_recorder:,
         worker:,
         info_collector:,
         code_provenance_collector:,
@@ -52,7 +49,6 @@ module Datadog
         time_provider: Time,
         sequence_tracker: Datadog::Profiling::SequenceTracker
       )
-        @pprof_recorder = pprof_recorder
         @worker = worker
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
@@ -60,14 +56,13 @@ module Datadog
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
         @internal_metadata = internal_metadata
-        # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
-        #       it on startup to prevent serializing the same info on every flush.
-        @info_json = JSON.generate(info_collector.info).freeze
+        @info_collector = info_collector
         @sequence_tracker = sequence_tracker
       end
 
       #: () -> Datadog::Profiling::Flush?
       def flush
+        pprof_recorder = @worker.prepare_serialize
         worker_stats = @worker.stats_and_reset_not_thread_safe
         serialization_result = pprof_recorder.serialize
         return if serialization_result.nil?
@@ -93,7 +88,7 @@ module Datadog
         metrics << ["ruby_global_lock_wait_time_total", gvl_waiting_time_ns_total] if gvl_waiting_time_ns_total
 
         process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
-          Core::Environment::Process.serialized : ''
+          Core::Environment::Process.serialized : ""
 
         Flush.new(
           start: start,
@@ -111,10 +106,10 @@ module Datadog
               worker_stats: worker_stats,
               profile_stats: profile_stats,
               recorder_stats: pprof_recorder.stats,
-              gc: GC.stat,
-            }
+              gc: gc_stats,
+            },
           ),
-          info_json: info_json,
+          info_json: info_collector.info_json,
         )
       end
 
@@ -130,6 +125,11 @@ module Datadog
       end
 
       private
+
+      # @rbs return: Hash[Symbol, Integer | bool]
+      def gc_stats
+        GC.stat.merge(auto_compact: GC.respond_to?(:auto_compact) && GC.auto_compact)
+      end
 
       #: (::Time, ::Time) -> bool
       def duration_below_threshold?(start, finish)

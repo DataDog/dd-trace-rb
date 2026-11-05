@@ -21,15 +21,15 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version.
 Some of the development tooling is only defined for the recent MRI versions,
-therefore we suggest using Ruby 3.4 unless you specifically need a different
+therefore we suggest using Ruby 4.0 unless you specifically need a different
 version. Run the following:
 
 ```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 3.4 test environment with its dependencies
-docker compose run --rm tracer-3.4 /bin/bash
+# Create and start a Ruby 4.0 test environment with its dependencies
+docker compose run --rm tracer-4.0 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
@@ -49,6 +49,25 @@ New tests should be written as RSpec tests in the `spec/datadog` folder. Test fi
 All changes should be covered by corresponding RSpec tests. Unit tests are preferred, and integration tests are accepted where appropriate (e.g. acceptance tests, verifying compatibility with datastores, etc) but should be kept to a minimum.
 
 ### Running tests
+
+#### Canonical feature flag fixtures
+
+The OpenFeature specs evaluate the canonical corpus from
+[`DataDog/ffe-system-test-data`](https://github.com/DataDog/ffe-system-test-data).
+The corpus is not checked in. The pin is `tasks/lib/fixtures/ffe/version`, a
+bare upstream commit SHA. `bundle exec rake test:open_feature` downloads
+the pinned corpus into `tmp/ffe-system-test-data/<commit>/` first, so it needs
+network access once per pinned commit and works offline afterward.
+
+Run `bundle exec rake fixtures:ffe:download` to prefetch the pinned corpus, or
+`rake -f tasks/fixtures.rake fixtures:ffe:download` outside a bundled
+session. Both are no-ops when the corpus is already cached.
+
+The weekly/manual [update workflow](../.github/workflows/update-ffe-fixtures.yml)
+opens a signed draft PR that bumps the pinned commit only when upstream fixture
+bytes change. It leaves an existing update PR untouched, so evaluator fixes can
+be added there. New cases may expose evaluator bugs: fix those before accepting
+the update, and change shared expectations upstream rather than locally.
 
 #### For the core library
 
@@ -108,7 +127,13 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 }
 ```
 
-If the dependency groups are prepared (with up-to-date gemfile and lockfile), the test task will install them before running the test.
+##### What dependency versions to test
+
+At minimum, we run our tests with the oldest supported version (`min`) of a gem and the `latest`, which become the official support range. The `min` and `latest` selection is per-Ruby runtime and version.
+`min` should match each integration's runtime enforcement of the minimum version, `Contrib::{GEM}::Integration::MINIMUM_VERSION`.
+
+We add additional test versions if those versions diverge from `min` or `latest` in: exercised code paths, having unique *and* valuable observability data, or creating different test results.
+If you add a version besides `min` or `latest`, add a comment on why that version is necessary.
 
 **Working with different dependencies**
 
@@ -161,6 +186,34 @@ Under `gemfiles/` there are two layers of lockfiles:
 
 The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
 
+**Cooldown**
+
+Gemfiles for Ruby 3.2 and later declare a 2-day cooldown window, so Bundler will
+not resolve to a gem version published within the last two days. This is applied
+automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
+predates the feature and are unaffected.
+
+Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
+`datadog-ruby_core_source`) needs nothing extra, even for a release published
+inside the window. The lock tasks exempt these gems on their own.
+
+To take any other release that is still inside the window, set
+`BUNDLE_COOLDOWN` for that run:
+
+```bash
+# Bypass the window for every appraisal gemfile
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock
+# or for one group
+BUNDLE_COOLDOWN=0 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
+```
+
+The `dependency:*` tasks only reach the appraisal locks. To bypass the window in
+a parent lock, run `bundle` against that gemfile directly:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/ruby-3.4.gemfile BUNDLE_COOLDOWN=0 bundle lock
+```
+
 **Task surfaces**
 
 Two rake namespaces, with different intents:
@@ -172,7 +225,7 @@ Two rake namespaces, with different intents:
 
 Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
 
-- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see the `dependencies` group in `.github/path-filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
 - `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
 - `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
 
@@ -340,35 +393,62 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-The library uses [standard](https://github.com/standardrb/standard) to enforce code style and quality.
-Custom cops (under the `CustomCops/` namespace) run as part of the same check. To check, run:
+[RuboCop](https://github.com/rubocop/rubocop) is both a linting and autocorrection engine and a
+collection of default rules (called cops). [StandardRB](https://github.com/standardrb/standard)
+uses the RuboCop engine with an opinionated ruleset and exposes it through the `standardrb` program.
+
+This repository uses the Standard ruleset as its baseline, then configures RuboCop with project-specific
+overrides and custom cops under the `CustomCops/` namespace. The programs and rulesets are therefore:
+
+| Rake task | Program | Ruleset | Coverage |
+| --- | --- | --- | --- |
+| `standard` | `standardrb` | Standard minus project overrides | Baseline subset |
+| `rubocop` | `rubocop` | Standard with project overrides and custom cops | Full repository ruleset (strict superset) |
+
+Both CI checks must pass, but local tools should favour RuboCop because it checks the full ruleset. Run it directly or through Rake:
 
 ```
-bundle exec rake standard
+bundle exec rubocop
+bundle exec rake rubocop
 ```
 
-To change your code to the version that standard wants, run:
+To mirror both CI checks, run:
 
 ```
-bundle exec rake standard:fix
+bundle exec rake standard rubocop
+```
+
+To apply automatic fixes using the full ruleset, run:
+
+```
+bundle exec rubocop --autocorrect
+bundle exec rake rubocop:fix
 ```
 
 For non-Ruby code, follow the instructions below to debug locally, if CI failed with the respective linter.
 
 - For `yamllint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
+pipx run yamllint==1.38.0 .
 ```
 
 - For `actionlint`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint:1.7.8 -color
 ```
 
 - For `zizmor`, run:
 ```bash
-docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/zizmorcore/zizmor:1.31.1 --min-severity low .
 ```
+
+The versions above must match the pins in `.github/workflows/check.yml`. Update them together.
+
+Dependabot only updates action references (`uses:`). Container image tags in workflows, such as `datadog/ci`, are bumped by hand. Search for `MANUAL-PIN` to find every hand-bumped tool version.
+
+#### Dependency audit (bundler-audit)
+
+See [Dependency Audit](./DependencyAudit.md).
 
 ## Accessing Environment Variables
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
+require_relative "../core/remote/dispatcher"
 
 module Datadog
   module OpenFeature
@@ -8,7 +8,7 @@ module Datadog
     module Remote
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
-        FFE_PRODUCTS = ['FFE_FLAGS'].freeze
+        FFE_PRODUCTS = ["FFE_FLAGS"].freeze
         FFE_CAPABILITIES = [FFE_FLAG_CONFIGURATION_RULES].freeze
 
         def capabilities
@@ -19,16 +19,23 @@ module Datadog
           FFE_PRODUCTS
         end
 
-        def receivers(telemetry)
+        def receivers(telemetry, component_provider:, logger: Datadog.logger)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            engine = OpenFeature.engine
-            next unless engine
+            component = component_provider.call
+            next unless component
 
             changes.each do |change|
               content = repository[change.path]
+              logger.debug do
+                version = content ? " (version #{content.version})" : ""
+                "Feature Flags: received Remote Configuration #{change.type} for #{change.path}#{version}"
+              end
 
               unless content || change.type == :delete
+                logger.debug do
+                  "Feature Flags: ignored Remote Configuration #{change.type} for #{change.path}: content is missing"
+                end
                 next telemetry.error("OpenFeature: Remote Configuration change is not present on #{change.type}")
               end
 
@@ -38,7 +45,7 @@ module Datadog
               when :insert, :update
                 begin
                   # @type var content: Core::Remote::Configuration::Content
-                  engine.reconfigure!(read_content(content))
+                  component.reconfigure!(read_content(content))
                   content.applied
                 rescue EvaluationEngine::ReconfigurationError => e
                   content.errored("Error applying OpenFeature configuration: #{e.class}: #{e.message}")
@@ -46,7 +53,7 @@ module Datadog
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration
                 #       In a multi-config scenario, we might track configs per path
-                engine.reconfigure!(nil)
+                component.reconfigure!(nil)
               end
             end
           end

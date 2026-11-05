@@ -24,7 +24,7 @@ module Datadog
 
           def read(length = nil, outbuf = nil)
             if length.nil?
-              data = @buffer.read(nil, outbuf) || +''
+              data = @buffer.read(nil, outbuf) || +""
               more = @stream.read
 
               data << more if more

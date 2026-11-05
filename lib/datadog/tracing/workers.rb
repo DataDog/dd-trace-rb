@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'buffer'
-require_relative 'pipeline'
+require_relative "buffer"
+require_relative "pipeline"
 
 module Datadog
   module Tracing
@@ -59,7 +59,7 @@ module Datadog
             # a fatal exception
             logger.warn(
               "Error during traces flush: dropped #{traces.length} items. " \
-              "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+              "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
             )
           end
         end

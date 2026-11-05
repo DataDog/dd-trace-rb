@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/environment/variable_helpers'
-require_relative 'ext'
+require_relative "../core/environment/variable_helpers"
+require_relative "ext"
 
 module Datadog
   module DataStreams
@@ -38,7 +38,7 @@ module Datadog
               # @!visibility private
               option :interval do |o|
                 o.type :float
-                o.env '_DD_TRACE_STATS_WRITER_INTERVAL'
+                o.env "_DD_TRACE_STATS_WRITER_INTERVAL"
                 o.default 10.0
               end
             end

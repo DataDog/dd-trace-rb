@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../ext"
+
 module Datadog
   module OpenFeature
     module Hooks
@@ -41,7 +43,7 @@ module Datadog
           metadata = evaluation_details.flag_metadata
           return unless metadata.is_a?(Hash)
 
-          metadata['__dd_allocation_key']
+          metadata[Ext::METADATA_ALLOCATION_KEY]
         end
       end
     end

@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative 'cgroup'
-require_relative 'ext'
+require_relative "cgroup"
+require_relative "ext"
 
 module Datadog
   module Core
     module Environment
       # For container environments
       module Container
-        UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'
-        CONTAINER_PATTERN = '[0-9a-f]{64}'
+        UUID_PATTERN = "[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}"
+        CONTAINER_PATTERN = "[0-9a-f]{64}"
 
         PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
         POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze
@@ -27,15 +27,13 @@ module Datadog
           :platform,
           :task_uid,
           :container_id,
-          :inode
+          :inode,
         )
-
-        module_function
 
         # Returns HTTP headers representing container information.
         # These can used in any Datadog request that requires origin detection.
         # This is the recommended method to call to get container information.
-        def to_headers
+        def self.to_headers
           headers = {}
           headers["Datadog-Container-ID"] = container_id if container_id
           headers["Datadog-Entity-ID"] = entity_id if entity_id
@@ -44,7 +42,7 @@ module Datadog
         end
 
         # Container ID, prefixed with "ci-" or Inode, prefixed with "in-".
-        def entity_id
+        def self.entity_id
           if container_id
             "ci-#{container_id}"
           elsif inode
@@ -54,7 +52,7 @@ module Datadog
 
         # External data supplied by the Datadog Cluster Agent Admission Controller.
         # @see {Ext::ENV_EXTERNAL_ENV} for more details.
-        def external_env
+        def self.external_env
           Datadog.configuration.container.external_env
         end
 
@@ -63,14 +61,14 @@ module Datadog
         # Examples: Docker, Kubernetes, AWS Fargate, LXC, etc.
         #
         # @return [String, nil] The platform name (e.g., "docker", "kubepods", "fargate"), or nil if not containerized
-        def platform
+        def self.platform
           entry.platform
         end
 
         # The unique identifier of the current container in the container environment.
         #
         # @return [String, nil] The container ID, or nil if not running in a containerized environment
-        def container_id
+        def self.container_id
           entry.container_id
         end
 
@@ -81,7 +79,7 @@ module Datadog
         # enabling correlation across container restarts and multi-container applications.
         #
         # @return [String, nil] The task/pod UID, or nil if not available in the current environment
-        def task_uid
+        def self.task_uid
           entry.task_uid
         end
 
@@ -90,25 +88,25 @@ module Datadog
         # Used as a fallback identifier when {#container_id} is unavailable.
         #
         # @return [Integer, nil] The namespace inode, or nil if unavailable
-        def inode
+        def self.inode
           entry.inode
         end
 
         # Checks if the current process is running on the host cgroup namespace.
         # This indicates that the process is not running inside a container.
         # When unsure, we return `false` (not running on host).
-        def running_on_host?
+        def self.running_on_host?
           return @running_on_host if defined?(@running_on_host)
 
           @running_on_host = begin
-            if File.exist?('/proc/self/ns/cgroup')
-              File.stat('/proc/self/ns/cgroup').ino == HOST_CGROUP_NAMESPACE_INODE
+            if File.exist?("/proc/self/ns/cgroup")
+              File.stat("/proc/self/ns/cgroup").ino == HOST_CGROUP_NAMESPACE_INODE
             else
               false
             end
           rescue => e
             Datadog.logger.debug(
-              "Error while checking cgroup namespace. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+              "Error while checking cgroup namespace. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
             )
             false
           end
@@ -117,7 +115,7 @@ module Datadog
         # All cgroup entries have the same container identity.
         # The first valid one is sufficient.
         # v2 entries are preferred over v1.
-        def entry
+        def self.entry
           return @entry if defined?(@entry)
 
           # Scan all v2 entries first, only then falling back to v1 entries.
@@ -128,15 +126,15 @@ module Datadog
           #
           # All v2 entries have the `hierarchy` set to zero.
           # v1 entries have a non-zero `hierarchy`.
-          entries = Cgroup.entries.partition { |d| d.hierarchy == '0' }.flatten(1)
+          entries = Cgroup.entries.partition { |d| d.hierarchy == "0" }.flatten(1)
           entries.each do |entry_obj|
             path = entry_obj.path
             next unless path
 
             # To ease handling, remove the emtpy leading "",
             # as `path` starts with a "/".
-            path.delete_prefix!('/')
-            parts = path.split('/')
+            path.delete_prefix!("/")
+            parts = path.split("/")
 
             # With not path information, we can still use the inode
             if parts.empty? && entry_obj.inode && !running_on_host?
@@ -172,7 +170,7 @@ module Datadog
           @entry = Entry.new # Empty entry if no valid cgroup entry is found
         rescue => e
           Datadog.logger.debug(
-            "Error while reading container entry. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Error while reading container entry. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
           )
           @entry = Entry.new unless defined?(@entry)
           @entry

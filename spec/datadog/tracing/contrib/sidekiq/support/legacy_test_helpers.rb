@@ -24,8 +24,8 @@ module Sidekiq
       end
 
       def delete_for(jid, queue, klass)
-        jobs_by_queue[queue.to_s].delete_if { |job| job['jid'] == jid }
-        jobs_by_worker[klass].delete_if { |job| job['jid'] == jid }
+        jobs_by_queue[queue.to_s].delete_if { |job| job["jid"] == jid }
+        jobs_by_worker[klass].delete_if { |job| job["jid"] == jid }
       end
 
       def clear_for(queue, klass)
@@ -43,7 +43,7 @@ module Sidekiq
   module Worker
     module ClassMethods
       def queue
-        sidekiq_options['queue']
+        sidekiq_options["queue"]
       end
 
       def jobs
@@ -57,25 +57,25 @@ module Sidekiq
       def drain
         while jobs.any?
           next_job = jobs.first
-          Queues.delete_for(next_job['jid'], next_job['queue'], to_s)
+          Queues.delete_for(next_job["jid"], next_job["queue"], to_s)
           process_job(next_job)
         end
       end
 
       def perform_one
-        raise(EmptyQueueError, 'perform_one called with empty job queue') if jobs.empty?
+        raise(EmptyQueueError, "perform_one called with empty job queue") if jobs.empty?
 
         next_job = jobs.first
-        Queues.delete_for(next_job['jid'], queue, to_s)
+        Queues.delete_for(next_job["jid"], queue, to_s)
         process_job(next_job)
       end
 
       def process_job(job)
         worker = new
-        worker.jid = job['jid']
-        worker.bid = job['bid'] if worker.respond_to?(:bid=)
-        Sidekiq::Testing.server_middleware.invoke(worker, job, job['queue']) do
-          execute_job(worker, job['args'])
+        worker.jid = job["jid"]
+        worker.bid = job["bid"] if worker.respond_to?(:bid=)
+        Sidekiq::Testing.server_middleware.invoke(worker, job, job["queue"]) do
+          execute_job(worker, job["args"])
         end
       end
 
@@ -95,7 +95,7 @@ module Sidekiq
 
       def drain_all
         while jobs.any?
-          worker_classes = jobs.map { |job| job['class'] }.uniq
+          worker_classes = jobs.map { |job| job["class"] }.uniq
 
           worker_classes.each do |worker_class|
             worker_class.constantize.drain

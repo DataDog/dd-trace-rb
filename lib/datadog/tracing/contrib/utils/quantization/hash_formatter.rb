@@ -7,7 +7,7 @@ module Datadog
         module Quantization
           # Quantization for Hash
           module HashFormatter
-            PLACEHOLDER = '?'
+            PLACEHOLDER = "?"
             EXCLUDE_KEYS = [].freeze
             SHOW_KEYS = [].freeze
 
@@ -15,25 +15,23 @@ module Datadog
             DEFAULT_OPTIONS = { # steep:ignore IncompatibleAssignment
               exclude: EXCLUDE_KEYS,
               show: SHOW_KEYS,
-              placeholder: PLACEHOLDER
+              placeholder: PLACEHOLDER,
             }.freeze
 
-            module_function
-
-            def format(hash_obj, options = {})
+            def self.format(hash_obj, options = {})
               options ||= {}
               format!(hash_obj, options)
             rescue
               options[:placeholder] || PLACEHOLDER
             end
 
-            def format!(hash_obj, options = {})
+            def self.format!(hash_obj, options = {})
               options ||= {}
               options = merge_options(DEFAULT_OPTIONS, options)
               format_hash(hash_obj, options)
             end
 
-            def format_hash(hash_obj, options = {})
+            def self.format_hash(hash_obj, options = {})
               case hash_obj
               when ::Hash
                 return {} if options[:exclude] == :all
@@ -51,7 +49,7 @@ module Datadog
               end
             end
 
-            def format_value(value, options = {})
+            def self.format_value(value, options = {})
               return value if options[:show] == :all
 
               case value
@@ -65,7 +63,7 @@ module Datadog
               end
             end
 
-            def format_array(value, options)
+            def self.format_array(value, options)
               if value.any? { |v| v.class <= ::Hash || v.class <= Array }
                 first_entry = format_value(value.first, options)
                 (value.size > 1) ? [first_entry, options[:placeholder]] : [first_entry]
@@ -75,7 +73,7 @@ module Datadog
               end
             end
 
-            def merge_options(original, additional)
+            def self.merge_options(original, additional)
               {}.tap do |options|
                 # Show
                 # If either is :all, value becomes :all
@@ -97,12 +95,12 @@ module Datadog
               end
             end
 
-            def indifferent_equals(value)
+            def self.indifferent_equals(value)
               value = convert_value(value)
               ->(compared_value) { value == convert_value(compared_value) }
             end
 
-            def convert_value(value)
+            def self.convert_value(value)
               value.is_a?(Symbol) ? value.to_s : value
             end
           end

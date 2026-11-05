@@ -1,0 +1,43 @@
+module Datadog
+  module OpenFeature
+    module Configuration
+      module Source
+        AGENTLESS: String
+
+        REMOTE_CONFIG: String
+
+        OFFLINE: String
+
+        interface _FeatureFlagsSettings
+          def enabled: () -> bool
+
+          def configuration_source: () -> String
+
+          def using_default?: (Symbol name) -> bool
+        end
+
+        interface _LegacySettings
+          def enabled: () -> bool
+
+          def using_default?: (Symbol name) -> bool
+        end
+
+        interface _Settings
+          def feature_flags: () -> _FeatureFlagsSettings
+
+          def open_feature: () -> _LegacySettings
+        end
+
+        def self.resolve: (_Settings settings, ?logger: Datadog::Core::Logger) -> Resolution
+
+        private
+
+        def self.resolve_source: (
+          _FeatureFlagsSettings settings,
+          legacy: _LegacySettings,
+          logger: Datadog::Core::Logger
+        ) -> String
+      end
+    end
+  end
+end

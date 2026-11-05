@@ -164,15 +164,27 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
+end
+
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0', meta: { latest: { 'faraday-follow_redirects' => nil } })
+
+['1', '2'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape', "~> #{v}.0"
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.11.0')
@@ -186,6 +198,12 @@ end
 appraise 'sneakers' do
   gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
 end
+
+build_coverage_matrix('active-record', [6], gem: 'activerecord', meta: {
+  'mysql2' => '< 1',
+  'pg' => '>= 0.18.4',
+  'sqlite3' => '~> 1.4.1',
+})
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.1.0'
@@ -204,7 +222,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge', '~> 0.11'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -212,7 +229,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -223,7 +239,12 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -232,7 +253,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
@@ -260,11 +282,11 @@ appraise 'opentelemetry_otlp' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "datadog/di/spec_helper"
-require 'open3'
+require "open3"
 
 # DI source files call Datadog::DI.reraise_if_fatal in their catch-all rescues.
 # That helper is defined in datadog/di/fatal_exceptions, which is loaded via
@@ -10,7 +10,7 @@ require 'open3'
 # di/instrumenter required directly by specs -- must require fatal_exceptions
 # themselves, otherwise the rescue path raises NoMethodError while handling
 # another exception.
-RSpec.describe 'DI fatal_exceptions availability when loaded standalone' do
+RSpec.describe "DI fatal_exceptions availability when loaded standalone" do
   di_test
 
   %w[
@@ -24,7 +24,7 @@ RSpec.describe 'DI fatal_exceptions availability when loaded standalone' do
           raise "reraise_if_fatal undefined after requiring #{file}"
         end
       SCRIPT
-      out, status = Open3.capture2e('ruby', stdin_data: script)
+      out, status = Open3.capture2e("ruby", stdin_data: script)
       expect(status.exitstatus).to eq(0), "subprocess failed for #{file}: #{out}"
     end
   end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'instrumentation'
-require_relative '../patcher'
+require_relative "ext"
+require_relative "instrumentation"
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -12,13 +12,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Integration.dalli_class.include(Instrumentation)
           end
         end

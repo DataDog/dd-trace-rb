@@ -1,6 +1,10 @@
 #include <stdbool.h>
+#include <string.h>
 
 #include "datadog_ruby_common.h"
+
+// rb_iseq is CRuby-specific
+#ifndef TRUFFLERUBY
 
 // Prototypes for Ruby functions declared in internal Ruby headers.
 // rb_iseqw_new wraps an internal iseq pointer into a Ruby-visible
@@ -9,11 +13,19 @@ VALUE rb_iseqw_new(const void *iseq);
 // rb_iseqw_to_iseq unwraps a RubyVM::InstructionSequence object back
 // to its internal iseq pointer.
 const void *rb_iseqw_to_iseq(VALUE iseqw);
+#ifdef HAVE_RB_IMEMO_NAME
+const char *rb_imemo_name(int imemo_type);
+#endif
 int rb_objspace_internal_object_p(VALUE obj);
 void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
     void *data);
 
+#ifdef HAVE_SHIFTED_IMEMO_MASK // Ruby 4.1+
+  #define IMEMO_MASK (FL_USER0 | FL_USER1 | FL_USER2 | FL_USER3 | FL_USER4)
+#else
+  #define IMEMO_MASK 0x0f
+#endif
 #define IMEMO_TYPE_ISEQ 7
 
 // The ID value of the string "mesg" which is used in Ruby source as
@@ -26,6 +38,16 @@ static ID id_mesg;
 // directly via rb_thread_local_aref / rb_thread_local_aset so that user-installed
 // method probes on Thread#[] / Thread#[]= cannot intercept guard reads/writes.
 static ID id_datadog_di_in_probe;
+
+// Returns the imemo type of an imemo object, that is `imemo_type()` from CRuby's internal/imemo.h.
+// The caller must have already checked the object is a T_IMEMO, otherwise the result is meaningless.
+static inline int ddtrace_imemo_type(VALUE imemo) {
+  #ifdef HAVE_SHIFTED_IMEMO_MASK // Ruby 4.1+
+    return (RBASIC(imemo)->flags & IMEMO_MASK) >> FL_USHIFT;
+  #else
+    return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+  #endif
+}
 
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
@@ -186,7 +208,20 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
 }
 #endif
 
+static VALUE _native_imemo_mask(DDTRACE_UNUSED VALUE _self) {
+  return INT2NUM(IMEMO_MASK);
+}
+
 void di_init(VALUE datadog_module) {
+  #ifdef HAVE_RB_IMEMO_NAME
+    const char *iseq_name = rb_imemo_name(IMEMO_TYPE_ISEQ);
+    if (strcmp(iseq_name, "iseq") != 0) {
+      rb_raise(rb_eRuntimeError,
+        "IMEMO_TYPE_ISEQ self-test failed: rb_imemo_name(%d) returned '%s' instead of 'iseq'",
+        IMEMO_TYPE_ISEQ, iseq_name);
+    }
+  #endif
+
   id_mesg = rb_intern("mesg");
   id_datadog_di_in_probe = rb_intern("datadog_di_in_probe");
 
@@ -197,7 +232,12 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
-#ifdef HAVE_RB_ISEQ_TYPE
-  rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
-#endif
+  #ifdef HAVE_RB_ISEQ_TYPE
+    rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
+  #endif
+
+  VALUE testing_module = rb_define_module_under(di_module, "Testing");
+  rb_define_singleton_method(testing_module, "_native_imemo_mask", _native_imemo_mask, 0);
 }
+
+#endif // TRUFFLERUBY

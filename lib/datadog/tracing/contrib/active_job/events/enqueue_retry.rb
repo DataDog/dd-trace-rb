@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -14,19 +14,17 @@ module Datadog
           module EnqueueRetry
             include ActiveJob::Event
 
-            EVENT_NAME = 'enqueue_retry.active_job'
+            EVENT_NAME = "enqueue_retry.active_job"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_ENQUEUE_RETRY
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               span.name = span_name
               if configuration[:service_name]
                 span.service = configuration[:service_name]

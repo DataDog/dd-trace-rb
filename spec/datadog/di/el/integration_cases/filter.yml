@@ -5,7 +5,7 @@
       - isEmpty:
           ref: '@it'
 
-  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
+  compiled: "filter(ref(context, 'collection'), evaluation_deadline) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
 
   eval:
     - locals:
@@ -19,7 +19,7 @@
       - isEmpty:
           ref: '@value'
 
-  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_value, '@value') }"
+  compiled: "filter(ref(context, 'collection'), evaluation_deadline) { |current_item, current_key, current_value| is_empty(current_value, '@value') }"
 
   eval:
     - locals:
@@ -28,3 +28,9 @@
           y: 42
       result:
         x: ""
+
+- name: filter with non-array target
+  ast:
+    filter:
+      ref: collection
+  error: "Improper filter syntax"

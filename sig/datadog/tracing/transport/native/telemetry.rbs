@@ -1,0 +1,5 @@
+module Datadog::Tracing::Transport::Native
+  class Telemetry < Datadog::Tracing::Transport::Telemetry
+    def initialize: (Datadog::Core::Telemetry::Component client) -> void
+  end
+end

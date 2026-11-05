@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
-require_relative '../../core/chunker'
-require_relative '../../core/transport/parcel'
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/transport'
-require_relative '../../core/utils/enumerable_compat'
-require_relative 'http/client'
-require_relative 'serializable_trace'
-require_relative 'trace_formatter'
+require_relative "../../core/chunker"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../../core/utils/enumerable_compat"
+require_relative "http/client"
+require_relative "http/telemetry"
+require_relative "serializable_trace"
+require_relative "span_events_negotiation"
+require_relative "trace_formatter"
 
 module Datadog
   module Tracing
@@ -25,6 +27,30 @@ module Datadog
 
         # Traces request
         class Request < Datadog::Core::Transport::Request
+          attr_reader :http_status, :http_success
+          attr_writer :capture_telemetry
+
+          def initialize(parcel = nil)
+            super
+            @http_status = nil
+            @http_success = nil
+            @capture_telemetry = false
+          end
+
+          # Built-in adapters return integer codes. Custom status inspection is
+          # best-effort: telemetry must not change trace delivery.
+          def capture_status(response)
+            return unless @capture_telemetry
+
+            if response.respond_to?(:code)
+              code = response.code
+              @http_status = code if code.is_a?(Integer) && code.between?(100, 999)
+            end
+            @http_success = response.ok? if @http_status.nil? && response.respond_to?(:ok?)
+            nil
+          rescue
+            nil
+          end
         end
 
         # Traces response
@@ -47,44 +73,65 @@ module Datadog
           #
           # @param encoder [Datadog::Core::Encoding::Encoder]
           # @param logger [Datadog::Core::Logger]
-          # @param max_size [String] maximum acceptable payload size
-          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
+          # @param native_events_supported [Boolean] whether to encode native span events
+          # @param max_size [Integer] maximum acceptable payload size in bytes
+          # @param telemetry [HTTP::Telemetry::Batch, nil] optional per-send accounting batch
+          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE, telemetry: nil)
             @encoder = encoder
             @logger = logger
             @native_events_supported = native_events_supported
             @max_size = max_size
+            @batch = telemetry
           end
 
           # Encodes a list of traces in chunks.
           # Before serializing, all traces are normalized. Trace nesting is not changed.
           #
           # @param traces [Enumerable<Trace>] list of traces
-          # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
-          #   number of traces
+          # @return [Enumerable<Array>] tuples of encoded bytes and trace count,
+          #   plus span count when telemetry accounting is enabled
           def encode_in_chunks(traces)
+            span_counts = [] if @batch
             encoded_traces = Core::Utils::EnumerableCompat.filter_map(traces) do |trace|
-              encode_one(trace)
+              encoded = encode_one(trace)
+              span_counts << trace.length if encoded && span_counts
+              encoded
             end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
-              [encoder.join(chunk), chunk.size]
+              payload = [join(chunk), chunk.size]
+              payload << span_counts.shift(chunk.size).sum if span_counts
+              payload
             end
           end
 
           private
 
+          def join(chunk)
+            encoder.join(chunk)
+          rescue
+            @batch&.serialization_failed
+            raise
+          end
+
           def encode_one(trace)
-            encoded = Encoder.encode_trace(
-              encoder,
-              trace,
-              logger: logger,
-              native_events_supported: @native_events_supported
-            )
+            encoded = begin
+              Encoder.encode_trace(
+                encoder,
+                trace,
+                logger: logger,
+                native_events_supported: @native_events_supported,
+              )
+            rescue
+              @batch&.serialization_failed
+              raise
+            end
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
               logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
               Datadog.health_metrics.transport_trace_too_large(1)
+              @batch&.record_oversized_drop(trace.length)
 
               return nil
             end
@@ -95,11 +142,9 @@ module Datadog
 
         # Encodes traces using {Datadog::Core::Encoding::Encoder} instances.
         module Encoder
-          module_function
-
-          def encode_trace(encoder, trace, logger:, native_events_supported:)
+          def self.encode_trace(encoder, trace, logger:, native_events_supported:)
             # Format the trace for transport
-            TraceFormatter.format!(trace)
+            TraceFormatter.format!(trace, transport: "ruby")
 
             # Make the trace serializable
             serializable_trace = SerializableTrace.new(trace, native_events_supported: native_events_supported)
@@ -118,21 +163,43 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport < Core::Transport::Transport
+          include SpanEventsNegotiation
           self.http_client_class = Tracing::Transport::HTTP::Client
+
+          def initialize(apis, default_api, logger:)
+            super
+            @reporter = nil
+          end
+
+          # Reconfiguration can retain this transport, so rebind its reporter to
+          # the new telemetry client. Each later send creates its own accounting batch.
+          def telemetry=(telemetry_client)
+            if (reporter = @reporter)
+              reporter.client = telemetry_client
+            else
+              @reporter = HTTP::Telemetry.new(telemetry_client)
+            end
+          end
 
           def send_traces(traces)
             encoder = current_api.encoder
+            native_events_supported = native_events_supported?
+            batch = @reporter&.batch(traces)
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
               logger: logger,
-              native_events_supported: native_events_supported?
+              native_events_supported: native_events_supported,
+              telemetry: batch,
             )
 
-            responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
+            responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count, span_count|
               request = Request.new(Parcel.new(encoded_traces, trace_count: trace_count))
+              request.capture_telemetry = true if batch
 
               client.send_request(:traces, request).tap do |response|
-                if downgrade?(response)
+                fallback = downgrade?(response)
+                batch&.sent(request, response, trace_count, span_count, encoded_traces.bytesize, fallback: fallback)
+                if fallback
                   downgrade!
                   return send_traces(traces)
                 end
@@ -160,28 +227,6 @@ module Datadog
 
           def stats
             client.stats
-          end
-
-          private
-
-          # Queries the agent for native span events serialization support.
-          # This changes how the serialization of span events performed.
-          def native_events_supported?
-            return @native_events_supported if defined?(@native_events_supported)
-
-            # Check for an explicit override
-            option = Datadog.configuration.tracing.native_span_events
-            unless option.nil?
-              @native_events_supported = option
-              return option
-            end
-
-            # Otherwise, check for agent support, to ensure a configuration-less setup.
-            if (res = Datadog.send(:components).agent_info.fetch)
-              @native_events_supported = res.span_events == true
-            else
-              false
-            end
           end
         end
       end

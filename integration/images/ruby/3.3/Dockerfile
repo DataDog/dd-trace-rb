@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
+FROM ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -14,7 +14,8 @@ RUN set -ex && \
         \
         echo "===> Installing Yarn" && \
         install -d -m 0755 /etc/apt/keyrings && \
-        curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/yarn.gpg && \
+        curl -fsSL --retry 5 --retry-delay 2 -o /tmp/yarn-pubkey.gpg https://dl.yarnpkg.com/debian/pubkey.gpg && \
+        gpg --dearmor -o /etc/apt/keyrings/yarn.gpg /tmp/yarn-pubkey.gpg && rm /tmp/yarn-pubkey.gpg && \
         echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
         apt-get install -y --no-install-recommends yarn && \

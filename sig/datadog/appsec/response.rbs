@@ -1,29 +1,29 @@
 module Datadog
   module AppSec
     class Response
-      SECURITY_RESPONSE_ID_PLACEHOLDER: ::String
+      SECURITY_RESPONSE_ID_PLACEHOLDER: String
 
-      attr_reader status: ::Integer
-      attr_reader headers: ::Hash[::String, ::String]
-      attr_reader body: ::Array[::String]
+      attr_reader status: Integer
+      attr_reader headers: Hash[String, String]
+      attr_reader body: Array[String]
 
 
-      def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[::String]) -> void
-      def to_rack: () -> ::Array[untyped]
+      def initialize: (status: Integer, ?headers: Hash[String, String], ?body: Array[String]) -> void
+      def to_rack: () -> Rack::response
 
-      def self.from_interrupt_params: (::Hash[::String, ::String] interrupt_params, ::String http_accept_header) -> Response
+      def self.from_interrupt_params: (Hash[String, String] interrupt_params, String http_accept_header) -> Response
 
       private
 
-      CONTENT_TYPE_TO_FORMAT: ::Hash[::String, ::Symbol]
-      FORMAT_TO_CONTENT_TYPE: ::Hash[::String, ::String]
-      DEFAULT_CONTENT_TYPE: ::String
+      CONTENT_TYPE_TO_FORMAT: Hash[String, Symbol]
+      FORMAT_TO_CONTENT_TYPE: Hash[String, String]
+      DEFAULT_CONTENT_TYPE: String
 
-      def self.block_response: (::Hash[::String, ::String] interrupt_params, ::String http_accept_header) -> Response
-      def self.redirect_response: (::Hash[::String, ::String] interrupt_params) -> Response
+      def self.block_response: (Hash[String, String] interrupt_params, String http_accept_header) -> Response
+      def self.redirect_response: (Hash[String, String] interrupt_params) -> Response
 
-      def self.content_type: (::String) -> ::String
-      def self.content: (security_response_id: ::String, content_type: ::String) -> ::String
+      def self.content_type: (String) -> String
+      def self.content: (security_response_id: String, content_type: String) -> String
     end
   end
 end

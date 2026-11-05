@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'erb'
+require "erb"
 
 module Datadog
   module Tracing
@@ -15,7 +15,7 @@ module Datadog
 
             def to_s
               @string ||= begin
-                ret = +''
+                ret = +""
 
                 @hash.each do |key, value|
                   next if value.nil?

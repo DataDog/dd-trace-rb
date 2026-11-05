@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'all_sampler'
-require_relative 'rate_sampler'
-require_relative 'rate_by_service_sampler'
+require_relative "ext"
+require_relative "all_sampler"
+require_relative "rate_sampler"
+require_relative "rate_by_service_sampler"
 
 module Datadog
   module Tracing
@@ -68,7 +68,7 @@ module Datadog
               # full control over the sampling decision.
               trace.set_tag(
                 Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                Sampling::Ext::Decision::MANUAL
+                Sampling::Ext::Decision::MANUAL,
               )
             end
           else

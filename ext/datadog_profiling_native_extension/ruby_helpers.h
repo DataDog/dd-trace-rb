@@ -4,6 +4,10 @@
 #include <stdarg.h>
 #include "datadog_ruby_common.h"
 
+// Public since Ruby 4.0 (https://bugs.ruby-lang.org/issues/20877); older Rubies export it without a header declaration.
+// Be careful about using this in the profiler; see notes on is_current_thread_in_main_ractor_and_holding_the_gvl().
+int ruby_thread_has_gvl_p(void);
+
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);
@@ -78,13 +82,6 @@ NORETURN(void private_raise_enforce_syserr(
   int line,
   const char *function_name
 ));
-
-// Native wrapper to get an object ref from an id. Returns true on success and
-// writes the ref to the value pointer parameter if !NULL. False if id doesn't
-// reference a valid object (in which case value is not changed).
-//
-// Note: GVL can be released and other threads may get to run before this method returns
-bool ruby_ref_from_id(VALUE obj_id, VALUE *value);
 
 // Native wrapper to get the approximate/estimated current size of the passed
 // object.

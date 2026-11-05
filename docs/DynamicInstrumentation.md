@@ -65,6 +65,12 @@ Dynamic Instrumentation without an application restart.
 The DD_ENV and source code metadata variables (steps 3 and 4 above)
 still need to be set for probes to appear correctly in the UI.
 
+The enablement signal can target a single service and environment, or be
+set as a default for a whole environment or the whole organization. When
+several of these apply to one service, the most specific one wins: a
+service-and-environment setting overrides an environment-wide default,
+which overrides an organization-wide default.
+
 **Precedence:** if `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` is set
 explicitly, the env-var setting takes precedence and remote-config
 enablement is ignored. Leave the variable unset (do not set it to
@@ -380,6 +386,26 @@ application performance:
 - The probe will need to be recreated in the UI if you want to re-enable
   it
 - This threshold can be configured globally
+
+### Evaluation Time Budget
+
+Evaluating a probe's condition (`when`), each of its capture expressions,
+and each message template is bounded by a thread CPU-time budget:
+
+- The budget applies per evaluation: each capture expression has its own
+  budget, and the segments of one message template share one budget
+- The default budget is **50 milliseconds**
+- A single `matches` operator (a regular expression match) is bounded at
+  **50 milliseconds of wall time**; a match that reaches the limit is
+  reported as an evaluation error
+- The capture expressions of one probe firing stay within the capture
+  budget `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` (default **150
+  milliseconds**) in total; an expression the capture budget stops is
+  reported as not captured
+- An evaluation that exceeds the budget is aborted and reported as an
+  evaluation error in the probe snapshot
+- Configure it with `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` or
+  `c.dynamic_instrumentation.max_time_to_evaluate_ms`
 
 ## Getting Help
 

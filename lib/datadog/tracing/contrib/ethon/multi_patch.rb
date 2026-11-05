@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -60,7 +60,7 @@ module Datadog
 
               @datadog_multi_span = Tracing.trace(
                 Ext::SPAN_MULTI_REQUEST,
-                service: datadog_configuration[:service_name]
+                service: datadog_configuration[:service_name],
               )
               @datadog_multi_trace_digest = Tracing.active_trace.to_digest
 

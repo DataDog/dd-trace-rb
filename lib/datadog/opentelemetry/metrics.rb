@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration/ext'
-require_relative 'ext'
-require_relative 'signal_configuration'
+require_relative "../core/configuration/ext"
+require_relative "ext"
+require_relative "signal_configuration"
 
 module Datadog
   module OpenTelemetry
@@ -30,8 +30,8 @@ module Datadog
 
         # The OpenTelemetry SDK defaults to cumulative temporality, but Datadog prefers delta temporality.
         # Here is an example of how this config is applied: https://github.com/open-telemetry/opentelemetry-ruby/blob/1933d4c18e5f5e45c53fa9e902e58aa91e85cc38/metrics_sdk/lib/opentelemetry/sdk/metrics/aggregation/sum.rb#L14
-        if DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'].nil?
-          ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = 'delta' # rubocop:disable CustomCops/EnvUsageCop
+        if DATADOG_ENV["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"].nil?
+          ENV["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"] = "delta" # rubocop:disable CustomCops/EnvUsageCop
         end
 
         resource = create_resource
@@ -56,14 +56,14 @@ module Datadog
       end
 
       def configure_otlp_exporter(provider)
-        require 'opentelemetry/exporter/otlp_metrics'
-        require_relative 'sdk/metrics_exporter'
+        require "opentelemetry/exporter/otlp_metrics"
+        require_relative "sdk/metrics_exporter"
 
         metrics_config = @settings.opentelemetry.metrics
         endpoint = config_or_exporter_fallback(
           signal: :metrics,
           option_name: :endpoint,
-          computed_default: default_metrics_endpoint
+          computed_default: default_metrics_endpoint,
         )
         timeout = config_or_exporter_fallback(signal: :metrics, option_name: :timeout_millis)
         headers = config_or_exporter_fallback(signal: :metrics, option_name: :headers)
@@ -73,13 +73,13 @@ module Datadog
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,
-          headers: headers
+          headers: headers,
         )
 
         reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
           exporter: exporter,
           export_interval_millis: metrics_config.export_interval_millis,
-          export_timeout_millis: metrics_config.export_timeout_millis
+          export_timeout_millis: metrics_config.export_timeout_millis,
         )
         provider.add_metric_reader(reader)
       rescue LoadError => e

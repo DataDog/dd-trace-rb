@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'configuration/settings'
-require_relative 'patcher'
-require_relative '../integration'
-require_relative '../rails/ext'
-require_relative '../../../core/contrib/rails/utils'
+require_relative "configuration/settings"
+require_relative "patcher"
+require_relative "../integration"
+require_relative "../rails/ext"
+require_relative "../../../core/contrib/rails/utils"
 
 module Datadog
   module Tracing
@@ -19,17 +19,17 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :action_view, auto_patch: false
           def self.gem_name
-            'actionview'
+            "actionview"
           end
 
           def self.version
             # ActionView is its own gem in Rails 4.1+
-            if Gem.loaded_specs['actionview']
-              Gem.loaded_specs['actionview'].version
+            if Gem.loaded_specs["actionview"]
+              Gem.loaded_specs["actionview"].version
             # ActionView is embedded in ActionPack in versions < 4.1
-            elsif Gem.loaded_specs['actionpack']
-              action_pack_version = Gem.loaded_specs['actionpack'].version
-              action_pack_version unless action_pack_version >= Gem::Version.new('4.1')
+            elsif Gem.loaded_specs["actionpack"]
+              action_pack_version = Gem.loaded_specs["actionpack"].version
+              action_pack_version unless action_pack_version >= Gem::Version.new("4.1")
             end
           end
 

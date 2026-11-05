@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'option_definition'
+require_relative "option_definition"
 
 module Datadog
   module Core
@@ -84,7 +84,7 @@ module Datadog
             end
             {
               option_name.to_sym => opt_getter,
-              :"#{option_name}=" => opt_setter
+              :"#{option_name}=" => opt_setter,
             }
           end
 

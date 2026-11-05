@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require_relative '../action_cable/integration'
-require_relative '../action_mailer/integration'
-require_relative '../action_pack/integration'
-require_relative '../action_view/integration'
-require_relative '../active_record/integration'
-require_relative '../active_support/integration'
-require_relative '../grape/endpoint'
-require_relative '../lograge/integration'
-require_relative 'ext'
-require_relative '../../../core/contrib/rails/utils'
-require_relative '../semantic_logger/integration'
+require_relative "../action_cable/integration"
+require_relative "../action_mailer/integration"
+require_relative "../action_pack/integration"
+require_relative "../action_view/integration"
+require_relative "../active_record/integration"
+require_relative "../active_support/integration"
+require_relative "../grape/endpoint"
+require_relative "../lograge/integration"
+require_relative "ext"
+require_relative "../../../core/contrib/rails/utils"
+require_relative "../semantic_logger/integration"
 
 module Datadog
   module Tracing
@@ -64,7 +64,7 @@ module Datadog
               service_name: rails_config[:service_name],
               middleware_names: rails_config[:middleware_names],
               distributed_tracing: rails_config[:distributed_tracing],
-              request_queuing: rails_config[:request_queuing]
+              request_queuing: rails_config[:request_queuing],
             )
           end
 
@@ -85,7 +85,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_mailer,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -94,7 +94,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_pack,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -103,7 +103,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :action_view,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -112,7 +112,7 @@ module Datadog
 
             datadog_config.tracing.instrument(
               :active_job,
-              service_name: rails_config[:service_name]
+              service_name: rails_config[:service_name],
             )
           end
 
@@ -127,7 +127,7 @@ module Datadog
 
             if datadog_config.tracing.log_injection
               datadog_config.tracing.instrument(
-                :lograge
+                :lograge,
               )
             end
           end
@@ -137,7 +137,7 @@ module Datadog
 
             if datadog_config.tracing.log_injection
               datadog_config.tracing.instrument(
-                :semantic_logger
+                :semantic_logger,
               )
             end
           end

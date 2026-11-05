@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../environment/container'
-require_relative '../../environment/ext'
-require_relative '../../transport/ext'
-require_relative '../../transport/http'
-require_relative 'config'
-require_relative 'negotiation'
+require_relative "../../environment/container"
+require_relative "../../environment/ext"
+require_relative "../../transport/ext"
+require_relative "../../transport/http"
+require_relative "config"
+require_relative "negotiation"
 
 # TODO: Decouple transport/http
 #
@@ -20,19 +20,17 @@ module Datadog
         # Namespace for HTTP transport components
         module HTTP
           ROOT = Negotiation::API::Endpoint.new(
-            '/info',
+            "/info",
           )
 
           V7 = Config::API::Endpoint.new(
-            '/v0.7/config',
+            "/v0.7/config",
             Core::Encoding::JSONEncoder,
           )
 
-          module_function
-
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def root(
+          def self.root(
             agent_settings:,
             logger:,
             headers: nil
@@ -40,9 +38,9 @@ module Datadog
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              headers: headers
+              headers: headers,
             ) do |transport|
-              transport.api 'root', ROOT
+              transport.api "root", ROOT
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
@@ -51,7 +49,7 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def v7(
+          def self.v7(
             agent_settings:,
             logger:,
             headers: nil
@@ -59,9 +57,9 @@ module Datadog
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              headers: headers
+              headers: headers,
             ) do |transport|
-              transport.api 'v7', V7
+              transport.api "v7", V7
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?

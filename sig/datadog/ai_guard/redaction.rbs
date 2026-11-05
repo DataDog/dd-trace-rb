@@ -1,0 +1,20 @@
+module Datadog
+  module AIGuard
+    module Redaction
+      def self.skip: (Array[Evaluation::Message] messages) -> Result
+
+      def self.perform: (
+        Array[Evaluation::Message] messages,
+        replacements: Evaluation::Response::redaction_replacements
+      ) -> Result
+
+      private
+
+      def self.redact: (
+        Evaluation::Message? message,
+        path: Replacements::path,
+        replacement: String
+      ) -> Evaluation::Message?
+    end
+  end
+end

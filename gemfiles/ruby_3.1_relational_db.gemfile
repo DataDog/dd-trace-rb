@@ -35,11 +35,11 @@ gem "sqlite3", ">= 1.4.2", platform: :ruby
 gem "sequel"
 gem "trilogy"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

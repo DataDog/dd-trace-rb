@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration/ext'
-require_relative '../core/environment/socket'
+require_relative "../core/configuration/ext"
+require_relative "../core/environment/socket"
 
 module Datadog
   module OpenTelemetry
@@ -12,26 +12,27 @@ module Datadog
       def create_resource
         resource_attributes = {}
 
-        @settings.tags&.each do |key, value| # steep:ignore
+        @settings.tags&.each do |key, value|
           otel_key = case key
-          when 'service' then 'service.name'
-          when 'env' then 'deployment.environment'
-          when 'version' then 'service.version'
+          when "service" then "service.name"
+          when "env", "deployment.environment.name", "deployment.environment" then next
+          when "version" then "service.version"
           else key
           end
           resource_attributes[otel_key] = value
         end
 
-        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME # steep:ignore
-        resource_attributes['deployment.environment'] = @settings.env if @settings.env # steep:ignore
-        resource_attributes['service.version'] = @settings.version if @settings.version # steep:ignore
+        resource_attributes["service.name"] = @settings.service_without_fallback || resource_attributes["service.name"] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME
+        environment = @settings.env || @settings.tags["env"] || @settings.tags["deployment.environment.name"] || @settings.tags["deployment.environment"]
+        resource_attributes["deployment.environment.name"] = environment if environment
+        resource_attributes["service.version"] = @settings.version if @settings.version
 
-        hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings) # steep:ignore
+        hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings)
         if hostname
-          if hostname == @settings.hostname # steep:ignore
-            resource_attributes['host.name'] = hostname
-          elsif !resource_attributes.key?('host.name')
-            resource_attributes['host.name'] = hostname
+          if hostname == @settings.hostname
+            resource_attributes["host.name"] = hostname
+          elsif !resource_attributes.key?("host.name")
+            resource_attributes["host.name"] = hostname
           end
         end
 
@@ -41,9 +42,12 @@ module Datadog
       # Returns the signal-specific option value when explicitly set,
       # otherwise falls back to the general OTLP exporter config or computed_default.
       def config_or_exporter_fallback(signal:, option_name:, computed_default: nil)
-        signal_settings = @settings.opentelemetry.public_send(signal) # steep:ignore
+        signal_settings = case signal
+        when :logs then @settings.opentelemetry.logs
+        when :metrics then @settings.opentelemetry.metrics
+        end
         if signal_settings.using_default?(option_name)
-          @settings.opentelemetry.exporter.public_send(option_name) || computed_default # steep:ignore
+          @settings.opentelemetry.exporter.public_send(option_name) || computed_default
         else
           signal_settings.public_send(option_name)
         end

@@ -7,9 +7,9 @@ module Datadog
 
       @logger: Core::Logger
 
-      @duration_start: ::Time?
+      @duration_start: Time?
 
-      @duration_end: ::Time?
+      @duration_end: Time?
 
       @collector: Datadog::ErrorTracking::Collector
 
@@ -19,7 +19,7 @@ module Datadog
 
       attr_reader span_events: untyped
 
-      attr_reader end_time: ::Time?
+      attr_reader end_time: Time?
 
       attr_reader id: untyped
 
@@ -31,7 +31,7 @@ module Datadog
 
       attr_reader service: untyped
 
-      attr_reader start_time: ::Time?
+      attr_reader start_time: Time?
 
       attr_reader trace_id: untyped
 
@@ -70,7 +70,7 @@ module Datadog
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?::Time? stop_time, ?exception: ::Exception?) -> self?
+      def stop: (?Time? stop_time, ?exception: Exception?) -> self?
 
       def started?: () -> untyped
 
@@ -92,7 +92,7 @@ module Datadog
 
       def record_exception: (Exception exception, ?attributes: SpanEvent::attributes) -> void
 
-      def to_s: () -> ::String
+      def to_s: () -> String
 
       def to_hash: () -> untyped
 
@@ -136,7 +136,7 @@ module Datadog
         end
 
         class OnError
-          @handler: ::Proc
+          @handler: Proc
 
           attr_reader logger: Core::Logger
 

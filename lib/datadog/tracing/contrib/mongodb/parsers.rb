@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../utils/quantization/hash_formatter'
+require_relative "../utils/quantization/hash_formatter"
 
 module Datadog
   module Tracing
@@ -11,14 +11,12 @@ module Datadog
         SHOW_KEYS = [].freeze
         DEFAULT_OPTIONS = {exclude: EXCLUDE_KEYS, show: SHOW_KEYS}.freeze
 
-        module_function
-
         # skipped keys are related to command names, since they are already
         # extracted by the query_builder
-        PLACEHOLDER = '?'
+        PLACEHOLDER = "?"
 
         # returns a formatted and normalized query
-        def query_builder(command_name, database_name, command)
+        def self.query_builder(command_name, database_name, command)
           # always exclude the command name
           options = Contrib::Utils::Quantization::HashFormatter.merge_options(quantization_options, exclude: [command_name.to_s])
 
@@ -26,21 +24,21 @@ module Datadog
           # as Symbols are not GC'ed in Rubies prior to 2.2
           base_info = Contrib::Utils::Quantization::HashFormatter.format(
             {
-              'operation' => command_name,
-              'database' => database_name,
-              'collection' => command.values.first
+              "operation" => command_name,
+              "database" => database_name,
+              "collection" => command.values.first,
             },
-            options
+            options,
           )
 
           base_info.merge(Contrib::Utils::Quantization::HashFormatter.format(command, options))
         end
 
-        def quantization_options
+        def self.quantization_options
           Contrib::Utils::Quantization::HashFormatter.merge_options(DEFAULT_OPTIONS, configuration[:quantize])
         end
 
-        def configuration
+        def self.configuration
           Datadog.configuration.tracing[:mongo]
         end
       end

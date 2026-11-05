@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../ext'
-require_relative '../event'
-require_relative '../../../../../core/telemetry/logger'
+require_relative "../../ext"
+require_relative "../event"
+require_relative "../../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -14,38 +14,36 @@ module Datadog
             module Cache
               include ActiveSupport::Cache::Event
 
-              module_function
-
               # Acts as this module's initializer.
-              def subscribe!
+              def self.subscribe!
                 @cache_backend = {}
                 super
               end
 
-              def event_name
+              def self.event_name
                 /\Acache_(?:delete|read|read_multi|write|write_multi)\.active_support\z/
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_CACHE
               end
 
-              def span_options
+              def self.span_options
                 {
-                  type: Ext::SPAN_TYPE_CACHE
+                  type: Ext::SPAN_TYPE_CACHE,
                 }
               end
 
               # DEV: Look for other uses of `ActiveSupport::Cache::Store#instrument`, to find other useful event keys.
               MAPPING = {
-                'cache_delete.active_support' => {resource: Ext::RESOURCE_CACHE_DELETE},
-                'cache_read.active_support' => {resource: Ext::RESOURCE_CACHE_GET},
-                'cache_read_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
-                'cache_write.active_support' => {resource: Ext::RESOURCE_CACHE_SET},
-                'cache_write_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true}
+                "cache_delete.active_support" => {resource: Ext::RESOURCE_CACHE_DELETE},
+                "cache_read.active_support" => {resource: Ext::RESOURCE_CACHE_GET},
+                "cache_read_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
+                "cache_write.active_support" => {resource: Ext::RESOURCE_CACHE_SET},
+                "cache_write_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true},
               }.freeze
 
-              def trace?(event, payload)
+              def self.trace?(event, payload)
                 return false if !Tracing.enabled? || !configuration.enabled
 
                 if (cache_store = configuration[:cache_store])
@@ -58,16 +56,16 @@ module Datadog
                 # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
                 # DEV-3.0: for the complete information about this backwards compatibility code.
                 case event
-                when 'cache_read.active_support'
+                when "cache_read.active_support"
                   !ActiveSupport::Cache::Instrumentation.nested_read?
-                when 'cache_read_multi.active_support'
+                when "cache_read_multi.active_support"
                   !ActiveSupport::Cache::Instrumentation.nested_multiread?
                 else
                   true
                 end
               end
 
-              def on_start(span, event, _id, payload)
+              def self.on_start(span, event, _id, payload)
                 # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
                 # In previous versions, the denormalized key is stored in the official `key` attribute.
                 # We fall back to `key`, even in Rails 8, as a defensive measure.
@@ -85,7 +83,7 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, cache_backend(store))
 
-                span.set_tag('EVENT', event)
+                span.set_tag("EVENT", event)
 
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
                   set_cache_key(span, key, mapping[:multi_key])
@@ -95,7 +93,7 @@ module Datadog
                 Datadog::Core::Telemetry::Logger.report(e)
               end
 
-              def set_cache_key(span, key, multi_key)
+              def self.set_cache_key(span, key, multi_key)
                 if multi_key
                   keys = key.is_a?(Hash) ? key.keys : key # `write`s use Hashes, while `read`s use Arrays
                   resolved_key = keys.map { |k| ::ActiveSupport::Cache.expand_cache_key(k) }
@@ -130,7 +128,7 @@ module Datadog
               #
               # Also, this method caches the store name, given this value will be retrieve
               # multiple times and involves string manipulation.
-              def cache_backend(store)
+              def self.cache_backend(store)
                 # Cache the backend name to avoid the expensive string manipulation required to calculate it.
                 # DEV: We can't store it directly in the `store` object because it is a frozen String.
                 if (name = @cache_backend[store])

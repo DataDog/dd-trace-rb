@@ -2,7 +2,9 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require_relative 'fatal_exceptions'
+require_relative "evaluation_failure"
+require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -10,43 +12,70 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer)
+      # Initializes the builder.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for builder diagnostics
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical evaluation-timeout skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
+      # @return [void]
+      def initialize(settings, serializer, logger, capture_expression_evaluator:, guardrails_telemetry:,
+        telemetry:)
         @settings = settings
         @serializer = serializer
+        @logger = logger
+        @capture_expression_evaluator = capture_expression_evaluator
+        @guardrails_telemetry = guardrails_telemetry
+        @telemetry = telemetry
       end
 
       attr_reader :settings
+
       attr_reader :serializer
+
+      attr_reader :logger
+
+      attr_reader :capture_expression_evaluator
+
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+
+      # The telemetry component evaluation timeouts are counted through.
+      # @return [Datadog::Core::Telemetry::Component, nil]
+      attr_reader :telemetry
 
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: 'RECEIVED',)
+          status: "RECEIVED")
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: 'INSTALLED',)
+          status: "INSTALLED")
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: 'EMITTING',)
+          status: "EMITTING")
       end
 
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
-          status: 'ERROR',
+          status: "ERROR",
           exception: exc)
       end
 
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: 'ERROR',)
+          status: "ERROR")
       end
 
       # Duration is in seconds.
@@ -67,13 +96,14 @@ module Datadog
 
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
+        capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
+          snapshot_limits = probe.snapshot_serializer_limits(settings)
+          serialization_deadline = serializer.serialization_deadline
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(context.target_self),
+              "@return": serializer.serialize_value(context.return_value, deadline: serialization_deadline, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits),
             }
             {
               entry: {
@@ -86,11 +116,40 @@ module Datadog
             }
           elsif probe.line?
             {
-              lines: (locals = context.serialized_locals) && {
+              lines: (locals = context.serialized_locals(serialization_deadline: serialization_deadline)) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self)},
+                  arguments: {self: serializer.serialize_value(context.target_self, deadline: serialization_deadline, **snapshot_limits)},
                 },
+              },
+            }
+          end
+        elsif probe.capture_expressions?
+          if probe.method?
+            if probe.evaluate_at_entry?
+              captured_block = context.entry_capture_expressions || {}
+              capture_expression_evaluation_errors = context.entry_capture_evaluation_errors || []
+              {
+                entry: {captureExpressions: captured_block},
+              }
+            else
+              capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+              captured_block = capture_evaluation_result.serialized_values
+              capture_expression_evaluation_errors = capture_evaluation_result.errors
+              {
+                return: {
+                  captureExpressions: captured_block,
+                  throwable: context.exception ? serialize_throwable(context.exception) : nil,
+                },
+              }
+            end
+          elsif probe.line?
+            capture_evaluation_result = capture_expression_evaluator.evaluate(probe, context)
+            captured_block = capture_evaluation_result.serialized_values
+            capture_expression_evaluation_errors = capture_evaluation_result.errors
+            {
+              lines: {
+                probe.line_no => {captureExpressions: captured_block},
               },
             }
           end
@@ -99,18 +158,17 @@ module Datadog
         message = nil
         evaluation_errors = []
         if segments = probe.template_segments
-          message, evaluation_errors = evaluate_template(segments, context)
+          message, evaluation_errors = evaluate_template(segments, context,
+            evaluation_deadline: serializer.evaluation_deadline)
         end
+        evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
           captures: captures)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)
-        error = {
-          message: "#{exception.class}: #{exception}",
-          expr: expression.dsl_expr,
-        }
+        error = EvaluationFailure.new(expr: expression.dsl_expr, message: "#{exception.class}: #{exception}")
         build_snapshot_base(context, evaluation_errors: [error])
       end
 
@@ -135,10 +193,10 @@ module Datadog
         # appears to be completely ignored by the backend.
         # Note: The Go DI implementation does not send the top-level message
         # field at all when sending error statuses.
-        if status == 'ERROR'
+        if status == "ERROR"
           diagnostics[:exception] = { # steep:ignore
-            type: exception ? exception.class.name : 'Error',
-            message: exception ? exception.message : message
+            type: exception ? exception.class.name : "Error",
+            message: exception ? exception.message : message,
           }
         end
 
@@ -146,7 +204,7 @@ module Datadog
           service: settings.service,
           timestamp: timestamp_now,
           message: message,
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           debugger: {
             diagnostics: diagnostics,
           },
@@ -189,7 +247,7 @@ module Datadog
           # Non-string constructor argument — return a redacted placeholder
           # rather than calling .to_s which could be customer code.
           # The exception class is already reported via the :type field.
-          '<REDACTED: not a string value>'
+          "<REDACTED: not a string value>"
         end
         # Prefer backtrace_locations (structured Location objects) over
         # backtrace (formatted strings that need regex parsing).
@@ -258,7 +316,7 @@ module Datadog
           if frame =~ BACKTRACE_FRAME_PATTERN
             {fileName: $1, function: $3, lineNumber: $2.to_i}
           else
-            {fileName: frame, function: '', lineNumber: 0}
+            {fileName: frame, function: "", lineNumber: 0}
           end
         end
       end
@@ -293,7 +351,7 @@ module Datadog
         payload = {
           service: settings.service,
           debugger: {
-            type: 'snapshot',
+            type: "snapshot",
             # Product can have three values: di, ld, er.
             # We do not currently implement exception replay.
             # There is currently no specification, and no consensus, for
@@ -305,17 +363,17 @@ module Datadog
             # except there is currently no consensus on said heuristics.
             # .NET always sends ld, other languages send nothing at the moment.
             # Don't send anything for the time being.
-            #product: 'di/ld',
+            # product: 'di/ld',
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,
-              evaluationErrors: evaluation_errors,
+              evaluationErrors: evaluation_errors.map { |failure| {expr: failure.expr, message: failure.message} },
               probe: {
                 id: probe.id,
                 version: 0,
                 location: location,
               },
-              language: 'ruby',
+              language: "ruby",
               # TODO add test coverage for callers being nil
               stack: stack,
               # System tests schema validation requires captures to
@@ -338,10 +396,11 @@ module Datadog
             thread_id: nil,
             version: 2,
           },
+          runtime_id: Core::Environment::Identity.id,
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
-          ddsource: 'dd_debugger',
+          ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
         }
@@ -357,24 +416,57 @@ module Datadog
         end
       end
 
-      def evaluate_template(template_segments, context)
+      # Renders the probe's message template against +context+.
+      #
+      # @param template_segments [Array<String, EL::Expression>] compiled
+      #   template segments to render.
+      # @param context [Context] evaluation context for expression segments.
+      # @param evaluation_deadline [Float] cooperative evaluation deadline, as
+      #   CLOCK_THREAD_CPUTIME_ID float seconds.
+      # @return [Array(String, Array<EvaluationFailure>)] the rendered message
+      #   and the evaluation errors.
+      def evaluate_template(template_segments, context, evaluation_deadline:)
         evaluation_errors = []
+        timed_out = false
         message = template_segments.map do |segment|
+          if segment.is_a?(EL::Expression) && !timed_out &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            raise DI::Error::EvaluationTimeout
+          end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context))
+            if timed_out
+              # The shared deadline already crossed and reported its
+              # timeout, so the remaining segments render as the
+              # placeholder rather than raising and re-reporting per
+              # segment.
+              "[evaluation error]"
+            else
+              serializer.serialize_value_for_message(segment.evaluate(context, evaluation_deadline: evaluation_deadline), name: segment.redaction_identifier)
+            end
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
-          evaluation_errors << {
-            message: "#{exc.class}: #{exc.message}",
+          DI.report_evaluation_timeout(
+            telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+            probe: context.probe, kind: "template", exc: exc,
+          )
+          evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
-          }
-          '[evaluation error]'
+            message: "#{exc.class}: #{exc.message}",
+          )
+          # The matches wall-time bound also raises EvaluationTimeout
+          # without crossing the shared deadline, and it stops only one
+          # segment, so it must not suppress the remaining ones.
+          if exc.is_a?(DI::Error::EvaluationTimeout) &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            timed_out = true
+          end
+          "[evaluation error]"
         end.join
         [message, evaluation_errors]
       end

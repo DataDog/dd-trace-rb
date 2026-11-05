@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'monitor'
+require "monitor"
 
 module Datadog
   module DI

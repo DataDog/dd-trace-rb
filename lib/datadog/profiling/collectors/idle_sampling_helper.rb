@@ -10,7 +10,6 @@ module Datadog
       class IdleSamplingHelper
         # @rbs @worker_thread: untyped
         # @rbs @start_stop_mutex: ::Thread::Mutex
-        # @rbs @thread_context_collector: Datadog::Profiling::Collectors::ThreadContext?
 
         private
 
@@ -18,15 +17,14 @@ module Datadog
 
         public
 
-        #: (thread_context_collector: Datadog::Profiling::Collectors::ThreadContext) -> void
-        def initialize(thread_context_collector:)
+        #: () -> void
+        def initialize
           @worker_thread = nil
           @start_stop_mutex = Mutex.new
-          @thread_context_collector = thread_context_collector
         end
 
-        #: () -> (nil | true)
-        def start
+        #: (CpuAndWallTimeWorker cpu_and_wall_time_worker) -> true?
+        def start(cpu_and_wall_time_worker)
           @start_stop_mutex.synchronize do
             return if @worker_thread&.alive?
 
@@ -39,14 +37,14 @@ module Datadog
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
 
-              self.class._native_idle_sampling_loop(self, @thread_context_collector)
+              self.class._native_idle_sampling_loop(self, cpu_and_wall_time_worker)
 
               Datadog.logger.debug("IdleSamplingHelper thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               Datadog.logger.warn(
                 "IdleSamplingHelper thread error. " \
-                "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+                "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
               )
               Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error")
             end

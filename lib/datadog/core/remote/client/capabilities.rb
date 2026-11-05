@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../utils/base64_codec'
-require_relative '../../../appsec/remote'
-require_relative '../../../tracing/remote'
-require_relative '../../../di/remote'
-require_relative '../../../symbol_database'
-require_relative '../../../symbol_database/remote'
-require_relative '../../../open_feature/remote'
+require_relative "../../utils/base64_codec"
+require_relative "../../../appsec/remote"
+require_relative "../../../tracing/remote"
+require_relative "../../../di/remote"
+require_relative "../../../symbol_database"
+require_relative "../../../symbol_database/remote"
 
 module Datadog
   module Core
@@ -14,17 +13,52 @@ module Datadog
       class Client
         # Capabilities
         class Capabilities
-          attr_reader :products, :capabilities, :receivers, :base64_capabilities
-
-          def initialize(settings, telemetry)
+          def initialize(settings, telemetry:)
             @capabilities = []
             @products = []
             @receivers = []
             @telemetry = telemetry
+            @mutex = Mutex.new
 
             register(settings)
 
-            @base64_capabilities = capabilities_to_base64
+            @base64_capabilities = capabilities_to_base64(@capabilities)
+          end
+
+          def capabilities
+            @mutex.synchronize { @capabilities.dup }
+          end
+
+          def products
+            @mutex.synchronize { @products.dup }
+          end
+
+          def receivers
+            @mutex.synchronize { @receivers.dup }
+          end
+
+          def base64_capabilities
+            @mutex.synchronize { @base64_capabilities }
+          end
+
+          def register_runtime(capabilities:, products:, receivers:)
+            @mutex.synchronize do
+              register_capabilities(capabilities)
+              register_products(products)
+              register_receivers(receivers)
+              @base64_capabilities = capabilities_to_base64(@capabilities)
+            end
+            nil
+          end
+
+          def add_products(*products)
+            @mutex.synchronize { register_products(products) }
+            nil
+          end
+
+          def remove_products(*products)
+            @mutex.synchronize { products.each { |product| @products.delete(product) } }
+            nil
           end
 
           private
@@ -47,18 +81,10 @@ module Datadog
             register_products(Datadog::Tracing::Remote.products)
             register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
 
-            # Skip DI registration entirely when DI is explicitly disabled
-            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false) or when the runtime
-            # cannot run DI (JRuby, Ruby 2.5): in either case no component will
-            # run, so advertising bit 38 or the LIVE_DEBUGGING product would
-            # invite probe configs and an enable signal the tracer must refuse.
-            # When the env var is unset (default) on a supported runtime, DI is
-            # registered so RC can enable it.
             if settings.respond_to?(:dynamic_instrumentation) &&
                 !Datadog::DI::Remote.explicitly_disabled?(settings) &&
                 Datadog::DI.supported_runtime?
               register_capabilities(Datadog::DI::Remote.capabilities)
-              register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
@@ -74,35 +100,36 @@ module Datadog
                 !Datadog::DI::Remote.explicitly_disabled?(settings)
               if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-                register_products(Datadog::SymbolDatabase::Remote.products)
                 register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+                # Register the product at startup only when symbol_database is
+                # explicitly set (true here, since resolve_enabled already
+                # excluded false). When it follows DI (enabled nil, default or
+                # explicit), defer the product so it is advertised only once DI
+                # actually starts.
+                unless settings.symbol_database.enabled.nil?
+                  register_products(Datadog::SymbolDatabase::Remote.products)
+                end
               end
-            end
-
-            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
-              register_capabilities(Datadog::OpenFeature::Remote.capabilities)
-              register_products(Datadog::OpenFeature::Remote.products)
-              register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
             end
           end
 
           def register_capabilities(capabilities)
-            @capabilities.concat(capabilities)
+            capabilities.each { |capability| @capabilities << capability unless @capabilities.include?(capability) }
           end
 
           def register_receivers(receivers)
-            @receivers.concat(receivers)
+            receivers.each { |receiver| @receivers << receiver unless @receivers.include?(receiver) }
           end
 
           def register_products(products)
-            @products.concat(products)
+            products.each { |product| @products << product unless @products.include?(product) }
           end
 
-          def capabilities_to_base64
-            return '' if capabilities.empty?
+          def capabilities_to_base64(capabilities)
+            return "" if capabilities.empty?
 
-            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
-            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
+            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend("0") }.scan(/\h\h/)
+            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack("C*")
 
             Datadog::Core::Utils::Base64Codec.strict_encode64(binary)
           end

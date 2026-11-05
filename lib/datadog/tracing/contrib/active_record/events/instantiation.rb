@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../ext'
-require_relative '../event'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../ext"
+require_relative "../event"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -15,24 +15,22 @@ module Datadog
           module Instantiation
             include ActiveRecord::Event
 
-            EVENT_NAME = 'instantiation.active_record'
+            EVENT_NAME = "instantiation.active_record"
 
-            module_function
-
-            def supported?
-              Gem.loaded_specs['activerecord'] \
-                && Gem.loaded_specs['activerecord'].version >= Gem::Version.new('4.2')
+            def self.supported?
+              Gem.loaded_specs["activerecord"] \
+                && Gem.loaded_specs["activerecord"].version >= Gem::Version.new("4.2")
             end
 
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_INSTANTIATION
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               span.resource = payload.fetch(:class_name)
               span.type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

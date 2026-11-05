@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require 'faraday'
+require "faraday"
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
+require_relative "../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -31,7 +32,7 @@ module Datadog
               annotate!(span, env, request_options)
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: request_options,
-                trace: trace
+                trace: trace,
               )
                 propagate!(trace, span, env)
               end
@@ -45,7 +46,8 @@ module Datadog
 
           # rubocop:disable Metrics/AbcSize
           def annotate!(span, env, options)
-            span.resource = resource_name(env)
+            path = env[:url].path
+            span.resource = resource_name(env, path)
             span.service = service_name(env[:url].host, options)
             span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
@@ -53,7 +55,7 @@ module Datadog
             if options[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                options[:peer_service]
+                options[:peer_service],
               )
             end
 
@@ -69,12 +71,12 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, options[:analytics_sample_rate])
             end
 
-            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, env[:url].path)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, env[:method].to_s.upcase)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, env[:url].host)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, env[:url].port)
             span.set_tags(
-              Datadog.configuration.tracing.header_tags.request_tags(env[:request_headers])
+              Datadog.configuration.tracing.header_tags.request_tags(env[:request_headers]),
             )
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -91,7 +93,7 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, env[:status])
 
             span.set_tags(
-              Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
+              Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers]),
             )
           rescue => e
             Datadog.logger.error("#{e.class}: #{e.message}")
@@ -103,8 +105,12 @@ module Datadog
             Contrib::HTTP.inject(trace, env[:request_headers])
           end
 
-          def resource_name(env)
-            env[:method].to_s.upcase
+          def resource_name(env, path)
+            Contrib::Utils::Quantization::HTTP.client_resource(
+              env[:method].to_s.upcase,
+              path,
+              enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
+            )
           end
 
           def build_request_options!(env)

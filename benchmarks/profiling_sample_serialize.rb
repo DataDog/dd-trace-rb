@@ -1,11 +1,11 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
+require_relative "benchmarks_helper"
 
-require 'libdatadog'
+require "libdatadog"
 
 puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 
@@ -14,8 +14,7 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 
 class ProfilerSampleSerializeBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
   end
 
   def run_benchmark
@@ -31,15 +30,15 @@ class ProfilerSampleSerializeBenchmark
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
         end
 
-        @recorder.serialize
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
         nil
       end
 
-      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
-    @recorder.serialize
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(@collector).serialize
   end
 end
 

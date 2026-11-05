@@ -33,6 +33,7 @@ module Datadog
         # @rbs allocation_counting_enabled: bool
         # @rbs gvl_profiling_enabled: bool
         # @rbs sighandler_sampling_enabled: bool
+        # @rbs waiting_for_gvl_threshold_ns: ::Integer
         # @rbs skip_idle_samples_for_testing: false
         # @rbs return: void
         def initialize(
@@ -45,18 +46,19 @@ module Datadog
           gvl_profiling_enabled:,
           sighandler_sampling_enabled:,
           cpu_sampling_interval_ms:,
+          waiting_for_gvl_threshold_ns:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
           skip_idle_samples_for_testing: false,
-          idle_sampling_helper: IdleSamplingHelper.new(thread_context_collector: thread_context_collector)
+          idle_sampling_helper: IdleSamplingHelper.new
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
-              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
+              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!",
             )
             Datadog::Core::Telemetry::Logger.error(
-              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
+              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!",
             )
           end
 
@@ -78,6 +80,7 @@ module Datadog
             sighandler_sampling_enabled: sighandler_sampling_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
             cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+            waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
           )
           @worker_thread = nil
           @failure_exception = nil
@@ -95,7 +98,7 @@ module Datadog
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
-            @idle_sampling_helper.start
+            @idle_sampling_helper.start(self)
 
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
@@ -107,7 +110,7 @@ module Datadog
               @failure_exception = e
               Datadog.logger.warn(
                 "Profiling was not started as another profiler or gem is already using the SIGPROF signal. " \
-                "Please disable the other profiler to use Datadog profiling."
+                "Please disable the other profiler to use Datadog profiling.",
               )
               on_failure_proc&.call(log_failure: false)
             rescue Exception => e # rubocop:disable Lint/RescueException
@@ -115,7 +118,7 @@ module Datadog
               operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
-                "Operation: #{operation_name} Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+                "Operation: #{operation_name} Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
               )
               on_failure_proc&.call
               Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error: #{operation_name}")
@@ -144,6 +147,11 @@ module Datadog
           end
         end
 
+        # @rbs return: Datadog::Profiling::StackRecorder
+        def prepare_serialize
+          self.class._native_prepare_serialize(self)
+        end
+
         #: () -> true
         def reset_after_fork
           self.class._native_reset_after_fork(self)
@@ -170,11 +178,16 @@ module Datadog
 
             @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
 
+            # Not using `_native_is_running?(self) || raise(...)` here: `_native_is_running?` is declared
+            # to return `bool`, so steep infers the `||` expression as `bool` too and rejects it against
+            # this method's declared `true` return type. The explicit `if`/`else` type-checks correctly.
+            # rubocop:disable Style/RedundantCondition
             if self.class._native_is_running?(self)
               true
             else
               raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
             end
+            # rubocop:enable Style/RedundantCondition
           end
         end
 

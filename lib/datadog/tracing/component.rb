@@ -1,33 +1,32 @@
 # frozen_string_literal: true
 
-require_relative 'tracer'
-require_relative 'flush'
-require_relative 'sync_writer'
-require_relative 'sampling/span/rule_parser'
-require_relative 'sampling/span/sampler'
-require_relative 'diagnostics/environment_logger'
-require_relative 'contrib/component'
+require_relative "otel_thread_context"
+require_relative "tracer"
+require_relative "flush"
+require_relative "sync_writer"
+require_relative "sampling/span/rule_parser"
+require_relative "sampling/span/sampler"
+require_relative "diagnostics/environment_logger"
+require_relative "contrib/component"
 
 module Datadog
   module Tracing
     # Tracing component
     module Component
-      module_function
-
-      def build_tracer(settings, agent_settings, logger:)
+      def self.build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
 
+        sampler = build_sampler(settings)
+
         # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled
           trace_flush = build_test_mode_trace_flush(settings)
-          sampler = build_test_mode_sampler
           writer = build_test_mode_writer(settings, agent_settings)
         else
           trace_flush = build_trace_flush(settings)
-          sampler = build_sampler(settings)
           writer = build_writer(settings, agent_settings)
         end
 
@@ -42,6 +41,7 @@ module Datadog
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
+          otel_thread_context: OTelThreadContext.build(settings.tracing),
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
@@ -50,17 +50,36 @@ module Datadog
         )
       end
 
-      def build_trace_flush(settings)
+      def self.build_trace_flush(settings)
         if settings.tracing.partial_flush.enabled
           Tracing::Flush::Partial.new(
-            min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold
+            min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold,
           )
         else
           Tracing::Flush::Finished.new
         end
       end
 
-      def build_sampler(settings)
+      def self.bind_transport_telemetry(tracer, telemetry)
+        return unless tracer.is_a?(Tracing::Tracer)
+
+        writer = tracer.writer
+        return unless writer.respond_to?(:transport)
+
+        transport = writer.transport
+        if transport.is_a?(Transport::Traces::Transport) ||
+            (defined?(Transport::Native::Transport) && transport.is_a?(Transport::Native::Transport))
+          transport.telemetry = telemetry
+        end
+        nil
+      end
+
+      # Builds the sampler for the given settings: the sampler that keeps
+      # every trace when test mode is enabled, otherwise the sampler built
+      # from the custom sampler, sampling rules and rates.
+      def self.build_sampler(settings)
+        return build_test_mode_sampler if settings.tracing.test_mode.enabled
+
         # A custom sampler is provided
         if (sampler = settings.tracing.sampler)
           return sampler
@@ -77,7 +96,7 @@ module Datadog
           post_sampler = Tracing::Sampling::RuleSampler.parse(
             rules,
             settings.tracing.sampling.rate_limit,
-            settings.tracing.sampling.default_rate
+            settings.tracing.sampling.default_rate,
           )
         end
 
@@ -85,12 +104,12 @@ module Datadog
         # Used if no custom sampler is provided, or if sampling rule parsing fails.
         post_sampler ||= Tracing::Sampling::RuleSampler.new(
           rate_limit: settings.tracing.sampling.rate_limit,
-          default_sample_rate: settings.tracing.sampling.default_rate
+          default_sample_rate: settings.tracing.sampling.default_rate,
         )
 
         Tracing::Sampling::PrioritySampler.new(
           base_sampler: Tracing::Sampling::AllSampler.new,
-          post_sampler: post_sampler
+          post_sampler: post_sampler,
         )
       end
 
@@ -99,15 +118,36 @@ module Datadog
       # process, but can take a variety of options (including
       # a fully custom instance) that makes the Tracer
       # initialization process complex.
-      def build_writer(settings, agent_settings, options = settings.tracing.writer_options)
+      def self.build_writer(settings, agent_settings, options = settings.tracing.writer_options)
         if (writer = settings.tracing.writer)
           return writer
+        end
+
+        if !options.key?(:transport) && settings.tracing.native_transport && (transport = build_native_transport(agent_settings))
+          options = options.merge(transport: transport)
         end
 
         Tracing::Writer.new(agent_settings: agent_settings, **options)
       end
 
-      def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
+      def self.build_native_transport(agent_settings)
+        require_relative "transport/native"
+
+        unless Transport::Native.supported?
+          Datadog.logger.warn(
+            "Native transport requested but not available: #{Transport::Native::UNSUPPORTED_REASON}. " \
+            "Falling back to default HTTP transport.",
+          )
+          return nil
+        end
+
+        Transport::Native::Transport.new(
+          agent_settings: agent_settings,
+          logger: Datadog.logger,
+        )
+      end
+
+      def self.subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
         return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
         writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
@@ -132,7 +172,7 @@ module Datadog
 
       # Create new lambda for writer callback,
       # capture the current sampler in the callback closure.
-      def writer_update_priority_sampler_rates_callback(sampler)
+      def self.writer_update_priority_sampler_rates_callback(sampler)
         lambda do |_, responses|
           response = responses.last
 
@@ -142,7 +182,7 @@ module Datadog
         end
       end
 
-      def build_span_sampler(settings)
+      def self.build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
       end
@@ -180,7 +220,7 @@ module Datadog
       end
 
       # @api private
-      def build_tracer_tags(settings)
+      def self.build_tracer_tags(settings)
         settings.tags.dup.tap do |tags|
           tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
           tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
@@ -190,31 +230,31 @@ module Datadog
       # Build a post-sampler that limits the rate of traces to one per `seconds`.
       # E.g.: `build_rate_limit_post_sampler(seconds: 60)` will limit the rate to one trace per minute.
       # @api private
-      def build_rate_limit_post_sampler(seconds:)
+      def self.build_rate_limit_post_sampler(seconds:)
         Tracing::Sampling::RuleSampler.new(
           rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
-          default_sample_rate: 1.0
+          default_sample_rate: 1.0,
         )
       end
 
       # @api private
-      def build_test_mode_trace_flush(settings)
+      def self.build_test_mode_trace_flush(settings)
         # If context flush behavior is provided, use it instead.
         settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
       end
 
       # @api private
-      def build_test_mode_sampler
+      def self.build_test_mode_sampler
         # Do not sample any spans for tests; all must be preserved.
         # Set priority sampler to ensure the agent doesn't drop any traces.
         Tracing::Sampling::PrioritySampler.new(
           base_sampler: Tracing::Sampling::AllSampler.new,
-          post_sampler: Tracing::Sampling::AllSampler.new
+          post_sampler: Tracing::Sampling::AllSampler.new,
         )
       end
 
       # @api private
-      def build_test_mode_writer(settings, agent_settings)
+      def self.build_test_mode_writer(settings, agent_settings)
         writer_options = settings.tracing.test_mode.writer_options || {}
 
         return build_writer(settings, agent_settings, writer_options) if settings.tracing.test_mode.async

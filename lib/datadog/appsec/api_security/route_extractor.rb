@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/contrib/rack/route_inference'
+require_relative "../../tracing/contrib/rack/route_inference"
 
 module Datadog
   module AppSec
     module APISecurity
       # This is a helper module to extract the route pattern from the Rack::Request.
       module RouteExtractor
-        SINATRA_ROUTE_KEY = 'sinatra.route'
-        SINATRA_ROUTE_SEPARATOR = ' '
-        GRAPE_ROUTE_KEY = 'grape.routing_args'
-        RAILS_ROUTE_URI_PATTERN_KEY = 'action_dispatch.route_uri_pattern'
-        RAILS_ROUTE_KEY = 'action_dispatch.route' # Rails 8.1.1+
-        RAILS_ROUTES_KEY = 'action_dispatch.routes'
-        RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
-        RAILS_FORMAT_SUFFIX = '(.:format)'
-        DATADOG_RAILS_ROUTE_KEY = 'datadog.action_dispatch.route'
+        SINATRA_ROUTE_KEY = "sinatra.route"
+        SINATRA_ROUTE_SEPARATOR = " "
+        GRAPE_ROUTE_KEY = "grape.routing_args"
+        RAILS_ROUTE_URI_PATTERN_KEY = "action_dispatch.route_uri_pattern"
+        RAILS_ROUTE_KEY = "action_dispatch.route" # Rails 8.1.1+
+        RAILS_ROUTES_KEY = "action_dispatch.routes"
+        RAILS_PATH_PARAMS_KEY = "action_dispatch.request.path_parameters"
+        RAILS_FORMAT_SUFFIX = "(.:format)"
+        DATADOG_RAILS_ROUTE_KEY = "datadog.action_dispatch.route"
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
         #       and store information sufficient to compute the canonical
@@ -94,7 +94,7 @@ module Datadog
             Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
         rescue => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Could not extract route pattern')
+          AppSec.telemetry&.report(e, description: "AppSec: Could not extract route pattern")
 
           nil
         end

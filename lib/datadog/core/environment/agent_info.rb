@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../utils/fnv'
-require_relative 'process'
+require_relative "../utils/fnv"
+require_relative "process"
 
 module Datadog
   module Core

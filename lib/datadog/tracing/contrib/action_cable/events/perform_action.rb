@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
-require_relative '../../analytics'
-require_relative '../event'
+require_relative "../../../metadata/ext"
+require_relative "../../analytics"
+require_relative "../event"
 
 module Datadog
   module Tracing
@@ -16,24 +16,22 @@ module Datadog
           module PerformAction
             include ActionCable::RootContextEvent
 
-            EVENT_NAME = 'perform_action.action_cable'
+            EVENT_NAME = "perform_action.action_cable"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_ACTION
             end
 
-            def span_type
+            def self.span_type
               # A request to perform_action comes from a WebSocket connection
               Tracing::Metadata::Ext::AppTypes::TYPE_WEB
             end
 
-            def on_start(span, _event, _id, payload)
+            def self.on_start(span, _event, _id, payload)
               channel_class = payload[:channel_class]
               action = payload[:action]
 

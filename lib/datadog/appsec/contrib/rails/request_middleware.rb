@@ -6,7 +6,8 @@ module Datadog
       module Rails
         # Rack middleware for AppSec on Rails
         class RequestMiddleware
-          def initialize(app, opt = {})
+          # TODO: opt is never used, it can probably be safely removed
+          def initialize(app, opt = {}) # steep:ignore DifferentMethodParameterKind
             @app = app
           end
 

@@ -7,11 +7,19 @@ module Datadog
 
       @settings: Datadog::Core::Configuration::Settings
       @serializer: Serializer
+      @logger: DI::Logger
+      @capture_expression_evaluator: CaptureExpressionEvaluator
+      @guardrails_telemetry: GuardrailsTelemetry
+      @telemetry: Core::Telemetry::Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, capture_expression_evaluator: CaptureExpressionEvaluator, guardrails_telemetry: GuardrailsTelemetry, telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader serializer: Serializer
+      attr_reader logger: DI::Logger
+      attr_reader capture_expression_evaluator: CaptureExpressionEvaluator
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
+      attr_reader telemetry: Core::Telemetry::Component?
 
       def build_received: (Probe probe) -> Hash[Symbol,untyped]
 
@@ -30,7 +38,7 @@ module Datadog
       def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
       def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
 
-      def build_snapshot_base: (Context context, ?evaluation_errors: Array[Hash[Symbol, String]]?, ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[EvaluationFailure], ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
 
       def build_condition_evaluation_failed: (Context context, EL::Expression expr, Exception exception) -> Hash[Symbol,untyped]
 
@@ -38,20 +46,14 @@ module Datadog
 
       def format_caller_locations: (Array[Thread::Backtrace::Location] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (Array[String | EL::Expression] template, Context context) -> [String, Array[Hash[Symbol, String]]]
+      def evaluate_template: (Array[String | EL::Expression] template, Context context, evaluation_deadline: Float) -> [String, Array[EvaluationFailure]]
 
       def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
 
       def timestamp_now: () -> Integer
 
-      def get_local_variables: (TracePoint trace_point) -> Hash[Symbol,untyped]
-
-      def active_trace: () -> Datadog::Tracing::TraceSegment?
+      def active_trace: () -> Datadog::Tracing::TraceOperation?
       def active_span: () -> Datadog::Tracing::SpanOperation?
-
-      def tags: () -> untyped
-
-      def serialized_tags: () -> untyped
     end
   end
 end

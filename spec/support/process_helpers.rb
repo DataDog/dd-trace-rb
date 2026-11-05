@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.shared_context 'with mocked process environment' do
+RSpec.shared_context "with mocked process environment" do
   def reset_memoized_variables!
     [:@entrypoint_workdir, :@entrypoint_name, :@entrypoint_basedir, :@service_name, :@service_user_configured].each do |variable|
       Datadog::Core::Environment::Process.remove_instance_variable(variable) if
@@ -8,8 +8,8 @@ RSpec.shared_context 'with mocked process environment' do
     end
   end
 
-  let(:program_name) { 'bin/rspec' }
-  let(:pwd) { '/app' }
+  let(:program_name) { "bin/rspec" }
+  let(:pwd) { "/app" }
 
   around do |example|
     @original_0 = $0
@@ -21,7 +21,7 @@ RSpec.shared_context 'with mocked process environment' do
   before do
     allow(Dir).to receive(:pwd).and_return(pwd)
     allow(File).to receive(:expand_path).and_call_original
-    allow(File).to receive(:expand_path).with('.').and_return('/app')
+    allow(File).to receive(:expand_path).with(".").and_return("/app")
     reset_memoized_variables!
   end
 

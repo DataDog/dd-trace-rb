@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative 'ext'
-require_relative '../analytics'
+require_relative "../../metadata/ext"
+require_relative "ext"
+require_relative "../analytics"
 
 module Datadog
   module Tracing
@@ -17,7 +17,7 @@ module Datadog
                 span.resource = "#{self.class}#on_open"
                 span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
 
-                span.set_tag(Ext::TAG_ACTION, 'on_open')
+                span.set_tag(Ext::TAG_ACTION, "on_open")
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -39,14 +39,14 @@ module Datadog
                   :subscribe,
                   :around,
                   ->(channel, block) { Tracer.trace(channel, :subscribe, &block) },
-                  prepend: true
+                  prepend: true,
                 )
 
                 set_callback(
                   :unsubscribe,
                   :around,
                   ->(channel, block) { Tracer.trace(channel, :unsubscribe, &block) },
-                  prepend: true
+                  prepend: true,
                 )
               end
             end

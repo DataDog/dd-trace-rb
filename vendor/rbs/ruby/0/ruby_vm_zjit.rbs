@@ -1,0 +1,6 @@
+# The rbs core currently bundled with our Steep declares `RubyVM::YJIT` but not yet
+# `RubyVM::ZJIT`, which `Datadog::Profiling::Collectors::Info` uses to report
+# whether ZJIT is enabled.
+module RubyVM::ZJIT
+  def self.enabled?: () -> bool
+end

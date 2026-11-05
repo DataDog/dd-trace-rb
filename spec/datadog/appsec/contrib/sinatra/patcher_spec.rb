@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'sinatra'
-require 'datadog/appsec/contrib/sinatra/patcher'
+require "datadog/appsec/spec_helper"
+require "sinatra"
+require "datadog/appsec/contrib/sinatra/patcher"
 
 RSpec.describe Datadog::AppSec::Contrib::Sinatra::Patcher do
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
@@ -23,9 +23,9 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Patcher do
     Datadog.configuration.reset!
   end
 
-  describe '.patch' do
-    context 'when called twice via instrument' do
-      it 'does not register gateway watchers twice' do
+  describe ".patch" do
+    context "when called twice via instrument" do
+      it "does not register gateway watchers twice" do
         Datadog.configuration.appsec.instrument :sinatra
 
         expect { Datadog.configuration.appsec.instrument :sinatra }.not_to change {

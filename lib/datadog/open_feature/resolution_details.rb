@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module OpenFeature
@@ -15,10 +15,11 @@ module Datadog
       :error_message,
       :flag_metadata,
       :allocation_key,
+      :serial_id,
       :extra_logging,
       :log?,
       :error?,
-      keyword_init: true
+      keyword_init: true,
     )
       def self.build_error(value:, error_code:, error_message:, reason: Ext::ERROR)
         new(
@@ -27,7 +28,8 @@ module Datadog
           error_message: error_message,
           reason: reason,
           error?: true,
-          log?: false
+          log?: false,
+          serial_id: nil,
         ).freeze
       end
     end

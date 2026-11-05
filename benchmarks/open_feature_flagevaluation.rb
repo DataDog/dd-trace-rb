@@ -1,12 +1,12 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'datadog/open_feature/flag_evaluation/aggregator'
-require 'datadog/open_feature/flag_evaluation/writer'
-require 'datadog/open_feature/hooks/flag_eval_evp_hook'
+require_relative "benchmarks_helper"
+require "datadog/open_feature/flag_evaluation/aggregator"
+require "datadog/open_feature/flag_evaluation/writer"
+require "datadog/open_feature/hooks/flag_eval_evp_hook"
 
 # Benchmarks the EVP flagevaluation eval-time hot path:
 #   1. the OpenFeature `finally` hook (cheap capture + non-blocking enqueue) — what the user's
@@ -31,10 +31,10 @@ class OpenFeatureFlagevaluationBenchmark
   HookDetails = Struct.new(:variant, :reason, :error_code, :flag_metadata)
   BenchmarkProfile = Struct.new(:name, :num_flags, :num_users, :num_fields)
 
-  SCALE_PROFILE_NAME = 'scale/2500flags_500users_20fields'
+  SCALE_PROFILE_NAME = "scale/2500flags_500users_20fields"
   BENCHMARK_PROFILES = [
-    BenchmarkProfile.new('typical/100flags_50users_10fields', 100, 50, 10),
-    BenchmarkProfile.new('stress/10flags_1000users_250fields', 10, 1_000, 250),
+    BenchmarkProfile.new("typical/100flags_50users_10fields", 100, 50, 10),
+    BenchmarkProfile.new("stress/10flags_1000users_250fields", 10, 1_000, 250),
     # Scale profile targets the team's >=2,500-flag goal. Flag count is the dimension under
     # test, so it dominates; users/fields are kept modest so context cost does not swamp it.
     BenchmarkProfile.new(SCALE_PROFILE_NAME, 2_500, 500, 20),
@@ -56,14 +56,16 @@ class OpenFeatureFlagevaluationBenchmark
     @writer.instance_variable_set(:@aggregator, Datadog::OpenFeature::FlagEvaluation::Aggregator.new)
     @writer.instance_variable_set(:@queue, SizedQueue.new(Datadog::OpenFeature::FlagEvaluation::Writer::QUEUE_SIZE))
     @writer.instance_variable_set(:@stop_mutex, Mutex.new)
+    @writer.instance_variable_set(:@stop_cond, ConditionVariable.new)
     @writer.instance_variable_set(:@dropped_queue_overflow, 0)
     @writer.define_singleton_method(:start_background_thread) {}
 
     @hook = Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(@writer)
 
-    @details = HookDetails.new('variant-on', 'TARGETING_MATCH', nil, {
-      '__dd_allocation_key' => 'allocation-7',
-      'dd.eval.timestamp_ms' => 1_760_000_000_000,
+    @details = HookDetails.new("variant-on", "TARGETING_MATCH", nil, {
+      "__dd_allocation_key" => "allocation-7",
+      "dd.eval.timestamp_ms" => 1_760_000_000_000,
+      Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
     })
 
     @attrs_by_profile = BENCHMARK_PROFILES.each_with_object({}) do |profile, attrs_by_profile|
@@ -89,7 +91,7 @@ class OpenFeatureFlagevaluationBenchmark
   def make_benchmark_attrs(num_fields)
     # The targeting key is supplied separately, so this builds num_fields - 1 context attrs.
     (1...num_fields).each_with_object({}) do |i, attrs|
-      attrs["field#{i}"] = 'value'
+      attrs["field#{i}"] = "value"
     end
   end
 
@@ -112,7 +114,7 @@ class OpenFeatureFlagevaluationBenchmark
         end
       end
 
-      x.save!(benchmark_results_file('hook-finally')) unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file("hook-finally")) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -139,17 +141,18 @@ class OpenFeatureFlagevaluationBenchmark
         x.report("aggregator#record/#{profile.name} (worker-thread aggregation)") do
           aggregator.record(
             flag_key: flag_keys[counter % flag_keys.length],
-            variant: 'variant-on',
-            allocation_key: 'allocation-7',
+            variant: "variant-on",
+            allocation_key: "allocation-7",
             targeting_key: targeting_keys[counter % targeting_keys.length],
             eval_time_ms: 1_760_000_000_000 + counter,
             attrs: attrs,
+            observe_full_evaluation_data: true,
           )
           counter += 1
         end
       end
 
-      x.save!(benchmark_results_file('aggregator-record')) unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file("aggregator-record")) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -179,11 +182,12 @@ class OpenFeatureFlagevaluationBenchmark
           records.times do
             aggregator.record(
               flag_key: flag_keys[counter % flag_keys.length],
-              variant: 'variant-on',
-              allocation_key: 'allocation-7',
+              variant: "variant-on",
+              allocation_key: "allocation-7",
               targeting_key: targeting_keys[counter % targeting_keys.length],
               eval_time_ms: 1_760_000_000_000 + counter,
               attrs: attrs,
+              observe_full_evaluation_data: true,
             )
             counter += worker_count
           end
@@ -198,7 +202,7 @@ class OpenFeatureFlagevaluationBenchmark
         worker_count.times { jobs << records_per_worker }
         worker_count.times { done.pop }
       end
-      x.save!(benchmark_results_file('aggregator-record-parallel')) unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file("aggregator-record-parallel")) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   ensure

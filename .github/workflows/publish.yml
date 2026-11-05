@@ -26,10 +26,10 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: "4.0.1"
 
@@ -178,20 +178,20 @@ jobs:
       BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
       BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
-      - uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+      - uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         id: octo-sts
         with:
           scope: DataDog/dd-trace-rb
           policy: self.publish
       - name: Set up Ruby
-        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
-      - uses: rubygems/release-gem@052cc82692552de3ef2b81fd670e41d13cba8092 # v1.4.0
+      - uses: rubygems/release-gem@7f9650160c1a4e7989fdc9855807bdbd421d8b6b # v1.4.1
         with:
           token: ${{ steps.octo-sts.outputs.token }}
 
@@ -210,7 +210,7 @@ jobs:
     steps:
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.publish-github-release
@@ -239,12 +239,12 @@ jobs:
       next_version: ${{ steps.next_version.outputs.next_version }}
       next_dev_version: ${{ steps.next_dev_version.outputs.next_dev_version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: "4.0.1"
       - run: bundle install
@@ -264,7 +264,7 @@ jobs:
       id-token: write
     needs:
       - update-gem-version
-    uses: ./.github/workflows/bump-gem-version.yml
+    uses: $/.github/workflows/bump-gem-version.yml
     with:
       version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
@@ -288,7 +288,7 @@ jobs:
     steps:
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
           scope: DataDog/dd-trace-rb
           policy: self.publish-milestone
@@ -368,41 +368,27 @@ jobs:
 
   update-release-branch:
     if: github.ref_name == 'master'
-    name: Pull request to update 'release' branch
+    name: Point 'release' branch at the released tag
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     permissions:
-      issues: write
-      pull-requests: write
       id-token: write
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     steps:
-      - uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+      - uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         id: generate-token
         with:
           scope: DataDog/dd-trace-rb
           policy: self.update-release-branch
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
-      - env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEMP_BRANCH="update-document-v${GEM_VERSION}"
-
-          # Create and checkout a new branch from the tag
-          git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
-          git push origin "${TEMP_BRANCH}"
-
-          gh pr create \
-            --base release \
-            --head "${TEMP_BRANCH}" \
-            --title "Update document v${GEM_VERSION}" \
-          --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
-            --label "docs"
+      # The documentation website is sourced from this branch, so it must
+      # always mirror the released state, not merge it in.
+      # ^{commit} peels the annotated tag. Branch refs can only point at commits.
+      - run: git push --force-with-lease origin "v${GEM_VERSION}^{commit}":refs/heads/release

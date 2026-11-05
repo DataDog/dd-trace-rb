@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
+require_relative "../patcher"
 
 module Datadog
   module Tracing
@@ -10,24 +10,22 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'plugin'
+          def self.patch
+            require_relative "plugin"
             add_instrumentation(::Delayed::Worker)
             patch_server_internals
           end
 
-          def add_instrumentation(klass)
+          def self.add_instrumentation(klass)
             klass.plugins << Plugin
           end
 
-          def patch_server_internals
-            require_relative 'server_internal_tracer/worker'
+          def self.patch_server_internals
+            require_relative "server_internal_tracer/worker"
             ::Delayed::Worker.prepend(ServerInternalTracer::Worker)
           end
         end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'base'
-require_relative '../ext'
+require_relative "base"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -15,7 +15,7 @@ module Datadog
               topic_name = params[:name]
               if topic_arn
                 # example topic_arn: arn:aws:sns:us-west-2:123456789012:my-topic-name
-                parts = topic_arn.split(':')
+                parts = topic_arn.split(":")
                 topic_name = parts[-1]
                 aws_account = parts[-2]
                 span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, aws_account)

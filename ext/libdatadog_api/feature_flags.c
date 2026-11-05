@@ -13,6 +13,7 @@
 // Forward declarations
 static VALUE configuration_new(VALUE klass, VALUE json_str);
 static void configuration_free(void *ptr);
+static VALUE configuration_get_observe_full_evaluation_data(VALUE self);
 static VALUE configuration_get_assignment(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
 
@@ -21,6 +22,7 @@ static VALUE resolution_details_get_raw_value(VALUE self);
 static VALUE resolution_details_get_flag_type(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
+static VALUE resolution_details_get_serial_id(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
 static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
@@ -93,6 +95,7 @@ void feature_flags_init(VALUE core_module) {
   rb_undef_alloc_func(configuration_class);
   rb_define_singleton_method(configuration_class, "new", configuration_new, 1);
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
+  rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
   rb_gc_register_address(&resolution_details_class);
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
@@ -101,6 +104,7 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "flag_type", resolution_details_get_flag_type, 0);
   rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
   rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
+  rb_define_method(resolution_details_class, "serial_id", resolution_details_get_serial_id, 0);
   rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
   rb_define_method(resolution_details_class, "error_code", resolution_details_get_error_code, 0);
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
@@ -133,6 +137,12 @@ static VALUE configuration_new(VALUE klass, VALUE json_str) {
     raise_error(feature_flags_error_class, "Failed to create configuration from JSON: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
   return TypedData_Wrap_Struct(klass, &configuration_data_type, result.ok);
+}
+
+static VALUE configuration_get_observe_full_evaluation_data(VALUE self) {
+  ddog_ffe_Handle_Configuration configuration =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  return ddog_ffe_configuration_get_observe_full_evaluation_data(configuration) ? Qtrue : Qfalse;
 }
 
 static void configuration_free(void *ptr) {
@@ -419,6 +429,30 @@ static VALUE resolution_details_get_allocation_key(VALUE self) {
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
   struct ddog_ffe_BorrowedStr allocation_key = ddog_ffe_assignment_get_allocation_key(resolution_details);
   return str_from_borrow(allocation_key);
+}
+
+/*
+ * call-seq:
+ *   resolution_details.serial_id() -> Integer or nil
+ *
+ * Get the split serial id assigned for this evaluation.
+ *
+ * libdatadog returns an optional 32-bit integer (`ddog_Option_I32`, a tagged
+ * union). When the assignment carries a serial id the tag is
+ * DDOG_OPTION_I32_SOME_I32 and the value is in the `.some` field; otherwise the
+ * tag is DDOG_OPTION_I32_NONE_I32 and we return nil. This is consumed by the
+ * APM span-enrichment hook as `__dd_split_serial_id`.
+ *
+ * @return [Integer, nil] The split serial id or nil when absent
+ */
+static VALUE resolution_details_get_serial_id(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  struct ddog_Option_I32 serial_id = ddog_ffe_assignment_get_serial_id(resolution_details);
+  if (serial_id.tag == DDOG_OPTION_I32_SOME_I32) {
+    return INT2NUM(serial_id.some);
+  }
+  return Qnil;
 }
 
 /*

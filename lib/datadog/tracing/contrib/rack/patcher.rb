@@ -8,15 +8,13 @@ module Datadog
         module MiddlewarePatcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             # Patch middleware
-            require_relative 'middlewares'
+            require_relative "middlewares"
           end
         end
 
@@ -24,17 +22,15 @@ module Datadog
         module MiddlewareNamePatcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_middleware_names
           end
 
-          def patch_middleware_names
+          def self.patch_middleware_names
             retain_middleware_name(get_option(:application))
           rescue => e
             # We can safely ignore these exceptions since they happen only in the
@@ -44,24 +40,24 @@ module Datadog
             Datadog.logger.debug("Error patching middleware stack: #{e.class}: #{e.message}")
           end
 
-          def retain_middleware_name(middleware)
+          def self.retain_middleware_name(middleware)
             return unless middleware&.respond_to?(:call)
 
             middleware.singleton_class.class_eval do
               alias_method :__call, :call
 
               def call(env)
-                env['RESPONSE_MIDDLEWARE'] = self.class.to_s
+                env["RESPONSE_MIDDLEWARE"] = self.class.to_s
                 __call(env)
               end
             end
 
-            following = (middleware.instance_variable_get('@app') if middleware.instance_variable_defined?('@app'))
+            following = (middleware.instance_variable_get(:@app) if middleware.instance_variable_defined?(:@app))
 
             retain_middleware_name(following)
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:rack].get_option(option)
           end
         end
@@ -70,20 +66,18 @@ module Datadog
         module Patcher
           PATCHERS = [
             MiddlewarePatcher,
-            MiddlewareNamePatcher
+            MiddlewareNamePatcher,
           ].freeze
 
-          module_function
-
-          def patched?
+          def self.patched?
             PATCHERS.all?(&:patched?)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             MiddlewarePatcher.patch unless MiddlewarePatcher.patched?
 
             # Patch middleware names
@@ -95,21 +89,21 @@ module Datadog
                   %(
                 Rack :middleware_names requires you to also pass :application.
                 Middleware names have NOT been patched; please provide :application.
-                e.g. use: :rack, middleware_names: true, application: my_rack_app)
+                e.g. use: :rack, middleware_names: true, application: my_rack_app),
                 )
               end
             end
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:rack].get_option(option)
           end
 
-          def patch_successful
+          def self.patch_successful
             MiddlewarePatcher.patch_successful || MiddlewareNamePatcher.patch_successful
           end
 
-          def patch_error_result
+          def self.patch_error_result
             MiddlewarePatcher.patch_error_result || MiddlewareNamePatcher.patch_error_result
           end
         end

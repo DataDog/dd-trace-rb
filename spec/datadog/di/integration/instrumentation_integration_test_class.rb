@@ -34,7 +34,7 @@ class InstrumentationIntegrationTestClass
     $__password = password = 'password'
     $__redacted = redacted = {b: 33, session: 'blah'}
     # The following condition causes instrumentation trace point callback
-    # to be invoked multiple times in CircleCI on Ruby 3.0-3.2 and 3.4
+    # to be invoked multiple times in CI on Ruby 3.0-3.2 and 3.4
     #if true || password || redacted
     if true
       a * 2 # line 40

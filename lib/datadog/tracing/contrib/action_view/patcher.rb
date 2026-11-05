@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../../core'
-require_relative '../patcher'
-require_relative 'events'
-require_relative 'ext'
-require_relative 'utils'
+require_relative "../../../core"
+require_relative "../patcher"
+require_relative "events"
+require_relative "ext"
+require_relative "utils"
 
 module Datadog
   module Tracing
@@ -14,17 +14,15 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_renderer
           end
 
-          def patch_renderer
+          def self.patch_renderer
             Events.subscribe!
           end
         end

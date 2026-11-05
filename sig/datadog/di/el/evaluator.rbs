@@ -2,43 +2,80 @@ module Datadog
   module DI
     module EL
       class Evaluator
-        @context: Context
+        type collection = Array[Object] | Hash[Object, Object]
 
-        def initialize: (Context context) -> void
+        MATCHES_TIMEOUT_SECONDS: Float
 
-        def evaluate: (Context compiled) -> untyped
+        MATCHES_TIMEOUT_MESSAGE: String
 
-        def ref: ((Symbol | String) var) -> untyped
+        class MatchTimeoutSignal < StandardError
+        end
 
-        def iref: ((Symbol | String) var) -> untyped
+        EVALUATION_DEADLINE_CHECK_INTERVAL: Integer
 
-        def len: (untyped var, (Symbol | String) var_name) -> Integer
+        ARRAY_EACH: UnboundMethod
 
-        def is_empty: (untyped var, (Symbol | String) var_name) -> bool
+        HASH_EACH: UnboundMethod
 
-        def is_undefined: (untyped var, (Symbol | String) var_name) -> bool
+        HASH_SELECT: UnboundMethod
 
-        def contains: (untyped haystack, untyped needle) -> bool
+        IDENTITY_MODE_CHECK: UnboundMethod
 
-        def matches: (String haystack, String needle) -> bool
+        @regexps: Array[Regexp]
 
-        def getmember: (untyped object, (Symbol | String) field) -> untyped
+        def initialize: (?Array[Regexp] regexps) -> void
 
-        def index: (Array[untyped] | Hash[untyped, untyped] array_or_hash, untyped index_or_key) -> untyped
+        def evaluate: (Context context, Float evaluation_deadline) -> Object
+
+        def regexps: () -> Array[Regexp]
+
+        def self.compile_regexp: (String needle) -> Regexp
+
+        def self.evaluation_deadline_exceeded?: (Float evaluation_deadline) -> bool
+
+        def ref: (Context context, (Symbol | String) var) -> Object?
+
+        def iref: (Context context, (Symbol | String) var) -> Object?
+
+        def len: (any var, (Symbol | String) var_name) -> Integer
+
+        def is_empty: (any var, (Symbol | String) var_name) -> bool
+
+        def is_undefined: (any var, (Symbol | String) var_name) -> bool
+
+        def contains: (any haystack, any needle) -> bool
+
+        def matches: (String haystack, String needle, Float evaluation_deadline) -> bool
+
+        def matches_compiled: (String haystack, Integer index, Float evaluation_deadline) -> bool
+
+        private def bounded_match?: (Regexp re, String haystack) -> bool
+
+        def getmember: (any object, (Symbol | String) field) -> any
+
+        def index: (collection array_or_hash, any index_or_key) -> any
 
         def substring: (String object, Integer from, Integer to) -> String?
 
-        def starts_with: (untyped haystack, String needle) -> bool
+        def starts_with: (any haystack, String needle) -> bool
 
-        def ends_with: (untyped haystack, String needle) -> bool
+        def ends_with: (any haystack, String needle) -> bool
 
-        def all: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
+        def all: (collection collection, Float evaluation_deadline) { (Object, Object?, Object?) -> Object } -> bool
 
-        def any: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
+        def any: (collection collection, Float evaluation_deadline) { (Object, Object?, Object?) -> Object } -> bool
 
-        def filter: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> (Array[untyped] | Hash[untyped, untyped])
+        def filter: (collection collection, Float evaluation_deadline) { (Object, Object?, Object?) -> Object } -> collection
 
-        def instanceof: (untyped object, String cls_name) -> bool
+        private def filter_hash: (Hash[Object, Object] collection, Float evaluation_deadline) { (Object, Object?, Object?) -> Object } -> Hash[Object, Object]
+
+        private def raise_if_evaluation_deadline_exceeded: (Float evaluation_deadline) -> void
+
+        private def raise_if_deadline_check_due_and_exceeded: (Integer item_index, Float evaluation_deadline) -> void
+
+        private def each_collection_item: (collection collection, Float evaluation_deadline, String operator_name) { (Object, Object?, Object?) -> any } -> void
+
+        def instanceof: (any object, String cls_name) -> bool
       end
     end
   end

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
 
-require_relative '../ext'
-require_relative '../utils'
-require_relative '../../rack/middlewares'
-require_relative '../../analytics'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../ext"
+require_relative "../utils"
+require_relative "../../rack/middlewares"
+require_relative "../../analytics"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -16,9 +16,7 @@ module Datadog
         module ActionController
           # Instrumentation for ActionController components
           module Instrumentation
-            module_function
-
-            def start_processing(payload)
+            def self.start_processing(payload)
               return unless Tracing.enabled?
 
               # trace the execution
@@ -48,7 +46,7 @@ module Datadog
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
-            def finish_processing(payload)
+            def self.finish_processing(payload)
               return unless Tracing.enabled?
 
               # retrieve the tracing context and the latest active span
@@ -108,9 +106,9 @@ module Datadog
                   headers: {
                     # The exception this controller was given in the request,
                     # which is typical if the controller is configured to handle exceptions.
-                    request_exception: request.headers['action_dispatch.exception']
+                    request_exception: request.headers["action_dispatch.exception"],
                   },
-                  tracing_context: {}
+                  tracing_context: {},
                 }
 
                 begin

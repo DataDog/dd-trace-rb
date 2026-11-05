@@ -12,7 +12,7 @@ module Datadog
               method_api = super
 
               proc do |*args|
-                ::ActiveSupport::Notifications.instrument('endpoint_render.grape.start_render')
+                ::ActiveSupport::Notifications.instrument("endpoint_render.grape.start_render")
                 method_api.call(*args)
               end
             end
@@ -23,7 +23,7 @@ module Datadog
             def execute(*args)
               return unless @source
 
-              ::ActiveSupport::Notifications.instrument('endpoint_render.grape.start_render')
+              ::ActiveSupport::Notifications.instrument("endpoint_render.grape.start_render")
               super
             end
           end
@@ -31,7 +31,7 @@ module Datadog
           # InstanceMethods - instance method instrumentation for endpoint run
           module InstanceMethods
             def run(*args)
-              ::ActiveSupport::Notifications.instrument('endpoint_run.grape.start_process', endpoint: self, env: env)
+              ::ActiveSupport::Notifications.instrument("endpoint_run.grape.start_process", endpoint: self, env: env)
               super
             end
           end

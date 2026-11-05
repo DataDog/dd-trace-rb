@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'signal_configuration'
+require_relative "ext"
+require_relative "signal_configuration"
 
 module Datadog
   module OpenTelemetry
@@ -13,7 +13,7 @@ module Datadog
         true
       rescue => exc
         components.logger.warn(
-          "Failed to initialize OpenTelemetry logs: #{exc.class}: #{exc.message}\n#{(exc.backtrace || []).join("\n")}"
+          "Failed to initialize OpenTelemetry logs: #{exc.class}: #{exc.message}\n#{(exc.backtrace || []).join("\n")}",
         )
         false
       end
@@ -40,9 +40,9 @@ module Datadog
       private
 
       def disable_log_injection
-        @logger.warn('OTel logs enabled: disabling Datadog log injection to prevent duplicate trace correlation fields')
+        @logger.warn("OTel logs enabled: disabling Datadog log injection to prevent duplicate trace correlation fields")
         Datadog.configure do |c|
-          c.tracing.log_injection = false # steep:ignore
+          c.tracing.log_injection = false
         end
       end
 
@@ -57,17 +57,17 @@ module Datadog
       end
 
       def default_logs_endpoint
-        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/logs"
+        "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/logs"
       end
 
       def configure_otlp_exporter(provider)
-        require_relative 'sdk/logs_exporter'
+        require_relative "sdk/logs_exporter"
 
         logs_config = @settings.opentelemetry.logs
         endpoint = config_or_exporter_fallback(
           signal: :logs,
           option_name: :endpoint,
-          computed_default: default_logs_endpoint
+          computed_default: default_logs_endpoint,
         )
         timeout = config_or_exporter_fallback(signal: :logs, option_name: :timeout_millis)
         headers = config_or_exporter_fallback(signal: :logs, option_name: :headers)
@@ -77,7 +77,7 @@ module Datadog
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,
-          headers: headers
+          headers: headers,
         )
 
         processor = ::OpenTelemetry::SDK::Logs::Export::BatchLogRecordProcessor.new(
@@ -85,7 +85,7 @@ module Datadog
           max_queue_size: logs_config.max_queue_size,
           schedule_delay: logs_config.schedule_delay_millis,
           exporter_timeout: logs_config.export_timeout_millis,
-          max_export_batch_size: logs_config.max_export_batch_size
+          max_export_batch_size: logs_config.max_export_batch_size,
         )
         provider.add_log_record_processor(processor)
         true

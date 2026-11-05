@@ -10,6 +10,10 @@ module Datadog
 
     def self.track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset) -> (nil | true)
 
+    def self.pathway_context: () -> PathwayContext?
+
+    def self.pathway_context=: (PathwayContext? context) -> PathwayContext?
+
     def self.enabled?: () -> bool
 
     private

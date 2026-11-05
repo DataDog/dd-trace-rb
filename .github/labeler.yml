@@ -37,6 +37,44 @@ ci-app:
 - changed-files:
   - any-glob-to-any-file: ['lib/datadog/ci/**']
 
+# Changes to Data Streams Monitoring
+dsm:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/data_streams.rb'
+    - 'lib/datadog/data_streams/**'
+
+# Changes to OpenFeature
+openfeature:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/open_feature.rb'
+    - 'lib/datadog/open_feature/**'
+
+# Changes to Database Monitoring
+dbm:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/tracing/contrib/propagation/sql_comment.rb'
+    - 'lib/datadog/tracing/contrib/propagation/sql_comment/**'
+    - 'lib/datadog/tracing/contrib/{pg,mysql2,trilogy}/**'
+
+# Changes to Log Management
+logging:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/core/logging/**'
+    - 'lib/datadog/tracing/correlation.rb'
+    - 'lib/datadog/tracing/contrib/**/log_injection.rb'
+    - 'lib/datadog/tracing/contrib/{lograge,semantic_logger}/**'
+    - 'lib/datadog/opentelemetry/logs.rb'
+    - 'lib/datadog/opentelemetry/sdk/logs_exporter.rb'
+
+# Changes to Serverless Monitoring
+serverless:
+- changed-files:
+  - any-glob-to-any-file: ['lib/datadog/appsec/contrib/aws_lambda/**']
+
 # Changes to ASM
 appsec:
 - changed-files:
@@ -64,7 +102,7 @@ dev/github:
 # Only repository CI changes
 dev/ci:
 - changed-files:
-  - all-globs-to-all-files: ['{.circleci/**,.gitlab-ci.yml}']
+  - all-globs-to-all-files: ['.gitlab-ci.yml']
 
 # Version bump pull request
 release:

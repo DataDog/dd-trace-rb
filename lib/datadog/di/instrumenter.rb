@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
-require_relative '../ruby_version'
-require_relative 'fatal_exceptions'
+require_relative "../core/rate_limiter"
+require_relative "../core/utils/time"
+require_relative "../ruby_version"
+require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -68,12 +70,35 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
+      # Maximum number of capturing-probe snapshots admitted per second across the
+      # whole process.
+      GLOBAL_SNAPSHOT_RATE_LIMIT = 20
+
+      # Maximum number of non-capturing probe emissions admitted per second across
+      # the whole process.
+      GLOBAL_LOG_RATE_LIMIT = 5000
+
+      # Initializes the instrumenter.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param serializer [Serializer] serializer for captured values
+      # @param logger [DI::Logger] logger for instrumenter diagnostics
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrail skip metrics
+      # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component instrumenter errors are reported through
+      # @return [void]
+      def initialize(settings, serializer, logger, guardrails_telemetry:, capture_expression_evaluator:,
+        code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = guardrails_telemetry
+        @capture_expression_evaluator = capture_expression_evaluator
         @code_tracker = code_tracker
+        @global_snapshot_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_SNAPSHOT_RATE_LIMIT)
+        @global_log_rate_limiter = Datadog::Core::TokenBucket.new(GLOBAL_LOG_RATE_LIMIT)
 
         @lock = Mutex.new
       end
@@ -82,7 +107,56 @@ module Datadog
       attr_reader :serializer
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+      # The capture expression evaluator.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+
+      # The code tracker is a global singleton created lazily by
+      # DI.activate_tracking. When DI is enabled after boot via remote
+      # configuration this instrumenter was already built with a nil tracker;
+      # Component#start! assigns the now-current tracker here.
+      attr_writer :code_tracker
+
+      # Process-wide snapshot rate limiter.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :global_snapshot_rate_limiter
+      # Process-wide log rate limiter.
+      # @return [Datadog::Core::TokenBucket]
+      attr_reader :global_log_rate_limiter
+
+      # Returns the process-wide rate limiter for the probe.
+      #
+      # @param probe [Probe] the probe whose invocation is being rate limited
+      # @return [Datadog::Core::TokenBucket] the shared limiter for the probe's category
+      def probe_global_rate_limiter(probe)
+        if probe.capturing?
+          global_snapshot_rate_limiter
+        else
+          global_log_rate_limiter
+        end
+      end
+
+      # Emits the canonical rate-limit skip metric for a probe.
+      #
+      # @param probe [Probe] the probe being skipped
+      # @param reason [String] a GuardrailsTelemetry::Reason constant for the rejecting limit
+      # @return [void]
+      def record_rate_limit_skip(reason, probe)
+        logger.trace do
+          "di: #{probe.type} probe #{probe.id}: skipping due to " \
+            "#{(reason == GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE) ? "per-probe" : "global"} rate limit" \
+            " (#{reason})"
+        end
+        guardrails_telemetry.skipped(
+          reason: reason,
+          probe: probe,
+        )
+        nil
+      end
 
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
@@ -147,6 +221,7 @@ module Datadog
         end
 
         loc = target_method&.source_location
+        # @type var instrumenter: Instrumenter
         instrumenter = self
 
         mod = Module.new do
@@ -179,8 +254,8 @@ module Datadog
           # invokes it with yield, which does not dispatch Proc#call, so a
           # user probe on Proc#call cannot intercept the trampoline, and no
           # Proc is allocated for the block.
-          if RubyVersion.is?('>= 3')
-            define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+          if RubyVersion.is?(">= 3")
+            define_method(method_name) do |*args, **kwargs, &target_block|
               # steep:ignore FallbackAny below: Steep cannot narrow the
               # **kwargs parameter inside this define_method block, so it
               # falls back to untyped at the super and run_method_probe sites.
@@ -198,7 +273,7 @@ module Datadog
               end
             end
           else
-            define_method(method_name) do |*args, &target_block| # steep:ignore NoMethod
+            define_method(method_name) do |*args, &target_block|
               if DI.in_probe?
                 return super(*args, &target_block)
               end
@@ -217,7 +292,7 @@ module Datadog
                 super(*args, &target_block)
               end
             end
-            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -448,7 +523,7 @@ module Datadog
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
-      # @param target_self [Object] the receiver of the probed method invocation
+      # @param target_self [any] the receiver of the probed method invocation
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
@@ -479,7 +554,8 @@ module Datadog
                 target_self: target_self,
                 probe: probe, settings: settings, serializer: serializer,
               )
-              continue = condition.satisfied?(context)
+              continue = condition.satisfied?(context,
+                evaluation_deadline: serializer.evaluation_deadline)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
@@ -488,13 +564,17 @@ module Datadog
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
                 !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
+              # An evaluation timeout is an internal budget abort, so it
+              # stays contained even under propagate_all_exceptions.
+              record_condition_evaluation_timeout(probe, exc)
+
               if context
                 # We want to report evaluation errors for conditions
                 # as probe snapshots. However, if we failed to create
                 # the context, we won't be able to report anything as
                 # the probe notifier builder requires a context.
                 begin
-                  responder.probe_condition_evaluation_failed_callback(context, exc)
+                  responder.probe_condition_evaluation_failed_callback(context, condition, exc)
                 rescue Exception => nested_exc # standard:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -515,13 +595,43 @@ module Datadog
           end
 
           rate_limiter = probe.rate_limiter
-          if continue and rate_limiter.nil? || rate_limiter.allow?
+          admitted = continue
+          if continue && rate_limiter && !rate_limiter.allow?
+            admitted = false
+            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+          end
+          if admitted && !probe_global_rate_limiter(probe).allow?
+            admitted = false
+            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
+          end
+          if admitted
             # Arguments may be mutated by the method, therefore
             # they need to be serialized prior to method invocation.
             serialized_entry_args = if probe.capture_snapshot?
               serializer.serialize_args(args, kwargs, target_self,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
+                deadline: serializer.serialization_deadline,
+                **probe.snapshot_serializer_limits(settings))
+            end
+
+            entry_capture_expressions = nil
+            entry_capture_evaluation_errors = nil
+            if probe.capture_entry_expressions?
+              begin
+                entry_context = Context.new(
+                  probe: probe, settings: settings, serializer: serializer,
+                  target_self: target_self,
+                  locals: serializer.combine_args(args, kwargs, target_self),
+                )
+                entry_capture_result = capture_expression_evaluator.evaluate(probe, entry_context)
+                entry_capture_expressions = entry_capture_result.serialized_values
+                entry_capture_evaluation_errors = entry_capture_result.errors
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error evaluating entry-time capture expressions: #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating entry-time capture expressions")
+              end
             end
             # We intentionally do not use Core::Utils::Time.get_time
             # here because the time provider may be overridden by the
@@ -584,11 +694,16 @@ module Datadog
             caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
-            context = Context.new(locals: nil, target_self: target_self,
+            capture_expression_locals = if probe.capture_expressions_only?
+              serializer.combine_args(args, kwargs, target_self)
+            end
+            context = Context.new(locals: capture_expression_locals, target_self: target_self,
               probe: probe, settings: settings, serializer: serializer,
               serialized_entry_args: serialized_entry_args,
+              entry_capture_expressions: entry_capture_expressions,
+              entry_capture_evaluation_errors: entry_capture_evaluation_errors,
               caller_locations: caller_locs,
-              return_value: rv, duration: duration, exception: exc,)
+              return_value: rv, duration: duration, exception: exc)
 
             begin
               responder.probe_executed_callback(context)
@@ -663,7 +778,7 @@ module Datadog
       #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
-      if RubyVersion.is?('< 3')
+      if RubyVersion.is?("< 3")
         def kwargs_from_splat(args)
           last = args.last
           if DI.hash?(last)
@@ -678,6 +793,17 @@ module Datadog
         public :kwargs_from_splat
       end
 
+      # Trace point callback for a line probe hit. Evaluates the probe's
+      # condition, applies the per-probe rate limiter and the global rate
+      # limiter, then invokes the responder with the built context.
+      #
+      # @param probe [Probe] the probe the trace point was installed for.
+      # @param iseq [RubyVM::InstructionSequence, nil] instruction sequence of
+      #   the probe's target file, when the trace point is targeted.
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback, #probe_disabled_callback]
+      #   callback target for the probe hit.
+      # @param tp [TracePoint] the trace point event that fired.
+      # @return [void]
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
@@ -715,7 +841,8 @@ module Datadog
         if condition = probe.condition
           begin
             context = build_trace_point_context(probe, tp)
-            return unless condition.satisfied?(context)
+            return unless condition.satisfied?(context,
+              evaluation_deadline: serializer.evaluation_deadline)
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
@@ -723,6 +850,10 @@ module Datadog
             # these exceptions are propagated.
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
               !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            # An evaluation timeout is an internal budget abort, so it
+            # stays contained even under propagate_all_exceptions.
+            record_condition_evaluation_timeout(probe, exc)
 
             if context
               # We want to report evaluation errors for conditions
@@ -754,7 +885,15 @@ module Datadog
 
         # In practice we should always have a rate limiter, but be safe
         # and check that it is in fact set.
-        return if probe.rate_limiter && !probe.rate_limiter.allow?
+        if probe.rate_limiter && !probe.rate_limiter.allow?
+          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+          return
+        end
+
+        unless probe_global_rate_limiter(probe).allow?
+          record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_GLOBAL, probe)
+          return
+        end
 
         # The context creation is relatively expensive and we don't
         # want to run it if the callback won't be executed due to the
@@ -765,12 +904,29 @@ module Datadog
         responder.probe_executed_callback(context)
 
         check_and_disable_if_exceeded(probe, responder, di_start_time)
+        nil
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
+        nil
+      end
+
+      # Records a condition evaluation timeout for +probe+ through the
+      # shared evaluation-timeout reporter. Does nothing when +exc+ is not
+      # an evaluation timeout.
+      #
+      # @param probe [Probe] the probe whose condition evaluation timed out.
+      # @param exc [Exception] the exception raised by the evaluation.
+      # @return [void]
+      def record_condition_evaluation_timeout(probe, exc)
+        DI.report_evaluation_timeout(
+          telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+          probe: probe, kind: "condition", exc: exc,
+        )
+        nil
       end
 
       def build_trace_point_context(probe, tp)
@@ -803,6 +959,7 @@ module Datadog
           # avoid a dependency on ProbeManager from Instrumenter.
           probe.disable!
           responder.probe_disabled_callback(probe, di_duration)
+          nil
         end
       end
 
@@ -821,7 +978,7 @@ module Datadog
         else
           # Expensive suffix check.
           suffix = Utils.normalize_windows_separators(probe.file)
-          found = nil #: ::String?
+          found = nil #: String?
           [false, true].each do |case_insensitive|
             working_suffix = suffix.dup
             loop do
@@ -829,8 +986,8 @@ module Datadog
                 Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
               end
               break if found
-              break unless working_suffix.include?('/')
-              working_suffix.sub!(%r{.*/+}, '')
+              break unless working_suffix.include?("/")
+              working_suffix.sub!(%r{.*/+}, "")
             end
             break if found
           end
@@ -844,7 +1001,11 @@ module Datadog
         has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
           code_tracker.send(:per_method_registry).key?(loaded_path)
 
-        if has_per_method
+        if code_tracker.nil?
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but code tracking is not active; " \
+            "line probes cannot be targeted."
+        elsif has_per_method
           raise Error::DITargetNotInRegistry,
             "File #{loaded_path} is loaded and has per-method iseqs, " \
             "but none cover line #{line_no}. " \

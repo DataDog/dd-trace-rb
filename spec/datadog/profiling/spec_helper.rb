@@ -16,19 +16,10 @@ module ProfileHelpers
       end
     end
   end
-  Frame = Struct.new(:base_label, :path, :lineno)
+  Frame = Struct.new(:label, :path, :lineno)
 
   def skip_if_profiling_not_supported
     skip_if_libdatadog_not_supported
-
-    # Profiling is not officially supported on macOS
-    # but it's still useful to allow it to be enabled for development.
-    if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
-      testcase.skip(
-        "Profiling is not supported on macOS. If you still want to run these specs, you can use " \
-        "DD_PROFILING_MACOS_TESTING=true to override this check."
-      )
-    end
 
     return if Datadog::Profiling.supported?
 
@@ -122,12 +113,12 @@ module ProfileHelpers
   end
 
   def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
+    started_at = Datadog::Core::Utils::Time.get_time
 
     deadline = started_at + timeout_seconds
     condition_deadline = started_at + check_condition_every_seconds
 
-    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
+    while (now = Datadog::Core::Utils::Time.get_time) < deadline
       if check_condition_every_seconds > 0
         if now >= condition_deadline
           condition_deadline = now + check_condition_every_seconds

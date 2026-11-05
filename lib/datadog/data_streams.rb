@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'data_streams/processor'
-require_relative 'data_streams/pathway_context'
-require_relative 'data_streams/configuration'
-require_relative 'data_streams/extensions'
-require_relative 'core/utils/time'
+require_relative "data_streams/processor"
+require_relative "data_streams/pathway_context"
+require_relative "data_streams/configuration"
+require_relative "data_streams/extensions"
+require_relative "core/utils/time"
 
 module Datadog
   # Datadog Data Streams Monitoring public API.
@@ -73,6 +73,22 @@ module Datadog
       # @!visibility private
       def track_kafka_consume(topic, partition, offset)
         processor&.track_kafka_consume(topic, partition, offset, Core::Utils::Time.now)
+      end
+
+      # The calling fiber's pathway context, without creating one.
+      #
+      # @return [PathwayContext, nil]
+      # @!visibility private
+      def pathway_context
+        processor&.pathway_context
+      end
+
+      # Restores a context returned by {.pathway_context}; nil clears it.
+      #
+      # @param context [PathwayContext, nil]
+      # @!visibility private
+      def pathway_context=(context)
+        processor&.pathway_context = context
       end
 
       # Check if Data Streams Monitoring is enabled and available

@@ -1,10 +1,10 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'stringio'
+require "stringio"
 
-require 'datadog/core'
-require 'datadog/core/logger'
-require 'datadog/tracing/workers'
+require "datadog/core"
+require "datadog/core/logger"
+require "datadog/tracing/workers"
 
 RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
   let(:task) { proc { true } }
@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
       transport: nil,
       buffer_size: 100,
       on_trace: task,
-      interval: 0.5
+      interval: 0.5,
     )
   end
 
@@ -24,8 +24,8 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     worker.stop
   end
 
-  describe 'callbacks' do
-    describe 'when raising errors' do
+  describe "callbacks" do
+    describe "when raising errors" do
       let(:task) { proc { raise StandardError } }
 
       let(:buf) { StringIO.new }
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
         Datadog::Core::Logger.new(buf)
       end
 
-      it 'does not re-raise' do
+      it "does not re-raise" do
         worker.enqueue_trace(get_test_traces(1))
 
         expect(logger).to receive(:warn).and_call_original
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     end
   end
 
-  describe 'thread naming and fork-safety marker' do
+  describe "thread naming and fork-safety marker" do
     it do
       worker.start
 
@@ -55,32 +55,32 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     end
 
     # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
-    it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
+    it "marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)" do
       worker.start
 
       expect(worker.instance_variable_get(:@worker).thread_variable_get(:fork_safe)).to be true
     end
   end
 
-  describe '#start' do
-    it 'returns nil' do
+  describe "#start" do
+    it "returns nil" do
       expect(worker.start).to be nil
     end
   end
 
-  describe '#stop' do
+  describe "#stop" do
     skip_any_instance_on_buggy_jruby
 
-    it 'stops underlying thread with default timeout' do
+    it "stops underlying thread with default timeout" do
       expect_any_instance_of(Thread).to receive(:join).with(
-        Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+        Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT,
       ).and_call_original
 
       worker.start
       worker.stop
     end
 
-    context 'with shutdown timeout configured' do
+    context "with shutdown timeout configured" do
       let(:worker) do
         described_class.new(
           logger: logger,
@@ -88,11 +88,11 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
           buffer_size: 100,
           on_trace: task,
           interval: 0.5,
-          shutdown_timeout: 1000
+          shutdown_timeout: 1000,
         )
       end
 
-      it 'stops underlying thread with configured timeout' do
+      it "stops underlying thread with configured timeout" do
         expect_any_instance_of(Thread).to receive(:join).with(1000).and_call_original
 
         worker.start

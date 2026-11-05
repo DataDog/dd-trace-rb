@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'utils/time'
+require_relative "utils/time"
 
 module Datadog
   module Core

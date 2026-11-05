@@ -41,7 +41,7 @@ module Datadog
           def eval(*args)
             source = args[0]
 
-            if args[2] == 'stdin'
+            if args[2] == "stdin"
               name = Ext::SPAN_RUNNER_STDIN
               operation = Ext::TAG_OPERATION_STDIN
             else
@@ -56,12 +56,12 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_OPERATION => operation,
-              }
+              },
             ) do |span|
               if source
                 span.set_tag(
                   Ext::TAG_RUNNER_SOURCE,
-                  Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE)
+                  Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE),
                 )
               end
               Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])
@@ -98,12 +98,12 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_OPERATION => operation,
-                }
+                },
               ) do |span|
                 if source
                   span.set_tag(
                     Ext::TAG_RUNNER_SOURCE,
-                    Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE)
+                    Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE),
                   )
                 end
                 Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../configuration/resolvers/pattern_resolver'
-require_relative 'circuit_breaker'
-require_relative 'configuration/settings'
-require_relative 'patcher'
-require_relative '../integration'
-require_relative '../../../../datadog/version'
+require_relative "../configuration/resolvers/pattern_resolver"
+require_relative "circuit_breaker"
+require_relative "configuration/settings"
+require_relative "patcher"
+require_relative "../integration"
+require_relative "../../../../datadog/version"
 
 module Datadog
   module Tracing
@@ -21,7 +21,7 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :http, auto_patch: true
           def self.gem_name
-            'net-http'
+            "net-http"
           end
 
           def self.version

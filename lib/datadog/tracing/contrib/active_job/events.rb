@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'events/discard'
-require_relative 'events/enqueue'
-require_relative 'events/enqueue_at'
-require_relative 'events/enqueue_retry'
-require_relative 'events/perform'
-require_relative 'events/retry_stopped'
+require_relative "events/discard"
+require_relative "events/enqueue"
+require_relative "events/enqueue_at"
+require_relative "events/enqueue_retry"
+require_relative "events/perform"
+require_relative "events/retry_stopped"
 
 module Datadog
   module Tracing
@@ -22,17 +22,15 @@ module Datadog
             Events::RetryStopped,
           ].freeze
 
-          module_function
-
-          def all
+          def self.all
             self::ALL
           end
 
-          def subscriptions
+          def self.subscriptions
             all.collect(&:subscriptions).collect(&:to_a).flatten
           end
 
-          def subscribe!
+          def self.subscribe!
             all.each(&:subscribe!)
           end
         end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../patcher'
-require_relative 'instrumentation'
-require_relative 'events'
+require_relative "../../patcher"
+require_relative "instrumentation"
+require_relative "events"
 
 module Datadog
   module Tracing
@@ -13,21 +13,19 @@ module Datadog
           module Patcher
             include Contrib::Patcher
 
-            module_function
-
-            def target_version
+            def self.target_version
               Integration.version
             end
 
-            def patch
+            def self.patch
               Events.subscribe!
 
-              if Integration.version >= Gem::Version.new('8.0.0')
+              if Integration.version >= Gem::Version.new("8.0.0")
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::PreserveOriginalKey)
               end
 
               # Backfill the `:store` key in the ActiveSupport event payload for older Rails.
-              if Integration.version < Gem::Version.new('6.1.0')
+              if Integration.version < Gem::Version.new("6.1.0")
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)
               end
 
@@ -40,11 +38,11 @@ module Datadog
             # This method is overwritten by
             # `datadog/tracing/contrib/active_support/cache/redis.rb`
             # with more complex behavior.
-            def cache_store_class(meth)
+            def self.cache_store_class(meth)
               [::ActiveSupport::Cache::Store]
             end
 
-            def patch_legacy_cache_store
+            def self.patch_legacy_cache_store
               cache_store_class(:read_multi).each { |clazz| clazz.prepend(Cache::Instrumentation::ReadMulti) }
               cache_store_class(:fetch).each { |clazz| clazz.prepend(Cache::Instrumentation::Fetch) }
               cache_store_class(:fetch_multi).each { |clazz| clazz.prepend(Cache::Instrumentation::FetchMulti) }

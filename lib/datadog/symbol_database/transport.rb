@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/transport/request'
-require_relative '../core/transport/transport'
-require_relative '../core/transport/http/client'
-require_relative '../core/transport/http/env'
+require_relative "../core/transport/request"
+require_relative "../core/transport/transport"
+require_relative "../core/transport/http/client"
+require_relative "../core/transport/http/env"
 
 module Datadog
   module SymbolDatabase

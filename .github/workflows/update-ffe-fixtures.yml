@@ -1,0 +1,89 @@
+name: Update FFE fixtures
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight UTC
+  workflow_dispatch:
+    inputs:
+      fixture_ref:
+        description: Branch, tag, or commit from DataDog/ffe-system-test-data
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: update-ffe-fixtures
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  update-ffe-fixtures:
+    if: github.repository == 'DataDog/dd-trace-rb' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout latest fixture corpus
+        id: latest
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: DataDog/ffe-system-test-data
+          ref: ${{ inputs.fixture_ref || 'main' }}
+          path: fixtures-latest
+          persist-credentials: false
+
+      - name: Point the pin at the latest fixture commit
+        env:
+          COMMIT: ${{ steps.latest.outputs.commit }}
+        run: printf '%s\n' "$COMMIT" > tasks/lib/fixtures/ffe/version
+
+      - run: git diff --color=always
+
+      - uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
+        id: octo-sts
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.update-ffe-fixtures
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.octo-sts.outputs.token }}
+          sign-commits: true
+          branch: auto-generate/update-ffe-fixtures
+          commit-message: 'test(openfeature): update canonical FFE fixtures'
+          base: master
+          title: 'test(openfeature): update canonical FFE fixtures'
+          draft: true
+          labels: dev/internal
+          add-paths: tasks/lib/fixtures/ffe/version
+          body: |
+            ### Why
+
+            Routine maintenance: the canonical FFE fixtures pin moves weekly. This PR updates the pin to the latest corpus commit.
+
+            ### What
+
+            Updates the pinned fixture commit to [${{ steps.latest.outputs.commit }}](https://github.com/DataDog/ffe-system-test-data/commit/${{ steps.latest.outputs.commit }}). The corpus is fetched on demand from that commit, so this PR only bumps the pin.
+
+            ### Risk
+
+            Two-way door, a one-line pin. Before merging, fix evaluator failures exposed by new cases in this corpus.
+
+            ### Details
+
+            <details><summary>Automation: merge when FFE evaluator specs are green.</summary>
+
+            - Event: weekly schedule
+            - Source repo: DataDog/ffe-system-test-data
+            - Weekly runs append a new pin bump commit to an open PR on the same branch
+            - Human commits on that branch are preserved: create-pull-request only adds commits, it never force-pushes
+            - Changelog: none, internal test fixtures only
+
+            </details>

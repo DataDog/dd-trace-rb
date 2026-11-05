@@ -1,0 +1,17 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Outcome
+        @blocking_enabled: bool
+
+        attr_reader result: Result
+
+        attr_reader redaction: Redaction::Result
+
+        def initialize: (result: Result, redaction: Redaction::Result, blocking_enabled: bool) -> void
+
+        def block?: () -> bool
+      end
+    end
+  end
+end

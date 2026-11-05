@@ -1,10 +1,10 @@
-require 'support/statsd_helpers'
+require "support/statsd_helpers"
 
 module MetricHelpers
   include RSpec::Mocks::ArgumentMatchers
 
-  shared_context 'metrics' do
-    include_context 'statsd'
+  shared_context "metrics" do
+    include_context "statsd"
 
     def metric_options(options = nil)
       return options unless options.nil? || options.is_a?(Hash)

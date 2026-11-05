@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../span_attribute_schema'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../span_attribute_schema"
 
 module Datadog
   module Tracing
@@ -48,7 +48,7 @@ module Datadog
               span.set_error(nil)
             end
 
-            aws_service = span.resource.split('.')[0]
+            aws_service = span.resource.split(".")[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
             if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
@@ -58,7 +58,7 @@ module Datadog
             if configuration[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                configuration[:peer_service]
+                configuration[:peer_service],
               )
             end
 

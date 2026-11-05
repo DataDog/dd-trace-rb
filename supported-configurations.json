@@ -37,6 +37,13 @@
         "default": "16"
       }
     ],
+    "DD_AI_GUARD_REDACTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_AI_GUARD_TIMEOUT": [
       {
         "version": "A",
@@ -114,6 +121,13 @@
         "type": "string",
         "default": null,
         "sensitive": true
+      }
+    ],
+    "DD_APPSEC_AGENTIC_ONBOARDING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": ""
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -287,11 +301,33 @@
         "default": null
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS": [
+      {
+        "version": "C",
+        "type": "int",
+        "default": "150",
+        "aliases": ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT"]
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "50"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "200"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
@@ -343,6 +379,50 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "agentless"
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null,
+        "sensitive": true
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30"
+      }
+    ],
+    "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "5"
+      }
+    ],
+    "DD_FEATURE_FLAGS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.evaluation_telemetry_per_subject_opt_out_enabled"],
+        "default": "false"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -359,6 +439,28 @@
     ],
     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": [
       {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30000"
+      }
+    ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
+      {
+        "__comment": "Default is true on CRuby 4.0.0 and later",
         "version": "A",
         "type": "boolean",
         "default": "false"
@@ -565,6 +667,13 @@
     "DD_PROFILING_NATIVE_FILENAMES_ENABLED": [
       {
         "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
+      {
+        "version": "B",
         "type": "boolean",
         "default": "true"
       }
@@ -1558,6 +1667,14 @@
         "default": "400-499"
       }
     ],
+    "DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["tracing.http_client_resource_name_quantize"],
+        "default": "false"
+      }
+    ],
     "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [
       {
         "version": "A",
@@ -1780,6 +1897,13 @@
         "version": "A",
         "type": "string",
         "default": "opensearch"
+      }
+    ],
+    "DD_TRACE_OTEL_CTX_ENABLED": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [

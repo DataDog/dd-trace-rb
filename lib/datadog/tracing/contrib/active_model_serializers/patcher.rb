@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'events'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "events"
 
 module Datadog
   module Tracing
@@ -12,17 +12,15 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Events.subscribe!
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:active_model_serializers].get_option(option)
           end
         end

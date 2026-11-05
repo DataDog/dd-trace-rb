@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../tracing/ext'
+require_relative "../tracing/ext"
 
 module Datadog
   module OpenTelemetry
     module SDK
-      TELEMETRY_TAGS = {'protocol' => 'http', 'encoding' => 'protobuf'}.freeze
+      TELEMETRY_TAGS = {"protocol" => "http", "encoding" => "protobuf"}.freeze
 
       def self.telemetry_inc(metric_name, value)
         telemetry&.inc(Datadog::Tracing::Ext::TELEMETRY_METRICS_NAMESPACE, metric_name, value, tags: TELEMETRY_TAGS)
