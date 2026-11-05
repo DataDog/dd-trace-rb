@@ -271,6 +271,20 @@ RSpec.describe Datadog::Profiling::Remote do
       end
     end
 
+    [:auto, true].each do |local_value|
+      context "with rubySignalWorkaround: false and a local #{local_value.inspect} value" do
+        let(:contents) do
+          [profiling_content("id", profilers: default_preset, settings: {"rubySignalWorkaround" => false})]
+        end
+
+        before { settings.profiling.advanced.no_signals_workaround_enabled = local_value }
+
+        it "keeps the local value, which can detect gems that are incompatible with signals" do
+          expect { apply_configs }.to_not(change { settings.profiling.advanced.no_signals_workaround_enabled })
+        end
+      end
+    end
+
     describe "maxStackDepth" do
       def apply_max_stack_depth(depth)
         contents << profiling_content("id", profilers: default_preset, settings: {"maxStackDepth" => depth})

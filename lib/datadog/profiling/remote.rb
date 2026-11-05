@@ -313,7 +313,9 @@ module Datadog
             experimental_heap_enabled: heap_enabled,
             experimental_heap_size_enabled: heap_size,
             max_frames: settings["maxStackDepth"],
-            no_signals_workaround_enabled: settings["rubySignalWorkaround"],
+            # false keeps the local value, :auto by default, instead of forcing signals even with gems
+            # that :auto detects as incompatible with them.
+            no_signals_workaround_enabled: (true if settings["rubySignalWorkaround"] == true),
           }
         end
 

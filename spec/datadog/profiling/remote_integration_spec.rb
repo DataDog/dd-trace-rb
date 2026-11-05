@@ -124,11 +124,15 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
   end
 
   context "when another gem uses SIGPROF" do
-    before { Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_install_testing_signal_handler }
+    before do
+      Datadog.configuration.profiling.advanced.no_signals_workaround_enabled = false
+      Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_install_testing_signal_handler
+    end
+
     after { Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_remove_testing_signal_handler }
 
     it "reports why the profiler failed to start in the next request" do
-      deliver(profilers: {cpuTime: true, wallTime: true}, settings: {rubySignalWorkaround: false}, targets: [target])
+      deliver(profilers: {cpuTime: true, wallTime: true}, targets: [target])
       sync_remote_config
       sync_remote_config
 
@@ -177,7 +181,7 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
     deliver(profilers: {cpuTime: true, wallTime: true}, settings: {rubySignalWorkaround: false}, targets: [target])
     sync_remote_config
 
-    expect(Datadog.configuration.profiling.advanced.no_signals_workaround_enabled).to be false
+    expect(Datadog.configuration.profiling.advanced.no_signals_workaround_enabled).to be :auto
     expect(components.profiler).to_not be(old_profiler)
     expect(Datadog::Profiling.wait_until_running).to be true
     expect(Thread.list.map(&:name).count(worker_thread_name)).to eq(1)
