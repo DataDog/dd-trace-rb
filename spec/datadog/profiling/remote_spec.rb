@@ -669,6 +669,16 @@ RSpec.describe Datadog::Profiling::Remote do
       end
     end
 
+    context "without profiling content" do
+      before { settings.profiling.enabled = true }
+
+      it "doesn't wait for the profiler to start, as there is nothing to acknowledge" do
+        expect(profiler).to_not receive(:start_failure)
+
+        apply_configs
+      end
+    end
+
     context "when the profiler fails to start" do
       let(:contents) { [profiling_content("preset-default", profilers: default_preset)] }
 

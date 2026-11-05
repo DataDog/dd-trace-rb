@@ -78,7 +78,7 @@ module Datadog
           profilers, remote_settings = merge(configs, settings)
           values = to_values(profilers, remote_settings)
           apply_values(settings, values, telemetry)
-          error = profiler_error(settings)
+          error = profiler_error(settings) unless parsed.empty?
 
           # Only once applied: RC does not dispatch unchanged content again, so acknowledging it
           # earlier would hide a failure to apply it.
