@@ -233,15 +233,40 @@ RSpec.describe Datadog::Profiling::Remote do
       end
     end
 
-    context "when some mapped profilers are false and the others omitted" do
-      let(:contents) { [profiling_content("id", profilers: {"cpuTime" => false, "wallTime" => false})] }
+    context "when cpuTime and wallTime are turned off and the other profilers omitted" do
+      let(:cpu_and_wall_off) { profiling_content("off", profilers: {"cpuTime" => false, "wallTime" => false}) }
+      let(:contents) { [cpu_and_wall_off] }
 
       before { settings.profiling.enabled = true }
 
-      it "keeps the local enablement" do
+      it "disables profiling, as no other profiler runs locally" do
         apply_configs
 
-        expect(settings.profiling.enabled).to be true
+        expect(settings.profiling.enabled).to be false
+      end
+
+      context "with allocation profiling enabled locally" do
+        before { settings.profiling.allocation_enabled = true }
+
+        it "keeps profiling enabled, as allocation profiling still runs" do
+          apply_configs
+
+          expect(settings.profiling.enabled).to be true
+        end
+      end
+
+      context "after a config enabled allocation profiling remotely" do
+        before do
+          contents.replace([profiling_content("allocations", profilers: {"allocations" => true})])
+          remote.apply_configs(repository, telemetry)
+          contents.replace([cpu_and_wall_off])
+        end
+
+        it "disables profiling, as only the local settings count" do
+          apply_configs
+
+          expect(settings.profiling.enabled).to be false
+        end
       end
     end
 

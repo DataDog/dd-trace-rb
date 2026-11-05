@@ -76,7 +76,7 @@ module Datadog
           configs = Core::Utils::EnumerableCompat.filter_map(parsed) { |_content, _problems, config| config }
 
           profilers, remote_settings = merge(configs, settings)
-          values = to_values(profilers, remote_settings)
+          values = to_values(profilers, remote_settings, local_profilers(settings))
           apply_values(settings, values, telemetry)
           error = profiler_error(settings) unless parsed.empty?
 
@@ -292,11 +292,13 @@ module Datadog
           0
         end
 
-        def to_values(profilers, settings)
+        def to_values(profilers, settings, local_profilers)
           enabled =
             if profilers.value?(true)
               true
-            elsif PROFILER_FIELDS.keys.all? { |name| profilers[name] == false }
+            # Ruby can't turn off some of the profilers it runs while keeping the others, so profiling is
+            # only disabled when all of them are turned off.
+            elsif local_profilers.all? { |name| profilers[name] == false }
               false
             end
 
@@ -354,6 +356,27 @@ module Datadog
         # The same name as the app-started telemetry event reports for this option.
         def option_env_var(object, name)
           object.class.options.fetch(name).env.to_s
+        end
+
+        # The profilers the local settings run when profiling is enabled.
+        def local_profilers(settings)
+          profiling = settings.profiling
+          advanced = profiling.advanced
+          heap = local_value(advanced, :experimental_heap_enabled)
+
+          profilers = ["cpuTime", "wallTime"]
+          profilers << "allocations" if local_value(profiling, :allocation_enabled)
+          profilers << "heapObjects" if heap
+          profilers << "heapSize" if heap && local_value(advanced, :experimental_heap_size_enabled)
+          profilers
+        end
+
+        # The value without the remote one, which apply_values is about to replace.
+        def local_value(object, name)
+          object.get_option(name) # Builds the option, like using_default? does
+          remote = Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          values = object.options.fetch(name).values_per_precedence
+          values.reject { |precedence, _| precedence == remote }.max_by(&:first)&.last
         end
 
         # The value remote configuration set, which telemetry reports even when it equals the local value.

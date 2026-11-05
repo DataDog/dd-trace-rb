@@ -64,13 +64,17 @@ module Datadog
 
       def self.target_specificity: (target target, String service, String env) -> Integer?
 
-      def self.to_values: (profiler_values profilers, setting_values settings) -> remote_values
+      def self.to_values: (profiler_values profilers, setting_values settings, Array[String] local_profilers) -> remote_values
 
       def self.apply_values: (Core::Configuration::Settings settings, remote_values values, Core::Telemetry::Component? telemetry) -> void
 
       def self.remote_options: (Core::Configuration::Settings settings) -> Array[remote_option]
 
       def self.option_env_var: (Core::Configuration::Options::_Settings object, Symbol name) -> String
+
+      def self.local_profilers: (Core::Configuration::Settings settings) -> Array[String]
+
+      def self.local_value: (Core::Configuration::Options::_InstanceMethods object, Symbol name) -> Core::Configuration::Option::option_value?
 
       def self.remote_value: (Core::Configuration::Options::_InstanceMethods object, Symbol name) -> Core::Configuration::Option::option_value?
 
