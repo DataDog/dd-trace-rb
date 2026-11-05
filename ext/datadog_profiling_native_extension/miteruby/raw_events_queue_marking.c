@@ -9,19 +9,11 @@ _Static_assert(
     offsetof(miteruby_event_stack_sample_t, refs),
   "Bulk marking requires frame references immediately after thread.value"
 );
-_Static_assert(
-  offsetof(miteruby_event_frame_refs_t, cme) == 0 &&
-    offsetof(miteruby_event_frame_refs_t, iseq) == sizeof(VALUE) &&
-    sizeof(miteruby_event_frame_refs_t) == 2 * sizeof(VALUE),
-  "Bulk marking requires contiguous VALUE-sized frame references without padding"
-);
-
 static void miteruby_raw_events_queue_mark_event(const uint64_t *data) {
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)data;
   if (event->header.type != MITERUBY_EVENT_STACK_SAMPLE) return;
 
-  // Assumes thread.value and all frame references form contiguous VALUE-sized slots without padding.
-  // The static assertions above make incompatible layout changes fail compilation.
+  // Layout assertions here and in event.h enforce contiguous VALUE-sized slots without padding.
   rb_gc_mark_locations(&event->thread.value, (const VALUE *)&event->refs[event->header.frame_count]);
 }
 

@@ -131,7 +131,7 @@ void miteruby_consumer_record_stack_sample(
       previous_value = location_id.value;
       miteruby_event_frame_position_t position;
       miteruby_cme_iseq_id_t cme_iseq_id = miteruby_hack_location_id_to_cme_seq_id(location_id, &position);
-      const miteruby_event_frame_refs_t frame = miteruby_hack_id_to_frame_refs(cme_iseq_id);
+      const miteruby_event_frame_refs_t frame = miteruby_id_to_frame_refs(cme_iseq_id);
       if (frame.iseq != NULL) {
         filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
         line = position.value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, position.value);
