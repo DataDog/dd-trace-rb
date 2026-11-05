@@ -129,12 +129,11 @@ void miteruby_consumer_record_stack_sample(
       if (!miteruby_compressed_deltas_read(previous_value, &location_id.value, &cursor, stack.end))
         rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
       previous_value = location_id.value;
-      miteruby_event_frame_position_t position;
-      miteruby_cme_iseq_id_t cme_iseq_id = miteruby_hack_location_id_to_cme_seq_id(location_id, &position);
-      const miteruby_event_frame_refs_t frame = miteruby_id_to_frame_refs(cme_iseq_id);
+      miteruby_location_t location = miteruby_id_to_location(location_id);
+      const miteruby_event_frame_refs_t frame = miteruby_id_to_frame_refs(location.cme_iseq_id);
       if (frame.iseq != NULL) {
         filename = char_slice_from_ruby_string(ddtrace_iseq_path(frame.iseq));
-        line = position.value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, position.value);
+        line = location.position.value == UINT16_MAX ? 0 : rb_iseq_line_no(frame.iseq, location.position.value);
       }
       VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
       // Walk root-first to inherit Ruby caller locations for C frames; libdatadog expects the opposite order.
