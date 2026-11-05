@@ -1,4 +1,5 @@
 require "datadog/di/spec_helper"
+require "weakref"
 require "datadog/di/correlation_sampler"
 
 RSpec.describe Datadog::DI::CorrelationSampler do
@@ -322,6 +323,25 @@ RSpec.describe Datadog::DI::CorrelationSampler do
 
     it "returns nil for an unknown trace" do
       expect(ledger.fetch(Object.new)).to be_nil
+    end
+
+    it "discards a dead entry under a colliding object id as a miss" do
+      # A live trace reusing a collected trace's object id finds the dead
+      # entry. The entry is injected with the collision in place, since
+      # waiting for the allocator to reuse an id is not deterministic.
+      entry = nil
+      Thread.new do
+        doomed = Object.new
+        entry = Datadog::DI::CorrelationSampler::TraceBudgetLedger::Entry.new(
+          trace_ref: WeakRef.new(doomed), budget: budget,
+        )
+      end.join
+      GC.start
+      colliding = Object.new
+      ledger.entries[colliding.object_id] = entry
+
+      expect(ledger.fetch(colliding)).to be_nil
+      expect(ledger.entries).not_to have_key(colliding.object_id)
     end
 
     it "rejects a sweep_threshold that is not a positive Integer" do
