@@ -1,28 +1,7 @@
 # frozen_string_literal: true
 
 module CustomCops
-  # Custom cop that prevents `remove_instance_variable` in library code.
-  #
-  # Removing an instance variable is much slower than assigning `nil` to it
-  # (about 19ns vs 2.4ns on MRI), and it changes the object's shape, which
-  # makes every later instance variable access on that object polymorphic.
-  # Assign `nil` and test for `nil` instead. When `nil` is itself a meaningful
-  # value, keep a separate boolean flag next to the variable.
-  #
-  # Also flags `send`, `__send__` and `public_send` calls that name
-  # `remove_instance_variable` with a literal symbol or string.
-  #
-  # There is no autocorrection: the replacement depends on how the variable is
-  # read afterwards.
-  #
-  # @example
-  #   # bad
-  #   remove_instance_variable(:@foo)
-  #   object.remove_instance_variable(:@foo)
-  #   object.send(:remove_instance_variable, :@foo)
-  #
-  #   # good
-  #   @foo = nil
+  # See README.md for rationale and examples.
   class RemoveInstanceVariableCop < RuboCop::Cop::Base
     MSG = "Avoid `remove_instance_variable`: it is slow and changes the object's shape, which makes later " \
           "instance variable accesses polymorphic. Assign `nil` instead (and keep a separate flag if `nil` " \
