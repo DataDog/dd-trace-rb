@@ -27,6 +27,18 @@ module Datadog
         @tokens
       end
 
+      # Returns the balance the bucket holds at +now+: the stored balance
+      # plus +rate+ tokens for every second since the last refill, capped
+      # at +max_tokens+.
+      #
+      # @param now [Float] monotonic time, in seconds
+      # @return [Numeric]
+      def balance_at(now)
+        accrued = available_tokens + rate * (now - last_refill)
+        accrued = max_tokens if accrued > max_tokens
+        accrued
+      end
+
       private
 
       # Sets the shared bucket state: the balance starts at +max_tokens+ and
@@ -46,23 +58,12 @@ module Datadog
         @last_refill = Core::Utils::Time.get_time
       end
 
-      # Adds +rate+ times the seconds elapsed since the last refill to the
-      # balance, capping it at +max_tokens+.
+      # Persists the balance the bucket holds at the current time.
       # @return [void]
       def refill
         now = Core::Utils::Time.get_time
-        refill_tokens(rate * (now - last_refill))
+        @tokens = balance_at(now)
         @last_refill = now
-
-        nil
-      end
-
-      # Adds +size+ tokens to the balance, capping it at +max_tokens+.
-      # @param size [Numeric] tokens to add
-      # @return [void]
-      def refill_tokens(size)
-        @tokens = available_tokens + size
-        @tokens = max_tokens if available_tokens > max_tokens
 
         nil
       end

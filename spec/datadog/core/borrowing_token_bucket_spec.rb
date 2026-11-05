@@ -74,6 +74,14 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
       20.times { bucket.consume }
       expect(bucket.available?).to be(false)
     end
+
+    it "keeps the stored balance as of the last refill" do
+      19.times { bucket.consume }
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(100)
+
+      expect(bucket.available?).to be(true)
+      expect(bucket.available_tokens).to eq(1)
+    end
   end
 
   describe "#try_consume" do
@@ -113,21 +121,18 @@ RSpec.describe Datadog::Core::BorrowingTokenBucket do
     end
   end
 
-  describe "refill" do
+  describe "#balance_at" do
     it "recovers a negative balance by rate * elapsed" do
       30.times { bucket.consume }
       expect(bucket.available_tokens).to eq(-10)
 
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.5)
-      expect(bucket.available?).to be(false)
-      expect(bucket.available_tokens).to eq(0)
+      expect(bucket.balance_at(0.5)).to eq(0)
     end
 
     it "caps the balance at max_tokens on the upper side" do
       bucket.consume
-      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(100)
-      expect(bucket.available?).to be(true)
-      expect(bucket.available_tokens).to eq(max_tokens)
+
+      expect(bucket.balance_at(100)).to eq(max_tokens)
     end
   end
 end

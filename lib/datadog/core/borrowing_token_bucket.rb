@@ -26,8 +26,7 @@ module Datadog
 
       # @return [Boolean] whether the balance is currently positive
       def available?
-        refill
-        available_tokens > 0
+        balance_at(Core::Utils::Time.get_time) > 0
       end
 
       # Removes +size+ tokens; the balance goes below zero when +size+

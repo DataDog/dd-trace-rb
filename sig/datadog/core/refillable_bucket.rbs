@@ -17,13 +17,13 @@ module Datadog
 
       def available_tokens: () -> Numeric
 
+      def balance_at: (Float now) -> Numeric
+
       private
 
       def initialize_bucket: (Float | Integer rate, Numeric max_tokens) -> void
 
       def refill: () -> void
-
-      def refill_tokens: (Numeric size) -> void
     end
   end
 end
