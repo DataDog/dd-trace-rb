@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(16)
+// The 16 MiB event queue holds at most 349,525 unique stacks (48 bytes minimum per event), fitting in 524,288 map buckets.
+// 16-byte hash/offset pairs plus metadata need just over 9 MiB.
+#define UNIQUE_STACKS_MAP_MAX_SIZE MiB_AS_BYTES(10)
 
 static uint64_t stack_hash_value(miteruby_stack_hash_t key);
 static bool stack_hash_equal(miteruby_stack_hash_t left, miteruby_stack_hash_t right);
