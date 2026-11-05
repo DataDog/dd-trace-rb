@@ -163,7 +163,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         streaming = streaming_serializer.serialize
         expect(samples_from_pprof(original)).to_not be_empty
 
-        pending("Streaming serialization does not yet emit samples or function strings")
+        pending("Streaming serialization currently contains only sample types, fixed strings, and profile metadata")
         expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
       ensure
         cpu_and_wall_time_worker.stop
@@ -2248,11 +2248,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       profile = decode_profile(streaming_serializer.serialize)
       expect(profile.sample_type.size).to eq(6)
-      function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)
-      expect(function_count).to be > 1
-      expect(profile.function.map { |function| [function.id, function.name, function.filename] }).to match_array(
-        Array.new(function_count) { |map_id| [map_id + 1, 9 + map_id * 2, 10 + map_id * 2] },
-      )
+      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)).to be > 1
+      expect(profile.function).to be_empty
       expect(recorded_miteruby_samples).to be_empty
       expect(decode_profile(streaming_serializer.serialize).function).to eq(profile.function)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
