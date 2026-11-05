@@ -139,7 +139,6 @@ module Datadog
       # @return [CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
-      # Coordinated sampling gate for capturing probe hits.
       # @return [Datadog::DI::CorrelationSampler]
       attr_reader :correlation_sampler
       attr_reader :instrumenter
