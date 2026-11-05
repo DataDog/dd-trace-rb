@@ -12,9 +12,7 @@ module Datadog
       # Initializes the balance at +max_tokens+, permitting the balance to go
       # below zero thereafter.
       #
-      # @param rate [Numeric] refill rate, in tokens per second. A zero rate
-      #   adds zero tokens per second, so the balance only decreases; a
-      #   negative rate raises +ArgumentError+.
+      # @param rate [Numeric] refill rate, in tokens per second
       # @param max_tokens [Numeric] ceiling the balance refills toward
       # @raise [ArgumentError] when rate or max_tokens is negative, or when
       #   either is not a number
