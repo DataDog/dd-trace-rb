@@ -108,7 +108,12 @@ _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes"
 _Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
-_Static_assert(sizeof(miteruby_event_frame_refs_t) == 16, "miteruby_event_frame_refs_t must be 16 bytes");
+_Static_assert(
+  offsetof(miteruby_event_frame_refs_t, cme) == 0 &&
+    offsetof(miteruby_event_frame_refs_t, iseq) == sizeof(VALUE) &&
+    sizeof(miteruby_event_frame_refs_t) == 2 * sizeof(VALUE),
+  "Bulk marking requires contiguous VALUE-sized frame references without padding"
+);
 _Static_assert(sizeof(miteruby_cme_iseq_id_t) == 2, "miteruby_cme_iseq_id_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_location_id_t) == 4, "miteruby_location_id_t must be 4 bytes");
 _Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_frame_position_t must be 2 bytes");
