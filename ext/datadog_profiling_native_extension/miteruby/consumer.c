@@ -21,7 +21,14 @@
 
 #define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
 #define MARK_CME_ISEQ_MAX_SIZE MiB_AS_BYTES(16)
+#define MARK_CME_ISEQ_ARRAY_CAPACITY ((size_t) UINT16_MAX + 1)
 #define LOCATION_MAP_MAX_SIZE MiB_AS_BYTES(16)
+
+typedef struct {
+  miteruby_event_frame_refs_t *entries;
+  size_t count;
+  size_t capacity;
+} miteruby_mark_cme_iseq_array_t;
 
 typedef struct {
   miteruby_cme_iseq_id_t cme_iseq_id;
@@ -76,6 +83,7 @@ typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;
   verstable_mark_threads_set mark_threads_set;
   verstable_mark_cme_iseq_map mark_cme_iseq_map;
+  miteruby_mark_cme_iseq_array_t mark_cme_iseq_array;
   verstable_location_map location_map;
 
   // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
@@ -211,6 +219,7 @@ static size_t consumer_size(const void *data) {
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(state->mark_cme_iseq_map.buckets) +
+    miteruby_allocator_alloc_size(state->mark_cme_iseq_array.entries) +
     miteruby_allocator_alloc_size(state->location_map.buckets) +
     miteruby_stack_dedup_size();
 
@@ -287,6 +296,15 @@ void miteruby_consumer_reset(void) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
   }
 
+  miteruby_event_frame_refs_t *new_entries = miteruby_allocator_alloc(
+    MARK_CME_ISEQ_ARRAY_CAPACITY * sizeof(*new_entries), "mark_cme_iseq_array"
+  );
+  if (new_entries == NULL) {
+    miteruby_allocator_free(new_queue);
+    mutex_unlock(&consumer_state.mutex);
+    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.mark_cme_iseq_array");
+  }
+
   miteruby_allocator_free(consumer_state.interned_events_queue);
   consumer_state.interned_events_queue = new_queue;
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
@@ -294,6 +312,13 @@ void miteruby_consumer_reset(void) {
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
   verstable_mark_cme_iseq_map_clear(&consumer_state.mark_cme_iseq_map);
   verstable_location_map_clear(&consumer_state.location_map);
+
+  miteruby_allocator_free(consumer_state.mark_cme_iseq_array.entries);
+  consumer_state.mark_cme_iseq_array = (miteruby_mark_cme_iseq_array_t) {
+    .entries = new_entries,
+    .count = 0,
+    .capacity = MARK_CME_ISEQ_ARRAY_CAPACITY,
+  };
 
   miteruby_consumer_recorder_init();
 
