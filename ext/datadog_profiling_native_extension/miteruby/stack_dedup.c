@@ -51,10 +51,6 @@ static void *unique_stacks_calloc(size_t size);
 //   hash(E F; 0 1)         -> stack_id: 48  (Event 2)
 //
 // The map must be cleared before the consumer reuses the event storage after serialization or reset.
-//
-// Even though conceptually CME and ISEQs are VALUEs that need marking for Ruby GC, the consumer tracks them separately
-// in `verstable_mark_cme_iseq_map` so we don't need to mark them again here.
-
 typedef struct {
   verstable_unique_stacks_map unique_stacks;
 } miteruby_stack_dedup_state_t;
