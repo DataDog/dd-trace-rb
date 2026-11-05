@@ -4,7 +4,7 @@ module Datadog
   module DI
     class CorrelationSampler
       class TraceBudgetLedger
-        # One retained budget and the weak reference to its trace.
+        # Retained budget and the weak reference to its trace.
         #
         # @api private
         class Entry
