@@ -76,6 +76,7 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @profiling_enabled = nil
 
         @otel_thread_context = otel_thread_context
 
@@ -656,7 +657,9 @@ module Datadog
       end
 
       def profiling_enabled
-        @profiling_enabled ||=
+        return @profiling_enabled unless @profiling_enabled.nil?
+
+        @profiling_enabled =
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
 

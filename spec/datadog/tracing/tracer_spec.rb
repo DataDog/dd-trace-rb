@@ -330,6 +330,15 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(traces.first.profiling_enabled).to be true
         end
 
+        it "reads profiling_enabled only once, even when profiling is disabled" do
+          expect(Datadog::Profiling).to receive(:enabled?).once.and_return(false)
+
+          tracer.trace(name) {}
+          tracer.trace(name) {}
+
+          expect(traces.map(&:profiling_enabled)).to eq([false, false])
+        end
+
         it "reads profiling_enabled again after reset_profiling_enabled" do
           allow(Datadog::Profiling).to receive(:enabled?).and_return(true, false)
 
