@@ -29,6 +29,8 @@ module Datadog
 
       METADATA_ALLOCATION_KEY: ::String
 
+      METADATA_SERIAL_ID: String
+
       METADATA_OBSERVE_FULL_EVALUATION_DATA: ::String
     end
   end
