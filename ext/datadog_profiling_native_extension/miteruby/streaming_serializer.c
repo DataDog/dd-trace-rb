@@ -134,7 +134,7 @@ void miteruby_streaming_serializer_prepare_serialize(VALUE serializer, uint8_t *
     !verstable_mark_cme_iseq_map_is_end(entry);
     entry = verstable_mark_cme_iseq_map_next(entry)
   ) {
-    uint64_t map_id = entry.data->val.value.value;
+    uint64_t map_id = entry.data->val.value;
     int64_t name_id = string_table_id_for(map_id);
     miteruby_pprof_fragment_function_t fragment = {
       .has_function = true,
