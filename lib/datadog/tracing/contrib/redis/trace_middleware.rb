@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'quantize'
-require_relative 'tags'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "quantize"
+require_relative "tags"
 
 module Datadog
   module Tracing
@@ -26,6 +26,7 @@ module Datadog
           class << self
             def call(client, command, service_name, command_args)
               Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Redis::Ext::TAG_COMPONENT)
                 raw_command = get_command(command, true)
                 span.resource = command_args ? raw_command : get_command(command, false)
 
@@ -36,11 +37,18 @@ module Datadog
             end
 
             def call_pipelined(client, commands, service_name, command_args)
-              Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
-                raw_command = get_pipeline_commands(commands, true)
-                span.resource = command_args ? raw_command : get_pipeline_commands(commands, false)
+              # `redis-client` sends its per-connection handshake (`HELLO`, `CLIENT SETINFO`/`SETNAME`)
+              # as a pipeline through this same code path. Excluding those from resource naming keeps
+              # the resource focused on application-issued commands (e.g. a lone `SELECT` prelude).
+              traced_commands = commands.reject { |c| Contrib::Redis::Quantize.connection_setup_command?(c) }
+              return yield if traced_commands.empty? && !commands.empty?
 
-                span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
+              Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Redis::Ext::TAG_COMPONENT)
+                raw_command = get_pipeline_commands(traced_commands, true)
+                span.resource = command_args ? raw_command : get_pipeline_commands(traced_commands, false)
+
+                span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, traced_commands.length
 
                 Contrib::Redis::Tags.set_common_tags(client, span, raw_command)
 
@@ -67,7 +75,7 @@ module Datadog
                 commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
               end
 
-              list.empty? ? '(none)' : list.join("\n")
+              list.empty? ? "(none)" : list.join("\n")
             end
           end
 

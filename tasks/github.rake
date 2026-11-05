@@ -1,145 +1,46 @@
-require 'json'
-require_relative 'appraisal_conversion'
+# frozen_string_literal: true
 
-# rubocop:disable Metrics/BlockLength
+require "json"
+require_relative "lib/test_batching"
+
+# Each task is one step of the Unit Tests / Update Task Weights workflows,
+# which own the pipeline's orchestration.
+
 namespace :github do
-  task :generate_batches do
-    matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
-
-    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
-    misc_candidates = [
-      'mongodb',
-      'elasticsearch',
-      'opensearch',
-      'presto',
-      'dalli',
-    ]
-
+  desc "Emit the batched task matrix as JSON (Unit Tests batch job)"
+  task :schedule_batches do
+    matrix = TestBatching::TaskMatrix.new(eval(File.read("Matrixfile")).freeze) # rubocop:disable Security/Eval
     ruby_version = RUBY_VERSION[0..2]
 
-    matching_tasks = []
-    misc_tasks = []
-
-    matrix.each do |key, spec_metadata|
-      spec_metadata.each do |group, rubies|
-        matched = if RUBY_PLATFORM == 'java'
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
-
-        next unless matched
-
-        gemfile = begin
-          AppraisalConversion.to_bundle_gemfile(group)
-        rescue
-          'Gemfile'
-        end
-
-        task = {task: key, group: group, gemfile: gemfile}
-
-        if misc_candidates.include?(key)
-          misc_tasks << task
-        else
-          matching_tasks << task
-        end
+    # Weighted batching turns itself on once the scheduled Update Task Weights
+    # workflow has saved a manifest into the cache. Until then keep master's
+    # static even-split batching, byte-identical to today.
+    weights = TestBatching::Weights.load
+    strategy =
+      if weights.empty?
+        TestBatching::Static.new
+      else
+        TestBatching::Weighted.new(weights.for_ruby(ruby_version))
       end
-    end
 
-    # Random!
-    matching_tasks.shuffle!
-
-    batch_count = 7
-    batch_count *= 2 if RUBY_PLATFORM == 'java'
-
-    tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
-
-    batched_matrix = {'include' => []}
-
-    matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix['include'] << {'batch' => index.to_s, 'tasks' => task_group}
-    end
-
-    data = {
-      batches: batched_matrix,
-      misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
-    }
-
-    # Output the JSON
-    puts JSON.dump(data)
+    puts strategy.plan(matrix, ruby_version).to_json
   end
 
+  desc "Append the batch matrix to the job's step summary"
   task :generate_batch_summary do
-    batches_json = ENV['batches_json']
-    raise 'batches_json environment variable not set' unless batches_json
-
-    data = JSON.parse(batches_json)
-    summary = ENV['GITHUB_STEP_SUMMARY']
-
-    File.open(summary, 'a') do |f|
-      data['include'].each do |batch|
-        rows = batch['tasks'].map do |t|
-          "* #{t["task"]} (#{t["group"]})"
-        end
-
-        f.puts <<~SUMMARY
-          <details>
-          <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks)</summary>
-
-          #{rows.join("\n")}
-          </details>
-        SUMMARY
-      end
-    end
+    TestBatching::Runner.write_batch_summary(ENV["batches_json"])
   end
 
-  task :run_batch_build do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+  desc "Aggregate a directory of downloaded timing artifacts into the weights manifest"
+  task :aggregate_timings, [:directory] do |_, args|
+    directory = args[:directory]
+    raise "timings directory not provided" if directory.to_s.empty?
 
-    tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = 'bundle check || bundle install'
-      # This retry mechanism is a generic way to improve the reliability in Github Actions,
-      # since network issues can cause the `bundle install` command to fail,
-      # even when Bundler has been configured to retry
-      #
-      # Furthermore, for JRuby 9.2, `bundle install` command failed ocassionally with the NameError.
-      #
-      # Mitigate the flakiness by retrying the command up to 3 times.
-      #
-      # https://github.com/jruby/jruby/issues/7508
-      # https://github.com/jruby/jruby/issues/3656
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      end
-    end
+    TestBatching::Weights.aggregate(directory)
   end
 
-  task :run_batch_tests do
-    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
-
-    tasks.each do |task|
-      env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = "bundle exec rake spec:#{task["task"]}"
-
-      Bundler.with_unbundled_env { sh(env, cmd) }
-    end
-  end
-
-  def with_retry(&block)
-    retries = 0
-    begin
-      yield
-    rescue => e
-      rake_output_message(
-        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-        Source:\n#{Array(e.backtrace).join("\n")}"
-      )
-      sleep(2**retries)
-      retries += 1
-      retry if retries < 3
-      raise
-    end
+  desc "Run one batch end to end and record the run's durations"
+  task :run_batch do
+    TestBatching::Runner.run(JSON.parse(ENV["BATCHED_TASKS"] || {}))
   end
 end
-# rubocop:enable Metrics/BlockLength

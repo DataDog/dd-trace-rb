@@ -5,11 +5,9 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.run_id || github.ref }}
   cancel-in-progress: true
 
 # Default permissions for all jobs
@@ -19,77 +17,77 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     outputs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Prepare bundle cache
         id: bundle-cache
-        uses: ./.github/actions/bundle-cache
-
-  rubocop:
-    name: rubocop/lint
-    runs-on: ubuntu-24.04
-    needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake rubocop
+        uses: $/.github/actions/bundle-cache
 
   standard:
     name: standard/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake standard
 
-  frozen_string_literal:
-    name: lint/frozen_string_literal
+  rubocop:
+    name: rubocop/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake lint:frozen_string_literal
+      - run: bundle exec rake rubocop
 
-  steep:
-    name: steep/typecheck
+  steep-check:
+    name: steep/check
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
+        uses: $/.github/actions/bundle-restore
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
@@ -98,16 +96,163 @@ jobs:
       - name: Check for missing signature files
         run: bundle exec rake rbs:missing
       - name: Check types
-        run: bundle exec rake steep:check
+        run: bundle exec rake 'steep:check[--jobs=4]'
+
+  steep-stats:
+    name: steep/stats
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: $/.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
       - name: Record stats
-        run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
+        run: bundle exec rake 'steep:stats[md,--jobs=4]' >> "$GITHUB_STEP_SUMMARY"
+
+  bundler-audit:
+    name: bundler-audit
+    runs-on: ubuntu-24.04
+    # Release prep: master pushes and bump_to_version_* release PRs ship
+    # lockfiles that predate the advisory database refresh, so a newly
+    # published CVE there would only block the release without a fix path.
+    # Skipped; findings are handled at the next regular dependency refresh.
+    if: >-
+      !(
+        (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+        (github.event_name == 'pull_request' && startsWith(github.head_ref, 'bump_to_version_'))
+      )
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install and run dependency audit
+        run: .github/scripts/check/dependency_audit.sh
+
+  simple-english:
+    name: simple-english
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Lint docs and agent skills
+        uses: TonyCTHsu/simple-english@1f6e849a0d88acf66a6bf60a814d8968c15ef2c1 # v0.13.0
+        with:
+          files: |
+            docs/DependencyAudit.md
+            .agents/skills
+          version: 0.13.0
+
+  # Excluded from Green CI metrics: this workflow is static linting, and
+  # bundler-audit is a guard against newly published CVEs, not a test.
+  green-ci-exclude-metrics:
+    name: green-ci/exclude-metrics
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    container:
+      image: datadog/ci:v5.7.0 # MANUAL-PIN: datadog/ci
+    steps:
+      - name: Get Datadog credentials via dd-sts
+        id: dd-sts
+        uses: DataDog/dd-sts-action@639d841c72f15e4e77747bd726ef8105ce971da2
+        with:
+          policy: public-datadog-dd-trace-rb
+      - name: Exclude from Green CI process
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
+        run: datadog-ci tag --level pipeline --tags green_ci.excluded:true
+
+  changelog:
+    name: changelog/check
+    runs-on: ubuntu-24.04
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          ruby-version: "4.0.1"
+          bundler-cache: true
+
+      - name: Check CHANGELOG.md is only changed by release PRs
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/check_changelog_release_only.sh
+
+      - name: Validate changelog fragment schema
+        run: bundle exec rake unreleased:lint
+
+      - name: Install vale
+        env:
+          VALE_VERSION: "3.20.0" # MANUAL-PIN: vale
+          VALE_SHA256: f59e7030c5d4ace6cf915497d0d076a1699d61e876142765963237e6867c9712
+        run: .github/scripts/vale/install.sh
+
+      - name: Install vale style packages
+        env:
+          WRITE_GOOD_VERSION: "0.4.1" # MANUAL-PIN: write-good
+          WRITE_GOOD_SHA256: 2960ef10861ddc7dc76292a4967eb3789bf05ca24f862042f6d15f53332887f0
+          PROSELINT_VERSION: "0.3.4" # MANUAL-PIN: proselint
+          PROSELINT_SHA256: 48b1fb481ba44f6505d44346b283f6cdc74efd234f913bbdb09bf34420fab81c
+          HARPER_VERSION: "0.1.0" # MANUAL-PIN: harper
+          HARPER_SHA256: bfab282e7abd8906f8656c240ccd4d873679878ed8e0c42d683ad7e2798c436c
+        run: .github/scripts/vale/install_styles.sh
+
+      - name: Lint changelog fragment messages
+        run: bundle exec rake unreleased:vale
+
+      - name: Render changelog fragments
+        run: bundle exec rake unreleased:render >> "$GITHUB_STEP_SUMMARY"
+
+  checksum-coverage:
+    name: checksum-coverage
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: $/.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake dependency:checksum_coverage
 
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-24.04
-    container: semgrep/semgrep # PENDING: Possible to be rate limited.
+    container: semgrep/semgrep:1.169.0 # MANUAL-PIN: semgrep. PENDING: Possible to be rate limited.
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: |
@@ -119,54 +264,73 @@ jobs:
         env:
           SEMGREP_RULES: p/default
 
-  # https://woodruffw.github.io/zizmor/
   zizmor:
     name: zizmor
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Run zizmor 🌈
-        uses: docker://ghcr.io/woodruffw/zizmor:1.4.1
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@c85802a58e202b7e764b5441e4378c76043c8108 # v1.0.5
         with:
-          args: --min-severity low .
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          scope: DataDog/dd-trace-rb
+          policy: self.check
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          version: 1.31.1 # MANUAL-PIN: zizmor (needs a zizmor-action release that knows this version)
+          min-severity: low
+          advanced-security: false
+          token: ${{ steps.generate-token.outputs.token }}
 
   actionlint:
     name: actionlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.7.7
-        with:
-          args: -color
+        env:
+          ACTIONLINT_IMAGE: rhysd/actionlint@sha256:96d4a8c87dbbfb3bdd324f8fdc285fc3df5261e2decc619a4dd7e8ee52bbfd46 # MANUAL-PIN: actionlint 1.7.8
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --workdir /repo \
+            "$ACTIONLINT_IMAGE" \
+            -color
 
   yaml-lint:
     name: yaml-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: pip install yamllint
+      - run: pip install yamllint==1.38.0 # MANUAL-PIN: yamllint
       - name: Run yamllint
         run: yamllint --strict .
 
   complete:
     name: Static Analysis (complete)
     needs:
-      - 'steep'
-      - 'rubocop'
+      - 'steep-check'
+      - 'steep-stats'
       - 'standard'
+      - 'rubocop'
       - 'semgrep'
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
+      - 'checksum-coverage'
+      - 'bundler-audit'
+      - 'simple-english'
+      - 'green-ci-exclude-metrics'
+      - 'changelog'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

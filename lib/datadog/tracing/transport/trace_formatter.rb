@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../core/environment/identity'
-require_relative '../../core/environment/socket'
-require_relative '../../core/environment/git'
-require_relative '../../core/git/ext'
-require_relative '../../core/runtime/ext'
-require_relative '../metadata/ext'
-require_relative '../trace_segment'
+require_relative "../../core/environment/identity"
+require_relative "../../core/environment/process"
+require_relative "../../core/environment/socket"
+require_relative "../../core/environment/git"
+require_relative "../../core/git/ext"
+require_relative "../../core/runtime/ext"
+require_relative "../metadata/ext"
+require_relative "../trace_segment"
 
 module Datadog
   module Tracing
@@ -18,8 +19,8 @@ module Datadog
           :first_span,
           :trace
 
-        def self.format!(trace)
-          new(trace).format!
+        def self.format!(trace, transport: nil)
+          new(trace).format!(transport: transport)
         end
 
         def initialize(trace)
@@ -31,7 +32,7 @@ module Datadog
         end
 
         # Modifies a trace so suitable for transport
-        def format!
+        def format!(transport: nil)
           return unless trace
           return trace unless root_span
 
@@ -48,6 +49,7 @@ module Datadog
 
           tag_agent_sample_rate!
           tag_hostname!
+          tag_knuth_sampling_rate!
           tag_lang!
           tag_origin!
           tag_process_id!
@@ -62,9 +64,13 @@ module Datadog
           tag_apm_tracing_disabled!
 
           if first_span
+            tag_process_tags!
+            tag_sdk_otlp_export!
             tag_git_repository_url!
             tag_git_commit_sha!
           end
+
+          root_span.set_tag("_dd.tracing.transport", transport) if transport && !partial?
 
           trace
         end
@@ -95,7 +101,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE,
-            trace.agent_sample_rate
+            trace.agent_sample_rate,
           )
         end
 
@@ -104,7 +110,17 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::NET::TAG_HOSTNAME,
-            trace.hostname
+            trace.hostname,
+          )
+        end
+
+        def tag_knuth_sampling_rate!
+          rate = trace.rule_sample_rate || trace.agent_sample_rate
+          return unless rate
+
+          root_span.set_tag(
+            Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
+            format("%.6f", (rate * 1e6).round / 1e6).sub(/\.?0+\z/, ""),
           )
         end
 
@@ -113,7 +129,7 @@ module Datadog
 
           root_span.set_tag(
             Core::Runtime::Ext::TAG_LANG,
-            trace.lang
+            trace.lang,
           )
         end
 
@@ -122,7 +138,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_ORIGIN,
-            trace.origin
+            trace.origin,
           )
         end
 
@@ -137,7 +153,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE,
-            trace.rate_limiter_rate
+            trace.rate_limiter_rate,
           )
         end
 
@@ -146,7 +162,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE,
-            trace.rule_sample_rate
+            trace.rule_sample_rate,
           )
         end
 
@@ -155,7 +171,7 @@ module Datadog
 
           root_span.set_tag(
             Core::Runtime::Ext::TAG_ID,
-            trace.runtime_id
+            trace.runtime_id,
           )
         end
 
@@ -164,7 +180,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
-            trace.sample_rate
+            trace.sample_rate,
           )
         end
 
@@ -179,7 +195,7 @@ module Datadog
 
           root_span.set_metric(
             Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
-            trace.sampling_priority
+            trace.sampling_priority,
           )
         end
 
@@ -193,14 +209,14 @@ module Datadog
           return if trace.profiling_enabled.nil?
 
           root_span.set_tag(
-            Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0
+            Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0,
           )
         end
 
         def tag_apm_tracing_disabled!
           return if trace.apm_tracing_enabled
 
-          root_span.set_tag(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
+          trace.spans.each { |span| span.set_metric(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0) }
         end
 
         def tag_git_repository_url!
@@ -213,6 +229,22 @@ module Datadog
           return if git_commit_sha.nil?
 
           first_span.set_tag(Core::Git::Ext::TAG_COMMIT_SHA, git_commit_sha)
+        end
+
+        def tag_process_tags!
+          return unless Datadog.configuration.experimental_propagate_process_tags_enabled
+
+          first_span.set_tag(
+            Core::Environment::Ext::TAG_PROCESS_TAGS,
+            Core::Environment::Process.serialized,
+          )
+        end
+
+        # TODO: Revisit when OTLP trace export support lands. The OTLP path sets
+        # `_dd.sdk.otlp_export: "true"` on the OTLP resource, so this tag must not
+        # also be set to "false" on the first span of a chunk exported over OTLP.
+        def tag_sdk_otlp_export!
+          first_span.set_tag(Tracing::Metadata::Ext::TAG_SDK_OTLP_EXPORT, "false")
         end
 
         private

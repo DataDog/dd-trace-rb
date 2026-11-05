@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../../status_range_matcher'
-require_relative '../../status_range_env_parser'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../../status_range_matcher"
+require_relative "../../status_range_env_parser"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -13,10 +13,6 @@ module Datadog
           # Custom settings for the Faraday integration
           # @public_api
           class Settings < Contrib::Configuration::Settings
-            DEFAULT_ERROR_HANDLER = lambda do |env|
-              Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
-            end
-
             option :enabled do |o|
               o.type :bool
               o.env Ext::ENV_ENABLED
@@ -36,17 +32,28 @@ module Datadog
               o.default 1.0
             end
 
-            option :distributed_tracing, default: true, type: :bool
-
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
             option :on_error do |o|
               o.type :proc, nilable: true
             end
 
             option :error_status_codes do |o|
               o.env Ext::ENV_ERROR_STATUS_CODES
-              o.default 400...600
-              o.setter do |v|
-                Tracing::Contrib::StatusRangeMatcher.new(v) if v
+              o.setter do |value|
+                if value.nil?
+                  # Fallback to global config, which is defaulted to client (400..499) + server (500..599)
+                  # DEV-3.0: `faraday` is a client library, this should fall back to `http_error_statuses.client` only.
+                  # We cannot change it without causing a breaking change.
+                  client_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.client
+                  server_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.server
+                  client_global_error_statuses + server_global_error_statuses
+                else
+                  Tracing::Contrib::StatusRangeMatcher.new(value)
+                end
               end
               o.env_parser do |v|
                 Tracing::Contrib::StatusRangeEnvParser.call(v) if v
@@ -60,7 +67,7 @@ module Datadog
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
-                  Ext::DEFAULT_PEER_SERVICE_NAME
+                  Ext::DEFAULT_PEER_SERVICE_NAME,
                 )
               end
             end

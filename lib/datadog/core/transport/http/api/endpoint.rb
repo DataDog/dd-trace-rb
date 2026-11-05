@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module Datadog
   module Core
@@ -9,13 +9,18 @@ module Datadog
         module API
           # Endpoint
           class Endpoint
-            attr_reader \
-              :verb,
-              :path
+            attr_reader :verb
+            attr_reader :path
 
-            def initialize(verb, path)
+            # TODO Currently only Traces transport specifies an encoder.
+            # Other transports perform encoding "inline" / ad-hoc.
+            # They should probably use this encoder field instead.
+            attr_reader :encoder
+
+            def initialize(verb, path, encoder: nil)
               @verb = verb
               @path = path
+              @encoder = encoder
             end
 
             def call(env)

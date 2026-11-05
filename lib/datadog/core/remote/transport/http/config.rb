@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../config'
-require_relative 'client'
-require_relative '../../../utils/base64'
-require_relative '../../../utils/truncation'
-require_relative '../../../transport/http/response'
-require_relative '../../../transport/http/api/endpoint'
+require_relative "../../../transport/http/api/endpoint"
+require_relative "../../../transport/http/response"
+require_relative "../../../utils/base64_codec"
+require_relative "../../../utils/truncation"
 
 module Datadog
   module Core
@@ -18,8 +16,7 @@ module Datadog
           module Config
             # Response from HTTP transport for remote configuration
             class Response
-              include Datadog::Core::Transport::HTTP::Response
-              include Core::Remote::Transport::Config::Response
+              include Core::Transport::HTTP::Response
 
               def initialize(http_response, options = {}) # standard:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
@@ -38,7 +35,7 @@ module Datadog
 
                 # TODO: these fallbacks should be improved
                 roots = payload[:roots] || []
-                targets = payload[:targets] || Datadog::Core::Utils::Base64.strict_encode64('{}')
+                targets = payload[:targets] || Datadog::Core::Utils::Base64Codec.strict_encode64("{}")
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 
@@ -48,7 +45,7 @@ module Datadog
                   raise TypeError.new(String, root) unless root.is_a?(String)
 
                   decoded = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
                   rescue ArgumentError
                     raise DecodeError.new(:roots, root)
                   end
@@ -68,7 +65,7 @@ module Datadog
 
                 @targets = begin
                   decoded = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(targets)
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(targets)
                   rescue ArgumentError
                     raise DecodeError.new(:targets, targets)
                   end
@@ -96,14 +93,14 @@ module Datadog
                   raise TypeError.new(String, raw) unless raw.is_a?(String)
 
                   content = begin
-                    Datadog::Core::Utils::Base64.strict_decode64(raw)
+                    Datadog::Core::Utils::Base64Codec.strict_decode64(raw)
                   rescue ArgumentError
                     raise DecodeError.new(:target_files, raw)
                   end
 
                   {
                     path: h[:path].freeze,
-                    content: StringIO.new(content.freeze),
+                    content: content.freeze,
                   }
                 end.freeze
 
@@ -112,6 +109,12 @@ module Datadog
 
                   s.freeze
                 end.freeze
+              end
+
+              attr_reader :roots, :targets, :target_files, :client_configs
+
+              def empty?
+                @empty
               end
 
               def inspect
@@ -174,49 +177,10 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP client
-            module Client
-              def send_config_payload(request)
-                send_request(request) do |api, env|
-                  api.send_config(env)
-                end
-              end
-            end
-
             module API
-              # Extensions for HTTP API Spec
-              module Spec
-                attr_reader :config
-
-                def config=(endpoint)
-                  @config = endpoint
-                end
-
-                def send_config(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
-
-                  config.call(env, &block)
-                end
-              end
-
-              # Extensions for HTTP API Instance
-              module Instance
-                def send_config(env)
-                  unless spec.is_a?(Config::API::Spec)
-                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                      'config', self
-                    )
-                  end
-
-                  spec.send_config(env) do |request_env|
-                    call(request_env)
-                  end
-                end
-              end
-
               # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-                HEADER_CONTENT_TYPE = 'Content-Type'
+                HEADER_CONTENT_TYPE = "Content-Type"
 
                 attr_reader :encoder
 
@@ -240,10 +204,6 @@ module Datadog
                 end
               end
             end
-
-            # Add remote configuration behavior to transport components
-            ###### overrides send_payload! which calls send_<endpoint>! kills any other possible endpoint!
-            HTTP::Client.include(Config::Client)
           end
         end
       end

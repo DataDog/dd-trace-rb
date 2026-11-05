@@ -7,19 +7,25 @@ module Datadog
 
       @span: Tracing::SpanOperation
 
-      @events: ::Array[untyped]
-
       @waf_runner: SecurityEngine::Runner
 
       @metrics: Metrics::Collector
 
-      ActiveContextError: ::StandardError
+      @state: Hash[Symbol, any]
+
+      @downstream_body_sampler: CounterSampler
+
+      ActiveContextError: StandardError
 
       attr_reader trace: Tracing::TraceOperation
 
       attr_reader span: Tracing::SpanOperation
 
-      attr_reader events: ::Array[untyped]
+      attr_reader metrics: Metrics::Collector
+
+      attr_reader state: Hash[Symbol, any]
+
+      attr_reader downstream_body_sampler: CounterSampler
 
       def self.activate: (Context context) -> Context
 
@@ -31,9 +37,23 @@ module Datadog
 
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
-      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
+      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: String?) -> SecurityEngine::result
+
+      def events: () -> Array[SecurityEvent]
+
+      def mark_as_interrupted!: () -> void
+
+      def interrupted?: () -> bool
+
+      def waf_runner_ruleset_version: () -> String
+
+      def waf_runner_known_addresses: () -> WAF::known_addresses
+
+      def extract_schema!: () -> void
 
       def export_metrics: () -> void
+
+      def export_request_telemetry: () -> void
 
       def finalize!: () -> void
     end

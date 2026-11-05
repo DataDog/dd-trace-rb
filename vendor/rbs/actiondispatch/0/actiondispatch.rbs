@@ -1,0 +1,9 @@
+module ActionDispatch
+  class Request < ::Rack::Request
+    def headers: () -> ::Hash[::String, ::String]
+    def host: () -> ::String
+    def user_agent: () -> ::String
+    def remote_addr: () -> ::String
+    def parameters: () -> ::Hash[::String, untyped]
+  end
+end

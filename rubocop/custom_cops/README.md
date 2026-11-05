@@ -1,0 +1,192 @@
+# Custom RuboCop Cops
+
+This directory contains custom RuboCop cops for the dd-trace-rb project.
+
+## EnvUsageCop
+
+The `CustomCops::EnvUsageCop` prevents direct usage of the `ENV` hash to access environment variables.
+
+### Purpose
+
+This cop prohibits usage of `ENV` and automatically corrects it to use `DATADOG_ENV`. This ensures that environment variable usage is documented and follows the proper Datadog configuration pattern.
+
+### Examples
+
+#### Bad: Direct ENV usage
+
+```ruby
+# These will trigger offenses:
+module Datadog
+  api_key = ENV['DD_API_KEY']
+  debug_mode = ENV['DEBUG']
+  timeout = ENV.fetch('TIMEOUT', '30')
+
+  if ENV.key?('DD_API_KEY')
+    puts 'API key is set'
+  end
+
+  puts "API Key: #{ENV['DD_API_KEY']}"
+
+  config = {
+    api_key: ENV['DD_API_KEY'],
+    debug: ENV['DEBUG']
+  }
+end
+enabled = ENV['DD_TRACE_ENABLED']
+```
+
+#### Good: Using `DATADOG_ENV`
+
+```ruby
+# These are the corrected versions:
+module Datadog
+  api_key = DATADOG_ENV['DATADOG_API_KEY']
+  debug_mode = DATADOG_ENV['DEBUG']
+  # Supports default value like ENV.fetch
+  timeout = DATADOG_ENV.fetch('TIMEOUT', '30')
+
+  if DATADOG_ENV.key?('DATADOG_API_KEY')
+    puts 'API key is set'
+  end
+
+  puts "API Key: #{DATADOG_ENV['DATADOG_API_KEY']}"
+
+  config = {
+    api_key: DATADOG_ENV['DATADOG_API_KEY'],
+    debug: DATADOG_ENV['DEBUG']
+  }
+end
+enabled = Datadog::DATADOG_ENV['DD_TRACE_ENABLED']
+```
+
+### Auto-correction
+
+The cop automatically corrects the following patterns:
+
+- `ENV['key']` → `DATADOG_ENV['key']`
+- `ENV.fetch('key')` → `DATADOG_ENV.fetch('key')`
+- `ENV.fetch('key', default)` → `DATADOG_ENV.fetch('key', default)`
+- `ENV.fetch('key') { |k| return k }` → `DATADOG_ENV.fetch('key')  { |k| return k }`
+- `ENV.key?('key')` → `DATADOG_ENV.key?('key')`
+- `ENV.has_key?('key')` → `DATADOG_ENV.has_key?('key')`
+- `ENV.include?('key')` → `DATADOG_ENV.include?('key')`
+- `ENV.member?('key')` → `DATADOG_ENV.member?('key')`
+
+For `ENV` access outside of Datadog namespace, it will also autocorrect to `Datadog::DATADOG_ENV`
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/custom_cops/env_usage_cop_spec.rb
+```
+
+## EnvStringValidationCop
+
+The `CustomCops::EnvStringValidationCop` validates environment variable strings starting with `DD_` or `OTEL_` against the list of supported configurations.
+
+### Purpose
+
+This cop helps ensure that all environment variable strings (literal strings that look like Datadog or OpenTelemetry environment variables) are valid and documented. It validates against `SUPPORTED_CONFIGURATION_NAMES`, `ALIASES` and `DEPRECATIONS` from `lib/datadog/core/configuration/supported_configurations.rb`, which contains all officially supported environment variables and their aliases.
+
+The cop may produce false positives for strings that are not actually used as environment variables but follow the naming pattern (e.g., telemetry keys, log messages). In such cases, you can disable the cop for specific lines with `# rubocop:disable CustomCops/EnvStringValidationCop`
+
+### Pattern Detection
+
+The cop detects strings that match the pattern:
+- Start with `DD_` or `OTEL_`
+- Followed by at least one uppercase letter
+- Contain only uppercase letters, numbers, and underscores
+
+### Examples
+
+#### Bad: Unknown environment variable strings
+
+```ruby
+# These will trigger offenses if not in the supported configurations:
+config_value = "DD_CUSTOM_ENV_VAR"
+settings = {
+  api_key: "DD_NONEXISTENT_KEY"
+}
+
+# OpenTelemetry variables are also checked:
+otel_config = "OTEL_CUSTOM_SETTING"
+```
+
+#### Good: Known environment variable strings
+
+```ruby
+# These are allowed (from supported configurations):
+api_key = "DD_API_KEY"
+service_name = "DD_SERVICE"
+trace_enabled = "DD_TRACE_ENABLED"
+otel_service = "OTEL_SERVICE_NAME"
+otel_sampler = "OTEL_TRACES_SAMPLER"
+```
+
+### Handling False Positives
+
+For legitimate strings that are not environment variables but match the pattern:
+
+```ruby
+# False positive: telemetry key that looks like an env var
+telemetry_data = {
+  "DD_AGENT_TRANSPORT" => transport_type # rubocop:disable CustomCops/EnvStringValidationCop
+}
+
+# False positive: log message containing env var pattern
+logger.debug("Processing DD_CUSTOM_METRIC_NAME") # rubocop:disable CustomCops/EnvStringValidationCop
+```
+
+### Additional information
+
+See docs/AccessEnvironmentVariables.md for details.
+
+## ExceptionMessageCop
+
+The `CustomCops::ExceptionMessageCop` enforces consistent exception logging format.
+
+### Purpose
+
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. `Exception#to_s` reads the message ivar directly and returns the class name when it's nil. `Exception#message` calls `to_s` by default — but exception subclasses commonly override `message` to compute a string from instance variables (Bundler, Rails ActionView/ActiveSupport, RubyGems, and several classes inside this gem do this). When `message` is overridden without a matching `to_s` override, `e.to_s` (and therefore `"#{e}"`) returns just the class name, while `e.message` returns the actual error string.
+
+The codebase convention is `"#{e.class}: #{e.message}"`. This cop enforces it by detecting `e.class.name` and bare `#{e}` interpolations inside rescue blocks, and by requiring `#{e.class}` alongside any exception interpolation.
+
+### Examples
+
+#### Bad
+
+```ruby
+rescue => e
+  log("#{e.class.name}: #{e.message}")  # e.class.name should be e.class
+  log("#{e.class}: #{e}")               # bare #{e} should be #{e.message}
+  log("error: #{e.message}")            # missing class name
+  log("error: #{e}")                    # both: bare e and missing class
+```
+
+#### Good
+
+```ruby
+rescue => e
+  log("#{e.class}: #{e.message}")
+```
+
+### Auto-correction
+
+The cop auto-corrects within string interpolation only:
+
+- `#{e}` → `#{e.message}`
+- `#{e.class.name}` → `#{e.class}`
+
+The missing-`#{e.class}` rule is not auto-corrected — it requires a human to choose where the class name belongs in the surrounding text.
+
+Outside interpolation (e.g., `log(e.class.name)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
+```

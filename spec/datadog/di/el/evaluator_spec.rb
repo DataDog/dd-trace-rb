@@ -1,0 +1,663 @@
+require "spec_helper"
+require_relative "../spec_helper"
+require "datadog/di/el"
+require_relative "../serializer_helper"
+
+RSpec.describe Datadog::DI::EL::Evaluator do
+  di_test
+
+  extend SerializerHelper
+
+  let(:evaluator) { described_class.new }
+
+  # Shared catastrophic-backtracking fixtures.
+  #
+  # Haystack length is chosen so that the unbounded baseline match takes
+  # over 5 seconds on every supported Ruby version (verified locally on
+  # 2.5 through 3.4).
+  #
+  # Catastrophic-backtracking pattern: ambiguous nested quantifier combined
+  # with a backreference. The backreference also defeats the match-cache
+  # optimisation introduced in Ruby 3.2.
+  let(:pattern) { '^([a-z]+)*\1$' }
+  let(:haystack_length) { 30 }
+  let(:haystack) { ("a" * haystack_length) + "1" }
+
+  # Tolerance below the configured timeout: small margin for
+  # CLOCK_MONOTONIC measurement noise between the start sample and the
+  # regexp engine arming its timer.
+  clock_skew_margin_seconds = 0.05
+
+  # Tolerance above the configured timeout: absorbs Timeout.timeout's
+  # ~100ms sleeper-thread granularity on Ruby < 3.2 (measured locally on
+  # 2.6 through 3.1) plus scheduler variance under CI load. Half a second
+  # is well above the measured overshoot and well below the 0.8s gap
+  # between the two timeout values exercised below.
+  overshoot_budget_seconds = 0.5
+
+  # The two timeouts below each assert that the observed wall-clock time
+  # tracks the configured value. Running both demonstrates that the timeout
+  # is actually controlling behavior, rather than the regexp finishing
+  # naturally or some unrelated bound being hit.
+  #
+  # +do_match+ is defined by the including context to invoke the operator
+  # under test (runtime or precompiled) against +haystack+ and +pattern+.
+  shared_examples "aborts after approximately the configured timeout" do |timeout_seconds|
+    before do
+      stub_const(
+        "Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS",
+        timeout_seconds,
+      )
+    end
+
+    it "raises an evaluation timeout after approximately #{timeout_seconds}s" do
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect {
+        do_match
+      }.to raise_error(Datadog::DI::Error::EvaluationTimeout, "matches operator timeout")
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+
+      # Lower bound: the regexp must have actually waited for the timeout
+      # -- otherwise the regexp finished naturally and the timeout did
+      # nothing.
+      expect(elapsed).to be >= timeout_seconds - clock_skew_margin_seconds
+
+      # Upper bound: the regexp must not be running unbounded, and the
+      # elapsed time must track the configured timeout (not some other
+      # value).
+      expect(elapsed).to be <= timeout_seconds + overshoot_budget_seconds
+    end
+  end
+
+  shared_examples "a timeout-bounded matcher" do
+    context "with a short timeout" do
+      include_examples "aborts after approximately the configured timeout", 0.2
+    end
+
+    context "with a longer timeout" do
+      include_examples "aborts after approximately the configured timeout", 1.0
+    end
+  end
+
+  describe "MATCHES_TIMEOUT_SECONDS" do
+    it "bounds a single match at 50 ms" do
+      expect(described_class::MATCHES_TIMEOUT_SECONDS).to eq(0.05)
+    end
+  end
+
+  describe ".compile_regexp" do
+    before do
+      skip "the Regexp timeout: keyword requires Ruby 3.2+" unless Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "bakes the per-match bound into the Regexp" do
+      expect(described_class.compile_regexp("hello").timeout).to eq(0.05)
+    end
+  end
+
+  describe "the per-match bound on Ruby < 3.2" do
+    before do
+      skip "Ruby 3.2+ bounds the match with the Regexp timeout: keyword" if Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "passes the 50 ms bound to Timeout.timeout" do
+      expect(Timeout).to receive(:timeout).with(0.05, anything).and_call_original
+
+      expect(evaluator.matches("hello", "hello", far_future_deadline)).to be(true)
+    end
+  end
+
+  describe "the per-match bound on Ruby 3.2+" do
+    before do
+      skip "the Regexp timeout: keyword requires Ruby 3.2+" unless Datadog::RubyVersion.is?(">= 3.2")
+    end
+
+    it "raises the evaluation timeout with the Regexp::TimeoutError as its cause" do
+      stub_const("Datadog::DI::EL::Evaluator::MATCHES_TIMEOUT_SECONDS", 0.2)
+
+      expect {
+        evaluator.matches(haystack, pattern, far_future_deadline)
+      }.to raise_error(Datadog::DI::Error::EvaluationTimeout) { |error|
+        expect(error.cause).to be_a(Regexp::TimeoutError)
+      }
+    end
+  end
+
+  describe "#matches" do
+    context "with a well-formed pattern" do
+      it "returns true when the haystack matches" do
+        expect(evaluator.matches("hello world", "hello[a-z ]+", far_future_deadline)).to be(true)
+      end
+
+      it "returns false when the haystack does not match" do
+        expect(evaluator.matches("xyz", "hello[a-z]", far_future_deadline)).to be(false)
+      end
+    end
+
+    context "with a pathological pattern that would otherwise run for many seconds" do
+      # Needle computed at evaluation time, so the regexp is compiled on
+      # each call.
+      def do_match
+        evaluator.matches(haystack, pattern, far_future_deadline)
+      end
+
+      include_examples "a timeout-bounded matcher"
+    end
+  end
+
+  describe "#matches_compiled" do
+    # The regexp is built once, with the per-call timeout baked in on Ruby
+    # 3.2+, and stored in +regexps+ -- mirroring how the Compiler
+    # precompiles literal needles at expression-compile time.
+    let(:evaluator) do
+      described_class.new([described_class.compile_regexp(compiled_pattern)])
+    end
+
+    context "with a well-formed pattern" do
+      context "when the haystack matches" do
+        let(:compiled_pattern) { "hello[a-z ]+" }
+
+        it "returns true" do
+          expect(evaluator.matches_compiled("hello world", 0, far_future_deadline)).to be(true)
+        end
+      end
+
+      context "when the haystack does not match" do
+        let(:compiled_pattern) { "hello[a-z]" }
+
+        it "returns false" do
+          expect(evaluator.matches_compiled("xyz", 0, far_future_deadline)).to be(false)
+        end
+      end
+    end
+
+    context "with a pathological pattern that would otherwise run for many seconds" do
+      let(:compiled_pattern) { pattern }
+
+      def do_match
+        evaluator.matches_compiled(haystack, 0, far_future_deadline)
+      end
+
+      include_examples "a timeout-bounded matcher"
+    end
+  end
+
+  let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+  let(:settings) { instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: nil).as_null_object }
+  let(:serializer) { instance_double(Datadog::DI::Serializer).as_null_object }
+
+  # Deadline far enough in the future that a test evaluation stays within it.
+  def far_future_deadline
+    Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+  end
+
+  def compile_expr(dsl_expr, ast)
+    src, regexps = compiler.compile(ast)
+    Datadog::DI::EL::Expression.new(dsl_expr, src, regexps: regexps)
+  end
+
+  let(:filter_expr) do
+    compile_expr("collection.filter(@it >= 500)",
+      "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 500]}])
+  end
+
+  let(:filter_hash_expr) do
+    compile_expr("collection.filter(@value >= 0)",
+      "filter" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@value"}, 0]}])
+  end
+
+  def context_with(locals)
+    Datadog::DI::Context.new(
+      probe: nil, settings: settings, serializer: serializer,
+      locals: locals,
+    )
+  end
+
+  describe "collection operators abort evaluation when the deadline is exceeded" do
+    let(:all_expr) do
+      compile_expr("collection.all(@it >= 0)",
+        "all" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
+    end
+
+    let(:any_expr) do
+      compile_expr("collection.any(@it >= 0)",
+        "any" => [{"ref" => "collection"}, {"ge" => [{"ref" => "@it"}, 0]}])
+    end
+
+    # The abort raises at i == 0, before the predicate block runs, so the
+    # Hash branch aborts before the @it predicate is reached.
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+
+    describe "#filter" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
+
+          it "raises EvaluationTimeout" do
+            expect { filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+
+          it "raises EvaluationTimeout with the class's default message" do
+            expect do
+              filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline)
+            end.to raise_error(Datadog::DI::Error::EvaluationTimeout,
+              Datadog::DI::Error::EvaluationTimeout::DEFAULT_MESSAGE)
+          end
+        end
+
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+
+          it "raises EvaluationTimeout" do
+            expect { filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+      end
+
+      context "with the deadline far in the future" do
+        let(:collection) { Array.new(1000) { |i| i } }
+        let(:evaluation_deadline) { far_future_deadline }
+
+        it "returns the selected items without timing out" do
+          expect(filter_expr.evaluate(context_with({collection: collection}), evaluation_deadline: evaluation_deadline)).to eq((500..999).to_a)
+        end
+
+        it "returns the selected entries of a Hash" do
+          expect(filter_hash_expr.evaluate(
+            context_with({collection: {"a" => 1, "b" => 2, "c" => -1}}),
+            evaluation_deadline: evaluation_deadline,
+          )).to eq({"a" => 1, "b" => 2})
+        end
+      end
+
+      context "with the deadline exceeded midway through the collection" do
+        let(:collection) { Array.new(1000) { |i| i } }
+
+        # The first cooperative check (i=0) reads 0.999, below the 1.0
+        # deadline; the second (i=64) reads 1.001, past it, so the raise
+        # happens at the second check, in mid-iteration.
+        stub_cpu_clock([0.999, 1.001])
+
+        it "raises after the first check interval" do
+          expect do
+            filter_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: 1.0)
+          end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+        end
+      end
+    end
+
+    describe "#all" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
+
+          it "raises EvaluationTimeout" do
+            expect { all_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+
+          it "raises EvaluationTimeout" do
+            expect { all_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+      end
+    end
+
+    describe "#any" do
+      context "with the deadline already in the past" do
+        context "over an Array collection" do
+          let(:collection) { Array.new(1000) { |i| i } }
+
+          it "raises EvaluationTimeout" do
+            expect { any_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+
+        context "over a Hash collection" do
+          let(:collection) { Array.new(1000) { |i| ["key#{i}", i] }.to_h }
+
+          it "raises EvaluationTimeout" do
+            expect { any_expr.satisfied?(context_with({collection: collection}), evaluation_deadline: evaluation_deadline) }
+              .to raise_error(Datadog::DI::Error::EvaluationTimeout)
+          end
+        end
+      end
+    end
+  end
+
+  describe "collection operators stop iterating when the predicate is decided" do
+    let(:nested_timeouts) { [] }
+
+    let(:trigger) do
+      nested_expr = filter_expr
+      nested_context = context_with({collection: Array.new(1000) { |i| i }})
+      nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+      recorded_timeouts = nested_timeouts
+      Object.new.tap do |trigger|
+        trigger.define_singleton_method(:nil?) do
+          begin
+            nested_expr.evaluate(nested_context, evaluation_deadline: nested_deadline)
+          rescue Datadog::DI::Error::EvaluationTimeout => exc
+            recorded_timeouts << exc
+          end
+          false
+        end
+      end
+    end
+
+    let(:all_expr) do
+      compile_expr("collection.all(isUndefined(@it) != true)",
+        "all" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]}])
+    end
+
+    let(:any_expr) do
+      compile_expr("collection.any(isUndefined(@it) != true)",
+        "any" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]}])
+    end
+
+    let(:hash_all_expr) do
+      compile_expr("collection.all(isUndefined(@value) != true)",
+        "all" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@value"}}, true]}])
+    end
+
+    let(:hash_any_expr) do
+      compile_expr("collection.any(isUndefined(@value) != true)",
+        "any" => [{"ref" => "collection"}, {"ne" => [{"isUndefined" => {"ref" => "@value"}}, true]}])
+    end
+
+    # Processing the trigger reenters evaluation with an already-past
+    # deadline, recording a timeout: an empty record proves the operator
+    # stopped iterating before the trigger.
+    it "#all stops at the first falsy Array item" do
+      expect(all_expr.satisfied?(context_with({collection: [nil, trigger]}), evaluation_deadline: far_future_deadline))
+        .to be(false)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#any stops at the first truthy Array item" do
+      expect(any_expr.satisfied?(context_with({collection: [1, trigger]}), evaluation_deadline: far_future_deadline))
+        .to be(true)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#all stops at the first falsy Hash entry" do
+      expect(hash_all_expr.satisfied?(context_with({collection: {"a" => nil, "b" => trigger}}),
+        evaluation_deadline: far_future_deadline)).to be(false)
+      expect(nested_timeouts).to be_empty
+    end
+
+    it "#any stops at the first truthy Hash entry" do
+      expect(hash_any_expr.satisfied?(context_with({collection: {"a" => 1, "b" => trigger}}),
+        evaluation_deadline: far_future_deadline)).to be(true)
+      expect(nested_timeouts).to be_empty
+    end
+  end
+
+  describe "the matches operator aborts evaluation when the deadline is exceeded" do
+    let(:matches_expr) do
+      compile_expr("str.matches(pat)",
+        "matches" => [{"ref" => "str"}, {"ref" => "pat"}])
+    end
+
+    let(:matches_compiled_expr) do
+      compile_expr("str.matches('hello')",
+        "matches" => [{"ref" => "str"}, "hello"])
+    end
+
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001 }
+
+    it "raises EvaluationTimeout before a match against a computed needle" do
+      expect do
+        matches_expr.satisfied?(context_with({str: "hello", pat: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+
+    it "raises EvaluationTimeout before a match against a precompiled needle" do
+      expect do
+        matches_compiled_expr.satisfied?(context_with({str: "hello"}), evaluation_deadline: evaluation_deadline)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+  end
+
+  describe "a per-item matches predicate aborts at the pre-match check" do
+    let(:filter_matches_expr) do
+      compile_expr("collection.filter(@it.matches('a+'))",
+        "filter" => [
+          {"ref" => "collection"},
+          {"matches" => [{"ref" => "@it"}, "a+"]},
+        ])
+    end
+
+    # The boundary check at item zero reads a time below the deadline;
+    # the pre-match check of the same item's predicate reads a time
+    # past it, so the abort happens at the pre-match check, before the
+    # first match starts.
+    stub_cpu_clock([0.999, 1.001])
+
+    it "raises EvaluationTimeout before the match starts" do
+      expect do
+        filter_matches_expr.satisfied?(context_with({collection: ["aaa", "bbb"]}), evaluation_deadline: 1.0)
+      end.to raise_error(Datadog::DI::Error::EvaluationTimeout)
+    end
+  end
+
+  describe "invocation-local evaluation state" do
+    # The first collection item triggers a nested evaluate call on the same
+    # Expression: isUndefined invokes nil? on the item, and the trigger's
+    # nil? reenters evaluation. This reproduces on one thread the state
+    # sharing that occurs when two threads evaluate the same probe
+    # concurrently.
+
+    let(:filter_with_refs_expr) do
+      compile_expr("collection.filter(isUndefined(@it) != true && marker == 'outer')",
+        "filter" => [
+          {"ref" => "collection"},
+          {"and" => [
+            {"ne" => [{"isUndefined" => {"ref" => "@it"}}, true]},
+            {"eq" => [{"ref" => "marker"}, "outer"]},
+          ]},
+        ])
+    end
+
+    let(:nested_timeouts) { [] }
+
+    let(:trigger) do
+      nested_expr = filter_with_refs_expr
+      nested_context = context_with({collection: [1, 2, 3], marker: "inner"})
+      nested_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) - 0.001
+      recorded_timeouts = nested_timeouts
+      Object.new.tap do |trigger|
+        trigger.define_singleton_method(:nil?) do
+          begin
+            nested_expr.evaluate(nested_context, evaluation_deadline: nested_deadline)
+          rescue Datadog::DI::Error::EvaluationTimeout => exc
+            recorded_timeouts << exc
+          end
+          false
+        end
+      end
+    end
+
+    let(:collection) do
+      [trigger] + Array.new(described_class::EVALUATION_DEADLINE_CHECK_INTERVAL + 1) { |i| i + 1 }
+    end
+
+    let(:evaluation_deadline) { Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0 }
+
+    it "reads locals from the invoking evaluation's context" do
+      result = filter_with_refs_expr.evaluate(context_with({collection: [trigger, 2], marker: "outer"}), evaluation_deadline: evaluation_deadline)
+      expect(result).to eq([trigger, 2])
+      expect(nested_timeouts.length).to eq(1)
+      expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
+    end
+
+    it "keeps the invoking evaluation's deadline" do
+      result = filter_with_refs_expr.evaluate(context_with({collection: collection, marker: "outer"}), evaluation_deadline: evaluation_deadline)
+      expect(result).to eq(collection)
+      expect(nested_timeouts.length).to eq(1)
+      expect(nested_timeouts.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
+    end
+  end
+
+  describe "#filter" do
+    context "with a compare_by_identity Hash collection" do
+      let(:identity_collection) do
+        {}.tap do |source|
+          source.compare_by_identity
+          source["key"] = 1
+          source[+"key"] = 2
+        end
+      end
+
+      it "preserves the distinct keys and the identity mode" do
+        result = filter_hash_expr.evaluate(context_with({collection: identity_collection}), evaluation_deadline: far_future_deadline)
+        expect(result.length).to eq(2)
+        expect(result.compare_by_identity?).to be(true)
+      end
+    end
+  end
+
+  describe "#filter does not dispatch customer code" do
+    context "over an Array subclass that overrides each" do
+      let(:each_raising_array_class) do
+        Class.new(Array) do
+          def each
+            raise "customer each dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects items without invoking the override" do
+        collection = each_raising_array_class.new([400, 600, 700])
+        expect(filter_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq([600, 700])
+      end
+    end
+
+    context "over a Hash subclass that overrides each" do
+      let(:each_raising_hash_class) do
+        Class.new(Hash) do
+          def each
+            raise "customer each dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects entries without invoking the override" do
+        collection = each_raising_hash_class.new
+        collection["a"] = 1
+        collection["b"] = -1
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq("a" => 1)
+      end
+    end
+
+    context "over a Hash subclass that overrides select" do
+      let(:select_raising_hash_class) do
+        Class.new(Hash) do
+          def select
+            raise "customer select dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "selects entries without invoking the override" do
+        collection = select_raising_hash_class.new
+        collection["a"] = 1
+        collection["b"] = -1
+        expect(filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)).to eq("a" => 1)
+      end
+    end
+
+    context "over a Hash subclass that overrides compare_by_identity?" do
+      let(:identity_raising_hash_class) do
+        Class.new(Hash) do
+          def compare_by_identity?
+            raise "customer compare_by_identity? dispatched during filter evaluation"
+          end
+        end
+      end
+
+      it "preserves the identity mode without invoking the override" do
+        collection = identity_raising_hash_class.new.compare_by_identity
+        collection["key"] = 1
+        collection[+"key"] = 2
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)
+        expect(result.length).to eq(2)
+        expect(result.compare_by_identity?).to be(true)
+      end
+    end
+
+    context "over a Hash whose keys raise from hash and eql?" do
+      # The two keys hash to distinct values unarmed, so the selected
+      # entries occupy distinct buckets in the result and eql? stays uncalled;
+      # Ruby 3.1+'s Hash#select compares colliding keys through eql?.
+      let(:raising_key_class) do
+        Class.new do
+          class << self
+            attr_accessor :methods_raise
+          end
+
+          def initialize(n)
+            @n = n
+          end
+
+          def hash
+            raise "customer key hash dispatched during filter evaluation" if self.class.methods_raise
+            @n
+          end
+
+          def eql?(other)
+            raise "customer key eql? dispatched during filter evaluation" if self.class.methods_raise
+            equal?(other)
+          end
+        end
+      end
+
+      # Earlier Rubies' Hash#select rehashes the keys, so the copy without
+      # key-method invocations exists only from Ruby 3.1 on.
+      it "selects entries without invoking the key methods" do
+        skip "Hash#select copies entries without rehashing only from Ruby 3.1" if Datadog::RubyVersion.is?("< 3.1")
+        key_a = raising_key_class.new(1)
+        key_b = raising_key_class.new(2)
+        collection = {key_a => 1, key_b => -1}
+        raising_key_class.methods_raise = true
+        result = filter_hash_expr.evaluate(context_with({collection: collection}), evaluation_deadline: far_future_deadline)
+        raising_key_class.methods_raise = false
+        expect(result).to eq(key_a => 1)
+      end
+    end
+  end
+
+  describe Datadog::DI::EL::Compiler do
+    let(:compiler) { described_class.new }
+
+    it "precompiles a literal matches needle at compile time" do
+      code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, "hello[a-z]"]})
+
+      expect(code).to eq("matches_compiled(ref(context, 'var'), 0, evaluation_deadline)")
+      expect(regexps.length).to eq(1)
+      expect(regexps.first).to be_a(Regexp)
+    end
+
+    it "compiles a dynamically-computed matches needle at evaluation time" do
+      code, regexps = compiler.compile({"matches" => [{"ref" => "var"}, {"ref" => "pat"}]})
+
+      expect(code).to eq("matches(ref(context, 'var'), (ref(context, 'pat')), evaluation_deadline)")
+      expect(regexps).to be_empty
+    end
+
+    it "rejects an invalid literal matches needle at compile time" do
+      expect {
+        compiler.compile({"matches" => [{"ref" => "var"}, "[invalid"]})
+      }.to raise_error(Datadog::DI::Error::InvalidExpression, /Invalid regular expression in matches/)
+    end
+  end
+end

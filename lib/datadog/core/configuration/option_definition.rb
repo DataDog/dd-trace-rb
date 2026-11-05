@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'option'
+require_relative "option"
 
 module Datadog
   module Core
@@ -10,30 +10,36 @@ module Datadog
         IDENTITY = ->(new_value, _old_value) { new_value }
 
         attr_reader \
+          :is_settings,
           :default,
           :default_proc,
           :env,
-          :deprecated_env,
           :env_parser,
           :name,
           :after_set,
+          :skip_telemetry,
           :resetter,
           :setter,
           :type,
           :type_options
 
-        def initialize(name, meta = {}, &block)
-          @default = meta[:default]
-          @default_proc = meta[:default_proc]
-          @env = meta[:env]
-          @deprecated_env = meta[:deprecated_env]
-          @env_parser = meta[:env_parser]
+        def initialize(name, attributes, &block)
+          # When a settings is defined using the config DSL, an option is also created.
+          # See Datadog::Core::Configuration::Base::ClassMethods#settings for more details.
+          # This flag is used to indicate that the option is a settings option.
+          @is_settings = attributes[:is_settings]
+
+          @default = attributes[:default]
+          @default_proc = attributes[:default_proc]
+          @env = attributes[:env]
+          @env_parser = attributes[:env_parser]
           @name = name.to_sym
-          @after_set = meta[:after_set]
-          @resetter = meta[:resetter]
-          @setter = meta[:setter] || block || IDENTITY
-          @type = meta[:type]
-          @type_options = meta[:type_options]
+          @after_set = attributes[:after_set]
+          @skip_telemetry = attributes[:skip_telemetry]
+          @resetter = attributes[:resetter]
+          @setter = attributes[:setter] || block || IDENTITY
+          @type = attributes[:type]
+          @type_options = attributes[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -44,20 +50,23 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
-          class InvalidOptionError < StandardError; end
+          # Steep: https://github.com/soutaro/steep/issues/1880
+          InvalidOptionError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
           attr_reader \
             :helpers
 
           def initialize(name, options = {})
+            @is_settings = options.fetch(:is_settings, false)
+
             @env = nil
-            @deprecated_env = nil
             @env_parser = nil
             @default = nil
             @default_proc = nil
             @helpers = {}
             @name = name.to_sym
             @after_set = nil
+            @skip_telemetry = false
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
@@ -73,10 +82,6 @@ module Datadog
 
           def env(value) # standard:disable Style/TrivialAccessors
             @env = value
-          end
-
-          def deprecated_env(value) # standard:disable Style/TrivialAccessors
-            @deprecated_env = value
           end
 
           # Invoked when the option is first read, and {#env} is defined.
@@ -101,6 +106,16 @@ module Datadog
             @after_set = block
           end
 
+          # This should only be set to true for options that are manually modified
+          # before being added to the telemetry payload in app_started.rb.
+          # E.g. telemetry is skipped for `tracing.writer_options`, but in app_started.rb,
+          # we send two separate entries for the buffer_size and flush_interval values.
+          # Standard: We want to keep this method as skip_telemetry(value),
+          # not skip_telemetry = value, so attr_writer is not used.
+          def skip_telemetry(value) # standard:disable Style/TrivialAccessors
+            @skip_telemetry = value
+          end
+
           def resetter(&block)
             @resetter = block
           end
@@ -123,30 +138,34 @@ module Datadog
             default(options[:default]) if options.key?(:default)
             default_proc(&options[:default_proc]) if options.key?(:default_proc)
             env(options[:env]) if options.key?(:env)
-            deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
+            # Steep: https://github.com/soutaro/steep/issues/1979
+            skip_telemetry(options[:skip_telemetry]) if options.key?(:skip_telemetry) # steep:ignore ArgumentTypeMismatch
             resetter(&options[:resetter]) if options.key?(:resetter)
-            setter(&options[:setter]) if options.key?(:setter)
+            # Steep: https://github.com/soutaro/steep/issues/1979
+            setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta)
+            OptionDefinition.new(@name, attributes)
           end
 
-          def meta
+          def attributes
             {
+              is_settings: @is_settings,
+
               default: @default,
               default_proc: @default_proc,
               env: @env,
-              deprecated_env: @deprecated_env,
               env_parser: @env_parser,
               after_set: @after_set,
+              skip_telemetry: @skip_telemetry,
               resetter: @resetter,
               setter: @setter,
               type: @type,
-              type_options: @type_options
+              type_options: @type_options,
             }
           end
 
@@ -155,9 +174,9 @@ module Datadog
           def validate_options!
             if !@default.nil? && @default_proc
               raise InvalidOptionError,
-                'Using `default` and `default_proc` is not allowed. Please use one or the other.' \
-                                'If you want to store a block as the default value use `default_proc`' \
-                                ' otherwise use `default`'
+                "Using `default` and `default_proc` is not allowed. Please use one or the other." \
+                                "If you want to store a block as the default value use `default_proc`" \
+                                " otherwise use `default`"
             end
           end
         end

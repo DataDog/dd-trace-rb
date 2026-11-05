@@ -4,22 +4,24 @@ module Datadog
       class Settings
         include Base
 
+        extend Base::ClassMethods
+
         interface _Remote
           def enabled: () -> bool
 
           def enabled=: (bool) -> void
 
-          def poll_interval_seconds: () -> ::Float
+          def poll_interval_seconds: () -> Float
 
-          def poll_interval_seconds=: (::Float) -> void
+          def poll_interval_seconds=: (Float) -> void
 
-          def boot_timeout_seconds: () -> ::Float
+          def boot_timeout_seconds: () -> Float
 
-          def boot_timeout_seconds=: (::Float) -> void
+          def boot_timeout_seconds=: (Float) -> void
 
-          def service: () -> ::String?
+          def service: () -> String?
 
-          def service=: (::String) -> void
+          def service=: (String) -> void
         end
 
         interface _ErrorTracking
@@ -32,6 +34,8 @@ module Datadog
           def enabled: () -> bool
 
           def enabled=: (bool) -> void
+
+          def instrument: (Symbol) -> void
 
           def trace_rate_limit: () -> Integer
 
@@ -49,21 +53,131 @@ module Datadog
 
           def waf_debug=: (bool) -> void
 
-          def ruleset: () -> (String | Symbol |  File | StringIO | ::Hash[untyped, untyped])
+          def ruleset: () -> (String | Symbol |  File | StringIO | Hash[untyped, untyped])
 
-          def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
+          def ruleset=: (String | Symbol |  File | StringIO | Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
 
-          def ip_passlist: () -> ::Array[::String]
+          def ip_passlist: () -> Array[String]
 
-          def ip_denylist: () -> ::Array[::String]
+          def ip_denylist: () -> Array[String]
 
-          def user_id_denylist: () -> ::Array[::String]
+          def user_id_denylist: () -> Array[String]
+
+          include Options::_InstanceMethods
+
+          def waf_timeout: () -> Integer
+
+          def body_parsing_size_limit: () -> Integer
+
+          def stack_trace: () -> _AppSecStackTrace
+
+          def auto_user_instrumentation: () -> _AppSecAutoUserInstrumentation
+
+          def track_user_events: () -> _AppSecTrackUserEvents
+
+          def api_security: () -> _AppSecApiSecurity
+
+          def sca_enabled: () -> bool?
+
+          def rasp_enabled: () -> bool?
+        end
+
+        interface _AppSecStackTrace
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def max_depth: () -> Integer
+
+          def top_percentage: () -> Integer
+
+          def max_stack_traces: () -> Integer
+        end
+
+        interface _AppSecAutoUserInstrumentation
+          include Options::_InstanceMethods
+
+          def enabled?: () -> bool
+
+          def mode: () -> String
+        end
+
+        interface _AppSecTrackUserEvents
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def mode: () -> String
+        end
+
+        interface _AppSecApiSecurity
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def enabled?: () -> bool
+
+          def endpoint_collection: () -> _AppSecApiSecurityEndpointCollection
+
+          def sample_delay: () -> Integer
+
+          def sample_rate: () -> Datadog::AppSec::SampleRate
+
+          def downstream_body_analysis: () -> _AppSecApiSecurityDownstreamBodyAnalysis
+        end
+
+        interface _AppSecApiSecurityEndpointCollection
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool?
+        end
+
+        interface _AppSecApiSecurityDownstreamBodyAnalysis
+          include Options::_InstanceMethods
+
+          def sample_rate: () -> Float
+
+          def max_requests: () -> Integer
+
+          def max_downstream_body_bytes: () -> Integer
         end
 
         interface _AppSecBlock
           def templates: () -> _TemplatesBlock
+        end
+
+        interface _AIGuard
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def redaction_enabled: () -> bool
+
+          def redaction_enabled=: (bool) -> void
+
+          def instrument: (Symbol) -> void
+
+          def endpoint: () -> String
+
+          def endpoint=: (String) -> void
+
+          def app_key: () -> String
+
+          def app_key=: (String) -> void
+
+          def timeout_ms: () -> Integer
+
+          def timeout_ms=: () -> void
+
+          def max_content_size_bytes: () -> Integer
+
+          def max_content_size_bytes=: (Integer) -> void
+
+          def max_messages_length: () -> Integer
+
+          def max_messages_length=: () -> void
         end
 
         interface _DI
@@ -71,17 +185,15 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def untargeted_trace_points: () -> bool
-
-          def untargeted_trace_points=: (bool) -> void
-
-          def propagate_all_exceptions: () -> bool
-
-          def propagate_all_exceptions=: (bool) -> void
+          def using_default?: (Symbol option_name) -> bool
 
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void
+
+          def redaction_excluded_identifiers: () -> Array[String]
+
+          def redaction_excluded_identifiers=: (Array[String]) -> void
 
           def redacted_type_names: () -> Array[String]
 
@@ -102,31 +214,249 @@ module Datadog
           def max_capture_attribute_count: () -> Integer
 
           def max_capture_attribute_count=: (Integer) -> void
+
+          def max_time_to_serialize_ms: () -> Integer
+
+          def max_time_to_serialize_ms=: (Integer) -> void
+
+          def max_time_to_evaluate_ms: () -> Integer
+
+          def max_time_to_evaluate_ms=: (Integer) -> void
+
+          def internal: () -> _DIInternal
+        end
+
+        interface _DIInternal
+          def untargeted_trace_points: () -> bool
+
+          def untargeted_trace_points=: (bool) -> void
+
+          def propagate_all_exceptions: () -> bool
+
+          def propagate_all_exceptions=: (bool) -> void
+
+          def min_send_interval: () -> Float
+
+          def min_send_interval=: (Float) -> void
+
+          def snapshot_queue_capacity: () -> Integer
+
+          def snapshot_queue_capacity=: (Integer) -> void
+
+          def development: () -> bool
+
+          def development=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
+
+          def max_processing_time: () -> Float?
+
+          def max_processing_time=: (Float?) -> void
         end
 
         interface _TemplatesBlock
-          def html=: (::String) -> void
+          include Options::_InstanceMethods
 
-          def html: () -> ::String
+          def send: (Symbol) -> String
 
-          def json=: (::String) -> void
+          def html=: (String) -> void
 
-          def json: () -> ::String
+          def html: () -> String
 
-          def text=: (::String) -> void
+          def json=: (String) -> void
 
-          def text: () -> ::String
+          def json: () -> String
+
+          def text=: (String) -> void
+
+          def text: () -> String
+        end
+
+        interface _Diagnostics
+          include Options::_InstanceMethods
+
+          def debug: () -> bool
+
+          def startup_logs: () -> _DiagnosticsStartupLogs
+        end
+
+        interface _DiagnosticsStartupLogs
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool?
+        end
+
+        interface _LoggerSettings
+          include Options::_InstanceMethods
+
+          def instance: () -> untyped
+
+          def level: () -> Integer
+        end
+
+        interface _Container
+          include Options::_InstanceMethods
+
+          def external_env: () -> String?
+        end
+
+        interface _HealthMetrics
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def statsd: () -> untyped
+        end
+
+        interface _Apm
+          include Options::_InstanceMethods
+
+          def tracing: () -> _ApmTracing
+        end
+
+        interface _ApmTracing
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def partial_flush: () -> _ApmTracingPartialFlush
+
+          def client_ip: () -> _ApmTracingClientIp
+        end
+
+        interface _ApmTracingClientIp
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def header_name: () -> String?
+        end
+
+        interface _ApmTracingPartialFlush
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def enabled=: (bool enabled) -> void
+        end
+
+        interface _DataStreams
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+
+          def interval: () -> Float
+        end
+
+        interface _Crashtracking
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+        end
+
+        interface _Profiling
+          include Options::_InstanceMethods
+
+          def enabled: () -> bool
+        end
+
+        interface _OpenFeature
+          def using_default?: (Symbol name) -> bool
+
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def span_enrichment_enabled: () -> bool
+
+          def span_enrichment_enabled=: (bool) -> void
+
+          def evaluation_counts_enabled: () -> bool
+        end
+
+        interface _FeatureFlagsAgentless
+          def base_url: () -> String?
+
+          def base_url=: (String?) -> void
+
+          def poll_interval_seconds: () -> Integer
+
+          def poll_interval_seconds=: (Integer) -> void
+
+          def request_timeout_seconds: () -> Integer
+
+          def request_timeout_seconds=: (Integer) -> void
+        end
+
+        interface _FeatureFlags
+          def using_default?: (Symbol name) -> bool
+
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def evaluation_telemetry_per_subject_opt_out_enabled: () -> bool
+
+          def evaluation_telemetry_per_subject_opt_out_enabled=: (bool) -> void
+
+          def configuration_source: () -> String
+
+          def configuration_source=: (String) -> void
+
+          def agentless: () -> _FeatureFlagsAgentless
+
+          def initialization_timeout_ms: () -> Integer
+
+          def initialization_timeout_ms=: (Integer) -> void
+        end
+
+        interface _SymbolDatabase
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def internal: () -> _SymbolDatabaseInternal
+        end
+
+        interface _SymbolDatabaseInternal
+          def force_upload: () -> bool
+
+          def force_upload=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
         end
 
         def initialize: (*untyped _) -> untyped
 
-        def env: -> String?
+        def env: () -> String?
 
-        def service: -> String
+        def env=: (String? env) -> void
 
-        def version: -> String?
+        def api_key: () -> String?
 
-        def tags: -> ::Hash[::String, ::String]
+        def hostname: () -> String?
+
+        def service: () -> String?
+
+        def service=: (String? service) -> void
+
+        def site: () -> String?
+
+        def service_without_fallback: () -> String?
+
+        def version: () -> String?
+
+        def version=: (String? version) -> void
+
+        def tags: () -> Hash[String, String]
+
+        def experimental_propagate_process_tags_enabled: () -> bool
+
+        def experimental_propagate_process_tags_enabled=: (bool value) -> bool
 
         def logger=: (untyped logger) -> untyped
 
@@ -134,11 +464,39 @@ module Datadog
 
         def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
 
+        def ai_guard: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AIGuard
+
         def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
 
         def error_tracking: () -> Datadog::Core::Configuration::Settings::_ErrorTracking
+
+        def open_feature: () -> _OpenFeature
+
+        def feature_flags: () -> _FeatureFlags
+
+        def diagnostics: () -> _Diagnostics
+
+        def logger: () -> _LoggerSettings
+
+        def container: () -> _Container
+
+        def health_metrics: () -> _HealthMetrics
+
+        def apm: () -> _Apm
+
+        def data_streams: () -> _DataStreams
+
+        def crashtracking: () -> _Crashtracking
+
+        def profiling: () -> _Profiling
+
+        def tracing: () -> untyped
+
+        def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
+
+        def symbol_database: (?untyped? options) -> _SymbolDatabase
       end
     end
   end

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
-require_relative 'cache/redis'
-require_relative '../rails/ext'
-require_relative '../../../core/contrib/rails/utils'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
+require_relative "cache/redis"
+require_relative "../rails/ext"
+require_relative "../../../core/contrib/rails/utils"
 
 module Datadog
   module Tracing
@@ -20,11 +20,11 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_support, auto_patch: false
           def self.gem_name
-            'activesupport'
+            "activesupport"
           end
 
           def self.version
-            Gem.loaded_specs['activesupport']&.version
+            Gem.loaded_specs["activesupport"]&.version
           end
 
           def self.loaded?

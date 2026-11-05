@@ -4,12 +4,17 @@ module Datadog
       module Configurable
         def self.included: (untyped base) -> untyped
         module InstanceMethods
-          def configuration: (?::Symbol matcher) -> untyped
+          @default_configuration: Contrib::Configuration::Settings?
+          @resolver: Contrib::Configuration::Resolver?
+
+          def name: () -> Symbol
+          def configuration: (?Symbol matcher) -> untyped
           def resolve: (untyped value) -> untyped
           def configurations: () -> untyped
-          def configure: (?::Symbol matcher, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+          def configure: (?Symbol matcher, ?Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
           def reset_configuration!: () -> untyped
           def default_configuration: () -> untyped
+          def set_integration_settings_path!: (untyped configuration) -> untyped
           def new_configuration: () -> untyped
           def resolver: () -> untyped
         end

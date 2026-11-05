@@ -1,16 +1,20 @@
 # frozen_string_literal: true
 
-require_relative '../../core/transport/parcel'
-require_relative 'http/client'
+require_relative "../../core/chunker"
+require_relative "../../core/encoding"
+require_relative "../../core/tag_builder"
+require_relative "../../core/transport/parcel"
+require_relative "../../core/transport/request"
+require_relative "../../core/transport/transport"
+require_relative "../error"
+require_relative "../fatal_exceptions"
+require_relative "../guardrails_telemetry"
+require_relative "http/input"
 
 module Datadog
   module DI
     module Transport
       module Input
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
           attr_reader :serialized_tags
 
@@ -21,47 +25,142 @@ module Datadog
           end
         end
 
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
+        class Transport < Core::Transport::Transport
+          attr_reader :telemetry
+          # The guardrails metric emitter.
+          # @return [GuardrailsTelemetry]
+          attr_reader :guardrails_telemetry
 
-          def initialize(apis, default_api, logger:)
-            @apis = apis
-            @logger = logger
-
-            @client = HTTP::Client.new(current_api, logger: logger)
+          # Initializes the transport.
+          #
+          # @param apis [Datadog::Core::Transport::HTTP::API::Map] API instances by name
+          # @param default_api [String] name of the API requests are sent through when unspecified
+          # @param logger [Datadog::Core::Logger] logger for transport diagnostics
+          # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical payload-drop metric
+          # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
+          # @return [void]
+          def initialize(apis, default_api, logger:, guardrails_telemetry:, telemetry: nil)
+            super(apis, default_api, logger: logger)
+            @telemetry = telemetry
+            @guardrails_telemetry = guardrails_telemetry
           end
 
-          def current_api
-            @apis[HTTP::API::INPUT]
-          end
+          # The limit on an individual snapshot payload, aka "log line",
+          # is 1 MB.
+          #
+          # TODO There is an RFC for snapshot pruning that should be
+          # implemented to reduce the size of snapshots to be below this
+          # limit, so that we can send a portion of the captured data
+          # rather than dropping the snapshot entirely.
+          MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
 
-          def send_input(payload, tags)
-            json = JSON.dump(payload)
-            parcel = EncodedParcel.new(json)
+          # The maximum chunk (batch) size that intake permits is 5 MB.
+          #
+          # Two bytes are for the [ and ] of JSON array syntax.
+          MAX_CHUNK_SIZE = 5 * 1024 * 1024 - 2
+
+          # Try to send smaller payloads to avoid large network requests.
+          # If a payload is larger than default chunk size but is under the
+          # max chunk size, it will still get sent out.
+          DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
+
+          # Sends snapshot payloads to the agent.
+          #
+          # Each snapshot is serialized individually. If serialization fails
+          # for a snapshot (e.g., due to binary data from custom serializers),
+          # the on_serialization_error callback is invoked with the probe ID
+          # and exception, allowing the caller to disable the affected probe.
+          # Successfully serialized snapshots are still sent.
+          #
+          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
+          # of ~2MB each to avoid large network requests.
+          #
+          # @param payload [Array<SnapshotEvent>] the snapshot events to send, each paired with its probe's guardrails event type
+          # @param tags [Hash] Tags to send with the snapshots
+          # @param on_serialization_error [Proc] Called with (probe_id, exception)
+          #   when a snapshot fails to serialize.
+          # @return [Array<SnapshotEvent>] the events that were sent
+          def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
+
+            # Serialize each snapshot individually to isolate failures
+            encoded_snapshots = []
+            dropped_events = []
+            payload.each do |event|
+              encoded = encoder.encode(event.payload)
+              if encoded.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+                logger.debug do
+                  "di: dropping too big snapshot (#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
+                end
+                dropped_events << [event, encoded.bytesize]
+                next
+              end
+              encoded_snapshots << encoded
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
+              # Serialization failed for this snapshot - report via callback
+              # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
+              probe_id = event.payload.dig(:debugger, :snapshot, :probe, :id)
+              logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
+              telemetry&.report(exc, description: "JSON encoding failed for snapshot")
+
+              if probe_id
+                begin
+                  on_serialization_error.call(probe_id, exc)
+                rescue Exception => callback_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(callback_exc)
+                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
+                  telemetry&.report(callback_exc, description: "Error in serialization error callback")
+                end
+              end
+            end
+
+            dropped_events.each do |event, bytes|
+              guardrails_telemetry.dropped(
+                reason: GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE,
+                event_type: event.event_type, bytes: bytes,
+              )
+            end
+
+            return payload if encoded_snapshots.empty?
+
+            Datadog::Core::Chunker.chunk_by_size(
+              encoded_snapshots, DEFAULT_CHUNK_SIZE,
+            ).each do |chunk|
+              # We drop snapshots that are too big earlier.
+              # The limit on chunked payload length here is greater
+              # than the limit on snapshot size, therefore no chunks
+              # can exceed limits here.
+              chunked_payload = encoder.join(chunk)
+
+              # We need to rescue exceptions for each chunk so that
+              # subsequent chunks are attempted to be sent.
+              begin
+                send_input_chunk(chunked_payload, serialized_tags)
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
+                telemetry&.report(exc, description: "Error sending snapshot chunk")
+              end
+            end
+
+            payload
+          end
+
+          def send_input_chunk(chunked_payload, serialized_tags)
+            parcel = Core::Transport::Parcel.new(chunked_payload, content_type: encoder.content_type)
             request = Request.new(parcel, serialized_tags)
 
-            response = @client.send_input_payload(request)
-            unless response.ok?
-              # TODO Datadog::Core::Transport::InternalErrorResponse
-              # does not have +code+ method, what is the actual API of
-              # these response objects?
-              raise Error::AgentCommunicationError, "send_input failed: #{begin
-                response.code
-              rescue
-                "???"
-              end}: #{response.payload}"
+            client.send_request(:input, request).tap do |response|
+              if downgrade?(response)
+                downgrade!
+                return send_input_chunk(chunked_payload, serialized_tags)
+              end
             end
-          rescue Error::AgentCommunicationError
-            raise
-          # Datadog::Core::Transport does not perform any exception mapping,
-          # therefore we could have any exception here from failure to parse
-          # agent URI for example.
-          # If we ever implement retries for network errors, we should distinguish
-          # actual network errors from non-network errors that are raised by
-          # transport code.
-          rescue => exc
-            raise Error::AgentCommunicationError, "send_input failed: #{exc.class}: #{exc}"
+          end
+
+          def encoder
+            Core::Encoding::JSONEncoder
           end
         end
       end

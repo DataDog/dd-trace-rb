@@ -1,6 +1,37 @@
 module Datadog
-  include Core::Configuration
-  include Core::Extensions
-  include Tracing::Contrib::Extensions::Configuration
-  include Tracing::Contrib::Extensions::Helpers
+  # This type is a semantic version of `untyped` when the accepted or returned
+  # value is literally anything. And `untyped` should be used as a signal that
+  # the typing is not finished yet.
+  #
+  # WARNING: This type should be used sparingly and only when there are no distinct
+  #          types that can be used to represent the value.
+  #
+  # Examples:
+  #
+  #   when Hash values are impossible to narrow down to a specific type
+  #
+  #   ```rbs
+  #   def my_function: (::Hash[::String, any] payload) -> void
+  #   ```
+  #
+  #   or when an arbitrary Array with uncontrolled values is needed
+  #
+  #   ```rbs
+  #   def my_function: (::Array[any] payload) -> void
+  #   ```
+  type any = untyped
+
+  extend Core::Extensions
+  extend Core::Configuration
+
+  DATADOG_ENV: Core::Configuration::ConfigHelper
+
+  # Extended in datadog/tracing/contrib/extensions.rb
+  extend Tracing::Contrib::Extensions::Helpers
+  extend Tracing::Contrib::Extensions::Configuration
+
+  module Helpers
+    type json = ::String | ::Integer | ::Float | bool | nil | ::Array[json] | ::Hash[::String, json]
+    type json_symbolized = ::String | ::Integer | ::Float | bool | nil | ::Array[json_symbolized] | ::Hash[::Symbol, json_symbolized]
+  end
 end

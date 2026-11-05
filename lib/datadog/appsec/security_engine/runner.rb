@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'result'
+require_relative "result"
 
 module Datadog
   module AppSec
@@ -9,10 +9,13 @@ module Datadog
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 
-        def initialize(handle_ref)
+        attr_reader :ruleset_version
+
+        def initialize(handle_ref, ruleset_version:)
           @mutex = Mutex.new
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
+          @ruleset_version = ruleset_version
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -24,13 +27,13 @@ module Datadog
           persistent_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? || v.empty?
+            v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
           ephemeral_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? || v.empty?
+            v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
           result = try_run(persistent_data, ephemeral_data, timeout)
@@ -39,17 +42,19 @@ module Datadog
           report_execution(result)
 
           unless SUCCESSFUL_EXECUTION_CODES.include?(result.status)
-            return Result::Error.new(duration_ext_ns: stop_ns - start_ns)
+            return Result::Error.new(duration_ext_ns: stop_ns - start_ns, input_truncated: result.input_truncated?)
           end
 
           klass = (result.status == :match) ? Result::Match : Result::Ok
           klass.new(
             events: result.events,
             actions: result.actions,
-            derivatives: result.derivatives,
-            timeout: result.timeout,
-            duration_ns: result.total_runtime,
-            duration_ext_ns: (stop_ns - start_ns)
+            attributes: result.attributes,
+            keep: result.keep?,
+            timeout: result.timeout?,
+            duration_ns: result.duration,
+            duration_ext_ns: (stop_ns - start_ns),
+            input_truncated: result.input_truncated?,
           )
         ensure
           @mutex.unlock
@@ -57,6 +62,10 @@ module Datadog
 
         def waf_context
           @waf_context ||= @waf_handle.build_context
+        end
+
+        def waf_addresses
+          @waf_handle.known_addresses
         end
 
         def finalize!
@@ -70,14 +79,22 @@ module Datadog
         def try_run(persistent_data, ephemeral_data, timeout)
           waf_context.run(persistent_data, ephemeral_data, timeout)
         rescue WAF::LibDDWAFError => e
-          Datadog.logger.debug { "#{@debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
-          AppSec.telemetry.report(e, description: 'libddwaf-rb internal low-level error')
+          Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }
+          AppSec.telemetry.report(e, description: "libddwaf-rb internal low-level error")
 
-          WAF::Result.new(:err_internal, [], 0, false, [], [])
+          WAF::Result.new(
+            status: :err_internal,
+            events: [],
+            actions: {},
+            attributes: {},
+            duration: 0,
+            keep: false,
+            timeout: false,
+          )
         end
 
         def report_execution(result)
-          Datadog.logger.debug { "#{@debug_tag} execution timed out: #{result.inspect}" } if result.timeout
+          Datadog.logger.debug { "#{@debug_tag} execution timed out: #{result.inspect}" } if result.timeout?
 
           if SUCCESSFUL_EXECUTION_CODES.include?(result.status)
             Datadog.logger.debug { "#{@debug_tag} execution result: #{result.inspect}" }

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative 'settings'
-require_relative 'ext'
-require_relative 'agent_settings'
-require_relative '../transport/ext'
+require_relative "settings"
+require_relative "ext"
+require_relative "agent_settings"
+require_relative "../transport/ext"
 
 module Datadog
   module Core
@@ -60,16 +60,16 @@ module Datadog
           @configured_hostname = pick_from(
             DetectedConfiguration.new(
               friendly_name: "'c.agent.host'",
-              value: settings.agent.host
+              value: settings.agent.host,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url&.hostname
+              value: parsed_http_url&.hostname,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST]
-            )
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST],
+            ),
           )
         end
 
@@ -87,8 +87,8 @@ module Datadog
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
-            )
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
+            ),
           )
         end
 
@@ -103,7 +103,7 @@ module Datadog
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
               value: parsed_url_ssl?,
-            )
+            ),
           )
         end
 
@@ -117,9 +117,9 @@ module Datadog
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
-                'environment variable',
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
-            )
+                "environment variable",
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
+            ),
           )
         end
 
@@ -129,19 +129,19 @@ module Datadog
           @configured_uds_path = pick_from(
             DetectedConfiguration.new(
               friendly_name: "'c.agent.uds_path'",
-              value: settings.agent.uds_path
+              value: settings.agent.uds_path,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url_uds_path
-            )
+              value: parsed_url_uds_path,
+            ),
           )
         end
 
         def parsed_url_ssl?
           return nil if parsed_url.nil?
 
-          parsed_url.scheme == 'https'
+          parsed_url.scheme == "https"
         end
 
         def try_parsing_as_integer(value:, friendly_name:)
@@ -189,10 +189,10 @@ module Datadog
           path = parsed_url.to_s
           # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
           # supports both
-          if path.start_with?('unix://')
-            path.sub('unix://', '')
+          if path.start_with?("unix://")
+            path.sub("unix://", "")
           else
-            path.sub('unix:', '')
+            path.sub("unix:", "")
           end
         end
 
@@ -232,14 +232,14 @@ module Datadog
             warn_if_configuration_mismatch(
               [
                 DetectedConfiguration.new(
-                  friendly_name: 'configuration for unix domain socket',
+                  friendly_name: "configuration for unix domain socket",
                   value: parsed_url.to_s,
                 ),
                 DetectedConfiguration.new(
-                  friendly_name: 'configuration of hostname/port for http/https use',
+                  friendly_name: "configuration of hostname/port for http/https use",
                   value: "hostname: '#{hostname}', port: '#{port}'",
                 ),
-              ]
+              ],
             )
           end
 
@@ -256,7 +256,7 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
-          unparsed_url_from_env = ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL]
+          unparsed_url_from_env = DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL]
 
           @parsed_url =
             if unparsed_url_from_env
@@ -269,7 +269,7 @@ module Datadog
                 log_warning(
                   "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} " \
                   "environment variable ('#{unparsed_url_from_env}'). " \
-                  "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL}."
+                  "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL}.",
                 )
                 # rubocop:enable Layout/LineLength
 
@@ -294,10 +294,11 @@ module Datadog
           return unless detected_configurations_in_priority_order.map(&:value).uniq.size > 1
 
           log_warning(
-            'Configuration mismatch: values differ between ' \
+            "Configuration mismatch: values differ between " \
             "#{detected_configurations_in_priority_order
               .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(" and ")}" \
-            ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
+            ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring " \
+            "other configuration.",
           )
         end
 
@@ -306,7 +307,7 @@ module Datadog
         end
 
         def http_scheme?(uri)
-          ['http', 'https'].include?(uri.scheme)
+          ["http", "https"].include?(uri.scheme)
         end
 
         # Expected to return nil (not false!) when it's not http
@@ -315,7 +316,7 @@ module Datadog
         end
 
         def unix_scheme?(uri)
-          uri.scheme == 'unix'
+          uri.scheme == "unix"
         end
 
         # Represents a given configuration value and where we got it from

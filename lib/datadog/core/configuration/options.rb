@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'option_definition'
+require_relative "option_definition"
 
 module Datadog
   module Core
@@ -16,17 +16,47 @@ module Datadog
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
+          def settings_path
+            defined?(@settings_path) ? @settings_path : nil
+          end
+
+          # Registry of nested settings classes keyed by the option name declared
+          # via `Base.settings`. This lets us propagate a new settings path down the
+          # tree without storing parent references on the nested class or on the
+          # option definition itself.
+          def settings_children
+            @settings_children ||= if superclass <= Options
+              superclass.settings_children.dup
+            else
+              {}
+            end
+          end
+
+          def settings_path=(path)
+            @settings_path = path
+
+            # Keep nested settings paths in sync when a parent settings path is
+            # assigned later, which is how contrib integrations inject
+            # "tracing.<integration>" into their configuration classes.
+            settings_children.each do |name, settings_class|
+              nested_settings_path = path ? "#{path}.#{name}" : name.to_s
+              settings_class.settings_path = nested_settings_path
+            end
+          end
+
           def options
             # Allows for class inheritance of option definitions
-            @options ||= (superclass <= Options) ? superclass.options.dup : {}
+            @options ||= if superclass <= Options
+              superclass.options.dup
+            else
+              {}
+            end
           end
 
           protected
 
-          def option(name, meta = {}, &block)
-            settings_name = defined?(@settings_name) && @settings_name
-            option_name = settings_name ? "#{settings_name}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, meta, &block)
+          def option(name, attributes = {}, &block)
+            builder = OptionDefinition::Builder.new(name, attributes, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
@@ -40,14 +70,21 @@ module Datadog
 
           def default_helpers(name)
             option_name = name.to_sym
-
+            # Steep: https://github.com/soutaro/steep/issues/335
+            # @type var opt_getter: Configuration::OptionDefinition::generic_proc
+            opt_getter = proc do # steep:ignore IncompatibleAssignment
+              # These Procs uses `get/set_option`, but we only add them to the OptionDefinition helpers here.
+              # Steep is right that these methods are not defined, but we only run these Procs in instance context.
+              get_option(option_name) # steep:ignore NoMethod
+            end
+            # Steep: https://github.com/soutaro/steep/issues/335
+            # @type var opt_setter: Configuration::OptionDefinition::generic_proc
+            opt_setter = proc do |value| # steep:ignore IncompatibleAssignment
+              set_option(option_name, value) # steep:ignore NoMethod
+            end
             {
-              option_name.to_sym => proc do
-                get_option(option_name)
-              end,
-              :"#{option_name}=" => proc do |value|
-                set_option(option_name, value)
-              end
+              option_name.to_sym => opt_getter,
+              :"#{option_name}=" => opt_setter,
             }
           end
 
@@ -68,7 +105,11 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence, resolved_env: resolved_env(name))
+            option = resolve_option(name)
+            # Populate lower-precedence values so telemetry and `unset` can
+            # still observe the fallback chain after a first programmatic set.
+            option.get
+            option.set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
@@ -113,11 +154,8 @@ module Datadog
 
             assert_valid_option!(name)
             definition = self.class.options[name]
+            # @type self: Configuration::Options::_Settings
             options[name] = definition.build(self)
-          end
-
-          def resolved_env(name)
-            options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)
@@ -125,7 +163,8 @@ module Datadog
           end
         end
 
-        InvalidOptionError = Class.new(StandardError)
+        # Steep: https://github.com/soutaro/steep/issues/1880
+        InvalidOptionError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
       end
     end
   end

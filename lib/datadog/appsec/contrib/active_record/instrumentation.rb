@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../event'
-require_relative '../../security_event'
+require_relative "../../event"
+require_relative "../../trace_keeper"
+require_relative "../../security_event"
 
 module Datadog
   module AppSec
@@ -9,9 +10,7 @@ module Datadog
       module ActiveRecord
         # AppSec module that will be prepended to ActiveRecord adapter
         module Instrumentation
-          module_function
-
-          def detect_sql_injection(sql, adapter_name)
+          def self.detect_sql_injection(sql, adapter_name)
             return unless AppSec.rasp_enabled?
 
             context = AppSec.active_context
@@ -20,24 +19,35 @@ module Datadog
             # libddwaf expects db system to be lowercase,
             # in case of sqlite adapter, libddwaf expects 'sqlite' as db system
             db_system = adapter_name.downcase
-            db_system = 'sqlite' if db_system == 'sqlite3'
+            db_system = "sqlite" if db_system == "sqlite3"
 
             ephemeral_data = {
-              'server.db.statement' => sql,
-              'server.db.system' => db_system
+              "server.db.statement" => sql,
+              "server.db.system" => db_system,
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
             if result.match?
-              AppSec::Event.tag_and_keep!(context, result)
+              AppSec::Event.tag(context, result)
+              TraceKeeper.keep!(context.trace) if result.keep?
 
               context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
               )
 
               AppSec::ActionsHandler.handle(result.actions)
+            end
+          end
+
+          module PreprocessQueryAdapterPatch
+            private
+
+            def preprocess_query(sql)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
+
+              super
             end
           end
 

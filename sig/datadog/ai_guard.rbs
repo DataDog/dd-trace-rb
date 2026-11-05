@@ -1,0 +1,38 @@
+module Datadog
+  module AIGuard
+    class AIGuardAbortError < StandardError
+      @action: ::String
+      @reason: ::String
+      @tags: ::Array[::String]
+
+      def initialize: (action: ::String, reason: ::String, tags: ::Array[::String]) -> void
+
+      def to_s: () -> ::String
+    end
+
+    class AIGuardClientError < StandardError
+    end
+
+    def self.enabled?: () -> bool
+
+    def self.http_client: () -> HTTPClient?
+
+    def self.logger: () -> Core::Logger?
+
+    def self.telemetry: () -> Core::Telemetry::Component?
+
+    def self.evaluate: (
+      *Evaluation::Message messages,
+      ?allow_raise: bool
+    ) -> (Evaluation::Result | Evaluation::NoOpResult)
+
+    def self.assistant: (?content: String?) ?{ (Evaluation::MessageBuilder) -> void } -> Evaluation::Message
+
+    def self.tool: (tool_call_id: String | Integer, content: String) -> Evaluation::Message
+
+    def self.message: (
+      role: String | Symbol,
+      ?content: String?
+    ) ?{ (Evaluation::MessageBuilder) -> void } -> Evaluation::Message
+  end
+end

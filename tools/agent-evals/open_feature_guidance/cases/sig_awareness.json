@@ -1,0 +1,9 @@
+{
+  "name": "sig_awareness",
+  "description": "OpenFeature signature work discovers the scoped guide from the repository root.",
+  "prompt": "Start at the repository root and do not modify files. You are about to change sig/datadog/open_feature/provider.rbs. Before beginning the work, return instruction_files as the repository-relative paths of all AGENTS.md files that govern this task, ordered from broadest to most specific.",
+  "expected_instruction_files": [
+    "AGENTS.md",
+    "lib/datadog/open_feature/AGENTS.md"
+  ]
+}

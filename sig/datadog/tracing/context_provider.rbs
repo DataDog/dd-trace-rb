@@ -1,12 +1,19 @@
 module Datadog
   module Tracing
     class DefaultContextProvider
-      def initialize: () -> void
+      @context: FiberLocalContext
+      @otel_thread_context: OTelThreadContext?
+
+      def initialize: (?otel_thread_context: OTelThreadContext?) -> void
       def context=: (untyped ctx) -> untyped
       def context: (?untyped? key) -> untyped
     end
+
     class FiberLocalContext
-      def initialize: () -> void
+      @key: Symbol
+      @otel_thread_context: OTelThreadContext?
+
+      def initialize: (?otel_thread_context: OTelThreadContext?) -> void
       def local=: (untyped ctx) -> untyped
       def local: (?untyped storage) -> untyped
       UNIQUE_INSTANCE_MUTEX: untyped

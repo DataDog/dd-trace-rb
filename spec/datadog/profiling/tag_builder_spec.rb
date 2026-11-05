@@ -20,6 +20,11 @@ RSpec.describe Datadog::Profiling::TagBuilder do
       )
     end
 
+    it "does not include tags that are not allowed" do
+      expect(Datadog::Core::TagBuilder).to receive(:tags).and_return("not_allowed" => "value")
+      expect(call).to_not include("not_allowed")
+    end
+
     describe "unified service tagging" do
       [:env, :service, :version].each do |tag|
         context "when a #{tag} is defined" do
@@ -85,14 +90,14 @@ RSpec.describe Datadog::Profiling::TagBuilder do
           Datadog::Core::TagBuilder.reset_for_tests
 
           expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
-            "git_repository_url"
+            "git_repository_url",
           )
           expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return("git_commit_sha")
         end
 
         it "includes the git repository URL and commit SHA" do
           expect(call).to include(
-            "git.repository_url" => "git_repository_url", "git.commit.sha" => "git_commit_sha"
+            "git.repository_url" => "git_repository_url", "git.commit.sha" => "git_commit_sha",
           )
         end
       end

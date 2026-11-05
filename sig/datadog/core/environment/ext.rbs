@@ -22,15 +22,15 @@ module Datadog
 
         ENV_ENVIRONMENT: String
 
-        ENV_SERVICE: String
+        ENV_EXTERNAL_ENV: String
 
-        ENV_OTEL_SERVICE: String
+        ENV_HOSTNAME: String
+
+        ENV_SERVICE: String
 
         ENV_SITE: String
 
         ENV_TAGS: String
-
-        ENV_OTEL_RESOURCE_ATTRIBUTES: String
 
         ENV_VERSION: String
 
@@ -41,6 +41,24 @@ module Datadog
         TAG_SERVICE: String
 
         TAG_VERSION: String
+
+        PROCESS_TYPE: String
+
+        TAG_ENTRYPOINT_BASEDIR: String
+
+        TAG_ENTRYPOINT_NAME: String
+
+        TAG_ENTRYPOINT_WORKDIR: String
+
+        TAG_ENTRYPOINT_TYPE: String
+
+        TAG_RAILS_APPLICATION: String
+
+        TAG_PROCESS_TAGS: String
+
+        TAG_SVC_AUTO: String
+
+        TAG_SVC_USER: String
       end
     end
   end

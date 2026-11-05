@@ -2,65 +2,129 @@ module Datadog
   module Core
     module Configuration
       class OptionDefinition
-        IDENTITY: untyped
+        type settings_context = Options::_Settings
+        type settings_execution_context = settings_context & Object
+        type option_type = Object?
+        type generic_proc = (^(?) [self: settings_execution_context] -> any)
+        type default_value = any
+        type env_parser_proc = (^(String env_value) [self: settings_execution_context] -> Option::env_value)
+        type after_set_proc = (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void)
+        type resetter_proc = (^(option_type value) [self: settings_execution_context] -> option_type)
+        type setter_proc = (^(option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type)
 
-        attr_reader default: untyped
+        type attributes = {
+          ?default: default_value?,
+          ?default_proc: generic_proc?,
+          ?env: String?,
+          ?env_parser: env_parser_proc?,
+          ?after_set: after_set_proc?,
+          ?skip_telemetry: bool,
+          ?is_settings: bool,
+          ?resetter: resetter_proc?,
+          ?setter: setter_proc?,
+          ?type: Symbol?,
+          ?type_options: Hash[Symbol, untyped]
+        }
 
-        attr_reader default_proc: untyped
+        type attributes_with_required_options = {
+          is_settings: bool,
+          ?default: default_value?,
+          ?default_proc: generic_proc?,
+          ?env: String?,
+          ?env_parser: env_parser_proc?,
+          ?after_set: after_set_proc?,
+          skip_telemetry: bool,
+          ?resetter: resetter_proc?,
+          ?setter: setter_proc?,
+          ?type: Symbol?,
+          type_options: Hash[Symbol, untyped]
+        }
 
-        attr_reader env: untyped
+        IDENTITY: setter_proc
 
-        attr_reader deprecated_env: untyped
+        attr_reader is_settings: bool
 
-        attr_reader env_parser: untyped
+        attr_reader default: default_value?
 
-        attr_reader depends_on: untyped
+        attr_reader default_proc: generic_proc?
 
-        attr_reader name: untyped
+        attr_reader env: String?
 
-        attr_reader after_set: untyped
+        attr_reader env_parser: env_parser_proc?
 
-        attr_reader resetter: untyped
+        attr_reader name: Symbol
 
-        attr_reader setter: untyped
+        attr_reader after_set: after_set_proc?
 
-        def initialize: (untyped name, ?::Hash[untyped, untyped] meta) { () -> untyped } -> untyped
+        attr_reader skip_telemetry: bool
 
-        def build: (untyped context) -> untyped
+        attr_reader resetter: resetter_proc?
+
+        attr_reader setter: setter_proc
+
+        attr_reader type: Symbol?
+
+        attr_reader type_options: Hash[Symbol, untyped]
+
+        def initialize: (String | Symbol name, attributes_with_required_options attributes) ?{ (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
+
+        def build: (settings_context context) -> Option
 
         class Builder
-          attr_reader helpers: untyped
+          class InvalidOptionError < StandardError
+          end
 
-          def initialize: (untyped name, ?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+          attr_reader helpers: Hash[Symbol, generic_proc]
 
-          def depends_on: (*untyped values) -> untyped
+          @env: String?
+          @env_parser: env_parser_proc?
+          @default: default_value?
+          @default_proc: generic_proc?
+          @helpers: Hash[Symbol, generic_proc]
+          @name: Symbol
+          @after_set: after_set_proc?
+          @skip_telemetry: bool
+          @is_settings: bool
+          @resetter: resetter_proc?
+          @setter: setter_proc
+          @type: Symbol?
+          @type_options: Hash[Symbol, untyped]
 
-          def default: (?untyped? value) ?{ () -> untyped } -> untyped
+          def initialize: (String | Symbol name, ?attributes options) ?{ (Builder) -> void } -> void
 
-          def default_proc: () { () -> untyped } -> untyped
+          def env: (String? value) -> void
 
-          def env: (untyped value) -> untyped
+          def env_parser: () ?{ (String env_value) [self: settings_execution_context] -> Option::env_value } -> void
 
-          def deprecated_env: (untyped value) -> untyped
+          # can also be a class that includes Configuration::Base for new settings
+          def default: (?(default_value) value) ?{ (settings_execution_context settings) [self: settings_execution_context] -> option_type } -> void
 
-          def env_parser: () { (String env_value) -> untyped } -> untyped
+          def default_proc: () ?{ (?) [self: settings_execution_context] -> untyped } -> void
 
-          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
+          def type: (Symbol? value, ?nilable: bool) -> Symbol?
 
-          def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
+          def helper: (Symbol name, *untyped _args) { (?) [self: settings_execution_context] -> untyped } -> void
 
-          def after_set: () { (untyped value) -> untyped } -> untyped
+          def after_set: () ?{ (option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void } -> void
 
-          def resetter: () { (untyped value) -> untyped } -> untyped
+          def skip_telemetry: (bool value) -> bool
 
-          def setter: () { (untyped value) -> untyped } -> untyped
+          def resetter: () ?{ (option_type value) [self: settings_execution_context] -> option_type } -> void
 
-          def apply_options!: (?::Hash[untyped, untyped] options) -> (nil | untyped)
+          def setter: () { (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
 
-          def to_definition: () -> untyped
+          def apply_options!: (?attributes options) -> void
 
-          def meta: () -> { default: untyped, after_set: untyped, resetter: untyped, setter: untyped }
+          def to_definition: () -> OptionDefinition
+
+          def attributes: () -> attributes
+
+          private
+
+          def validate_options!: () -> void
         end
+
+        private
       end
     end
   end

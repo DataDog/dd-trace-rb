@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative '../../../../tracing'
-require_relative '../../../metadata/ext'
+require_relative "../../../../tracing"
+require_relative "../../../metadata/ext"
 
-require_relative '../ext'
-require_relative '../utils'
-require_relative '../../rack/middlewares'
-require_relative '../../analytics'
-require_relative '../../../../core/telemetry/logger'
+require_relative "../ext"
+require_relative "../utils"
+require_relative "../../rack/middlewares"
+require_relative "../../analytics"
+require_relative "../../../../core/telemetry/logger"
 
 module Datadog
   module Tracing
@@ -16,9 +16,7 @@ module Datadog
         module ActionController
           # Instrumentation for ActionController components
           module Instrumentation
-            module_function
-
-            def start_processing(payload)
+            def self.start_processing(payload)
               return unless Tracing.enabled?
 
               # trace the execution
@@ -42,12 +40,13 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
-            def finish_processing(payload)
+            def self.finish_processing(payload)
               return unless Tracing.enabled?
 
               # retrieve the tracing context and the latest active span
@@ -77,10 +76,10 @@ module Datadog
 
                 exception = payload[:exception_object]
                 if exception.nil?
-                  # [christian] in some cases :status is not defined,
-                  # rather than firing an error, simply acknowledge we don't know it.
-                  status = payload.fetch(:status, '?').to_s
-                  span.status = 1 if status.start_with?('5')
+                  status = payload[:status]
+                  if status && Datadog.configuration.tracing.http_error_statuses.server.include?(status)
+                    span.status = Tracing::Metadata::Ext::Errors::STATUS
+                  end
                 elsif Utils.exception_is_error?(exception)
                   span.set_error(exception)
                 end
@@ -88,7 +87,7 @@ module Datadog
                 span.finish
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -107,9 +106,9 @@ module Datadog
                   headers: {
                     # The exception this controller was given in the request,
                     # which is typical if the controller is configured to handle exceptions.
-                    request_exception: request.headers['action_dispatch.exception']
+                    request_exception: request.headers["action_dispatch.exception"],
                   },
-                  tracing_context: {}
+                  tracing_context: {},
                 }
 
                 begin
@@ -121,7 +120,9 @@ module Datadog
                   result
                 # rubocop:disable Lint/RescueException
                 rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
+                  # Rails ActiveSupport::Notifications convention — payload[:exception] is
+                  # an array of [class_name_string, message_string] consumed by subscribers.
+                  payload[:exception] = [e.class.name, e.message] # rubocop:disable CustomCops/ExceptionMessageCop
                   payload[:exception_object] = e
                   raise e
                 ensure

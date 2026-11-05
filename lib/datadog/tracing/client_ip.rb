@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/configuration'
-require_relative '../core/utils/network'
-require_relative 'metadata/ext'
-require_relative 'span'
+require_relative "../core/configuration"
+require_relative "../core/utils/network"
+require_relative "metadata/ext"
+require_relative "span"
 
 module Datadog
   module Tracing
@@ -41,7 +41,7 @@ module Datadog
           if headers && configuration.header_name
             return Datadog::Core::Utils::Network.stripped_ip_from_request_headers(
               headers,
-              ip_headers_to_check: Array(configuration.header_name)
+              ip_headers_to_check: Array(configuration.header_name),
             )
           end
 

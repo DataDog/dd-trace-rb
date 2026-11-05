@@ -1,8 +1,8 @@
-require 'spec_helper'
+require "spec_helper"
 
-require_relative 'support/benchmark_helper'
+require_relative "support/benchmark_helper"
 
-RSpec.describe 'Microbenchmark Buffer' do
+RSpec.describe "Microbenchmark Buffer" do
   let(:max_size) { Datadog::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE }
   let(:span) { get_test_traces(1).flatten }
 
@@ -18,17 +18,17 @@ RSpec.describe 'Microbenchmark Buffer' do
     buffer.pop
   end
 
-  describe 'CRubyTraceBuffer' do
+  describe "CRubyTraceBuffer" do
     before { skip unless PlatformHelpers.mri? }
 
     let(:buffer) { Datadog::CRubyTraceBuffer.new(max_size) }
 
-    include_examples 'benchmark'
+    include_examples "benchmark"
   end
 
-  describe 'ThreadSafeTraceBuffer' do
+  describe "ThreadSafeTraceBuffer" do
     let(:buffer) { Datadog::ThreadSafeTraceBuffer.new(max_size) }
 
-    include_examples 'benchmark'
+    include_examples "benchmark"
   end
 end

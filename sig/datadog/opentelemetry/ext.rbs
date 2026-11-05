@@ -1,0 +1,7 @@
+module Datadog
+  module OpenTelemetry
+    module Ext
+      EXPORTER_NONE: ::String
+    end
+  end
+end

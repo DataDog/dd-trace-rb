@@ -1,8 +1,7 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog/tracing/contrib/ethon/shared_examples'
-require 'datadog/tracing/contrib/ethon/integration_context'
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
+require "datadog/tracing/contrib/ethon/shared_examples"
+require "datadog/tracing/contrib/ethon/integration_context"
 
 RSpec.describe Datadog::Tracing::Contrib::Ethon do
   skip_unless_integration_testing_enabled
@@ -18,16 +17,16 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
     #
     # This allows us to still ensure that the integration
     # itself is leak-free.
-    EthonSupport.ethon_easy_new
+    Ethon::Easy.new
   end
 
-  context 'with Typhoeus request' do
+  context "with Typhoeus request" do
     subject(:request) { Typhoeus::Request.new(url, timeout: timeout).run }
 
-    it_behaves_like 'instrumented request'
+    it_behaves_like "instrumented request"
   end
 
-  context 'with single Hydra request' do
+  context "with single Hydra request" do
     subject(:request) do
       hydra = Typhoeus::Hydra.new
       request = Typhoeus::Request.new(url, timeout: timeout)
@@ -36,16 +35,16 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
       request.response
     end
 
-    it_behaves_like 'instrumented request'
+    it_behaves_like "instrumented request"
   end
 
-  context 'with concurrent Hydra requests' do
-    include_context 'integration context'
+  context "with concurrent Hydra requests" do
+    include_context "integration context"
 
     let(:url_1) { "http://#{host}:#{http_server_port}#{path}?status=200&simulate_timeout=true" }
     let(:url_2) { "http://#{host}:#{http_server_port}#{path}" }
     let(:request_1) { Typhoeus::Request.new(url_1, timeout: 0.001) }
-    let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: { status: 404 }) }
+    let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: {status: 404}) }
 
     subject(:request) do
       hydra = Typhoeus::Hydra.new
@@ -54,33 +53,33 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
       hydra.run
     end
 
-    it 'creates 3 spans' do
+    it "creates 3 spans" do
       expect { request }.to change { fetch_spans.count }.to 3
     end
 
-    describe 'created spans' do
-      let(:span_get) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == 'GET' } }
-      let(:span_post) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == 'POST' } }
-      let(:span_parent) { spans.find { |span| span.name == 'ethon.multi.request' } }
+    describe "created spans" do
+      let(:span_get) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == "GET" } }
+      let(:span_post) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == "POST" } }
+      let(:span_parent) { spans.find { |span| span.name == "ethon.multi.request" } }
 
       before { request }
 
-      it_behaves_like 'span' do
+      it_behaves_like "span" do
         let(:span) { span_get }
         let(:status) { nil }
       end
 
-      it_behaves_like 'span' do
+      it_behaves_like "span" do
         let(:span) { span_post }
-        let(:status) { '404' }
-        let(:method) { 'POST' }
+        let(:status) { "404" }
+        let(:method) { "POST" }
       end
 
-      it 'has timeout set on GET request span' do
-        expect(span_get).to have_error_message('Request has failed: Timeout was reached')
+      it "has timeout set on GET request span" do
+        expect(span_get).to have_error_message("Request has failed: Timeout was reached")
       end
 
-      it 'has span hierarchy properly set up' do
+      it "has span hierarchy properly set up" do
         expect(span_get.parent_id).to eq(span_parent.id)
         expect(span_post.parent_id).to eq(span_parent.id)
       end

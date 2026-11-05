@@ -1,5 +1,7 @@
 require 'open3'
+require 'digest'
 require 'rubygems'
+require 'rubygems/package'
 require 'bundler'
 require 'fileutils'
 require 'pathname'
@@ -24,16 +26,24 @@ current_path = Pathname.new(FileUtils.pwd)
 
 tmp_path = current_path.join('tmp', ENV["ARCH"])
 
-versioned_path = tmp_path.join(ruby_api_version)
+versioned_path = tmp_path.join(Gem.ruby_engine, RbConfig::CONFIG['ruby_version'])
 
 FileUtils.mkdir_p(versioned_path, verbose: true)
 
 gemfile_file_path = versioned_path.join('Gemfile')
 
 File.open(gemfile_file_path, 'w') do |file|
+  # we force ruby platform for binary gems so that resolution is always possible locally (even with added platforms in lockfile)
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
-  file.write("gem 'ffi', '1.16.3'\n")
+  file.write("gem 'msgpack', force_ruby_platform: true\n")
+  file.write("gem 'ffi', '1.16.3', force_ruby_platform: true\n")
+  file.write("gem 'libdatadog', force_ruby_platform: true\n")
+  file.write("gem 'libddwaf', force_ruby_platform: true\n")
+
+  # workaround for https://github.com/ruby/ruby/blob/ruby_2_6/gem_prelude.rb#L3-L7
+  file.write("gem 'did_you_mean', '1.3.0'\n") if RUBY_VERSION.start_with?('2.6.')
+
   # Mimick outdated `msgpack` version, uncomment below line to test
   # file.write("gem 'msgpack', '1.6.0'\n")
 end
@@ -80,20 +90,28 @@ env = {
 
 # ADD NEW DEPENDENCIES HERE
 [
+  'did_you_mean',
   'datadog-ruby_core_source',
   'ffi',
   'libddwaf',
   'msgpack',
   'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
   'logger',
+  'cgi',
   'datadog',
 ].each do |gem|
   version = gem_version_mapping.delete(gem)
 
+  # This hardcoded dependency list actually depends on the lockfile contents,
+  # which is per-version. The better solution is of course to refactor this to
+  # not hardcode the list and use solely what was locked.
+  next if version.nil?
+
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\
     '--no-document '\
-    '--ignore-dependencies '
+    '--ignore-dependencies ' \
+    '--platform ruby '
 
   case gem
   when 'ffi'
@@ -127,21 +145,55 @@ end
 
 cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
 
-libdatadog_musl = versioned_path +
-  "gems" +
-  "libdatadog-#{libdatadog_version}-#{RUBY_PLATFORM}" +
-  "vendor" +
-  "libdatadog-#{libdatadog_version.split(".").take(3).join(".")}" +
-  "#{RUBY_PLATFORM}-musl"
+lock_name = lambda do |spec|
+  version = spec.version.to_s
+  version = "#{version}-#{spec.platform}" unless spec.platform == Gem::Platform::RUBY
+  "#{spec.name} (#{version})"
+end
+
+locked = lock_file_parser.specs.each_with_object({}) { |spec, result| result[lock_name.call(spec)] = true }
+checksums = [ENV.fetch('DATADOG_GEM_LOCATION'), *cached_gems].each_with_object({}) do |gem_path, result|
+  spec = Gem::Package.new(gem_path).spec
+  name = lock_name.call(spec)
+  next unless locked.key?(name)
+
+  digest = Digest::SHA256.file(gem_path).hexdigest
+  if result.key?(name) && result[name] != digest
+    raise "Package contains conflicting archives for #{name}"
+  end
+  result[name] = digest
+end
+
+missing = locked.keys - checksums.keys
+raise "Package archives are missing for #{missing.join(', ')}" unless missing.empty?
+
+lockfile = File.read(lock_file_path)
+checksum_section = "\nCHECKSUMS\n#{checksums.sort.map { |name, digest| "  #{name} sha256=#{digest}" }.join("\n")}\n"
+unless lockfile.sub!(/\nCHECKSUMS\n.*?(?=\n[A-Z][A-Z ]+\n|\z)/m, checksum_section) ||
+    lockfile.sub!(/\nBUNDLED WITH\n/, "#{checksum_section}\nBUNDLED WITH\n")
+  raise "Could not add checksums to #{lock_file_path}"
+end
+File.write(lock_file_path, lockfile)
 
 FileUtils.rm_r(
   [
     *cached_gems,
     versioned_path.join("gems/ffi-#{ffi_version}/ext"),
-    libdatadog_musl,
   ],
   verbose: true
 )
+
+# RubyGems compiles native extensions in place in the installed gem dirs on
+# some Rubies, leaving the object files, the duplicate compiled libraries and
+# the `.sitearchdir` install timestamps behind; RubyGems 3.5+ runs a final
+# `make clean`. Strip the leftovers from every gem home; on Rubies whose
+# RubyGems already cleans up, the globs match nothing. The Makefile glob
+# matches on every Ruby: mkmf generates the Makefiles per gem home with
+# that home's paths, and the SSI package dedup requires the gem copies to
+# differ only in their per-version `.so` files.
+%w[*.o *.so .sitearchdir* Makefile].flat_map do |build_product|
+  Dir.glob(versioned_path.join("gems/*/ext/**/#{build_product}"))
+end.each { |path| FileUtils.rm(path, verbose: true) }
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries

@@ -1,0 +1,218 @@
+name: 'Signed commit and pull request'
+
+description: >-
+  Creates a GitHub-signed commit from the working tree via GraphQL, and opens or
+  updates a pull request for it.
+
+# Exists because create-pull-request with `sign-commits: true` rebuilds the
+# commit over REST, one blob and tree object per file: ~10 minutes on a
+# gemfiles/ refresh. `createCommitOnBranch` sends every file in one request, so
+# cost is flat in file count.
+#
+# Input names mirror create-pull-request so call sites read the same way.
+
+inputs:
+  token:
+    description: 'Token with contents:write and pull_requests:write.'
+    required: true
+  branch:
+    description: >-
+      Branch to commit to. Force-moved onto the new commit, which replaces rather
+      than descends from whatever was there, so it must be one this workflow owns.
+    required: true
+  commit-message:
+    description: 'Commit message.'
+    required: true
+  add-paths:
+    description: >-
+      Paths to stage, separated by whitespace, newlines, or commas. Defaults to
+      everything. Note that commas are accepted here for parity with
+      create-pull-request, but are normalized to whitespace before reaching git,
+      which treats a comma as a literal character in a pathspec.
+    required: false
+    default: '.'
+  base:
+    description: 'Base branch for the pull request.'
+    required: true
+  title:
+    description: 'Pull request title.'
+    required: true
+  body:
+    description: 'Pull request body.'
+    required: true
+  labels:
+    description: 'Comma or newline separated labels to apply.'
+    required: false
+    default: ''
+
+outputs:
+  commit-hash:
+    description: 'Hash of the created commit, empty when nothing changed.'
+    value: ${{ steps.commit.outputs.commit-hash }}
+
+runs:
+  using: "composite"
+  steps:
+    # Runs before any remote ref is touched, so a no-op run changes nothing
+    # remotely: no scratch branch, no empty commit, no empty PR.
+    #
+    # Both separators are flattened because either would silently commit a
+    # subset and still exit green: git treats a comma as a literal pathspec
+    # character, and `read -r -a` stops at the first newline.
+    - name: Stage changes
+      id: stage
+      shell: bash
+      env:
+        ADD_PATHS: ${{ inputs.add-paths }}
+        SCRATCH_PREFIX: signed-commit-pr/scratch
+      run: |
+        normalized="${ADD_PATHS//,/ }"
+        normalized="${normalized//$'\n'/ }"
+        read -r -a paths <<< "$normalized"
+        git add -- "${paths[@]}"
+        # Single line: ghcommit-action's file_pattern must not receive newlines.
+        echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
+        # Keyed to the run so concurrent runs cannot land on the same scratch ref.
+        # Matrix jobs share a run id, so a matrix caller would need a further key.
+        echo "scratch=$SCRATCH_PREFIX/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No changes to commit."
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Show staged changes
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      run: git diff --cached --stat
+
+    # The commit is built on a scratch branch rather than on `branch` itself
+    # because createCommitOnBranch can only append. Each run's commit is meant to
+    # replace the previous one, not stack on it, so `branch` has to be force-moved
+    # -- and the commit must already exist somewhere for that move to have a
+    # target. Committing in place instead would grow the branch by one full
+    # snapshot per run.
+    #
+    # Moving `branch` to HEAD first, then committing onto it, is the arrangement
+    # this replaces: it left the branch level with base for the duration of the
+    # commit, and GitHub closes an open pull request the moment its head holds
+    # nothing ahead of its base. `branch` is now only ever moved onto a finished
+    # commit, further down.
+    #
+    # Creates a remote ref only: resetting the local tree would discard what was
+    # just staged, leaving nothing to commit and the run still green.
+    - name: Create scratch branch
+      id: scratch
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+      run: |
+        # Local HEAD, not `base`: the two diverge once base moves after checkout.
+        head_sha="$(git rev-parse HEAD)"
+        echo "Pointing $SCRATCH at $head_sha"
+        # Force, so a scratch ref orphaned by an earlier cancelled run is reused
+        # rather than failing this one.
+        if ! gh api --silent -X POST "repos/$REPO/git/refs" \
+              -f "ref=refs/heads/$SCRATCH" -f "sha=$head_sha"; then
+          echo "Could not create the scratch branch, attempting to update it."
+          gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$SCRATCH" \
+            -F "sha=$head_sha" -F force=true
+        fi
+        echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Create signed commit
+      id: commit
+      if: steps.stage.outputs.changed == 'true'
+      uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
+      with:
+        repo: ${{ github.repository }}
+        branch: ${{ steps.stage.outputs.scratch }}
+        # Normalized form, not raw add-paths: this is split with `read -r -a`,
+        # which would keep only the first line and commit a subset.
+        file_pattern: ${{ steps.stage.outputs.paths }}
+        commit_message: ${{ inputs.commit-message }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        # The expectedHeadOid the mutation is guarded by. ghcommit-action exposes
+        # no input for it, but the CLI reads GHCOMMIT_SHA and Docker actions
+        # inherit this block. Set explicitly so the guard is the SHA the scratch
+        # ref was just created at, rather than whatever the CLI's `git rev-parse
+        # HEAD` fallback resolves to.
+        GHCOMMIT_SHA: ${{ steps.scratch.outputs.head-sha }}
+
+    # Single move onto a commit that already exists, so an open pull request on
+    # `branch` never observes a head level with its base. Runs even when the
+    # commit step failed, so the scratch ref is always cleaned up.
+    - name: Move branch onto the commit
+      if: always() && steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        SCRATCH: ${{ steps.stage.outputs.scratch }}
+        COMMIT: ${{ steps.commit.outputs.commit-hash }}
+      run: |
+        # Always drop the scratch ref, whether or not the move below happens.
+        trap 'gh api --silent -X DELETE "repos/$REPO/git/refs/heads/$SCRATCH" || true' EXIT
+
+        if [ -z "$COMMIT" ]; then
+          echo "No commit was created, leaving $BRANCH untouched."
+          exit 1
+        fi
+
+        echo "Pointing $BRANCH at $COMMIT"
+        # Force, because the branch holds the previous run's commit, which the
+        # new one replaces rather than descends from.
+        if ! gh api --silent -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" \
+              -F "sha=$COMMIT" -F force=true; then
+          echo "Could not update the branch, attempting to create it."
+          gh api --silent -X POST "repos/$REPO/git/refs" \
+            -f "ref=refs/heads/$BRANCH" -f "sha=$COMMIT"
+        fi
+
+    # Reuses an open PR so reruns stay idempotent; `gh pr create` fails when one
+    # already exists.
+    #
+    # Matched on head repository owner as well as branch, because `--head` filters
+    # on name alone: a fork PR sharing the branch name would otherwise be edited
+    # in place of the one this action needs to open.
+    - name: Create or update pull request
+      if: steps.stage.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+        LABELS: ${{ inputs.labels }}
+      run: |
+        existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+          --state open --json number,headRepositoryOwner \
+          --jq "[.[] | select(.headRepositoryOwner.login == \"${REPO%%/*}\")] | .[0].number // empty")"
+
+        args=()
+        if [ -n "$LABELS" ]; then
+          # Accept both comma and newline separation, as create-pull-request did.
+          while IFS= read -r label; do
+            label="$(echo "$label" | xargs)"
+            [ -n "$label" ] && args+=(--add-label "$label")
+          done <<< "${LABELS//,/$'\n'}"
+        fi
+
+        if [ -n "$existing" ]; then
+          echo "Updating pull request #$existing"
+          gh pr edit "$existing" --repo "$REPO" \
+            --title "$TITLE" --body "$BODY" "${args[@]}"
+          gh pr view "$existing" --repo "$REPO" --json url --jq .url
+        else
+          # --add-label is spelled --label on create.
+          gh pr create --repo "$REPO" --head "$BRANCH" --base "$BASE" \
+            --title "$TITLE" --body "$BODY" "${args[@]/--add-label/--label}"
+        fi

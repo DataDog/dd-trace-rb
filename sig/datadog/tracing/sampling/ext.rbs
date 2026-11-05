@@ -3,25 +3,25 @@ module Datadog
     module Sampling
       module Ext
         module Priority
-          USER_REJECT: ::Integer
-          AUTO_REJECT: ::Integer
-          AUTO_KEEP: ::Integer
-          USER_KEEP: ::Integer
+          USER_REJECT: Integer
+          AUTO_REJECT: Integer
+          AUTO_KEEP: Integer
+          USER_KEEP: Integer
         end
 
         module Mechanism
-          SPAN_SAMPLING_RATE: ::Integer
+          SPAN_SAMPLING_RATE: Integer
         end
 
         module Decision
-          DEFAULT: ::String
-          AGENT_RATE: ::String
-          REMOTE_DYNAMIC_RULE: ::String
-          REMOTE_USER_RULE: ::String
-          TRACE_SAMPLING_RULE: ::String
-          MANUAL: ::String
-          ASM: ::String
-          SPAN_SAMPLING_RATE: ::String
+          DEFAULT: String
+          AGENT_RATE: String
+          REMOTE_DYNAMIC_RULE: String
+          REMOTE_USER_RULE: String
+          TRACE_SAMPLING_RULE: String
+          MANUAL: String
+          ASM: String
+          AI_GUARD: String
         end
       end
     end

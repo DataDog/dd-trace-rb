@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'request'
-require_relative '../transport/response'
-require_relative '../utils/sequence'
-require_relative '../utils/forking'
+require_relative "request"
+require_relative "../transport/response"
+require_relative "../utils/sequence"
+require_relative "../utils/forking"
 
 module Datadog
   module Core
@@ -31,15 +31,15 @@ module Datadog
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id, debug: debug?)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
-          logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
+          if res.ok?
+            logger.debug { "Telemetry sent for event `#{event.type}`" }
+          else
+            logger.debug { "Failed to send telemetry for event `#{event.type}`: #{res.inspect}" }
+          end
           res
         rescue => e
           logger.debug {
-            "Unable to send telemetry request for event `#{begin
-              event.type
-            rescue
-              "unknown"
-            end}`: #{e}"
+            "Unable to send telemetry request for event `#{event.respond_to?(:type) ? event.type : event.to_s}`: #{e.class}: #{e.message}"
           }
           Core::Transport::InternalErrorResponse.new(e)
         end

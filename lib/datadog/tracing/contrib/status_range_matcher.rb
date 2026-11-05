@@ -5,9 +5,17 @@ module Datadog
     module Contrib
       # Useful checking whether the defined range covers status code
       class StatusRangeMatcher
+        attr_reader :ranges
+
         def initialize(ranges)
-          @ranges = Array(ranges)
+          # Steep: https://github.com/ruby/rbs/issues/1874
+          @ranges = Array(ranges) # steep:ignore IncompatibleAssignment
         end
+
+        def +(other)
+          StatusRangeMatcher.new(@ranges + other.ranges)
+        end
+        alias_method :concat, :+
 
         def include?(status)
           @ranges.any? do |e|
@@ -18,6 +26,10 @@ module Datadog
               e == status
             end
           end
+        end
+
+        def to_s
+          @ranges.map { |range| range.is_a?(Range) ? "#{range.begin}-#{range.end}" : range.to_s }.join(",")
         end
       end
     end

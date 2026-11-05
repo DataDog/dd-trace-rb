@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
-require_relative 'error_extension_env_parser'
+require_relative "../../configuration/settings"
+require_relative "../ext"
+require_relative "error_extension_env_parser"
 
 module Datadog
   module Tracing
@@ -57,6 +57,13 @@ module Datadog
               o.type :array, nilable: false
               o.default []
               o.env_parser { |v| ErrorExtensionEnvParser.call(v) }
+            end
+
+            # Surface GraphQL errors in Error Tracking.
+            option :error_tracking do |o|
+              o.env Ext::ENV_ERROR_TRACKING
+              o.type :bool
+              o.default false
             end
           end
         end

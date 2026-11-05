@@ -1,18 +1,15 @@
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+VALIDATE_BENCHMARK_MODE = ENV["VALIDATE_BENCHMARK"] == "true"
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require_relative 'benchmarks_helper'
-require 'os'
+require_relative "benchmarks_helper"
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
-class ProfilerSampleLoopBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
+VARYING_DEPTH_DEFAULT = 500
 
+class ProfilerSampleLoopBenchmark
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.for_testing
   end
@@ -43,7 +40,7 @@ class ProfilerSampleLoopBenchmark
     Thread.new { deep_stack.call }.tap { |t| t.name = "Deep stack #{depth}" }
   end
 
-  def go_to_depth_and_run(depth: 2900, &block)
+  def go_to_depth_and_run(depth:, &block)
     current_depth = caller.size
     return yield if current_depth > depth
 
@@ -75,75 +72,64 @@ class ProfilerSampleLoopBenchmark
   end
 
   def run_benchmark(mode: :ruby)
-    threads = Array.new(4) { mode == :ruby ? thread_with_very_deep_stack : thread_with_very_deep_stack_and_native_frames }
+    threads = Array.new(4) { (mode == :ruby) ? thread_with_very_deep_stack : thread_with_very_deep_stack_and_native_frames }
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
-      unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
-        if OS.linux?
-          raise 'Native filenames are not available. This is not expected on Linux!'
-        else
-          puts 'Skipping benchmarking native_frames, not supported outside of Linux'
-          return
-        end
-      end
-
       collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
-        native_filenames_enabled: false
+        native_filenames_enabled: false,
       )
-      collector_without_native_filenames = collector
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
 
-      x.report("stack collector (#{mode} frames - native filenames enabled) #{ENV['CONFIG']}") { sample(collector) }
+      x.report("stack collector (#{mode} frames - native filenames enabled) #{ENV["CONFIG"]}") { sample(collector) }
 
       if mode == :native
-        x.report("stack collector (#{mode} frames - native filenames disabled) #{ENV['CONFIG']}") do
+        x.report("stack collector (#{mode} frames - native filenames disabled) #{ENV["CONFIG"]}") do
           sample(collector_without_native_filenames)
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
     threads.map(&:kill).each(&:join)
-    @recorder.serialize!
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(collector).serialize!
   end
 
   def run_varying_depth_benchmark
-    collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, max_frames: 3000)
+    collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, max_frames: 600)
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
 
       # This benchmark checks the performance of samples when the stack keeps changing
-      x.report("stack collector (varying depth) #{ENV['CONFIG']}") do
+      x.report("stack collector (varying depth) #{ENV["CONFIG"]}") do
         sample(collector)
         add_extra_frame_and_sample(collector) # This makes the stack change
       end
 
-      x.save! "#{File.basename(__FILE__)}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
-    @recorder.serialize!
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_serialize(collector).serialize!
   end
 
   def sample(collector)
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(
       collector,
-      PROFILER_OVERHEAD_STACK_THREAD,
-      false
+      false,
     )
   end
 
@@ -158,5 +144,5 @@ ProfilerSampleLoopBenchmark.new.instance_exec do
   create_profiler
   run_benchmark(mode: :ruby)
   run_benchmark(mode: :native)
-  go_to_depth_and_run { run_varying_depth_benchmark }
+  go_to_depth_and_run(depth: VALIDATE_BENCHMARK_MODE ? 10 : VARYING_DEPTH_DEFAULT) { run_varying_depth_benchmark }
 end

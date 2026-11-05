@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        module Patches
+          module JsonPatch
+            @request: ::Sinatra::Request
+
+            def json: (untyped object, ?untyped options) -> String
+          end
+        end
+      end
+    end
+  end
+end

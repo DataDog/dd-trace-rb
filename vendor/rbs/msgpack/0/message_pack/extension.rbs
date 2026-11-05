@@ -1,0 +1,7 @@
+module MessagePack
+  interface _Extension
+    def to_msgpack: (?::MessagePack::Packer? packer) -> void
+  end
+
+  type serializable = _Extension | _CoreExt
+end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -11,7 +11,7 @@ module Datadog
         NO_SOURCE = [].freeze
 
         def self.fetch_service_name(env, default)
-          ENV.fetch(env) do
+          DATADOG_ENV.fetch(env) do
             if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
               return Datadog.configuration.service
             end
@@ -87,7 +87,7 @@ module Datadog
         private_class_method :filter_peer_service_sources
 
         def self.not_empty_tag?(tag)
-          tag && (tag != '')
+          tag && (tag != "")
         end
 
         private_class_method :not_empty_tag?

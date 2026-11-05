@@ -2,6 +2,7 @@
 #include <datadog/profiling.h>
 
 #include "collectors_gc_profiling_helper.h"
+#include "ruby_helpers.h"
 
 // This helper is used by the Datadog::Profiling::Collectors::ThreadContext to profile garbage collection.
 // It's tested through that class' interfaces.
@@ -52,8 +53,6 @@ void gc_profiling_init(void) {
   shady_sym     = ID2SYM(rb_intern_const("shady"));
   force_sym     = ID2SYM(rb_intern_const("force"));
   oldmalloc_sym = ID2SYM(rb_intern_const("oldmalloc"));
-  state_sym     = ID2SYM(rb_intern_const("state"));
-  none_sym      = ID2SYM(rb_intern_const("none"));
 }
 
 bool gc_profiling_has_major_gc_finished(void) {
@@ -71,7 +70,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
     1;  // gc type
 
   if (max_label_count > labels_length) {
-    rb_raise(rb_eArgError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
+    raise_error(rb_eArgError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
   }
 
   uint8_t label_pos = 0;
@@ -119,7 +118,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
   };
 
   if (label_pos > max_label_count) {
-    rb_raise(rb_eRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+    raise_error(rb_eRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   return label_pos;

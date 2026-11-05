@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'utils/forking'
+require_relative "utils/forking"
 
 module Datadog
   module Core
@@ -9,7 +9,7 @@ module Datadog
     module Utils
       extend Forking
 
-      EMPTY_STRING = ''.encode(::Encoding::UTF_8).freeze
+      EMPTY_STRING = "".encode(::Encoding::UTF_8).freeze
 
       # Stringifies `value` and ensures the outcome is
       # string is no longer than `size`.
@@ -20,7 +20,7 @@ module Datadog
       # If `omission.size` is larger than `size`, the output
       # will still be `omission.size` in length.
       # @!visibility private
-      def self.truncate(value, size, omission = '...')
+      def self.truncate(value, size, omission = "...")
         string = value.to_s
 
         return string if string.size <= size
@@ -38,6 +38,8 @@ module Datadog
 
       # Ensure `str` is a valid UTF-8, ready to be
       # sent through the tracer transport.
+      # DEV-3.0: This method should unconditionally handle invalid byte sequences
+      # DEV-3.0: and return a safe string to display.
       #
       # @param [String,#to_s] str object to be converted to a UTF-8 string
       # @param [Boolean] binary whether to expect binary data in the `str` parameter
@@ -50,7 +52,7 @@ module Datadog
         if binary
           # This option is useful for "gracefully" displaying binary data that
           # often contains text such as marshalled objects
-          str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+          str.encode("UTF-8", "binary", invalid: :replace, undef: :replace, replace: "")
         elsif str.encoding == ::Encoding::UTF_8
           str
         elsif str.empty?
@@ -61,7 +63,7 @@ module Datadog
           str.encode(::Encoding::UTF_8)
         end
       rescue => e
-        Datadog.logger.debug("Error encoding string in UTF-8: #{e}")
+        Datadog.logger.debug("Error encoding string in UTF-8: #{e.class}: #{e.message}")
 
         placeholder
       end

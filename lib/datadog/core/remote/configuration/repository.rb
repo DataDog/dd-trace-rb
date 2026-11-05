@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'content'
+require_relative "content"
 
 module Datadog
   module Core
@@ -80,7 +80,7 @@ module Datadog
               @targets_version = repository.targets_version
               @config_states = contents_to_config_states(repository.contents)
               @has_error = false
-              @error = ''
+              @error = ""
               @opaque_backend_state = repository.opaque_backend_state
               @cached_target_files = contents_to_cached_target_files(repository.contents)
             end
@@ -111,9 +111,9 @@ module Datadog
                   hashes: content.hashes.map do |algorithm, hexdigest|
                     {
                       algorithm: algorithm,
-                      hash: hexdigest
+                      hash: hexdigest,
                     }
-                  end
+                  end,
                 }
               end
             end
@@ -185,7 +185,7 @@ module Datadog
               end
             end
 
-            # Update existimng repository's contents
+            # Update existing repository's contents
             class Update
               attr_reader :path, :target, :content
 

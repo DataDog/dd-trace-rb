@@ -58,10 +58,19 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
   gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
   gem 'net-smtp'
 end
 
@@ -83,7 +92,7 @@ end
 appraise 'rails8-postgres-sidekiq' do
   gem 'rails', '~> 8.0.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
+  # NOTE: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
   # versions <8 are supported, make sure there's some CI running both older and newer versions.
   gem 'sidekiq', '< 8'
   gem 'lograge', '~> 0.11'
@@ -131,21 +140,54 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'http'
   gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
   gem 'typhoeus'
 end
 
-build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+appraise 'httprb' do
+  gem 'http'
+end
+
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
+end
+
+build_coverage_matrix('stripe', min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
-build_coverage_matrix('faraday')
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+['1', '2', '3', 'latest'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape' if v == 'latest'
+    gem 'grape', "~> #{v}.0" unless v == 'latest'
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
-build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('mongo', min: '2.11.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
+build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
+})
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm', min: '2.0.0')
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
+
+build_coverage_matrix('active-record', [7, 8], gem: 'activerecord', meta: {
+  'mysql2' => '>= 0.5.3',
+  'pg' => nil,
+  'sqlite3' => '>= 1.4.2',
+})
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -165,7 +207,6 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -173,19 +214,22 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 end
 
+appraise 'grpc' do
+  gem 'grpc'
+end
+
 [
+  'latest',
   '2.3',
   '2.2',
   '2.1',
@@ -194,7 +238,8 @@ end
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'rails', '~> 6.1.0'
-    gem 'graphql', "~> #{v}.0"
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
@@ -206,6 +251,7 @@ build_coverage_matrix('rack', [2], meta: { 'rack-contrib' => nil, 'rack-test' =>
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
     gem 'sinatra', "~> #{n}"
+    gem 'sinatra-contrib', "~> #{n}"
     gem 'rack-contrib'
     gem 'rack-test' # Dev dependencies for testing rack-based code
   end
@@ -213,6 +259,10 @@ end
 
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+  gem 'opentelemetry-logs-sdk', '>= 0.1'
+  gem 'opentelemetry-exporter-otlp-logs', '>= 0.1'
 end
 
 appraise 'opentelemetry_otlp' do
@@ -227,22 +277,31 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-exporter-otlp'
 end
 
-appraise 'contrib-old' do
+appraise 'presto-client' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
-appraise 'core-old' do
+appraise 'dogstatsd-ruby4' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger'
+  gem 'minitest'
 end
 
 appraise 'rails-app' do
   gem 'devise', '~> 4.9'
   gem 'faraday', '~> 2.0'
+  gem 'grape' # for endpoint collection tests
   gem 'excon', '~> 1.2'
   gem 'rest-client'
   gem 'rack', '~> 2'
   gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rails', '~> 7.0'
+  gem 'sinatra' # for endpoint collection tests
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end

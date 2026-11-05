@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../runtime/metrics'
+require_relative "../runtime/metrics"
 
-require_relative '../worker'
-require_relative 'async'
-require_relative 'polling'
+require_relative "../worker"
+require_relative "async"
+require_relative "polling"
 
 module Datadog
   module Core
@@ -21,10 +21,18 @@ module Datadog
           :metrics
 
         def initialize(telemetry:, **options)
-          @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new(logger: options[:logger], telemetry: telemetry) }
+          @metrics = options.fetch(:metrics) do
+            Core::Runtime::Metrics.new(
+              logger: options[:logger],
+              telemetry: telemetry,
+              experimental_propagate_process_tags_enabled: options.fetch(:propagate_process_tags_enabled) do
+                options.fetch(:experimental_propagate_process_tags_enabled)
+              end,
+            )
+          end
 
           # Workers::Async::Thread settings
-          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
+          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_RESTART)
 
           # Workers::IntervalLoop settings
           self.loop_base_interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
@@ -52,7 +60,7 @@ module Datadog
         # dependencies.
         def stop(*args, close_metrics: true)
           self.enabled = false
-          result = super(*args)
+          result = super(*args) # steep:ignore UnexpectedPositionalArgument
           @metrics.close if close_metrics
           result
         end

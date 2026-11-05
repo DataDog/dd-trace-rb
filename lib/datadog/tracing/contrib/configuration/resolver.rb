@@ -95,14 +95,24 @@ module Datadog
             super(*args)
 
             @cache_limit = cache_limit
-            @cache = {}
+            # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.3 (see https://bugs.ruby-lang.org/issues/21170)
+            # We initialize the hash with 10 dummy entries + clear it to force Ruby to use an
+            # "st_table" representation for the Hash, not an "ar_table" (since Ruby will not
+            # shrink a Hash using an "st_table" back to an "ar_table")
+            @cache = Hash[*1..20]
+            @cache.clear
+            # Workaround for the segfault from https://github.com/DataDog/dd-trace-rb/issues/5718#issuecomment-4421844775.
+            # It crashes on a simple {Hash} lookup, {Hash#key?}, called from `@cache.fetch(value)`.
+            # Using an identity-based {Hash} avoids {Hash#key?} calls.
+            # We should attempt to remove this workaround when we only support Ruby 4+,
+            # as large change around the crash site was done in that version (https://github.com/ruby/ruby/pull/14039/changes#diff-884a5a8a369ef1b4c7597e00aa65974cec8c5f54f25f03ad5d24848f64892869R1743),
+            # where `RClass.cc_table` (the NULL dereferenced pointer) became a GC-managed object,
+            @cache.compare_by_identity
           end
 
           # (see Resolver#resolve)
           def resolve(value)
-            if @cache.key?(value)
-              @cache[value]
-            else
+            @cache.fetch(value) do
               if @cache.size >= @cache_limit
                 @cache.shift # Remove the oldest entry if cache is full
               end

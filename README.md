@@ -1,7 +1,6 @@
 # Datadog Trace Client
 
 [![Gem](https://img.shields.io/gem/v/datadog)](https://rubygems.org/gems/datadog/)
-[![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
 ``datadog`` is Datadog's client library for Ruby. It includes a suite of tools which provide visibility into the performance and security of Ruby applications, to enable Ruby developers to identify bottlenecks and other issues.
@@ -18,8 +17,11 @@ For descriptions of terminology used in APM, take a look at the [APM Terms and C
 
 For contributing, checkout the [contribution guidelines][contribution docs] and [development guide][development docs].
 
+To check that a downloaded gem file was published by this repository, see [how to verify gem provenance][provenance docs].
+
 [public docs]: https://docs.datadoghq.com/tracing/setup/ruby/
 [api docs]: https://datadog.github.io/dd-trace-rb/
 [APM glossary]: https://docs.datadoghq.com/tracing/glossary/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+[provenance docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/Provenance.md

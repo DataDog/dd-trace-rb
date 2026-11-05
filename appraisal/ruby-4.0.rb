@@ -1,0 +1,259 @@
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
+appraise 'rails8-mysql2' do
+  gem 'rails', '~> 8.0.0'
+  gem 'mysql2', '~> 0.5', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-redis' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'redis', '~> 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-sidekiq' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sidekiq', '~> 8'
+  gem 'lograge', '~> 0.11'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-semantic-logger' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-trilogy' do
+  gem 'rails', '~> 8.0.0'
+  gem 'trilogy'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'resque2-redis3' do
+  gem 'redis', '< 4.0'
+  gem 'resque', '>= 2.0'
+end
+
+appraise 'resque2-redis4' do
+  gem 'redis', '>= 4.0'
+  gem 'resque', '>= 2.0'
+end
+
+appraise 'aws' do
+  gem 'aws-sdk'
+  gem 'shoryuken'
+  gem 'ostruct'
+end
+
+appraise 'http' do
+  gem 'ethon'
+  gem 'httpclient'
+  # Typhoeus is the main consumer of ethon; its specs exercise the patch through it.
+  gem 'typhoeus'
+end
+
+appraise 'httprb' do
+  gem 'http'
+end
+
+appraise 'httprb-5' do
+  gem 'http', '~> 5'
+end
+
+build_coverage_matrix('stripe', min: '5.15.0')
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
+['1', '2', '3', 'latest'].each do |v|
+  appraise "grape-#{v}" do
+    gem 'grape' if v == 'latest'
+    gem 'grape', "~> #{v}.0" unless v == 'latest'
+    gem 'rack', '~> 2' if v == '1'
+    gem 'rack-test'
+  end
+end
+build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
+build_coverage_matrix('mongo', min: '2.20.0')
+build_coverage_matrix('dalli', [2])
+build_coverage_matrix('karafka', min: '2.3.0')
+build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
+build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('openfeature', min: '0.5.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
+})
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm', min: '2.0.0')
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
+
+build_coverage_matrix('active-record', [7, 8], gem: 'activerecord', meta: {
+  'mysql2' => ['>= 0.5.3', '!= 0.5.7'],
+  'pg' => nil,
+  'sqlite3' => '>= 1.4.2',
+})
+
+appraise 'relational_db' do
+  # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
+  # All existing relational_db configurations use ActiveRecord 7.0. ActiveRecord 7.1 is tested as a part of rails71
+  # appraisal configurations. The latest version of sqlite3 (i.e. 2+) requires ActiveRecord 7.1, so sqlite3 version
+  # has been locked as well.
+  #
+  # TODO: Repair the failures with ActiveRecord 7.1 in this configuration and remove the locked version.
+  # TODO: After ActiveRecord is upgraded to 7.1+, sqlite3 can be unlocked as well.
+  gem 'activerecord', '~> 7.0.0'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
+  # mysql2 0.5.7 is excluded permanently: it raises an empty Mysql2::Error from #affected_rows
+  # after SELECT on MariaDB Connector/C 11.8 clients (e.g. Debian 13), which breaks Sequel's
+  # Database#run for SELECT statements. 0.5.6 and the 0.5.8+ line are fixed
+  # (https://github.com/brianmario/mysql2/pull/1417); the auto-updater picks up newer releases.
+  gem 'mysql2', '>= 0.5.3', '!= 0.5.7', platform: :ruby
+  gem 'pg', platform: :ruby
+  gem 'sqlite3', '~> 1.4', platform: :ruby
+  gem 'sequel'
+  gem 'trilogy'
+end
+
+appraise 'activesupport' do
+  gem 'activesupport', '~> 7'
+  gem 'actionpack'
+  gem 'actionview'
+  gem 'active_model_serializers', '>= 0.10.0'
+  gem 'lograge'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
+  gem 'concurrent-ruby'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'rake', '>= 12.3'
+  gem 'resque'
+  gem 'roda', '>= 2.0.0'
+  gem 'semantic_logger', '~> 4.0'
+  # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
+  # versions <8 are supported, make sure there's some CI running both older and newer versions.
+  gem 'sidekiq', '~> 8'
+  gem 'sucker_punch'
+  gem 'que', '>= 1.0.0'
+
+  # When Rack 3+ is used, we need rackup.
+  gem 'rackup'
+end
+
+appraise 'grpc' do
+  gem 'grpc'
+end
+
+[
+  'latest',
+  '2.3',
+  '2.2',
+  '2.1',
+  '2.0',
+  '1.13',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'rails', '~> 6.1.0'
+    gem 'graphql' if v == 'latest'
+    gem 'graphql', "~> #{v}.0" unless v == 'latest'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+    gem 'mutex_m', '>= 0.1.0'
+  end
+end
+
+build_coverage_matrix('redis', [3, 4])
+build_coverage_matrix('rack', [2], meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+
+[2, 3, 4].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'sinatra-contrib', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
+end
+
+appraise 'opentelemetry' do
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+  gem 'opentelemetry-logs-sdk', '>= 0.1'
+  gem 'opentelemetry-exporter-otlp-logs', '>= 0.1'
+  # opentelemetry-metrics-sdk 0.11+ requires opentelemetry-common >= 0.23.0 (for time_in_nanoseconds)
+  gem "opentelemetry-common", ">= 0.23.0"
+end
+
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
+appraise 'opentelemetry_otlp_1_5' do
+  gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
+appraise 'presto-client' do
+  gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+end
+
+appraise 'dogstatsd-ruby4' do
+  gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger' # Not default in Ruby 4+
+  gem 'minitest'
+end

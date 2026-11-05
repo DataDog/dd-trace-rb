@@ -1,20 +1,30 @@
 module Datadog
   module Core
     module Workers
-      module Queue
-        def self.included: (untyped base) -> untyped
-        module PrependedMethods
-          def perform: (*untyped args) -> (untyped | nil)
+      module Queue : Polling, IntervalLoop, Async::Thread
+        def self.included: (Module base) -> void
+
+        module PrependedMethods : Queue
+          def perform: (*untyped args) -> untyped
         end
+
+        @buffer: untyped
 
         def buffer: () -> untyped
 
         def enqueue: (*untyped args) -> untyped
 
         def dequeue: () -> untyped
-        def work_pending?: () -> untyped
+
+        def work_pending?: () -> bool
+
+        def flush: (?timeout: Numeric?) -> bool?
 
         attr_writer buffer: untyped
+
+        private
+
+        def idle?: () -> bool
       end
     end
   end

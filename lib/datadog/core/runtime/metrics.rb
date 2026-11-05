@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
-require_relative '../metrics/client'
-require_relative '../environment/class_count'
-require_relative '../environment/gc'
-require_relative '../environment/thread_count'
-require_relative '../environment/vm_cache'
-require_relative '../environment/yjit'
+require_relative "../metrics/client"
+require_relative "../environment/class_count"
+require_relative "../environment/gc"
+require_relative "../environment/thread_count"
+require_relative "../environment/vm_cache"
+require_relative "../environment/yjit"
+require_relative "../environment/process"
 
 module Datadog
   module Core
@@ -24,6 +25,8 @@ module Datadog
 
           # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
+
+          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled)
         end
 
         # Associate service with runtime metrics
@@ -64,23 +67,23 @@ module Datadog
               # Only on Ruby < 3.2
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_GLOBAL_CONSTANT_STATE,
-                Core::Environment::VMCache.global_constant_state
+                Core::Environment::VMCache.global_constant_state,
               )
 
               # Only on Ruby 2.x
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_GLOBAL_METHOD_STATE,
-                Core::Environment::VMCache.global_method_state
+                Core::Environment::VMCache.global_method_state,
               )
 
               # Only on Ruby >= 3.2
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_INVALIDATIONS,
-                Core::Environment::VMCache.constant_cache_invalidations
+                Core::Environment::VMCache.constant_cache_invalidations,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_MISSES,
-                Core::Environment::VMCache.constant_cache_misses
+                Core::Environment::VMCache.constant_cache_misses,
               )
             end
           end
@@ -97,7 +100,7 @@ module Datadog
         def try_flush
           yield
         rescue => e
-          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
+          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class}: #{e.message}")
         end
 
         def default_metric_options
@@ -111,6 +114,11 @@ module Datadog
 
             # Add runtime-id dynamically because it might change during runtime.
             options[:tags].concat(["runtime-id:#{Core::Environment::Identity.id}"]) if @runtime_id_enabled
+
+            # Add process tags when enabled
+            if @process_tags_enabled
+              options[:tags].concat(Core::Environment::Process.tags)
+            end
           end
         end
 
@@ -119,7 +127,8 @@ module Datadog
         attr_reader \
           :service_tags,
           :services,
-          :runtime_id_enabled
+          :runtime_id_enabled,
+          :process_tags_enabled
 
         def compile_service_tags!
           @service_tags = services.to_a.collect do |service|
@@ -140,7 +149,7 @@ module Datadog
         end
 
         def to_metric_name(str)
-          str.downcase.gsub(/[-\s]/, '_')
+          str.downcase.gsub(/[-\s]/, "_")
         end
 
         def gauge_if_not_nil(metric_name, metric_value)
@@ -154,43 +163,43 @@ module Datadog
             if Core::Environment::YJIT.available?
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_GC_COUNT,
-                Core::Environment::YJIT.code_gc_count
+                Core::Environment::YJIT.code_gc_count,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_REGION_SIZE,
-                Core::Environment::YJIT.code_region_size
+                Core::Environment::YJIT.code_region_size,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_CODE_SIZE,
-                Core::Environment::YJIT.freed_code_size
+                Core::Environment::YJIT.freed_code_size,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_PAGE_COUNT,
-                Core::Environment::YJIT.freed_page_count
+                Core::Environment::YJIT.freed_page_count,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_INLINE_CODE_SIZE,
-                Core::Environment::YJIT.inline_code_size
+                Core::Environment::YJIT.inline_code_size,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_LIVE_PAGE_COUNT,
-                Core::Environment::YJIT.live_page_count
+                Core::Environment::YJIT.live_page_count,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_OBJECT_SHAPE_COUNT,
-                Core::Environment::YJIT.object_shape_count
+                Core::Environment::YJIT.object_shape_count,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
-                Core::Environment::YJIT.outlined_code_size
+                Core::Environment::YJIT.outlined_code_size,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
-                Core::Environment::YJIT.yjit_alloc_size
+                Core::Environment::YJIT.yjit_alloc_size,
               )
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT,
-                Core::Environment::YJIT.ratio_in_yjit
+                Core::Environment::YJIT.ratio_in_yjit,
               )
             end
           end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -8,13 +8,13 @@ module Datadog
       module Propagation
         # Implements sql comment propagation related contracts.
         module SqlComment
-          Mode = Struct.new(:mode, :append) do
+          Mode = Struct.new(:mode, :append, :inject_sql_basehash) do
             def enabled?
               service? || full?
             end
 
             def service?
-              mode == Ext::SERVICE
+              mode == Ext::SERVICE || mode == Ext::DYNAMIC_SERVICE
             end
 
             def full?
@@ -23,6 +23,10 @@ module Datadog
 
             def append?
               append
+            end
+
+            def inject_sql_basehash?
+              inject_sql_basehash || mode == Ext::DYNAMIC_SERVICE
             end
           end
         end

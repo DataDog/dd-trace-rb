@@ -3,7 +3,7 @@
 module Datadog
   module Core
     module Utils
-      # Helper class to execute something only once such as not repeating warning logs, and instrumenting classes
+      # Helper class to execute something only once, such as not repeating warning logs and instrumenting classes
       # only once.
       #
       # Thread-safe when used correctly (e.g. be careful of races when lazily initializing instances of this class).

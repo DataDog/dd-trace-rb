@@ -2,24 +2,43 @@ module Datadog
   module Core
     module Configuration
       module Base
-        def self.included: (untyped base) -> untyped
+        include Options
+
+        extend ClassMethods
+        include InstanceMethods
+
+        def self.included: (Class | Module base) -> void
+
+        interface _ClassMethods
+          def settings: (Symbol name) ?{ () [self: _DslContext] -> untyped } -> Class
+
+          def new_settings_class: (Symbol name, String settings_path) ?{ () [self: _DslContext] -> untyped } -> (Class & Core::Configuration::Options::_SettingsClass)
+        end
+
+        interface _DslContext
+          include _ClassMethods
+          include Options::_ClassMethods
+
+          def define_method: (Symbol name) { (?) [self: OptionDefinition::settings_execution_context] -> untyped } -> untyped
+        end
 
         module ClassMethods
-          def settings: (untyped name) { () -> untyped } -> untyped
-
-          private
-
-          def new_settings_class: () { () -> untyped } -> untyped
+          include _ClassMethods
+          include Options::_ClassMethods
         end
 
         module InstanceMethods
-          def initialize: (?::Hash[untyped, untyped] options) -> untyped
+          include Options::_InstanceMethods
 
-          def configure: (?::Hash[untyped, untyped] opts) { (untyped) -> untyped } -> untyped
+          def initialize: (?Hash[untyped, untyped] options) -> void
 
-          def to_h: () -> untyped
+          def configure: (?Hash[untyped, untyped] opts) ?{ (untyped) -> untyped } -> untyped
 
-          def reset!: () -> untyped
+          def to_h: () -> Hash[Symbol, Object?]
+
+          def dig: (*Symbol | String options) -> untyped
+
+          def reset!: () -> void
         end
       end
     end

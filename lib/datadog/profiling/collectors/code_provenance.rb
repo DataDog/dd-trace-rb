@@ -14,6 +14,9 @@ module Datadog
       #
       # This class acts both as a collector (collecting data) as well as a recorder (records/serializes it)
       class CodeProvenance
+        # @rbs standard_library_path: ::String
+        # @rbs ruby_native_filename: ::String?
+        # @rbs return: void
         def initialize(
           standard_library_path: RbConfig::CONFIG.fetch("rubylibdir"),
           ruby_native_filename: Datadog::Profiling::Collectors::Stack._native_ruby_native_filename
@@ -22,6 +25,7 @@ module Datadog
           @libraries_by_path = {}
           @seen_files = Set.new
           @seen_libraries = Set.new
+          @executable_paths = [Gem.bindir, bundler_bin_path].uniq.compact.freeze
 
           record_library(
             Library.new(
@@ -29,11 +33,14 @@ module Datadog
               name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
-              extra_path: ruby_native_filename,
-            )
+              extra_paths: [ruby_native_filename],
+            ),
           )
         end
 
+        # @rbs loaded_files: ::Array[::String]
+        # @rbs loaded_specs: ::Array[::Gem::BasicSpecification]
+        # @rbs return: self
         def refresh(loaded_files: $LOADED_FEATURES, loaded_specs: Gem.loaded_specs.values)
           record_loaded_specs(loaded_specs)
           record_loaded_files(loaded_files)
@@ -41,18 +48,20 @@ module Datadog
           self
         end
 
+        #: () -> ::String
         def generate_json
           JSON.generate(v1: seen_libraries.to_a)
         end
 
         private
 
-        attr_reader \
-          :libraries_by_name,
-          :libraries_by_path,
-          :seen_files,
-          :seen_libraries
+        attr_reader :libraries_by_name #: ::Hash[::String, Library]
+        attr_reader :libraries_by_path #: ::Hash[::String, Library]
+        attr_reader :seen_files #: ::Set[::String]
+        attr_reader :seen_libraries #: ::Set[Library]
+        attr_reader :executable_paths #: ::Array[::String]
 
+        #: (Library) -> void
         def record_library(library)
           libraries_by_name[library.name] = library
           libraries_by_path[library.path] = library
@@ -69,15 +78,24 @@ module Datadog
         #
         # Alternatively/in the future we could instead use a trie to match paths, but I doubt for the data sizes we're
         # looking at that a trie is that much faster than using Ruby's built-in native collections.
+        #: () -> void
         def sort_libraries_by_longest_path_first
           @libraries_by_path = @libraries_by_path.sort.reverse!.to_h
         end
 
+        #: (::Array[::Gem::BasicSpecification]) -> void
         def record_loaded_specs(loaded_specs)
           recorded_library = false
 
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
+
+            extra_paths = [(spec.extension_dir if spec.extensions.any?)]
+            spec.executables&.each do |executable|
+              executable_paths.each do |path|
+                extra_paths << File.join(path, executable)
+              end
+            end
 
             record_library(
               Library.new(
@@ -85,8 +103,8 @@ module Datadog
                 name: spec.name,
                 version: spec.version,
                 path: spec.gem_dir,
-                extra_path: (spec.extension_dir if spec.extensions.any?),
-              )
+                extra_paths: extra_paths,
+              ),
             )
             recorded_library = true
           end
@@ -94,6 +112,7 @@ module Datadog
           sort_libraries_by_longest_path_first if recorded_library
         end
 
+        #: (::Array[::String]) -> void
         def record_loaded_files(loaded_files)
           loaded_files.each do |file_path|
             next if seen_files.include?(file_path)
@@ -107,6 +126,31 @@ module Datadog
           end
         end
 
+        # This is intended to mirror bundler's `Bundler.bin_path` with one key difference: the bundler version of the
+        # method **tries to create the path** if it doesn't exist, whereas our version doesn't.
+        #
+        # This "try to create the path" is annoying because creating the path can fail if e.g. the app doesn't have
+        # permissions to do that, see https://github.com/DataDog/dd-trace-rb/issues/5137.
+        # Thus we have our own version that a) Avoids creating the path, and b) Rescues exceptions to avoid any
+        # bundler complaints here impacting the application. (Bundler tends to go "something is wrong, raise!" which
+        # I think makes a lot of sense given how bundler is intended to be used, but for this our kind of "ask a few
+        # questions usage" it's not what we want.)
+        #: () -> ::String?
+        def bundler_bin_path
+          return unless defined?(Bundler)
+
+          path = Bundler.settings[:bin] || "bin"
+          root = Bundler.root
+          result = Pathname.new(path).expand_path(root).expand_path
+          result.to_s
+        rescue Exception => e # rubocop:disable Lint/RescueException
+          Datadog.logger.debug(
+            "CodeProvenance#bundler_bin_path failed. " \
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
+          )
+          nil
+        end
+
         # Represents metadata we have for a ruby gem
         #
         # Important note: This class gets encoded to JSON with the built-in JSON gem. But, we've found that in some
@@ -116,21 +160,36 @@ module Datadog
         # Thus, this class was setup to match the JSON output. Take this into consideration if you are adding new
         # fields. (Also, we have a spec for this)
         class Library
-          attr_reader :kind, :name, :version
+          # @rbs @kind: ::String
+          # @rbs @name: ::String
+          # @rbs @version: ::String
+          # @rbs @paths: ::Array[::String]
 
-          def initialize(kind:, name:, version:, path:, extra_path: nil)
-            extra_path = nil if extra_path&.empty?
+          attr_reader :kind #: ::String
+          attr_reader :name #: ::String
+          attr_reader :version #: ::String
+
+          # @rbs kind: ::String
+          # @rbs name: ::String
+          # @rbs version: ::String | ::Gem::Version
+          # @rbs path: ::String
+          # @rbs extra_paths: ::Array[::String?]
+          # @rbs return: void
+          def initialize(kind:, name:, version:, path:, extra_paths:)
+            extra_paths = Array(extra_paths).compact.reject(&:empty?).map { |p| p.dup.freeze }
             @kind = kind.freeze
             @name = name.dup.freeze
             @version = version.to_s.dup.freeze
-            @paths = [path.dup.freeze, extra_path.dup.freeze].compact.freeze
+            @paths = [path.dup.freeze, *extra_paths].freeze
             freeze
           end
 
+          #: (?::JSON::State?) -> ::String
           def to_json(arg = nil)
             {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg)
           end
 
+          #: () -> ::String
           def path
             @paths.first
           end

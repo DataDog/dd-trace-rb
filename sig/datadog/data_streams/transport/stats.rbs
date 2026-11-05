@@ -1,0 +1,14 @@
+module Datadog
+  module DataStreams
+    module Transport
+      module Stats
+        class Request < Core::Transport::Request
+        end
+
+        class Transport < Core::Transport::Transport
+          def send_stats: (::Hash[::String, untyped] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+        end
+      end
+    end
+  end
+end

@@ -11,20 +11,19 @@ module Datadog
         # such proxy before the request made it to the Ruby
         # process.
         module QueueTime
-          REQUEST_START = 'HTTP_X_REQUEST_START'
-          QUEUE_START = 'HTTP_X_QUEUE_START'
+          REQUEST_START = "HTTP_X_REQUEST_START"
+          QUEUE_START = "HTTP_X_QUEUE_START"
           MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000
 
-          module_function
-
-          def get_request_start(env, now = Core::Utils::Time.now.utc)
+          def self.get_request_start(env, now = Core::Utils::Time.now.utc)
             header = env[REQUEST_START] || env[QUEUE_START]
             return unless header
 
             # nginx header is seconds in the format "t=1512379167.574"
             # apache header is microseconds in the format "t=1570633834463123"
             # heroku header is milliseconds in the format "1570634024294"
-            time_string = header.to_s.delete('^0-9')
+            # @see https://github.com/heroku/vegur/blob/65d168f757e0ddb448f41cfb9e4b0281c747378d/README.md?plain=1#L383-L384
+            time_string = header.to_s.delete("^0-9")
             return if time_string.nil?
 
             # Return nil if the time is clearly invalid
@@ -38,7 +37,7 @@ module Datadog
           rescue => e
             # in case of an Exception we don't create a
             # `request.queuing` span
-            Datadog.logger.debug("[rack] unable to parse request queue headers: #{e}")
+            Datadog.logger.debug("[rack] unable to parse request queue headers: #{e.class}: #{e.message}")
             nil
           end
         end

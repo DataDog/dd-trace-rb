@@ -1,0 +1,40 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Message
+        type content_part = ContentPart::Text | ContentPart::ImageURL
+
+        type content = String | Array[content_part]
+
+        type serialized = Hash[Symbol, any]
+
+        @role: Symbol
+
+        @content: content?
+
+        @tool_calls: Array[ToolCall]
+
+        @tool_call_id: String?
+
+        attr_reader role: Symbol
+
+        attr_reader content: content?
+
+        attr_reader tool_calls: Array[ToolCall]
+
+        attr_reader tool_call_id: String?
+
+        def initialize: (
+          role: String | Symbol,
+          ?content: content?,
+          ?tool_calls: Array[ToolCall],
+          ?tool_call_id: String?
+        ) -> void
+
+        def copy: (?content: content?, ?tool_calls: Array[ToolCall]) -> Message
+
+        def to_h: () -> serialized
+      end
+    end
+  end
+end

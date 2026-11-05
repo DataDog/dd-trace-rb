@@ -2,7 +2,13 @@ module Datadog
   module Core
     module Environment
       module Socket
-        def self?.hostname: () -> untyped
+        extend Datadog::Core::Utils::Forking
+
+        self.@hostname: String?
+
+        def self.hostname: () -> String
+
+        def self.resolved_hostname: (Datadog::Core::Configuration::Settings settings) -> String?
       end
     end
   end

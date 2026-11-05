@@ -1,0 +1,4 @@
+module Grape
+  class API
+  end
+end

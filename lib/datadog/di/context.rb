@@ -1,0 +1,87 @@
+# frozen_string_literal: true
+
+module Datadog
+  module DI
+    # Contains local and instance variables used when evaluating
+    # expressions in DI Expression Language.
+    #
+    # @api private
+    class Context
+      def initialize(probe:, settings:, serializer:, locals: nil,
+        # In Ruby everything is a method, therefore we should always have
+        # a target self. However, if we are not capturing a snapshot,
+        # there is no need to pass in the target self.
+        target_self: nil,
+        path: nil, caller_locations: nil,
+        serialized_entry_args: nil,
+        entry_capture_expressions: nil,
+        entry_capture_evaluation_errors: nil,
+        return_value: nil, duration: nil, exception: nil)
+        @probe = probe
+        @settings = settings
+        @serializer = serializer
+        @locals = locals
+        @target_self = target_self
+        @path = path
+        @caller_locations = caller_locations
+        @serialized_entry_args = serialized_entry_args
+        @entry_capture_expressions = entry_capture_expressions
+        @entry_capture_evaluation_errors = entry_capture_evaluation_errors
+        @return_value = return_value
+        @duration = duration
+        @exception = exception
+      end
+
+      attr_reader :probe
+      attr_reader :settings
+      attr_reader :serializer
+      attr_reader :locals
+      attr_reader :target_self
+
+      # Actual path of the instrumented file.
+      attr_reader :path
+
+      # TODO check how many stack frames we should be keeping/sending,
+      # this should be all frames for enriched probes and no frames for
+      # non-enriched probes?
+      attr_reader :caller_locations
+
+      attr_reader :serialized_entry_args
+
+      attr_reader :entry_capture_expressions
+
+      attr_reader :entry_capture_evaluation_errors
+
+      # Return value for the method, for a method probe
+      attr_reader :return_value
+
+      # How long the method took to execute, for a method probe
+      attr_reader :duration
+
+      # Exception raised by the method, if any, for a method probe
+      attr_reader :exception
+
+      # Returns the locals captured at the probe hit in serialized form,
+      # or nil when no locals were captured.
+      #
+      # @param serialization_deadline [Float] absolute capture deadline in monotonic clock seconds
+      # @return [Hash{Symbol => Hash}, nil] serialized locals keyed by variable name
+      def serialized_locals(serialization_deadline:)
+        # TODO cache?
+        locals && serializer.serialize_vars(locals, deadline: serialization_deadline, **probe.snapshot_serializer_limits(settings))
+      end
+
+      def fetch(var_name)
+        unless locals
+          # TODO return "undefined" instead?
+          return nil
+        end
+        locals[var_name.to_sym]
+      end
+
+      def fetch_ivar(var_name)
+        target_self.instance_variable_get(var_name)
+      end
+    end
+  end
+end

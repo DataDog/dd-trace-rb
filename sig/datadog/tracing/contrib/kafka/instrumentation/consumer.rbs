@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Kafka
+        module Instrumentation
+          module Consumer
+            def self.included: (untyped base) -> untyped
+            module InstanceMethods
+              def each_message: (**untyped kwargs) { (untyped) -> untyped } -> untyped
+              def each_batch: (**untyped kwargs) { (untyped) -> untyped } -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

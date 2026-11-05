@@ -1,13 +1,17 @@
+class RubyVM < Object
+  def self.stat: () -> Hash[Symbol, untyped]
+end
+
 module Datadog
   module Core
     module Environment
       module VMCache
-        def self?.global_constant_state: () -> untyped
-        def self?.global_method_state: () -> untyped
-        def self?.constant_cache_invalidations: () -> untyped
-        def self?.constant_cache_misses: () -> untyped
+        def self.global_constant_state: () -> untyped
+        def self.global_method_state: () -> untyped
+        def self.constant_cache_invalidations: () -> untyped
+        def self.constant_cache_misses: () -> untyped
 
-        def self?.available?: () -> untyped
+        def self.available?: () -> bool
       end
     end
   end

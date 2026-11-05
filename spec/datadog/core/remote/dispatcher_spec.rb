@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'datadog/core/remote/dispatcher'
-require 'datadog/core/remote/configuration/repository'
+require "spec_helper"
+require "datadog/core/remote/dispatcher"
+require "datadog/core/remote/configuration/repository"
 
 RSpec.describe Datadog::Core::Remote::Dispatcher do
   let(:matcher) do
@@ -12,89 +12,89 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
   end
   let(:raw_target) do
     {
-      'custom' =>
-        { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
-          'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
-          'v' => 21 },
-      'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
-      'length' => 645
+      "custom" =>
+        {"c" => ["854b784e-64ae-4c82-ac9b-fc2aea723260"],
+         "tracer-predicates" => {"tracer_predicates_v1" => [{"clientID" => "854b784e-64ae-4c82-ac9b-fc2aea723260"}]},
+         "v" => 21},
+      "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
+      "length" => 645,
     }
   end
   let(:target) { Datadog::Core::Remote::Configuration::Target.parse(raw_target) }
-  let(:path) { Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config') }
+  let(:path) { Datadog::Core::Remote::Configuration::Path.parse("datadog/603646/ASM/exclusion_filters/config") }
   let(:raw) do
     {
       exclusions: [
         {
           conditions: [
             {
-              operator: 'ip_match',
+              operator: "ip_match",
               parameters: {
                 inputs: [
                   {
-                    address: 'http.client_ip'
-                  }
+                    address: "http.client_ip",
+                  },
                 ],
                 list: [
-                  '4.4.4.4'
-                ]
-              }
-            }
+                  "4.4.4.4",
+                ],
+              },
+            },
           ],
-          id: '874459ae-137f-4c99-9c54-109b1a117b86'
+          id: "874459ae-137f-4c99-9c54-109b1a117b86",
         },
         {
           conditions: [
             {
-              operator: 'match_regex',
+              operator: "match_regex",
               parameters: {
                 inputs: [
                   {
-                    address: 'server.request.uri.raw'
-                  }
+                    address: "server.request.uri.raw",
+                  },
                 ],
                 options: {
-                  case_sensitive: false
+                  case_sensitive: false,
                 },
-                regex: '^/waf'
-              }
-            }
+                regex: "^/waf",
+              },
+            },
           ],
-          id: 'd1390949-cf1a-408d-bc3f-043d0689d89e'
+          id: "d1390949-cf1a-408d-bc3f-043d0689d89e",
         },
         {
-          id: '5fe8e530-d3ec-4e6d-bc06-0a6637c6e763',
+          id: "5fe8e530-d3ec-4e6d-bc06-0a6637c6e763",
           rules_target: [
             {
-              rule_id: 'ua0-600-55x'
-            }
-          ]
+              rule_id: "ua0-600-55x",
+            },
+          ],
         },
         {
           conditions: [
             {
-              operator: 'ip_match',
+              operator: "ip_match",
               parameters: {
                 inputs: [
                   {
-                    address: 'http.client_ip'
-                  }
+                    address: "http.client_ip",
+                  },
                 ],
                 list: [
-                  '8.8.8.8'
-                ]
-              }
-            }
+                  "8.8.8.8",
+                ],
+              },
+            },
           ],
-          id: '081e1fbe-c73b-4ad2-bb83-4752354271bc'
-        }
+          id: "081e1fbe-c73b-4ad2-bb83-4752354271bc",
+        },
       ],
-      rules_override: []
+      rules_override: [],
     }
   end
-  let(:string_io_content) { StringIO.new(raw.to_json) }
+  let(:string_io_content) { raw.to_json }
   let(:content) do
-    Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
+    Datadog::Core::Remote::Configuration::Content.parse({path: path.to_s, content: string_io_content})
   end
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
@@ -108,37 +108,37 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     described_class.new([receiver])
   end
 
-  describe '#dispatch' do
-    context 'receiver matches' do
-      it 'dispatches #call on matched changes' do
+  describe "#dispatch" do
+    context "receiver matches" do
+      it "dispatches #call on matched changes" do
         changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
         expect(receiver).to receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
       end
     end
 
-    context 'receiver does not matches' do
+    context "receiver does not matches" do
       let(:matcher) do
         described_class::Matcher.new do |_path|
           false
         end
       end
 
-      it 'does not dispatches #call on non matched changes' do
+      it "does not dispatches #call on non matched changes" do
         changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
         expect(receiver).to_not receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
@@ -146,21 +146,91 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
     end
   end
 
+  describe "#reconcile" do
+    let(:invocations) { [] }
+
+    let(:receiver_block) do
+      proc { |_repository, changes| invocations << [:matched, changes] }
+    end
+
+    let(:receiver) do
+      described_class::Receiver.new(matcher, initial_reconcile: true, &receiver_block)
+    end
+
+    let(:skipped_receiver) do
+      described_class::Receiver.new(
+        described_class::Matcher.new { |_path| false },
+        initial_reconcile: true,
+      ) { |_repository, changes| invocations << [:skipped, changes] }
+    end
+
+    let(:non_participating_receiver) do
+      described_class::Receiver.new(
+        described_class::Matcher.new { |_path| false },
+      ) { |_repository, changes| invocations << [:non_participating, changes] }
+    end
+
+    subject(:dispatcher) do
+      described_class.new([receiver, skipped_receiver, non_participating_receiver])
+    end
+
+    it "invokes the participating receivers whose product held no change, with empty changes" do
+      changes = repository.transaction do |_repository, transaction|
+        transaction.insert(path, target, content)
+      end
+
+      dispatcher.reconcile(changes, repository)
+
+      expect(invocations).to contain_exactly([:skipped, []])
+    end
+
+    it "invokes every participating receiver when the change set is empty" do
+      dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+      expect(invocations).to contain_exactly([:matched, []], [:skipped, []])
+    end
+
+    it "does not invoke a receiver that does not declare initial reconcile" do
+      dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+      expect(invocations).not_to include([:non_participating, []])
+    end
+  end
+
+  describe "#add_receivers" do
+    let(:additional_receiver) do
+      described_class::Receiver.new(matcher, &receiver_block)
+    end
+
+    it "adds a receiver once" do
+      dispatcher.add_receivers(additional_receiver)
+      dispatcher.add_receivers(additional_receiver)
+
+      expect(dispatcher.receivers).to contain_exactly(receiver, additional_receiver)
+    end
+
+    it "does not expose its internal receiver collection" do
+      dispatcher.receivers.clear
+
+      expect(dispatcher.receivers).to contain_exactly(receiver)
+    end
+  end
+
   describe Datadog::Core::Remote::Dispatcher::Matcher::Product do
     subject(:matcher) { described_class.new([product]) }
 
-    context 'matches' do
-      let(:product) { 'ASM' }
+    context "matches" do
+      let(:product) { "ASM" }
 
-      it 'returns true' do
+      it "returns true" do
         expect(matcher).to be_match(path)
       end
     end
 
-    context 'does not match' do
-      let(:product) { 'FAKE_PRODUCT' }
+    context "does not match" do
+      let(:product) { "FAKE_PRODUCT" }
 
-      it 'returns false' do
+      it "returns false" do
         expect(matcher).not_to be_match(path)
       end
     end

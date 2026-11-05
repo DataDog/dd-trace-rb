@@ -1,25 +1,37 @@
 # frozen_string_literal: true
 
-require_relative 'emitter'
-require_relative 'event'
-require_relative 'metrics_manager'
-require_relative 'worker'
-require_relative 'logging'
-require_relative 'transport/http'
+require_relative "emitter"
+require_relative "event"
+require_relative "metrics_manager"
+require_relative "worker"
+require_relative "logging"
+require_relative "transport/http"
 
-require_relative '../configuration/ext'
-require_relative '../configuration/agentless_settings_resolver'
-require_relative '../utils/forking'
+require_relative "../configuration/ext"
+require_relative "../configuration/agentless_settings_resolver"
+require_relative "../utils/forking"
 
 module Datadog
   module Core
     module Telemetry
-      # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
-      # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
+      # Telemetry entry point, coordinates sending telemetry events at
+      # various points in application lifecycle.
       #
       # @api private
       class Component
-        attr_reader :enabled, :logger, :transport, :worker
+        ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
+
+        attr_reader :enabled
+        attr_reader :logger
+        attr_reader :transport
+        attr_reader :worker
+        attr_reader :settings
+        attr_reader :agent_settings
+        attr_reader :metrics_manager
+
+        # Alias for consistency with other components.
+        # TODO Remove +enabled+ method
+        alias_method :enabled?, :enabled
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -30,7 +42,7 @@ module Datadog
 
           if agentless_enabled && settings.api_key.nil?
             enabled = false
-            logger.debug { 'Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set.' }
+            logger.debug { "Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set." }
           end
 
           Telemetry::Component.new(
@@ -66,9 +78,9 @@ module Datadog
             # settings, even though the telemetry itself may be using a different path.
             telemetry_specific_agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
               settings,
-              host_prefix: 'instrumentation-telemetry-intake',
+              host_prefix: "instrumentation-telemetry-intake",
               url_override: settings.telemetry.agentless_url_override,
-              url_override_source: 'c.telemetry.agentless_url_override',
+              url_override_source: "c.telemetry.agentless_url_override",
               logger: logger,
             )
             Telemetry::Transport::HTTP.agentless_telemetry(
@@ -87,6 +99,7 @@ module Datadog
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(
               @transport,
@@ -96,6 +109,8 @@ module Datadog
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
+            settings: settings,
+            agent_settings: agent_settings,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
 
@@ -107,13 +122,17 @@ module Datadog
           @worker&.enabled = false
         end
 
-        def start(initial_event_is_change = false)
-          return if !@enabled
+        def start(initial_event_is_change = false, components:)
+          return unless enabled?
 
           initial_event = if initial_event_is_change
-            Event::SynthAppClientConfigurationChange.new(agent_settings: @agent_settings)
+            Event::SynthAppClientConfigurationChange.new(
+              components: components,
+            )
           else
-            Event::AppStarted.new(agent_settings: @agent_settings)
+            Event::AppStarted.new(
+              components: components,
+            )
           end
 
           @worker.start(initial_event)
@@ -130,39 +149,48 @@ module Datadog
         end
 
         def emit_closing!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppClosing.new)
         end
 
         def integrations_change!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
         def log!(event)
-          return if !@enabled || forked? || !@log_collection_enabled
+          return unless enabled? && @log_collection_enabled
 
           @worker.enqueue(event)
         end
 
         # Wait for the worker to send out all events that have already
         # been queued, up to 15 seconds. Returns whether all events have
-        # been flushed.
+        # been flushed, or nil if telemetry is disabled.
         #
         # @api private
-        def flush
-          return if !@enabled || forked?
+        def flush(timeout: nil)
+          return unless enabled?
 
-          @worker.flush
+          @worker.flush(timeout: timeout)
         end
 
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
-          return if !@enabled || forked?
+          return unless enabled?
 
-          @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
+          @worker.enqueue(Event::AppClientConfigurationChange.new(changes, "remote_config"))
+        end
+
+        # Report application endpoints
+        def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
+          return unless enabled?
+
+          endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
+            @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))
+          end
         end
 
         # Increments a count metric.
@@ -188,6 +216,22 @@ module Datadog
         # Tracks distribution metric.
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
+        end
+
+        # When a fork happens, we generally need to do two things inside the
+        # child proess:
+        # 1. Restart the worker.
+        # 2. Discard any events and metrics that were submitted in the
+        #    parent process (because they will be sent out in the parent
+        #    process, sending them in the child would cause duplicate
+        #    submission).
+        def after_fork
+          # We cannot simply create a new instance of metrics manager because
+          # it is referenced from other objects (e.g. the worker).
+          # We must reset the existing instance.
+          @metrics_manager.clear
+
+          worker&.send(:after_fork_monkey_patched)
         end
       end
     end

@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../../event'
-require_relative '../../../security_event'
-require_relative '../../../instrumentation/gateway'
+require_relative "../../../event"
+require_relative "../../../trace_keeper"
+require_relative "../../../security_event"
+require_relative "../../../instrumentation/gateway"
 
 module Datadog
   module AppSec
@@ -16,32 +17,100 @@ module Datadog
                 gateway = Instrumentation.gateway
 
                 watch_request_action(gateway)
+                watch_response_body_json(gateway)
               end
 
               def watch_request_action(gateway = Instrumentation.gateway)
-                gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
+                gateway.watch("rails.request.action") do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
 
                   persistent_data = {
-                    'server.request.body' => gateway_request.parsed_body,
-                    'server.request.path_params' => gateway_request.route_params
+                    "server.request.path_params" => gateway_request.route_params,
                   }
+
+                  unless limit.zero?
+                    byte_length = gateway_request.body_bytesize(limit)
+
+                    if byte_length
+                      # NOTE: Params may be parsed before this hook, leaving the
+                      #       body stream at EOF. Keep byte_length unset for that
+                      #       case, but still inspect cached params
+                      persistent_data["server.request.body.byte_length"] = byte_length if byte_length.positive?
+
+                      if byte_length <= limit
+                        body = gateway_request.parsed_body
+                        persistent_data["server.request.body"] = body unless body.nil? || body.empty?
+                      end
+                    end
+                  end
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match? || !result.derivatives.empty?
-                    context.events.push(
-                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                    )
-                  end
-
                   if result.match?
-                    AppSec::Event.tag_and_keep!(context, result)
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+                    )
+
+                    AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
+
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
                   stack.call(gateway_request.request)
                 end
+              end
+
+              def watch_response_body_json(gateway = Instrumentation.gateway)
+                gateway.watch("rails.response.body.json") do |stack, container|
+                  context = container.context
+
+                  body_bytesize = container.data.bytesize
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+
+                  persistent_data = {
+                    "server.response.body.byte_length" => body_bytesize,
+                  }
+
+                  if limit > 0 && body_bytesize <= limit
+                    json = extract_json(container.data)
+                    persistent_data["server.response.body"] = WAF::JSONString.new(json) if json
+                  end
+
+                  result = begin
+                    context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  rescue WAF::ConversionError
+                    next stack.call(container)
+                  end
+
+                  if result.match?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
+                    )
+
+                    AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
+
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(container)
+                end
+              end
+
+              private
+
+              def extract_json(body)
+                return body unless body.start_with?("/**/")
+                return unless body.end_with?(")")
+
+                # NOTE: Best-effort support for standard Rails JSONP callbacks.
+                #       Callback expressions with parentheses may prevent extraction
+                opening_parenthesis_index = body.b.index("(")
+                return unless opening_parenthesis_index
+
+                body.byteslice(opening_parenthesis_index + 1, body.bytesize - opening_parenthesis_index - 2) #: String
               end
             end
           end

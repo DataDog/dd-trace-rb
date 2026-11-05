@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Patcher
+          include Contrib::Patcher
+
+          # Returns Integration.version which can be nil
+          def self.target_version: () -> Gem::Version?
+
+          def self.patch: () -> void
+
+          # Adds the tracing middleware to a WaterDrop producer
+          def self.add_middleware: (untyped producer) -> void
+        end
+      end
+    end
+  end
+end

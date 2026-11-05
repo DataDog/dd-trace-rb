@@ -1,0 +1,27 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Request
+        REQUEST_PATH: ::String
+
+        type body = {
+          data: {
+            attributes: {
+              messages: Array[Message::serialized],
+              meta: {
+                service: String?,
+                env: String?
+              }
+            }
+          }
+        }
+
+        @messages: Array[Message]
+
+        def initialize: (::Array[Message] messages) -> void
+
+        def body: () -> body
+      end
+    end
+  end
+end

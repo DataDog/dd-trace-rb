@@ -4,9 +4,9 @@ module Datadog
       module GraphQL
         module Gateway
           module Watcher
-            def self.watch: () -> untyped
+            def self.watch: () -> void
 
-            def self.watch_multiplex: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> Hash[String, Datadog::AppSec::Instrumentation::Gateway::Middleware]?
+            def self.watch_multiplex: (?AppSec::Instrumentation::Gateway gateway) -> void
           end
         end
       end

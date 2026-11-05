@@ -15,7 +15,7 @@ module Datadog
 
           @interval = interval
           @logger = logger
-          raise ArgumentError, 'can not initialize a worker without a block' unless block
+          raise ArgumentError, "can not initialize a worker without a block" unless block
 
           @block = block
         end
@@ -23,66 +23,62 @@ module Datadog
         attr_reader :logger
 
         def start
-          logger.debug { 'remote worker starting' }
+          logger.debug { "remote worker starting (pid: #{Process.pid})" }
 
-          acquire_lock
+          @mutex.synchronize do
+            if @stopped
+              logger.debug("remote worker: refusing to restart after previous stop")
+              return
+            end
 
-          if @stopped
-            logger.debug('remote worker: refusing to restart after previous stop')
-            return
+            return if @starting || @started
+
+            @starting = true
+
+            thread = Thread.new { poll(@interval) }
+            thread.name = self.class.name
+            thread.thread_variable_set(:fork_safe, true)
+            @thr = thread
+
+            @started = true
+            @starting = false
           end
 
-          return if @starting || @started
-
-          @starting = true
-
-          thread = Thread.new { poll(@interval) }
-          thread.name = self.class.name
-          thread.thread_variable_set(:fork_safe, true)
-          @thr = thread
-
-          @started = true
-          @starting = false
-
-          logger.debug { 'remote worker started' }
-        ensure
-          release_lock
+          logger.debug { "remote worker started" }
         end
 
         def stop
-          logger.debug { 'remote worker stopping' }
+          logger.debug { "remote worker stopping (pid: #{Process.pid})" }
 
-          acquire_lock
+          @mutex.synchronize do
+            thread = @thr
 
-          thread = @thr
+            if thread
+              thread.kill
+              thread.join
+            end
 
-          if thread
-            thread.kill
-            thread.join
+            @started = false
+            @thr = nil
+            @stopped = true
           end
 
-          @started = false
-          @thr = nil
-          @stopped = true
-
-          logger.debug { 'remote worker stopped' }
-        ensure
-          release_lock
+          logger.debug { "remote worker stopped" }
         end
 
         def started?
           @started
         end
 
+        # Child-only: discard inherited synchronization without starting a thread.
+        def after_fork
+          @mutex = Mutex.new
+          @thr = nil
+          @starting = false
+          @started = false
+        end
+
         private
-
-        def acquire_lock
-          @mutex.lock
-        end
-
-        def release_lock
-          @mutex.unlock
-        end
 
         def poll(interval)
           loop do
@@ -95,7 +91,7 @@ module Datadog
         end
 
         def call
-          logger.debug { 'remote worker perform' }
+          logger.debug { "remote worker perform" }
 
           @block.call
         end

@@ -12,26 +12,13 @@ module Datadog
 
             include Datadog::Tracing::Transport::Traces::Response
 
-            def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+            def initialize: (untyped http_response, ?Hash[untyped, untyped] options) -> void
           end
-          module Client
-            def send_traces_payload: (untyped request) -> untyped
+          class Client < Core::Transport::HTTP::Client
           end
 
           module API
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor traces: untyped
-
-              def send_traces: (untyped env) { (?) -> untyped } -> untyped
-
-              def encoder: () -> untyped
-            end
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_traces: (untyped env) -> untyped
-            end
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              @encoder: untyped
-
               @service_rates: untyped
 
               HEADER_CONTENT_TYPE: "Content-Type"
@@ -40,9 +27,7 @@ module Datadog
 
               SERVICE_RATE_KEY: "rate_by_service"
 
-              attr_reader encoder: untyped
-
-              def initialize: (untyped path, untyped encoder, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped path, untyped encoder, ?Hash[untyped, untyped] options) -> void
 
               def service_rates?: () -> untyped
 

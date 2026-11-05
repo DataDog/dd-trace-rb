@@ -14,11 +14,19 @@ module Datadog
       def key?: (untyped name) -> untyped
       def onto: (untyped obj) -> untyped
 
-      def to_s: () -> ::String
+      def to_s: () -> String
 
       private
 
       attr_accessor options: untyped
+
+      class PinnedObject
+        @datadog_pin: Pin
+
+        def self.datadog_pin: () -> Pin
+
+        def self.datadog_pin=: (Pin pin) -> void
+      end
     end
   end
 end

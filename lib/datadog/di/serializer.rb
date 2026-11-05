@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
+require "date"
 require_relative "redactor"
+require_relative "guardrails_telemetry"
+require_relative "../core/utils/time"
 
 module Datadog
   module DI
-    # Serializes captured snapshot to primitive types, which are subsequently
+    # Serializes captured snapshots to primitive types, which are subsequently
     # serialized to JSON and sent to the backend.
     #
-    # This class performs actual removal of sensitive values from the
-    # snapshots. It uses Redactor to determine which values are sensitive
-    # and need to be removed.
+    # Sensitive values are removed from the snapshots.
     #
     # Serializer normally ought not to invoke user (application) code,
     # to guarantee predictable performance. However, objects like ActiveRecord
@@ -19,7 +20,7 @@ module Datadog
     # thus they won't be captured at all). To accommodate complex objects,
     # there is an extension mechanism implemented permitting registration
     # of serializer callbacks for arbitrary types. Applications and libraries
-    # definining such serializer callbacks should be very careful to
+    # defining such serializer callbacks should be very careful to
     # have predictable performance and avoid exceptions and infinite loops
     # and other such issues.
     #
@@ -36,12 +37,23 @@ module Datadog
     # efficient but there would be additional overhead from passing this
     # parameter all the time and the API would get more complex.
     #
-    # Note: "self" cannot be used as a parameter name in Ruby, therefore
-    # there should never be a conflict between instance variable
-    # serialization and method parameters.
-    #
     # @api private
     class Serializer
+      # Exception classes that must propagate to the caller during
+      # serialization: fatal conditions (signals, interrupts, system exit).
+      # NoMemoryError is deliberately excluded (unlike
+      # DI::FATAL_EXCEPTION_CLASSES): serialization of large or deeply
+      # recursive objects can exhaust memory, and the serializer must return
+      # a safe stub rather than terminate the process.
+      SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
+
+      # Placeholder emitted by #serialize_value_for_message in place of a value
+      # whose identifier or type matches the redaction configuration. The
+      # message-path counterpart of the +notCapturedReason+
+      # "redactedIdent"/"redactedType" markers that #serialize_value produces
+      # on the snapshot path.
+      REDACTED_VALUE_FOR_MESSAGE = "[redacted]"
+
       # Third-party library integration / custom serializers.
       #
       # Dynamic instrumentation has limited payload sizes, and for efficiency
@@ -64,20 +76,98 @@ module Datadog
       # a common base class but are all of different classes) or for Mongoid
       # models (that do not have a common base class at all but include a
       # standard Mongoid module).
+      #
+      # Important: these serializers are NOT used in log messages.
+      # They are only used for variables that are captured in the snapshots.
+      #
+      # Exception handling: If a custom serializer's condition lambda raises
+      # an exception (e.g., regex match against invalid UTF-8 strings), the
+      # exception will be logged at WARN level, then the serializer will be
+      # skipped and the next serializer will be tried. This prevents custom
+      # serializers from breaking the entire serialization process.
+      #
+      # IMPORTANT: Custom serializers MUST produce data that can be JSON-encoded.
+      # Specifically, custom serializers MUST NOT produce strings with binary
+      # encoding (ASCII-8BIT) containing non-ASCII code points (bytes >= 0x80)
+      # that cannot be automatically transcoded to UTF-8. Such strings will
+      # cause JSON encoding to fail, which will result in the probe being
+      # disabled and an ERROR status being reported. If your data contains
+      # binary content, encode it to a text representation (e.g., Base64,
+      # hex string, or UTF-8 with replacement characters) before returning
+      # it from the custom serializer.
       @@flat_registry = []
-      def self.register(condition: nil, &block)
+      # Registers a custom serializer. The block serializes each value
+      # for which +condition+ returns a truthy value.
+      #
+      # @param condition [Proc] receives the value being serialized and
+      #   returns whether this serializer applies to it
+      # @param block [Proc] serializer for the values +condition+ accepts
+      # @raise [ArgumentError] if +condition+ is not a Proc or +block+ is absent
+      # @return [void]
+      def self.register(condition:, &block)
+        unless condition.is_a?(Proc)
+          raise ArgumentError, "Serializer.register condition must be a Proc, got #{condition.class}"
+        end
+
+        unless block
+          raise ArgumentError, "Serializer.register requires a serializer block"
+        end
+
         @@flat_registry << {condition: condition, proc: block}
+        nil
       end
 
-      def initialize(settings, redactor, telemetry: nil)
+      # Initializes the serializer.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param redactor [Redactor] redactor gating captured values
+      # @param logger [DI::Logger] logger for contained serialization failures
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical capture-incomplete metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component serializer errors are reported through
+      # @return [void]
+      def initialize(settings, redactor, logger:, guardrails_telemetry:, telemetry: nil)
         @settings = settings
         @redactor = redactor
+        @logger = logger
+        @guardrails_telemetry = guardrails_telemetry
         @telemetry = telemetry
+        # Evaluation budget for one expression evaluation, as thread CPU
+        # seconds, converted from max_time_to_evaluate_ms here so that
+        # deadline resolution per probe firing traverses no settings.
+        @evaluation_budget_seconds = settings.dynamic_instrumentation.max_time_to_evaluate_ms / 1000.0
       end
 
       attr_reader :settings
       attr_reader :redactor
+      # The logger.
+      # @return [DI::Logger]
+      attr_reader :logger
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
       attr_reader :telemetry
+
+      # Emits the canonical capture-incomplete metric for a capture limit
+      # enforced while serializing a snapshot, with the snapshot event
+      # type.
+      #
+      # @param reason [String] a GuardrailsTelemetry::Reason constant naming the enforced limit
+      # @return [void]
+      def record_capture_incomplete(reason)
+        guardrails_telemetry.capture_incomplete(reason: reason, event_type: GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT)
+      end
+
+      def combine_args(args, kwargs, target_self)
+        counter = 0
+        combined = args.each_with_object({}) do |value, c|
+          counter += 1
+          # Conversion to symbol is needed here to put args ahead of
+          # kwargs when they are merged below.
+          c[:"arg#{counter}"] = value
+        end.update(kwargs)
+        combined[:self] = target_self
+        combined
+      end
 
       # Serializes positional and keyword arguments to a method,
       # as obtained by a method probe.
@@ -87,31 +177,39 @@ module Datadog
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
       #
-      # Instance variables are technically a hash just like kwargs,
-      # we take them as a separate parameter to avoid a hash merge
-      # in upstream code.
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_self [any] receiver of the probed method invocation
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
+      # @return [Hash{Symbol => Hash}] serialized arguments keyed by argument name
       def serialize_args(args, kwargs, target_self,
+        deadline:,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
-        counter = 0
-        combined = args.each_with_object({}) do |value, c|
-          counter += 1
-          # Conversion to symbol is needed here to put args ahead of
-          # kwargs when they are merged below.
-          c[:"arg#{counter}"] = value
-        end.update(kwargs).update(self: target_self)
-        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
+        combined = combine_args(args, kwargs, target_self)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count,
+          length: length, collection_size: collection_size, deadline: deadline)
       end
 
       # Serializes variables captured by a line probe.
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
+      #
+      # @param vars [Hash{Symbol => Object}] variables to serialize, keyed by variable name
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
+      # @return [Hash{Symbol => Hash}] serialized variables keyed by variable name
       def serialize_vars(vars,
+        deadline:,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
+            length: length, collection_size: collection_size, deadline: deadline)
         end
       end
 
@@ -127,13 +225,27 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
-      def serialize_value(value, name: nil,
+      #
+      # @param value [any] value to serialize
+      # @param name [Symbol, String, nil] name the value is bound to, used for redaction
+      # @param deadline [Float] absolute capture deadline in thread CPU clock seconds
+      # @return [Hash{Symbol => Object}] serialized value; the {type:, notCapturedReason: "timeout"} stub when the deadline is exceeded
+      def serialize_value(value, deadline:,
+        name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
+        length: nil,
+        collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
         begin
+          if deadline_exceeded?(deadline)
+            telemetry&.inc(DI::TELEMETRY_NAMESPACE, "serialized_values_skipped_by_timeout", 1)
+            record_capture_incomplete(GuardrailsTelemetry::Reason::CAPTURE_TIMEOUT)
+            return {type: class_name(cls), notCapturedReason: "timeout"}
+          end
+
           if redactor.redact_type?(value)
             return {type: class_name(cls), notCapturedReason: "redactedType"}
           end
@@ -143,21 +255,42 @@ module Datadog
           end
 
           @@flat_registry.each do |entry|
-            if (condition = entry[:condition]) && condition.call(value)
-              serializer_proc = entry.fetch(:proc)
-              return serializer_proc.call(self, value, name: nil, depth: depth)
+            condition = entry[:condition]
+            if condition
+              begin
+                condition_result = condition.call(value)
+              rescue Exception => e # standard:disable Lint/RescueException
+                raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
+
+                # If a custom serializer condition raises an exception (e.g., regex match
+                # against invalid UTF-8), skip it and continue with the next serializer.
+                # We don't want custom serializer conditions to break the entire serialization.
+                #
+                # Custom serializers may be defined by customers (in which case we should
+                # surface errors so they can fix their serializers) or they may be defined
+                # internally by dd-trace-rb (in which case we need to fix them). We use
+                # WARN level to surface these errors in either case.
+                Datadog.logger.warn("DI: Custom serializer condition failed: #{e.class}: #{e.message}")
+                telemetry&.report(e, description: "Custom serializer condition failed")
+                next
+              end
+
+              if condition_result
+                serializer_proc = entry.fetch(:proc)
+                return serializer_proc.call(self, value, name: nil, depth: depth, deadline: deadline)
+              end
             end
           end
 
           serialized = {type: class_name(cls)}
+          # https://github.com/soutaro/steep/issues/1860
+          # @type var serialized: untyped
           case value
           when NilClass
             serialized.update(isNull: true)
           when Integer, Float, TrueClass, FalseClass
             serialized.update(value: value.to_s)
           when Time
-            # This path also handles DateTime values although they do not need
-            # to be explicitly added to the case statement.
             serialized.update(value: value.iso8601)
           when Date
             serialized.update(value: value.to_s)
@@ -173,50 +306,93 @@ module Datadog
             else
               value.to_s
             end
-            max = settings.dynamic_instrumentation.max_capture_string_length
-            if value.length > max
-              serialized.update(truncated: true, size: value.length)
-              value = value[0...max]
-              need_dup = false
+
+            # Handle binary strings and invalid UTF-8 by escaping to JSON-safe format.
+            # For regular strings, the limit is applied to string length in characters.
+            length ||= settings.dynamic_instrumentation.max_capture_string_length
+            max = length
+
+            if value.encoding == Encoding::BINARY || !value.valid_encoding?
+              # Truncate binary data before escaping to avoid cutting mid-escape-sequence
+              # For invalid encodings, use bytesize instead of length to avoid encoding errors
+              original_size = value.bytesize
+              if original_size > max
+                serialized.update(truncated: true, size: original_size)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::STRING_LENGTH)
+                value = value.byteslice(0...max)
+              end
+              value = escape_binary_string(value) # steep:ignore ArgumentTypeMismatch
+            else
+              if value.length > max
+                serialized.update(truncated: true, size: value.length)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::STRING_LENGTH)
+                value = value[0...max]
+                need_dup = false
+              end
+
+              value = value.dup if need_dup
             end
-            value = value.dup if need_dup
+
             serialized.update(value: value)
           when Array
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               if max != 0 && value.length > max
                 serialized.update(notCapturedReason: "collectionSize", size: value.length)
+                record_capture_incomplete(GuardrailsTelemetry::Reason::COLLECTION_SIZE)
                 # same steep failure with array slices.
                 # https://github.com/soutaro/steep/issues/1219
                 value = value[0...max] || []
               end
-              entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1)
+              entries = []
+              value.each do |elt|
+                entry = serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entries << entry
+                if entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(elements: entries)
             end
           when Hash
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               cur = 0
               entries = []
               value.each do |k, v|
                 if max != 0 && cur >= max
                   serialized.update(notCapturedReason: "collectionSize", size: value.length)
+                  record_capture_incomplete(GuardrailsTelemetry::Reason::COLLECTION_SIZE)
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1), serialize_value(v, name: k, depth: depth - 1)]
+                key_entry = serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                if key_entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
+                value_entry = serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                entries << [key_entry, value_entry]
+                if value_entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(entries: entries)
             end
           else
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
+              record_capture_incomplete(GuardrailsTelemetry::Reason::DEPTH)
             else
               fields = {}
               cur = 0
@@ -237,31 +413,203 @@ module Datadog
               #
               # For consistency, we should have some kind of stable order of
               # instance variables on all supported Ruby runtimes, so that the UI
-              # stays consistent. Given that initial implementation of Ruby DI
-              # does not support JRuby, we don't handle JRuby's lack of ordering
-              # of #instance_variables here, but if JRuby is supported in the
-              # future this may need to be addressed.
+              # stays consistent. Ruby DI does not support JRuby, so JRuby's lack
+              # of ordering of #instance_variables is not handled here.
               ivars = value.instance_variables
 
               ivars.each do |ivar|
                 if cur >= attribute_count
                   serialized.update(notCapturedReason: "fieldCount", fields: fields)
+                  record_capture_incomplete(GuardrailsTelemetry::Reason::FIELD_COUNT)
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1)
+                entry = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count, deadline: deadline)
+                fields[ivar] = entry
+                if entry[:notCapturedReason] == "timeout"
+                  serialized.update(notCapturedReason: "timeout")
+                  break
+                end
               end
               serialized.update(fields: fields)
             end
           end
           serialized
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
+          # Catch all remaining exceptions: SystemStackError and NoMemoryError can
+          # occur during serialization (e.g. a custom serializer recursing
+          # infinitely) and produce the safe stub.
+          record_capture_incomplete(GuardrailsTelemetry::Reason::RUNTIME_ERROR)
+          logger.debug { "di: error serializing value of #{class_name(cls)}: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Error serializing")
           {type: class_name(cls), notSerializedReason: exc.to_s}
         end
       end
 
+      # Serializes a value for interpolation into a log-probe message.
+      # Because the output is meant to be human-readable, we cannot use
+      # the "normal" serialization format which is meant to be machine-readable.
+      # Serialize objects with depth of 1 and include the class name.
+      #
+      # Note that this method does not (currently) utilize the custom
+      # serializers that the "normal" serialization logic uses.
+      #
+      # This serializer differs from the RFC in two ways:
+      # 1. We omit the middle of long strings rather than the end,
+      #    and also the inner entries in arrays/hashes/objects.
+      # 2. We use Ruby-ish syntax for hashes and objects.
+      #
+      # We also use the Ruby-like syntax for symbols, which don't exist
+      # in other languages.
+      #
+      # +name+, when given, is the identifier the template expression
+      # references at its top level; a redacted identifier yields the
+      # redaction placeholder, mirroring #serialize_value on the snapshot path.
+      # Message rendering is capped by depth (1) and
+      # MAX_MESSAGE_COLLECTION_SIZE / MAX_MESSAGE_ATTRIBUTE_COUNT.
+      def serialize_value_for_message(value, depth: 1, name: nil)
+        # This method is more verbose than "normal" Ruby code to avoid
+        # array allocations.
+
+        return REDACTED_VALUE_FOR_MESSAGE if redactor.redact_type?(value)
+        return REDACTED_VALUE_FOR_MESSAGE if name && redactor.redact_identifier?(name)
+
+        case value
+        when NilClass
+          "nil"
+        when Integer, Float, TrueClass, FalseClass, Time, Date
+          value.to_s
+        when String
+          serialize_string_or_symbol_for_message(value)
+        when Symbol
+          ":" + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
+        when Array
+          return "..." if depth <= 0
+
+          max = max_capture_collection_size_for_message
+          if value.length > max
+            value_ = value[0...max - 1] || []
+            value_ << "..."
+            value_ << value[-1]
+            value = value_
+          end
+          "[" + value.map do |item|
+            serialize_value_for_message(item, depth: depth - 1)
+          end.join(", ") + "]"
+        when Hash
+          return "..." if depth <= 0
+
+          max = max_capture_collection_size_for_message
+          keys = value.keys
+          truncated = false
+          if value.length > max
+            keys_ = keys[0...max - 1] || []
+            keys_ << keys[-1]
+            keys = keys_
+            truncated = true
+          end
+          serialized = keys.map do |key|
+            serialized_value = if (String === key || Symbol === key) && redactor.redact_identifier?(key)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value[key], depth: depth - 1)
+            end
+            "#{serialize_value_for_message(key, depth: depth - 1)} => #{serialized_value}"
+          end
+          if truncated
+            serialized[serialized.length] = serialized[serialized.length - 1]
+            serialized[serialized.length - 2] = "..."
+          end
+          "{#{serialized.join(", ")}}"
+        else
+          return "..." if depth <= 0
+
+          vars = value.instance_variables
+          truncated = false
+          max = max_capture_attribute_count_for_message
+          if vars.length > max
+            vars_ = vars[0...max - 1] || []
+            vars_ << vars[-1]
+            truncated = true
+            vars = vars_
+          end
+          serialized = vars.map do |var|
+            # +var+ here is always the instance variable name which is a
+            # symbol, we do not need to run it through our serializer.
+            serialized_value = if redactor.redact_identifier?(var)
+              REDACTED_VALUE_FOR_MESSAGE
+            else
+              serialize_value_for_message(value.send(:instance_variable_get, var), depth: depth - 1)
+            end
+            "#{var}=#{serialized_value}"
+          end
+          if truncated
+            serialized << serialized.last
+            serialized[-2] = "..."
+          end
+          serialized = if serialized.any?
+            " " + serialized.join(" ")
+          end
+          "#<#{class_name(value.class)}#{serialized}>"
+        end
+      rescue Exception => exc # standard:disable Lint/RescueException
+        raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
+        telemetry&.report(exc, description: "Error serializing for message")
+        # TODO handle class_name raising here as well.
+        "#<#{class_name(value.class)}: serialization error>"
+      end
+
+      # Computes the absolute thread CPU time deadline (in seconds) for a
+      # capture point from max_time_to_serialize_ms.
+      #
+      # @return [Float] absolute thread CPU clock reading, in seconds, at
+      #   which the capture budget is exhausted
+      def serialization_deadline
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) +
+          settings.dynamic_instrumentation.max_time_to_serialize_ms / 1000.0
+      end
+
+      # Computes the absolute thread CPU time deadline (in seconds) for an
+      # expression evaluation by adding the evaluation budget, converted
+      # from max_time_to_evaluate_ms once at construction, to the current
+      # thread CPU clock reading.
+      #
+      # @return [Float] absolute thread CPU clock reading, in seconds, at
+      #   which the evaluation budget is exhausted
+      def evaluation_deadline
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) +
+          evaluation_budget_seconds
+      end
+
       private
+
+      attr_reader :evaluation_budget_seconds
+
+      def deadline_exceeded?(deadline)
+        Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) >= deadline
+      end
+
+      MAX_MESSAGE_COLLECTION_SIZE = 3
+      MAX_MESSAGE_ATTRIBUTE_COUNT = 5
+
+      def max_capture_collection_size_for_message
+        max = settings.dynamic_instrumentation.max_capture_collection_size
+        if max > MAX_MESSAGE_COLLECTION_SIZE
+          max = MAX_MESSAGE_COLLECTION_SIZE
+        end
+        max
+      end
+
+      def max_capture_attribute_count_for_message
+        max = settings.dynamic_instrumentation.max_capture_attribute_count
+        if max > MAX_MESSAGE_ATTRIBUTE_COUNT
+          max = MAX_MESSAGE_ATTRIBUTE_COUNT
+        end
+        max
+      end
 
       # Returns the name for the specified class object.
       #
@@ -272,6 +620,74 @@ module Datadog
         # the class, but it is likely that user code can override #to_s
         # and we don't want to invoke user code.
         cls.name || "[Unnamed class]"
+      end
+
+      def serialize_string_or_symbol_for_message(value)
+        max = settings.dynamic_instrumentation.max_capture_string_length
+        if max > 100
+          max = 100
+        end
+        value = value.to_s
+        if (length = value.length) > max
+          if max < 5
+            value[0...max]
+          else
+            upper = length - max / 2 + 1
+            if max % 2 == 0
+              upper += 1
+            end
+            value[0...max / 2 - 1] + "..." + value[upper...length] # steep:ignore NoMethod
+          end
+        else
+          value
+        end
+      end
+
+      # Escapes a binary string or invalid UTF-8 string to a JSON-safe format.
+      #
+      # IMPORTANT: This method should ONLY be called with either:
+      # 1. True binary strings (encoding == Encoding::BINARY / ASCII-8BIT)
+      # 2. Strings with invalid encoding (!value.valid_encoding?)
+      #
+      # Calling this method with valid UTF-8 strings will produce incorrect output.
+      #
+      # Binary data (ASCII-8BIT encoding) or strings with invalid encoding are
+      # converted to an escaped string in the format: b'...' with hex escapes
+      # for non-printable bytes.
+      #
+      # The output format matches other Datadog tracer libraries for consistency
+      # across language implementations. The output is JSON-serializable.
+      #
+      # Examples:
+      #   "Hello".b -> "b'Hello'"
+      #   "\x80\xFF".b -> "b'\\x80\\xff'"
+      #   "\x80".force_encoding('UTF-8') -> "b'\\x80'" (invalid UTF-8)
+      #
+      # @param binary_string [String] A string with ASCII-8BIT encoding or invalid encoding
+      # @return [String] Escaped string with UTF-8 encoding
+      def escape_binary_string(binary_string)
+        result = +"b'"
+        binary_string.each_byte do |byte|
+          result << case byte
+          when 0x09 # \t
+            '\\t'
+          when 0x0A # \n
+            '\\n'
+          when 0x0D # \r
+            '\\r'
+          when 0x27 # '
+            "\\'"
+          when 0x5C # \
+            "\\\\"
+          when 0x20..0x7E # Printable ASCII (space through ~)
+            byte.chr
+          else
+            # Non-printable: use \xHH format
+            format('\\x%02x', byte)
+          end
+        end
+        result << "'"
+        result
       end
     end
   end

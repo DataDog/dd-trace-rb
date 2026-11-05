@@ -1,0 +1,47 @@
+module Datadog
+  module DataStreams
+      class PathwayContext
+        @hash: ::Integer
+
+        @pathway_start: ::Time
+
+        @current_edge_start: ::Time
+
+        @parent_hash: ::Integer?
+        @previous_direction: ::String?
+
+        @closest_opposite_direction_hash: ::Integer
+
+        @closest_opposite_direction_edge_start: ::Time
+
+        attr_accessor hash: ::Integer
+
+        attr_accessor pathway_start: ::Time
+
+        attr_accessor current_edge_start: ::Time
+
+        attr_accessor parent_hash: ::Integer?
+
+        attr_accessor previous_direction: ::String?
+
+        attr_accessor closest_opposite_direction_hash: ::Integer
+
+        attr_accessor closest_opposite_direction_edge_start: ::Time
+
+        def initialize: (hash_value: ::Integer, pathway_start: ::Time, current_edge_start: ::Time) -> void
+
+        def encode: () -> ::String
+
+        def encode_b64: () -> ::String
+        def self.decode_b64: (::String encoded_ctx) -> PathwayContext?
+        def self.decode: (::String binary_data) -> PathwayContext?
+
+        private
+
+        def encode_var_int_64: (::Integer value) -> ::String
+        def time_to_ms: (::Time time) -> ::Integer
+        def self.decode_varint: (::StringIO io) -> ::Integer?
+        def self.ms_to_time: (::Integer milliseconds) -> ::Time
+      end
+    end
+  end

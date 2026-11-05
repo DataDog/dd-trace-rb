@@ -1,13 +1,33 @@
 require "datadog/profiling/spec_helper"
 
 RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip_if_profiling_not_supported
 
-  around do |example|
-    ClimateControl.modify("VALIDATE_BENCHMARK" => "true") do
-      example.run
-    end
+    # @ivoanjo: We've seen these tests be flaky especially on Ruby 2.6: https://github.com/DataDog/dd-trace-rb/pull/4947
+    # Even when trying to get a backtrace out of Ruby, all we saw was one of the Ruby threads sleeping
+    # e.g. https://github.com/DataDog/dd-trace-rb/actions/runs/19484921634/job/55765012312#step:5:8980 :
+    #
+    # -- Control frame information -----------------------------------------------
+    # c:0004 p:---- s:0014 e:000013 CFUNC  :sleep
+    # c:0003 p:0005 s:0010 e:000009 BLOCK  /__w/dd-trace-rb/dd-trace-rb/benchmarks/profiling_sample_loop_v2.rb:16
+    # c:0002 p:0011 s:0007 e:000006 BLOCK  /__w/dd-trace-rb/dd-trace-rb/spec/spec_helper.rb:290 [FINISH]
+    # c:0001 p:---- s:0003 e:000002 (none) [FINISH]
+    #
+    # Because the objective of this spec is making sure the benchmarks don't bitrot, and seeing as this flakiness seems
+    # to especially affect 2.6 but we have no indication otherwise that we have issues in Ruby 2.6, I decided to skip
+    # this for now and rely on this spec running on other Ruby versions to validate the benchmark is ok.
+    skip("Skipping on Ruby 2.6 as it's flaky and we couldn't figure out why yet") if RubyVersion.is?(">= 2.6", "< 2.7")
+
+    # Update: Because no good deed goes unpunished we also saw flakiness on 2.5 and actually that one provided NO
+    # control frame information AND NO C level backtrace information -- so effectively no info.
+    # For similar reasons as 2.6 above, I think this is at "let's keep an eye out on, and try to figure it out" level so
+    # here's one more skip and let's hope that if/when this shows up on a modern Ruby we can get some actual interesting
+    # info to debug.
+    skip("Skipping on Ruby 2.5 as it's flaky and we couldn't figure out why yet") if RubyVersion.is?("< 2.6")
   end
+
+  with_env "VALIDATE_BENCHMARK" => "true", "DD_TRACE_STARTUP_LOGS" => "true"
 
   benchmarks_to_validate = [
     "profiling_allocation",
@@ -18,12 +38,32 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     "profiling_sample_loop_v2",
     "profiling_sample_serialize",
     "profiling_sample_gvl",
+    "profiling_sample_overhead",
     "profiling_string_storage_intern",
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
-      it("runs without raising errors") { expect_in_fork { load "./benchmarks/#{benchmark}.rb" } }
+      let!(:memory_before_benchmark) { macos_memory_snapshot if PlatformHelpers.mac? }
+
+      after do |example|
+        next unless example.exception && PlatformHelpers.mac?
+
+        warn "macOS memory before #{benchmark}:\n#{memory_before_benchmark}"
+        warn "macOS memory after failure in #{benchmark}:\n#{macos_memory_snapshot}"
+
+        begin
+          # Diagnostics for when this fails in CI
+          warn "macOS system logs after failure in #{benchmark}:"
+          # We use "sudo -n" which fails if sudo would ask for a password instead of prompting
+          success = system(%q(sudo -n /usr/bin/log show --last 2m --style compact --predicate 'process == "kernel" OR process == "syspolicyd" OR process == "taskgated"'))
+          warn "Unable to collect macOS system logs" unless success
+        rescue => e
+          warn "Unable to collect macOS system logs: #{e.class}: #{e.message}"
+        end
+      end
+
+      it("runs without raising errors") { expect_in_fork(timeout_seconds: 15, trigger_stacktrace_on_kill: true) { load "./benchmarks/#{benchmark}.rb" } }
     end
   end
 
@@ -32,5 +72,20 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     all_benchmarks = Dir["./benchmarks/profiling_*"].map { |it| it.gsub("./benchmarks/", "").gsub(".rb", "") }
 
     expect(benchmarks_to_validate).to contain_exactly(*all_benchmarks)
+  end
+
+  def macos_memory_snapshot
+    [
+      "/usr/bin/vm_stat",
+      "/usr/bin/memory_pressure",
+      "/usr/sbin/sysctl vm.swapusage",
+      "/bin/ps -A -m -o pid,ppid,rss,comm",
+    ].map do |command|
+      captured = `#{command} 2>&1`
+      result = "#{command} (#{$?.inspect}):\n#{captured}"
+      raise "Command failed: #{result}" unless $?.success?
+
+      result
+    end.join("\n")
   end
 end

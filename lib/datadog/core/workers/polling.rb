@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
-require_relative 'async'
-require_relative 'interval_loop'
+require_relative "async"
+require_relative "interval_loop"
 
 module Datadog
   module Core
     module Workers
       # Adds polling (async looping) behavior to workers
+      #
+      # @api private
       module Polling
         DEFAULT_SHUTDOWN_TIMEOUT = 1
 

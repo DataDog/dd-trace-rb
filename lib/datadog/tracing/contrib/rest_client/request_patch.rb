@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 
-require_relative '../../metadata/ext'
-require_relative '../http'
-require_relative '../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../http"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../utils/quantization/http"
 
 module Datadog
   module Tracing
@@ -27,7 +28,7 @@ module Datadog
               datadog_trace_request(uri) do |_span, trace|
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   global_config: datadog_configuration,
-                  trace: trace
+                  trace: trace,
                 )
                   Contrib::HTTP.inject(trace, processed_headers)
                 end
@@ -37,18 +38,20 @@ module Datadog
             end
 
             def datadog_tag_request(uri, span)
-              span.resource = method.to_s.upcase
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              http_method = method.to_s.upcase
+              path = uri.path
+              span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                http_method,
+                path,
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
+              )
 
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  datadog_configuration[:peer_service]
+                  datadog_configuration[:peer_service],
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -61,14 +64,14 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method.to_s.upcase)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.request_tags(
-                  Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers)
-                )
+                  Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers),
+                ),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -78,7 +81,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_REQUEST,
                 service: datadog_configuration[:split_by_domain] ? uri.host : datadog_configuration[:service_name],
-                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
               )
 
               trace = Tracing.active_trace
@@ -93,13 +96,16 @@ module Datadog
 
                   span.set_tags(
                     Datadog.configuration.tracing.header_tags.response_tags(
-                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response.net_http_res.to_hash)
-                    )
+                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response.net_http_res.to_hash),
+                    ),
                   )
                 end
               end
             rescue ::RestClient::ExceptionWithResponse => e
-              span.set_error(e) if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+              # DEV-3.0: This was previously checking against a 500..599 range.
+              # To not introduce breaking change, this was changed to use `http_error_statuses.server`,
+              # but `rest_client` is a client library, this check should use `http_error_statuses.client` instead.
+              span.set_error(e) if Datadog.configuration.tracing.http_error_statuses.server.include?(e.http_code)
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, e.http_code)
 
               raise e

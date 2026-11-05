@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "patcher"
 
 module Datadog
   module AppSec
@@ -11,12 +11,12 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('0.50.0')
+          MINIMUM_VERSION = Gem::Version.new("0.50.0")
 
           register_as :excon
 
           def self.version
-            Gem.loaded_specs['excon']&.version
+            Gem.loaded_specs["excon"]&.version
           end
 
           def self.loaded?
@@ -24,7 +24,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION
+            super && !!(version&.>= MINIMUM_VERSION)
           end
 
           def self.auto_instrument?

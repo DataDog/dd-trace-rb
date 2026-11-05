@@ -1,30 +1,36 @@
 # frozen_string_literal: true
 
-require_relative '../core/remote/dispatcher'
-require_relative 'processor/rule_loader'
+require_relative "../core/remote/dispatcher"
+require_relative "processor/rule_loader"
 
 module Datadog
   module AppSec
     # Remote
     module Remote
-      class ReadError < StandardError; end
-
       class NoRulesError < StandardError; end
 
       class << self
-        CAP_ASM_RESERVED_1 = 1 << 0   # RESERVED
-        CAP_ASM_ACTIVATION = 1 << 1   # Remote activation via ASM_FEATURES product
-        CAP_ASM_IP_BLOCKING = 1 << 2   # accept IP blocking data from ASM_DATA product
-        CAP_ASM_DD_RULES = 1 << 3   # read ASM rules from ASM_DD product
-        CAP_ASM_EXCLUSIONS = 1 << 4   # exclusion filters (passlist) via ASM product
-        CAP_ASM_REQUEST_BLOCKING = 1 << 5   # can block on request info
-        CAP_ASM_RESPONSE_BLOCKING = 1 << 6   # can block on response info
-        CAP_ASM_USER_BLOCKING = 1 << 7   # accept user blocking data from ASM_DATA product
-        CAP_ASM_CUSTOM_RULES = 1 << 8   # accept custom rules
-        CAP_ASM_CUSTOM_BLOCKING_RESPONSE = 1 << 9   # supports custom http code or redirect sa blocking response
-        CAP_ASM_TRUSTED_IPS = 1 << 10  # supports trusted ip
-        CAP_ASM_RASP_SSRF = 1 << 23  # support for server-side request forgery exploit prevention rules
-        CAP_ASM_RASP_SQLI = 1 << 21  # support for SQL injection exploit prevention rules
+        CAP_ASM_RESERVED_1 = 1 << 0
+        CAP_ASM_ACTIVATION = 1 << 1
+        CAP_ASM_IP_BLOCKING = 1 << 2
+        CAP_ASM_DD_RULES = 1 << 3
+        CAP_ASM_EXCLUSIONS = 1 << 4
+        CAP_ASM_REQUEST_BLOCKING = 1 << 5
+        CAP_ASM_RESPONSE_BLOCKING = 1 << 6
+        CAP_ASM_USER_BLOCKING = 1 << 7
+        CAP_ASM_CUSTOM_RULES = 1 << 8
+        CAP_ASM_CUSTOM_BLOCKING_RESPONSE = 1 << 9
+        CAP_ASM_TRUSTED_IPS = 1 << 10
+        CAP_ASM_PROCESSOR_OVERRIDES = 1 << 16
+        CAP_ASM_CUSTOM_DATA_SCANNERS = 1 << 17
+        CAP_ASM_RASP_SSRF = 1 << 23
+        CAP_ASM_RASP_SQLI = 1 << 21
+        CAP_ASM_AUTO_USER_INSTRUM_MODE = 1 << 31
+        CAP_ASM_ENDPOINT_FINGERPRINT = 1 << 32
+        CAP_ASM_SESSION_FINGERPRINT = 1 << 33
+        CAP_ASM_NETWORK_FINGERPRINT = 1 << 34
+        CAP_ASM_HEADER_FINGERPRINT = 1 << 35
+        CAP_ASM_TRACE_TAGGING_RULES = 1 << 43
 
         # TODO: we need to dynamically add CAP_ASM_ACTIVATION once we support it
         ASM_CAPABILITIES = [
@@ -37,15 +43,23 @@ module Datadog
           CAP_ASM_CUSTOM_RULES,
           CAP_ASM_CUSTOM_BLOCKING_RESPONSE,
           CAP_ASM_TRUSTED_IPS,
+          CAP_ASM_PROCESSOR_OVERRIDES,
+          CAP_ASM_CUSTOM_DATA_SCANNERS,
           CAP_ASM_RASP_SSRF,
           CAP_ASM_RASP_SQLI,
+          CAP_ASM_AUTO_USER_INSTRUM_MODE,
+          CAP_ASM_ENDPOINT_FINGERPRINT,
+          CAP_ASM_SESSION_FINGERPRINT,
+          CAP_ASM_NETWORK_FINGERPRINT,
+          CAP_ASM_HEADER_FINGERPRINT,
+          CAP_ASM_TRACE_TAGGING_RULES,
         ].freeze
 
         ASM_PRODUCTS = [
-          'ASM_DD',       # Datadog employee issued configuration
-          'ASM',          # customer issued configuration (rulesets, passlist...)
-          'ASM_FEATURES', # capabilities
-          'ASM_DATA',     # config files (IP addresses or users for blocking)
+          "ASM_DD",       # Datadog employee issued configuration
+          "ASM",          # customer issued configuration (rulesets, passlist...)
+          "ASM_FEATURES", # capabilities
+          "ASM_DATA",     # config files (IP addresses or users for blocking)
         ].freeze
 
         def capabilities
@@ -61,19 +75,26 @@ module Datadog
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            next unless AppSec.security_engine
+            engine = AppSec.security_engine
+            next unless engine
+
+            # We must process delete operations before insert and update operations
+            # to prevent duplicate-rule errors when the config name changes
+            changes.each do |change|
+              next unless change.type == :delete
+
+              engine.remove_config_at_path(change.path.to_s)
+            end
 
             changes.each do |change|
               content = repository[change.path]
-              next unless content || change.type == :delete
+              next unless content
 
               case change.type
               when :insert, :update
-                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
-
-                content.applied # steep:ignore
-              when :delete
-                AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
+                # @type var content: Core::Remote::Configuration::Content
+                engine.add_or_update_config(parse_content(content), path: change.path.to_s)
+                content.applied
               end
             end
 
@@ -93,13 +114,7 @@ module Datadog
         end
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

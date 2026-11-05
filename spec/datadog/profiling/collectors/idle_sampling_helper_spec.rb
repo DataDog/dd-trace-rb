@@ -2,12 +2,15 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/idle_sampling_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
+  let(:cpu_and_wall_time_worker) {
+    instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, _native_profiler_internal_thread_done: nil)
+  }
   subject(:idle_sampling_helper) { described_class.new }
 
   describe "#start" do
-    subject(:start) { idle_sampling_helper.start }
+    subject(:start) { idle_sampling_helper.start(cpu_and_wall_time_worker) }
 
     after do
       idle_sampling_helper.stop
@@ -38,15 +41,24 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
 
       expect(Thread).to_not receive(:new)
 
-      idle_sampling_helper.start
+      idle_sampling_helper.start(cpu_and_wall_time_worker)
     end
   end
 
   describe "#stop" do
+    before { idle_sampling_helper.start(cpu_and_wall_time_worker) }
+
     subject(:stop) { idle_sampling_helper.stop }
+
+    it "lets the CpuAndWallTimeWorker know the thread is finished" do
+      expect(cpu_and_wall_time_worker).to receive(:_native_profiler_internal_thread_done)
+
+      stop
+    end
 
     it "shuts down the background thread" do
       worker_thread = idle_sampling_helper.instance_variable_get(:@worker_thread)
+      expect(worker_thread).to be_a(Thread)
 
       stop
 
@@ -55,7 +67,7 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
   end
 
   describe "idle_sampling_helper_request_action" do
-    before { idle_sampling_helper.start }
+    before { idle_sampling_helper.start(cpu_and_wall_time_worker) }
     after { idle_sampling_helper.stop }
 
     # rubocop:disable Style/GlobalVars

@@ -1,0 +1,19 @@
+module Datadog
+  module DataStreams
+    module Configuration
+      module Settings
+        extend Datadog::Core::Configuration::Base::ClassMethods
+
+        include Datadog::Core::Configuration::Base::InstanceMethods
+
+        extend Datadog::Core::Configuration::Options::ClassMethods
+
+        include Datadog::Core::Configuration::Options::InstanceMethods
+
+        def self.extended: (untyped base) -> void
+
+        def self.add_settings!: (untyped base) -> void
+      end
+    end
+  end
+end

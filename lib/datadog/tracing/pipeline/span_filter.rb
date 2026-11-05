@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'set'
-require_relative 'span_processor'
+require "set"
+require_relative "span_processor"
 
 module Datadog
   module Tracing

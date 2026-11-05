@@ -3,11 +3,11 @@ module Datadog
     module Remote
       class Configuration
         class Content
-          def self.parse: (::Hash[Symbol, untyped] hash) -> Content
+          def self.parse: (Hash[Symbol, untyped] hash) -> Content
 
           attr_reader path: Configuration::Path
 
-          attr_reader data: StringIO
+          attr_reader data: String
 
           attr_reader hashes: Hash[Symbol, String]
 
@@ -19,7 +19,7 @@ module Datadog
 
           @length: Integer
 
-          def initialize: (path: Configuration::Path, data: StringIO) -> void
+          def initialize: (path: Configuration::Path, data: String) -> void
 
           def applied: -> void
 
@@ -41,7 +41,7 @@ module Datadog
         end
 
         class ContentList < Array[Content]
-          def self.parse: (::Array[::Hash[Symbol, untyped]] array) -> ContentList
+          def self.parse: (Array[Hash[Symbol, untyped]] array) -> ContentList
 
           def find_content: (Configuration::Path path, Configuration::Target target) -> Content?
 
@@ -51,7 +51,7 @@ module Datadog
 
           def delete: (Configuration::Path path) -> Content?
 
-          def paths: () -> ::Array[Path]
+          def paths: () -> Array[Path]
         end
       end
     end

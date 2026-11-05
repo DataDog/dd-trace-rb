@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'sucker_punch'
+require "sucker_punch"
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -12,11 +12,9 @@ module Datadog
       module SuckerPunch
         # Defines instrumentation patches for the `sucker_punch` gem
         module Instrumentation
-          module_function
-
           # rubocop:disable Metrics/MethodLength
           # rubocop:disable Metrics/AbcSize
-          def patch!
+          def self.patch!
             # rubocop:disable Metrics/BlockLength
             ::SuckerPunch::Job::ClassMethods.class_eval do
               alias_method :__run_perform_without_datadog, :__run_perform
@@ -32,7 +30,7 @@ module Datadog
                   if Datadog::Tracing::Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                     Datadog::Tracing::Contrib::Analytics.set_sample_rate(
                       span,
-                      datadog_configuration[:analytics_sample_rate]
+                      datadog_configuration[:analytics_sample_rate],
                     )
                   end
 
@@ -86,6 +84,7 @@ module Datadog
 
               def __with_instrumentation(name)
                 Datadog::Tracing.trace(name, service: datadog_configuration[:service_name]) do |span|
+                  span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                   span.type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
                   span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                   span.set_tag(Ext::TAG_QUEUE, to_s)

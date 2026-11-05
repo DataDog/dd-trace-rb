@@ -2,9 +2,14 @@ module Datadog
   module Core
     module Utils
       class Sequence
-        def initialize: (?::Integer seed) ?{ () -> untyped } -> untyped
+        @seed: Integer
+        @current: Integer
 
-        def next: () -> untyped
+        def initialize: (?Integer seed) -> void
+
+        def next: () -> Integer
+
+        def reset!: () -> void
       end
     end
   end

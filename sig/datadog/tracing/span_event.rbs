@@ -16,7 +16,7 @@ module Datadog
       attr_reader attributes: attributes
       attr_reader time_unix_nano: untyped # TODO: Typing this also makes to_hash internal typecheck fail
 
-      def initialize: (String name, ?attributes: attributes, ?time_unix_nano: Integer) -> void
+      def initialize: (String name, ?attributes: attributes?, ?time_unix_nano: Integer?) -> void
 
       def to_hash: -> Hash[String, untyped]
       # TODO: Steep does not track Hash keys when they are added with `hash[:key] = val`.

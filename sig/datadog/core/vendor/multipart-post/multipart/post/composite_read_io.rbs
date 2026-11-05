@@ -4,7 +4,9 @@ module Datadog
       module Multipart
         module Post
           class CompositeReadIO
-            def initialize: (*untyped ios) -> void
+            @ios: Array[::StringIO]
+            @index: Integer
+            def initialize: (*::StringIO ios) -> void
             def read: (?untyped? length, ?untyped? outbuf) -> untyped
 
             def rewind: () -> untyped
@@ -25,7 +27,7 @@ module Datadog
             attr_reader io: untyped
 
             attr_reader opts: untyped
-            def initialize: (untyped filename_or_io, untyped content_type, ?untyped? filename, ?::Hash[untyped, untyped] opts) -> void
+            def initialize: (untyped filename_or_io, untyped content_type, ?untyped? filename, ?Hash[untyped, untyped] opts) -> void
 
             def self.convert!: (untyped io, untyped content_type, untyped original_filename, untyped local_path) -> untyped
 

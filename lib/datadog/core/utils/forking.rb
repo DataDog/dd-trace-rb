@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../ruby_version"
+
 module Datadog
   module Core
     module Utils
@@ -45,8 +47,8 @@ module Datadog
           # object will cause forking to not be detected in the fork when it should have.
           #
           # This wrapper prevents this by initializing the fork PID when the object is created.
-          if RUBY_VERSION >= '3'
-            def initialize(*args, **kwargs, &block)
+          if RubyVersion.is?(">= 3")
+            def initialize(*args, **kwargs, &block) # steep:ignore DifferentMethodParameterKind
               super
               update_fork_pid!
             end

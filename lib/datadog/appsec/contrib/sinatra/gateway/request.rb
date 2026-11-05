@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../rack/gateway/request'
+require_relative "../../rack/gateway/request"
 
 module Datadog
   module AppSec

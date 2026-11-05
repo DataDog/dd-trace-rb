@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/configuration/ext'
-require_relative '../../core/environment/variable_helpers'
-require_relative 'http'
+require_relative "../../tracing/configuration/ext"
+require_relative "../../core/environment/variable_helpers"
+require_relative "../../ruby_version"
+require_relative "../contrib/status_range_matcher"
+require_relative "../contrib/status_range_env_parser"
+require_relative "http"
 
 module Datadog
   module Tracing
@@ -54,7 +57,7 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
-                  ]
+                  ],
                 )
                 o.after_set do |styles|
                   # Make values case-insensitive
@@ -93,9 +96,10 @@ module Datadog
               # @return [Array<String>]
               option :propagation_style do |o|
                 o.type :array
-                o.env [Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, Configuration::Ext::Distributed::ENV_OTEL_PROPAGATION_STYLE]
+                # Note: Alias (DD_TRACE_PROPAGATION_STYLE) defined in supported-configurations.json
+                o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
-                o.after_set do |styles|
+                o.after_set do |styles, _, precedence|
                   next if styles.empty?
 
                   # Make values case-insensitive
@@ -109,8 +113,25 @@ module Datadog
                       false
                     end
                   end
-                  set_option(:propagation_style_extract, styles)
-                  set_option(:propagation_style_inject, styles)
+                  set_option(:propagation_style_extract, styles, precedence: precedence)
+                  set_option(:propagation_style_inject, styles, precedence: precedence)
+                end
+              end
+
+              # Behavior applied to a distributed-trace context extracted from incoming requests.
+              option :propagation_behavior_extract do |o|
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_BEHAVIOR_EXTRACT
+                o.default Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE
+                o.type :string
+                o.env_parser do |value|
+                  value = value&.downcase
+                  if Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED.include?(value)
+                    value
+                  else
+                    Datadog.logger.warn("Unsupported propagation behavior extract: #{value.inspect}. " \
+                      "Set to default value (#{Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE}).")
+                    nil
+                  end
                 end
               end
 
@@ -133,17 +154,20 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env [Tracing::Configuration::Ext::ENV_ENABLED, Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER]
+                # Note: Alias (OTEL_TRACES_EXPORTER) defined in supported-configurations.json
+                o.env Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
                 o.type :bool
                 o.env_parser do |value|
                   value = value&.downcase
                   # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
                   # DD_TRACE_ENABLED is 0 or false.
-                  if ['none', 'false', '0'].include?(value)
+                  # DEV: The current implementation accepts all of the mentioned values
+                  # for both environment variables, which is incorrect.
+                  if ["none", "false", "0"].include?(value)
                     false
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
-                  elsif ['true', '1'].include?(value)
+                  elsif ["true", "1"].include?(value)
                     true
                   else
                     Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
@@ -184,7 +208,7 @@ module Datadog
               option :baggage_tag_keys do |o|
                 o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
                 o.type :array
-                o.default ['user.id', 'session.id', 'account.id']
+                o.default ["user.id", "session.id", "account.id"]
               end
 
               # Enable 128 bit trace id generation.
@@ -232,6 +256,14 @@ module Datadog
                 o.type :bool
               end
 
+              option :otel_thread_context_enabled do |o|
+                o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
+                o.default do
+                  RUBY_ENGINE == "ruby" && RUBY_PLATFORM.include?("linux")
+                end
+                o.type :bool
+              end
+
               # Configures an alternative trace transport behavior, where
               # traces can be sent to the agent and backend before all spans
               # have finished.
@@ -268,6 +300,38 @@ module Datadog
                 o.type :bool
               end
 
+              settings :resource_renaming do
+                # Whether resource renaming is enabled. When enabled, http.endpoint tag
+                # containing a route will be reported in traces. If AppSec is enabled,
+                # this feature will be enabled by default.
+                #
+                # For web applications built with instrumented frameworks, http.endpoint tag
+                # will contain the route as it is defined in the application.
+                # For basic Rack applications, or applications that are mounted and are not instrumented,
+                # the route will be inferred from the request path.
+                #
+                # @default `DD_TRACE_RESOURCE_RENAMING_ENABLED` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ENABLED
+                  o.default false
+                end
+
+                # When set to true, http.endoint is always inferred from path,
+                # instead of using http.route value when it is set.
+                #
+                # This is useful for testing purposes.
+                #
+                # @default false
+                # @return [Boolean]
+                option :always_simplified_endpoint do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT
+                  o.default false
+                end
+              end
+
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #
@@ -302,13 +366,14 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  o.env [Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER]
+                  # Note: Alias (OTEL_TRACES_SAMPLER) defined in supported-configurations.json
+                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                   o.env_parser do |value|
                     # Parse the value as a float
                     next if value.nil?
 
                     value = value&.downcase
-                    if ['always_on', 'always_off', 'traceidratio'].include?(value)
+                    if ["always_on", "always_off", "traceidratio"].include?(value)
                       Datadog.logger.warn("The value '#{value}' is not yet supported. 'parentbased_#{value}' will be used instead.")
                       value = "parentbased_#{value}"
                     end
@@ -316,12 +381,12 @@ module Datadog
                     # These values are mapped to a sample rate.
                     # DD_TRACE_SAMPLE_RATE sets the sample rate to float.
                     case value
-                    when 'parentbased_always_on'
+                    when "parentbased_always_on"
                       1.0
-                    when 'parentbased_always_off'
+                    when "parentbased_always_off"
                       0.0
-                    when 'parentbased_traceidratio'
-                      ENV.fetch(Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                    when "parentbased_traceidratio"
+                      DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
                     else
                       value.to_f
                     end
@@ -355,7 +420,7 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                 end
 
                 # Single span sampling rules.
@@ -372,16 +437,16 @@ module Datadog
                 option :span_rules do |o|
                   o.type :string, nilable: true
                   o.default do
-                    rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
-                    rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
+                    rules = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                    rules_file = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
 
                     if rules
                       if rules_file
                         Datadog.logger.warn(
-                          'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
-                            'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
-                            'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
-                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
+                          "Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only " \
+                            "DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when " \
+                            "also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. " \
+                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}",
                         )
                       end
                       rules
@@ -391,8 +456,8 @@ module Datadog
                       rescue => e
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
-                          "Cannot read span sampling rules file `#{rules_file}`: #{e.message}." \
-                          'No span sampling rules will be applied.'
+                          "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
+                          "No span sampling rules will be applied.",
                         )
                         nil
                       end
@@ -426,6 +491,22 @@ module Datadog
                 end
               end
 
+              # Use the native trace transport (Rust via C FFI) instead of
+              # the default pure-Ruby HTTP transport.
+              #
+              # The native transport delegates serialization, stats
+              # computation, and HTTP sending to the Rust data pipeline.
+              #
+              # This option is recommended for internal use only.
+              #
+              # @default `true` on CRuby 4.0.0 and later, otherwise `false`
+              # @return [Boolean]
+              option :native_transport do |o|
+                o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
+                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.0") }
+                o.type :bool
+              end
+
               # A custom writer instance.
               # The object must respect the {Datadog::Tracing::Writer} interface.
               #
@@ -442,6 +523,7 @@ module Datadog
               # @default `{}`
               # @return [Hash]
               option :writer_options do |o|
+                o.skip_telemetry true
                 o.type :hash
                 o.default({})
               end
@@ -484,6 +566,57 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
+              end
+
+              # Whether outbound HTTP client resource names include a quantized request path.
+              # URL tags and outgoing requests are unchanged.
+              #
+              # @default `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :http_client_resource_name_quantize do |o|
+                o.env Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE
+                o.default false
+                o.type :bool
+              end
+
+              # HTTP error statuses configuration
+              # @public_api
+              settings :http_error_statuses do
+                # Defines the range of status codes to be considered errors on http.server span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 500,501,502 or ranges like 500-599 (e.g. `500,502,504-510`)
+                #
+                # @default `DD_TRACE_HTTP_SERVER_ERROR_STATUSES` environment variable, otherwise `500..599`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :server do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
+                  o.default 500..599
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
+
+                # Defines the range of status codes to be considered errors on http.client span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 400,401,402 or ranges like 400-499 (e.g. `400,402,404-410`)
+                #
+                # @default `DD_TRACE_HTTP_CLIENT_ERROR_STATUSES` environment variable, otherwise `400..499`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :client do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
+                  o.default 400..499
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
               end
             end
           end

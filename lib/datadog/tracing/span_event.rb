@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'time'
+require "time"
 
 module Datadog
   module Tracing
@@ -41,8 +41,8 @@ module Datadog
       # of being limiting span events to the size limit of a span tag.
       # All Datadog agents support this format.
       def to_hash
-        h = {'name' => @name, 'time_unix_nano' => @time_unix_nano}
-        h['attributes'] = @attributes unless @attributes.empty?
+        h = {"name" => @name, "time_unix_nano" => @time_unix_nano}
+        h["attributes"] = @attributes unless @attributes.empty?
         h
       end
 
@@ -51,7 +51,7 @@ module Datadog
       # This serialization format removes the serialization limitations of the `span.set_tag('events)` approach,
       # but is only supported by newer version of the Datadog agent.
       def to_native_format
-        h = {'name' => @name, 'time_unix_nano' => @time_unix_nano}
+        h = {"name" => @name, "time_unix_nano" => @time_unix_nano}
 
         attr = {}
         @attributes.each do |key, value|
@@ -62,15 +62,15 @@ module Datadog
           end
         end
 
-        h['attributes'] = attr unless @attributes.empty?
+        h["attributes"] = attr unless @attributes.empty?
 
         h
       end
 
       private
 
-      MIN_INT64_SIGNED = -2**63
-      MAX_INT64_SIGNED = 2 << 63 - 1
+      MIN_INT64_SIGNED = -2 << 62
+      MAX_INT64_SIGNED = (2 << 62) - 1
 
       # Checks the attributes hash to ensure it only contains serializable values.
       # Invalid values are removed from the hash.

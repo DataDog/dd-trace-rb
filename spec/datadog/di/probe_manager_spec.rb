@@ -1,16 +1,19 @@
 require "datadog/di/spec_helper"
-require 'datadog/di/probe_manager'
-require 'datadog/di/instrumenter'
-require 'logger'
+require "datadog/di/probe_manager"
+require "datadog/di/instrumenter"
+require "logger"
 
 class ProbeManagerSpecTestClass; end
 
 RSpec.describe Datadog::DI::ProbeManager do
   di_test
 
+  let(:propagate_all_exceptions) { false }
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions)
+      .and_return(propagate_all_exceptions)
   end
 
   let(:instrumenter) do
@@ -27,35 +30,44 @@ RSpec.describe Datadog::DI::ProbeManager do
 
   di_logger_double
 
-  let(:manager) do
-    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger)
+  let(:probe_repository) do
+    Datadog::DI::ProbeRepository.new
   end
 
-  describe '.new' do
+  let(:guardrails_telemetry) do
+    Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: nil)
+  end
+
+  let(:manager) do
+    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+      probe_repository, guardrails_telemetry: guardrails_telemetry)
+  end
+
+  describe ".new" do
     after do
       manager.close
     end
 
-    it 'creates an instance' do
+    it "creates an instance" do
       expect(manager).to be_a(described_class)
     end
   end
 
-  describe '#add_probe' do
+  describe "#add_probe" do
     after do
       allow(instrumenter).to receive(:unhook)
       manager.close
     end
 
-    context 'log probe' do
+    context "log probe" do
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: '3ecfd456-2d7c-4359-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
+          id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
         )
       end
 
-      context 'when probe is installed successfully' do
-        it 'returns true and adds probe to the installed probe list' do
+      context "when probe is installed successfully" do
+        it "returns true and adds probe to the installed probe list" do
           expect(instrumenter).to receive(:hook) do |probe_|
             expect(probe_).to be(probe)
           end
@@ -65,16 +77,16 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be true
 
-          expect(manager.pending_probes.length).to eq 0
-          expect(manager.failed_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 1
-          expect(manager.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
         end
       end
 
-      context 'when instrumentation target is missing' do
-        it 'returns false and adds probe to the pending probe list' do
+      context "when instrumentation target is missing" do
+        it "returns false and adds probe to the pending probe list" do
           expect(instrumenter).to receive(:hook) do |probe_|
             expect(probe_).to be(probe)
             raise Datadog::DI::Error::DITargetNotDefined
@@ -85,16 +97,16 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be false
 
-          expect(manager.pending_probes.length).to eq 1
-          expect(manager.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.pending_probes.length).to eq 1
+          expect(probe_repository.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
 
-          expect(manager.installed_probes.length).to eq 0
-          expect(manager.failed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
         end
       end
 
-      context 'when there is an exception during instrumentation' do
-        it 'logs warning, drops probe and reraises the exception' do
+      context "when there is an exception during instrumentation" do
+        it "logs warning, reports ERROR status, drops probe and reraises the exception" do
           expect_lazy_log(logger, :debug, /error processing probe configuration.*Instrumentation error/)
 
           expect(instrumenter).to receive(:hook) do |probe_|
@@ -103,124 +115,171 @@ RSpec.describe Datadog::DI::ProbeManager do
           end
 
           expect(probe_notification_builder).not_to receive(:build_installed)
-          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(RuntimeError)).and_return({status: "ERROR"})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: "ERROR"}, probe: probe)
 
           expect do
             manager.add_probe(probe)
-          end.to raise_error(RuntimeError, 'Instrumentation error')
+          end.to raise_error(RuntimeError, "Instrumentation error")
 
-          expect(manager.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
 
-          expect(manager.failed_probes.length).to eq 1
-          expect(manager.failed_probes[probe.id]).to match(/Instrumentation error/)
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.failed_probes[probe.id]).to match(/Instrumentation error/)
+        end
+      end
+
+      context "when the probe is requested to be added the second time" do
+        it "does not instrument the second time and reports ERROR status" do
+          expect(probe_repository.installed_probes).to be_empty
+
+          # First call
+          expect(instrumenter).to receive(:hook)
+          expect(probe_notification_builder).to receive(:build_installed)
+          expect(probe_notifier_worker).to receive(:add_status)
+          manager.add_probe(probe)
+
+          # Second call - reports ERROR status
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(Datadog::DI::Error::AlreadyInstrumented)).and_return({status: "ERROR"})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: "ERROR"}, probe: probe)
+          expect_lazy_log(logger, :debug, /AlreadyInstrumented: Probe with id .* is already in installed probes/)
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::AlreadyInstrumented, /Probe with id .* is already in installed probes/)
+        end
+      end
+
+      context "when probe previously failed to install" do
+        before do
+          probe_repository.add_failed(probe.id, "RuntimeError: original installation error")
+        end
+
+        it "does not attempt instrumentation again and reports ERROR status" do
+          expect_lazy_log(logger, :debug, /error processing probe configuration.*ProbePreviouslyFailed.*original installation error/)
+
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notification_builder).to receive(:build_errored)
+            .with(probe, instance_of(Datadog::DI::Error::ProbePreviouslyFailed))
+            .and_return({status: "ERROR"})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: "ERROR"}, probe: probe)
+
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::ProbePreviouslyFailed, /original installation error/)
+
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.installed_probes).to be_empty
+          expect(probe_repository.pending_probes).to be_empty
         end
       end
     end
   end
 
-  describe '#remove_other_probes' do
+  describe "#remove_probe" do
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: '3ecfd456-2d7c-4359-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
+        id: "123", type: :log, file: "xx", line_no: 123,
       )
     end
 
-    context 'when there are pending probes' do
+    context "when there are pending probes" do
       before do
-        manager.pending_probes[probe.id] = probe
+        probe_repository.pending_probes[probe.id] = probe
       end
 
-      context 'when pending probe id is in probe ids' do
-        it 'does not remove pending probe' do
-          manager.remove_other_probes([probe.id])
+      context "when id matches a pending probe" do
+        it "removes pending probe" do
+          manager.remove_probe("123")
 
-          expect(manager.pending_probes).to eq(probe.id => probe)
+          expect(probe_repository.pending_probes).to eq({})
         end
       end
 
-      context 'when pending probe id is not in probe ids' do
-        it 'removes pending probe' do
-          manager.remove_other_probes(['123'])
+      context "when id does not match a pending probe" do
+        it "does not remove the pending probe" do
+          manager.remove_probe("555")
 
-          expect(manager.pending_probes).to eq({})
+          expect(probe_repository.pending_probes).to eq(probe.id => probe)
         end
       end
     end
 
-    context 'when there are installed probes' do
+    context "when there are installed probes" do
       before do
-        manager.installed_probes[probe.id] = probe
+        probe_repository.installed_probes[probe.id] = probe
       end
 
-      context 'when installed probe id is in probe ids' do
-        it 'does not remove installed probe' do
-          manager.remove_other_probes([probe.id])
-
-          expect(manager.installed_probes).to eq(probe.id => probe)
-        end
-      end
-
-      context 'when installed probe id is not in probe ids' do
-        it 'removes installed probe' do
+      context "when id matches an installed probe" do
+        it "removes pending probe" do
           expect(instrumenter).to receive(:unhook).with(probe)
 
-          manager.remove_other_probes(['123'])
+          manager.remove_probe("123")
 
-          expect(manager.installed_probes).to eq({})
+          expect(probe_repository.installed_probes).to eq({})
         end
       end
 
-      context 'when there is an exception during de-instrumentation' do
-        it 'logs warning and keeps probe in installed list' do
+      context "when id does not match an installed probe" do
+        it "does not remove the pending probe" do
+          expect(instrumenter).not_to receive(:unhook)
+
+          manager.remove_probe("555")
+
+          expect(probe_repository.installed_probes).to eq(probe.id => probe)
+        end
+      end
+
+      context "when there is an exception during de-instrumentation" do
+        it "logs warning and keeps probe in installed list" do
           expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
 
           expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
 
-          manager.remove_other_probes(['123'])
+          manager.remove_probe("123")
 
-          expect(manager.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes.length).to eq 1
+        end
+      end
+
+      context "when there are two probes to be unhooked" do
+        let(:probe2) do
+          Datadog::DI::Probe.new(
+            id: "456", type: :log, file: "xx", line_no: 123,
+          )
         end
 
-        context 'when there are two probes to be unhooked' do
-          let(:probe2) do
-            Datadog::DI::Probe.new(
-              id: '3ecfd456-2d7c-ffff-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
-            )
-          end
+        before do
+          probe_repository.installed_probes[probe2.id] = probe2
+          expect(probe_repository.installed_probes.length).to eq 2
+        end
 
-          before do
-            manager.installed_probes[probe2.id] = probe2
-            expect(manager.installed_probes.length).to eq 2
-          end
+        it "leaves the second probe installed" do
+          expect(instrumenter).to receive(:unhook).with(probe)
 
-          it 'logs warning and unhooks the second probe' do
-            expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
-            expect(instrumenter).to receive(:unhook).with(probe2)
+          manager.remove_probe("123")
 
-            expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
+          expect(probe_repository.pending_probes.length).to eq 0
 
-            manager.remove_other_probes(['123'])
-
-            expect(manager.pending_probes.length).to eq 0
-
-            expect(manager.installed_probes.length).to eq 1
-          end
+          expect(probe_repository.installed_probes).to eq("456" => probe2)
         end
       end
     end
   end
 
-  describe '#close' do
+  describe "#close" do
     let(:trace_point) do
       instance_double(TracePoint)
     end
 
-    it 'disables the trace point' do
-      expect(TracePoint).to receive(:trace).with(:end).and_return(trace_point)
+    it "disables the trace point" do
+      expect(TracePoint).to receive(:new).with(:end).and_return(trace_point)
 
       manager
 
@@ -228,77 +287,331 @@ RSpec.describe Datadog::DI::ProbeManager do
       manager.close
     end
 
-    it 'clears hooks' do
+    it "clears hooks" do
       expect(manager).to receive(:clear_hooks)
       manager.close
     end
   end
 
-  describe '#clear_hooks' do
-    context 'pending probes' do
-      let(:probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log,
-          type_name: 'foo', method_name: 'bar')
-      end
+  describe "#stop then #reopen" do
+    # Round-trip the RC toggle scenario: RC toggles
+    # dynamic_instrumentation_enabled from true to false, then back to true
+    # with the same LIVE_DEBUGGING content. The remote client only
+    # redispatches receivers on a content hash change, so the LIVE_DEBUGGING
+    # receiver does not re-fire on the second enable. The probe repository
+    # must preserve the installed probes across the stop/reopen cycle so
+    # the customer's probe still fires after re-enable without needing to
+    # delete and recreate it.
 
-      before do
-        manager.pending_probes[probe.id] = probe
-      end
-
-      it 'does not unhook' do
-        expect(instrumenter).not_to receive(:unhook)
-
-        manager.clear_hooks
-      end
-
-      it 'clears pending probes list' do
-        expect(instrumenter).not_to receive(:unhook)
-
-        manager.clear_hooks
-
-        expect(manager.pending_probes).to be_empty
-      end
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
+      )
     end
 
-    context 'installed probes' do
-      let(:probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log,
-          type_name: 'ProbeManagerSpecTestClass', method_name: 'bar')
-      end
+    let(:trace_point) do
+      instance_double(TracePoint)
+    end
 
-      before do
-        manager.installed_probes[probe.id] = probe
-      end
+    before do
+      expect(TracePoint).to receive(:new).with(:end).and_return(trace_point)
+      allow(trace_point).to receive(:disable)
+      allow(trace_point).to receive(:enable)
+      manager
+      probe_repository.add_installed(probe)
+    end
 
-      it 'unhooks' do
-        expect(instrumenter).to receive(:unhook).with(probe)
+    after do
+      manager.close
+    end
 
-        manager.clear_hooks
-      end
+    it "preserves installed probes across the cycle" do
+      allow(instrumenter).to receive(:unhook)
+      allow(instrumenter).to receive(:hook)
 
-      it 'clears installed probes list' do
-        expect(instrumenter).to receive(:unhook).with(probe)
+      manager.stop
 
-        manager.clear_hooks
+      expect(probe_repository.installed_probes.length).to eq 1
+      expect(probe_repository.installed_probes[probe.id]).to be(probe)
 
-        expect(manager.installed_probes).to be_empty
+      manager.reopen
+
+      expect(probe_repository.installed_probes.length).to eq 1
+      expect(probe_repository.installed_probes[probe.id]).to be(probe)
+    end
+
+    it "unhooks on stop and re-hooks on reopen" do
+      call_order = []
+      allow(instrumenter).to receive(:unhook).with(probe) { call_order << :unhook }
+      allow(instrumenter).to receive(:hook).with(probe, manager) { call_order << :hook }
+
+      manager.stop
+      manager.reopen
+
+      # Cycle calls unhook then hook. The after-block close adds a trailing
+      # unhook via clear_hooks, which we tolerate by asserting on the first
+      # two elements rather than equality.
+      expect(call_order.first(2)).to eq([:unhook, :hook])
+    end
+
+    context "when a probe target is no longer defined on reopen" do
+      it "demotes the probe to pending" do
+        allow(instrumenter).to receive(:unhook)
+        expect(instrumenter).to receive(:hook).with(probe, manager)
+          .and_raise(Datadog::DI::Error::DITargetNotDefined)
+
+        manager.stop
+        manager.reopen
+
+        expect(probe_repository.installed_probes).to be_empty
+        expect(probe_repository.pending_probes[probe.id]).to be(probe)
       end
     end
   end
 
-  describe '#install_pending_method_probes' do
-    context 'when a class with the same name as target type is defined' do
+  describe "#clear_hooks" do
+    context "pending probes" do
       let(:probe) do
-        Datadog::DI::Probe.new(id: 1, type: :log, type_name: 'ProbeManagerSpecTestClass', method_name: 'bar')
+        Datadog::DI::Probe.new(id: 1, type: :log,
+          type_name: "foo", method_name: "bar")
       end
 
-      it 'is invoked' do
+      before do
+        probe_repository.pending_probes[probe.id] = probe
+      end
+
+      it "does not unhook" do
+        expect(instrumenter).not_to receive(:unhook)
+
+        manager.clear_hooks
+      end
+
+      it "clears pending probes list" do
+        expect(instrumenter).not_to receive(:unhook)
+
+        manager.clear_hooks
+
+        expect(probe_repository.pending_probes).to be_empty
+      end
+    end
+
+    context "installed probes" do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log,
+          type_name: "ProbeManagerSpecTestClass", method_name: "bar")
+      end
+
+      before do
+        probe_repository.installed_probes[probe.id] = probe
+      end
+
+      it "unhooks" do
+        expect(instrumenter).to receive(:unhook).with(probe)
+
+        manager.clear_hooks
+      end
+
+      it "clears installed probes list" do
+        expect(instrumenter).to receive(:unhook).with(probe)
+
+        manager.clear_hooks
+
+        expect(probe_repository.installed_probes).to be_empty
+      end
+    end
+  end
+
+  describe "#install_pending_method_probes" do
+    context "when a class with the same name as target type is defined" do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: 1, type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")
+      end
+
+      it "is invoked" do
         expect(manager).to receive(:install_pending_method_probes) do |cls|
           expect(cls).to be_a(Class)
-          expect(cls.name).to eq 'ProbeManagerSpecTestClass'
+          expect(cls.name).to eq "ProbeManagerSpecTestClass"
         end
 
+        manager.reopen
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+      end
+    end
+  end
+
+  describe "#probe_executed_callback" do
+    let(:probe) do
+      instance_double(
+        Datadog::DI::Probe,
+        :id => "test-probe",
+        :type => "log",
+        :location => "test.rb:42",
+        :emitting_notified? => false,
+        :emitting_notified= => nil,
+      )
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    it "queues the snapshot as a Hash" do
+      allow(probe_notification_builder).to receive(:build_emitting).and_return({status: "EMITTING"})
+      allow(probe_notification_builder).to receive(:build_executed).and_return({snapshot: "data"})
+      allow(probe_notifier_worker).to receive(:add_status)
+
+      expect(probe_notifier_worker).to receive(:add_snapshot) do |payload|
+        expect(payload).to be_a(Hash)
+        expect(payload).to eq({snapshot: "data"})
+      end
+
+      manager.probe_executed_callback(context)
+    end
+  end
+
+  describe "#probe_condition_evaluation_failed_callback" do
+    let(:rate_limiter) do
+      instance_double(Datadog::Core::TokenBucket, allow?: true)
+    end
+
+    let(:probe) do
+      instance_double(
+        Datadog::DI::Probe,
+        id: "test-probe",
+        type: "log",
+        capture_snapshot?: false,
+        condition_evaluation_failed_rate_limiter: rate_limiter,
+      )
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    let(:telemetry) do
+      instance_double(Datadog::Core::Telemetry::Component)
+    end
+
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    end
+
+    let(:manager) do
+      described_class.new(settings, instrumenter, probe_notification_builder,
+        probe_notifier_worker, logger, probe_repository, telemetry: telemetry,
+        guardrails_telemetry: guardrails_telemetry)
+    end
+
+    let(:exc) { StandardError.new("boom") }
+    let(:expr) { "undefined_function()" }
+
+    shared_examples "contained skip emission failure" do
+      it "keeps the callback contained and logs the telemetry failure" do
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(telemetry).to receive(:report).with(instance_of(StandardError),
+          description: "Error emitting debugger.events.skipped metric")
+        expect_lazy_log(logger, :debug,
+          /error emitting debugger.events.skipped metric.*StandardError.*telemetry down/)
+
+        expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+      end
+    end
+
+    context "when both the per-probe and global limiters admit" do
+      let(:global_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: true)
+      end
+
+      before do
+        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+      end
+
+      it "builds and enqueues the condition error snapshot" do
+        snapshot = double("snapshot")
+        expect(probe_notification_builder).to receive(:build_condition_evaluation_failed)
+          .with(context, expr, exc).and_return(snapshot)
+        expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+      end
+    end
+
+    context "when the per-probe limiter rejects" do
+      let(:rate_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: false)
+      end
+
+      it "does not consult the global limiter and enqueues nothing" do
+        expect(instrumenter).not_to receive(:global_snapshot_rate_limiter)
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+
+        expect(rate_limiter).to have_received(:allow?)
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/per-probe rate limit \(evaluationErrorThrottled\)/)
+        end
+      end
+
+      context "when telemetry is nil" do
+        let(:telemetry) { nil }
+
+        it "keeps the callback contained with no metric emitted" do
+          expect(probe_notifier_worker).not_to receive(:add_snapshot)
+          expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }.not_to raise_error
+        end
+      end
+    end
+
+    context "when the global limiter rejects" do
+      let(:global_limiter) do
+        instance_double(Datadog::Core::TokenBucket, allow?: false)
+      end
+
+      before do
+        expect(instrumenter).to receive(:global_snapshot_rate_limiter).and_return(global_limiter)
+      end
+
+      it "does not build or enqueue a snapshot and emits the rateLimitGlobal skip metric" do
+        expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+        expect(telemetry).to receive(:inc).with("debugger", "events.skipped", 1,
+          tags: {reason: "rateLimitGlobal", event_type: "log"})
+
+        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+
+        expect(logger).to have_received(:trace) do |&block|
+          expect(block.call).to match(/global rate limit \(rateLimitGlobal\)/)
+        end
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises" do
+        let(:telemetry) { telemetry_double_raising_on_inc }
+
+        include_examples "contained skip emission failure"
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises and all exceptions propagate" do
+        let(:propagate_all_exceptions) { true }
+        let(:telemetry) { telemetry_double_raising_on_inc }
+
+        it "raises the telemetry failure out of the callback" do
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+            .to raise_error(StandardError, "telemetry down")
+        end
+      end
+
+      context "when emitting the rateLimitGlobal skip metric raises a fatal exception" do
+        let(:telemetry) { telemetry_double_raising_on_inc(exception: SystemExit) }
+
+        it "re-raises the fatal exception out of the callback" do
+          expect { manager.probe_condition_evaluation_failed_callback(context, expr, exc) }
+            .to raise_error(SystemExit)
+        end
       end
     end
   end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'all_sampler'
-require_relative 'rate_sampler'
-require_relative 'rate_by_service_sampler'
+require_relative "ext"
+require_relative "all_sampler"
+require_relative "rate_sampler"
+require_relative "rate_by_service_sampler"
 
 module Datadog
   module Tracing
@@ -60,19 +60,34 @@ module Datadog
         ensure
           if trace.sampling_priority && trace.sampling_priority > 0
             # Don't modify decision if priority was set upstream.
-            if !distributed_sampling_priority && !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+            # Steep: https://github.com/soutaro/steep/issues/1971
+            if !distributed_sampling_priority && # steep:ignore FallbackAny
+                !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
               # If no sampling priority being assigned at this point, a custom
               # sampler implementation is configured: this means the user has
               # full control over the sampling decision.
               trace.set_tag(
                 Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                Sampling::Ext::Decision::MANUAL
+                Sampling::Ext::Decision::MANUAL,
               )
             end
           else
             # The sampler decided to not keep this span, removing sampling decision.
             trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
           end
+        end
+
+        def reconsider_sample_resource!(trace)
+          return unless @priority_sampler.respond_to?(:reconsider_sample_resource!)
+
+          preserving_sampling(trace) do
+            @priority_sampler.reconsider_sample_resource!(trace)
+          end
+        end
+
+        def resource_sampling?
+          @priority_sampler.respond_to?(:resource_sampling?) &&
+            @priority_sampler.resource_sampling?
         end
 
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)

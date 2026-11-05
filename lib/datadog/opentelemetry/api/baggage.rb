@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'trace/span'
-require_relative '../../tracing/trace_operation'
-require_relative '../trace'
+require_relative "trace/span"
+require_relative "../../tracing/trace_operation"
+require_relative "../trace"
 
 module Datadog
   module OpenTelemetry
@@ -26,7 +26,7 @@ module Datadog
         # to ::OpenTelemetry::Context.current
         # @return [Context]
         def clear(context: ::OpenTelemetry::Context.current)
-          context.ensure_trace.baggage.clear
+          context.ensure_trace&.baggage&.clear
           context
         end
 

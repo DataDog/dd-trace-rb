@@ -1,0 +1,71 @@
+# frozen_string_literal: true
+
+require_relative "ruby_version"
+
+module Datadog
+  # Namespace for Datadog symbol database upload.
+  #
+  # @api private
+  module SymbolDatabase
+    # Sentinel value for unknown or unavailable minimum line number.
+    #
+    # Used for:
+    # 1. start_line when exact line cannot be determined (e.g., modules without methods)
+    # 2. Symbol line numbers for FIELD, STATIC_FIELD, ARG symbols to indicate
+    #    the symbol is available throughout the entire enclosing scope
+    #
+    # Backend behavior: line=0 means symbol completes in every line of the scope
+    #
+    # Reference: Symbol Database Backend RFC, section "Edge Cases"
+    # - "We use 0 for FIELD, STATIC_FIELD and ARG. It means that the symbol
+    #   will be completed in every line of the enclosing scope (CLASS or METHOD)."
+    #
+    # @see https://www.postgresql.org/docs/current/datatype-numeric.html
+    UNKNOWN_MIN_LINE = 0
+
+    # Sentinel value for unknown or unavailable maximum line number.
+    #
+    # Used for:
+    # 1. end_line when exact boundaries cannot be determined (e.g., modules, classes
+    #    without methods, fallback when introspection fails)
+    # 2. LOCAL symbol line numbers when exact line is unknown (future feature)
+    #
+    # Value: 2147483647 (PostgreSQL signed INT_MAX, 2^31 - 1)
+    #
+    # Backend behavior:
+    # - For scopes: indicates "entire file" or "unknown end"
+    # - For LOCAL symbols (future): included in method probe completions but excluded
+    #   from line probe completions
+    #
+    # Protocol specification:
+    # - "If the symbols of the scope should be available to all lines in the
+    #   source_file of the scope, use start_line = 0 and end_line = 2147483647
+    #   (maximum signed integer, postgres int max)."
+    # - "For LOCAL symbols, we use 2147483647 (signed int max) to avoid completing
+    #   the symbol for line probes, but keep it in the method for method probe completions."
+    #
+    # Reference: Symbol Database Backend RFC, section "Scope" and "Edge Cases"
+    # @see https://www.postgresql.org/docs/current/datatype-numeric.html
+    UNKNOWN_MAX_LINE = 2147483647
+
+    # Collapses the symbol_database.enabled tri-state setting to a boolean.
+    # An explicit true/false wins; nil (unconfigured) yields the caller-supplied
+    # fallback.
+    # @param setting_value [Boolean, nil] the symbol_database.enabled setting
+    # @param di_fallback [Boolean] value used when the setting is unconfigured
+    # @return [Boolean]
+    def self.resolve_enabled(setting_value, di_fallback)
+      setting_value.nil? ? di_fallback : setting_value
+    end
+
+    # Whether the current Ruby runtime can run symbol database extraction:
+    # MRI (CRuby) on Ruby 2.7 or later. Used by the remote-config layer to avoid
+    # advertising the product on runtimes where Component.build would return nil
+    # (e.g. Ruby 2.6, which Dynamic Instrumentation supports but Symbol Database
+    # does not).
+    # @return [Boolean]
+    def self.supported_runtime?
+      RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 2.7")
+    end
+  end
+end

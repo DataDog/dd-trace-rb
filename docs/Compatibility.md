@@ -9,7 +9,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 | Type  | Documentation              | Version   | Support type              | Gem version support |
 |-------|----------------------------|-----------|---------------------------|---------------------|
-| MRI   | https://www.ruby-lang.org/ | 3.4       | [latest](#support-latest) | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 4.0       | [latest](#support-latest) | Latest              |
+|       |                            | 3.4       | [latest](#support-latest) | Latest              |
 |       |                            | 3.3       | [latest](#support-latest) | Latest              |
 |       |                            | 3.2       | [latest](#support-latest) | Latest              |
 |       |                            | 3.1       | [latest](#support-latest) | Latest              |
@@ -23,9 +24,9 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.1       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.0       | [EOL](#support-eol)       | < 0.50.0            |
 |       |                            | 1.9       | [EOL](#support-eol)       | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.4       | [latest](#support-latest) | Latest              |
-|       |                            | 9.3       | [latest](#support-latest) | Latest              |
-|       |                            | 9.2.21.0+ | [latest](#support-latest) | Latest              |
+| JRuby | https://www.jruby.org      | 9.4       | [EOL](#support-eol)       | < 2.31.0            |
+|       |                            | 9.3       | [EOL](#support-eol)       | < 2.31.0            |
+|       |                            | 9.2.21.0+ | [EOL](#support-eol)       | < 2.31.0            |
 
 ### Supported web servers
 
@@ -92,6 +93,7 @@ For a list of available integrations, and their configuration options, refer to 
 | httpx                      | `httpx`                    | `>= 0.11`                                   | `>= 0.11`                                   | [Link][24]       | [Link](https://gitlab.com/honeyryderchuck/httpx)                             |
 | Kafka                      | `ruby-kafka`               | `>= 0.7.10`                                 | `>= 0.7.10`                                 | [Link][25]       | [Link](https://github.com/zendesk/ruby-kafka)                                |
 | Karafka                    | `karafka`                  | `>= 2.3.0`                                  | `>= 2.3.0`                                  | [Link][55]       | [Link](https://karafka.io/) |
+| Kicks                      | `kicks`                    | `>= 3.0.0`                                  | `>= 3.0.0`                                  | [Link][56]       | [Link](https://github.com/ruby-amqp/kicks) |
 | Makara (via Active Record) | `makara`                   | `>= 0.3.5`                                  | `>= 0.3.5`                                  | [Link][8]        | [Link](https://github.com/instacart/makara)                                  |
 | MongoDB                    | `mongo`                    | `>= 2.1`                                    | `>= 2.1`                                    | [Link][26]       | [Link](https://github.com/mongodb/mongo-ruby-driver)                         |
 | MySQL2                     | `mysql2`                   | `>= 0.3.21`                                 | *gem not available*                         | [Link][27]       | [Link](https://github.com/brianmario/mysql2)                                 |
@@ -115,6 +117,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Sneakers                   | `sneakers`                 | `>= 2.12.0`                                 | `>= 2.12.0`                                 | [Link][46]       | [Link](https://github.com/jondot/sneakers)                                   |
 | Stripe                     | `stripe`                   | `>= 5.15.0`                                 | `>= 5.15.0`                                 | [Link][47]       | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                                    | `>= 2.0`                                    | [Link][48]       | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
+| WaterDrop                  | `waterdrop`                | `>= 2.8.8.rc1`                              | `>= 2.8.8.rc1`                              | [Link][55]       | [Link](https://github.com/karafka/waterdrop) |
 
 ### Support Policy
 
@@ -272,3 +275,5 @@ new release of 1.21.0 (or 1.20.1). Those bugfixes will not be backported as patc
 [54]: https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv5
 
 [55]: https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/ruby/#karafka
+
+[56]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#kicks

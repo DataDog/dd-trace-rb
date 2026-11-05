@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
-require 'json'
-require_relative 'rate_limiter'
-require_relative 'compressed_json'
+require "json"
+require_relative "rate_limiter"
+require_relative "trace_keeper"
+require_relative "compressed_json"
 
 module Datadog
   module AppSec
     # AppSec event
     module Event
-      DERIVATIVE_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
-      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE = 25000
+      ATTRIBUTES_SCHEMA_KEY_PREFIX = "_dd.appsec.s."
+      ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
         x-forwarded-for
         x-client-ip
@@ -31,30 +32,18 @@ module Datadog
         accept-language
       ].freeze
 
-      ALLOWED_RESPONSE_HEADERS = %w[
-        content-length
-        content-type
-        content-encoding
-        content-language
-      ].freeze
-
       class << self
-        def tag_and_keep!(context, waf_result)
-          # We want to keep the trace in case of security event
-          context.trace&.keep!
+        def tag(context, waf_result)
+          return if context.span.nil?
 
-          if context.span
-            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
-              context.span.set_tag('appsec.blocked', 'true')
-            end
-
-            context.span.set_tag('appsec.event', 'true')
+          if waf_result.actions.key?("block_request") || waf_result.actions.key?("redirect_request")
+            context.span.set_tag("appsec.blocked", "true")
           end
 
-          add_distributed_tags(context.trace)
+          context.span.set_tag("appsec.event", "true")
         end
 
-        def record(context, request: nil, response: nil)
+        def record(context, request: nil)
           return if context.events.empty? || context.span.nil?
 
           Datadog::AppSec::RateLimiter.thread_local.limit do
@@ -65,13 +54,11 @@ module Datadog
                 end
               end
 
-              if event_group.any? { |event| event.attack? || event.schema? }
-                trace.keep!
-                trace[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = Tracing::Sampling::Ext::Decision::ASM
+              if event_group.any? { |event| event.keep? || event.schema? }
+                TraceKeeper.keep!(trace)
 
-                context.span['_dd.origin'] = 'appsec'
+                context.span["_dd.origin"] = "appsec"
                 context.span.set_tags(request_tags(request)) if request
-                context.span.set_tags(response_tags(response)) if response
               end
 
               context.span.set_tags(waf_tags(event_group))
@@ -84,22 +71,14 @@ module Datadog
         def request_tags(request)
           tags = {}
 
-          tags['http.host'] = request.host if request.host
-          tags['http.useragent'] = request.user_agent if request.user_agent
-          tags['network.client.ip'] = request.remote_addr if request.remote_addr
+          tags["http.host"] = request.host if request.host
+          tags["http.useragent"] = request.user_agent if request.user_agent
+          tags["network.client.ip"] = request.remote_addr if request.remote_addr
 
           request.headers.each_with_object(tags) do |(name, value), memo|
             next unless ALLOWED_REQUEST_HEADERS.include?(name)
 
             memo["http.request.headers.#{name}"] = value
-          end
-        end
-
-        def response_tags(response)
-          response.headers.each_with_object({}) do |(name, value), memo|
-            next unless ALLOWED_RESPONSE_HEADERS.include?(name)
-
-            memo["http.response.headers.#{name}"] = value
           end
         end
 
@@ -109,13 +88,13 @@ module Datadog
           tags = security_events.each_with_object({}) do |security_event, memo|
             triggers.concat(security_event.waf_result.events)
 
-            security_event.waf_result.derivatives.each do |key, value|
-              next memo[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
+            security_event.waf_result.attributes.each do |key, value|
+              next memo[key] = value unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
 
               value = CompressedJson.dump(value)
               next if value.nil?
 
-              if value.size >= DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE
+              if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
                 Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
                 next
               end
@@ -124,7 +103,7 @@ module Datadog
             end
           end
 
-          tags['_dd.appsec.json'] = json_parse({triggers: triggers}) unless triggers.empty?
+          tags["_dd.appsec.json"] = json_parse({triggers: triggers}) unless triggers.empty?
           tags
         end
 
@@ -134,21 +113,9 @@ module Datadog
         def json_parse(value)
           JSON.dump(value)
         rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
-          AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
+          AppSec.telemetry.report(e, description: "AppSec: Failed to convert value into JSON")
 
           nil
-        end
-
-        # Propagate to downstream services the information that the current distributed trace is
-        # containing at least one ASM security event.
-        def add_distributed_tags(trace)
-          return unless trace
-
-          trace.set_tag(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-            Datadog::Tracing::Sampling::Ext::Decision::ASM
-          )
-          trace.set_distributed_source(Datadog::AppSec::Ext::PRODUCT_BIT)
         end
       end
     end

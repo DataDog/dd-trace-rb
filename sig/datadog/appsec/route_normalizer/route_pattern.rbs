@@ -1,0 +1,83 @@
+module Datadog
+  module AppSec
+    module RouteNormalizer
+      class RoutePattern
+        class Checkpoint < Struct[[Integer, Integer, Integer]]
+          def self.new: (Integer resolved_length, Integer pattern_index, Integer path_index) -> instance
+
+          attr_accessor resolved_length: Integer
+
+          attr_accessor pattern_index: Integer
+
+          attr_accessor path_index: Integer
+        end
+
+        GROUP_OPEN_CHAR: String
+
+        GROUP_CLOSE_CHAR: String
+
+        OPTIONAL_GROUP_SUFFIX_CHAR: String
+
+        OPTIONAL_GROUP_SIGILS: String
+
+        NAMED_PARAM_PREFIX_CHAR: String
+
+        GLOB_PARAM_PREFIX_CHAR: String
+
+        PATTERN_STRUCTURE_CHARS: String
+
+        PARAM_NAME_CHARS: String
+
+        EXCLUDED_PARAM_NAME_TERMINATOR_CHARS: String
+
+        MAX_RESOLVE_LENGTH: Integer
+
+        PARAM_START_SIGILS: Regexp
+
+        PARAM_TOKENS: Regexp
+
+        @pattern: String
+
+        @path_index: Integer
+
+        @pattern_index: Integer
+
+        @path: String
+
+        @path_length: Integer
+
+        @pattern_length: Integer
+
+        def initialize: (String pattern) -> void
+
+        def normalize: (?path: String?) -> String
+
+        private
+
+        def resolve_pattern_optionals: (String? path) -> String
+
+        def resolve_pattern_optionals?: (String? path) -> bool
+
+        def expected_path_char?: (String char) -> bool
+
+        def restore_checkpoint!: (String resolved, Array[Checkpoint] checkpoints) -> Checkpoint?
+
+        def remove_optional_group_sigils: (String pattern) -> String
+
+        def skip_char_with_optional_param?: () -> bool
+
+        def param_start_char?: (Integer index) -> bool
+
+        def find_param_name_end_index: (Integer param_start_index) -> Integer
+
+        def find_param_value_terminator_char: (param_name_end_index: Integer) -> String?
+
+        def find_param_value_end_index: (terminator_char: String?) -> Integer
+
+        def find_glob_value_end_index: (terminator_char: String?) -> Integer
+
+        def find_next_optional_group_end_index: () -> Integer
+      end
+    end
+  end
+end

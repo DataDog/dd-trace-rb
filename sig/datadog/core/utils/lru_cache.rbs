@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Utils
+      class LRUCache
+        extend Forwardable
+
+        @store: ::Hash[any, any]
+
+        @max_size: Integer
+
+        def initialize: (Integer max_size) -> void
+
+        def []: (any key) -> any?
+
+        def []=: [T < Object] (any key, T value) -> T
+
+        def clear: () -> void
+
+        def empty?: () -> bool
+      end
+    end
+  end
+end

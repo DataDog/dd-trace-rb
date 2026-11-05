@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "fatal_exceptions"
+
 module Datadog
   module DI
     # Component for dynamic instrumentation.
@@ -14,92 +16,267 @@ module Datadog
     # resources and installed tracepoints upon shutdown.
     class Component
       class << self
+        # Builds and registers the DI component, or returns nil without
+        # building one when the settings have no dynamic_instrumentation
+        # section, DI is explicitly disabled, the runtime is unsupported,
+        # or Remote Configuration is disabled.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
+        # @param logger [Core::Logger]
+        # @param telemetry [Core::Telemetry::Component, nil]
+        # @return [Component, nil] the built component, or nil when no component was built
         def build(settings, agent_settings, logger, telemetry: nil)
-          return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+          return unless settings.respond_to?(:dynamic_instrumentation)
 
-          unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.warn("di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+          # Explicit DD_DYNAMIC_INSTRUMENTATION_ENABLED=false: do not build the
+          # component at all. This is customer intent, not a failure — log at
+          # debug and emit no telemetry error. Capabilities#register skips the
+          # DI RC block under the same condition, so no enable signal arrives.
+          if Remote.explicitly_disabled?(settings)
+            logger.debug("di: dynamic instrumentation is explicitly disabled (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false); not building component")
             return
           end
 
-          return unless environment_supported?(settings, logger)
+          reason = DI.unsupported_reason(settings)
+          if reason
+            # Log level mirrors customer intent: if the customer explicitly
+            # opted in via DD_DYNAMIC_INSTRUMENTATION_ENABLED, warn. Otherwise
+            # debug — with always-build, this path runs on every tracer boot
+            # for every customer, including those who never wanted DI. Spamming
+            # warnings to silent users (especially on JRuby or Ruby 2.5) would
+            # be noise. Customers who later trigger implicit enablement via the
+            # Datadog UI get a symmetric warn from Remote.handle_rc_enablement
+            # when the RC enable signal finds no component to start.
+            level = explicitly_enabled?(settings) ? :warn : :debug
+            logger.public_send(level, "di: dynamic instrumentation is disabled: #{reason}")
+            return
+          end
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
           end
         end
 
-        def build!(settings, agent_settings, logger, telemetry: nil)
-          unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
-            raise "Requested DI component but DI is not enabled in settings"
-          end
-
-          unless settings.respond_to?(:remote) && settings.remote.enabled
-            raise "Requested DI component but remote config is not enabled in settings"
-          end
-
-          unless environment_supported?(settings, logger)
-            raise "DI does not support the environment (development or Ruby version too low or not MRI)"
-          end
-
-          new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry)
-        end
-
-        # Checks whether the runtime environment is supported by
-        # dynamic instrumentation. Currently we only require that, if Rails
-        # is used, that Rails environment is not development because
-        # DI does not currently support code unloading and reloading.
-        def environment_supported?(settings, logger)
-          # TODO add tests?
-          unless settings.dynamic_instrumentation.internal.development
-            if Datadog::Core::Environment::Execution.development?
-              logger.warn("di: development environment detected; not enabling dynamic instrumentation")
-              return false
-            end
-          end
-          if RUBY_ENGINE != 'ruby'
-            logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
-            return false
-          end
-          if RUBY_VERSION < '2.6'
-            logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
-            return false
-          end
-          true
+        # True when the customer explicitly set
+        # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true (or its equivalent in code).
+        # Symmetric to {Remote.explicitly_disabled?}.
+        #
+        # Uses {Datadog::Core::Configuration::Options::InstanceMethods#using_default?}
+        # rather than `options[:enabled].default_precedence?` because the option
+        # hash is populated lazily on first access; reading the underlying option
+        # before {Component.build} touches the value would NoMethodError on nil.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @return [Boolean]
+        def explicitly_enabled?(settings)
+          !settings.dynamic_instrumentation.using_default?(:enabled) &&
+            settings.dynamic_instrumentation.enabled
         end
       end
 
+      # Initializes the DI component.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports
+      # @param logger [Datadog::Core::Logger] diagnostics logger, wrapped in the DI logger facade
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component DI errors and guardrails metrics are emitted through
+      # @return [void]
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
-        @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
-        @probe_notifier_worker = ProbeNotifierWorker.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry)
-        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
-        @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
-        probe_notifier_worker.start
+        @serializer = Serializer.new(settings, redactor, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+        )
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: capture_expression_evaluator)
+        @probe_repository = ProbeRepository.new
+        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
+          capture_expression_evaluator: capture_expression_evaluator, guardrails_telemetry: guardrails_telemetry,
+          telemetry: telemetry)
+        @probe_notifier_worker = ProbeNotifierWorker.new(
+          settings, logger,
+          agent_settings: agent_settings,
+          probe_repository: probe_repository,
+          probe_notification_builder: probe_notification_builder,
+          telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
+        )
+        @probe_manager = ProbeManager.new(
+          settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
+          telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
+        )
+        # @started transitions are serialized by @lifecycle_mutex so that
+        # concurrent RC callbacks (which run on the remote-config thread)
+        # cannot race a foreground start! with a background stop!.
+        @lifecycle_mutex = Mutex.new
+        @started = false
+        @rc_enablement_signal_paths = []
       end
 
       attr_reader :settings
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+      # The capture expression evaluator.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
       attr_reader :instrumenter
+      attr_reader :probe_repository
       attr_reader :probe_notifier_worker
       attr_reader :probe_notification_builder
       attr_reader :probe_manager
       attr_reader :redactor
       attr_reader :serializer
 
-      # Shuts down dynamic instrumentation.
+      # Starts the DI component: begins accepting probes and
+      # processing snapshots.
+      #
+      # Starts the probe notifier worker thread before enabling the
+      # definition trace point, so any future status emission from a
+      # trace-point-driven installation has a worker to drain it.
+      # Today {ProbeManager#reopen} re-hooks without emitting statuses, so
+      # the order is defensive rather than load-bearing. No-op if already
+      # started. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
+      def start!
+        @lifecycle_mutex.synchronize do
+          return if @started
+
+          # DI.activate_tracking creates the global code tracker lazily. When DI
+          # is enabled after boot via remote configuration (in-product
+          # enablement), this component and its instrumenter were built with a
+          # nil tracker; adopt the now-current global tracker so line probes
+          # can be targeted.
+          @code_tracker = DI.code_tracker
+          instrumenter.code_tracker = @code_tracker
+
+          probe_notifier_worker.start
+          probe_manager.reopen
+          @started = true
+        end
+      end
+
+      # Stops the DI component: removes all probes and stops
+      # background threads.
+      #
+      # The component remains alive and can be restarted with {#start!}.
+      # Does not clear out the code tracker.
+      # No-op if already stopped. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
+      def stop!
+        @lifecycle_mutex.synchronize do
+          return unless @started
+
+          probe_manager.stop
+          probe_notifier_worker.stop
+          @started = false
+        end
+      end
+
+      # Whether the component is currently started.
+      #
+      # Read by remote config dispatch to decide whether to apply probe
+      # changes (changes received while stopped are dropped, since the
+      # next start! will reconcile from the latest RC state).
+      #
+      # @return [Boolean] true if start! has been called and stop! has not
+      def started?
+        @started
+      end
+
+      # Whether the component is started while the customer left
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED at its default, the state produced
+      # by remote-configuration enablement.
+      #
+      # An explicit `enabled = false` takes precedence over a prior RC
+      # enablement: once the customer sets the option, this returns false
+      # even while the component is still started.
+      #
+      # @return [Boolean]
+      def implicitly_enabled?
+        started? && settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
+      # Whether an APM_TRACING merge that omitted dynamic_instrumentation_enabled
+      # withdraws this component's RC enable signal, so the component must stop.
+      #
+      # Returns true when the component is implicitly enabled and no unparseable
+      # content can be the signal carrier. A content at a recorded signal path can be
+      # the carrier. When no paths are recorded, every unparseable content can be the
+      # carrier.
+      #
+      # @param unparseable_contents [Array<Core::Remote::Configuration::Content>] the APM_TRACING contents that failed to parse at this merge
+      # @return [Boolean]
+      def rc_enablement_signal_withdrawn?(unparseable_contents)
+        return false unless implicitly_enabled?
+
+        recorded_signal_paths = rc_enablement_signal_paths
+        signal_source_unparseable =
+          if recorded_signal_paths.empty?
+            unparseable_contents.any?
+          else
+            unparseable_contents.any? { |content| recorded_signal_paths.include?(content.path) }
+          end
+        if signal_source_unparseable
+          if recorded_signal_paths.empty?
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while an APM_TRACING config " \
+              "failed to parse; the enable signal carrier is unknown (no signal paths recorded), " \
+              "keeping the DI state"
+            end
+          else
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while the config that carried " \
+              "the enable signal failed to parse; keeping the DI state"
+            end
+          end
+          false
+        else
+          logger.trace { "APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false" }
+          true
+        end
+      end
+
+      # The repository paths of the APM_TRACING contents that supplied the
+      # dynamic_instrumentation_enabled value at the last merge where the field was
+      # present. The component holds the paths so that they outlive the RC client.
+      #
+      # @return [Array<Core::Remote::Configuration::Path>]
+      attr_reader :rc_enablement_signal_paths
+
+      # Replaces the recorded enable-signal carrier paths.
+      #
+      # @param paths [Array<Core::Remote::Configuration::Path>] the carrier paths, empty when the merged field was absent
+      # @return [void]
+      def record_rc_enablement_signal_paths(paths)
+        @rc_enablement_signal_paths = paths.dup
+        nil
+      end
+
+      # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
+      # Called by Components#shutdown! during component destruction.
+      # Unlike {#stop!}, this is not reversible.
       #
       # Does not clear out the code tracker, because it's only populated
       # by code when code is compiled and therefore, if the code tracker
@@ -108,9 +285,41 @@ module Datadog
       def shutdown!(replacement = nil)
         DI.remove_current_component(self)
 
-        probe_manager.clear_hooks
-        probe_manager.close
-        probe_notifier_worker.stop
+        # Hold the lifecycle mutex so all transitions of @started are
+        # serialized — start! / stop! / shutdown! cannot interleave with
+        # one another. Without the mutex an in-flight stop! from an RC
+        # callback could complete after shutdown!'s probe_manager.close,
+        # producing an inconsistent state.
+        @lifecycle_mutex.synchronize do
+          @started = false
+          probe_manager.clear_hooks
+          probe_manager.close
+          probe_notifier_worker.stop
+        end
+      end
+
+      def parse_probe_spec_and_notify(probe_spec)
+        probe = ProbeBuilder.build_from_remote_config(probe_spec, logger: logger)
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
+        begin
+          probe = Struct.new(:id).new(
+            probe_spec["id"],
+          )
+          payload = probe_notification_builder.build_errored(probe, exc)
+          probe_notifier_worker.add_status(payload)
+        rescue Exception => nested_exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(nested_exc)
+          logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc.message}" }
+          telemetry&.report(nested_exc, description: "Error building probe error notification")
+          raise
+        end
+
+        raise
+      else
+        payload = probe_notification_builder.build_received(probe)
+        probe_notifier_worker.add_status(payload, probe: probe)
+        probe
       end
     end
   end

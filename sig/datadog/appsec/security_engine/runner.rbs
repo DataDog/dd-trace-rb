@@ -2,9 +2,9 @@ module Datadog
   module AppSec
     module SecurityEngine
       class Runner
-        type input_data = ::Hash[::String, untyped]
+        type input_data = Hash[String, any]
 
-        @mutex: ::Mutex
+        @mutex: Mutex
 
         @handle_ref: ThreadSafeRef
 
@@ -12,21 +12,27 @@ module Datadog
 
         @waf_context: WAF::Context
 
-        @debug_tag: ::String
+        @ruleset_version: String
 
-        SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
+        @debug_tag: String
 
-        def initialize: (ThreadSafeRef handle_ref) -> void
+        SUCCESSFUL_EXECUTION_CODES: Array[Symbol]
 
-        def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
+        attr_reader ruleset_version: String
+
+        def initialize: (ThreadSafeRef handle_ref, ruleset_version: String) -> void
+
+        def run: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
         def waf_context: () -> WAF::Context
+
+        def waf_addresses: () -> WAF::known_addresses
 
         def finalize!: () -> void
 
         private
 
-        def try_run: (input_data persistent_data, input_data ephemeral_data, untyped timeout) -> WAF::Result
+        def try_run: (input_data persistent_data, input_data ephemeral_data, Integer timeout) -> WAF::Result
 
         def report_execution: (WAF::Result result) -> void
       end

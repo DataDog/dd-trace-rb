@@ -6,7 +6,7 @@
 #include "ruby_helpers.h"
 
 #define BASE_OVERHEAD_PCT 1.0
-#define BASE_SAMPLING_INTERVAL 50
+#define BASE_SAMPLING_INTERVAL 1
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
 #define ADJUSTMENT_WINDOW_SAMPLES 100
@@ -51,7 +51,7 @@ void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_
 
 void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
-    rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
+    raise_error(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
   return discrete_dynamic_sampler_reset(sampler, now_ns);
@@ -365,13 +365,9 @@ static const rb_data_type_t sampler_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  sampler_state *state = ruby_xcalloc(sizeof(sampler_state), 1);
+  sampler_state *state = ruby_xcalloc(1, sizeof(sampler_state));
 
-  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (now_ns == 0) {
-    rb_raise(rb_eRuntimeError, "failed to get clock time");
-  }
-  discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
+  discrete_dynamic_sampler_init(&state->sampler, "test sampler", monotonic_wall_time_now_ns());
 
   // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
   // to keep them on the stack and mark them with RB_GC_GUARD -- otherwise it's possible for a GC to run and

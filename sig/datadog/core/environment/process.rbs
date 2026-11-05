@@ -1,0 +1,32 @@
+module Datadog
+  module Core
+    module Environment
+      module Process
+        self.@rails_application_name: String?
+        self.@service_name: String?
+        self.@service_user_configured: bool?
+        self.@entrypoint_workdir: String
+        self.@entrypoint_name: String
+        self.@entrypoint_basedir: String
+
+        def self.serialized: () -> String
+
+        def self.tags: () -> Array[String]
+
+        def self.set_service: (String? name, user_configured: bool) -> void
+
+        def self.rails_application_name=: (String? name) -> void
+
+        private
+
+        def self.entrypoint_workdir: () -> String
+
+        def self.entrypoint_type: () -> String
+
+        def self.entrypoint_name: () -> String
+
+        def self.entrypoint_basedir: () -> String
+      end
+    end
+  end
+end

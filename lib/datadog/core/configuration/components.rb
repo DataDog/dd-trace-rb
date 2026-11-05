@@ -1,32 +1,43 @@
 # frozen_string_literal: true
 
-require_relative 'agent_settings_resolver'
-require_relative 'components_state'
-require_relative 'ext'
-require_relative '../diagnostics/environment_logger'
-require_relative '../diagnostics/health'
-require_relative '../logger'
-require_relative '../runtime/metrics'
-require_relative '../telemetry/component'
-require_relative '../workers/runtime_metrics'
-require_relative '../remote/component'
-require_relative '../../tracing/component'
-require_relative '../../profiling/component'
-require_relative '../../appsec/component'
-require_relative '../../di/component'
-require_relative '../../error_tracking/component'
-require_relative '../crashtracking/component'
-require_relative '../environment/agent_info'
-require_relative '../process_discovery'
+require_relative "agent_settings_resolver"
+require_relative "components_state"
+require_relative "ext"
+require_relative "deprecations"
+require_relative "../diagnostics/environment_logger"
+require_relative "../diagnostics/health"
+require_relative "../logger"
+require_relative "../runtime/metrics"
+require_relative "../telemetry/component"
+require_relative "../workers/runtime_metrics"
+require_relative "../remote/component"
+require_relative "../utils/at_fork_monkey_patch"
+require_relative "../utils/spawn_monkey_patch"
+require_relative "../utils/only_once"
+require_relative "../../tracing/component"
+require_relative "../../profiling/component"
+require_relative "../../appsec/component"
+require_relative "../../ai_guard/component"
+require_relative "../../di/component"
+require_relative "../../symbol_database"
+require_relative "../../symbol_database/component"
+require_relative "../../open_feature/activation"
+require_relative "../../error_tracking/component"
+require_relative "../crashtracking/component"
+require_relative "../environment/agent_info"
+require_relative "../environment/identity"
+require_relative "../process_discovery"
+require_relative "../../data_streams/processor"
 
 module Datadog
   module Core
     module Configuration
       # Global components for the trace library.
       class Components
-        class << self
-          include Datadog::Tracing::Component
+        # Class-level constant to ensure fork patch is applied only once
+        PATCH_ONLY_ONCE = Utils::OnlyOnce.new
 
+        class << self
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
             options = {enabled: settings.enabled}
@@ -35,8 +46,40 @@ module Datadog
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
+          # Decides whether to build the SymbolDatabase component, for the
+          # tri-state symbol_database.enabled setting: true/false are explicit
+          # overrides; nil (the default) mirrors Dynamic Instrumentation by
+          # building whenever DI's component was built. dynamic_instrumentation
+          # is DI's build result — nil only when DI is explicitly disabled or the
+          # runtime can't support it (Rails development mode, missing C
+          # extension, remote config off, non-MRI). Under the always-build model
+          # it is non-nil even when the DI setting defaults to off, so a built
+          # SymbolDatabase component is inert until an upload is actually
+          # permitted: the component's own gate, SymbolDatabase::Component#upload_allowed?,
+          # only extracts and uploads when DI is truly active or the customer
+          # opted in explicitly. This mirrors DI advertising/building a component
+          # by default while installing no probes until it is enabled.
+          # force_upload (internal/testing) always builds, since it uploads
+          # regardless of DI or the enabled setting.
+          # @param settings [Configuration::Settings]
+          # @param dynamic_instrumentation [DI::Component, nil]
+          # @return [Boolean]
+          def enable_symbol_database?(settings, dynamic_instrumentation)
+            # The symbol_database settings group is only registered on the full
+            # library load path; a partial load (e.g. require 'datadog/di') leaves
+            # it absent, in which case the feature cannot be enabled.
+            return false unless settings.respond_to?(:symbol_database)
+
+            # force_upload uploads unconditionally, so the component must be built
+            # even when the setting is nil and DI's component was not built.
+            return true if settings.symbol_database.internal.force_upload
+
+            # nil (the default) follows whether DI's component was built.
+            Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, !dynamic_instrumentation.nil?)
+          end
+
           def build_logger(settings)
-            logger = settings.logger.instance || Core::Logger.new($stdout)
+            logger = settings.logger.instance || Core::Logger.new($stderr)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
             logger
@@ -47,6 +90,7 @@ module Datadog
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
+            options[:experimental_propagate_process_tags_enabled] = settings.experimental_propagate_process_tags_enabled
 
             Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
           end
@@ -76,12 +120,27 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
-        end
 
-        include Datadog::Tracing::Component::InstanceMethods
+          def build_data_streams(settings, agent_settings, logger, agent_info)
+            return unless settings.data_streams.enabled
+
+            Datadog::DataStreams::Processor.new(
+              interval: settings.data_streams.interval,
+              logger: logger,
+              settings: settings,
+              agent_settings: agent_settings,
+              agent_info: agent_info,
+            )
+          rescue => e
+            logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e.message}")
+            nil
+          end
+        end
 
         attr_reader \
           :health_metrics,
+          :settings,
+          :agent_settings,
           :logger,
           :remote,
           :profiler,
@@ -92,24 +151,50 @@ module Datadog
           :error_tracking,
           :dynamic_instrumentation,
           :appsec,
-          :agent_info
+          :ai_guard,
+          :agent_info,
+          :data_streams,
+          :symbol_database
 
         def initialize(settings)
+          @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          StableConfig.log_result(@logger)
+          Deprecations.log_deprecations_from_all_sources(@logger)
+
+          # Register fork handling once globally
+          self.class::PATCH_ONLY_ONCE.run do
+            Utils::AtForkMonkeyPatch.apply!
+            Utils::SpawnMonkeyPatch.apply!(
+              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+            )
+
+            # Register callback that calls Components.after_fork
+            Utils::AtForkMonkeyPatch.at_fork(:child) do
+              # Access via global to avoid capturing 'self'
+              Datadog.send(:components, allow_initialization: false)&.after_fork
+            end
+          end
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
           # the Core resolver from within your product/component's namespace.
-          agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+          @agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           # Exposes agent capability information for detection by any components
           @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
-          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @remote = Remote::Component.build(
+            settings,
+            agent_settings,
+            logger: @logger,
+            telemetry: telemetry,
+          )
+          @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
+          Datadog::Tracing::Component.bind_transport_telemetry(@tracer, telemetry)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
@@ -123,17 +208,75 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
+          @open_feature_activation = OpenFeature::Activation.new(
+            settings,
+            agent_settings,
+            remote,
+            logger: @logger,
+            telemetry: telemetry,
+          )
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          # Only build symbol database when enabled, so a disabled component is
+          # never constructed.
+          @symbol_database =
+            if self.class.enable_symbol_database?(settings, @dynamic_instrumentation)
+              # di_active is a live predicate, not a snapshot: DI may start after
+              # this component is built (implicit enablement via remote config).
+              # Symbol Database holds only this opaque proc, never a DI reference,
+              # so the two modules stay independent — the orchestration layer
+              # owns the cross-feature knowledge.
+              Datadog::SymbolDatabase::Component.build(
+                settings, agent_settings, @logger,
+                telemetry: telemetry,
+                di_active: -> { dynamic_instrumentation&.started? || false },
+              )
+            end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
-          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
+          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          # Reflects "the customer configured DI to be on" — true iff the
+          # component was built AND the env-var-driven enabled flag is set.
+          # This is the post-initialize / pre-startup value visible to tests
+          # that don't call startup!. Production overwrites this in startup!
+          # below with `dynamic_instrumentation&.started?`, which also accounts
+          # for RC-driven enablement carried over via ComponentsState.
+          @environment_logger_extra[:dynamic_instrumentation_enabled] =
+            !!(@dynamic_instrumentation && settings.dynamic_instrumentation.enabled)
 
-          self.class.configure_tracing(settings)
+          # Configure non-privileged components.
+          Datadog::Tracing::Contrib::Component.configure(settings)
+
+          # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
+          if defined?(::Rails::Railtie)
+            require_relative "../contrib/rails/railtie"
+          end
+        end
+
+        # Called when a fork is detected
+        def after_fork
+          tracer.after_fork
+          telemetry.after_fork
+          remote&.after_fork
+          crashtracker&.update_on_fork
+          ProcessDiscovery.after_fork
+          symbol_database&.after_fork!
+          data_streams&.restart_flush_thread
+          @open_feature_activation.after_fork
+        end
+
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is no concurrent modification of the sampler.
+        def reconfigure_sampler(settings = Datadog.configuration)
+          sampler = Datadog::Tracing::Component.build_sampler(settings)
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
         # Starts up components
         def startup!(settings, old_state: nil)
-          telemetry.start(old_state&.telemetry_enabled?)
+          telemetry.start(old_state&.telemetry_enabled?, components: self)
+
+          @open_feature_activation.startup!
 
           if settings.profiling.enabled
             if profiler
@@ -145,15 +288,45 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.remote_started?
+          if dynamic_instrumentation && old_state
+            dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
+          end
+
+          if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
-            # remote should always be not nil here but steep doesn't know this.
-            remote&.start
+            #
+            # The DI signal-path restore above must precede this: the
+            # replacement client's first sync can dispatch the APM_TRACING
+            # merge, whose withdrawal branch reads the recorded paths.
+            remote.start
           end
+
+          # Start DI component if enabled by env var or if it was implicitly enabled
+          # (via RC) in the previous Components instance. dynamic_instrumentation is
+          # non-nil only when Component.build's preconditions passed (Ruby 2.6+ MRI,
+          # etc.), which is exactly the condition under which di/base.rb is loaded
+          # and DI.activate_tracking is defined.
+          if dynamic_instrumentation
+            if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
+              DI.activate_tracking
+              dynamic_instrumentation.start!
+              remote&.add_products(
+                *Datadog::DI::Remote.products,
+                *Datadog::SymbolDatabase::Remote.deferred_products(settings),
+              )
+            end
+          end
+
+          # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+          # initialize new components, shutdown old components, startup new components.
+          # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+          Core::ProcessDiscovery.publish(settings)
+
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = dynamic_instrumentation&.started? || false
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -168,8 +341,23 @@ module Datadog
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
+          # Shutdown Symbol Database
+          symbol_database&.shutdown!
+
+          begin
+            @open_feature_activation.shutdown!
+          rescue => e
+            # Feature Flags is optional and must never interrupt library shutdown.
+            description = "Feature Flags delivery failed to shut down"
+            logger.error("#{description}: #{e.class}: #{e.message}")
+            telemetry.report(e, description: description)
+          end
+
           # Decommission AppSec
           appsec&.shutdown!
+
+          # Shutdown AIGuard component
+          ai_guard&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
@@ -181,6 +369,9 @@ module Datadog
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
 
+          # Shutdown Data Streams Monitoring processor
+          data_streams&.stop(true)
+
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)
           #
@@ -191,13 +382,13 @@ module Datadog
           # have direct ownership of it.
           old_statsd = [
             runtime_metrics.metrics.statsd,
-            health_metrics.statsd
+            health_metrics.statsd,
           ].compact.uniq
 
           new_statsd = if replacement
             [
               replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd
+              replacement.health_metrics.statsd,
             ].compact.uniq
           else
             []
@@ -206,20 +397,38 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          Core::ProcessDiscovery.shutdown!
+
+          # Shut down telemetry last so that all other components may
+          # report shutdown errors.
+          #
+          # Enqueue closing event before stopping telemetry so it will be
+          # sent out on shutdown.
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
-
-          @process_discovery_fd&.shutdown!
         end
 
         # Returns the current state of various components.
         def state
+          # di_implicitly_enabled distinguishes RC-driven start from explicit
+          # start (env var or programmatic) so that an explicit
+          # `enabled = false` on reconfiguration can take effect.
+          di_implicit = dynamic_instrumentation&.implicitly_enabled?
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
+            di_implicitly_enabled: di_implicit || false,
+            rc_enablement_signal_paths: dynamic_instrumentation&.rc_enablement_signal_paths || [],
           )
         end
+
+        def open_feature
+          @open_feature_activation.component
+        end
+
+        private
+
+        attr_reader :open_feature_activation
       end
     end
   end

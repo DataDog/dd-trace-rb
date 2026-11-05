@@ -1,17 +1,102 @@
+require "datadog/core/utils/base64_codec"
+
 module DIHelpers
+  class TestRemoteConfigGenerator
+    def initialize(probe_configs)
+      @probe_configs = probe_configs
+    end
+
+    attr_reader :probe_configs
+
+    def insert_transaction(repository)
+      repository.transaction do |_repository, transaction|
+        probe_configs.each do |key, value|
+          value_json = value.to_json
+
+          target = Datadog::Core::Remote::Configuration::Target.parse(
+            target_payload_for_value(value_json),
+          )
+
+          content = Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              path: key,
+              content: value_json,
+            },
+          )
+
+          transaction.insert(content.path, target, content)
+        end
+      end
+    end
+
+    def mock_response
+      RSpec::Mocks::Double.new(Datadog::Core::Remote::Transport::HTTP::Config::Response,
+        ok?: true,
+        empty?: false,
+        roots: [],
+        targets: targets,
+        target_files: target_files,
+        client_configs: client_configs)
+    end
+
+    private
+
+    def target_payload_for_value(value)
+      encoded = encode_obj(value)
+      {
+        "custom" => {
+          "v" => 1,
+        },
+        "hashes" => {"sha256" => Digest::SHA256.hexdigest(encoded)},
+        "length" => encoded.length,
+      }
+    end
+
+    def client_configs
+      probe_configs.keys.map do |k|
+        rc_key_for_probe_id(k)
+      end
+    end
+
+    def targets
+      {
+        "signed" => {
+          "expires" => "2022-09-22T09:01:04Z",
+          "targets" => probe_configs.map do |k, v|
+            [rc_key_for_probe_id(k), target_payload_for_value(v)]
+          end.to_h,
+          "version" => 0,
+          "custom" => {},
+        },
+      }
+    end
+
+    def rc_key_for_probe_id(id)
+      # "datadog/2/LIVE_DEBUGGING/#{id}/hash"
+      id
+    end
+
+    def target_files
+      probe_configs.map do |k, v|
+        {path: k, content: encode_obj(v)}
+      end
+    end
+
+    def encode_str(v)
+      Datadog::Core::Utils::Base64Codec.strict_encode64(v).chomp
+    end
+
+    def encode_obj(v)
+      JSON.dump(v)
+      # encode_str(JSON.dump(v))
+    end
+  end
+
   module ClassMethods
     def deactivate_code_tracking
       before(:all) do
         if Datadog::DI.respond_to?(:deactivate_tracking!)
           Datadog::DI.deactivate_tracking!
-        end
-      end
-    end
-
-    def ruby_2_only
-      if RUBY_VERSION >= '3'
-        before(:all) do
-          skip "Test is only for Ruby 2"
         end
       end
     end
@@ -22,16 +107,37 @@ module DIHelpers
           skip "Dynamic instrumentation is not supported on JRuby"
         end
       end
-      if RUBY_VERSION < "2.6"
+      if RubyVersion.is?("< 2.6")
         before(:all) do
           skip "Dynamic instrumentation requires Ruby 2.6 or higher"
+        end
+      end
+
+      around do |example|
+        check = true
+        if Datadog::DI.instrumented_count > 0
+          # Leaking instrumentations is a serious problem, but we want the
+          # diagnostics to point to the root cause. If there are outstanding
+          # instrumentations at the start of the test, the value at the end
+          # is likely to be meaningless. But just in case the report that
+          # is attached to the "root cause" test somehow disappears, warn
+          # that there are outstanding instrumentations here.
+          # They just produce noise in logs but not meaningless test failures.
+          warn "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected before test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
+          check = false
+        end
+
+        example.run
+
+        if check && Datadog::DI.instrumented_count > 0
+          raise "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected after test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
         end
       end
     end
 
     def mock_settings_for_di(&block)
       let(:settings) do
-        double('settings').tap do |settings|
+        double("settings").tap do |settings|
           allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
           if block
             instance_exec(settings, &block)
@@ -40,13 +146,20 @@ module DIHelpers
       end
 
       let(:di_settings) do
-        double('di settings').tap do |settings|
-          allow(settings).to receive(:internal).and_return(di_internal_settings)
+        double("di settings").tap do |settings|
+          # Default to a large evaluation budget so existing DI specs preserve
+          # their pre-timeout behavior; specs exercising the cooperative bound
+          # override this with a real value.
+          allow(settings).to receive_messages(
+            internal: di_internal_settings,
+            redaction_excluded_identifiers: [],
+            max_time_to_evaluate_ms: 1_000_000,
+          )
         end
       end
 
       let(:di_internal_settings) do
-        double('di internal settings')
+        double("di internal settings")
       end
     end
 
@@ -71,9 +184,36 @@ module DIHelpers
         end
       end
     end
+
+    def load_yaml_file(path, **opts)
+      if RubyVersion.is?("< 3.1")
+        opts.delete(:permitted_classes)
+      end
+      YAML.load_file(path, **opts)
+    end
   end
 
   module InstanceMethods
+    # Builds a telemetry component double whose metric increments raise the
+    # given exception, for exercising emission containment paths.
+    def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
+      instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+        allow(telemetry).to receive(:inc).and_raise(exception)
+        allow(telemetry).to receive(:report)
+      end
+    end
+
+    # Helper method to generate a deeply nested hash for circuit breaker tests
+    def generate_deep_hash(keys_per_level, depth)
+      return "leaf_value" if depth == 0
+
+      hash = {}
+      keys_per_level.times do |i|
+        hash[:"key_#{i}"] = generate_deep_hash(keys_per_level, depth - 1)
+      end
+      hash
+    end
+
     def order_hash_keys(hash)
       hash.keys.map do |key|
         [key.to_s, hash[key]]
@@ -90,8 +230,37 @@ module DIHelpers
       end
     end
 
+    # Stubs the dynamic instrumentation settings accessors read by the
+    # serialization and evaluation paths, with per-spec overrides for the
+    # values that differ.
+    def stub_di_settings(settings, enabled: true, max_capture_depth: 2,
+      max_capture_attribute_count: 2, max_capture_string_length: 100,
+      max_capture_collection_size: 100, max_time_to_serialize_ms: 200,
+      max_time_to_evaluate_ms: 1_000_000,
+      redacted_type_names: [], redacted_identifiers: [], redaction_excluded_identifiers: [])
+      allow(settings).to receive_messages(
+        enabled: enabled,
+        max_capture_depth: max_capture_depth,
+        max_capture_attribute_count: max_capture_attribute_count,
+        max_capture_string_length: max_capture_string_length,
+        max_capture_collection_size: max_capture_collection_size,
+        max_time_to_serialize_ms: max_time_to_serialize_ms,
+        max_time_to_evaluate_ms: max_time_to_evaluate_ms,
+        redacted_type_names: redacted_type_names,
+        redacted_identifiers: redacted_identifiers,
+        redaction_excluded_identifiers: redaction_excluded_identifiers,
+      )
+    end
+
     def instance_double_agent_settings
       instance_double(Datadog::Core::Configuration::AgentSettings)
+    end
+
+    def instance_double_agent_settings_with_stubs
+      instance_double(
+        Datadog::Core::Configuration::AgentSettings,
+        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false,
+      )
     end
   end
 end
@@ -116,7 +285,7 @@ module ProbeNotifierWorkerLeakDetector
   end
 
   def stop(*args)
-    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, example)|
+    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, _example)|
       worker == self
     end
     super
@@ -129,7 +298,7 @@ RSpec.configure do |config|
 
   # DI does not do anything on Ruby < 2.6 therefore there is no need
   # to install a leak detector on lower Ruby versions.
-  if RUBY_VERSION >= '2.6'
+  if RubyVersion.is?(">= 2.6")
     config.before do
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)

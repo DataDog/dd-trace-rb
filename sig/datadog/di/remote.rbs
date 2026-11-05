@@ -1,22 +1,33 @@
 module Datadog
   module DI
     module Remote
-      class ReadError < StandardError
-      end
-
       PRODUCT: "LIVE_DEBUGGING"
 
-      def self.products: () -> ::Array[untyped]
+      CAPABILITIES: Array[Integer]
 
-      def self.capabilities: () -> ::Array[untyped]
+      def self.products: () -> Array[String]
 
-      def self.receivers: (untyped telemetry) -> untyped
+      def self.capabilities: () -> Array[Integer]
 
-      def self.receiver: (?::Array[untyped] products) { (?) -> untyped } -> ::Array[untyped]
+      def self.handle_rc_enablement: (bool enabled, ?Core::Remote::Configuration::Repository? repository) -> void
+
+      def self.explicitly_disabled?: (?Datadog::Core::Configuration::Settings settings) -> bool
+
+      def self.receivers: (Core::Telemetry::Component? telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.receiver: (?Array[String] products) { (Core::Remote::Configuration::Repository, Array[Core::Remote::Configuration::Repository::change]) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
 
       private
 
-      def self.parse_content: (untyped content) -> untyped
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, untyped]
+
+      def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
+      def self.remove_withdrawn_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
+      def self.probe_known?: (untyped probe_id, Component component) -> bool
+      def self.probe_in_content_known?: (Core::Remote::Configuration::Content content, Component component) -> bool
+
+      def self.add_probe: (Core::Remote::Configuration::Content content, Component component) -> void
+      def self.remove_probe: (Core::Remote::Configuration::Content previous_content, Component component) -> void
     end
   end
 end

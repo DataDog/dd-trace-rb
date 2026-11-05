@@ -2,8 +2,8 @@ module Datadog
   module AppSec
     module Contrib
       module Faraday
-        class ConnectionPatch
-          def initialize: (*untyped args) ?{ () -> untyped } -> void
+        module ConnectionPatch : ::Faraday::Connection
+          def initialize: (*untyped) ?{ (::Faraday::Connection) -> void } -> void
         end
       end
     end

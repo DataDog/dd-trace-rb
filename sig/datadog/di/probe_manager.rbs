@@ -1,64 +1,69 @@
 module Datadog
   module DI
     class ProbeManager
-      @settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
 
-      @instrumenter: untyped
+      @instrumenter: Instrumenter
 
-      @probe_notification_builder: untyped
+      @probe_notification_builder: ProbeNotificationBuilder
 
-      @probe_notifier_worker: untyped
+      @probe_notifier_worker: ProbeNotifierWorker
 
-      @logger: untyped
+      @logger: DI::Logger
 
-      @telemetry: untyped
+      @telemetry: Core::Telemetry::Component?
 
-      @installed_probes: untyped
+      @guardrails_telemetry: GuardrailsTelemetry
 
-      @pending_probes: untyped
+      @probe_repository: ProbeRepository
 
-      @failed_probes: untyped
+      @definition_trace_point: TracePoint
 
-      @lock: untyped
+      def initialize: (Datadog::Core::Configuration::Settings settings, Instrumenter instrumenter, ProbeNotificationBuilder probe_notification_builder, ProbeNotifierWorker probe_notifier_worker, DI::Logger logger, ProbeRepository probe_repository, guardrails_telemetry: GuardrailsTelemetry, ?telemetry: Core::Telemetry::Component?) -> void
 
-      @definition_trace_point: untyped
+      attr_reader logger: DI::Logger
 
-      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?) -> void
+      attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader logger: untyped
+      attr_reader guardrails_telemetry: GuardrailsTelemetry
 
-      attr_reader telemetry: untyped
-      def close: () -> untyped
+      attr_reader probe_repository: ProbeRepository
 
-      def clear_hooks: () -> untyped
+      def stop: () -> void
 
-      attr_reader settings: untyped
+      def reopen: () -> void
 
-      attr_reader instrumenter: untyped
+      def close: () -> void
 
-      attr_reader probe_notification_builder: untyped
+      def clear_hooks: () -> void
 
-      attr_reader probe_notifier_worker: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
-      def installed_probes: () -> untyped
+      attr_reader instrumenter: Instrumenter
 
-      def pending_probes: () -> untyped
-      def failed_probes: () -> untyped
-      def add_probe: (untyped probe) -> untyped
+      attr_reader probe_notification_builder: ProbeNotificationBuilder
 
-      private
-      def do_add_probe: (untyped probe) -> untyped
+      attr_reader probe_notifier_worker: ProbeNotifierWorker
 
-      public
-      def remove_other_probes: (untyped probe_ids) -> untyped
+      def add_probe: (Probe probe) -> bool
+
+      def remove_probe: (String probe_id) -> void
 
       private
-      def install_pending_method_probes: (untyped cls) -> untyped
+      def install_pending_method_probes: (Module cls) -> void
 
       public
-      def install_pending_line_probes: (untyped path) -> untyped
-      def probe_executed_callback: (probe: untyped, **untyped opts) -> untyped
-      attr_reader definition_trace_point: untyped
+      def install_pending_line_probes: (String? path) -> void
+
+      def probe_executed_callback: (Context context) -> void
+
+      def probe_condition_evaluation_failed_callback: (Context context, EL::Expression expr, Exception exc) -> void
+
+      def probe_disabled_callback: (Probe probe, Float duration) -> void
+
+      def record_condition_error_skip: (String reason, Probe probe) -> void
+
+      attr_reader definition_trace_point: TracePoint
     end
   end
 end

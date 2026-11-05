@@ -2,9 +2,10 @@ require "datadog/profiling/collectors/code_provenance"
 require "json-schema"
 require "json"
 require "yaml"
+require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
 
@@ -12,6 +13,11 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
   let(:generate_result) do
     JSON.parse(code_provenance.generate_json, symbolize_names: true).fetch(:v1)
+  end
+
+  let(:expected_platform_fragment) do
+    platform_fragment = Gem::Platform.local.to_s
+    platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
   end
 
   describe "#refresh" do
@@ -31,11 +37,18 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           name: "datadog",
           version: Datadog::VERSION::STRING,
-          paths: contain_exactly(start_with("/"), include("extensions").and(include(RUBY_PLATFORM))),
+          paths: contain_exactly(
+            start_with("/"),
+            satisfy do |path|
+              path.include?("extensions") && path.include?(expected_platform_fragment)
+            end,
+            "#{Gem.bindir}/ddprofrb",
+            "#{Bundler.bin_path}/ddprofrb",
+          ),
         },
         {
           kind: "library",
-          name: "rspec-core",
+          name: "rspec",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
           paths: contain_exactly(start_with("/")),
         },
@@ -52,10 +65,26 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: MessagePack::VERSION,
           paths: contain_exactly(
             satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
-            include("extensions").and(include(RUBY_PLATFORM)),
+            satisfy do |path|
+              path.include?("extensions") && path.include?(expected_platform_fragment)
+            end,
           ),
-        }
+        },
       )
+    end
+
+    it "includes the executables for gems with executables" do
+      refresh
+
+      expect(generate_result.find { |it| it[:name] == "rspec-core" }.fetch(:paths)).to contain_exactly(
+        Gem.loaded_specs.fetch("rspec-core").gem_dir,
+        "#{Gem.bindir}/rspec",
+        "#{Bundler.bin_path}/rspec",
+      )
+
+      # Sanity checks
+      expect(Gem.bindir).to start_with("/")
+      expect(Bundler.bin_path.to_s).to start_with("/")
     end
 
     it "records the correct path for datadog" do
@@ -77,6 +106,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             version: "not_loaded_version",
             gem_dir: "/not_loaded/",
             extensions: [],
+            executables: [],
           ),
           instance_double(
             Gem::Specification,
@@ -84,7 +114,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             version: "is_loaded_version",
             gem_dir: "/is_loaded/",
             extensions: [],
-          )
+            executables: [],
+          ),
         ],
       )
 
@@ -95,6 +126,34 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         version: "is_loaded_version",
         paths: contain_exactly("/is_loaded/"),
       )
+    end
+
+    context "#bundler_bin_path" do
+      let(:bundler_bin_path) { code_provenance.send(:bundler_bin_path) }
+
+      it "matches Bundler.bin_path" do
+        expect(bundler_bin_path).to eq(Bundler.bin_path.to_s)
+      end
+
+      context "when an exception gets raised" do
+        before do
+          code_provenance # Trigger initialization
+
+          allow(Bundler).to receive(:root).and_raise(Exception.new("test exception"))
+        end
+
+        it "logs a debug message" do
+          expect(Datadog.logger).to receive(:debug).with(/CodeProvenance#bundler_bin_path failed/)
+
+          bundler_bin_path
+        end
+
+        it "returns nil" do
+          allow(Datadog.logger).to receive(:debug)
+
+          expect(bundler_bin_path).to be_nil
+        end
+      end
     end
 
     context "when a native ruby filename is provided" do
@@ -130,6 +189,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               version: "1.2.3",
               gem_dir: "/dd-trace-rb",
               extensions: [],
+              executables: [],
             ),
             instance_double(
               Gem::Specification,
@@ -137,7 +197,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               version: "4.5.6",
               gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3",
               extensions: [],
-            )
+              executables: [],
+            ),
           ],
         )
 
@@ -287,6 +348,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           version: "1.2.3",
           path: "/example/path/to/datadog/gem",
+          extra_paths: ["/example/path/to/datadog/extensions"],
         )
 
         serialized_without_to_json = YAML.dump(instance)
@@ -297,7 +359,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           "name" => "datadog",
           "kind" => "library",
           "version" => "1.2.3",
-          "paths" => ["/example/path/to/datadog/gem"],
+          "paths" => ["/example/path/to/datadog/gem", "/example/path/to/datadog/extensions"],
         )
       end
     end

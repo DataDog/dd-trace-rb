@@ -1,9 +1,6 @@
 module Datadog
   module AppSec
     module Remote
-      class ReadError < StandardError
-      end
-
       class NoRulesError < StandardError
       end
 
@@ -29,19 +26,35 @@ module Datadog
 
       CAP_ASM_TRUSTED_IPS: Integer
 
+      CAP_ASM_PROCESSOR_OVERRIDES: Integer
+
+      CAP_ASM_CUSTOM_DATA_SCANNERS: Integer
+
       CAP_ASM_RASP_SSRF: Integer
 
       CAP_ASM_RASP_SQLI: Integer
 
+      CAP_ASM_AUTO_USER_INSTRUM_MODE: Integer
+
+      CAP_ASM_ENDPOINT_FINGERPRINT: Integer
+
+      CAP_ASM_SESSION_FINGERPRINT: Integer
+
+      CAP_ASM_NETWORK_FINGERPRINT: Integer
+
+      CAP_ASM_HEADER_FINGERPRINT: Integer
+
+      CAP_ASM_TRACE_TAGGING_RULES: Integer
+
       ASM_CAPABILITIES: Array[Integer]
 
-      ASM_PRODUCTS: ::Array[String]
+      ASM_PRODUCTS: Array[String]
 
-      def self.capabilities: () -> ::Array[Integer]
+      def self.capabilities: () -> Array[Integer]
 
-      def self.products: () -> ::Array[String]
+      def self.products: () -> Array[String]
 
-      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
+      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
 
       def self.remote_features_enabled?: () -> bool
 

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
-require_relative 'configuration/settings'
-require_relative 'patcher'
+require_relative "../integration"
+require_relative "configuration/settings"
+require_relative "patcher"
 
 module Datadog
   module Tracing
@@ -12,11 +12,11 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('3.2')
+          MINIMUM_VERSION = Gem::Version.new("3.2")
 
           # Support `Config#custom`
           # https://github.com/redis-rb/redis-client/blob/master/CHANGELOG.md#0110
-          REDISCLIENT_MINIMUM_VERSION = Gem::Version.new('0.11.0')
+          REDISCLIENT_MINIMUM_VERSION = Gem::Version.new("0.11.0")
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :redis, auto_patch: true
@@ -31,11 +31,11 @@ module Datadog
           end
 
           def self.redis_version
-            Gem.loaded_specs['redis']&.version
+            Gem.loaded_specs["redis"]&.version
           end
 
           def self.redis_client_version
-            Gem.loaded_specs['redis-client']&.version
+            Gem.loaded_specs["redis-client"]&.version
           end
 
           def self.loaded?

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'sampler'
+require_relative "sampler"
 
 module Datadog
   module Tracing

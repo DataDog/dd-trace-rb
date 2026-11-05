@@ -1,6 +1,7 @@
 #include "libdatadog_helpers.h"
 
 #include <ruby.h>
+#include "ruby_helpers.h"
 
 const char *ruby_value_type_to_string(enum ruby_value_type type) {
   return ruby_value_type_to_char_slice(type).ptr;
@@ -41,32 +42,12 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type) {
   }
 }
 
-size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity) {
-  if (capacity == 0 || string == NULL) {
-    // short-circuit, we can't write anything
-    ddog_Error_drop(error);
-    return 0;
-  }
-
-  ddog_CharSlice error_msg_slice = ddog_Error_message(error);
-  size_t error_msg_size = error_msg_slice.len;
-  // Account for extra null char for proper cstring
-  if (error_msg_size >= capacity) {
-    // Error message too big, lets truncate it to capacity - 1 to allow for extra null at end
-    error_msg_size = capacity - 1;
-  }
-  strncpy(string, error_msg_slice.ptr, error_msg_size);
-  string[error_msg_size] = '\0';
-  ddog_Error_drop(error);
-  return error_msg_size;
-}
-
 ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string) {
   if (string.len == 0) return (ddog_prof_ManagedStringId) { 0 }; // Id 0 is always an empty string, no need to ask
 
   ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(string_storage, string);
   if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
+    raise_error(rb_eRuntimeError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
   }
   return intern_result.ok;
 }
@@ -79,6 +60,6 @@ void intern_all_or_raise(
 ) {
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_intern_all(string_storage, strings, output_ids, output_ids_size);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+    raise_error(rb_eRuntimeError, "Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 }

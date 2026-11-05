@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
-require_relative '../negotiation'
-require_relative 'client'
-require_relative '../../../transport/http/response'
-require_relative '../../../transport/http/api/endpoint'
+require_relative "../../../transport/http/client"
+require_relative "../../../transport/http/response"
+require_relative "../../../transport/http/api/endpoint"
 
 module Datadog
   module Core
@@ -17,7 +16,6 @@ module Datadog
             # Response from HTTP transport for agent feature negotiation
             class Response
               include Datadog::Core::Transport::HTTP::Response
-              include Core::Remote::Transport::Negotiation::Response
 
               def initialize(http_response, options = {})
                 super(http_response)
@@ -29,48 +27,23 @@ module Datadog
                 @config = options[:config]
                 @span_events = options[:span_events]
               end
-            end
 
-            # Extensions for HTTP client
-            module Client
-              def send_info_payload(request)
-                send_request(request) do |api, env|
-                  api.send_info(env)
-                end
-              end
+              # @!attribute [r] version
+              #   The version of the agent.
+              #   @return [String]
+              # @!attribute [r] endpoints
+              #   The HTTP endpoints the agent supports.
+              #   @return [Array<String>]
+              # @!attribute [r] config
+              #   The agent configuration. These are configured by the user when starting the agent, as well as any defaults.
+              #   @return [Hash]
+              # @!attribute [r] span_events
+              #   Whether the agent supports the top-level span events field in flushed spans.
+              #   @return [Boolean,nil]
+              attr_reader :version, :endpoints, :config, :span_events
             end
 
             module API
-              # Extensions for HTTP API Spec
-              module Spec
-                attr_reader :info
-
-                def info=(endpoint)
-                  @info = endpoint
-                end
-
-                def send_info(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('info', self) if info.nil?
-
-                  info.call(env, &block)
-                end
-              end
-
-              # Extensions for HTTP API Instance
-              module Instance
-                def send_info(env)
-                  unless spec.is_a?(Negotiation::API::Spec)
-                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                      'info', self
-                    )
-                  end
-
-                  spec.send_info(env) do |request_env|
-                    call(request_env)
-                  end
-                end
-              end
-
               # Endpoint for negotiation
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 def initialize(path)
@@ -92,9 +65,6 @@ module Datadog
                 end
               end
             end
-
-            # Add negotiation behavior to transport components
-            HTTP::Client.include(Negotiation::Client)
           end
         end
       end

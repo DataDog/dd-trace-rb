@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/5877",
+  "message": "Add `DD_APPSEC_BODY_PARSING_SIZE_LIMIT` to control processing of request and response body size; set to 0 to disable body parsing."
+}

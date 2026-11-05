@@ -1,0 +1,34 @@
+# frozen_string_literal: true
+
+require_relative "../../core/transport/http"
+require_relative "http/stats"
+require_relative "stats"
+
+module Datadog
+  module DataStreams
+    module Transport
+      # HTTP transport for Data Streams Monitoring
+      module HTTP
+        V01 = Stats::API::Endpoint.new(
+          "/v0.1/pipeline_stats",
+        )
+
+        # Builds a new Transport::HTTP::Client with default settings
+        def self.default(
+          agent_settings:,
+          logger:
+        )
+          Core::Transport::HTTP.build(
+            agent_settings: agent_settings,
+            logger: logger,
+          ) do |transport|
+            transport.api "v0.1", V01, default: true
+
+            # Call block to apply any customization, if provided
+            yield(transport) if block_given?
+          end.to_transport(Transport::Stats::Transport)
+        end
+      end
+    end
+  end
+end

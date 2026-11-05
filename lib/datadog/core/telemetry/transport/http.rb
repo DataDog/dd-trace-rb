@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'telemetry'
-require_relative 'http/api'
-require_relative '../../transport/http'
+require_relative "../../encoding"
+require_relative "../../transport/http"
+require_relative "telemetry"
 
 module Datadog
   module Core
@@ -10,26 +10,30 @@ module Datadog
       module Transport
         # Namespace for HTTP transport components
         module HTTP
-          module_function
+          AGENT_TELEMETRY = Telemetry::API::Endpoint.new(
+            "/telemetry/proxy/api/v2/apmtelemetry",
+            Core::Encoding::JSONEncoder,
+          )
+
+          AGENTLESS_TELEMETRY = Telemetry::API::Endpoint.new(
+            "/api/v2/apmtelemetry",
+            Core::Encoding::JSONEncoder,
+          )
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def agentless_telemetry(
+          def self.agentless_telemetry(
             agent_settings:,
             logger:,
             api_key: nil,
-            api_version: nil,
             headers: nil
           )
-            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+            Core::Transport::HTTP.build(
               logger: logger,
               agent_settings: agent_settings,
-              api_version: api_version,
-              headers: headers) do |transport|
-              apis = API.defaults
-
-              transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
-
+              headers: headers,
+            ) do |transport|
+              transport.api "agentless_telemetry", AGENTLESS_TELEMETRY
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Telemetry::Transport::Telemetry::Transport).tap do |transport|
@@ -39,18 +43,17 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
-          def agent_telemetry(
+          def self.agent_telemetry(
             agent_settings:,
             logger:,
-            api_version: nil,
             headers: nil
           )
-            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+            Core::Transport::HTTP.build(
               logger: logger,
-              agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
-              apis = API.defaults
-
-              transport.api API::AGENT_TELEMETRY, apis[API::AGENT_TELEMETRY]
+              agent_settings: agent_settings,
+              headers: headers,
+            ) do |transport|
+              transport.api "agent_telemetry", AGENT_TELEMETRY
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?

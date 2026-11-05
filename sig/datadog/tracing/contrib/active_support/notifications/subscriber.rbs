@@ -10,8 +10,8 @@ module Datadog
               def subscribed?: () -> untyped
               def on_subscribe: () ?{ () -> untyped } -> untyped
               def subscribe!: () -> untyped
-              def subscribe: (untyped pattern, untyped span_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
-              def subscription: (untyped span_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+              def subscribe: (untyped pattern, untyped span_name, ?Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+              def subscription: (untyped span_name, ?Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
 
               private
 

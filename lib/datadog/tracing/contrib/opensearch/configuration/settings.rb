@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/settings'
-require_relative '../ext'
+require_relative "../../configuration/settings"
+require_relative "../ext"
 
 module Datadog
   module Tracing
@@ -37,7 +37,7 @@ module Datadog
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
-                  Ext::DEFAULT_PEER_SERVICE_NAME
+                  Ext::DEFAULT_PEER_SERVICE_NAME,
                 )
               end
             end
@@ -57,7 +57,7 @@ module Datadog
                 Datadog.logger.warn(
                   "Invalid resource pattern: #{value}. " \
                   "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(" | ")}. " \
-                  "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}."
+                  "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}.",
                 )
 
                 Ext::DEFAULT_RESOURCE_PATTERN

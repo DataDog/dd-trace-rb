@@ -2,10 +2,12 @@ module Datadog
   module AppSec
     module APISecurity
       interface _Request
+        def respond_to?: (Symbol) -> bool
         def env: () -> Hash[String, untyped]
         def script_name: () -> String?
         def request_method: () -> String
         def path: () -> String
+        def head?: () -> bool
       end
 
       interface _Response

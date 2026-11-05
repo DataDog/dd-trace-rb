@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'distributed/propagation'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "distributed/propagation"
 
 module Datadog
   module Tracing
@@ -25,17 +25,34 @@ module Datadog
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
             @messages_array.each do |message|
-              if configuration[:distributed_tracing]
+              trace_digest = if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
                 else
                   message.metadata.headers
                 end
-                trace_digest = Karafka.extract(headers)
-                Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
+                Karafka.extract(headers)
               end
 
-              Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
+              Tracing.trace(Ext::SPAN_MESSAGE_CONSUME, continue_from: trace_digest) do |span, trace|
+                if Datadog::DataStreams.enabled?
+                  begin
+                    headers = if message.metadata.respond_to?(:raw_headers)
+                      message.metadata.raw_headers
+                    else
+                      message.metadata.headers
+                    end
+
+                    Datadog::DataStreams.set_consume_checkpoint(
+                      type: "kafka",
+                      source: message.topic,
+                      auto_instrumentation: true,
+                    ) { |key| headers[key] }
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
+                  end
+                end
+
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -52,17 +69,29 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
+          ACTIVATE_FRAMEWORK_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
-            require_relative 'monitor'
+          def self.patch
+            require_relative "monitor"
+            require_relative "framework"
+            require_relative "../waterdrop"
 
             ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
+
+            if Contrib::WaterDrop::Integration.compatible?
+              ::Karafka.monitor.subscribe("app.initialized") do |event|
+                ACTIVATE_FRAMEWORK_ONLY_ONCE.run do
+                  Contrib::Karafka::Framework.setup
+                end
+
+                Contrib::WaterDrop::Patcher.add_middleware(::Karafka.producer)
+              end
+            end
           end
         end
       end

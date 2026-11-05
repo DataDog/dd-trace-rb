@@ -1,0 +1,15 @@
+module Datadog
+  module DI
+    class CaptureExpression
+      @name: String
+      @expr: DI::EL::Expression
+      @limits: CaptureLimits?
+
+      def initialize: (name: String, expr: DI::EL::Expression, ?limits: CaptureLimits?) -> void
+
+      attr_reader name: String
+      attr_reader expr: DI::EL::Expression
+      attr_reader limits: CaptureLimits?
+    end
+  end
+end

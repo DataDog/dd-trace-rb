@@ -1,120 +1,249 @@
 require "datadog/di/spec_helper"
-require 'datadog/di/serializer'
-require 'datadog/di/probe'
-require 'datadog/di/probe_notification_builder'
+require "datadog/di/capture_expression_evaluator"
+require "datadog/di/serializer"
+require "datadog/di/probe"
+require "datadog/di/probe_notification_builder"
 
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   di_test
 
-  describe 'log probe' do
+  describe "log probe" do
     let(:redactor) { Datadog::DI::Redactor.new(settings) }
-    let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
+    let(:serializer) { Datadog::DI::Serializer.new(settings, redactor, logger: logger, guardrails_telemetry: guardrails_telemetry) }
 
-    let(:builder) { described_class.new(settings, serializer) }
+    let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
 
-    let(:instrumenter) do
-      Datadog::DI::Instrumenter.new(settings)
+    let(:guardrails_telemetry) do
+      Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
+    end
+
+    let(:capture_expression_evaluator) do
+      Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+    end
+
+    let(:builder) do
+      described_class.new(settings, serializer, logger,
+        capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
     end
 
     let(:settings) do
-      double('settings').tap do |settings|
+      double("settings").tap do |settings|
         allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
-        allow(settings).to receive(:service).and_return('fake service')
-        allow(settings).to receive(:env).and_return('fake env')
-        allow(settings).to receive(:version).and_return('fake version')
+        allow(settings).to receive(:service).and_return("fake service")
+        allow(settings).to receive(:env).and_return("fake env")
+        allow(settings).to receive(:version).and_return("fake version")
         allow(settings).to receive(:tags).and_return({})
+        allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       end
     end
 
     let(:di_settings) do
-      double('di settings').tap do |settings|
-        allow(settings).to receive(:enabled).and_return(true)
-        allow(settings).to receive(:untargeted_trace_points).and_return(false)
-        allow(settings).to receive(:max_capture_depth).and_return(2)
-        allow(settings).to receive(:max_capture_attribute_count).and_return(2)
-        allow(settings).to receive(:max_capture_string_length).and_return(20)
-        allow(settings).to receive(:max_capture_collection_size).and_return(20)
-        allow(settings).to receive(:redacted_type_names).and_return([])
-        allow(settings).to receive(:redacted_identifiers).and_return([])
+      double("di settings").tap do |settings|
+        stub_di_settings(settings,
+          max_capture_string_length: 20,
+          max_capture_collection_size: 20)
+        allow(settings).to receive_messages(untargeted_trace_points: false)
       end
     end
 
-    context 'line probe' do
+    context "line probe" do
       let(:probe) do
-        Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1, capture_snapshot: true)
+        Datadog::DI::Probe.new(
+          id: "123", type: :log, file: "X", line_no: 1,
+          capture_snapshot: true,
+        )
       end
 
-      context 'with snapshot' do
-        let(:serialized_locals) do
-          double('local variables')
+      context "with snapshot" do
+        let(:locals) do
+          {local: "var"}
         end
 
         let(:captures) do
           {lines: {1 => {
-            locals: serialized_locals,
+            locals: {local: {type: "String", value: "var"}},
             arguments: {self: {
-              type: 'Object',
+              type: "Object",
               fields: {},
             }},
           }}}
         end
 
-        it 'builds expected payload' do
-          payload = builder.build_snapshot(probe,
-            serialized_locals: serialized_locals, target_self: Object.new)
+        let(:context) do
+          Datadog::DI::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe, locals: locals, target_self: Object.new,
+          )
+        end
+
+        it "builds expected payload" do
+          payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq(captures)
         end
       end
     end
 
-    context 'method probe' do
+    context "method probe" do
       let(:probe) do
-        Datadog::DI::Probe.new(id: '123', type: :log, type_name: 'X', method_name: 'y', capture_snapshot: true)
+        Datadog::DI::Probe.new(id: "123", type: :log, type_name: "X", method_name: "y", capture_snapshot: true)
       end
 
-      context 'with snapshot' do
-        let(:args) do
-          [1, 'hello']
-        end
-
-        let(:kwargs) do
-          {foo: 42}
-        end
-
-        let(:instance_vars) do
-          {type: 'X', fields: {"@ivar": 42}}
+      context "with snapshot" do
+        let(:serialized_entry_args) do
+          {
+            arg1: {type: "Integer", value: "1"},
+            arg2: {type: "String", value: "hello"},
+            foo: {type: "Integer", value: "42"},
+            self: {type: "Object", fields: {}},
+          }
         end
 
         let(:expected_captures) do
           {entry: {
             arguments: {
-              arg1: {type: 'Integer', value: '1'},
-              arg2: {type: 'String', value: 'hello'},
-              foo: {type: 'Integer', value: '42'},
-              self: {type: 'Object', fields: {}},
+              arg1: {type: "Integer", value: "1"},
+              arg2: {type: "String", value: "hello"},
+              foo: {type: "Integer", value: "42"},
+              self: {type: "Object", fields: {}},
             },
           }, return: {
             arguments: {
               :self => {
-                type: 'Object',
+                type: "Object",
                 fields: {},
               },
               :@return => {
-                type: 'NilClass',
+                type: "NilClass",
                 isNull: true,
               },
             }, throwable: nil,
           }}
         end
 
-        it 'builds expected payload' do
-          payload = builder.build_snapshot(
-            probe, args: args, kwargs: kwargs, target_self: Object.new
+        let(:context) do
+          Datadog::DI::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe, serialized_entry_args: serialized_entry_args,
+            target_self: Object.new,
           )
+        end
+
+        it "builds expected payload" do
+          payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
+        end
+      end
+
+      context "with template segments" do
+        let(:probe_spec) do
+          {id: "11", name: "bar", type: "LOG_PROBE", where: {
+                                                       typeName: "Foo", methodName: "bar",
+                                                     },
+           segments: segments}
+        end
+
+        let(:segments) do
+          [
+            {str: "hello"},
+            {json: {ref: "bar"}, dsl: "(expression)"},
+          ]
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:context) do
+          Datadog::DI::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe,
+            target_self: Object.new,
+            locals: {
+              bar: 42,
+            },
+          )
+        end
+
+        it "builds expected message" do
+          payload = builder.build_snapshot(context)
+          expect(payload).to be_a(Hash)
+          expect(payload[:message]).to eq "hello42"
+
+          # We asked to not create a snapshot
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
+        end
+
+        context "when there is an evaluation error" do
+          let(:segments) do
+            [
+              {str: "hello"},
+              {json: {substring: ["bar", "baz", 3]}, dsl: "(expression)"},
+            ]
+          end
+
+          it "replaces bogus expressions with [evaluation error] and fills out evaluation errors" do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            expect(payload[:message]).to eq "hello[evaluation error]"
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
+              {message: "ArgumentError: bad value for range", expr: "(expression)"},
+            ]
+
+            # We asked to not create a snapshot
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
+          end
+        end
+
+        context "when there are multiple evaluation errors" do
+          let(:segments) do
+            [
+              {str: "hello"},
+              {json: {substring: ["bar", "baz", 3]}, dsl: "(bar baz 3)"},
+              {json: {filter: ["bar", "baz"]}, dsl: "(bar baz)"},
+              {str: "hello"},
+            ]
+          end
+
+          it "attempts to evaluate all expressions" do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            expect(payload[:message]).to eq "hello[evaluation error][evaluation error]hello"
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
+              {message: "ArgumentError: bad value for range", expr: "(bar baz 3)"},
+              {message: "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String", expr: "(bar baz)"},
+            ]
+
+            # We asked to not create a snapshot
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
+          end
+        end
+
+        context "when variables are referenced but none are passed in" do
+          let(:context) do
+            Datadog::DI::Context.new(
+              settings: settings, serializer: serializer,
+              probe: probe,
+              target_self: Object.new,
+            )
+          end
+
+          it "builds message with nothing substituted for variables" do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            # TODO maybe this output is suboptimal but we need more
+            # complexity to handle missing variable references without
+            # serializing nil as empty string everywhere.
+            expect(payload[:message]).to eq "hellonil"
+
+            # We asked to not create a snapshot
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
+          end
         end
       end
     end

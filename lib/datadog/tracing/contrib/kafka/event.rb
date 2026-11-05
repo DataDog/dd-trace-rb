@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
-require_relative '../active_support/notifications/event'
-require_relative 'ext'
+require_relative "../analytics"
+require_relative "../active_support/notifications/event"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -30,6 +30,7 @@ module Datadog
             end
 
             def on_start(span, _event, _id, payload)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
 

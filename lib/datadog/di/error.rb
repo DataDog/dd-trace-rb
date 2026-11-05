@@ -10,8 +10,16 @@ module Datadog
     #
     # @api private
     class Error < StandardError
+      # Internal Dynamic Instrumentation error ("should never happen").
+      class InternalError < Error
+      end
+
       # Probe does not contain a line number (i.e., is not a line probe).
       class MissingLineNumber < Error
+      end
+
+      # Probe does not contain a method name (i.e., is not a method probe).
+      class MissingMethodName < Error
       end
 
       # Failed to communicate to the local Datadog agent (e.g. to send
@@ -38,6 +46,17 @@ module Datadog
       class ProbePreviouslyFailed < Error
       end
 
+      # Raised when trying to instrument a probe when there is existing
+      # instrumentation for the same probe id.
+      class AlreadyInstrumented < Error
+      end
+
+      # Raised when a probe targets a class or module that the tracer
+      # refuses to instrument (for example, anything in the Datadog
+      # namespace, which the tracer itself uses internally).
+      class ProbeTargetForbidden < Error
+      end
+
       # Raised when installing a line probe and multiple files match the
       # specified path suffix.
       # A probe must be installed into one file only, since UI only
@@ -47,6 +66,47 @@ module Datadog
       # user intended. Instrumentation will fail when multiple files match
       # and the user will need to make their suffix more precise.
       class MultiplePathsMatch < Error
+      end
+
+      # Base class for exceptions arising during expression language AST
+      # compilation into Ruby code.
+      #
+      # Expression language does not specify behavior in all cases,
+      # leaving some choices to the language implementation in the tracers.
+      # It is therefore possible that some technically valid expressions are
+      # prohibited by our implementation.
+      #
+      # It is also possible that the sanitizers/validators prohibit some
+      # esoteric constructs that are technically valid in Ruby,
+      # for example if instance variable name rules are relaxed to allow
+      # arbitrary characters in them as permitted in method names.
+      class InvalidExpression < Error
+      end
+
+      # Variable name with invalid characters in an expression language
+      # expression.
+      class BadVariableName < InvalidExpression
+      end
+
+      # Base class for exceptions arising when evaluating expression language
+      # expressions.
+      class ExpressionEvaluationError < Error
+      end
+
+      # Raised when expression evaluation exceeds the configured
+      # evaluation CPU-time budget, or a `matches` operator exceeds its
+      # per-match wall-clock bound.
+      class EvaluationTimeout < ExpressionEvaluationError
+        # Default message for EvaluationTimeout exceptions.
+        DEFAULT_MESSAGE = "expression evaluation timeout"
+
+        # Builds the exception, defaulting +message+ to DEFAULT_MESSAGE.
+        #
+        # @param message [String] exception message.
+        # @return [void]
+        def initialize(message: DEFAULT_MESSAGE)
+          super(message)
+        end
       end
     end
   end

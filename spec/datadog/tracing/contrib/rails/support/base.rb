@@ -1,19 +1,24 @@
-require_relative 'controllers'
-require_relative 'models'
-require_relative 'log_configuration'
+require_relative "controllers"
+require_relative "models"
+require_relative "log_configuration"
 
-require_relative 'deprecation'
+require_relative "deprecation"
 
-RSpec.shared_context 'Rails base application' do
-  include_context 'Rails controllers'
-  include_context 'Rails models'
-  include_context 'Rails log configuration'
+RSpec.shared_context "Rails base application" do
+  include_context "Rails controllers"
+  include_context "Rails models"
+  include_context "Rails log configuration"
 
   before do
     raise_on_rails_deprecation!
   end
 
   after do
+    # NOTE: We forsibly close connection pool to avoid leaking connection between
+    #       test cases.
+    #       This call is safe to be used on already closed connection pool.
+    application_record.connection.disconnect! if application_record&.connected?
+
     # Reset references stored in the Rails class
     Rails.application = nil
     Rails.logger = nil
@@ -24,11 +29,11 @@ RSpec.shared_context 'Rails base application' do
   end
 
   let(:rails_base_application) do
-    raise 'Must be implemented by each version of Rails test app.'
+    raise "Must be implemented by each version of Rails test app."
   end
 
   let(:rails_test_application) do
-    stub_const('RailsTest::Application', rails_base_application)
+    stub_const("RailsTest::Application", rails_base_application)
   end
 
   let(:app) do
@@ -59,10 +64,6 @@ RSpec.shared_context 'Rails base application' do
     end
   end
 
-  around do |example|
-    # Workaround for a `pg` gem bug on Mac, when the process forks: https://github.com/ged/ruby-pg/issues/538
-    ClimateControl.modify('PGGSSENCMODE' => 'disable') do
-      example.run
-    end
-  end
+  # Workaround for a `pg` gem bug on Mac, when the process forks: https://github.com/ged/ruby-pg/issues/538
+  with_env "PGGSSENCMODE" => "disable"
 end

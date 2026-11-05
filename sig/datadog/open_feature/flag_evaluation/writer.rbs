@@ -1,0 +1,176 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Writer
+        include Core::Workers::Async::Thread
+
+        type event = ::Hash[::String, any]
+
+        FLUSH_INTERVAL_SECONDS: ::Integer
+
+        DRAIN_INTERVAL_SECONDS: ::Float
+
+        SHUTDOWN_TIMEOUT_SECONDS: ::Integer
+
+        QUEUE_SIZE: ::Integer
+
+        MAX_DRAIN_EVENTS_PER_CYCLE: ::Integer
+
+        PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
+
+        TELEMETRY_NAMESPACE: ::String
+
+        ROWS_DROPPED_METRIC: ::String
+
+        ROWS_DEGRADED_METRIC: ::String
+
+        PAYLOAD_SPLITS_METRIC: ::String
+
+        CONTEXT_TRUNCATED_METRIC: ::String
+
+        REASON_QUEUE_OVERFLOW: ::String
+
+        REASON_DEGRADED_CAP: ::String
+
+        REASON_CARDINALITY_CAP: ::String
+
+        REASON_PAYLOAD_LIMIT: ::String
+
+        REASON_PRE_QUEUE_OVERFLOW: ::String
+
+        REASON_SERIALIZATION_ERROR: ::String
+
+        REASON_SNAPSHOT_ERROR: ::String
+
+        TARGETING_KEY_FIELD: ::String
+
+        TARGETING_KEY_HASH_PREFIX: ::String
+
+        @transport: Transport::HTTP
+
+        @logger: Core::Logger
+
+        @telemetry: Core::Telemetry::Component?
+
+        @aggregator: Aggregator
+
+        @queue: ::Thread::SizedQueue
+
+        @stop_mutex: ::Thread::Mutex
+
+        @stop_cond: ::Thread::ConditionVariable
+
+        @stopped: bool
+
+        @dropped_queue_overflow: ::Integer
+
+        @dropped_pre_queue_overflow: ::Integer
+
+        @context_truncated_counts: ::Hash[::String, ::Integer]
+
+        @context_snapshot_error_logged: bool
+
+        @service_context: ::Hash[::String, ::String]
+
+        attr_reader service_context: ::Hash[::String, ::String]
+
+        attr_reader dropped_queue_overflow: ::Integer
+
+        def initialize: (
+          transport: Transport::HTTP,
+          logger: Core::Logger,
+          ?telemetry: Core::Telemetry::Component?
+        ) -> void
+
+        def enqueue: (
+          flag_key: any,
+          eval_time_ms: any,
+          ?variant: any,
+          ?allocation_key: any,
+          ?error_message: any,
+          ?runtime_default: bool?,
+          ?targeting_key: any,
+          ?attrs: Aggregator::raw_context?,
+          ?observe_full_evaluation_data: bool,
+          **any event
+        ) -> void
+
+        def stop: () -> bool
+
+        private
+
+        def after_fork: () -> void
+
+        def snapshot_context: (Aggregator::raw_context? attrs) -> Aggregator::context
+
+        def build_service_context: () -> ::Hash[::String, ::String]
+
+        def snapshot_string: (any value) -> ::String?
+        def snapshot_targeting_key: (any value) -> ::String?
+        def snapshot_integer: (any value) -> ::Integer
+        def normalized_error_code: (any value) -> ::String?
+
+        def start_background_thread: () -> void
+
+        def running?: () -> bool
+
+        def perform: () -> void
+
+        def stopped?: () -> bool
+
+        def wait_for_next_cycle: () -> void
+
+        def drain_and_flush: () -> void
+
+        def drain_queue: (?max_events: ::Integer?) -> ::Integer
+
+        def flush_once: () -> void
+
+        def read_and_reset_dropped_queue_overflow: () -> ::Integer
+
+        def read_and_reset_dropped_pre_queue_overflow: () -> ::Integer
+
+        def read_and_reset_context_truncated_counts: () -> ::Hash[::String, ::Integer]
+
+        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow, ::Integer dropped_pre_queue) -> void
+
+        def build_events: (Aggregator::snapshot snapshot) -> ::Array[event]
+
+        def build_event: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          targeting_key: ::String?,
+          entry: Aggregator::entry,
+          flush_time_ms: ::Integer,
+          tier: ::Symbol
+        ) -> event
+
+        def prefixed_targeting_key_digest: (::String targeting_key) -> ::String
+
+        def send_payload_batches: (::Array[event] events) -> void
+
+        def send_payload_batch: (::Array[event] events) -> any
+
+        def encoded_event_for_payload: (
+          event event,
+          ::Integer base_payload_size
+        ) -> [event, ::Integer, bool]?
+
+        def encoded_event: (event event) -> [event, ::Integer]
+
+        def event_fits_payload?: (::Integer event_size, ::Integer base_payload_size) -> bool
+
+        def degrade_event_for_payload_limit: (event event) -> event?
+
+        def event_count: (event event) -> ::Integer
+
+        def record_telemetry_count: (
+          ::String metric_name,
+          ::Integer count,
+          ?reason: ::String?
+        ) -> void
+      end
+    end
+  end
+end

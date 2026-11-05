@@ -14,7 +14,7 @@ while getopts ":hv:" opt; do
       echo "Usage: ./script/build-images [-v RUBY_VERSION]"
       echo
       echo "If no Ruby version is specified, images are built for each of the"
-      echo "supported versions (currently 2.5 through 3.4)."
+      echo "supported versions (currently 2.5 through 4.0)."
       exit 0
       ;;
     v)
@@ -47,6 +47,7 @@ else
   docker build -t datadog/dd-apm-demo:rb-3.2 -f $INTEGRATION_DIR/images/ruby/3.2/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.3 -f $INTEGRATION_DIR/images/ruby/3.3/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.4 -f $INTEGRATION_DIR/images/ruby/3.4/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-4.0 -f $INTEGRATION_DIR/images/ruby/4.0/Dockerfile $INTEGRATION_DIR/images
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building base images. =="

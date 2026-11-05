@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
-require_relative 'event'
+require_relative "event"
 
-require_relative '../utils/only_once_successful'
-require_relative '../workers/polling'
-require_relative '../workers/queue'
+require_relative "../utils/only_once_successful"
+require_relative "../workers/polling"
+require_relative "../workers/queue"
 
 module Datadog
   module Core
     module Telemetry
-      # Accumulates events and sends them to the API at a regular interval, including heartbeat event.
+      # Accumulates events and sends them to the API at a regular interval,
+      # including heartbeat event.
+      #
+      # @api private
       class Worker
         include Core::Workers::Queue
         include Core::Workers::Polling
@@ -24,6 +27,9 @@ module Datadog
           metrics_manager:,
           dependency_collection:,
           logger:,
+          settings:,
+          agent_settings:,
+          extended_heartbeat_interval_seconds:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
@@ -32,38 +38,56 @@ module Datadog
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
           @logger = logger
+          @settings = settings
+          @agent_settings = agent_settings
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          @ticks_per_extended_heartbeat = (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
 
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
-          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
+          # We actually restart the worker after fork, but this is done
+          # via the AtForkMonkeyPatch rather than the worker fork policy
+          # because we also need to reset state outside of the worker
+          # (the metrics, for example).
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
           @shutdown_timeout = shutdown_timeout
           @buffer_size = buffer_size
+          @initial_event = nil
 
+          initialize_state
+        end
+
+        # To make the method calls clear, the initialization code is in this
+        # method called +initialize_state+ which is called from +after_fork+.
+        # This way users of this class (telemetry Component, for example) do not
+        # need to invoke +initialize_state+ directly, which can be confusing.
+        private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
           @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
+          @extended_heartbeat_ticks = 0
         end
 
         attr_reader :logger
         attr_reader :initial_event_once
         attr_reader :initial_event
+        attr_reader :emitter
 
         # Returns true if worker thread is successfully started,
         # false if worker thread was not started but telemetry is enabled,
         # nil if telemetry is disabled.
         def start(initial_event)
-          return if !enabled? || forked?
+          return unless enabled?
 
           @initial_event = initial_event
 
           # starts async worker
-          # perform should return true if thread was actually started,
+          # perform returns true when it actually starts the thread,
           # false otherwise
           perform
         end
@@ -79,7 +103,7 @@ module Datadog
         # for not enqueueing event (presently) is that telemetry is disabled
         # altogether, and in this case other methods return nil.
         def enqueue(event)
-          return if !enabled? || forked?
+          return unless enabled?
 
           buffer.push(event)
           true
@@ -102,43 +126,21 @@ module Datadog
         # been flushed.
         #
         # @api private
-        def flush
-          return true unless enabled? || !run_loop?
-
-          started = Utils::Time.get_time
-          loop do
-            # The AppStarted event is triggered by the worker itself,
-            # from the worker thread. As such the main thread has no way
-            # to delay itself until that event is queued and we need some
-            # way to wait until that event is sent out to assert on it in
-            # the test suite. Check the run once flag which *should*
-            # indicate the event has been queued (at which point our queue
-            # depth check should waint until it's sent).
-            # This is still a hack because the flag can be overridden
-            # either way with or without the event being sent out.
-            # Note that if the AppStarted sending fails, this check
-            # will return false and flushing will be blocked until the
-            # 15 second timeout.
-            # Note that the first wait interval between telemetry event
-            # sending is 10 seconds, the timeout needs to be strictly
-            # greater than that.
-            return true if buffer.empty? && !in_iteration? && sent_initial_event?
-
-            sleep 0.5
-
-            return false if Utils::Time.get_time - started > 15
-          end
+        def flush(timeout: nil)
+          # Increase default timeout to 15 seconds - see the comment in
+          # +idle?+ for more details.
+          super(timeout: timeout || 15)
         end
 
         private
 
         def perform(*events)
-          return if !enabled? || forked?
+          return unless enabled?
 
           if need_initial_event?
             started!
             unless sent_initial_event?
-              # We still haven't succeeded in sending the started event,
+              # We still have not succeeded in sending the started event,
               # which will make flush_events do nothing - but the events
               # given to us as the parameter have already been removed
               # from the queue.
@@ -157,6 +159,13 @@ module Datadog
           end
 
           @current_ticks += 1
+          @extended_heartbeat_ticks += 1
+
+          if @extended_heartbeat_ticks >= @ticks_per_extended_heartbeat
+            @extended_heartbeat_ticks = 0
+            extended_heartbeat!
+          end
+
           return if @current_ticks < @ticks_per_heartbeat
 
           @current_ticks = 0
@@ -176,8 +185,17 @@ module Datadog
           send_event(Event::AppHeartbeat.new)
         end
 
+        def extended_heartbeat!
+          return if !enabled? || !sent_initial_event?
+
+          send_event(Event::AppExtendedHeartbeat.new(settings: @settings, agent_settings: @agent_settings))
+        end
+
         def started!
           return unless enabled?
+
+          initial_event = @initial_event
+          return unless initial_event
 
           initial_event_once.run do
             res = send_event(initial_event)
@@ -185,11 +203,13 @@ module Datadog
             if res.ok?
               logger.debug { "Telemetry initial event (#{initial_event.type}) is successfully sent" }
 
-              # TODO Dependencies loaded event should probably check for new
-              # dependencies and send the new ones.
+              # TODO The DependenciesLoaded event can probably also check
+              # for new dependencies and send the new ones.
               # System tests demand only one instance of this event per
               # dependency.
-              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection && initial_event.class.eql?(Telemetry::Event::AppStarted) # standard:disable Style/ClassEqualityComparison:
+              if @dependency_collection && initial_event.app_started?
+                send_event(Event::AppDependenciesLoaded.new)
+              end
 
               true
             else
@@ -212,6 +232,8 @@ module Datadog
           res
         end
 
+        # This method overrides Queue's dequeue method and does LIFO instead
+        # of FIFO that Queue implements. Why?
         def dequeue
           buffer.pop
         end
@@ -221,7 +243,7 @@ module Datadog
         end
 
         def buffer_klass
-          if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+          if Core::Environment::Ext::RUBY_ENGINE == "ruby"
             Core::Buffer::CRuby
           else
             Core::Buffer::ThreadSafe
@@ -236,8 +258,49 @@ module Datadog
         def disable_on_not_found!(response)
           return unless response.not_found?
 
-          logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          logger.debug("Agent does not support telemetry; disabling future telemetry events.")
           disable!
+        end
+
+        # Call this method in a forked child to reset the state of this worker.
+        #
+        # Discard any accumulated events since the parent will send
+        # them.
+        # Discard any accumulated metrics.
+        # If the worker thread was running in the parent process,
+        # restart it.
+        #
+        # This method cannot be called +after_fork+ because workers define
+        # and call +after_fork+ which is supposed to do different things.
+        def after_fork_monkey_patched
+          # If telemetry is disabled, we still reset the state to avoid
+          # having wrong state. It is possible that in the future telemetry
+          # will be re-enabled after errors.
+          initialize_state
+          # In the child process, we get a new runtime_id.
+          # As such we need to send AppStarted event.
+          # In the parent process, the previous event was possibly the
+          # SynthAppClientConfigurationChange instead of AppStarted,
+          # and in that case we need to convert it to the "regular"
+          # AppStarted event.
+          initial_event = @initial_event
+          if initial_event.is_a?(Event::SynthAppClientConfigurationChange)
+            # Ideally we replace the initial event in
+            # +initialize_state+ directly. Unfortunately this event requires
+            # the entire component tree to build its payload, which we
+            # 1) do not currently have in telemetry and
+            # 2) do not want to keep a permanent reference to in any case.
+            # Therefore we have this +reset!+ method that changes the
+            # event type while keeping the payload.
+            initial_event.reset!
+          end
+
+          if enabled? && !worker.nil?
+            # If the background thread was started in the parent
+            # process (which requires telemetry to be enabled), start it.
+            # Do this after all of the state resets.
+            perform
+          end
         end
 
         # Deduplicate logs by counting the number of repeated occurrences of the same log
@@ -269,6 +332,25 @@ module Datadog
           end
 
           other_events + uniq_logs
+        end
+
+        def idle?
+          # The worker itself sends the AppStarted event,
+          # from the worker thread. As such the main thread has no way
+          # to delay itself until that event is queued and we need some
+          # way to wait until that event is sent out to assert on it in
+          # the test suite. Check the run once flag which *normally*
+          # indicates the event was queued (at which point our queue
+          # depth check waits until it is sent).
+          # This is still a hack because the flag can be overridden
+          # either way with or without the event being sent out.
+          # If sending the AppStarted event fails, this check
+          # will return false and flushing will be blocked until the
+          # 15 second timeout.
+          # Note that the first wait interval between telemetry event
+          # sending is 10 seconds, the timeout needs to be strictly
+          # greater than that.
+          super && sent_initial_event?
         end
       end
     end

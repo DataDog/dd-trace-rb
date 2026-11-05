@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative 'ext'
+require_relative "../../metadata/ext"
+require_relative "ext"
 
 module Datadog
   module Tracing
@@ -20,15 +20,16 @@ module Datadog
               def run(query)
                 Tracing.trace(
                   Ext::SPAN_QUERY,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, false)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query)
@@ -38,15 +39,16 @@ module Datadog
               def query(query, &blk)
                 Tracing.trace(
                   Ext::SPAN_QUERY,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query, &blk)
@@ -56,16 +58,17 @@ module Datadog
               def kill(query_id)
                 Tracing.trace(
                   Ext::SPAN_KILL,
-                  service: datadog_configuration[:service_name]
+                  service: datadog_configuration[:service_name],
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_KILL)
                     span.resource = Ext::SPAN_KILL
                     span.type = Tracing::Metadata::Ext::AppTypes::TYPE_DB
                     # ^ not an SQL type span, since there's no SQL query
                     span.set_tag(Ext::TAG_QUERY_ID, query_id)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query_id)
@@ -88,13 +91,8 @@ module Datadog
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                    datadog_configuration[:peer_service]
+                    datadog_configuration[:peer_service],
                   )
-                end
-
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                 end
 
                 if (host_port = @options[:server])

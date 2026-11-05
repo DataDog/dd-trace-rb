@@ -17,7 +17,7 @@ module Datadog
     # and remote config code must be prepared to deal with exceptions
     # raised by Probe constructor in particular. Therefore, Probe constructor
     # will raise an exception if it determines that there is not enough
-    # information (or confilcting information) in the arguments to create a
+    # information (or conflicting information) in the arguments to create a
     # functional probe, and upstream code is tasked with not spamming logs
     # with notifications of such errors (and potentially limiting the
     # attempts to construct probe from a given payload).
@@ -34,10 +34,17 @@ module Datadog
     class Probe
       KNOWN_TYPES = %i[log].freeze
 
+      EVALUATE_AT_VALUES = %i[entry exit].freeze
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
-        template: nil, capture_snapshot: false, max_capture_depth: nil,
+        template: nil, template_segments: nil,
+        capture_snapshot: false, max_capture_depth: nil,
         max_capture_attribute_count: nil,
+        max_capture_collection_size: nil, max_capture_string_length: nil,
+        capture_expressions: [],
+        evaluate_at: nil,
+        condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
@@ -45,9 +52,17 @@ module Datadog
           raise ArgumentError, "Unknown probe type: #{type}"
         end
 
-        if line_no && method_name
-          raise ArgumentError, "Probe contains both line number and method name: #{id}"
-        end
+        # Probe should be inferred to be a line probe if the specification
+        # contains a line number. This how Java tracer works and Go tracer
+        # is implementing the same behavior, and Go will have all 3 fields
+        # (file path, line number and method name) for line probes.
+        # Do not raise if line number and method name both exist - instead
+        # treat the probe as a line probe.
+        #
+        # In the future we want to provide type name and method name to line
+        # probes, so that the library can verify that the instrumented line
+        # is in the method that the frontend showed to the user when the
+        # user created the probe.
 
         if line_no && !file
           raise ArgumentError, "Probe contains line number but not file: #{id}"
@@ -57,6 +72,10 @@ module Datadog
           raise ArgumentError, "Partial method probe definition: #{id}"
         end
 
+        if line_no.nil? && method_name.nil?
+          raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
+        end
+
         @id = id
         @type = type
         @file = file
@@ -64,22 +83,35 @@ module Datadog
         @type_name = type_name
         @method_name = method_name
         @template = template
+        @template_segments = template_segments
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
-
-        # These checks use instance methods that have more complex logic
-        # than checking a single argument value. To avoid duplicating
-        # the logic here, use the methods and perform these checks after
-        # instance variable assignment.
-        unless method? || line?
-          raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
+        @max_capture_collection_size = max_capture_collection_size
+        @max_capture_string_length = max_capture_string_length
+        @capture_expressions = capture_expressions || []
+        evaluate_at = :exit if evaluate_at.nil?
+        unless EVALUATE_AT_VALUES.include?(evaluate_at)
+          raise ArgumentError, "Unknown evaluate_at value: #{evaluate_at.inspect} (expected one of #{EVALUATE_AT_VALUES.inspect})"
         end
+        @evaluate_at = evaluate_at
+        @condition = condition
 
-        @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
+        @rate_limit = rate_limit || (capturing? ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
+        # At most one report per second.
+        # We create the rate limiter here even though it may never be used,
+        # to avoid having to synchronize the creation since method probes
+        # can be executed on multiple threads concurrently (even if line
+        # probes are never executed concurrently since those are done in a
+        # trace point).
+        if condition
+          @condition_evaluation_failed_rate_limiter = Datadog::Core::TokenBucket.new(1)
+        end
+
         @emitting_notified = false
+        @enabled = true
       end
 
       attr_reader :id
@@ -89,6 +121,10 @@ module Datadog
       attr_reader :type_name
       attr_reader :method_name
       attr_reader :template
+      attr_reader :template_segments
+
+      # The compiled condition for the probe, as a String.
+      attr_reader :condition
 
       # Configured maximum capture depth. Can be nil in which case
       # the global default will be used.
@@ -98,14 +134,63 @@ module Datadog
       # the global default will be used.
       attr_reader :max_capture_attribute_count
 
+      attr_reader :max_capture_collection_size
+
+      attr_reader :max_capture_string_length
+
+      attr_reader :capture_expressions
+
+      attr_reader :evaluate_at
+
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit
 
       # Rate limiter object. For internal DI use only.
       attr_reader :rate_limiter
 
+      # Rate limiter object for sending snapshots with evaluation errors
+      # for when probe condition evaluation fails.
+      # This rate limit is separate from the "base" rate limit for the probe
+      # because when the condition evaluation succeeds we want the "base"
+      # rate limit applied, not tainted by any evaluation errors
+      # (for example, the condition can be highly selective, and when it
+      # does not hold the evaluation may fail - we don't want to use up the
+      # probe rate limit for the errors).
+      attr_reader :condition_evaluation_failed_rate_limiter
+
       def capture_snapshot?
         @capture_snapshot
+      end
+
+      def capture_expressions?
+        !@capture_expressions.empty?
+      end
+
+      # Whether this probe captures user data, either as a full snapshot
+      # or via capture expressions.
+      #
+      # @return [Boolean]
+      def capturing?
+        capture_snapshot? || capture_expressions?
+      end
+
+      def evaluate_at_entry?
+        evaluate_at == :entry
+      end
+
+      # Capture-expression mode: the probe captures expressions but not a full
+      # snapshot. Snapshot capture serializes its own values, so expression
+      # capture only runs when a snapshot is not being taken.
+      def capture_expressions_only?
+        capture_expressions? && !capture_snapshot?
+      end
+
+      def capture_entry_expressions?
+        capture_expressions_only? && evaluate_at_entry?
+      end
+
+      def snapshot_serializer_limits(settings)
+        CaptureLimits.resolve(expr_limits: nil, probe: self, settings: settings)
       end
 
       # Returns whether the probe is a line probe.
@@ -122,7 +207,7 @@ module Datadog
 
       # Returns whether the probe is a method probe.
       def method?
-        !!(type_name && method_name)
+        line_no.nil?
       end
 
       # Returns the line number associated with the probe, raising
@@ -137,6 +222,20 @@ module Datadog
           raise Error::MissingLineNumber, "Probe #{id} does not have a line number associated with it"
         end
         line_no
+      end
+
+      # Returns the method name associated with the probe, raising
+      # Error::MissingMethodName if the probe does not have a method name
+      # associated with it.
+      #
+      # This method is used by instrumentation driver to ensure a method name
+      # that is passed into the instrumentation logic is actually a method name
+      # and not nil.
+      def method_name!
+        if method_name.nil?
+          raise Error::MissingMethodName, "Probe #{id} does not have a method name associated with it"
+        end
+        method_name
       end
 
       # Source code location of the probe, for diagnostic reporting.
@@ -185,6 +284,23 @@ module Datadog
       attr_writer :emitting_notified
       def emitting_notified?
         !!@emitting_notified
+      end
+
+      def executed_on_line?
+        !!(defined?(@executed_on_line) && @executed_on_line)
+      end
+
+      def executed_on_line!
+        # TODO lock?
+        @executed_on_line = true
+      end
+
+      def enabled?
+        @enabled
+      end
+
+      def disable!
+        @enabled = false
       end
     end
   end

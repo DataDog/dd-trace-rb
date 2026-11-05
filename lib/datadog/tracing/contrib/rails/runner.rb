@@ -41,7 +41,7 @@ module Datadog
           def eval(*args)
             source = args[0]
 
-            if args[2] == 'stdin'
+            if args[2] == "stdin"
               name = Ext::SPAN_RUNNER_STDIN
               operation = Ext::TAG_OPERATION_STDIN
             else
@@ -53,14 +53,15 @@ module Datadog
               name,
               service: Datadog.configuration.tracing[:rails][:service_name],
               tags: {
+                Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                 Tracing::Metadata::Ext::TAG_OPERATION => operation,
-              }
+              },
             ) do |span|
               if source
                 span.set_tag(
                   Ext::TAG_RUNNER_SOURCE,
-                  Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE)
+                  Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE),
                 )
               end
               Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])
@@ -69,14 +70,15 @@ module Datadog
             end
           end
 
-          def self.prepend(base)
-            base.const_set(:Kernel, Kernel)
+          def self.prepended(base)
+            base.const_set(:Kernel, InstrumentedKernel)
           end
 
           # Instruments the `Kernel.load` method, but only for the
           # `Rails::Command::RunnerCommand` class.
-          module Kernel
-            def self.load(file, wrap = true)
+          module InstrumentedKernel
+            def self.load(*args)
+              file = args[0]
               name = Ext::SPAN_RUNNER_FILE
               resource = file
               operation = Ext::TAG_OPERATION_FILE
@@ -85,7 +87,7 @@ module Datadog
                 # Reads one more byte than the limit to allow us to check if the source exceeds the limit.
                 source = File.read(file, MAX_TAG_VALUE_SIZE + 1)
               rescue => e
-                Datadog.logger.debug("Failed to read file '#{file}' for Rails runner: #{e.message}")
+                Datadog.logger.debug { "Failed to read file '#{file}' for Rails runner: #{e.class}: #{e.message}" }
               end
 
               Tracing.trace(
@@ -93,14 +95,15 @@ module Datadog
                 service: Datadog.configuration.tracing[:rails][:service_name],
                 resource: resource,
                 tags: {
+                  Tracing::Metadata::Ext::TAG_SVC_SRC => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_COMPONENT => Ext::TAG_COMPONENT,
                   Tracing::Metadata::Ext::TAG_OPERATION => operation,
-                }
+                },
               ) do |span|
                 if source
                   span.set_tag(
                     Ext::TAG_RUNNER_SOURCE,
-                    Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE)
+                    Core::Utils.truncate(source, MAX_TAG_VALUE_SIZE),
                   )
                 end
                 Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])

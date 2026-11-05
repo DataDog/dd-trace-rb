@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../environment/platform'
-require_relative '../utils/hash'
+require_relative "../environment/platform"
+require_relative "../environment/process"
+require_relative "../utils/hash"
 
 module Datadog
   module Core
@@ -9,11 +10,9 @@ module Datadog
       # Module defining methods for collecting metadata for telemetry
       module Request
         class << self
-          using Core::Utils::Hash::Refinement
-
-          def build_payload(event, seq_id, api_version: 'v2', debug: false)
+          def build_payload(event, seq_id, debug: false)
             hash = {
-              api_version: api_version,
+              api_version: "v2",
               application: application,
               debug: debug,
               host: host,
@@ -29,6 +28,14 @@ module Datadog
 
           private
 
+          # The `ci` settings member exists only when the datadog-ci gem is
+          # loaded, so check for it before reading.
+          def datadog_ci_enabled?(config)
+            return false unless defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci)
+
+            config.ci.enabled # steep:ignore NoMethod
+          end
+
           def application
             config = Datadog.configuration
 
@@ -39,11 +46,9 @@ module Datadog
             #
             # This code checks that Datadog::CI is loaded and ci mode is enabled and adds
             # "-ci-X.Y.Z" suffix to the tracer version.
-            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled
-              tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
-            end
+            tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}" if datadog_ci_enabled?(config)
 
-            {
+            app = {
               env: config.env,
               language_name: Core::Environment::Ext::LANG,
               language_version: Core::Environment::Ext::LANG_VERSION,
@@ -51,8 +56,12 @@ module Datadog
               runtime_version: Core::Environment::Ext::ENGINE_VERSION,
               service_name: config.service,
               service_version: config.version,
-              tracer_version: tracer_version
+              tracer_version: tracer_version,
             }
+
+            tag_process_tags!(app, config)
+
+            app
           end
 
           def host
@@ -61,8 +70,17 @@ module Datadog
               hostname: Core::Environment::Platform.hostname,
               kernel_name: Core::Environment::Platform.kernel_name,
               kernel_release: Core::Environment::Platform.kernel_release,
-              kernel_version: Core::Environment::Platform.kernel_version
+              kernel_version: Core::Environment::Platform.kernel_version,
             }
+          end
+
+          def tag_process_tags!(app, config)
+            return unless config.experimental_propagate_process_tags_enabled
+
+            process_tags = Core::Environment::Process.serialized
+            return if process_tags.empty?
+
+            app[:process_tags] = process_tags
           end
         end
       end

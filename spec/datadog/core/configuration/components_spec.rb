@@ -1,27 +1,20 @@
-require 'spec_helper'
-require 'datadog/di/spec_helper'
-require 'datadog/profiling/spec_helper'
+require "spec_helper"
+require "datadog/di/spec_helper"
+require "datadog/profiling/spec_helper"
 
-require 'logger'
+require "logger"
 
-require 'datadog/core/configuration/components'
-require 'datadog/core/diagnostics/environment_logger'
-require 'datadog/core/diagnostics/health'
-require 'datadog/core/logger'
-require 'datadog/core/telemetry/component'
-require 'datadog/core/runtime/metrics'
-require 'datadog/core/workers/runtime_metrics'
-require 'datadog/statsd'
-require 'datadog/core/configuration/agent_settings_resolver'
-require 'datadog/tracing/flush'
-require 'datadog/tracing/sampling/all_sampler'
-require 'datadog/tracing/sampling/priority_sampler'
-require 'datadog/tracing/sampling/rate_by_service_sampler'
-require 'datadog/tracing/sampling/rule_sampler'
-require 'datadog/tracing/sync_writer'
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/writer'
-require 'datadog/core/transport/http/adapters/net'
+require "datadog/core/configuration/components"
+require "datadog/core/diagnostics/environment_logger"
+require "datadog/core/diagnostics/health"
+require "datadog/core/logger"
+require "datadog/core/telemetry/component"
+require "datadog/core/runtime/metrics"
+require "datadog/core/workers/runtime_metrics"
+require "datadog/statsd"
+require "datadog/core/configuration/agent_settings_resolver"
+require "datadog/core/transport/http/adapters/net"
+require "datadog/tracing/tracer"
 
 # TODO: Components contains behavior for all of the different products.
 #       Test behavior needs to be extracted to complimentary component files for every product.
@@ -31,6 +24,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:logger) do
     instance_double(Datadog::Core::Logger).tap do |logger|
       allow(logger).to receive(:debug)
+      # DI::Component.build is now invoked unconditionally during Components
+      # construction. When the DI C extension is not compiled (the default
+      # for `test:main`), build emits a customer-actionable warn that is
+      # unrelated to whatever the surrounding test is exercising.
+      allow(logger).to receive(:warn).with(/C extension is not available/)
     end
   end
   let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -38,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
-  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
+  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false, add_products: nil, remove_products: nil) }
   let(:telemetry) do
     instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
       allow(telemetry).to receive(:start)
@@ -46,9 +44,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  let(:environment_logger_extra) { { hello: 123, world: '456' } }
+  let(:environment_logger_extra) { {hello: 123, world: "456"} }
 
-  include_context 'non-development execution environment'
+  include_context "non-development execution environment"
 
   before do
     # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
@@ -60,11 +58,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
   end
 
-  around do |example|
-    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
+  with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
-  describe '::new' do
+  describe "::new" do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
@@ -75,10 +71,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(settings)
         .and_return(logger)
 
-      expect(described_class).to receive(:build_tracer)
+      expect(Datadog::Core::Configuration::StableConfig).to receive(:log_result)
+        .with(logger)
+
+      expect(Datadog::Tracing::Component).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
-      crashtracker = double('crashtracker')
+
+      crashtracker = double("crashtracker")
       expect(described_class).to receive(:build_crashtracker)
         .with(settings, agent_settings, logger: logger)
         .and_return(crashtracker)
@@ -97,6 +97,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings, logger, telemetry)
         .and_return(health_metrics)
+
+      expect(Datadog::Core::Configuration::Deprecations).to receive(:log_deprecations_from_all_sources)
+        .with(logger)
     end
 
     it do
@@ -108,23 +111,38 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.agent_info).to eq agent_info
     end
 
-    describe '@environment_logger_extra' do
+    describe "@environment_logger_extra" do
       let(:environment_logger_extra) { {} }
 
       let(:extra) do
-        components.instance_variable_get('@environment_logger_extra')
+        components.instance_variable_get(:@environment_logger_extra)
       end
 
-      context 'DI is not enabled' do
-        it 'reports DI as disabled' do
-          expect(components.dynamic_instrumentation).to be nil
+      context "DI is not enabled" do
+        # The DI component is now always built when settings respond to
+        # dynamic_instrumentation (regardless of the env-var enabled flag),
+        # so it can be started later by remote config if the customer turns
+        # it on from the UI. With the env-var unset, the component is built
+        # but stays stopped (not started?), and the env logger reports the
+        # customer-configured value as false.
+        let(:stub_di_component) do
+          instance_double(Datadog::DI::Component, started?: false, shutdown!: nil)
+        end
+
+        before do
+          allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+        end
+
+        it "builds the component but reports DI as disabled" do
+          expect(components.dynamic_instrumentation).to be(stub_di_component)
+          expect(components.dynamic_instrumentation.started?).to be false
           expect(extra).to eq(dynamic_instrumentation_enabled: false)
         end
       end
 
-      context 'DI is enabled' do
+      context "DI is enabled" do
         before(:all) do
-          skip 'DI is disabled due to Ruby version < 2.5' if RUBY_VERSION < '2.6'
+          skip "DI is disabled due to Ruby version < 2.6" if RubyVersion.is?("< 2.6")
         end
 
         before do
@@ -137,39 +155,179 @@ RSpec.describe Datadog::Core::Configuration::Components do
           components.dynamic_instrumentation&.shutdown!
         end
 
-        context 'MRI' do
+        context "MRI with C extension" do
           before(:all) do
-            skip 'Test requires MRI' if PlatformHelpers.jruby?
+            skip "Test requires MRI" if PlatformHelpers.jruby?
           end
 
-          it 'reports DI as enabled' do
-            expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+          let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+          before do
+            allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+          end
+
+          it "reports DI as enabled" do
+            expect(components.dynamic_instrumentation).to be(stub_di_component)
             expect(extra).to eq(dynamic_instrumentation_enabled: true)
           end
         end
 
-        context 'JRuby' do
+        context "MRI without C extension" do
           before(:all) do
-            skip 'Test requires JRuby' unless PlatformHelpers.jruby?
+            skip "Test requires MRI" if PlatformHelpers.jruby?
           end
 
-          it 'reports DI as disabled' do
-            expect(logger).to receive(:warn).with(/cannot enable dynamic instrumentation/)
+          before do
+            # Make Component.build behave as if the C extension is absent: the
+            # real build path checks `DI.respond_to?(:exception_message)` and
+            # warns + returns nil when the method is missing. Stubbing
+            # respond_to? lets the test exercise that branch regardless of
+            # whether the C extension is actually compiled in this build.
+            allow(Datadog::DI).to receive(:respond_to?).and_call_original
+            allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
+          end
+
+          it "reports DI as disabled" do
+            expect(logger).to receive(:warn).with(/C extension is not available/)
+            expect(components.dynamic_instrumentation).to be nil
+            expect(extra).to eq(dynamic_instrumentation_enabled: false)
+          end
+        end
+
+        context "JRuby" do
+          before(:all) do
+            skip "Test requires JRuby" unless PlatformHelpers.jruby?
+          end
+
+          it "reports DI as disabled" do
+            expect(logger).to receive(:warn).with(/MRI is required.*jruby/)
             expect(components.dynamic_instrumentation).to be nil
             expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end
         end
       end
     end
+
+    describe "@symbol_database" do
+      context "when symbol_database is disabled" do
+        before { settings.symbol_database.enabled = false }
+
+        it "does not build a symbol database component" do
+          expect(components.symbol_database).to be nil
+        end
+      end
+
+      context "when symbol_database is enabled with remote config" do
+        before(:all) do
+          skip "Symbol database requires MRI Ruby 2.7+" if PlatformHelpers.jruby? || RubyVersion.is?("< 2.7")
+        end
+
+        before do
+          settings.symbol_database.enabled = true
+          settings.remote.enabled = true
+        end
+
+        after { components.symbol_database&.shutdown! }
+
+        it "builds a symbol database component" do
+          expect(components.symbol_database).to be_a(Datadog::SymbolDatabase::Component)
+        end
+      end
+    end
   end
 
-  describe '::build_health_metrics' do
+  describe "::enable_symbol_database?" do
+    subject(:enabled?) { described_class.enable_symbol_database?(settings, dynamic_instrumentation) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    # enable_symbol_database? decides whether to BUILD the component. A non-nil
+    # DI component stands for "DI's component was built" (DI not explicitly
+    # disabled, runtime supported); nil stands for "DI's component was not
+    # built". The resolver never calls a method on it, only checks presence.
+    # Whether a built component actually uploads is gated separately, at upload
+    # time, on DI being active, by SymbolDatabase::Component#upload_allowed?.
+    let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+    context "when the symbol_database settings group is not registered (partial load)" do
+      # A plain double models a Settings object that lacks the dynamically-added
+      # symbol_database group, e.g. require 'datadog/di' without the full library.
+      let(:settings) { double("settings without symbol_database group") }
+
+      before { allow(settings).to receive(:respond_to?).with(:symbol_database).and_return(false) }
+
+      it "returns false even when DI is running" do
+        is_expected.to be false
+      end
+    end
+
+    context "when symbol_database.enabled is explicitly true" do
+      before { settings.symbol_database.enabled = true }
+
+      let(:dynamic_instrumentation) { nil }
+
+      it "returns true even when DI is not running" do
+        is_expected.to be true
+      end
+    end
+
+    context "when symbol_database.enabled is explicitly false" do
+      before { settings.symbol_database.enabled = false }
+
+      it "returns false even when DI is running" do
+        is_expected.to be false
+      end
+    end
+
+    context "when symbol_database.enabled is unset (nil)" do
+      before { settings.symbol_database.enabled = nil }
+
+      context "and DI's component was built" do
+        let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+        it { is_expected.to be true }
+      end
+
+      context "and DI's component was not built (nil)" do
+        let(:dynamic_instrumentation) { nil }
+
+        it { is_expected.to be false }
+      end
+
+      context "and dynamic_instrumentation.enabled is true but DI did not start" do
+        # e.g. Rails development mode or a missing DI C extension: the setting is
+        # true but DI::Component.build returned nil. The default must follow DI's
+        # runtime readiness, not the setting, so no symbol extraction happens.
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it "returns false" do
+          is_expected.to be false
+        end
+      end
+
+      context "and force_upload is set" do
+        # force_upload uploads unconditionally, so the component must be built
+        # even when the setting is nil and DI's component was not built —
+        # otherwise the force-upload path is unreachable.
+        before { settings.symbol_database.internal.force_upload = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it "returns true even when DI is not running" do
+          is_expected.to be true
+        end
+      end
+    end
+  end
+
+  describe "::build_health_metrics" do
     subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 
-    context 'given settings' do
-      shared_examples_for 'new health metrics' do
+    context "given settings" do
+      shared_examples_for "new health metrics" do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
-        let(:default_options) { { enabled: settings.health_metrics.enabled } }
+        let(:default_options) { {enabled: settings.health_metrics.enabled} }
         let(:options) { {} }
 
         before do
@@ -181,12 +339,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it { is_expected.to be(health_metrics) }
       end
 
-      context 'by default' do
-        it_behaves_like 'new health metrics'
+      context "by default" do
+        it_behaves_like "new health metrics"
       end
 
-      context 'with :enabled' do
-        let(:enabled) { double('enabled') }
+      context "with :enabled" do
+        let(:enabled) { double("enabled") }
 
         before do
           allow(settings.health_metrics)
@@ -194,12 +352,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(enabled)
         end
 
-        it_behaves_like 'new health metrics' do
-          let(:options) { { enabled: enabled } }
+        it_behaves_like "new health metrics" do
+          let(:options) { {enabled: enabled} }
         end
       end
 
-      context 'with :statsd' do
+      context "with :statsd" do
         let(:statsd) { instance_double(Datadog::Statsd) }
 
         before do
@@ -208,17 +366,17 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(statsd)
         end
 
-        it_behaves_like 'new health metrics' do
-          let(:options) { { statsd: statsd } }
+        it_behaves_like "new health metrics" do
+          let(:options) { {statsd: statsd} }
         end
       end
     end
   end
 
-  describe '::build_logger' do
+  describe "::build_logger" do
     subject(:build_logger) { described_class.build_logger(settings) }
 
-    context 'given an instance' do
+    context "given an instance" do
       let(:instance) { instance_double(Datadog::Core::Logger) }
 
       before do
@@ -229,20 +387,26 @@ RSpec.describe Datadog::Core::Configuration::Components do
           .with(settings.logger.level)
       end
 
-      it 'uses the logger instance' do
+      it "uses the logger instance" do
         expect(Datadog::Core::Logger).to_not receive(:new)
         is_expected.to be(instance)
       end
     end
 
-    context 'given settings' do
-      shared_examples_for 'new logger' do
+    context "given settings" do
+      shared_examples_for "new logger" do
         let(:logger) { instance_double(Datadog::Core::Logger) }
         let(:level) { settings.logger.level }
 
         before do
+          # Build the settings before Core::Logger.new is stubbed: the first
+          # settings construction in the process also builds the library's
+          # internal logger through Core::Logger.new, and the stub would return
+          # this instance double, which rejects its level= call.
+          settings
+
           expect(Datadog::Core::Logger).to receive(:new)
-            .with($stdout)
+            .with($stderr)
             .and_return(logger)
 
           expect(logger).to receive(:level=).with(level)
@@ -251,12 +415,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it { is_expected.to be(logger) }
       end
 
-      context 'by default' do
-        it_behaves_like 'new logger'
+      context "by default" do
+        it_behaves_like "new logger"
       end
 
-      context 'with :level' do
-        let(:level) { double('level') }
+      context "with :level" do
+        let(:level) { double("level") }
 
         before do
           allow(settings.logger)
@@ -264,24 +428,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(level)
         end
 
-        it_behaves_like 'new logger'
+        it_behaves_like "new logger"
       end
 
-      context 'with debug: true' do
+      context "with debug: true" do
         before { settings.diagnostics.debug = true }
 
-        it_behaves_like 'new logger' do
+        it_behaves_like "new logger" do
           let(:level) { ::Logger::DEBUG }
         end
 
-        context 'and a conflicting log level' do
+        context "and a conflicting log level" do
           before do
             allow(settings.logger)
               .to receive(:level)
               .and_return(::Logger::INFO)
           end
 
-          it_behaves_like 'new logger' do
+          it_behaves_like "new logger" do
             let(:level) { ::Logger::DEBUG }
           end
         end
@@ -289,26 +453,27 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  describe '::build_telemetry' do
+  describe "::build_telemetry" do
     subject(:build_telemetry) { described_class.build_telemetry(settings, agent_settings, logger) }
     let(:logger) { instance_double(Logger) }
 
-    it 'invokes Telemetry::Component.build' do
+    it "invokes Telemetry::Component.build" do
       expect(Datadog::Core::Telemetry::Component).to receive(:build).with(settings, agent_settings, logger)
       build_telemetry
     end
   end
 
-  describe '::build_runtime_metrics' do
+  describe "::build_runtime_metrics" do
     subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger, telemetry) }
 
-    context 'given settings' do
-      shared_examples_for 'new runtime metrics' do
+    context "given settings" do
+      shared_examples_for "new runtime metrics" do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
         let(:default_options) do
-          { enabled: settings.runtime_metrics.enabled,
-            services: [settings.service],
-            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled, }
+          {enabled: settings.runtime_metrics.enabled,
+           services: [settings.service],
+           experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,
+           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled}
         end
         let(:options) { {} }
 
@@ -321,12 +486,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it { is_expected.to be(runtime_metrics) }
       end
 
-      context 'by default' do
-        it_behaves_like 'new runtime metrics'
+      context "by default" do
+        it_behaves_like "new runtime metrics"
       end
 
-      context 'with :enabled' do
-        let(:enabled) { double('enabled') }
+      context "with :enabled" do
+        let(:enabled) { double("enabled") }
 
         before do
           allow(settings.runtime_metrics)
@@ -334,13 +499,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(enabled)
         end
 
-        it_behaves_like 'new runtime metrics' do
-          let(:options) { { enabled: enabled } }
+        it_behaves_like "new runtime metrics" do
+          let(:options) { {enabled: enabled} }
         end
       end
 
-      context 'with :service' do
-        let(:service) { double('service') }
+      context "with :service" do
+        let(:service) { double("service") }
 
         before do
           allow(settings)
@@ -348,12 +513,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(service)
         end
 
-        it_behaves_like 'new runtime metrics' do
-          let(:options) { { services: [service] } }
+        it_behaves_like "new runtime metrics" do
+          let(:options) { {services: [service]} }
         end
       end
 
-      context 'with :statsd' do
+      context "with :statsd" do
         let(:statsd) { instance_double(::Datadog::Statsd) }
 
         before do
@@ -362,13 +527,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(statsd)
         end
 
-        it_behaves_like 'new runtime metrics' do
-          let(:options) { { statsd: statsd } }
+        it_behaves_like "new runtime metrics" do
+          let(:options) { {statsd: statsd} }
         end
       end
 
-      context 'with :experimental_runtime_id_enabled' do
-        let(:experimental_runtime_id_enabled) { double('experimental_runtime_id_enabled') }
+      context "with :experimental_runtime_id_enabled" do
+        let(:experimental_runtime_id_enabled) { double("experimental_runtime_id_enabled") }
 
         before do
           allow(settings.runtime_metrics)
@@ -376,24 +541,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(experimental_runtime_id_enabled)
         end
 
-        it_behaves_like 'new runtime metrics' do
-          let(:options) { { experimental_runtime_id_enabled: experimental_runtime_id_enabled } }
+        it_behaves_like "new runtime metrics" do
+          let(:options) { {experimental_runtime_id_enabled: experimental_runtime_id_enabled} }
         end
       end
     end
   end
 
-  describe '::build_runtime_metrics_worker' do
+  describe "::build_runtime_metrics_worker" do
     subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger, telemetry) }
 
-    context 'given settings' do
-      shared_examples_for 'new runtime metrics worker' do
+    context "given settings" do
+      shared_examples_for "new runtime metrics worker" do
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
         let(:default_options) do
           {
             enabled: settings.runtime_metrics.enabled,
-            metrics: runtime_metrics
+            metrics: runtime_metrics,
           }
         end
         let(:options) { {} }
@@ -411,12 +576,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it { is_expected.to be(runtime_metrics_worker) }
       end
 
-      context 'by default' do
-        it_behaves_like 'new runtime metrics worker'
+      context "by default" do
+        it_behaves_like "new runtime metrics worker"
       end
 
-      context 'with :enabled' do
-        let(:enabled) { double('enabled') }
+      context "with :enabled" do
+        let(:enabled) { double("enabled") }
 
         before do
           allow(settings.runtime_metrics)
@@ -424,13 +589,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(enabled)
         end
 
-        it_behaves_like 'new runtime metrics worker' do
-          let(:options) { { enabled: enabled } }
+        it_behaves_like "new runtime metrics worker" do
+          let(:options) { {enabled: enabled} }
         end
       end
 
-      context 'with :opts' do
-        let(:opts) { { custom_option: :custom_value } }
+      context "with :opts" do
+        let(:opts) { {custom_option: :custom_value} }
 
         before do
           allow(settings.runtime_metrics)
@@ -438,605 +603,97 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(opts)
         end
 
-        it_behaves_like 'new runtime metrics worker' do
+        it_behaves_like "new runtime metrics worker" do
           let(:options) { opts }
         end
       end
     end
   end
 
-  describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings, logger: logger) }
+  describe "#reconfigure_sampler" do
+    subject(:reconfigure_sampler) { components.reconfigure_sampler }
 
-    context 'given an instance' do
-      let(:instance) { instance_double(Datadog::Tracing::Tracer) }
-
-      before do
-        expect(settings.tracing).to receive(:instance)
-          .and_return(instance)
-      end
-
-      it 'uses the tracer instance' do
-        expect(Datadog::Tracing::Tracer).to_not receive(:new)
-        is_expected.to be(instance)
-      end
-    end
-
-    context 'given settings' do
-      shared_examples_for 'new tracer' do
-        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
-        let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-        let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
-        let(:sampler) do
-          if defined?(super)
-            super()
-          else
-            lambda do |sampler|
-              expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
-              expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.tracing.sampling.rate_limit)
-              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler)
-            end
-          end
-        end
-        let(:span_sampler) { be_a(Datadog::Tracing::Sampling::Span::Sampler) }
-        let(:default_options) do
-          {
-            default_service: settings.service,
-            enabled: settings.tracing.enabled,
-            trace_flush: trace_flush,
-            tags: settings.tags,
-            sampler: sampler,
-            span_sampler: span_sampler,
-            writer: writer,
-            logger: logger,
-          }
-        end
-
-        let(:options) { defined?(super) ? super() : {} }
-        let(:tracer_options) do
-          default_options.merge(options).tap do |options|
-            sampler = options[:sampler]
-            options[:sampler] = lambda do |sampler_delegator|
-              expect(sampler_delegator).to be_a(Datadog::Tracing::Component::SamplerDelegatorComponent)
-              expect(sampler_delegator.sampler).to match(sampler)
-            end
-          end
-        end
-        let(:writer_options) { defined?(super) ? super() : {} }
-
-        before do
-          expect(Datadog::Tracing::Tracer).to receive(:new)
-            .with(tracer_options)
-            .and_return(tracer)
-
-          allow(Datadog::Tracing::Writer).to receive(:new)
-            .with(agent_settings: agent_settings, **writer_options)
-            .and_return(writer)
-        end
-
-        after do
-          writer.stop
-        end
-
-        it { is_expected.to be(tracer) }
-      end
-
-      shared_examples 'event publishing writer' do
-        it 'subscribes to writer events' do
-          expect(writer.events.after_send).to receive(:subscribe) do |&block|
-            expect(block)
-              .to be(
-                Datadog::Core::Configuration::Components
-                  .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
-              )
-          end
-
-          build_tracer
-        end
-      end
-
-      shared_examples 'event publishing writer and priority sampler' do
-        before do
-          allow(writer.events.after_send).to receive(:subscribe)
-        end
-
-        let(:sampler_rates_callback) { -> { double('sampler rates callback') } }
-
-        it 'subscribes to writer events' do
-          expect(described_class).to receive(:writer_update_priority_sampler_rates_callback)
-            .with(tracer_options[:sampler]).and_return(sampler_rates_callback)
-
-          expect(writer.events.after_send).to receive(:subscribe) do |&block|
-            expect(block)
-              .to be(
-                Datadog::Core::Configuration::Components
-                                       .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
-              )
-          end
-
-          expect(writer.events.after_send).to receive(:subscribe) do |&block|
-            expect(block).to be(sampler_rates_callback)
-          end
-
-          build_tracer
-        end
-      end
-
-      context 'by default' do
-        it_behaves_like 'new tracer' do
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-      end
-
-      context 'with :enabled' do
-        let(:enabled) { double('enabled') }
-
-        before do
-          allow(settings.tracing)
-            .to receive(:enabled)
-            .and_return(enabled)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { enabled: enabled } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-      end
-
-      context 'with :env' do
-        let(:env) { double('env') }
-
-        before do
-          allow(settings)
-            .to receive(:env)
-            .and_return(env)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { tags: { 'env' => env } } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-      end
-
-      context 'with :partial_flush :enabled' do
-        let(:enabled) { true }
-
-        before do
-          allow(settings.tracing.partial_flush)
-            .to receive(:enabled)
-            .and_return(enabled)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { trace_flush: be_a(Datadog::Tracing::Flush::Partial) } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-
-        context 'with :partial_flush :min_spans_threshold' do
-          let(:min_spans_threshold) { double('min_spans_threshold') }
-
-          before do
-            allow(settings.tracing.partial_flush)
-              .to receive(:min_spans_threshold)
-              .and_return(min_spans_threshold)
-          end
-
-          it_behaves_like 'new tracer' do
-            let(:options) do
-              { trace_flush: be_a(Datadog::Tracing::Flush::Partial) &
-                have_attributes(min_spans_for_partial: min_spans_threshold) }
-            end
-
-            it_behaves_like 'event publishing writer and priority sampler'
-          end
-        end
-      end
-
-      context 'with :sampler' do
-        before do
-          allow(settings.tracing)
-            .to receive(:sampler)
-            .and_return(sampler)
-        end
-
-        let(:sampler) { double('sampler') }
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { sampler: sampler } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-      end
-
-      context 'with sampling.rules' do
-        before { allow(settings.tracing.sampling).to receive(:rules).and_return(rules) }
-
-        context 'with rules' do
-          let(:rules) { '[{"sample_rate":"0.123"}]' }
-
-          it_behaves_like 'new tracer' do
-            let(:sampler) do
-              lambda do |sampler|
-                expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
-                expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-
-                expect(sampler.priority_sampler.rules).to have(1).item
-                expect(sampler.priority_sampler.rules[0].sampler.sample_rate).to eq(0.123)
-              end
-            end
-          end
-        end
-      end
-
-      context 'with sampling.span_rules' do
-        before { allow(settings.tracing.sampling).to receive(:span_rules).and_return(rules) }
-
-        context 'with rules' do
-          let(:rules) { '[{"name":"foo"}]' }
-
-          it_behaves_like 'new tracer' do
-            let(:options) do
-              {
-                span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
-                  rules: [
-                    Datadog::Tracing::Sampling::Span::Rule.new(
-                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: 'foo')
-                    )
-                  ]
-                )
-              }
-            end
-          end
-        end
-
-        context 'without rules' do
-          let(:rules) { nil }
-
-          it_behaves_like 'new tracer' do
-            let(:options) { { span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(rules: []) } }
-          end
-        end
-      end
-
-      context 'with :service' do
-        let(:service) { double('service') }
-
-        before do
-          allow(settings)
-            .to receive(:service)
-            .and_return(service)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { default_service: service } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-      end
-
-      context 'with :tags' do
-        let(:tags) do
-          {
-            'env' => 'tag_env',
-            'version' => 'tag_version'
-          }
-        end
-
-        before do
-          allow(settings)
-            .to receive(:tags)
-            .and_return(tags)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { tags: tags } }
-          it_behaves_like 'event publishing writer and priority sampler'
-        end
-
-        context 'with conflicting :env' do
-          let(:env) { 'setting_env' }
-
-          before do
-            allow(settings)
-              .to receive(:env)
-              .and_return(env)
-          end
-
-          it_behaves_like 'new tracer' do
-            let(:options) { { tags: tags.merge('env' => env) } }
-            it_behaves_like 'event publishing writer and priority sampler'
-          end
-        end
-
-        context 'with conflicting :version' do
-          let(:version) { 'setting_version' }
-
-          before do
-            allow(settings)
-              .to receive(:version)
-              .and_return(version)
-          end
-
-          it_behaves_like 'new tracer' do
-            let(:options) { { tags: tags.merge('version' => version) } }
-            it_behaves_like 'event publishing writer and priority sampler'
-          end
-        end
-      end
-
-      context 'with :test_mode' do
-        let(:sampler) do
-          lambda do |sampler|
-            expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
-            expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-            expect(sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-          end
-        end
-
-        context ':enabled' do
-          before do
-            allow(settings.tracing.test_mode)
-              .to receive(:enabled)
-              .and_return(enabled)
-          end
-
-          context 'set to true' do
-            let(:enabled) { true }
-
-            context 'and :async' do
-              context 'is set' do
-                let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-                let(:writer_options) { { transport_options: :bar } }
-                let(:writer_options_test_mode) { { transport_options: :baz } }
-
-                before do
-                  allow(settings.tracing.test_mode)
-                    .to receive(:async)
-                    .and_return(true)
-
-                  allow(settings.tracing.test_mode)
-                    .to receive(:writer_options)
-                    .and_return(writer_options_test_mode)
-
-                  expect(Datadog::Tracing::SyncWriter)
-                    .not_to receive(:new)
-
-                  expect(Datadog::Tracing::Writer)
-                    .to receive(:new)
-                    .with(agent_settings: agent_settings, **writer_options_test_mode)
-                    .and_return(writer)
-                end
-
-                it_behaves_like 'event publishing writer'
-              end
-
-              context 'is not set' do
-                let(:sync_writer) { Datadog::Tracing::SyncWriter.new(agent_settings: test_agent_settings) }
-
-                before do
-                  expect(Datadog::Tracing::SyncWriter)
-                    .to receive(:new)
-                    .with(agent_settings: agent_settings, **writer_options)
-                    .and_return(writer)
-                end
-
-                context 'and :trace_flush' do
-                  before do
-                    allow(settings.tracing.test_mode)
-                      .to receive(:trace_flush)
-                      .and_return(trace_flush)
-                  end
-
-                  context 'is not set' do
-                    let(:trace_flush) { nil }
-
-                    it_behaves_like 'new tracer' do
-                      let(:options) do
-                        {
-                          writer: kind_of(Datadog::Tracing::SyncWriter)
-                        }
-                      end
-                      let(:writer) { sync_writer }
-
-                      it_behaves_like 'event publishing writer'
-                    end
-                  end
-
-                  context 'is set' do
-                    let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
-
-                    it_behaves_like 'new tracer' do
-                      let(:options) do
-                        {
-                          trace_flush: trace_flush,
-                          writer: kind_of(Datadog::Tracing::SyncWriter)
-                        }
-                      end
-                      let(:writer) { sync_writer }
-
-                      it_behaves_like 'event publishing writer'
-                    end
-                  end
-                end
-
-                context 'and :writer_options' do
-                  before do
-                    allow(settings.tracing.test_mode)
-                      .to receive(:writer_options)
-                      .and_return(writer_options)
-                  end
-
-                  context 'are set' do
-                    let(:writer_options) { { transport_options: :bar } }
-
-                    it_behaves_like 'new tracer' do
-                      let(:options) do
-                        {
-                          writer: writer
-                        }
-                      end
-                      let(:writer) { sync_writer }
-
-                      it_behaves_like 'event publishing writer'
-                    end
-                  end
-                end
-              end
-            end
-          end
-        end
-      end
-
-      context 'with :version' do
-        let(:version) { double('version') }
-
-        before do
-          allow(settings)
-            .to receive(:version)
-            .and_return(version)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { tags: { 'version' => version } } }
-        end
-      end
-
-      context 'with :writer' do
-        let(:writer) { instance_double(Datadog::Tracing::Writer) }
-
-        before do
-          allow(settings.tracing)
-            .to receive(:writer)
-            .and_return(writer)
-
-          expect(Datadog::Tracing::Writer).to_not receive(:new)
-        end
-
-        it_behaves_like 'new tracer' do
-          let(:options) { { writer: writer } }
-        end
-
-        context 'that publishes events' do
-          it_behaves_like 'new tracer' do
-            let(:options) { { writer: writer } }
-            let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-            after { writer.stop }
-
-            it_behaves_like 'event publishing writer and priority sampler'
-          end
-        end
-      end
-
-      context 'with :writer_options' do
-        let(:writer_options) { { custom_option: :custom_value } }
-
-        it_behaves_like 'new tracer' do
-          before do
-            expect(settings.tracing)
-              .to receive(:writer_options)
-              .and_return(writer_options)
-          end
-        end
-
-        context 'and :writer' do
-          let(:writer) { double('writer') }
-
-          before do
-            allow(settings.tracing)
-              .to receive(:writer)
-              .and_return(writer)
-          end
-
-          it_behaves_like 'new tracer' do
-            # Ignores the writer options in favor of the writer
-            let(:options) { { writer: writer } }
-          end
-        end
-      end
-    end
-  end
-
-  describe '#reconfigure_live_sampler' do
-    subject(:reconfigure_live_sampler) { components.reconfigure_live_sampler }
-
-    context 'with configuration changes' do
+    context "with configuration changes" do
       before do
         Datadog.configuration.tracing.sampling.rate_limit = 123
       end
 
-      it 'does not change the sampler delegator object' do
-        expect { reconfigure_live_sampler }.to_not(change { components.tracer.sampler })
+      it "does not change the sampler delegator object" do
+        expect { reconfigure_sampler }.to_not(change { components.tracer.sampler })
       end
 
       it "changes the sampler delegator's delegatee" do
-        expect { reconfigure_live_sampler }.to(
+        expect { reconfigure_sampler }.to(
           change do
             components.tracer.sampler.sampler.priority_sampler.rate_limiter.rate
-          end.from(100).to(123)
+          end.from(100).to(123),
         )
       end
     end
-  end
 
-  describe 'writer event callbacks' do
-    describe '.writer_update_priority_sampler_rates_callback' do
-      subject(:call) do
-        described_class.writer_update_priority_sampler_rates_callback(sampler).call(writer, responses)
+    context "with test mode enabled" do
+      subject(:reconfigure_sampler) { components.reconfigure_sampler(settings) }
+
+      before do
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.sampling.default_rate = 0.0
       end
 
-      let(:sampler) { double('sampler') }
-      let(:writer) { double('writer') }
-      let(:responses) do
-        [
-          double('first response'),
-          double('last response', internal_error?: internal_error, service_rates: service_rates),
-        ]
-      end
+      it "keeps the sampler that keeps every trace despite the zero rate" do
+        reconfigure_sampler
 
-      let(:service_rates) { nil }
-
-      context 'with a successful response' do
-        let(:internal_error) { false }
-
-        context 'with service rates returned by response' do
-          let(:service_rates) { double('service rates') }
-
-          it 'updates sampler with service rates and set decision to AGENT_RATE' do
-            expect(sampler).to receive(:update).with(service_rates, decision: '-1')
-            call
-          end
-        end
-
-        context 'without service rates returned by response' do
-          it 'does not update sampler' do
-            expect(sampler).to_not receive(:update)
-            call
-          end
-        end
-      end
-
-      context 'with an internal error response' do
-        let(:internal_error) { true }
-
-        it 'does not update sampler' do
-          expect(sampler).to_not receive(:update)
-          call
-        end
+        delegatee = components.tracer.sampler.sampler
+        expect(delegatee).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(delegatee.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(delegatee.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
       end
     end
   end
 
-  describe '#startup!' do
+  describe "#startup!" do
     subject(:startup!) { components.startup!(settings) }
 
-    context 'when profiling' do
-      context 'is unsupported' do
+    it "starts OpenFeature activation" do
+      activation = instance_double(Datadog::OpenFeature::Activation, startup!: nil)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+
+      expect(activation).to receive(:startup!)
+
+      startup!
+    end
+
+    context "when eager OpenFeature delivery raises" do
+      let(:error) { RuntimeError.new("test failure") }
+      let(:activation) do
+        Datadog::OpenFeature::Activation.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)
+      end
+
+      before do
+        allow(activation).to receive(:start!).and_raise(error)
+        allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+      end
+
+      it "reports the failure and continues library startup" do
+        expect(logger).to receive(:error)
+          .with("Feature Flags delivery failed to start: RuntimeError: test failure")
+        expect(telemetry).to receive(:report)
+          .with(error, description: "Feature Flags delivery failed to start")
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish).with(settings)
+        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+
+        expect { startup! }.not_to raise_error
+      end
+    end
+
+    context "when profiling" do
+      context "is unsupported" do
         before do
           allow(Datadog::Profiling)
             .to receive(:unsupported_reason)
-            .and_return('Disabled for testing')
+            .and_return("Disabled for testing")
         end
 
-        context 'and enabled' do
+        context "and enabled" do
           before do
             allow(settings.profiling)
               .to receive(:enabled)
@@ -1055,7 +712,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
-        context 'and disabled' do
+        context "and disabled" do
           before do
             allow(settings.profiling)
               .to receive(:enabled)
@@ -1074,10 +731,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'is enabled' do
+      context "is enabled" do
         # Using a generic double rather than instance_double since if profiling is not supported by the
         # current CI runner we won't even load the Datadog::Profiling::Profiler class.
-        let(:profiler) { instance_double('Datadog::Profiling::Profiler') }
+        let(:profiler) { instance_double("Datadog::Profiling::Profiler") }
 
         before do
           allow(settings.profiling)
@@ -1099,57 +756,391 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    context 'with remote' do
-      shared_context 'stub remote configuration agent response' do
+    context "with remote" do
+      shared_context "stub remote configuration agent response" do
         before do
           WebMock.enable!
           stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
-          stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+          stub_request(:post, %r{/v0\.7/config}).to_return(body: "{}", status: 200)
         end
 
         after { WebMock.disable! }
 
-        let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
+        let(:info_response) { {endpoints: ["/v0.7/config"]}.to_json }
       end
 
-      context 'disabled' do
+      context "disabled" do
         before { allow(settings.remote).to receive(:enabled).and_return(false) }
 
-        it 'does not start the remote manager' do
+        it "does not start the remote manager" do
           startup!
           expect(components.remote).to be_nil # It doesn't even create it
         end
       end
     end
 
-    it 'calls the EnvironmentLogger' do
+    it "calls the EnvironmentLogger" do
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component)
         .and_return([nil, environment_logger_extra])
 
       expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
         receive(:collect_and_log!).with(
-          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false),
         )
 
       startup!
     end
+
+    # Always publish, even with Rails: after_initialize won't re-run on reconfiguration.
+    it "calls ProcessDiscovery" do
+      expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
+        .with(settings)
+
+      startup!
+    end
+
+    context "when Rails::Railtie is defined" do
+      before do
+        stub_const("::Rails::Railtie", Class.new)
+        # railtie.rb calls ActiveSupport.on_load at class-body level; stub it since ActiveSupport is not loaded here.
+        stub_const("::ActiveSupport", Module.new {
+          def self.on_load(*)
+          end
+        })
+      end
+
+      it "still calls ProcessDiscovery" do
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
+          .with(settings)
+
+        startup!
+      end
+    end
   end
 
-  describe '#shutdown!' do
+  describe "#after_fork" do
+    subject(:after_fork) { components.after_fork }
+
+    let(:open_feature_activation) do
+      instance_double(Datadog::OpenFeature::Activation, after_fork: nil)
+    end
+    let(:symbol_database) do
+      instance_double(Datadog::SymbolDatabase::Component, after_fork!: nil)
+    end
+    let(:data_streams) do
+      instance_double(Datadog::DataStreams::Processor, restart_flush_thread: nil)
+    end
+
+    before do
+      allow(telemetry).to receive(:after_fork)
+      allow(remote).to receive(:after_fork)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
+      allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(open_feature_activation)
+      allow(components).to receive(:symbol_database).and_return(symbol_database)
+      allow(components).to receive(:data_streams).and_return(data_streams)
+    end
+
+    it "dispatches after_fork to OpenFeature activation" do
+      after_fork
+
+      expect(open_feature_activation).to have_received(:after_fork).once
+    end
+
+    it "dispatches after_fork to the tracer when supported" do
+      tracer = instance_double(Datadog::Tracing::Tracer)
+      allow(components).to receive(:tracer).and_return(tracer)
+      expect(tracer).to receive(:after_fork)
+
+      after_fork
+    end
+
+    it "dispatches after_fork! to the symbol_database when present" do
+      expect(symbol_database).to receive(:after_fork!)
+
+      after_fork
+    end
+
+    it "does not raise when symbol_database is nil" do
+      allow(components).to receive(:symbol_database).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
+
+    it "dispatches restart_flush_thread to the data_streams processor when present" do
+      expect(data_streams).to receive(:restart_flush_thread)
+
+      after_fork
+    end
+
+    it "does not raise when data_streams is nil" do
+      allow(components).to receive(:data_streams).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
+    end
+  end
+
+  describe "#state" do
+    # When Datadog.configure rebuilds the tree, the old tree's #state is read
+    # by the new tree's #startup! to decide whether to restart DI.
+
+    context "when the component reports it is implicitly enabled" do
+      let(:stub_di_component) do
+        instance_double(Datadog::DI::Component, implicitly_enabled?: true, shutdown!: nil, rc_enablement_signal_paths: [])
+      end
+
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it "captures di_implicitly_enabled? as true" do
+        expect(components.state.di_implicitly_enabled?).to be true
+      end
+    end
+
+    context "when the component reports it is not implicitly enabled" do
+      let(:stub_di_component) do
+        instance_double(Datadog::DI::Component, implicitly_enabled?: false, shutdown!: nil, rc_enablement_signal_paths: [])
+      end
+
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it "captures di_implicitly_enabled? as false" do
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context "when the component holds recorded RC enable-signal paths" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:stub_di_component) do
+        instance_double(
+          Datadog::DI::Component,
+          implicitly_enabled?: true,
+          shutdown!: nil,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it "captures rc_enablement_signal_paths from the component" do
+        expect(components.state.rc_enablement_signal_paths).to eq([signal_path])
+      end
+    end
+
+    context "when the DI component is nil (unsupported environment)" do
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(nil)
+      end
+
+      it "captures di_implicitly_enabled? as false" do
+        expect(components.dynamic_instrumentation).to be nil
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+
+      it "captures rc_enablement_signal_paths as an empty array" do
+        expect(components.state.rc_enablement_signal_paths).to eq([])
+      end
+    end
+  end
+
+  describe "#startup! with old_state carrying DI implicit enablement" do
+    # The other side of the ComponentsState round-trip: given an old_state
+    # whose di_implicitly_enabled? is true, #startup! must start DI on the
+    # new tree even when settings.dynamic_instrumentation.enabled is false
+    # (no env var). The env-var-only path and the no-carry path are also
+    # covered to make the precedence explicit.
+
+    # Ruby 2.5 does not load di/base.rb, so Datadog::DI.activate_tracking is
+    # not defined. These tests stub Component.build to return a non-nil double,
+    # which makes startup! reach the DI.activate_tracking call that's normally
+    # unreachable on 2.5 (Component.build returns nil there). The semantic being
+    # tested (state carry-over across Components rebuild) is platform-agnostic.
+    before(:all) { skip "requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)" if RUBY_VERSION < "2.6" }
+
+    subject(:startup!) { components.startup!(settings, old_state: old_state) }
+
+    # State-aware double so start!/stop! transitions show up in started?.
+    # Avoids needing the real DI C extension while still exercising the
+    # exact lifecycle Components#startup! drives.
+    let(:di_state) { {started: false} }
+    let(:stub_di_component) do
+      instance_double(Datadog::DI::Component).tap do |dbl|
+        allow(dbl).to receive(:started?) { di_state[:started] }
+        allow(dbl).to receive(:start!) { di_state[:started] = true }
+        allow(dbl).to receive(:stop!) { di_state[:started] = false }
+        allow(dbl).to receive(:shutdown!) { di_state[:started] = false }
+        allow(dbl).to receive(:record_rc_enablement_signal_paths)
+      end
+    end
+
+    before do
+      settings.dynamic_instrumentation.internal.development = true
+      allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([nil, environment_logger_extra])
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+      allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    context "old_state.di_implicitly_enabled? is true, env var not set" do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: true,
+        )
+      end
+
+      it "starts the DI component on the new tree" do
+        expect(components.dynamic_instrumentation).not_to be_nil
+        expect(components.dynamic_instrumentation.started?).to be false
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context "old_state.di_implicitly_enabled? is false, env var not set" do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      it "leaves the DI component stopped on the new tree" do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+
+    context "old_state.di_implicitly_enabled? is false, env var explicitly true" do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = true }
+
+      it "starts the DI component on the new tree (env-var path)" do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context "no old_state (initial startup)" do
+      let(:old_state) { nil }
+
+      it "leaves the DI component stopped when env var is not set" do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+
+      it "does not overwrite the component's recorded signal paths" do
+        expect(components.dynamic_instrumentation).not_to receive(:record_rc_enablement_signal_paths)
+
+        startup!
+      end
+    end
+
+    context "old_state carries recorded RC enable-signal paths" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: true,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      it "restores the recorded paths on the rebuilt DI component and starts it" do
+        expect(components.dynamic_instrumentation).to receive(:record_rc_enablement_signal_paths).with([signal_path])
+
+        startup!
+
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context "old_state carries recorded paths while the remote was started" do
+      let(:signal_path) do
+        Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/lib_config/config")
+      end
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: true,
+          di_implicitly_enabled: true,
+          rc_enablement_signal_paths: [signal_path],
+        )
+      end
+
+      it "restores the recorded paths before the replacement remote starts" do
+        expect(components.dynamic_instrumentation)
+          .to receive(:record_rc_enablement_signal_paths).with([signal_path]).ordered
+        expect(remote).to receive(:start).ordered
+
+        startup!
+      end
+    end
+
+    context "env var was previously true and user reconfigures with enabled=false" do
+      # Round-trip the reconfigure-to-disabled scenario: a process
+      # boots with DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, which starts DI;
+      # the user later calls Datadog.configure to explicitly disable DI. The
+      # new component must NOT auto-start. The bug was that #state captured
+      # any started DI as "implicitly enabled", so the new tree's #startup!
+      # would OR the old (incorrectly true) implicit flag with the new
+      # (explicitly false) enabled setting and start DI anyway.
+      let(:old_state) do
+        # Construct the state the OLD tree would have produced — env var
+        # had set it to true and DI was started. Per the fixed #state, this
+        # captures di_implicitly_enabled? as FALSE (start was explicit).
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = false }
+
+      it "leaves the DI component stopped on the new tree" do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+  end
+
+  describe "#shutdown!" do
     before do
       allow(telemetry).to receive(:emit_closing!)
     end
 
     subject(:shutdown!) { components.shutdown!(replacement) }
 
-    context 'given no replacement' do
+    context "given no replacement" do
       let(:replacement) { nil }
 
-      it 'shuts down all components' do
+      it "shuts down all components" do
         expect(components.tracer).to receive(:shutdown!)
         expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
         expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
         expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
+        expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
         expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
         expect(components.runtime_metrics).to receive(:stop)
           .with(true, close_metrics: false)
@@ -1160,10 +1151,43 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         shutdown!
       end
+
+      context "when OpenFeature shutdown raises" do
+        let(:error) { RuntimeError.new("test failure") }
+        let(:activation) do
+          instance_double(Datadog::OpenFeature::Activation, shutdown!: nil)
+        end
+
+        before do
+          allow(Datadog::OpenFeature::Activation).to receive(:new).and_return(activation)
+          allow(activation).to receive(:shutdown!).and_raise(error)
+        end
+
+        it "reports the failure and continues library shutdown" do
+          expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
+          expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
+          expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
+          expect(components.logger).to receive(:error)
+            .with("Feature Flags delivery failed to shut down: RuntimeError: test failure")
+          expect(telemetry).to receive(:report)
+            .with(error, description: "Feature Flags delivery failed to shut down")
+          expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
+          expect(components.tracer).to receive(:shutdown!)
+          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+          expect(components.runtime_metrics).to receive(:stop)
+            .with(true, close_metrics: false)
+          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
+          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.telemetry).to receive(:emit_closing!)
+          expect(components.telemetry).to receive(:shutdown!)
+
+          expect { shutdown! }.not_to raise_error
+        end
+      end
     end
 
-    context 'given a replacement' do
-      shared_context 'replacement' do
+    context "given a replacement" do
+      shared_context "replacement" do
         let(:replacement) { instance_double(described_class) }
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
@@ -1187,10 +1211,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when no components are reused' do
-        include_context 'replacement'
+      context "when no components are reused" do
+        include_context "replacement"
 
-        it 'shuts down all components' do
+        it "shuts down all components" do
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
@@ -1205,14 +1229,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
           shutdown!
         end
 
-        context 'and Statsd is not initialized' do
+        context "and Statsd is not initialized" do
           before do
             allow(components.runtime_metrics.metrics)
               .to receive(:statsd)
               .and_return(nil)
           end
 
-          it 'shuts down all components' do
+          it "shuts down all components" do
             expect(components.tracer).to receive(:shutdown!)
             expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
             expect(components.runtime_metrics).to receive(:stop)
@@ -1226,12 +1250,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when the tracer is re-used' do
-        include_context 'replacement' do
+      context "when the tracer is re-used" do
+        include_context "replacement" do
           let(:tracer) { components.tracer }
         end
 
-        it 'shuts down all components but the tracer' do
+        it "shuts down all components but the tracer" do
           expect(components.tracer).to_not receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:stop)
@@ -1245,12 +1269,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when one of Statsd instances are reused' do
-        include_context 'replacement' do
+      context "when one of Statsd instances are reused" do
+        include_context "replacement" do
           let(:runtime_metrics_worker) { components.runtime_metrics }
         end
 
-        it 'shuts down all components but the tracer' do
+        it "shuts down all components but the tracer" do
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:stop)
@@ -1264,13 +1288,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when both Statsd instances are reused' do
-        include_context 'replacement' do
+      context "when both Statsd instances are reused" do
+        include_context "replacement" do
           let(:runtime_metrics_worker) { components.runtime_metrics }
           let(:health_metrics) { components.health_metrics }
         end
 
-        it 'shuts down all components but the tracer' do
+        it "shuts down all components but the tracer" do
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.runtime_metrics).to receive(:stop)
@@ -1282,6 +1306,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           shutdown!
         end
+      end
+    end
+  end
+
+  describe "PATCH_ONLY_ONCE monkey patches" do
+    reset_at_fork_monkey_patch_for_components!
+
+    before do
+      skip "Fork not supported" unless Process.respond_to?(:fork)
+      skip "Process.spawn not supported" unless Process.respond_to?(:spawn)
+    end
+
+    it "applies AtForkMonkeyPatch and SpawnMonkeyPatch when Components is initialized" do
+      expect_in_fork do
+        described_class.new(Datadog::Core::Configuration::Settings.new)
+
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
+        )
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
+        )
       end
     end
   end

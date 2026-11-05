@@ -8,18 +8,23 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_idle_sampling_helper.c`
       class IdleSamplingHelper
+        # @rbs @worker_thread: untyped
+        # @rbs @start_stop_mutex: ::Thread::Mutex
+
         private
 
-        attr_accessor :failure_exception
+        attr_accessor :failure_exception #: ::Exception?
 
         public
 
+        #: () -> void
         def initialize
           @worker_thread = nil
           @start_stop_mutex = Mutex.new
         end
 
-        def start
+        #: (CpuAndWallTimeWorker cpu_and_wall_time_worker) -> true?
+        def start(cpu_and_wall_time_worker)
           @start_stop_mutex.synchronize do
             return if @worker_thread&.alive?
 
@@ -32,16 +37,16 @@ module Datadog
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
 
-              self.class._native_idle_sampling_loop(self)
+              self.class._native_idle_sampling_loop(self, cpu_and_wall_time_worker)
 
               Datadog.logger.debug("IdleSamplingHelper thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               Datadog.logger.warn(
                 "IdleSamplingHelper thread error. " \
-                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
               )
-              Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error", pii_safe: true)
+              Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error")
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
@@ -50,6 +55,7 @@ module Datadog
           true
         end
 
+        #: () -> void
         def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting IdleSamplingHelper thread shut down")

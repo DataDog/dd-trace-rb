@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../analytics'
-require_relative 'ext'
-require_relative '../span_attribute_schema'
+require_relative "../../metadata/ext"
+require_relative "../analytics"
+require_relative "ext"
+require_relative "../span_attribute_schema"
 
 module Datadog
   module Tracing
@@ -32,12 +32,15 @@ module Datadog
           # rubocop:disable Metrics/MethodLength
           def annotate!(span, context)
             span.service = configuration[:service_name]
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
 
-            # Set error on the span if the Response Status Code is in error range
-            if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
+            # DEV-3.0: This was previously checking against a 500..599 range.
+            # To not introduce breaking change, this was changed to use `http_error_statuses.server`,
+            # but `aws` is a client library, this check should use `http_error_statuses.client` instead.
+            if Datadog.configuration.tracing.http_error_statuses.server.include?(context.safely(:status_code))
               # At this point we do not have any additional diagnostics
               # besides the HTTP status code which is recorded in the span tags
               # later in this method.
@@ -45,7 +48,7 @@ module Datadog
               span.set_error(nil)
             end
 
-            aws_service = span.resource.split('.')[0]
+            aws_service = span.resource.split(".")[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
             if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
@@ -55,13 +58,8 @@ module Datadog
             if configuration[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                configuration[:peer_service]
+                configuration[:peer_service],
               )
-            end
-
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -88,7 +86,7 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           rescue => e
-            Datadog.logger.error(e.message)
+            Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/MethodLength

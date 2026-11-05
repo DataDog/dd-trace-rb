@@ -1,0 +1,25 @@
+module Datadog
+  module DataStreams
+    module Transport
+      module HTTP
+        module Stats
+          class Response
+            include Core::Transport::HTTP::Response
+
+            def initialize: (Core::Transport::HTTP::Response http_response) -> void
+          end
+
+          module API
+            class Endpoint < Core::Transport::HTTP::API::Endpoint
+              def initialize: (::String path) -> void
+
+              def call: (Core::Transport::HTTP::Env env) { (Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> Response
+
+              def encoder: () -> nil
+            end
+          end
+        end
+      end
+    end
+  end
+end

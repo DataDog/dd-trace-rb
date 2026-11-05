@@ -58,13 +58,6 @@ module Datadog
 
               next if decision == :not_matched # Iterate until we find a matching decision
 
-              if decision == :kept
-                trace_op.set_tag(
-                  Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                  Sampling::Ext::Decision::SPAN_SAMPLING_RATE
-                )
-              end
-
               break # Found either a `kept` or `rejected` decision
             end
 

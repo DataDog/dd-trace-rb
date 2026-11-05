@@ -1,7 +1,7 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/transport/http/env'
-require 'datadog/core/transport/request'
+require "datadog/core/transport/http/env"
+require "datadog/core/transport/request"
 
 RSpec.describe Datadog::Core::Transport::HTTP::Env do
   subject(:env) { described_class.new(request, options) }
@@ -11,23 +11,23 @@ RSpec.describe Datadog::Core::Transport::HTTP::Env do
 
   it { is_expected.to be_a_kind_of(Hash) }
 
-  describe '#initialize' do
+  describe "#initialize" do
     it do
       is_expected.to have_attributes(
         request: request,
         headers: {},
-        form: {}
+        form: {},
       )
     end
 
-    context 'given options' do
-      let(:options) { { foo: :foo } }
+    context "given options" do
+      let(:options) { {foo: :foo} }
 
       it { expect(env[:foo]).to eq(:foo) }
     end
   end
 
-  it 'has request attributes' do
+  it "has request attributes" do
     is_expected.to respond_to(:verb)
     is_expected.to respond_to(:verb=)
     is_expected.to respond_to(:path)

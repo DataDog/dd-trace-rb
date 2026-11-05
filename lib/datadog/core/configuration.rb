@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'configuration/components'
-require_relative 'configuration/settings'
-require_relative 'telemetry/emitter'
-require_relative 'logger'
-require_relative 'pin'
+require_relative "configuration/components"
+require_relative "configuration/settings"
+require_relative "telemetry/emitter"
+require_relative "logger"
+require_relative "pin"
 
 module Datadog
   module Core
@@ -90,7 +90,7 @@ module Datadog
               replace_components!(configuration, @components)
             else
               build_components(configuration)
-            end
+            end,
           )
         end
 
@@ -238,9 +238,9 @@ module Datadog
           yield write_components
         rescue ThreadError => e
           logger_without_components.error(
-            'Detected deadlock during datadog initialization. ' \
-            'Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
-            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
+            "Detected deadlock during datadog initialization: #{e.class}: #{e.message}. " \
+            "Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug" \
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}",
           )
           nil
         end
@@ -284,7 +284,7 @@ module Datadog
         # This enables logging during initialization, otherwise we'd run into deadlocks.
 
         @temp_logger ||= begin
-          logger = configuration.logger.instance || Core::Logger.new($stdout)
+          logger = configuration.logger.instance || Core::Logger.new($stderr)
           logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
           logger
         end
@@ -295,10 +295,10 @@ module Datadog
         # such as reading stable config. In this case we cannot access configuration.
 
         @temp_config_logger ||= begin
-          debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
-          debug_value = debug_env_value == 'true' || debug_env_value == '1'
+          debug_env_value = DATADOG_ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
+          debug_value = debug_env_value == "true" || debug_env_value == "1"
 
-          logger = Core::Logger.new($stdout)
+          logger = Core::Logger.new($stderr)
           # We cannot access config and the default level is INFO, so we need to set the level manually
           logger.level = debug_value ? ::Logger::DEBUG : ::Logger::INFO
           logger
@@ -317,7 +317,7 @@ module Datadog
         slow_shutdown = shutdown_thread.join(print_message_treshold_seconds).nil?
 
         if slow_shutdown
-          logger.info 'Reporting remaining data... Press ctrl+c to exit immediately.'
+          logger.info "Reporting remaining data... Press ctrl+c to exit immediately."
           shutdown_thread.join
         end
 

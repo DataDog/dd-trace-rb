@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'msgpack'
+require "json"
+require "msgpack"
 
 module Datadog
   module Core
@@ -37,23 +37,21 @@ module Datadog
       module JSONEncoder
         extend Encoder
 
-        CONTENT_TYPE = 'application/json'
+        CONTENT_TYPE = "application/json"
 
-        module_function
-
-        def content_type
+        def self.content_type
           CONTENT_TYPE
         end
 
-        def encode(obj)
+        def self.encode(obj)
           JSON.dump(obj)
         end
 
-        def decode(obj)
+        def self.decode(obj)
           JSON.parse(obj)
         end
 
-        def join(encoded_data)
+        def self.join(encoded_data)
           "[#{encoded_data.join(",")}]"
         end
       end
@@ -62,23 +60,21 @@ module Datadog
       module MsgpackEncoder
         extend Encoder
 
-        module_function
+        CONTENT_TYPE = "application/msgpack"
 
-        CONTENT_TYPE = 'application/msgpack'
-
-        def content_type
+        def self.content_type
           CONTENT_TYPE
         end
 
-        def encode(obj)
+        def self.encode(obj)
           MessagePack.pack(obj)
         end
 
-        def decode(obj)
+        def self.decode(obj)
           MessagePack.unpack(obj)
         end
 
-        def join(encoded_data)
+        def self.join(encoded_data)
           packer = MessagePack::Packer.new
           packer.write_array_header(encoded_data.size)
 

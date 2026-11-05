@@ -6,7 +6,7 @@ module Datadog
 
         MAX_CACHE_SIZE: Integer
 
-        @cache: LRUCache
+        @cache: Core::Utils::LRUCache
 
         @sample_delay_seconds: Integer
 

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../metadata/ext'
-require_relative '../trace_digest'
-require_relative 'datadog_tags_codec'
-require_relative '../utils'
-require_relative 'helpers'
-require 'uri'
+require_relative "../ext"
+require_relative "../metadata/ext"
+require_relative "../trace_digest"
+require_relative "../utils"
+require_relative "helpers"
+require "uri"
 
 module Datadog
   module Tracing
@@ -14,10 +14,10 @@ module Datadog
       # The baggage header is propagated through `baggage`.
       # @see https://www.w3.org/TR/baggage/
       class Baggage
-        BAGGAGE_KEY = 'baggage'
+        BAGGAGE_KEY = "baggage"
         DD_TRACE_BAGGAGE_MAX_ITEMS = 64
         DD_TRACE_BAGGAGE_MAX_BYTES = 8192
-        BAGGAGE_TAG_KEYS_MATCH_ALL = ['*'].freeze
+        BAGGAGE_TAG_KEYS_MATCH_ALL = ["*"].freeze
         SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
         SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
 
@@ -39,7 +39,13 @@ module Datadog
 
           begin
             if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
-              ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
+              ::Datadog.logger.warn("Baggage item limit (#{DD_TRACE_BAGGAGE_MAX_ITEMS}) exceeded, dropping excess items")
+              # Record telemetry for item count truncation
+              record_telemetry_metric(
+                "context_header.truncated",
+                1,
+                {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"},
+              )
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
 
@@ -50,7 +56,13 @@ module Datadog
               item = "#{encode_item(key, SAFE_CHARACTERS_KEY)}=#{encode_item(value, SAFE_CHARACTERS_VALUE)}"
               item_size = item.bytesize + (encoded_items.empty? ? 0 : 1) # +1 for comma if not first item
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
-                ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
+                ::Datadog.logger.warn("Baggage header size (#{DD_TRACE_BAGGAGE_MAX_BYTES}) exceeded, dropping excess items")
+                # Record telemetry for byte count truncation
+                record_telemetry_metric(
+                  "context_header.truncated",
+                  1,
+                  {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"},
+                )
                 break # stop adding items when size limit is reached
               end
               encoded_items << item
@@ -60,10 +72,12 @@ module Datadog
             # edge case where a single item is too large
             return if encoded_items.empty?
 
-            header_value = encoded_items.join(',')
-            data[@baggage_key] = header_value
+            data[@baggage_key] = encoded_items.join(",")
+
+            # Record telemetry for successful injection
+            record_telemetry_metric("context_header_style.injected", 1, {"header_style" => "baggage"})
           rescue => e
-            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.message}")
+            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e.message}")
           end
         end
 
@@ -78,9 +92,14 @@ module Datadog
           # Convert selected baggage items to span tags based on configuration
           baggage_tags = build_baggage_tags(baggage)
 
+          # Record telemetry for successful extraction only if baggage is not empty
+          unless baggage.empty?
+            record_telemetry_metric("context_header_style.extracted", 1, {"header_style" => "baggage"})
+          end
+
           TraceDigest.new(
             baggage: baggage,
-            trace_distributed_tags: baggage_tags
+            trace_distributed_tags: baggage_tags,
           )
         end
 
@@ -90,7 +109,7 @@ module Datadog
           # Strip whitespace and URL-encode the item
           result = URI.encode_www_form_component(item.strip)
           # Replace '+' with '%20' for space encoding consistency with W3C spec
-          result = result.gsub('+', '%20')
+          result = result.gsub("+", "%20")
           # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec
           result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
@@ -98,7 +117,7 @@ module Datadog
               next encoded unless hex_str && !hex_str.empty?
 
               # Convert hex representation back to character
-              char = [hex_str.hex].pack('C')
+              char = [hex_str.hex].pack("C")
               # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
               safe_characters.include?(char) ? char : encoded
             else
@@ -114,22 +133,84 @@ module Datadog
         # - Keys and values are URL-encoded
         # - Returns an empty hash if the baggage header is malformed
         #
+        # For entries with duplicate keys, only last one is preserved:
+        # https://www.w3.org/TR/2024/CR-baggage-20240530/#mutating-baggage
+        #
         # @param baggage_header [String] The W3C Baggage header string to parse
         # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
-          baggage = {}
-          baggages = baggage_header.split(',')
-          baggages.each do |key_value|
-            key, value = key_value.split('=', 2)
-            # If baggage is malformed, return an empty hash
-            return {} unless key && value
+          # Reject inputs that would cause String operations below to raise.
+          # `valid_encoding?` is true for ASCII-8BIT regardless of byte values, so
+          # the typical Rack path is unaffected; only UTF-8-tagged-but-actually-invalid
+          # input (e.g. headers re-encoded upstream) is short-circuited here.
+          unless baggage_header.valid_encoding?
+            record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
+            return {}
+          end
 
-            key = URI.decode_www_form_component(key.strip)
-            value = URI.decode_www_form_component(value.strip)
-            return {} if key.empty? || value.empty?
+          if baggage_header.bytesize > DD_TRACE_BAGGAGE_MAX_BYTES
+            record_telemetry_metric("context_header.truncated", 1, {"header_style" => "baggage", "truncation_reason" => "baggage_byte_count_exceeded"})
+
+            # We MUST NOT propagate partial entries, but we SHOULD try
+            # to parse as much of the baggage as possible:
+            # https://www.w3.org/TR/2024/CR-baggage-20240530/#limits
+
+            # We parse 1 byte over the limit to detect if the last entry
+            # is a partial entry (toss) or ends exactly at the limit (keep).
+            remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ","
+
+            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
+            # and safely remove it with `#chop`.
+            # `#chops` walks back the string until it finds a valid character boundary and deletes
+            # from there.
+            baggage_header = baggage_header.byteslice(0, DD_TRACE_BAGGAGE_MAX_BYTES + 1) #: String
+            baggage_header = baggage_header.chop
+          end
+
+          baggage = {}
+          # DEV: To avoid unnecessary eager string allocation, replace with
+          # DEV: `split(',') { |s| ... }` when Ruby 2.5 is no longer supported.
+          baggages = baggage_header.split(",", DD_TRACE_BAGGAGE_MAX_ITEMS + 1) # Stop splitting if we've reached max size
+          baggages.each_with_index do |key_value, index|
+            if index >= DD_TRACE_BAGGAGE_MAX_ITEMS
+              record_telemetry_metric("context_header.truncated", 1, {"header_style" => "baggage", "truncation_reason" => "baggage_item_count_exceeded"})
+              break
+            end
+
+            # On truncation, remove incomplete trailing partial entry
+            next if remove_last_entry && index == baggages.size - 1
+
+            # Empty items are skipped
+            next if key_value.strip.empty?
+
+            key, value = key_value.split("=", 2)
+            # If baggage is malformed, return an empty hash
+            if key.nil? || value.nil?
+              # Record telemetry for malformed header
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
+              return {}
+            end
+
+            begin
+              key = URI.decode_www_form_component(key.strip)
+              value = URI.decode_www_form_component(value.strip)
+            rescue ArgumentError
+              # `URI.decode_www_form_component` raises on malformed percent encoding
+              # (e.g. `%XX`, lone `%`). Treat as malformed rather than letting it
+              # propagate to `Propagation#extract`'s caller.
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
+              return {}
+            end
+
+            if key.empty? || value.empty?
+              # Record telemetry for malformed header
+              record_telemetry_metric("context_header_style.malformed", 1, {"header_style" => "baggage"})
+              return {}
+            end
 
             baggage[key] = value
           end
+
           baggage
         end
 
@@ -148,7 +229,7 @@ module Datadog
 
           tags = {}
 
-          baggage_tag_keys.each do |key, _| # rubocop:disable Style/HashEachMethods
+          baggage_tag_keys.each do |key, _|
             value = baggage[key]
             next if value.nil? || value.empty?
 
@@ -156,6 +237,12 @@ module Datadog
           end
 
           tags
+        end
+
+        # Record telemetry metrics for baggage operations
+        def record_telemetry_metric(metric_name, value, tags)
+          telemetry = ::Datadog.send(:components).telemetry
+          telemetry.inc(Tracing::Ext::TELEMETRY_METRICS_NAMESPACE, metric_name, value, tags: tags)
         end
       end
     end

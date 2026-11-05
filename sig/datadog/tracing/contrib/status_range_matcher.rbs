@@ -2,11 +2,19 @@ module Datadog
   module Tracing
     module Contrib
       class StatusRangeMatcher
-        @ranges: untyped
+        type range_type = Array[Integer | Range[Integer]]
 
-        def initialize: (untyped ranges) -> void
+        @ranges: range_type
 
-        def include?: (untyped status) -> untyped
+        attr_reader ranges: range_type
+
+        def initialize: (Integer | Range[Integer] | range_type ranges) -> void
+
+        def +: (StatusRangeMatcher other) -> StatusRangeMatcher
+
+        alias concat +
+
+        def include?: (Integer status) -> bool
       end
     end
   end

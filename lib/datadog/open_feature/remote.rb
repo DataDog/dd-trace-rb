@@ -1,0 +1,74 @@
+# frozen_string_literal: true
+
+require_relative "../core/remote/dispatcher"
+
+module Datadog
+  module OpenFeature
+    # This module contains the remote configuration functionality for OpenFeature
+    module Remote
+      class << self
+        FFE_FLAG_CONFIGURATION_RULES = 1 << 46
+        FFE_PRODUCTS = ["FFE_FLAGS"].freeze
+        FFE_CAPABILITIES = [FFE_FLAG_CONFIGURATION_RULES].freeze
+
+        def capabilities
+          FFE_CAPABILITIES
+        end
+
+        def products
+          FFE_PRODUCTS
+        end
+
+        def receivers(telemetry, component_provider:, logger: Datadog.logger)
+          matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
+          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+            component = component_provider.call
+            next unless component
+
+            changes.each do |change|
+              content = repository[change.path]
+              logger.debug do
+                version = content ? " (version #{content.version})" : ""
+                "Feature Flags: received Remote Configuration #{change.type} for #{change.path}#{version}"
+              end
+
+              unless content || change.type == :delete
+                logger.debug do
+                  "Feature Flags: ignored Remote Configuration #{change.type} for #{change.path}: content is missing"
+                end
+                next telemetry.error("OpenFeature: Remote Configuration change is not present on #{change.type}")
+              end
+
+              # NOTE: In the current RC implementation we immediately apply the configuration,
+              #       but that might change if we need to apply patches instead.
+              case change.type
+              when :insert, :update
+                begin
+                  # @type var content: Core::Remote::Configuration::Content
+                  component.reconfigure!(read_content(content))
+                  content.applied
+                rescue EvaluationEngine::ReconfigurationError => e
+                  content.errored("Error applying OpenFeature configuration: #{e.class}: #{e.message}")
+                end
+              when :delete
+                # NOTE: For now, we treat deletion as clearing the configuration
+                #       In a multi-config scenario, we might track configs per path
+                component.reconfigure!(nil)
+              end
+            end
+          end
+
+          [receiver]
+        end
+
+        private
+
+        def read_content(content)
+          # Unlike all of the other remotes, this one does not JSON-parse
+          # the data.
+          content.data
+        end
+      end
+    end
+  end
+end

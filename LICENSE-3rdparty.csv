@@ -5,3 +5,4 @@
 "lib/datadog/tracing/contrib/active_record/vendor","https://github.com/rails/rails/","MIT","Copyright (c) 2005-2018 David Heinemeier Hansson"
 "lib/datadog/tracing/contrib/utils/quantization/http.rb","https://github.com/ruby/uri","BSD-2-Clause","Copyright (C) 1993-2013 Yukihiro Matsumoto. All rights reserved."
 "msgpack","https://rubygems.org/gems/msgpack","Apache-2.0","Copyright (c) 2008-2015 Sadayuki Furuhashi"
+"rubocop/custom_cops/trailing_comma_in_arguments_cop.rb","https://github.com/rubocop/rubocop","MIT","Copyright (c) 2012-25 Bozhidar Batsov"

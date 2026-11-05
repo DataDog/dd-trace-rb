@@ -1,0 +1,538 @@
+# frozen_string_literal: true
+
+require "datadog/core"
+require "datadog/tracing/span"
+require "socket"
+require "json"
+require "msgpack"
+require "timeout"
+require "tmpdir"
+require "open3"
+require "shellwords"
+require "datadog/tracing/span_event"
+require "datadog/tracing/span_operation"
+
+RSpec.describe "Datadog::Tracing::Transport::Native::TraceExporter#_native_send_traces" do
+  before do
+    skip_if_libdatadog_not_supported
+  end
+
+  let(:native_module) { Datadog::Tracing::Transport::Native }
+  let(:trace_exporter_class) { native_module::TraceExporter }
+  let(:response_class) { native_module::Response }
+
+  # ---------------------------------------------------------------------------
+  # Minimal mock HTTP agent (TCP server)
+  #
+  # Accepts connections, reads the HTTP request, and replies with a
+  # configurable status and body.  Handles both /info (used by the
+  # background agent-info worker) and trace endpoints.
+  # ---------------------------------------------------------------------------
+
+  class MockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
+    attr_reader :port, :requests
+
+    def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
+      @status = status
+      @body = body
+      @requests = []
+      @server = TCPServer.new("127.0.0.1", 0)
+      @port = @server.addr[1]
+      @thread = Thread.new { run }
+    end
+
+    def stop
+      @running = false
+      begin
+        @server.close
+      rescue
+        nil
+      end
+      @thread.join(2)
+    end
+
+    private
+
+    def run
+      @running = true
+      while @running
+        client = begin
+          @server.accept
+        rescue
+          break
+        end
+        handle(client)
+      end
+    end
+
+    def handle(client)
+      request_line = client.gets
+      return client.close if request_line.nil?
+
+      headers = {}
+      while (line = client.gets) && line != "\r\n"
+        key, value = line.split(": ", 2)
+        headers[key.downcase] = value&.strip
+      end
+
+      body_len = (headers["content-length"] || 0).to_i
+      body = (body_len > 0) ? client.read(body_len) : ""
+
+      @requests << {request_line: request_line.strip, headers: headers, body: body}
+
+      response_body = @body
+      client.print "HTTP/1.1 #{@status} OK\r\n"
+      client.print "Content-Length: #{response_body.bytesize}\r\n"
+      client.print "Content-Type: application/json\r\n"
+      client.print "\r\n"
+      client.print response_body
+      client.close
+    rescue => e
+      warn "MockAgent error: #{e}" if ENV["DEBUG"]
+      client&.close
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Helpers
+  # ---------------------------------------------------------------------------
+
+  let(:mock_agent) { MockAgent.new }
+  after { mock_agent.stop }
+
+  let(:exporter) do
+    trace_exporter_class._native_new(
+      url: "http://127.0.0.1:#{mock_agent.port}",
+      tracer_version: "1.0.0-test",
+      language: "ruby",
+      language_version: RUBY_VERSION,
+      language_interpreter: RUBY_ENGINE,
+      hostname: "test-host",
+      env: "test-env",
+      service: "test-service",
+      version: "0.0.1",
+    )
+  end
+
+  def make_span(name = "test.op", **overrides)
+    defaults = {
+      service: "test-svc",
+      resource: "GET /test",
+      type: "web",
+      id: rand(1 << 62),
+      parent_id: 0,
+      trace_id: rand(1 << 62),
+    }
+    Datadog::Tracing::Span.new(name, **defaults.merge(overrides))
+  end
+
+  def last_payload
+    # The background agent-info worker's body-less +GET /info+ may land after the trace POST.
+    trace_request = mock_agent.requests.reverse.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+    MessagePack.unpack(trace_request.fetch(:body))
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tests
+  # ---------------------------------------------------------------------------
+
+  describe "with an empty array" do
+    it "returns an empty array without contacting the server" do
+      responses = exporter._native_send_traces([], false)
+      expect(responses).to eq([])
+    end
+  end
+
+  describe "with a single trace containing one span" do
+    it "exposes a complete send report after reacquiring the GVL" do
+      observations = nil
+      responses = exporter._native_send_traces([[make_span]], false) { |report| observations = report }
+      request = mock_agent.requests.find { |entry| entry[:request_line].include?("/v0.4/traces") }
+      expect(responses.first.ok?).to be true
+      expect(observations).to eq(
+        requests_count: 1, responses_count: 1, status_code: 200,
+        chunks_sent: 1, spans_enqueued_for_serialization: 1,
+        bytes_sent: request.fetch(:body).bytesize,
+      )
+      expect(mock_agent.requests.none? { |entry| entry[:request_line].include?("telemetry") }).to be true
+    end
+
+    it "keeps trace success when observation processing raises", :native_transport_memcheck do
+      responses = exporter._native_send_traces([[make_span]], false) { raise "telemetry failed" }
+      expect(responses.first.ok?).to be true
+    end
+
+    it "preserves non-StandardError callback failures", :native_transport_memcheck do
+      failure = Exception.new("callback failed")
+      expect { exporter._native_send_traces([[make_span]], false) { raise failure } }
+        .to raise_error { |error| expect(error).to equal(failure) }
+    end
+
+    it "preserves a non-local exit from the observation callback", :native_transport_memcheck do
+      result = exporter._native_send_traces([[make_span]], false) { break :stopped }
+      expect(result).to eq(:stopped)
+    end
+
+    [:raise, :kill].each do |interrupt|
+      it "finishes observations before a #{interrupt} received during the callback", :native_transport_memcheck do
+        entered = Queue.new
+        release = Queue.new
+        reports = Queue.new
+        returned = Queue.new
+        errors = Queue.new
+        failure = RuntimeError.new("asynchronous interruption")
+        sender = Thread.new do
+          exporter._native_send_traces([[make_span]], false) do |report|
+            entered << true
+            release.pop
+            reports << report
+            raise "synchronous telemetry failure"
+          end
+          returned << true
+        rescue => error
+          errors << error
+        end
+        Timeout.timeout(5) { entered.pop }
+        Timeout.timeout(5) { Thread.pass until sender.status == "sleep" || !sender.alive? }
+        expect(sender).to be_alive
+        (interrupt == :raise) ? sender.raise(failure) : sender.kill
+        release << true
+        expect(sender.join(5)).to eq(sender)
+
+        expect(reports.size).to eq(1)
+        expect(reports.pop).to include(requests_count: 1, chunks_sent: 1)
+        expect(returned).to be_empty
+        if interrupt == :raise
+          expect(errors.size).to eq(1)
+          expect(errors.pop).to equal(failure)
+        else
+          expect(errors).to be_empty
+        end
+      ensure
+        release << true if release
+        sender&.kill
+        sender&.join(5)
+      end
+    end
+
+    it "returns a success response" do
+      spans = [make_span]
+      responses = exporter._native_send_traces([spans], false)
+
+      expect(responses).to be_an(Array)
+      expect(responses.length).to eq(1)
+
+      resp = responses.first
+      expect(resp).to be_a(response_class)
+      expect(resp.ok?).to be true
+      expect(resp.internal_error?).to be false
+      expect(resp.server_error?).to be false
+      expect(resp.trace_count).to eq(1)
+    end
+
+    it "returns a payload with the agent response body" do
+      spans = [make_span]
+      responses = exporter._native_send_traces([spans], false)
+      resp = responses.first
+
+      # The payload should contain the mock agent's JSON body
+      expect(resp.payload).to be_a(String)
+      parsed = JSON.parse(resp.payload)
+      expect(parsed).to have_key("rate_by_service")
+    end
+  end
+
+  describe "with multiple trace chunks" do
+    it "sends all chunks and returns a success response" do
+      chunk1 = [make_span("op1"), make_span("op2")]
+      chunk2 = [make_span("op3")]
+      responses = exporter._native_send_traces([chunk1, chunk2], false)
+
+      expect(responses.length).to eq(1)
+      expect(responses.first.ok?).to be true
+      expect(responses.first.trace_count).to eq(2)
+    end
+  end
+
+  shared_context "with a native barrier" do
+    before do
+      skip "Requires Linux symbol interposition" unless RUBY_PLATFORM.include?("linux")
+    end
+
+    let(:fixture_dir) { File.expand_path("fixtures", __dir__) }
+    let(:barrier) { "send_barrier" }
+    let(:shape) { "1" }
+
+    def interrupted_send(interrupt, callback_failure = "none")
+      Dir.mktmpdir("observations-interrupt") do |dir|
+        library = File.join(dir, "#{barrier}.so")
+        includes = File.expand_path("../../include", Libdatadog.pkgconfig_folder)
+        command = Shellwords.split(RbConfig::CONFIG.fetch("CC")) + [
+          "-shared", "-fPIC", "-o", library, File.join(fixture_dir, "#{barrier}.c"), "-I#{includes}", "-ldl",
+        ]
+        output, status = Open3.capture2e(*command)
+        expect(status.success?).to be(true), output
+        env = {
+          "LD_PRELOAD" => [Datadog::DATADOG_ENV["LD_PRELOAD"], library].compact.join(":"),
+          "OBSERVATION_LIBRARY" => File.join(Libdatadog.ld_library_path, "libdatadog_profiling.so"),
+        }
+        stdout = File.join(dir, "stdout")
+        stderr = File.join(dir, "stderr")
+        pid = Process.spawn(env, RbConfig.ruby, "-Ilib",
+          File.join(fixture_dir, "interrupted_send.rb"), "http://127.0.0.1:#{mock_agent.port}",
+          interrupt, callback_failure, shape, out: stdout, err: stderr)
+        begin
+          status = Timeout.timeout(30) { Process.wait2(pid).last }
+          pid = nil
+          output = File.read(stdout)
+          expect(status.success?).to be(true), "#{output}\n#{File.read(stderr)}"
+          JSON.parse(output)
+        ensure
+          NativeTransportForkIsolation.reap_process(pid)
+        end
+      end
+    end
+  end
+
+  describe "with an interrupt after native completion" do
+    include_context "with a native barrier"
+
+    it "forwards observations in the uninterrupted control" do
+      result = interrupted_send("none")
+      expect(result.fetch("native")).to include("requests" => 1, "chunks_sent" => 1)
+      expect(result.fetch("reports").length).to eq(1)
+      expect(result.fetch("returned")).to be true
+      expect(result.fetch("error")).to be_nil
+    end
+
+    ["raise", "kill"].each do |interrupt|
+      ["none", "standard", "fatal", "break"].each do |callback_failure|
+        it "preserves #{interrupt} and its report with #{callback_failure} callback failure" do
+          result = interrupted_send(interrupt, callback_failure)
+          expect(result.fetch("native")).to include("requests" => 1, "chunks_sent" => 1)
+          expect(result.fetch("reports").length).to eq(1)
+          expect(result.fetch("reports").first).to include("requests_count" => 1, "chunks_sent" => 1,
+            "bytes_sent" => result.fetch("native").fetch("bytes_sent"))
+          expect(result.fetch("returned")).to be false
+          if interrupt == "raise"
+            expect(result.fetch("same_exception")).to be true
+            expect(result.fetch("backtrace")).to eq(["original:1"])
+          else
+            expect(result.fetch("error")).to be_nil
+          end
+        end
+      end
+    end
+
+    context "after a terminal HTTP failure" do
+      let(:mock_agent) { MockAgent.new(status: 500, body: "{}") }
+
+      ["raise", "kill"].each do |interrupt|
+        it "forwards the failed-send report before #{interrupt}" do
+          result = interrupted_send(interrupt)
+          expect(result.fetch("native").fetch("chunks_dropped")).to eq(1)
+          expect(result.fetch("reports").length).to eq(1)
+          expect(result.fetch("reports").first).to include("errors_status_code" => 1,
+            "chunks_dropped_send_failure" => 1, "status_code" => 500)
+          expect(result.fetch("returned")).to be false
+          expect(result.fetch("same_exception")).to be true if interrupt == "raise"
+          expect(result.fetch("error")).to be_nil if interrupt == "kill"
+        end
+      end
+    end
+  end
+
+  describe "with an interrupt before native dispatch" do
+    include_context "with a native barrier"
+
+    let(:barrier) { "dispatch_barrier" }
+    let(:shape) { "2,1" }
+
+    def trace_requests
+      mock_agent.requests.select { |entry| entry[:request_line].include?("/v0.4/traces") }
+    end
+
+    it "sends and reports normally in the uninterrupted control" do
+      result = interrupted_send("none")
+      expect(trace_requests.length).to eq(1)
+      expect(result.fetch("reports")).to eq(
+        [
+          {
+            "requests_count" => 1, "responses_count" => 1, "status_code" => 200,
+            "chunks_sent" => 2, "spans_enqueued_for_serialization" => 3,
+            "bytes_sent" => trace_requests.first.fetch(:body).bytesize,
+          },
+        ],
+      )
+      expect(result.fetch("returned")).to be true
+    end
+
+    ["none", "standard", "fatal", "break"].each do |callback_failure|
+      it "reports cancelled drops on raise (callback: #{callback_failure})" do
+        result = interrupted_send("raise", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }],
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("same_exception")).to be true
+        expect(result.fetch("backtrace")).to eq(["original:1"])
+        expect(trace_requests).to be_empty
+      end
+
+      it "reports cancelled drops on kill (callback: #{callback_failure})" do
+        result = interrupted_send("kill", callback_failure)
+
+        expect(result.fetch("reports")).to eq(
+          [{
+            "chunks_dropped_cancelled" => 2,
+            "spans_dropped_cancelled" => 3,
+            "spans_enqueued_for_serialization" => 3,
+          }],
+        )
+        expect(result.fetch("returned")).to be false
+        expect(result.fetch("error")).to be_nil
+        expect(trace_requests).to be_empty
+      end
+    end
+  end
+
+  describe "with spans containing meta and metrics" do
+    it "does not raise" do
+      span = make_span
+      span.set_tag("http.method", "GET")
+      span.set_tag("http.url", "/test")
+      span.set_metric("_dd.measured", 1.0)
+
+      responses = exporter._native_send_traces([[span]], false)
+      expect(responses.first.ok?).to be true
+    end
+  end
+
+  describe "with native span events" do
+    it "preserves event order, timestamps, scalar types, and homogeneous arrays on the wire" do
+      span = make_span
+      span.events = [
+        Datadog::Tracing::SpanEvent.new(
+          "first",
+          time_unix_nano: 123,
+          attributes: {
+            "string" => "value",
+            "bool" => true,
+            "int" => -42,
+            "double" => 1.5,
+            "strings" => ["one", "two"],
+            "bools" => [true, false],
+            "ints" => [-1, 2],
+            "doubles" => [1.25, 2.5],
+          },
+        ),
+        Datadog::Tracing::SpanEvent.new("second", time_unix_nano: 456),
+      ]
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = last_payload
+      events = payload.dig(0, 0, "span_events")
+      expected = MessagePack.unpack(MessagePack.pack(span.events.map(&:to_native_format)))
+      expect(events).to eq(expected)
+      expect(payload.dig(0, 0).fetch("meta", {})).to_not have_key("events")
+    end
+
+    it "exports events produced by record_exception" do
+      span_op = Datadog::Tracing::SpanOperation.new("record.exception")
+      error = StandardError.new("test error")
+      error.set_backtrace(["test.rb:1"])
+      span_op.record_exception(error, attributes: {"attempt" => 2})
+      span = span_op.finish
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = last_payload
+      event = payload.dig(0, 0, "span_events", 0)
+      expect(event).to include("name" => "exception")
+      expect(event.dig("attributes", "attempt")).to eq("type" => 2, "int_value" => 2)
+      expect(event.dig("attributes", "exception.type")).to eq(
+        "type" => 0,
+        "string_value" => "StandardError",
+      )
+    end
+
+    it "exports empty arrays" do
+      span = make_span
+      span.events = [Datadog::Tracing::SpanEvent.new(
+        "empty",
+        time_unix_nano: 123,
+        attributes: {"values" => []},
+      )]
+
+      responses = exporter._native_send_traces([[span]], true)
+
+      expect(responses.first.ok?).to be true
+      payload = last_payload
+      expect(payload.dig(0, 0, "span_events", 0, "attributes", "values")).to eq(
+        "type" => 4,
+        "array_value" => {"values" => []},
+      )
+    end
+  end
+
+  describe "when the agent returns an error" do
+    let(:mock_agent) { MockAgent.new(status: 500, body: '{"error":"server overloaded"}') }
+
+    it "returns an error response with terminal observations", :native_transport_memcheck do
+      observations = nil
+      responses = exporter._native_send_traces([[make_span]], false) { |report| observations = report }
+
+      expect(responses.length).to eq(1)
+      resp = responses.first
+      expect(resp.ok?).to be false
+      # The error should be classified as server or internal
+      expect(resp.server_error? || resp.internal_error?).to be true
+      attempts = mock_agent.requests.count { |entry| entry[:request_line].include?("/v0.4/traces") }
+      expect(attempts).to be > 1
+      expect(observations).to eq(
+        requests_count: attempts, errors_status_code: 1,
+        responses_count: 1, status_code: 500,
+        chunks_dropped_send_failure: 1,
+        spans_enqueued_for_serialization: 1, spans_dropped_api_error: 1,
+      )
+    end
+  end
+
+  describe "argument validation" do
+    it "raises TypeError for non-array argument" do
+      expect { exporter._native_send_traces("not an array", false) }.to raise_error(TypeError)
+    end
+
+    it "raises TypeError for non-array inner element" do
+      expect { exporter._native_send_traces(["not an array"], false) }.to raise_error(TypeError)
+    end
+
+    it "raises TypeError for a non-boolean span event capability" do
+      expect { exporter._native_send_traces([], nil) }.to raise_error(TypeError)
+    end
+  end
+
+  describe "when conversion fails after a partial batch" do
+    it "frees pushed and untransferred spans" do
+      first = make_span("first")
+      second = make_span("second", meta: {"invalid" => Object.new})
+      allow(Datadog.logger).to receive(:warn).and_raise(RuntimeError, "logger boom")
+
+      20.times do
+        expect { exporter._native_send_traces([[first, second]], false) }
+          .to raise_error(RuntimeError, "logger boom")
+      end
+
+      GC.start
+      expect(exporter._native_send_traces([[make_span("valid")]], false).first.ok?).to be true
+    end
+  end
+end

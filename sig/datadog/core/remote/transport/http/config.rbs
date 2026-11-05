@@ -21,25 +21,35 @@ module Datadog
 
               include Core::Remote::Transport::Config::Response
 
-              def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped http_response, ?Hash[untyped, untyped] options) -> void
 
-              def inspect: () -> ::String
+              def inspect: () -> String
+
               class KeyError < StandardError
                 def initialize: (untyped key) -> void
               end
-              class TypeError < StandardError
+
+              class ConfigError < StandardError
+              end
+
+              class AgentErrorResponse < ConfigError
+                def initialize: (untyped code, untyped body) -> void
+              end
+
+              class TypeError < ConfigError
                 def initialize: (untyped type, untyped value) -> void
               end
-              class DecodeError < StandardError
+
+              class DecodeError < ConfigError
                 def initialize: (untyped key, untyped value) -> void
               end
-              class ParseError < StandardError
+
+              class ParseError < ConfigError
                 def initialize: (untyped key, untyped value) -> void
               end
             end
 
-            # Extensions for HTTP client
-            module Client : HTTP::Client
+            class Client < Core::Transport::HTTP::Client
               def send_config_payload: (untyped request) -> untyped
             end
 

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'securerandom'
+require "securerandom"
 
-require_relative 'configuration'
-require_relative 'dispatcher'
+require_relative "configuration"
+require_relative "dispatcher"
 
 module Datadog
   module Core
@@ -14,37 +14,69 @@ module Datadog
 
         class SyncError < StandardError; end
 
-        attr_reader :transport, :repository, :id, :dispatcher, :logger
+        attr_reader :transport, :repository, :id, :dispatcher, :settings, :logger
 
-        def initialize(transport, capabilities, logger: Datadog.logger, repository: Configuration::Repository.new)
+        # Whether the initial reconcile is still pending, to run on the first
+        # sync whose response contains targets.
+        #
+        # @return [Boolean]
+        attr_reader :pending_initial_reconcile
+
+        def initialize(transport, capabilities, settings:, logger:, repository: Configuration::Repository.new)
           @transport = transport
+          @settings = settings
           @logger = logger
 
           @repository = repository
           @id = SecureRandom.uuid
           @capabilities = capabilities
           @dispatcher = Dispatcher.new(@capabilities.receivers)
+          @pending_initial_reconcile = true
         end
 
+        # Polls the agent for remote configuration, applies the response to
+        # the repository and dispatches the resulting changes to the receivers.
+        #
+        # The agent sends an empty response when it holds no targets newer
+        # than the targets version the client reported. Until the client
+        # applies a response that carries targets, it reports the initial
+        # targets version, so an empty response then means the agent has not
+        # received targets from the backend. The initial reconcile therefore
+        # waits for a response that carries targets.
+        #
+        # @return [void]
+        # @raise [TransportError] when the agent reports an internal error
+        # @raise [SyncError] when the response cannot be applied to the repository
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
 
           if response.ok?
-            process_response(response)
+            changes = process_response(response)
+            if pending_initial_reconcile && !response.empty?
+              dispatcher.reconcile(changes, repository)
+              @pending_initial_reconcile = false
+            end
           elsif response.internal_error?
             raise TransportError, response.to_s
           end
+          nil
         end
 
         private
 
+        # Applies an OK response to the repository and returns the resulting
+        # change set, which is empty when the response is empty.
+        #
+        # @param response [Transport::Config::Response] the response returned by the agent
+        # @return [Configuration::Repository::ChangeSet] the changes applied by this response
+        # @raise [SyncError] when the response cannot be applied to the repository
         def process_response(response)
           # when response is completely empty, do nothing as in: leave as is
           if response.empty?
-            logger.debug { 'remote: empty response => NOOP' }
+            logger.debug { "remote: empty response => NOOP" }
 
-            return
+            return Configuration::Repository::ChangeSet.new
           end
 
           begin
@@ -56,11 +88,11 @@ module Datadog
 
             contents = Configuration::ContentList.parse(response.target_files)
           rescue Remote::Configuration::Path::ParseError => e
-            raise SyncError, e.message
+            raise SyncError, "#{e.class}: #{e.message}"
           end
 
           # To make sure steep does not complain
-          return unless paths && targets && contents
+          return Configuration::Repository::ChangeSet.new unless paths && targets && contents
 
           # TODO: sometimes it can strangely be so that paths.empty?
           # TODO: sometimes it can strangely be so that targets.empty?
@@ -68,6 +100,14 @@ module Datadog
           apply_config(paths, targets, contents)
         end
 
+        # Applies the response to the repository in a transaction, dispatches the
+        # resulting changes to the receivers and returns them.
+        #
+        # @param paths [Array<Configuration::Path>] ingress paths from the response
+        # @param targets [Configuration::TargetMap] targets keyed by path
+        # @param contents [Configuration::ContentList] contents from the response
+        # @return [Configuration::Repository::ChangeSet] the changes applied by the transaction
+        # @raise [SyncError] when a path has no matching target or content
         def apply_config(paths, targets, contents)
           changes = repository.transaction do |current, transaction|
             # paths to be removed: previously applied paths minus ingress paths
@@ -97,7 +137,9 @@ module Datadog
               content = contents.find_content(path, target)
 
               # abort entirely if matching content not found
-              raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+              if content.nil?
+                raise SyncError, "no valid content for target at path '#{path}'"
+              end
 
               # to be added or updated << config
               # TODO: metadata (hash, version, etc...)
@@ -114,10 +156,12 @@ module Datadog
           end
 
           if changes.empty?
-            logger.debug { 'remote: no changes' }
+            logger.debug { "remote: no changes" }
           else
             dispatcher.dispatch(changes, repository)
           end
+
+          changes
         end
 
         def payload # standard:disable Metrics/MethodLength
@@ -153,13 +197,18 @@ module Datadog
             language: Core::Environment::Identity.lang,
             tracer_version: tracer_version,
             service: service_name,
-            env: Datadog.configuration.env,
+            env: settings.env,
             tags: client_tracer_tags,
           }
 
-          app_version = Datadog.configuration.version
+          app_version = settings.version
 
           client_tracer[:app_version] = app_version if app_version
+
+          if settings.experimental_propagate_process_tags_enabled
+            process_tags = Core::Environment::Process.tags
+            client_tracer[:process_tags] = process_tags if process_tags.any?
+          end
 
           {
             client: {
@@ -177,14 +226,14 @@ module Datadog
               is_agent: false,
               client_tracer: client_tracer,
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities: @capabilities.base64_capabilities
+              capabilities: @capabilities.base64_capabilities,
             },
             cached_target_files: state.cached_target_files,
           }
         end
 
         def service_name
-          Datadog.configuration.remote.service || Datadog.configuration.service
+          settings.remote.service || settings.service
         end
 
         def tracer_version
@@ -202,40 +251,40 @@ module Datadog
         def native_platform
           return @native_platform unless @native_platform.nil?
 
-          os = if RUBY_ENGINE == 'jruby'
-            os_name = java.lang.System.get_property('os.name')
+          os = if RUBY_ENGINE == "jruby"
+            os_name = java.lang.System.get_property("os.name")
 
             case os_name
-            when /linux/i then 'linux'
-            when /mac/i then 'darwin'
+            when /linux/i then "linux"
+            when /mac/i then "darwin"
             else os_name
             end
           else
             Gem::Platform.local.os
           end
 
-          version = if os != 'linux'
+          version = if os != "linux"
             nil
           elsif RUBY_PLATFORM =~ /linux-(.+)$/
             # Old rubygems don't handle non-gnu linux correctly
             Regexp.last_match(1)
           else
-            'gnu'
+            "gnu"
           end
 
-          cpu = if RUBY_ENGINE == 'jruby'
-            os_arch = java.lang.System.get_property('os.arch')
+          cpu = if RUBY_ENGINE == "jruby"
+            os_arch = java.lang.System.get_property("os.arch")
 
             case os_arch
-            when 'amd64' then 'x86_64'
-            when 'aarch64' then (os == 'darwin') ? 'arm64' : 'aarch64'
+            when "amd64" then "x86_64"
+            when "aarch64" then (os == "darwin") ? "arm64" : "aarch64"
             else os_arch
             end
           else
             Gem::Platform.local.cpu
           end
 
-          @native_platform = [cpu, os, version].compact.join('-')
+          @native_platform = [cpu, os, version].compact.join("-")
         end
 
         GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName

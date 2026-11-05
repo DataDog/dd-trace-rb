@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../metadata/ext'
+require_relative "../../../metadata/ext"
 
 module Datadog
   module Tracing
@@ -9,12 +9,12 @@ module Datadog
         module ActionDispatch
           # Instrumentation for ActionDispatch components
           module Instrumentation
-            SCRIPT_NAME_KEY = 'SCRIPT_NAME'
-            FORMAT_SUFFIX = '(.:format)'
+            SCRIPT_NAME_KEY = "SCRIPT_NAME"
+            FORMAT_SUFFIX = "(.:format)"
+            # NOTE: Rails 8.1.1+ natively provides the same object via 'action_dispatch.route'.
+            DATADOG_RAILS_ROUTE_ENV_KEY = "datadog.action_dispatch.route"
 
-            module_function
-
-            def set_http_route_tags(route_spec, route_path)
+            def self.set_http_route_tags(route_spec, route_path)
               return unless Tracing.enabled?
 
               return unless route_spec
@@ -29,7 +29,7 @@ module Datadog
               end
             end
 
-            def dispatcher_route?(route)
+            def self.dispatcher_route?(route)
               return true if route.dispatcher?
 
               # in Rails 4 there is no #rack_app method on the app
@@ -47,6 +47,8 @@ module Datadog
                   result = super
                   result.each do |_, _, route|
                     next unless Instrumentation.dispatcher_route?(route)
+
+                    req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
 
                     http_route = route.path.spec.to_s
                     http_route.delete_suffix!(FORMAT_SUFFIX)
@@ -66,6 +68,8 @@ module Datadog
                 def find_routes(req)
                   super do |match, parameters, route|
                     if Instrumentation.dispatcher_route?(route)
+                      req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
+
                       http_route = route.path.spec.to_s
                       http_route.delete_suffix!(FORMAT_SUFFIX)
 
@@ -73,6 +77,28 @@ module Datadog
                     end
 
                     yield [match, parameters, route]
+                  end
+                end
+              end
+
+              # Since Rails 8.1, `Router#find_routes` was removed by inlining its body into `recognize`.
+              # https://github.com/rails/rails/commit/e533a32ddf06668dfa3dfbe9b665607e235b06ac
+              module RecognizeRouter
+                def recognize(req)
+                  # recognize modifies SCRIPT_NAME before yielding; capture it before super.
+                  original_script_name = req.env[SCRIPT_NAME_KEY]
+
+                  super do |route, parameters|
+                    if Instrumentation.dispatcher_route?(route)
+                      req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
+
+                      http_route = route.path.spec.to_s
+                      http_route = http_route.delete_suffix(FORMAT_SUFFIX)
+
+                      Instrumentation.set_http_route_tags(http_route, original_script_name)
+                    end
+
+                    yield route, parameters
                   end
                 end
               end
