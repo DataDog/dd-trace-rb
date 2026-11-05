@@ -4,6 +4,7 @@ require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require_relative "split_features"
 require "open_feature/sdk"
 
 module Datadog
@@ -500,6 +501,13 @@ module Datadog
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+        if result.log?
+          metadata[Ext::METADATA_DO_LOG] = true
+          serial_id = result.serial_id
+          metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        end
+        features = result.features
+        SplitFeatures.write(metadata, features) if features && !features.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).

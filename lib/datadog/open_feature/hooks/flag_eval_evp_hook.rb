@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../ext"
+require_relative "../split_features"
 
 module Datadog
   module OpenFeature
@@ -65,6 +66,7 @@ module Datadog
             eval_time_ms: eval_time_ms,
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
+            features: SplitFeatures.read(metadata, Ext::METADATA_EVALUATION_FEATURE_PREFIX),
           )
         end
 

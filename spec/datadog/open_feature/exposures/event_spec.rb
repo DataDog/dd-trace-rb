@@ -118,6 +118,45 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
     end
   end
 
+  describe ".build with split features" do
+    let(:result) do
+      Datadog::OpenFeature::ResolutionDetails.new(
+        value: 4, allocation_key: "4-for-john-doe", variant: "4", flag_metadata: {}, log?: true, error?: false,
+        features: features,
+      )
+    end
+
+    context "when the split has EXPOSURE features" do
+      let(:features) do
+        [
+          ["holdout.key", "h-1", ["EXPOSURE"]],
+          ["holdout.share", 0.25, ["HOOK", "EXPOSURE"]],
+          ["hook.only", true, ["HOOK"]],
+        ]
+      end
+
+      it "adds only them, as a flat features object" do
+        expect(event[:features]).to eq("holdout.key" => "h-1", "holdout.share" => 0.25)
+      end
+    end
+
+    context "when the split has no EXPOSURE features" do
+      let(:features) { [["hook.only", true, ["HOOK"]]] }
+
+      it "omits the features object" do
+        expect(event).not_to have_key(:features)
+      end
+    end
+
+    context "when the split has no features" do
+      let(:features) { [] }
+
+      it "omits the features object" do
+        expect(event).not_to have_key(:features)
+      end
+    end
+  end
+
   describe ".cache_key" do
     let(:context) { instance_double(OpenFeature::SDK::EvaluationContext, targeting_key: "john-doe") }
 

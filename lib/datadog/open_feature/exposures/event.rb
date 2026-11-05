@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../../core/utils/time"
+require_relative "../split_features"
 
 module Datadog
   module OpenFeature
@@ -21,7 +22,9 @@ module Datadog
             "#{result.allocation_key}:#{result.variant}:#{result.serial_id}"
           end
 
+          # Features stay out of the cache value: a features change alone is not a new exposure.
           def build(result, flag_key:, context:)
+            # @type var event: t
             event = {
               timestamp: current_timestamp_ms,
               allocation: {
@@ -41,11 +44,20 @@ module Datadog
 
             serial_id = result.serial_id
             event[:serial_id] = serial_id unless serial_id.nil?
+            features = exposure_features(result)
+            event[:features] = features unless features.empty?
 
             event.freeze
           end
 
           private
+
+          def exposure_features(result)
+            features = result.features
+            return SplitFeatures::EMPTY if features.nil? || features.empty?
+
+            SplitFeatures.read(SplitFeatures.write({}, features), Ext::METADATA_EXPOSURE_FEATURE_PREFIX)
+          end
 
           # NOTE: We take all filds of the context that does not support nesting
           #       and will ignore targeting key as it will be set as `subject.id`

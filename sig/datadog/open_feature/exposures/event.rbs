@@ -28,6 +28,8 @@ module Datadog
 
         private
 
+        def self.exposure_features: (ResolutionDetails result) -> SplitFeatures::features_t
+
         def self.current_timestamp_ms: () -> ::Integer
 
         def self.extract_attributes: (::OpenFeature::SDK::EvaluationContext) -> ::Hash[::String, untyped]
