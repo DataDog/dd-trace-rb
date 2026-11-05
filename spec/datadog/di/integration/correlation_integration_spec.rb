@@ -375,10 +375,9 @@ RSpec.describe "Correlation integration" do
       stub_active_trace(trace_id, span_id: span_id)
       # Line probes can only resolve code that is loaded while code tracking
       # is active. The fixture is loaded here, inside the with_code_tracking
-      # around hook, rather than at spec load time, and its class is uniquely
-      # named for this context, so no remove_const reload is needed and no
-      # stale class or stale iseq leaks into the object space beside the
-      # loaded definition.
+      # around hook, and its class is uniquely named for this context, so no
+      # remove_const reload is needed and no stale class or stale iseq leaks
+      # into the object space beside the loaded definition.
       load File.join(File.dirname(__FILE__), "correlation_line_probe_test_class.rb")
     end
 
