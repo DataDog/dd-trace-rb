@@ -14,7 +14,7 @@ module Datadog
 
         def report: (
           ResolutionDetails result,
-          flag_key: ::String,
+          flag_key: String,
           context: ::OpenFeature::SDK::EvaluationContext?
         ) -> bool
 

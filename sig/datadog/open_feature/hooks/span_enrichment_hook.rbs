@@ -2,21 +2,21 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        MAX_SERIAL_IDS: ::Integer
+        MAX_SERIAL_IDS: Integer
 
-        MAX_SUBJECTS: ::Integer
+        MAX_SUBJECTS: Integer
 
-        MAX_EXPERIMENTS_PER_SUBJECT: ::Integer
+        MAX_EXPERIMENTS_PER_SUBJECT: Integer
 
-        MAX_DEFAULTS: ::Integer
+        MAX_DEFAULTS: Integer
 
-        MAX_DEFAULT_VALUE_LENGTH: ::Integer
+        MAX_DEFAULT_VALUE_LENGTH: Integer
 
-        TAG_FLAGS_ENC: ::String
+        TAG_FLAGS_ENC: String
 
-        TAG_SUBJECTS_ENC: ::String
+        TAG_SUBJECTS_ENC: String
 
-        TAG_RUNTIME_DEFAULTS: ::String
+        TAG_RUNTIME_DEFAULTS: String
 
         @store: SpanEnrichmentStateStore
 
@@ -29,12 +29,12 @@ module Datadog
         def initialize: (SpanEnrichmentStateStore span_enrichment_state_store, logger: Core::Logger) -> void
 
         def capture: (
-          flag_key: ::String,
-          variant: ::String?,
+          flag_key: String,
+          variant: String?,
           value: untyped,
-          serial_id: ::Integer?,
+          serial_id: Integer?,
           do_log: bool,
-          targeting_key: ::String?
+          targeting_key: String?
         ) -> void
 
         def shutdown: () -> void
