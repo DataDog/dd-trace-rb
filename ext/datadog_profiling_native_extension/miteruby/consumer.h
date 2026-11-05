@@ -5,6 +5,13 @@
 #include "raw_events_queue.h"
 #include "../private_vm_api_access.h"
 
+typedef struct {
+  miteruby_cme_iseq_id_t cme_iseq_id;
+  miteruby_event_frame_position_t position;
+} miteruby_location_t;
+
+_Static_assert(sizeof(miteruby_location_t) == 4, "miteruby_location_t must be 4 bytes");
+
 void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue);
 void miteruby_consumer_reset(void);
 
@@ -21,4 +28,4 @@ void miteruby_consumer_prepare_serialize(VALUE recorder_instance, VALUE streamin
 
 // Caller holds the main ractor's GVL and consumer mutex; missing IDs raise an internal error.
 miteruby_event_frame_refs_t miteruby_id_to_frame_refs(miteruby_cme_iseq_id_t id);
-miteruby_cme_iseq_id_t miteruby_hack_location_id_to_cme_seq_id(miteruby_location_id_t id, miteruby_event_frame_position_t *position);
+miteruby_location_t miteruby_id_to_location(miteruby_location_id_t id);
