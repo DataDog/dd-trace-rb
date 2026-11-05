@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
   describe "::new" do
-    let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+    let(:tracer) { instance_double(Datadog::Tracing::Tracer, reset_profiling_enabled: nil) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
@@ -109,6 +109,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
       expect(components.agent_info).to eq agent_info
+    end
+
+    it "resets the profiling enabled cache in tracing" do
+      expect(tracer).to receive(:reset_profiling_enabled)
+
+      components
     end
 
     describe "@environment_logger_extra" do

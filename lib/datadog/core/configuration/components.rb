@@ -429,7 +429,6 @@ module Datadog
           @profiler&.shutdown!
           build_profiler
           start_profiler
-          tracer.reset_profiling_enabled
         end
 
         # Whether the profiling settings changed since the profiler, which copies them, was built.
@@ -457,6 +456,8 @@ module Datadog
             logger: logger,
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
+          # The tracer can outlive the profiler, e.g. a c.tracing.instance kept across Datadog.configure.
+          tracer.reset_profiling_enabled
         end
 
         def start_profiler
