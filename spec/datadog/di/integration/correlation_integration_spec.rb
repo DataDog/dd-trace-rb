@@ -338,19 +338,20 @@ RSpec.describe "Correlation integration" do
       probe_manager.add_probe(method_probe("p-inner", "inner", rate_limit: 5000))
       # The gate's read and the admission capture both fail; the builder's
       # own read, after the customer method ran, then supplies the envelope.
+      builder_trace = instance_double(Datadog::Tracing::TraceOperation, id: 555)
       reads = 0
-      allow(Datadog::DI).to receive(:active_trace) do
+      expect(Datadog::DI).to receive(:active_trace).at_least(:once) do
         reads += 1
         raise "trace boom" if reads <= 2
 
-        nil
+        builder_trace
       end
 
       CorrelationIntegrationTestClass.new.inner
       flush
 
       expect(snapshots.size).to eq(1)
-      expect(snapshots[0][:"dd.trace_id"]).to be_nil
+      expect(snapshots[0][:"dd.trace_id"]).to eq("555")
     end
   end
 
