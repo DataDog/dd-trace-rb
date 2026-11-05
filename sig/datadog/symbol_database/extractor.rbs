@@ -5,17 +5,17 @@ module Datadog
       UNKNOWN_MAX_LINE: Integer
       EXCLUDED_COMMON_MODULES: Array[String]
       TARGETABLE_LINE_EVENTS: Array[::Symbol]
-      MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
-      MODULE_NAME: ::UnboundMethod
-      CLASS_SUPERCLASS: ::UnboundMethod
-      MODULE_INCLUDED_MODULES: ::UnboundMethod
-      MODULE_ANCESTORS: ::UnboundMethod
-      MODULE_CLASS_VARIABLES: ::UnboundMethod
-      MODULE_CONSTANTS: ::UnboundMethod
-      MODULE_AUTOLOAD_P: ::UnboundMethod
-      MODULE_CONST_GET: ::UnboundMethod
-      MODULE_CONST_DEFINED: ::UnboundMethod
-      KERNEL_CLASS: ::UnboundMethod
+      MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+      MODULE_NAME: UnboundMethod
+      CLASS_SUPERCLASS: UnboundMethod
+      MODULE_INCLUDED_MODULES: UnboundMethod
+      MODULE_ANCESTORS: UnboundMethod
+      MODULE_CLASS_VARIABLES: UnboundMethod
+      MODULE_CONSTANTS: UnboundMethod
+      MODULE_AUTOLOAD_P: UnboundMethod
+      MODULE_CONST_GET: UnboundMethod
+      MODULE_CONST_DEFINED: UnboundMethod
+      KERNEL_CLASS: UnboundMethod
       SLEEP_EVERY_N_MODULES: Integer
       SLEEP_SECONDS: Float
 
@@ -25,18 +25,18 @@ module Datadog
 
       def extract: (Module mod) -> Scope?
 
-      def extract_all: () -> ::Array[Scope]
+      def extract_all: () -> Array[Scope]
                      | () { (Scope) -> void } -> nil
 
       private
 
-      def build_per_file_index: () -> ::Hash[::String, ::Array[[::String, Module, ::Array[::Symbol]]]]
+      def build_per_file_index: () -> Hash[String, Array[[String, Module, Array[::Symbol]]]]
 
-      def collect_method_names_by_file: (Module mod) -> ::Hash[::String, ::Array[::Symbol]]
+      def collect_method_names_by_file: (Module mod) -> Hash[String, Array[::Symbol]]
 
-      def build_file_scope: (::String file_path, ::Array[[::String, Module, ::Array[::Symbol]]] entries) -> Scope?
+      def build_file_scope: (String file_path, Array[[String, Module, Array[::Symbol]]] entries) -> Scope?
 
-      def convert_tree_to_scope: (::String file_path, untyped root) -> Scope
+      def convert_tree_to_scope: (String file_path, untyped root) -> Scope
 
 
       def safe_mod_name: (Module mod) -> String?
