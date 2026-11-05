@@ -3,13 +3,13 @@ module Datadog
     module Monitor
       module Gateway
         module Watcher
-          ARBITRARY_VALUE: ::String
+          ARBITRARY_VALUE: String
 
-          EVENT_LOGIN_SUCCESS: ::String
+          EVENT_LOGIN_SUCCESS: String
 
-          EVENT_LOGIN_FAILURE: ::String
+          EVENT_LOGIN_FAILURE: String
 
-          WATCHED_LOGIN_EVENTS: ::Array[::String]
+          WATCHED_LOGIN_EVENTS: Array[String]
 
           def self.watch: () -> void
 
