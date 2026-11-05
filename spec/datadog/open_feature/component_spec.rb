@@ -154,6 +154,24 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
+  describe "#exposure_logging_hook", skip: !Datadog::OpenFeature::Hooks::ExposureLoggingHook.available? do
+    before { stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil) }
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    [true, false].each do |enabled|
+      context "when exposures_datadog_logging_enabled is #{enabled}" do
+        before { settings.feature_flags.exposures_datadog_logging_enabled = enabled }
+
+        it "builds the hook over a reporter that follows the setting" do
+          expect(component.exposure_logging_hook).to be_a(Datadog::OpenFeature::Hooks::ExposureLoggingHook)
+          expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
+            .with(worker, telemetry: telemetry, logger: logger, datadog_logging_enabled: enabled)
+        end
+      end
+    end
+  end
+
   describe "#debug_logging_hook", skip: !Datadog::OpenFeature::Hooks::DebugLoggingHook.available? do
     before do
       settings.open_feature.evaluation_counts_enabled = false

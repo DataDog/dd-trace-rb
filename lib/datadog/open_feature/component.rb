@@ -14,6 +14,7 @@ require_relative "hooks/flag_eval_metrics_hook"
 require_relative "hooks/flag_eval_evp_hook"
 require_relative "hooks/span_enrichment_hook"
 require_relative "hooks/debug_logging_hook"
+require_relative "hooks/exposure_logging_hook"
 
 module Datadog
   module OpenFeature
@@ -25,7 +26,7 @@ module Datadog
       CONFIGURATION_CHANGED = :changed
       CONFIGURATION_LOST = :lost
 
-      attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
+      attr_reader :engine, :exposure_logging_hook, :flag_eval_metrics_hook, :flag_eval_evp_hook, :span_enrichment_hook
 
       def self.build(settings, agent_settings, resolution:, on_configuration_change:, logger:, telemetry:)
         return unless resolution.enabled?
@@ -60,14 +61,14 @@ module Datadog
         transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, telemetry: telemetry, logger: logger)
 
-        reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
-        @engine = EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+        @engine = EvaluationEngine.new(telemetry: telemetry, logger: logger)
 
         @telemetry = telemetry
         @logger = logger
         @settings = settings
         @agent_settings = agent_settings
         @on_configuration_change = on_configuration_change
+        @exposure_logging_hook = create_exposure_logging_hook
         @flag_eval_metrics_hook = create_flag_eval_metrics_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
         @span_enrichment_hook = create_span_enrichment_hook
@@ -159,6 +160,18 @@ module Datadog
 
       def configuration_shutdown?
         @configuration_mutex.synchronize { @configuration_shutdown }
+      end
+
+      def create_exposure_logging_hook
+        return unless Hooks::ExposureLoggingHook.available?
+
+        reporter = Exposures::Reporter.new(
+          @worker,
+          telemetry: @telemetry,
+          logger: @logger,
+          datadog_logging_enabled: @settings.feature_flags.exposures_datadog_logging_enabled,
+        )
+        Hooks::ExposureLoggingHook.new(reporter, telemetry: @telemetry, logger: @logger)
       end
 
       def create_flag_eval_metrics_hook

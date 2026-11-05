@@ -3,6 +3,8 @@
 module Datadog
   module OpenFeature
     module Ext
+      PROVIDER_NAME = "Datadog Feature Flagging Provider"
+
       ERROR = "ERROR"
       DEFAULT = "DEFAULT"
       INITIALIZING = "INITIALIZING"
@@ -38,6 +40,7 @@ module Datadog
 
       METADATA_DO_LOG = "__dd_do_log"
       METADATA_SPLIT_SERIAL_ID = "__dd_split_serial_id"
+      METADATA_EXPOSURE_CACHE_HIT = "__dd_exposure_cache_hit"
 
       # Split features are flattened into metadata as one entry per destination.
       # `__dd_feature.` is the public prefix customers read; the others are internal.

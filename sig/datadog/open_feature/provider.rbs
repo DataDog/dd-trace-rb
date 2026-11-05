@@ -7,6 +7,10 @@ module Datadog
 
       INITIALIZATION_CANCELLED_MESSAGE: ::String
 
+      HOOKS_UNSUPPORTED_MESSAGE: ::String
+
+      HOOKS_UNSUPPORTED_WARNING: Core::Utils::OnlyOnce
+
       type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
 
       @initialization_mutex: Thread::Mutex
@@ -47,7 +51,7 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook]
+      def hooks: () -> ::Array[Hooks::ExposureLoggingHook | Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,
@@ -88,6 +92,8 @@ module Datadog
       private
 
       def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
+
+      def warn_if_hooks_unsupported: () -> void
 
       def after_fork: (Component? component) -> void
 

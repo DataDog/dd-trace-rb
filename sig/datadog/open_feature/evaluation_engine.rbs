@@ -8,14 +8,12 @@ module Datadog
 
       RAW_DATA_WARNING: String
 
-      @reporter: Exposures::Reporter
       @telemetry: Core::Telemetry::Component
       @logger: Core::Logger
       @raw_data_warning: Core::Utils::OnlyOnce
       @evaluator: NoopEvaluator | NativeEvaluator
 
       def initialize: (
-        Exposures::Reporter reporter,
         telemetry: Core::Telemetry::Component,
         logger: Core::Logger
       ) -> void
