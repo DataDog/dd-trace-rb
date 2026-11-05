@@ -1887,8 +1887,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           miteruby_raw_events_queue_max_size_bytes: 1024 * 1024, # 1 MiB
           miteruby_interned_events_queue_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_mark_threads_max_size_bytes: 100 * 1024,
-          miteruby_mark_cme_iseq_max_size_bytes: 16 * 1024 * 1024,
-          miteruby_unique_stacks_map_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
+          miteruby_mark_cme_iseq_max_size_bytes: 1024 * 1024,
+          miteruby_mark_cme_iseq_array_max_size_bytes: 65_535 * 16,
+          miteruby_location_set_max_size_bytes: 13 * 1024 * 1024,
+          miteruby_location_array_max_size_bytes: 1_048_575 * 4,
+          miteruby_unique_stacks_map_max_size_bytes: 10 * 1024 * 1024,
           miteruby_thread_contexts_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
         )
       end
@@ -2267,6 +2270,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
         miteruby_mark_cme_iseq_entries: 0,
+        miteruby_mark_cme_iseq_array_entries: 0,
+        miteruby_location_set_entries: 0,
+        miteruby_location_array_entries: 0,
         miteruby_unique_stacks_map_entries: 0,
         miteruby_thread_contexts_entries: 0,
       }
@@ -2283,6 +2289,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         miteruby_interned_events_queue_used_size_bytes: be >= 96,
         miteruby_mark_threads_entries: 1,
         miteruby_mark_cme_iseq_entries: be > 0,
+        miteruby_mark_cme_iseq_array_entries: consumed_stats.fetch(:miteruby_mark_cme_iseq_entries),
+        miteruby_location_set_entries: be > 0,
+        miteruby_location_array_entries: consumed_stats.fetch(:miteruby_location_set_entries),
         miteruby_unique_stacks_map_entries: 1,
         miteruby_thread_contexts_entries: 0,
       )
