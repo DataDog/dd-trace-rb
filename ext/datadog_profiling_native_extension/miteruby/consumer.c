@@ -2,7 +2,6 @@
 #include "raw_events_queue_marking.h"
 #include "consumer_recorder.h"
 #include "consumer.h"
-#include "cme_iseq_map.h"
 #include "libdatadog_recorder.h"
 #include "streaming_serializer.h"
 #include "stack_dedup.h"
@@ -51,7 +50,6 @@ static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t
 #include "hashtable/verstable.h"
 
 #define NAME verstable_mark_cme_iseq_map
-#define IMPLEMENTATION_MODE
 #define KEY_TY miteruby_event_frame_refs_t
 #define VAL_TY miteruby_cme_iseq_id_t
 #define HASH_FN cme_iseq_hash
@@ -379,8 +377,7 @@ void miteruby_consumer_prepare_serialize(VALUE recorder_instance, VALUE streamin
 static VALUE prepare_serialize_locked(VALUE args) {
   prepare_serialize_args *recorders = (prepare_serialize_args *) args;
   miteruby_streaming_serializer_prepare_serialize(
-    recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
-    &consumer_state.mark_cme_iseq_map
+    recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos
   );
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
