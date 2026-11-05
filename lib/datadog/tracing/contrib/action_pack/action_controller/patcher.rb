@@ -19,7 +19,8 @@ module Datadog
             end
 
             def patch
-              ::ActionController::Metal.prepend(ActionController::Instrumentation::Metal)
+              ::ActionController::Base.prepend(ActionController::Instrumentation::Metal)
+              ::ActionController::API.prepend(ActionController::Instrumentation::Metal)
             end
           end
         end
