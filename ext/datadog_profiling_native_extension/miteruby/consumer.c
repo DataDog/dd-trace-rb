@@ -35,8 +35,8 @@ typedef struct {
 
 static void *mark_threads_calloc(size_t size);
 static void *mark_cme_iseq_calloc(size_t size);
-static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs);
-static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right);
+static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs, void *ctx);
+static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right, void *ctx);
 static void *location_calloc(size_t size);
 static uint64_t location_hash(miteruby_location_key_t key);
 static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t right);
@@ -52,10 +52,13 @@ static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t
 #define NAME verstable_mark_cme_iseq_map
 #define KEY_TY miteruby_event_frame_refs_t
 #define VAL_TY miteruby_cme_iseq_id_t
-#define HASH_FN cme_iseq_hash
-#define CMPR_FN cme_iseq_equal
-#define MALLOC_FN mark_cme_iseq_calloc
-#define FREE_FN miteruby_allocator_free_sized
+#define CTX_TY void *
+// Tiny hack: rely on Verstable's internal parameter name `table` to pass per-table context to hash/equality
+// without changing Verstable
+#define HASH_FN(key) cme_iseq_hash((key), table->ctx)
+#define CMPR_FN(left, right) cme_iseq_equal((left), (right), table->ctx)
+#define MALLOC_FN(size, ctx) mark_cme_iseq_calloc(size)
+#define FREE_FN(ptr, size, ctx) miteruby_allocator_free_sized((ptr), (size))
 #include "hashtable/verstable.h"
 
 #define NAME verstable_location_map
@@ -122,11 +125,11 @@ static void *mark_cme_iseq_calloc(size_t size) {
   return miteruby_allocator_alloc(size, "mark_cme_iseq");
 }
 
-static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs) {
+static uint64_t cme_iseq_hash(miteruby_event_frame_refs_t refs, DDTRACE_UNUSED void *ctx) {
   return vt_wyhash(&refs, sizeof(refs));
 }
 
-static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right) {
+static bool cme_iseq_equal(miteruby_event_frame_refs_t left, miteruby_event_frame_refs_t right, DDTRACE_UNUSED void *ctx) {
   return left.cme == right.cme && left.iseq == right.iseq;
 }
 
@@ -260,7 +263,7 @@ void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
 
   consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
-  verstable_mark_cme_iseq_map_init(&consumer_state.mark_cme_iseq_map);
+  verstable_mark_cme_iseq_map_init(&consumer_state.mark_cme_iseq_map, NULL);
   verstable_location_map_init(&consumer_state.location_map);
 
   miteruby_stack_dedup_init();
