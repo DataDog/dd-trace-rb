@@ -34,13 +34,13 @@ module Datadog
 
         def initialize: (
           Core::Transport::HTTP::API::Map apis,
-          ::String default_api,
+          String default_api,
           logger: Core::Logger
         ) -> void
 
-        def send_exposures: (::Hash[::Symbol, untyped] payload) -> Core::Transport::Response
+        def send_exposures: (Hash[Symbol, untyped] payload) -> Core::Transport::Response
 
-        def send_flag_evaluations: (::Hash[::String, untyped] payload) -> Core::Transport::Response
+        def send_flag_evaluations: (Hash[String, untyped] payload) -> Core::Transport::Response
       end
     end
   end

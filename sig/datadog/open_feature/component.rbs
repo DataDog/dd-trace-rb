@@ -36,11 +36,11 @@ module Datadog
 
       @debug_logging_hook: Hooks::DebugLoggingHook?
 
-      @configuration_mutex: ::Thread::Mutex
+      @configuration_mutex: Thread::Mutex
 
-      @reconfiguration_mutex: ::Thread::Mutex
+      @reconfiguration_mutex: Thread::Mutex
 
-      @configuration_condition: ::Thread::ConditionVariable
+      @configuration_condition: Thread::ConditionVariable
 
       @configuration_received: bool
 
@@ -75,7 +75,7 @@ module Datadog
 
       def shutdown!: () -> void
 
-      def reconfigure!: (::String? configuration) -> void
+      def reconfigure!: (String? configuration) -> void
 
       def debug_logging_hook: () -> Hooks::DebugLoggingHook?
 
