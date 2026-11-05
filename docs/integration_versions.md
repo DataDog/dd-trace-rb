@@ -29,7 +29,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | graphql                  | 1.13.25             | 2.6.14              |
 | grpc                     | 1.48.0              | 1.84.0              |
 | hanami                   | 1.3.5               | 1.3.5               |
-| http                     | 5.0.4               | 6.0.4               |
+| http                     | 0.9.1               | 0.9.1               |
 | httpclient               | 2.9.0               | 2.9.0               |
 | httprb                   | 5.0.4               | 6.0.4               |
 | httpx                    | [3rd-party support](https://honeyryderchuck.gitlab.io/httpx/) | [3rd-party support](https://honeyryderchuck.gitlab.io/httpx/) |
@@ -37,7 +37,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | karafka                  | 2.3.0               | 2.6.1               |
 | kicks                    | 3.0.0               | 3.4.0               |
 | lograge                  | 0.12.0              | 0.15.0              |
-| makara                   | 0.5.1               | 0.5.1               |
+| makara                   | 0.5.1               | 0.6.0.pre           |
 | mongo                    | 2.11.0              | 2.26.0              |
 | mysql2                   | 0.5.5               | 0.5.7               |
 | opensearch               | 2.1.0               | 3.4.0               |
