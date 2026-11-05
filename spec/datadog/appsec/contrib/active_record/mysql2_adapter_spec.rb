@@ -148,7 +148,6 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
     end
 
     context "when adapter is loaded after AppSec is configured", execute_in_fork: true do
-      # NOTE: Emulates the adapter being loaded after AppSec patched ActiveRecord
       before do
         ActiveRecord::ConnectionAdapters.send(:remove_const, :Mysql2Adapter)
         $LOADED_FEATURES.delete_if { |path| path.end_with?("active_record/connection_adapters/mysql2_adapter.rb") }
