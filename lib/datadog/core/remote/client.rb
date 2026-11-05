@@ -241,7 +241,7 @@ module Datadog
         end
 
         def ruby_engine_version
-          @ruby_engine_version ||= defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+          @ruby_engine_version ||= RUBY_ENGINE_VERSION
         end
 
         def gem_spec(name)

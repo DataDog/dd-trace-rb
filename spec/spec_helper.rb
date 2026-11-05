@@ -324,9 +324,6 @@ end
 # To allow for leaky threads to be traced
 # back to their creation point.
 module DatadogThreadDebugger
-  # DEV: we have to use an explicit `block`, argument
-  # instead of the implicit `yield` call, as calling
-  # `yield` here crashes the Ruby VM in Ruby < 2.2.
   def initialize(*args, &block)
     @caller = caller
     wrapped = lambda do |*thread_args|

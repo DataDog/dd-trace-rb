@@ -20,8 +20,6 @@ module Datadog
           # always exclude the command name
           options = Contrib::Utils::Quantization::HashFormatter.merge_options(quantization_options, exclude: [command_name.to_s])
 
-          # quantized statements keys are strings to avoid leaking Symbols in older Rubies
-          # as Symbols are not GC'ed in Rubies prior to 2.2
           base_info = Contrib::Utils::Quantization::HashFormatter.format(
             {
               "operation" => command_name,

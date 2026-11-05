@@ -1183,7 +1183,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "Process::Waiter crash regression tests" do
-      # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
+      # On Ruby 2.5 and 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
       #
       # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM

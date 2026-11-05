@@ -1424,7 +1424,7 @@ class DeepStackSimulator
       (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_3 : :deep_stack_2
 
     thread = Thread.new { DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).send(first_method) }
-    thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
+    thread.name = "Deep stack #{depth}"
     ready_queue.pop
 
     thread
