@@ -6,7 +6,7 @@ module Datadog
           include Datadog::AppSec::Contrib::Integration
           extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
-          MINIMUM_VERSION: ::Gem::Version
+          MINIMUM_VERSION: Gem::Version
 
           def self.version: () -> Gem::Version?
 

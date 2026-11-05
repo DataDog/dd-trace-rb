@@ -6,15 +6,15 @@ module Datadog
           module SigninTrackingPatch
             @_datadog_appsec_skip_track_login_event: bool?
 
-            attr_accessor authentication_hash: ::Hash[::Symbol, any]
+            attr_accessor authentication_hash: Hash[Symbol, any]
 
             def validate: (any resource) ?{ () -> any } -> bool
 
             private
 
-            def record_successful_signin: (::Datadog::AppSec::Context context, untyped resource) -> void
+            def record_successful_signin: (AppSec::Context context, untyped resource) -> void
 
-            def record_failed_signin: (::Datadog::AppSec::Context context, untyped resource) -> void
+            def record_failed_signin: (AppSec::Context context, untyped resource) -> void
           end
         end
       end
