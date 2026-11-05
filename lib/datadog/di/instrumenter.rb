@@ -1170,7 +1170,7 @@ module Datadog
         else
           # Expensive suffix check.
           suffix = Utils.normalize_windows_separators(probe.file)
-          found = nil #: ::String?
+          found = nil #: String?
           [false, true].each do |case_insensitive|
             working_suffix = suffix.dup
             loop do

@@ -4,7 +4,7 @@ module Datadog
       class ReconfigurationError < StandardError
       end
 
-      ALLOWED_TYPES: ::Array[::Symbol]
+      ALLOWED_TYPES: Array[Symbol]
 
       RAW_DATA_WARNING: String
 
@@ -21,13 +21,13 @@ module Datadog
       ) -> void
 
       def fetch_value: (
-        ::String flag_key,
+        String flag_key,
         default_value: untyped,
-        expected_type: ::Symbol,
+        expected_type: Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ResolutionDetails
 
-      def reconfigure!: (::String? configuration) -> void
+      def reconfigure!: (String? configuration) -> void
 
       def warn_raw_data_logging: () -> void
 

@@ -10,9 +10,7 @@ module Datadog
       module ActiveRecord
         # AppSec module that will be prepended to ActiveRecord adapter
         module Instrumentation
-          module_function
-
-          def detect_sql_injection(sql, adapter_name)
+          def self.detect_sql_injection(sql, adapter_name)
             return unless AppSec.rasp_enabled?
 
             context = AppSec.active_context

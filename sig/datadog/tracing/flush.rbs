@@ -15,7 +15,7 @@ module Datadog
 
         attr_reader min_spans_for_partial: untyped
 
-        def initialize: (?::Hash[untyped, untyped] options) -> void
+        def initialize: (?Hash[untyped, untyped] options) -> void
 
         def flush?: (untyped trace_op) -> (true | false)
       end

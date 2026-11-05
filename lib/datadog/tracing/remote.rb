@@ -60,7 +60,7 @@ module Datadog
           service = Datadog.configuration.remote.service || Datadog.configuration.service
           env = Datadog.configuration.env
 
-          # @type var parsed: Array[[::Datadog::Core::Remote::Configuration::Content, ::Hash[::String, untyped]]]
+          # @type var parsed: Array[[Core::Remote::Configuration::Content, Hash[String, untyped]]]
           parsed = []
           # @type var unparseable_contents: Array[Datadog::Core::Remote::Configuration::Content]
           unparseable_contents = []

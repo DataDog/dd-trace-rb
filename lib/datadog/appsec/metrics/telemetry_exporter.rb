@@ -5,9 +5,7 @@ module Datadog
     module Metrics
       # A class responsible for exporting WAF request metrics via Telemetry.
       module TelemetryExporter
-        module_function
-
-        def export_waf_request_metrics(metrics, context)
+        def self.export_waf_request_metrics(metrics, context)
           AppSec.telemetry.inc(
             Ext::TELEMETRY_METRICS_NAMESPACE, "waf.requests", 1,
             tags: {
@@ -24,7 +22,7 @@ module Datadog
           )
         end
 
-        def export_api_security_metrics(context)
+        def self.export_api_security_metrics(context)
           web_framework = context.state[:web_framework]
           return unless web_framework
 

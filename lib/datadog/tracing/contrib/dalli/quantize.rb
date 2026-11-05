@@ -8,9 +8,7 @@ module Datadog
       module Dalli
         # Quantize contains dalli-specic quantization tools.
         module Quantize
-          module_function
-
-          def format_command(operation, args)
+          def self.format_command(operation, args)
             placeholder = "#{operation} BLOB (OMITTED)"
             command = [operation, *args].join(" ").strip
             command = Core::Utils.utf8_encode(command, binary: true, placeholder: placeholder)

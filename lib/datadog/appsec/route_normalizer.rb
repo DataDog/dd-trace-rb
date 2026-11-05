@@ -17,8 +17,6 @@ module Datadog
       RAILS_ROUTE_URI_PATTERN_KEY = "action_dispatch.route_uri_pattern"
       RAILS_PATH_PARAMS_KEY = "action_dispatch.request.path_parameters"
 
-      module_function
-
       # Extracts a normalized route path for a Rack request.
       #
       # Examples:
@@ -27,7 +25,7 @@ module Datadog
       #   Sinatra: "GET /download/*.*"           => "/download/{param1+param2}"
       #   Rails:   "/posts/:id(.:format)" + path => "/posts/{id+format}"
       #   Pattern: "/users/:id"                  => "/users/{id}"
-      def extract_normalized_route(rack_env, prefix: nil, pattern: nil)
+      def self.extract_normalized_route(rack_env, prefix: nil, pattern: nil)
         route_prefix = prefix || rack_env["SCRIPT_NAME"]
 
         if rack_env.key?(GRAPE_ROUTE_KEY)
@@ -48,20 +46,20 @@ module Datadog
         nil
       end
 
-      private_class_method def normalize_rails_route(route, rack_env, route_prefix)
+      private_class_method def self.normalize_rails_route(route, rack_env, route_prefix)
         path_params = rack_env.fetch(RAILS_PATH_PARAMS_KEY, {})
         path = path_without_prefix(rack_env["PATH_INFO"].to_s, route_prefix)
 
         RailsRoutePattern.new(route).normalize(path_params: path_params, path: path)
       end
 
-      private_class_method def normalize_route_string(route)
+      private_class_method def self.normalize_route_string(route)
         return unless route
 
         RoutePattern.new(route).normalize
       end
 
-      private_class_method def path_without_prefix(path, prefix)
+      private_class_method def self.path_without_prefix(path, prefix)
         return path unless prefix
 
         prefix = prefix.to_s

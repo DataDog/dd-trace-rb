@@ -25,7 +25,7 @@ module Datadog
 
       @executed_on_line: bool?
 
-      @rate_limit: ::Integer
+      @rate_limit: Integer
 
       @emitting_notified: bool
 
@@ -86,7 +86,7 @@ module Datadog
       def method?: () -> bool
       def line_no!: () -> Integer
       def method_name!: () -> String
-      def location: () -> ::String
+      def location: () -> String
       def file_matches?: (String path) -> bool
       def emitting_notified?: () -> bool
       attr_writer emitting_notified: bool

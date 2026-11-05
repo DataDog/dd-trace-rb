@@ -15,22 +15,20 @@ module Datadog
 
             EVENT_NAME = "process.action_mailer"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_PROCESS
             end
 
-            def span_type
+            def self.span_type
               # process.action_mailer processes email and renders partial templates
               Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
             end
 
-            def on_start(span, event, _id, payload)
+            def self.on_start(span, event, _id, payload)
               super
 
               span.resource = payload[:mailer] # Mailer is not available at `on_start`

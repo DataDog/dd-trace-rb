@@ -12,7 +12,7 @@ module Datadog
         interface _ClassMethods
           def settings: (Symbol name) ?{ () [self: _DslContext] -> untyped } -> Class
 
-          def new_settings_class: (Symbol name, String settings_path) ?{ () [self: _DslContext] -> untyped } -> (Class & ::Datadog::Core::Configuration::Options::_SettingsClass)
+          def new_settings_class: (Symbol name, String settings_path) ?{ () [self: _DslContext] -> untyped } -> (Class & Core::Configuration::Options::_SettingsClass)
         end
 
         interface _DslContext
@@ -30,9 +30,9 @@ module Datadog
         module InstanceMethods
           include Options::_InstanceMethods
 
-          def initialize: (?::Hash[untyped, untyped] options) -> void
+          def initialize: (?Hash[untyped, untyped] options) -> void
 
-          def configure: (?::Hash[untyped, untyped] opts) ?{ (untyped) -> untyped } -> untyped
+          def configure: (?Hash[untyped, untyped] opts) ?{ (untyped) -> untyped } -> untyped
 
           def to_h: () -> Hash[Symbol, Object?]
 

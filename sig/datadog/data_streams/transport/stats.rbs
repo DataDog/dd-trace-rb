@@ -6,7 +6,7 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
-          def send_stats: (::Hash[::String, untyped] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+          def send_stats: (Hash[String, untyped] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
         end
       end
     end

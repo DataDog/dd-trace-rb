@@ -11,6 +11,9 @@ module ActiveRecord
   end
 
   module ConnectionAdapters
+    class AbstractAdapter
+    end
+
     module SQLite3Adapter
     end
 

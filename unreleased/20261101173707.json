@@ -1,6 +1,0 @@
-{
-  "type": "Changed",
-  "product": "Dynamic Instrumentation",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6223",
-  "message": "Lower the per-call limit of the `matches` expression operator from 500 ms to 50 ms of wall time; a slow regular expression in a probe now delays the instrumented method by at most 50 ms per call and reports an evaluation error."
-}

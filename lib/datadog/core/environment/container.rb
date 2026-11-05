@@ -30,12 +30,10 @@ module Datadog
           :inode,
         )
 
-        module_function
-
         # Returns HTTP headers representing container information.
         # These can used in any Datadog request that requires origin detection.
         # This is the recommended method to call to get container information.
-        def to_headers
+        def self.to_headers
           headers = {}
           headers["Datadog-Container-ID"] = container_id if container_id
           headers["Datadog-Entity-ID"] = entity_id if entity_id
@@ -44,7 +42,7 @@ module Datadog
         end
 
         # Container ID, prefixed with "ci-" or Inode, prefixed with "in-".
-        def entity_id
+        def self.entity_id
           if container_id
             "ci-#{container_id}"
           elsif inode
@@ -54,7 +52,7 @@ module Datadog
 
         # External data supplied by the Datadog Cluster Agent Admission Controller.
         # @see {Ext::ENV_EXTERNAL_ENV} for more details.
-        def external_env
+        def self.external_env
           Datadog.configuration.container.external_env
         end
 
@@ -63,14 +61,14 @@ module Datadog
         # Examples: Docker, Kubernetes, AWS Fargate, LXC, etc.
         #
         # @return [String, nil] The platform name (e.g., "docker", "kubepods", "fargate"), or nil if not containerized
-        def platform
+        def self.platform
           entry.platform
         end
 
         # The unique identifier of the current container in the container environment.
         #
         # @return [String, nil] The container ID, or nil if not running in a containerized environment
-        def container_id
+        def self.container_id
           entry.container_id
         end
 
@@ -81,7 +79,7 @@ module Datadog
         # enabling correlation across container restarts and multi-container applications.
         #
         # @return [String, nil] The task/pod UID, or nil if not available in the current environment
-        def task_uid
+        def self.task_uid
           entry.task_uid
         end
 
@@ -90,14 +88,14 @@ module Datadog
         # Used as a fallback identifier when {#container_id} is unavailable.
         #
         # @return [Integer, nil] The namespace inode, or nil if unavailable
-        def inode
+        def self.inode
           entry.inode
         end
 
         # Checks if the current process is running on the host cgroup namespace.
         # This indicates that the process is not running inside a container.
         # When unsure, we return `false` (not running on host).
-        def running_on_host?
+        def self.running_on_host?
           return @running_on_host if defined?(@running_on_host)
 
           @running_on_host = begin
@@ -117,7 +115,7 @@ module Datadog
         # All cgroup entries have the same container identity.
         # The first valid one is sufficient.
         # v2 entries are preferred over v1.
-        def entry
+        def self.entry
           return @entry if defined?(@entry)
 
           # Scan all v2 entries first, only then falling back to v1 entries.

@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Metrics
-      module Helpers
+      module Helpers : Module
         def count: (Symbol name, String stat) -> void
 
         def distribution: (Symbol name, String stat) -> void

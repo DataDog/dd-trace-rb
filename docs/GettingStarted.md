@@ -896,12 +896,6 @@ When manually activating your integration, use the `Datadog.configure` method:
 
 ```ruby
 # Inside Rails initializer or equivalent
-# For graphql >= v2.2
-Datadog.configure do |c|
-  c.tracing.instrument :graphql, error_tracking: true, with_unified_tracer: true, **options
-end
-
-# For graphql < v2.2
 Datadog.configure do |c|
    c.tracing.instrument :graphql, error_tracking: true, **options
 end
@@ -916,14 +910,13 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/)**. For auto instrumented applications, you **MUST** use the environment variable. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
-| `with_deprecated_tracer` |                            | `Bool`   | (Not recommended) Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
+| <!---`with_unified_tracer`--> | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/)**. For auto instrumented applications, you **MUST** use the environment variable. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 | `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
 | `error_tracking` | `DD_TRACE_GRAPHQL_ERROR_TRACKING` | `Bool` | (Recommended) Surface GraphQL errors in Error Tracking. | `false` |
 
 
-Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy.
+Once an instrumentation strategy is selected, it is not possible to change the instrumentation strategy.
 
 **Manually configuring GraphQL schemas**
 
@@ -2297,7 +2290,7 @@ Some configuration options are read when integrations are patched (during auto-i
 **Options that must be environment variables with Rails auto-instrumentation:**
 
 - `tracing.contrib.global_default_service_name.enabled` (`DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`)
-- GraphQL `with_unified_tracer` (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
+- GraphQL unified tracer (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
 
 **Example:**
 

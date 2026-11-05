@@ -14,23 +14,21 @@ module Datadog
             module Cache
               include ActiveSupport::Cache::Event
 
-              module_function
-
               # Acts as this module's initializer.
-              def subscribe!
+              def self.subscribe!
                 @cache_backend = {}
                 super
               end
 
-              def event_name
+              def self.event_name
                 /\Acache_(?:delete|read|read_multi|write|write_multi)\.active_support\z/
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_CACHE
               end
 
-              def span_options
+              def self.span_options
                 {
                   type: Ext::SPAN_TYPE_CACHE,
                 }
@@ -45,7 +43,7 @@ module Datadog
                 "cache_write_multi.active_support" => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true},
               }.freeze
 
-              def trace?(event, payload)
+              def self.trace?(event, payload)
                 return false if !Tracing.enabled? || !configuration.enabled
 
                 if (cache_store = configuration[:cache_store])
@@ -67,7 +65,7 @@ module Datadog
                 end
               end
 
-              def on_start(span, event, _id, payload)
+              def self.on_start(span, event, _id, payload)
                 # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
                 # In previous versions, the denormalized key is stored in the official `key` attribute.
                 # We fall back to `key`, even in Rails 8, as a defensive measure.
@@ -95,7 +93,7 @@ module Datadog
                 Datadog::Core::Telemetry::Logger.report(e)
               end
 
-              def set_cache_key(span, key, multi_key)
+              def self.set_cache_key(span, key, multi_key)
                 if multi_key
                   keys = key.is_a?(Hash) ? key.keys : key # `write`s use Hashes, while `read`s use Arrays
                   resolved_key = keys.map { |k| ::ActiveSupport::Cache.expand_cache_key(k) }
@@ -130,7 +128,7 @@ module Datadog
               #
               # Also, this method caches the store name, given this value will be retrieve
               # multiple times and involves string manipulation.
-              def cache_backend(store)
+              def self.cache_backend(store)
                 # Cache the backend name to avoid the expensive string manipulation required to calculate it.
                 # DEV: We can't store it directly in the `store` object because it is a frozen String.
                 if (name = @cache_backend[store])

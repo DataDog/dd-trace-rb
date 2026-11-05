@@ -5,9 +5,9 @@ module Datadog
 
       RESPONSE_HEADERS_TAGS: Array[String]
 
-      def self?.tag_request: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
+      def self.tag_request: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
 
-      def self?.tag_response: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
+      def self.tag_response: (Tracing::SpanOperation span, Core::HeaderCollection headers) -> void
     end
   end
 end
