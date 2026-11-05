@@ -2290,7 +2290,7 @@ Some configuration options are read when integrations are patched (during auto-i
 **Options that must be environment variables with Rails auto-instrumentation:**
 
 - `tracing.contrib.global_default_service_name.enabled` (`DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`)
-- GraphQL `with_unified_tracer` (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
+- GraphQL unified tracer (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
 
 **Example:**
 
