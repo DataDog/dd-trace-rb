@@ -20,7 +20,8 @@
 #include <threads.h>
 
 #define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
-#define MARK_CME_ISEQ_MAX_SIZE MiB_AS_BYTES(16)
+// All 65,535 array entries fit in 131,072 set buckets; 2-byte IDs plus metadata need just over 512 KiB.
+#define MARK_CME_ISEQ_MAX_SIZE MiB_AS_BYTES(1)
 #define MARK_CME_ISEQ_ARRAY_CAPACITY UINT16_MAX
 #define LOCATION_MAP_MAX_SIZE MiB_AS_BYTES(16)
 
