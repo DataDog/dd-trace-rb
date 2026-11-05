@@ -1,4 +1,4 @@
-FROM ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+FROM ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc-g388e1195d337ff1662112f65a97dbbff58576d8e
 
 ENV DEBIAN_FRONTEND=noninteractive
 
