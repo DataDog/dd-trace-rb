@@ -583,7 +583,10 @@ module Datadog
 
             logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
             telemetry&.report(exc, description: "Error in DI correlation gate")
-            return false unless own_rate_limit_admits?(probe)
+            unless probe.own_rate_limit_allows?
+              record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+              return false
+            end
 
             yield(active_trace_at_admission) if block_given?
             return true
@@ -599,7 +602,10 @@ module Datadog
 
           yield(trace) if block_given?
         else
-          return false unless own_rate_limit_admits?(probe)
+          unless probe.own_rate_limit_allows?
+            record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
+            return false
+          end
 
           return false unless global_rate_limit_allows?(probe)
 
@@ -650,18 +656,6 @@ module Datadog
       def reraise_per_policy(exc)
         Datadog::DI.reraise_if_fatal(exc)
         raise exc if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-      end
-
-      # Consults the probe's own rate limiter, recording the canonical skip
-      # metric when it denies.
-      #
-      # @param probe [Datadog::DI::Probe] the probe whose hit is being gated
-      # @return [Boolean] true when the probe's own limiter admits the hit
-      def own_rate_limit_admits?(probe)
-        return true if probe.own_rate_limit_allows?
-
-        record_rate_limit_skip(GuardrailsTelemetry::Reason::RATE_LIMIT_PROBE, probe)
-        false
       end
 
       # Consults the process-wide hard rate limiter bounding non-capturing

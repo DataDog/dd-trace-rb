@@ -102,8 +102,6 @@ module Datadog
 
       def reraise_per_policy: (Exception exc) -> void
 
-      def own_rate_limit_admits?: (Probe probe) -> bool
-
       def global_rate_limit_allows?: (Probe probe) -> bool
 
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
