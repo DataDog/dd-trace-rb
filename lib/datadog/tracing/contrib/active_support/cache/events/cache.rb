@@ -68,7 +68,8 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # Since Rails 8, `dd_original_keys` contains the denormalized keys provided
+                # by the user, as an insertion-ordered Set.
                 # In previous versions, the denormalized key is stored in the official `key` attribute.
                 # We fall back to `key`, even in Rails 8, as a defensive measure.
                 key = payload[:dd_original_keys] || payload[:key]
@@ -102,6 +103,7 @@ module Datadog
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_key)
                 else
+                  key = key.first if key.is_a?(Set)
                   resolved_key = ::ActiveSupport::Cache.expand_cache_key(key)
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
