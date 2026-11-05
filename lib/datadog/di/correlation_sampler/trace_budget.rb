@@ -3,7 +3,7 @@
 module Datadog
   module DI
     class CorrelationSampler
-      # Per-trace emission counters: one all counter shared by every probe,
+      # Per-trace emission counters: an all counter shared by every probe,
       # and a per-probe counter that starts at +per_probe_budget+ for each
       # distinct probe.
       #
