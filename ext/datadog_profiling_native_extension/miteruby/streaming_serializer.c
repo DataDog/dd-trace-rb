@@ -103,6 +103,12 @@ static int64_t string_table_id_for(uint64_t function_id) {
   return PPROF_STRING_TIMELINE + 1 + function_id * 2;
 }
 
+static void emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
+  if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
+      !pb_encode_string(stream, (const pb_byte_t *) string, length))
+    rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(stream));
+}
+
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const verstable_mark_cme_iseq_map *mark_cme_iseq_map
@@ -141,9 +147,7 @@ void miteruby_streaming_serializer_prepare_serialize(
   // Emit FragmentStringTable
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
-    if (!pb_encode_tag(&stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
-        !pb_encode_string(&stream, (const pb_byte_t *) string, strlen(string)))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(&stream));
+    emit_string_table_entry(&stream, string, strlen(string));
   }
 
   // Emit FragmentProfile
