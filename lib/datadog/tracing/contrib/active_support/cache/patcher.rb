@@ -26,9 +26,17 @@ module Datadog
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::PreserveOriginalKey)
               end
 
+              if Integration.version >= Gem::Version.new("5.2.0")
+                ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::ResolvedNamespace)
+              end
+
               # Backfill the `:store` key in the ActiveSupport event payload for older Rails.
               if Integration.version < Gem::Version.new("6.1.0")
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)
+              end
+
+              if Integration.version < Gem::Version.new("8.0.0")
+                ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::DeleteNamespaceBackfill)
               end
 
               # DEV-3.0: Backwards compatibility code for the 2.x gem series.
