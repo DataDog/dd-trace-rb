@@ -13,15 +13,15 @@ module Datadog
 
           DEFAULT_OPTIONS: { exclude: untyped, show: untyped, placeholder: untyped }
 
-          def self?.format_url: (untyped url) -> untyped
+          def self.format_url: (untyped url) -> untyped
 
-          def self?.format_body: (untyped body, ?Hash[untyped, untyped] options) -> untyped
+          def self.format_body: (untyped body, ?Hash[untyped, untyped] options) -> untyped
 
-          def self?.format_body!: (untyped body, ?Hash[untyped, untyped] options) -> untyped
+          def self.format_body!: (untyped body, ?Hash[untyped, untyped] options) -> untyped
 
-          def self?.merge_options: (untyped original, untyped additional) -> untyped
-          def self?.reserialize_json: (untyped string, ?untyped fail_value) { (untyped) -> untyped } -> untyped
-          def self?.sanitize_fragment_with_id: (untyped url) -> untyped
+          def self.merge_options: (untyped original, untyped additional) -> untyped
+          def self.reserialize_json: (untyped string, ?untyped fail_value) { (untyped) -> untyped } -> untyped
+          def self.sanitize_fragment_with_id: (untyped url) -> untyped
         end
       end
     end

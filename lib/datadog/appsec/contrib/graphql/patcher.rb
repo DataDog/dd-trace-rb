@@ -12,17 +12,15 @@ module Datadog
       module GraphQL
         # Patcher for AppSec on GraphQL
         module Patcher
-          module_function
-
-          def patched?
+          def self.patched?
             Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Gateway::Watcher.watch
             ::GraphQL::Schema.trace_with(AppSecTrace)
             Patcher.instance_variable_set(:@patched, true)

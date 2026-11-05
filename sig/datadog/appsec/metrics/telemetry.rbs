@@ -7,7 +7,7 @@ module Datadog
         BLOCK_SUCCESS: String
         BLOCK_IRRELEVANT: String
 
-        def self?.report_rasp: (Ext::rasp_rule_type type, SecurityEngine::result result, ?phase: String?) -> void
+        def self.report_rasp: (Ext::rasp_rule_type type, SecurityEngine::result result, ?phase: String?) -> void
       end
     end
   end

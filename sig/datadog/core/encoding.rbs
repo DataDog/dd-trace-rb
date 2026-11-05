@@ -20,13 +20,13 @@ module Datadog
 
         CONTENT_TYPE: String
 
-        def self?.content_type: () -> String
+        def self.content_type: () -> String
 
-        def self?.encode: (any obj) -> String
+        def self.encode: (any obj) -> String
 
-        def self?.join: (Array[String] encoded_data) -> String
+        def self.join: (Array[String] encoded_data) -> String
 
-        def self?.decode: (String obj) -> any
+        def self.decode: (String obj) -> any
       end
 
       # Encoder for the Msgpack format
@@ -35,13 +35,13 @@ module Datadog
 
         CONTENT_TYPE: String
 
-        def self?.content_type: () -> String
+        def self.content_type: () -> String
 
-        def self?.encode: (any obj) -> String
+        def self.encode: (any obj) -> String
 
-        def self?.join: (Array[String] encoded_data) -> String
+        def self.join: (Array[String] encoded_data) -> String
 
-        def self?.decode: (String obj) -> any
+        def self.decode: (String obj) -> any
       end
     end
   end

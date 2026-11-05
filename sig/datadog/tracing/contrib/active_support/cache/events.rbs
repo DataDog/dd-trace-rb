@@ -6,11 +6,11 @@ module Datadog
           module Events
             ALL: Array[untyped]
 
-            def self?.all: () -> untyped
+            def self.all: () -> untyped
 
-            def self?.subscriptions: () -> untyped
+            def self.subscriptions: () -> untyped
 
-            def self?.subscribe!: () -> untyped
+            def self.subscribe!: () -> untyped
           end
         end
       end

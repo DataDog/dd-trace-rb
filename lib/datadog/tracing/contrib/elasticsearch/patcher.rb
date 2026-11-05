@@ -15,13 +15,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require "uri"
             require "json"
             require_relative "quantize"
@@ -154,7 +152,7 @@ module Datadog
 
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
-          def transport_module
+          def self.transport_module
             if Integration.version >= Gem::Version.new("8.0.0")
               ::Elastic::Transport
             else

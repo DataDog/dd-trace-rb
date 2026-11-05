@@ -19,13 +19,13 @@ module Datadog
 
       module TraceId
         MAX: untyped
-        def self?.next_id: () -> untyped
+        def self.next_id: () -> untyped
 
-        def self?.to_high_order: (untyped trace_id) -> untyped
+        def self.to_high_order: (untyped trace_id) -> untyped
 
-        def self?.to_low_order: (untyped trace_id) -> untyped
+        def self.to_low_order: (untyped trace_id) -> untyped
 
-        def self?.concatenate: (untyped high_order, untyped low_order) -> untyped
+        def self.concatenate: (untyped high_order, untyped low_order) -> untyped
       end
     end
   end

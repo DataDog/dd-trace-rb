@@ -14,19 +14,17 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             Events.subscribe!
             inject_log_correlation
             inject_data_streams
           end
 
-          def inject_log_correlation
+          def self.inject_log_correlation
             ::ActiveSupport.on_load(:active_job) do
               if ::ActiveJob.gem_version < Gem::Version.new("6.0.0")
                 include LogInjection::AroundPerformPatch
@@ -36,7 +34,7 @@ module Datadog
             end
           end
 
-          def inject_data_streams
+          def self.inject_data_streams
             # ActiveJob 4.2 deserializes jobs through a class method rather than the
             # instance method, so the DSM pathway can only be propagated on 5.0+.
             return if ::ActiveJob.gem_version < Gem::Version.new("5.0.0")

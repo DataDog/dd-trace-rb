@@ -25,13 +25,13 @@ module Datadog
         end
 
         module Patcher
-          def self?.patched?: () -> bool
+          def self.patched?: () -> bool
 
-          def self?.target_version: () -> Gem::Version?
+          def self.target_version: () -> Gem::Version?
 
-          def self?.patch: () -> void
+          def self.patch: () -> void
 
-          def self?.patch_json?: () -> bool
+          def self.patch_json?: () -> bool
         end
       end
     end

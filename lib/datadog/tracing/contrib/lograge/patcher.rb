@@ -12,14 +12,12 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
           # patch applies our patch
-          def patch
+          def self.patch
             # First check Lograge logger directly for when keep_original_rails_log option is used
             used_logger = ::Lograge.logger || ::Lograge::LogSubscribers::ActionController.logger
 

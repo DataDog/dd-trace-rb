@@ -19,13 +19,11 @@ module Datadog
 
               EVENT_NAME = "join_group.consumer.kafka"
 
-              module_function
-
-              def span_name
+              def self.span_name
                 Ext::SPAN_CONSUMER_JOIN_GROUP
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_JOIN_GROUP}})
               end
             end
