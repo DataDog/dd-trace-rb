@@ -1898,6 +1898,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 0) }.to raise_error(/Timeout waiting/)
       end
     end
+
+    context "when the worker fails to start" do
+      before do
+        described_class::Testing._native_install_testing_signal_handler
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      after do
+        described_class::Testing._native_remove_testing_signal_handler
+        cpu_and_wall_time_worker.stop
+      end
+
+      it "raises an exception with the failure" do
+        cpu_and_wall_time_worker.start
+
+        expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 60) }
+          .to raise_error(/failed to start: Datadog::Profiling::ExistingSignalHandler/)
+      end
+    end
   end
 
   describe "#start_failure" do

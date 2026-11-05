@@ -178,18 +178,16 @@ module Datadog
           @wait_until_running_mutex.synchronize do
             return true if self.class._native_is_running?(self)
 
-            @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
+            @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds) unless failure_exception
 
-            # Not using `_native_is_running?(self) || raise(...)` here: `_native_is_running?` is declared
-            # to return `bool`, so steep infers the `||` expression as `bool` too and rejects it against
-            # this method's declared `true` return type. The explicit `if`/`else` type-checks correctly.
-            # rubocop:disable Style/RedundantCondition
+            failure = failure_exception
             if self.class._native_is_running?(self)
               true
+            elsif failure
+              raise "#{self.class.name} failed to start: #{failure.class}: #{failure.message}"
             else
               raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
             end
-            # rubocop:enable Style/RedundantCondition
           end
         end
 
