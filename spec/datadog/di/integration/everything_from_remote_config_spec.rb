@@ -208,7 +208,6 @@ RSpec.describe "DI integration from remote config" do
         name: nil,
         thread_id: nil,
         thread_name: "Thread.main",
-        version: 2,
       },
       message: nil,
       process_tags: String,
@@ -481,7 +480,6 @@ RSpec.describe "DI integration from remote config" do
             name: nil,
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # false is the result of first expression evaluation
           # second expression fails evaluation
@@ -660,7 +658,6 @@ RSpec.describe "DI integration from remote config" do
             name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           # No message since we stopped execution at condition evaluation.
           message: nil,
@@ -747,7 +744,6 @@ RSpec.describe "DI integration from remote config" do
               name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
               thread_name: "Thread.main",
-              version: 2,
             },
             message: nil,
             process_tags: String,
