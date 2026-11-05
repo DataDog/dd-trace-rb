@@ -136,11 +136,11 @@ static void *location_calloc(size_t size) {
 }
 
 static uint64_t location_hash(miteruby_location_key_t key) {
-  return vt_hash_integer(((uint64_t) key.cme_iseq_id.value.value << 16) | key.position.value);
+  return vt_hash_integer(((uint32_t) key.cme_iseq_id.value << 16) | key.position.value);
 }
 
 static bool location_equal(miteruby_location_key_t left, miteruby_location_key_t right) {
-  return left.cme_iseq_id.value.value == right.cme_iseq_id.value.value && left.position.value == right.position.value;
+  return left.cme_iseq_id.value == right.cme_iseq_id.value && left.position.value == right.position.value;
 }
 
 static void mutex_lock(mtx_t *mutex) {
@@ -408,9 +408,9 @@ static miteruby_consumer_exit_reason_t retain_cme_iseq(miteruby_event_frame_refs
 
   size_t next_id = verstable_mark_cme_iseq_map_size(&consumer_state.mark_cme_iseq_map);
   // We fail early if map is already at capacity
-  if (next_id > UINT20_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
+  if (next_id > UINT16_MAX) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   verstable_mark_cme_iseq_map_itr entry = verstable_mark_cme_iseq_map_get_or_insert(
-    &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = {.value = (unsigned int) next_id}}
+    &consumer_state.mark_cme_iseq_map, refs, (miteruby_cme_iseq_id_t) {.value = (uint16_t) next_id}
   );
   if (verstable_mark_cme_iseq_map_is_end(entry)) return MITERUBY_CONSUMER_MARK_CME_ISEQ_FULL;
   *id = entry.data->val;
@@ -425,9 +425,9 @@ miteruby_event_frame_refs_t miteruby_hack_id_to_frame_refs(miteruby_cme_iseq_id_
     !verstable_mark_cme_iseq_map_is_end(entry);
     entry = verstable_mark_cme_iseq_map_next(entry)
   ) {
-    if (entry.data->val.value.value == id.value.value) return entry.data->key;
+    if (entry.data->val.value == id.value) return entry.data->key;
   }
-  rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value.value);
+  rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value);
 }
 
 // TODO: Temporary hack, until we have a better way of mapping ids to the data they represent at serialization time
