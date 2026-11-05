@@ -8,6 +8,18 @@ module Datadog
       module ActiveRecord
         # AppSec patcher module for ActiveRecord
         module Patcher
+          module AdapterInheritancePatch
+            def inherited(subclass)
+              super
+
+              case subclass.name
+              when "ActiveRecord::ConnectionAdapters::SQLite3Adapter" then Patcher.patch_sqlite3_adapter
+              when "ActiveRecord::ConnectionAdapters::Mysql2Adapter" then Patcher.patch_mysql2_adapter
+              when "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter" then Patcher.patch_postgresql_adapter
+              end
+            end
+          end
+
           module_function
 
           def patched?
@@ -19,34 +31,21 @@ module Datadog
           end
 
           def patch
-            # Rails 7.0 intruduced new on-load hooks for sqlite3 and postgresql adapters
-            # The load hook for mysql2 adapter was introduced in Rails 7.1
-            #
-            # If the adapter is not loaded when the :active_record load hook is called,
-            # we need to add a load hook for the adapter
             ActiveSupport.on_load :active_record do
+              ::ActiveRecord::ConnectionAdapters::AbstractAdapter.singleton_class.prepend(
+                ::Datadog::AppSec::Contrib::ActiveRecord::Patcher::AdapterInheritancePatch,
+              )
+
               if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
                 ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_sqlite3_adapter
-              else
-                ActiveSupport.on_load :active_record_sqlite3adapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_sqlite3_adapter
-                end
               end
 
               if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
                 ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_mysql2_adapter
-              else
-                ActiveSupport.on_load :active_record_mysql2adapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_mysql2_adapter
-                end
               end
 
               if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
                 ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_postgresql_adapter
-              else
-                ActiveSupport.on_load :active_record_postgresqladapter do
-                  ::Datadog::AppSec::Contrib::ActiveRecord::Patcher.patch_postgresql_adapter
-                end
               end
             end
           end

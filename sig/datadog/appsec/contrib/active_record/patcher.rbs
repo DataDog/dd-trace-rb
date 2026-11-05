@@ -3,6 +3,10 @@ module Datadog
     module Contrib
       module ActiveRecord
         module Patcher
+          module AdapterInheritancePatch : Class
+            def inherited: (Class subclass) -> void
+          end
+
           def self?.patched?: () -> bool
 
           def self?.target_version: () -> Gem::Version?

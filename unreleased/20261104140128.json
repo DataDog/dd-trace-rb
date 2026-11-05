@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6630",
+  "message": "Fix missing RASP SQL injection checks for `mysql2` adapter on `ActiveRecord` before 7.1 and `postgresql` adapter before 7.0."
+}
