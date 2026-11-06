@@ -19,6 +19,8 @@ module Datadog
 
       @attached_count: Integer
 
+      @alive: bool
+
       ActiveContextError: StandardError
 
       attr_reader trace: Tracing::TraceOperation
@@ -45,7 +47,7 @@ module Datadog
 
       def events: () -> Array[SecurityEvent]
 
-      def catch: [T] () { () -> T } -> T?
+      def catch_interrupt: () { () -> void } -> bool
 
       def interrupt!: (WAF::action action_params) -> void
 
@@ -67,7 +69,7 @@ module Datadog
 
       def detach: () -> void
 
-      def attached?: () -> bool
+      def alive?: () -> bool
 
       def shared?: () -> bool
     end

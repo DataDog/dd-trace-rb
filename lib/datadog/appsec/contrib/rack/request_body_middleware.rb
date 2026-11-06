@@ -25,15 +25,14 @@ module Datadog
             # TODO: handle exceptions, except for @app.call
 
             http_response = nil #: Rack::response?
-            completed = false
-            context.catch do
+            interrupted = context.catch_interrupt do
               http_response, _request = Instrumentation.gateway.push("rack.request.body", Gateway::Request.new(env)) do
                 @app.call(env)
               end
-              completed = true
             end
 
-            if !completed && (http_response.nil? || !context.shared?)
+            response_shared = http_response && context.shared?
+            if interrupted && !response_shared
               return AppSec::Response.from_interrupt_params(context.state[:interrupt_params], env["HTTP_ACCEPT"]).to_rack
             end
 

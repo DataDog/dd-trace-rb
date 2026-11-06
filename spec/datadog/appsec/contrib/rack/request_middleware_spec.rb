@@ -64,7 +64,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
         proc do |env|
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
-          Thread.new { context.catch { context.interrupt!({"status_code" => "401"}) } }.join
+          Thread.new { context.catch_interrupt { context.interrupt!({"status_code" => "401"}) } }.join
 
           [200, {"content-type" => "text/plain"}, ["OK"]]
         end
@@ -151,7 +151,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
           Thread.new do
-            context.catch { context.interrupt!({"status_code" => "303", "location" => +"/blocked", "security_response_id" => "id"}) }
+            context.catch_interrupt { context.interrupt!({"status_code" => "303", "location" => +"/blocked", "security_response_id" => "id"}) }
           end.join
 
           Datadog::AppSec::ActionsHandler.interrupt_execution({"status_code" => "401"})

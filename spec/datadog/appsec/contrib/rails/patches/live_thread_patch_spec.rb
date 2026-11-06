@@ -38,7 +38,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
       response.request = ActionDispatch::Request.new(Rack::MockRequest.env_for("/"))
     end
   end
-  let(:context) { Datadog::AppSec::Context.new(nil, nil, waf_runner) }
+  # NOTE: Emulates the request thread that activated the context
+  let(:context) { Datadog::AppSec::Context.new(nil, nil, waf_runner).tap(&:attach) }
   let(:waf_runner) { instance_double(Datadog::AppSec::SecurityEngine::Runner, finalize!: nil) }
 
   context "when there is no active context" do
@@ -70,7 +71,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
       controller.spawn do
         context.detach
 
-        expect(context).to be_attached
+        expect(context).to be_alive
       end
     end
 
@@ -152,7 +153,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
   end
 
   context "when another thread interrupted the request" do
-    before { context.catch { context.interrupt!({"status_code" => "403"}) } }
+    before { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
 
     it "does not close the stream" do
       controller.spawn { nil }

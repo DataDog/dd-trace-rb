@@ -194,8 +194,39 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
+  describe "#alive?" do
+    context "when context was created" do
+      it { expect(context.alive?).to be(true) }
+    end
+
+    context "when the last thread detached" do
+      before do
+        described_class.activate(context)
+        described_class.deactivate
+      end
+
+      it { expect(context.alive?).to be(false) }
+    end
+
+    context "when another thread is still attached" do
+      before do
+        described_class.activate(context)
+        context.attach
+        described_class.deactivate
+      end
+
+      after { context.detach }
+
+      it { expect(context.alive?).to be(true) }
+    end
+  end
+
   describe "#shared?" do
-    it { expect(context.shared?).to be(false) }
+    before { described_class.activate(context) }
+
+    context "when only the request thread is attached" do
+      it { expect(context.shared?).to be(false) }
+    end
 
     context "when another thread is attached" do
       before { context.attach }
@@ -393,56 +424,54 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe "#catch" do
+  describe "#catch_interrupt" do
     before { allow(Datadog.logger).to receive(:warn) }
 
     let(:steps) { [] }
 
-    it { expect(context.catch { :value }).to eq(:value) }
+    context "when work completes" do
+      it { expect(context.catch_interrupt { :value }).to be(false) }
+    end
 
     context "when work is interrupted" do
-      it "returns nil and skips the rest of the work" do
-        result = context.catch do
+      it "returns true and skips the rest of the work" do
+        result = context.catch_interrupt do
           steps << :before
           context.interrupt!({"status_code" => "403"})
           steps << :after
         end
 
-        expect(result).to be_nil
+        expect(result).to be(true)
         expect(steps).to eq([:before])
       end
     end
 
     context "when catches are nested" do
       it "ends only the inner work" do
-        result = context.catch do
-          context.catch do
+        result = context.catch_interrupt do
+          context.catch_interrupt do
             context.interrupt!({"status_code" => "403"})
             steps << :inner
           end
           steps << :outer
-
-          :outer_value
         end
 
-        expect(result).to eq(:outer_value)
+        expect(result).to be(false)
         expect(steps).to eq([:outer])
       end
     end
 
     context "when work is interrupted from another thread" do
       it "does not end the work and warns in the other thread" do
-        result = context.catch do
+        result = context.catch_interrupt do
           Thread.new do
             context.interrupt!({"status_code" => "403"})
             steps << :thread
           end.join
           steps << :caller
-
-          :value
         end
 
-        expect(result).to eq(:value)
+        expect(result).to be(false)
         expect(steps).to eq([:thread, :caller])
         expect(Datadog.logger).to have_received(:warn)
       end
@@ -450,7 +479,7 @@ RSpec.describe Datadog::AppSec::Context do
 
     context "when work raises" do
       before do
-        context.catch { raise "Ooops" }
+        context.catch_interrupt { raise "Ooops" }
       rescue RuntimeError
         nil
       end
@@ -458,12 +487,12 @@ RSpec.describe Datadog::AppSec::Context do
       it { expect(context.interrupted?).to be(false) }
 
       it "ends the next interrupted work" do
-        result = context.catch do
+        result = context.catch_interrupt do
           context.interrupt!({"status_code" => "403"})
           steps << :after
         end
 
-        expect(result).to be_nil
+        expect(result).to be(true)
         expect(steps).to be_empty
       end
     end
@@ -474,21 +503,25 @@ RSpec.describe Datadog::AppSec::Context do
 
     let(:steps) { [] }
 
-    it "stores the decision" do
-      expect { context.catch { context.interrupt!({"status_code" => "403"}) } }
-        .to change { context.state[:interrupt_params] }.from(nil).to({"status_code" => "403"})
+    context "when interrupt is caught" do
+      it "stores the decision" do
+        expect { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
+          .to change { context.state[:interrupt_params] }.from(nil).to({"status_code" => "403"})
+      end
     end
 
-    it "throws the action params to a raw catch" do
-      expect(catch(Datadog::AppSec::Ext::INTERRUPT) { context.interrupt!({"status_code" => "403"}) })
-        .to eq({"status_code" => "403"})
+    context "when interrupt is caught with a raw catch" do
+      it "throws the action params" do
+        expect(catch(Datadog::AppSec::Ext::INTERRUPT) { context.interrupt!({"status_code" => "403"}) })
+          .to eq({"status_code" => "403"})
+      end
     end
 
     context "when a decision was already made" do
-      before { context.catch { context.interrupt!({"status_code" => "403"}) } }
+      before { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
 
       it "keeps the first decision" do
-        expect { context.catch { context.interrupt!({"status_code" => "303", "location" => "/"}) } }
+        expect { context.catch_interrupt { context.interrupt!({"status_code" => "303", "location" => "/"}) } }
           .not_to(change { context.state[:interrupt_params] })
       end
 
@@ -501,17 +534,9 @@ RSpec.describe Datadog::AppSec::Context do
     context "when context was marked as interrupted" do
       before { context.mark_as_interrupted! }
 
-      it "keeps the mark" do
-        context.catch { context.interrupt!({"status_code" => "401"}) }
-
-        expect(context.state[:interrupt_params]).to eq({})
-      end
-
-      it "renders the default block response" do
-        context.catch { context.interrupt!({"status_code" => "401"}) }
-
-        expect(Datadog::AppSec::Response.from_interrupt_params(context.state[:interrupt_params], nil).status)
-          .to eq(403)
+      it "stores the decision" do
+        expect { context.catch_interrupt { context.interrupt!({"status_code" => "401"}) } }
+          .to change { context.state[:interrupt_params] }.from(nil).to({"status_code" => "401"})
       end
     end
 
@@ -521,7 +546,7 @@ RSpec.describe Datadog::AppSec::Context do
         [{"status_code" => "403"}, {"status_code" => "303", "location" => "/"}].map do |action_params|
           Thread.new do
             barrier.pop
-            context.catch { context.interrupt!(action_params) }
+            context.catch_interrupt { context.interrupt!(action_params) }
           end
         end
       end
@@ -552,7 +577,7 @@ RSpec.describe Datadog::AppSec::Context do
     end
 
     context "when catch has ended" do
-      before { context.catch { :done } }
+      before { context.catch_interrupt { :done } }
 
       it "stores the decision and warns" do
         expect { context.interrupt!({"status_code" => "403"}) }.not_to raise_error
@@ -564,22 +589,26 @@ RSpec.describe Datadog::AppSec::Context do
   end
 
   describe "#interrupted?" do
-    it { expect(context.interrupted?).to be(false) }
+    context "when context was not interrupted" do
+      it { expect(context.interrupted?).to be(false) }
+    end
 
     context "when context was interrupted" do
-      before { context.catch { context.interrupt!({"status_code" => "403"}) } }
+      before { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
 
       it { expect(context.interrupted?).to be(true) }
     end
   end
 
   describe "#mark_as_interrupted!" do
-    it "marks context as interrupted" do
-      expect { context.mark_as_interrupted! }.to change(context, :interrupted?).from(false).to(true)
+    context "when context was not interrupted" do
+      it "marks context as interrupted" do
+        expect { context.mark_as_interrupted! }.to change(context, :interrupted?).from(false).to(true)
+      end
     end
 
     context "when a decision was already made" do
-      before { context.catch { context.interrupt!({"status_code" => "403"}) } }
+      before { context.catch_interrupt { context.interrupt!({"status_code" => "403"}) } }
 
       it "keeps the decision" do
         expect { context.mark_as_interrupted! }.not_to(change { context.state[:interrupt_params] })

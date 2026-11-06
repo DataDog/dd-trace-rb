@@ -15,14 +15,10 @@ module Datadog
               super do
                 context.attach
 
-                completed = false
-                context.catch do
-                  yield
-                  completed = true
-                end
+                interrupted = context.catch_interrupt { yield }
 
                 stream = response.stream
-                stream.close if !completed && stream.is_a?(::ActionController::Live::Buffer) && !stream.closed?
+                stream.close if interrupted && stream.is_a?(::ActionController::Live::Buffer) && !stream.closed?
               ensure
                 context.detach
               end
