@@ -25,15 +25,17 @@ module Datadog
             # TODO: handle exceptions, except for @app.call
 
             http_response = nil #: Rack::response?
-            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+            completed = false
+            context.catch do
               http_response, _request = Instrumentation.gateway.push("rack.request.body", Gateway::Request.new(env)) do
                 @app.call(env)
               end
-
-              nil
+              completed = true
             end
 
-            return AppSec::Response.from_interrupt_params(interrupt_params, env["HTTP_ACCEPT"]).to_rack if interrupt_params
+            if !completed && (http_response.nil? || !context.shared?)
+              return AppSec::Response.from_interrupt_params(context.state[:interrupt_params], env["HTTP_ACCEPT"]).to_rack
+            end
 
             # Steep can't see that the catch block always populates http_response
             # when no interrupt is thrown.

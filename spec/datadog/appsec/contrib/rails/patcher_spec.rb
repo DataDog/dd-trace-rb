@@ -52,9 +52,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patcher do
     context ":after_routes_loaded hook" do
       context "when error occurs while getting application routes" do
         before do
+          @original_patched = described_class.instance_variable_get(:@patched)
+          allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(Datadog::AppSec::Instrumentation::Gateway.new)
+
           described_class.patch
           allow(::Rails).to receive(:application).and_raise(StandardError)
         end
+
+        after { described_class.instance_variable_set(:@patched, @original_patched) }
 
         it "logs the error and reports it via telemetry" do
           ActiveSupport.run_load_hooks(:after_routes_loaded)

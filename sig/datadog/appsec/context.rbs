@@ -15,6 +15,10 @@ module Datadog
 
       @downstream_body_sampler: CounterSampler
 
+      @mutex: Mutex
+
+      @attached_count: Integer
+
       ActiveContextError: StandardError
 
       attr_reader trace: Tracing::TraceOperation
@@ -31,7 +35,7 @@ module Datadog
 
       def self.deactivate: () -> void
 
-      def self.active: () -> Context
+      def self.active: () -> Context?
 
       def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span, SecurityEngine::Runner waf_runner) -> void
 
@@ -41,9 +45,13 @@ module Datadog
 
       def events: () -> Array[SecurityEvent]
 
-      def mark_as_interrupted!: () -> void
+      def catch: [T] () { () -> T } -> T?
+
+      def interrupt!: (WAF::action action_params) -> void
 
       def interrupted?: () -> bool
+
+      def mark_as_interrupted!: () -> void
 
       def waf_runner_ruleset_version: () -> String
 
@@ -55,7 +63,13 @@ module Datadog
 
       def export_request_telemetry: () -> void
 
-      def finalize!: () -> void
+      def attach: () -> bool
+
+      def detach: () -> void
+
+      def attached?: () -> bool
+
+      def shared?: () -> bool
     end
   end
 end

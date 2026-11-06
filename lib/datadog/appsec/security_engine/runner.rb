@@ -16,12 +16,15 @@ module Datadog
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
           @ruleset_version = ruleset_version
+          @finalized = false
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
 
         def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
           @mutex.lock
+
+          return Result::Error.new(duration_ext_ns: 0, input_truncated: false) if @finalized
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
           persistent_data.reject! do |_, v|
@@ -69,16 +72,24 @@ module Datadog
         end
 
         def finalize!
-          @waf_context&.finalize!
-        ensure
-          @handle_ref.release(@waf_handle)
+          @mutex.synchronize do
+            return if @finalized
+
+            @finalized = true
+
+            begin
+              @waf_context&.finalize!
+            ensure
+              @handle_ref.release(@waf_handle)
+            end
+          end
         end
 
         private
 
         def try_run(persistent_data, ephemeral_data, timeout)
           waf_context.run(persistent_data, ephemeral_data, timeout)
-        rescue WAF::LibDDWAFError => e
+        rescue WAF::Error => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: "libddwaf-rb internal low-level error")
 

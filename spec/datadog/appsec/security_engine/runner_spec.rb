@@ -255,6 +255,29 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(run_result.duration_ext_ns).to be > 0
       end
     end
+
+    context "when waf context was already finalized" do
+      before do
+        allow(waf_context).to receive(:run)
+          .and_raise(Datadog::AppSec::WAF::InstanceFinalizedError, "Cannot use WAF context after it has been finalized")
+      end
+
+      it { expect(runner.run({"addr.a" => "a"}, {}, 1_000)).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error) }
+    end
+
+    context "when runner was finalized before waf context was built" do
+      before do
+        allow(thread_safe_ref).to receive(:release)
+
+        runner.finalize!
+      end
+
+      it "does not build a new waf context" do
+        runner.run({"addr.a" => "a"}, {}, 1_000)
+
+        expect(waf_handle).not_to have_received(:build_context)
+      end
+    end
   end
 
   describe "#finalize!" do
@@ -266,6 +289,51 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       expect(thread_safe_ref).to receive(:release).with(waf_handle)
 
       expect { runner.finalize! }.to raise_error(StandardError)
+    end
+
+    context "when run is in progress in another thread" do
+      before do
+        allow(thread_safe_ref).to receive(:release)
+        allow(waf_context).to receive(:finalize!)
+        allow(waf_context).to receive(:run) do
+          run_started.push(true)
+          run_resumed.pop
+
+          waf_result
+        end
+      end
+
+      let(:waf_result) do
+        instance_double(
+          Datadog::AppSec::WAF::Result,
+          status: :ok,
+          events: [],
+          actions: {},
+          attributes: {},
+          duration: 100,
+          keep?: false,
+          timeout?: false,
+          input_truncated?: false,
+        )
+      end
+      let(:run_started) { Queue.new }
+      let(:run_resumed) { Queue.new }
+      let(:run_thread) { Thread.new { runner.run({"addr.a" => "a"}, {}, 1_000) } }
+      let(:finalize_thread) { Thread.new { runner.finalize! } }
+
+      it "finalizes waf context only after the run completes" do
+        run_thread
+        run_started.pop
+        finalize_thread
+        Thread.pass until finalize_thread.status == "sleep" || !finalize_thread.alive?
+
+        expect(waf_context).not_to have_received(:finalize!)
+
+        run_resumed.push(true)
+        [run_thread, finalize_thread].each(&:join)
+
+        expect(waf_context).to have_received(:finalize!)
+      end
     end
   end
 end

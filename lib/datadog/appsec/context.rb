@@ -41,13 +41,14 @@ module Datadog
         end
 
         def deactivate
-          active&.finalize!
+          active&.detach
         ensure
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
 
         def active
-          Thread.current[Ext::ACTIVE_CONTEXT_KEY]
+          context = Thread.current[Ext::ACTIVE_CONTEXT_KEY]
+          context if context&.attached?
         end
       end
 
@@ -55,13 +56,14 @@ module Datadog
         @trace = trace
         @span = span
         @waf_runner = waf_runner
+        @mutex = Mutex.new
+        @attached_count = 1
         @metrics = Metrics::Collector.new
         @downstream_body_sampler = CounterSampler.new(
           Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate,
         )
         @state = {
           events: [],
-          interrupted: false,
           downstream_body_analyzed_count: 0,
         }
       end
@@ -86,12 +88,32 @@ module Datadog
         @state[:events]
       end
 
-      def mark_as_interrupted!
-        @state[:interrupted] = true
+      def catch
+        Kernel.catch(Ext::INTERRUPT) { return yield }
+
+        nil
+      end
+
+      def interrupt!(action_params)
+        @mutex.synchronize do
+          @state[:interrupt_params] = action_params unless @state.key?(:interrupt_params)
+        end
+
+        throw(Ext::INTERRUPT, action_params)
+      rescue UncaughtThrowError => e
+        raise unless e.tag == Ext::INTERRUPT
+
+        Datadog.logger.warn("AppSec: request was interrupted outside of an interruption point, continuing execution")
       end
 
       def interrupted?
-        @state[:interrupted]
+        @mutex.synchronize { @state.key?(:interrupt_params) }
+      end
+
+      def mark_as_interrupted!
+        @mutex.synchronize do
+          @state[:interrupt_params] = {} unless @state.key?(:interrupt_params)
+        end
       end
 
       def waf_runner_ruleset_version
@@ -127,8 +149,35 @@ module Datadog
         Metrics::TelemetryExporter.export_api_security_metrics(self)
       end
 
-      def finalize!
+      def attach
+        @mutex.synchronize do
+          return false if @attached_count.zero?
+
+          @attached_count += 1
+        end
+
+        true
+      end
+
+      def detach
+        @mutex.synchronize do
+          return if @attached_count.zero?
+
+          @attached_count -= 1
+          return unless @attached_count.zero?
+        end
+
         @waf_runner.finalize!
+      rescue => e
+        AppSec.telemetry.report(e, description: "AppSec: Failed to finalize context")
+      end
+
+      def attached?
+        @mutex.synchronize { @attached_count.positive? }
+      end
+
+      def shared?
+        @mutex.synchronize { @attached_count > 1 }
       end
     end
   end
