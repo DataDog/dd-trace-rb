@@ -1,0 +1,6 @@
+# The rbs core bundled with our Steep declares `Thread.handle_interrupt` without its block,
+# which `Datadog::Tracing::SpanOperation#start` passes.
+class Thread
+  def self.handle_interrupt: [T] (untyped hash) { () -> T } -> T
+                           | ...
+end
