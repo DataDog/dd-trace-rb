@@ -42,12 +42,12 @@ RSpec.describe Datadog::Profiling::Profiler do
     end
   end
 
-  describe "#start_failure" do
+  describe "#wait_for_start_or_failure" do
     it "returns the worker's start failure" do
       error = RuntimeError.new("test error")
-      expect(worker).to receive(:start_failure).with(timeout_seconds: 3).and_return(error)
+      expect(worker).to receive(:wait_for_start_or_failure).with(timeout_seconds: 3).and_return(error)
 
-      expect(profiler.start_failure(timeout_seconds: 3)).to be(error)
+      expect(profiler.wait_for_start_or_failure(timeout_seconds: 3)).to be(error)
     end
   end
 

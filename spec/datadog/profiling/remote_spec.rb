@@ -6,7 +6,7 @@ RSpec.describe Datadog::Profiling::Remote do
   let(:remote) { described_class }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, client_configuration_change!: nil, report: nil) }
-  let(:profiler) { instance_double(Datadog::Profiling::Profiler, start_failure: nil) }
+  let(:profiler) { instance_double(Datadog::Profiling::Profiler, wait_for_start_or_failure: nil) }
   let(:profiler_unavailable_reason) { nil }
   let(:components) do
     instance_double(
@@ -681,7 +681,7 @@ RSpec.describe Datadog::Profiling::Remote do
       before { settings.profiling.enabled = true }
 
       it "doesn't wait for the profiler to start, as there is nothing to acknowledge" do
-        expect(profiler).to_not receive(:start_failure)
+        expect(profiler).to_not receive(:wait_for_start_or_failure)
 
         apply_configs
       end
@@ -691,7 +691,7 @@ RSpec.describe Datadog::Profiling::Remote do
       let(:contents) { [profiling_content("preset-default", profilers: default_preset)] }
 
       it "reports the config as errored with the failure, instead of applied" do
-        expect(profiler).to receive(:start_failure).with(timeout_seconds: described_class::START_TIMEOUT_SECONDS)
+        expect(profiler).to receive(:wait_for_start_or_failure).with(timeout_seconds: described_class::START_TIMEOUT_SECONDS)
           .and_return(Datadog::Profiling::ExistingSignalHandler.new("test failure"))
 
         apply_configs

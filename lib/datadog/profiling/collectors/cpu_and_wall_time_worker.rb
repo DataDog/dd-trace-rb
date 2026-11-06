@@ -11,16 +11,8 @@ module Datadog
       class CpuAndWallTimeWorker
         # @rbs @worker_thread: untyped
         # @rbs @start_stop_mutex: ::Thread::Mutex
-        # @rbs @failure_exception: ::Exception?
         # @rbs @idle_sampling_helper: IdleSamplingHelper
-        # @rbs @wait_until_running_mutex: ::Thread::Mutex
-        # @rbs @wait_until_running_condition: ::Thread::ConditionVariable
-
-        private
-
-        attr_accessor :failure_exception #: ::Exception?
-
-        public
+        # @rbs @worker_state: WorkerState
 
         # @rbs gc_profiling_enabled: bool
         # @rbs no_signals_workaround_enabled: bool
@@ -83,11 +75,9 @@ module Datadog
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
           )
           @worker_thread = nil
-          @failure_exception = nil
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
-          @wait_until_running_mutex = Mutex.new
-          @wait_until_running_condition = ConditionVariable.new
+          @worker_state = WorkerState.new
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -107,16 +97,14 @@ module Datadog
 
               Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
             rescue Profiling::ExistingSignalHandler => e
-              @failure_exception = e
-              signal_running
+              @worker_state.failed!(e)
               Datadog.logger.warn(
                 "Profiling was not started as another profiler or gem is already using the SIGPROF signal. " \
                 "Please disable the other profiler to use Datadog profiling.",
               )
               on_failure_proc&.call(log_failure: false)
             rescue Exception => e # rubocop:disable Lint/RescueException
-              @failure_exception = e
-              signal_running
+              @worker_state.failed!(e)
               operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
@@ -145,7 +133,7 @@ module Datadog
 
             @worker_thread.join
             @worker_thread = nil
-            @failure_exception = nil
+            @worker_state.reset!
           end
         end
 
@@ -175,41 +163,36 @@ module Datadog
         # @rbs timeout_seconds: ::Integer?
         # @rbs return: true
         def wait_until_running(timeout_seconds: 5)
-          @wait_until_running_mutex.synchronize do
-            return true if self.class._native_is_running?(self)
-
-            @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds) unless failure_exception
-
-            failure = failure_exception
-            if self.class._native_is_running?(self)
-              true
-            elsif failure
-              raise "#{self.class.name} failed to start: #{failure.class}: #{failure.message}"
-            else
-              raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
-            end
+          result = @worker_state.wait(timeout_seconds)
+          case result
+          when :running
+            true
+          when Exception
+            raise "#{self.class.name} failed to start: #{result.class}: #{result.message}"
+          else
+            raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
           end
         end
 
-        # Waits until the worker runs or fails to start, and returns its failure. Unlike wait_until_running,
-        # this doesn't raise, including when the worker doesn't start on time.
+        # Unlike wait_until_running, returns the failure instead of raising, and nil when the worker runs or
+        # doesn't start on time.
         # @rbs timeout_seconds: Integer
         # @rbs return: Exception?
-        def start_failure(timeout_seconds:)
-          @wait_until_running_mutex.synchronize do
-            unless failure_exception || self.class._native_is_running?(self)
-              @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
-            end
-            failure_exception
-          end
+        def wait_for_start_or_failure(timeout_seconds:)
+          result = @worker_state.wait(timeout_seconds)
+          result if result.is_a?(Exception)
         end
 
         private
 
-        # Also called when the worker fails, to wake up start_failure.
+        #: () -> Exception?
+        def failure_exception
+          @worker_state.failure
+        end
+
         #: () -> void
         def signal_running
-          @wait_until_running_mutex.synchronize { @wait_until_running_condition.broadcast }
+          @worker_state.running!
         end
       end
     end

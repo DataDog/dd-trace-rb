@@ -49,8 +49,8 @@ module Datadog
 
       # @rbs timeout_seconds: Integer
       # @rbs return: Exception?
-      def start_failure(timeout_seconds:)
-        worker.start_failure(timeout_seconds: timeout_seconds)
+      def wait_for_start_or_failure(timeout_seconds:)
+        worker.wait_for_start_or_failure(timeout_seconds: timeout_seconds)
       end
 
       private

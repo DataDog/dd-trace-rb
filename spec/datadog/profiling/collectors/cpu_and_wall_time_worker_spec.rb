@@ -1919,14 +1919,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
-  describe "#start_failure" do
+  describe "#wait_for_start_or_failure" do
     after { cpu_and_wall_time_worker.stop }
 
     context "when the worker starts" do
       it "returns nil" do
         cpu_and_wall_time_worker.start
 
-        expect(cpu_and_wall_time_worker.start_failure(timeout_seconds: 30)).to be_nil
+        expect(cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 30)).to be_nil
       end
     end
 
@@ -1941,7 +1941,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "stops waiting and returns the failure" do
-        waiter = Thread.new { cpu_and_wall_time_worker.start_failure(timeout_seconds: 60) }
+        waiter = Thread.new { cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 60) }
         try_wait_until(backoff: 0.01) { waiter.status == "sleep" }
 
         cpu_and_wall_time_worker.start
@@ -1955,7 +1955,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "when the worker doesn't start on time" do
       it "returns nil" do
-        expect(cpu_and_wall_time_worker.start_failure(timeout_seconds: 0)).to be_nil
+        expect(cpu_and_wall_time_worker.wait_for_start_or_failure(timeout_seconds: 0)).to be_nil
       end
     end
   end

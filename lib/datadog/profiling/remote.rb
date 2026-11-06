@@ -125,8 +125,8 @@ module Datadog
           profiler = components&.profiler
           return components&.profiler_unavailable_reason unless profiler
 
-          start_failure = profiler.start_failure(timeout_seconds: START_TIMEOUT_SECONDS)
-          "Profiling failed to start: #{start_failure.class}: #{start_failure.message}" if start_failure
+          failure = profiler.wait_for_start_or_failure(timeout_seconds: START_TIMEOUT_SECONDS)
+          "Profiling failed to start: #{failure.class}: #{failure.message}" if failure
         end
 
         # Invalid fields are reported as an error without preventing the valid ones from applying.
