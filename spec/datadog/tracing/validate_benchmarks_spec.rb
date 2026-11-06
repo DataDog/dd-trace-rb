@@ -6,6 +6,7 @@ RSpec.describe "Tracing benchmarks" do
   with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = %w[
+    tracing_rds_endpoint
     tracing_trace
     tracing_transport
     tracing_transport_e2e
