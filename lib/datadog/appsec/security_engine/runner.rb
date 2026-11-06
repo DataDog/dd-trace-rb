@@ -16,15 +16,12 @@ module Datadog
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
           @ruleset_version = ruleset_version
-          @finalized = false
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
 
         def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
           @mutex.lock
-
-          return Result::Error.new(duration_ext_ns: 0, input_truncated: false) if @finalized
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
           persistent_data.reject! do |_, v|
@@ -72,17 +69,9 @@ module Datadog
         end
 
         def finalize!
-          @mutex.synchronize do
-            return if @finalized
-
-            @finalized = true
-
-            begin
-              @waf_context&.finalize!
-            ensure
-              @handle_ref.release(@waf_handle)
-            end
-          end
+          @waf_context&.finalize!
+        ensure
+          @handle_ref.release(@waf_handle)
         end
 
         private
