@@ -26,7 +26,7 @@ module Datadog
         # We are in debug mode, or this is an error, add stack trace to help debugging
         if debug? || severity >= ::Logger::ERROR
           location = caller_locations(2, 1)&.first
-          where = "(#{location.to_s.delete_prefix(LIB_DATADOG_DIR)}) " if location
+          where = "(#{location.path.to_s.delete_prefix(LIB_DATADOG_DIR)}:#{location.lineno}) " if location
         end
 
         if message.nil?
