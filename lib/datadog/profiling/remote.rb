@@ -39,14 +39,22 @@ module Datadog
       # milliseconds, and failing to start ends the wait right away.
       START_TIMEOUT_SECONDS = 1
 
-      # Diagnostic scope label per target specificity.
-      SCOPE_LABELS = {
-        4 => "service+env",
-        3 => "service",
-        2 => "env",
-        1 => "tags",
-        0 => "all",
-      }.freeze
+      # Target specificity levels, from the least to the most specific: other tags, env, service, then the
+      # infrastructure tags the Datadog agent assigns, from deployments to containers.
+      OTHER_TAGS_LEVEL = 1
+      ENV_LEVEL = 2
+      SERVICE_LEVEL = 3
+      LEVEL_BY_TAG_NAME = {
+        4 => [
+          "kube_deployment", "kube_replica_set", "kube_stateful_set", "kube_daemon_set", "kube_job", "kube_cronjob",
+          "kube_argo_rollout", "oshift_deployment", "task_family",
+        ],
+        5 => ["kube_container_name", "container_name", "ecs_container_name"],
+        6 => ["pod_name", "task_arn"],
+        7 => ["container_id"],
+      }.flat_map { |level, names| names.map { |name| [name, level] } }.to_h.freeze
+      # A target's level outranks any number of conditions, which only break ties within a level.
+      CONDITIONS_PER_LEVEL = 1000
 
       class << self
         def products
@@ -205,66 +213,63 @@ module Datadog
             tags.is_a?(Array) && tags.all?(String)
         end
 
-        # Merges matching configs field by field, with the most specific target winning. Ties are
-        # broken by config id, so the result doesn't depend on delivery order.
+        # Merges the configs field by field, with the most specific target winning. Ties are broken by config
+        # id, so the result doesn't depend on delivery order. The backend only delivers configs that apply to
+        # this tracer, so they are all merged; their targets only rank them.
         def merge(configs, settings)
           # Same service as the RC client registers with, which is what the backend targets.
           service = Core::TagNormalizer.normalize(settings.remote.service || settings.service)
           env = Core::TagNormalizer.normalize(settings.env)
 
-          # @type var matching: Array[[Integer, config]]
-          matching = Core::Utils::EnumerableCompat.filter_map(configs) do |config|
+          # @type var ranked: Array[[Integer, config]]
+          ranked = configs.map do |config|
             specificity = specificity(config[:targets], service, env)
-            if specificity
-              Datadog.logger.debug do
-                "Profiling RC: config #{config[:id]} scope=#{SCOPE_LABELS[specificity]} specificity=#{specificity}"
-              end
-              [specificity, config]
-            else
-              Datadog.logger.debug do
-                "Profiling RC: dropped config #{config[:id]} (targets=#{config[:targets].inspect}, self=#{service}/#{env})"
-              end
-              nil
-            end
+            Datadog.logger.debug { "Profiling RC: config #{config[:id]} specificity=#{specificity}" }
+            [specificity, config]
           end
 
           profilers = {}
           remote_settings = {}
-          matching.sort_by { |specificity, config| [specificity, config[:id]] }.each do |_specificity, config|
+          ranked.sort_by { |specificity, config| [specificity, config[:id]] }.each do |_specificity, config|
             profilers.merge!(config[:profilers])
             remote_settings.merge!(config[:settings])
           end
           [profilers, remote_settings]
         end
 
-        # Highest specificity among the matching targets, or nil if none matches.
+        # Specificity of the most specific target consistent with this tracer's service and env, or 0.
         def specificity(targets, service, env)
-          return 0 if targets.empty?
-
-          Core::Utils::EnumerableCompat.filter_map(targets) { |target| target_specificity(target, service, env) }.max
+          targets.map { |target| target_specificity(target, service, env) }.max || 0
         end
 
-        # Specificity of a target, higher meaning more specific, or nil if the target doesn't match. A
-        # service or env counts only when present and not "*".
+        # A target ranks by its most specific condition, then by its number of conditions, or 0 if its service
+        # or env differs from this tracer's. A service or env counts only when present and not "*".
         #
-        # The backend only delivers a config when one of its targets matches, so this only needs to
-        # find which ones did. Tags are matched by the backend against the tags reported by the RC client,
-        # the container tags the agent adds and the agent's host tags, which the tracer can't all see, so
-        # they only count towards specificity. A tracer without an env inherits the agent's env, so env
-        # targets match it whatever the env. The agent and the backend compare normalized services and
-        # envs, so both sides are normalized the same way here.
+        # Tag conditions are assumed to hold: the backend matches them against the tags reported by the RC
+        # client, the container tags the agent adds and the agent's host tags, which the tracer can't all see.
+        # A tracer without an env doesn't know the agent's env it inherits, so env targets rank 0 for it. The
+        # agent and the backend compare normalized services and envs, so both sides are normalized here too.
         def target_specificity(target, service, env)
           has_service = !target[:service].nil? && target[:service] != "*"
           has_env = !target[:env].nil? && target[:env] != "*"
-          return if has_service && Core::TagNormalizer.normalize(target[:service]) != service
-          return if has_env && !env.empty? && Core::TagNormalizer.normalize(target[:env]) != env
+          return 0 if has_service && Core::TagNormalizer.normalize(target[:service]) != service
+          return 0 if has_env && Core::TagNormalizer.normalize(target[:env]) != env
 
-          return 4 if has_service && has_env
-          return 3 if has_service
-          return 2 if has_env
-          return 1 unless target[:tags].empty?
+          level =
+            if has_service
+              SERVICE_LEVEL
+            elsif has_env
+              ENV_LEVEL
+            else
+              0
+            end
+          target[:tags].each do |tag|
+            name = tag.split(":", 2).first.to_s.downcase
+            level = [level, LEVEL_BY_TAG_NAME.fetch(name, OTHER_TAGS_LEVEL)].max
+          end
+          conditions = (has_service ? 1 : 0) + (has_env ? 1 : 0) + target[:tags].size
 
-          0
+          level * CONDITIONS_PER_LEVEL + conditions
         end
 
         def to_values(profilers, settings, local_profilers)

@@ -32,7 +32,15 @@ module Datadog
 
       START_TIMEOUT_SECONDS: Integer
 
-      SCOPE_LABELS: Hash[Integer, String]
+      OTHER_TAGS_LEVEL: Integer
+
+      ENV_LEVEL: Integer
+
+      SERVICE_LEVEL: Integer
+
+      LEVEL_BY_TAG_NAME: Hash[String, Integer]
+
+      CONDITIONS_PER_LEVEL: Integer
 
       def self.products: () -> Array[String]
 
@@ -58,9 +66,9 @@ module Datadog
 
       def self.merge: (Array[config] configs, Core::Configuration::Settings settings) -> [profiler_values, setting_values]
 
-      def self.specificity: (Array[target] targets, String service, String env) -> Integer?
+      def self.specificity: (Array[target] targets, String service, String env) -> Integer
 
-      def self.target_specificity: (target target, String service, String env) -> Integer?
+      def self.target_specificity: (target target, String service, String env) -> Integer
 
       def self.to_values: (profiler_values profilers, setting_values settings, Array[String] local_profilers) -> remote_values
 

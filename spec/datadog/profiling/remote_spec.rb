@@ -347,67 +347,73 @@ RSpec.describe Datadog::Profiling::Remote do
     end
 
     describe "targeting" do
-      def enabled_for(targets)
-        contents << profiling_content("id", profilers: default_preset, targets: targets)
+      # Whether a config with these targets outranks a config without targets, which ranks 0. On a tie, the
+      # config ids make the untargeted one win.
+      def outranks_untargeted?(targets)
+        contents << profiling_content("a-targeted", profilers: default_preset, targets: targets)
+        contents << profiling_content("b-untargeted", profilers: disabled_preset, targets: [])
         apply_configs
         settings.profiling.enabled
       end
 
-      it "matches a config without targets" do
-        expect(enabled_for(nil)).to be true
+      it "applies a config whose targets don't match this tracer, as the backend delivered it" do
+        contents << profiling_content("id", profilers: default_preset, targets: [{"service" => "other"}])
+
+        expect { apply_configs }.to change { settings.profiling.enabled }.from(false).to(true)
       end
 
-      it "matches an empty target list" do
-        expect(enabled_for([])).to be true
+      it "ranks a config without targets 0" do
+        expect(outranks_untargeted?(nil)).to be false
+        expect(outranks_untargeted?([])).to be false
       end
 
-      it "matches an omitted or wildcard service" do
-        expect(enabled_for([{"env" => "prod"}, {"service" => "*", "env" => "prod"}])).to be true
+      it "ranks an omitted or wildcard service by the other conditions" do
+        expect(outranks_untargeted?([{"env" => "prod"}, {"service" => "*", "env" => "prod"}])).to be true
       end
 
-      it "does not match another service" do
-        expect(enabled_for([{"service" => "other", "env" => "prod"}])).to be false
+      it "ranks a target for another service 0" do
+        expect(outranks_untargeted?([{"service" => "other", "env" => "prod"}])).to be false
       end
 
-      it "does not match another env" do
-        expect(enabled_for([{"service" => "web", "env" => "staging"}])).to be false
+      it "ranks a target for another env 0" do
+        expect(outranks_untargeted?([{"service" => "web", "env" => "staging"}])).to be false
       end
 
-      it "matches when any target matches" do
-        expect(enabled_for([{"service" => "other"}, {"service" => "web"}])).to be true
+      it "ranks a config by any target consistent with this tracer" do
+        expect(outranks_untargeted?([{"service" => "other"}, {"service" => "web"}])).to be true
       end
 
       it "uses remote.service when set, as the RC client does" do
         settings.remote.service = "rc-web"
 
-        expect(enabled_for([{"service" => "rc-web"}])).to be true
+        expect(outranks_untargeted?([{"service" => "rc-web"}])).to be true
       end
 
-      it "matches any env target when the tracer has no env, as it inherits the agent's env" do
+      it "ranks env targets 0 when the tracer has no env, as it doesn't know the agent's env it inherits" do
         settings.env = nil
 
-        expect(enabled_for([{"service" => "web", "env" => "staging"}])).to be true
+        expect(outranks_untargeted?([{"env" => "prod"}])).to be false
+      end
+
+      it "treats an empty env as no env" do
+        settings.env = ""
+
+        expect(outranks_untargeted?([{"env" => "prod"}])).to be false
       end
 
       it "normalizes the service and env like the agent, as the targets are normalized" do
         settings.service = "Web App"
         settings.env = "Prod"
 
-        expect(enabled_for([{"service" => "web_app", "env" => "prod"}])).to be true
+        expect(outranks_untargeted?([{"service" => "web_app", "env" => "prod"}])).to be true
       end
 
       it "normalizes the targets too" do
-        expect(enabled_for([{"service" => "Web", "env" => "PROD"}])).to be true
-      end
-
-      it "treats an empty env as no env" do
-        settings.env = ""
-
-        expect(enabled_for([{"env" => "staging"}])).to be true
+        expect(outranks_untargeted?([{"service" => "Web", "env" => "PROD"}])).to be true
       end
 
       it "leaves matching tags to the backend, which sees tags the tracer can't" do
-        expect(enabled_for([{"service" => "web", "tags" => ["host_tag:value"]}])).to be true
+        expect(outranks_untargeted?([{"tags" => ["host_tag:value"]}])).to be true
       end
     end
 
@@ -418,25 +424,27 @@ RSpec.describe Datadog::Profiling::Remote do
         allow(Datadog).to receive(:logger).and_return(Datadog::Core::Logger.new(log).tap { |l| l.level = ::Logger::DEBUG })
       end
 
-      it "logs the scope of each matching config, and the targets of each dropped one" do
+      it "logs the specificity of each config" do
         contents << profiling_content("env-config", profilers: default_preset, targets: [{"env" => "prod"}])
         contents << profiling_content("other-config", profilers: default_preset, targets: [{"service" => "other"}])
 
         apply_configs
 
-        expect(log.string).to include("Profiling RC: config env-config scope=env specificity=2")
-        targets = [{service: "other", env: nil, tags: []}]
-        expect(log.string).to include(
-          "Profiling RC: dropped config other-config (targets=#{targets.inspect}, self=web/prod)",
-        )
+        expect(log.string).to include("Profiling RC: config env-config specificity=2001")
+        expect(log.string).to include("Profiling RC: config other-config specificity=0")
       end
     end
 
     describe "merging" do
       [
+        [[{"tags" => ["container_id:abc123"]}], [{"tags" => ["pod_name:web-abc"]}]],
+        [[{"tags" => ["pod_name:web-abc"]}], [{"service" => "web", "env" => "prod", "tags" => ["container_name:web"]}]],
+        [[{"tags" => ["kube_container_name:web"]}], [{"tags" => ["kube_deployment:web"]}]],
+        [[{"tags" => ["task_family:web"]}], [{"service" => "web", "env" => "prod", "tags" => ["team:profiling"]}]],
         [[{"service" => "web", "env" => "prod"}], [{"service" => "web"}]],
-        [[{"service" => "web"}], [{"env" => "prod"}]],
-        [[{"env" => "prod"}], [{"tags" => ["team:profiling"]}]],
+        [[{"service" => "web"}], [{"env" => "prod", "tags" => ["team:profiling"]}]],
+        [[{"env" => "prod", "tags" => ["team:profiling"]}], [{"env" => "prod"}]],
+        [[{"env" => "prod"}], [{"tags" => ["team:profiling", "region:us"]}]],
         [[{"tags" => ["team:profiling"]}], []],
       ].each do |more_specific, less_specific|
         it "prefers #{more_specific.inspect} over #{less_specific.inspect}, regardless of config id" do
