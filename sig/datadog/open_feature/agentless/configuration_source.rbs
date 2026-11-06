@@ -25,6 +25,8 @@ module Datadog
 
         @logger: Core::Logger
 
+        @flag_selection_reporter: FlagSelectionReporter
+
         @poll_interval_seconds: Integer
 
         @random: ^() -> Float
@@ -49,6 +51,7 @@ module Datadog
           Core::Configuration::Settings settings,
           endpoint: Configuration::AgentlessEndpoint,
           apply: ^(String) -> void,
+          flag_selection_reporter: FlagSelectionReporter,
           ?logger: Core::Logger
         ) -> ConfigurationSource?
 
@@ -59,6 +62,7 @@ module Datadog
           request_timeout_seconds: Integer,
           apply: ^(String) -> void,
           logger: Core::Logger,
+          flag_selection_reporter: FlagSelectionReporter,
           ?transport: Transport?,
           ?random: (^() -> Float)?,
           ?retry_wait: (^(Float) -> bool)?

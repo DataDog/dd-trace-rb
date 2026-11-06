@@ -186,6 +186,47 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     end
   end
 
+  describe "DD-Flag-Selection-Ignored" do
+    let(:endpoint) do
+      Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+        URI("https://example.test/config?dd_env=test"),
+        managed: true,
+        flag_selection_sent: flag_selection_sent,
+      )
+    end
+    let(:flag_selection_sent) { true }
+    let(:status) { 200 }
+
+    before do
+      stub_request(:get, "https://example.test/config?dd_env=test")
+        .to_return(status: status, body: "configuration", headers: {"DD-Flag-Selection-Ignored" => "invalid_tag"})
+    end
+
+    it "is read from a 200 response to a request with a selection" do
+      expect(response.flag_selection_ignored).to eq("invalid_tag")
+    end
+
+    context "without a selection in the request" do
+      let(:flag_selection_sent) { false }
+
+      it "is not read" do
+        expect(response.status).to eq(200)
+        expect(response.flag_selection_ignored).to be_nil
+      end
+    end
+
+    [304, 400, 500].each do |non_success_status|
+      context "on an HTTP #{non_success_status} response" do
+        let(:status) { non_success_status }
+
+        it "is not read" do
+          expect(response.status).to eq(non_success_status)
+          expect(response.flag_selection_ignored).to be_nil
+        end
+      end
+    end
+  end
+
   [304, 401].each do |status|
     context "with a gzip header on an HTTP #{status} response" do
       before do

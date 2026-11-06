@@ -1,0 +1,61 @@
+module Datadog
+  module OpenFeature
+    module Configuration
+      class FlagSelection
+        MAX_VALUES: Integer
+
+        MAX_VALUE_BYTES: Integer
+
+        MAX_URL_BYTES: Integer
+
+        MALFORMED_SELECTION: String
+
+        TOO_MANY_VALUES: String
+
+        INVALID_KEY_PATTERN: String
+
+        INVALID_TAG: String
+
+        LIST_KEYS: Hash[Symbol | String, Symbol]
+
+        SURROUNDING_WHITE_SPACE: Regexp
+
+        RESERVED_BYTE: Regexp
+
+        def self.canonicalize: (untyped option) -> FlagSelection?
+
+        @tags: Array[String]
+
+        @key_patterns: Array[String]
+
+        @drop_reason: String?
+
+        attr_reader tags: Array[String]
+
+        attr_reader key_patterns: Array[String]
+
+        attr_reader drop_reason: String?
+
+        def initialize: (?tags: Array[String], ?key_patterns: Array[String], ?drop_reason: String?) -> void
+
+        def dropped?: () -> bool
+
+        def query: () -> String
+
+        def ==: (untyped other) -> bool
+
+        private
+
+        def self.utf8_lists: (untyped option) -> [Array[String], Array[String]]?
+
+        def self.utf8_list: (untyped value) -> Array[String]?
+
+        def self.canonical_list: (Array[String] values) -> Array[String]
+
+        def self.limit_violation: (Array[String] tags, Array[String] key_patterns) -> String?
+
+        def encode: (String value) -> String
+      end
+    end
+  end
+end

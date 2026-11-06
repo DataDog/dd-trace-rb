@@ -9,6 +9,8 @@ module Datadog
 
       type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
 
+      type flag_selection_option = Hash[Symbol | String, Array[String]?]
+
       @initialization_mutex: Thread::Mutex
 
       @initializing: bool
@@ -39,9 +41,11 @@ module Datadog
 
       @enable_evaluation_telemetry_opt_out_parameter: bool
 
+      @flag_selection: Configuration::FlagSelection?
+
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
-      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?) -> void
+      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?, ?flag_selection: flag_selection_option?) -> void
 
       def init: () -> void
 
@@ -86,6 +90,8 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private
+
+      attr_reader flag_selection: Configuration::FlagSelection?
 
       def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 

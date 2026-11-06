@@ -11,6 +11,12 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component
 
+      @flag_selection_reporter: FlagSelectionReporter
+
+      @claimed_flag_selection: Configuration::FlagSelection?
+
+      @flag_selection_dropped: bool
+
       @component: Component?
 
       @configuration_source: Agentless::ConfigurationSource?
@@ -65,11 +71,17 @@ module Datadog
 
       def open_feature_available?: () -> bool
 
-      def activate_delivery: (Configuration::Source::Resolution resolution) -> Component?
+      def activate_delivery: (Configuration::Source::Resolution resolution, Configuration::FlagSelection? flag_selection) -> Component?
 
-      def start_delivery: (String source) -> bool
+      def start_delivery: (String source, Configuration::FlagSelection? flag_selection) -> bool
 
-      def start_agentless: () -> bool
+      def start_agentless: (Configuration::FlagSelection? flag_selection) -> bool
+
+      def claim_flag_selection: (Configuration::FlagSelection? flag_selection, Configuration::AgentlessEndpoint? selected_endpoint) -> void
+
+      def report_joining_flag_selection: (Configuration::FlagSelection? flag_selection) -> void
+
+      def report_flag_selection_not_sent: (Configuration::FlagSelection flag_selection) -> void
 
       def start_remote_configuration: () -> bool
 

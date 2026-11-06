@@ -2,6 +2,8 @@
 
 require "uri"
 
+require_relative "flag_selection"
+
 module Datadog
   module OpenFeature
     module Configuration
@@ -76,13 +78,28 @@ module Datadog
 
         attr_reader :uri
 
-        def initialize(uri, managed:)
+        def initialize(uri, managed:, flag_selection_sent: false)
           @uri = uri
           @managed = managed
+          @flag_selection_sent = flag_selection_sent
         end
 
         def managed?
           @managed
+        end
+
+        def flag_selection_sent?
+          @flag_selection_sent
+        end
+
+        # Returns nil when the selection would make the request URL too long.
+        def with_flag_selection(selection)
+          selected_uri = uri.dup
+          query = uri.query.to_s
+          selected_uri.query = query.empty? ? selection.query : "#{query}&#{selection.query}"
+          return if selected_uri.to_s.bytesize > FlagSelection::MAX_URL_BYTES
+
+          self.class.new(selected_uri, managed: managed?, flag_selection_sent: true)
         end
 
         # Excludes userinfo, path, and query, which may carry credentials.

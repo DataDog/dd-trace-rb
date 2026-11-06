@@ -22,8 +22,8 @@ RSpec.describe Datadog::OpenFeature::Activation do
   let(:remote) { instance_double(Datadog::Core::Remote::Component, register: nil, start: nil) }
   let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, debug: nil, debug?: true) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
-  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil) }
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil, flag_selection: nil) }
+  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, after_fork: nil, flag_selection: nil) }
   let(:component) do
     instance_double(
       Datadog::OpenFeature::Component,
@@ -256,7 +256,7 @@ RSpec.describe Datadog::OpenFeature::Activation do
       end
 
       it "preserves eager delivery when the provider is replaced" do
-        replacement_provider = instance_double(Datadog::OpenFeature::Provider)
+        replacement_provider = instance_double(Datadog::OpenFeature::Provider, flag_selection: nil)
         activation.start!
         activation.activate(provider)
 
@@ -576,6 +576,254 @@ RSpec.describe Datadog::OpenFeature::Activation do
       expect(activation.activate(second_provider)).to be(replacement_component)
       expect(replacement_source).to have_received(:start).once
       expect(activation.providers).to eq([second_provider])
+    end
+  end
+
+  describe "flag selection" do
+    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil, error: nil, debug: nil, debug?: true) }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil) }
+    let(:provider_selection) { selection(tags: ["team:a"]) }
+    let(:second_selection) { selection(tags: ["team:b"]) }
+    let(:provider) do
+      instance_double(Datadog::OpenFeature::Provider, after_fork: nil, flag_selection: provider_selection)
+    end
+    let(:second_provider) do
+      instance_double(Datadog::OpenFeature::Provider, after_fork: nil, flag_selection: second_selection)
+    end
+    let(:requested_endpoints) { [] }
+    let(:differs_warning) do
+      "flag_selection differs from the flag selection already in use in this process. Using the first selection."
+    end
+
+    def selection(option)
+      Datadog::OpenFeature::Configuration::FlagSelection.canonicalize(option)
+    end
+
+    def requested_urls
+      requested_endpoints.map { |requested| requested.uri.to_s }
+    end
+
+    before do
+      Datadog::OpenFeature::FlagSelectionReporter.reset_once_guards
+      allow(Datadog::OpenFeature::Agentless::ConfigurationSource).to receive(:build) do |_settings, **options|
+        requested_endpoints << options.fetch(:endpoint)
+        configuration_source
+      end
+    end
+
+    after { Datadog::OpenFeature::FlagSelectionReporter.reset_once_guards }
+
+    it "requests the selection of the provider that starts delivery" do
+      activation.activate(provider)
+
+      expect(requested_urls).to eq(["https://example.test/config?selected_flag_tags=team%3Aa"])
+      expect(requested_endpoints.first).to be_flag_selection_sent
+    end
+
+    context "without a selection" do
+      let(:provider_selection) { nil }
+
+      it "requests the endpoint as built" do
+        activation.activate(provider)
+
+        expect(requested_endpoints).to eq([endpoint])
+        expect(endpoint).not_to be_flag_selection_sent
+        expect(logger).not_to have_received(:error)
+        expect(telemetry).not_to have_received(:inc)
+      end
+
+      it "claims all flags, so a later provider with a selection gets the warning" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(requested_endpoints).to eq([endpoint])
+        expect(logger).to have_received(:warn).with(differs_warning).once
+      end
+    end
+
+    it "keeps the first selection and warns once per process when later selections differ" do
+      third_provider = instance_double(
+        Datadog::OpenFeature::Provider,
+        after_fork: nil,
+        flag_selection: selection(key_patterns: ["checkout.*"]),
+      )
+      activation.activate(provider)
+
+      expect(activation.activate(second_provider)).to be(component)
+      expect(activation.activate(third_provider)).to be(component)
+      expect(requested_urls).to eq(["https://example.test/config?selected_flag_tags=team%3Aa"])
+      expect(logger).to have_received(:warn).with(differs_warning).once
+      expect(logger).not_to have_received(:error)
+      expect(telemetry).not_to have_received(:inc)
+    end
+
+    context "when a later provider has no selection" do
+      let(:second_selection) { nil }
+
+      it "warns and keeps the first selection" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(requested_urls).to eq(["https://example.test/config?selected_flag_tags=team%3Aa"])
+        expect(logger).to have_received(:warn).with(differs_warning).once
+      end
+    end
+
+    context "when a later provider has the same canonical selection" do
+      let(:second_selection) { selection("tags" => [" team:a", "team:a "]) }
+
+      it "does not warn" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+      end
+    end
+
+    it "releases the claim when the last provider detaches" do
+      replacement_component = instance_double(Datadog::OpenFeature::Component, shutdown!: nil)
+      allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component, replacement_component)
+      activation.activate(provider)
+      activation.deactivate(provider)
+
+      expect(activation.activate(second_provider)).to be(replacement_component)
+      expect(requested_urls).to eq(
+        [
+          "https://example.test/config?selected_flag_tags=team%3Aa",
+          "https://example.test/config?selected_flag_tags=team%3Ab",
+        ],
+      )
+      expect(logger).not_to have_received(:warn).with(differs_warning)
+    end
+
+    it "releases the claim when agentless delivery fails to start" do
+      allow(configuration_source).to receive(:start).and_raise("startup failed")
+      expect { activation.activate(provider) }.to raise_error("startup failed")
+      allow(configuration_source).to receive(:start).and_return(true)
+
+      activation.activate(second_provider)
+
+      expect(requested_urls.last).to eq("https://example.test/config?selected_flag_tags=team%3Ab")
+      expect(logger).not_to have_received(:warn).with(differs_warning)
+    end
+
+    context "when the selection is invalid" do
+      let(:provider_selection) { selection(tags: ["a" * 201]) }
+      let(:second_selection) { selection(tags: ["b" * 201]) }
+      let(:not_sent_error) do
+        "flag_selection was not sent (invalid_tag: each tag is at most 200 UTF-8 bytes). " \
+          "Loading the full flag configuration."
+      end
+
+      it "requests the full configuration, logs once per provider init, and counts once" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(requested_endpoints).to eq([endpoint])
+        expect(logger).to have_received(:error).with(not_sent_error).twice
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "invalid_tag"}).once
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+      end
+
+      it "does not log for a later provider with a different selection" do
+        allow(second_provider).to receive(:flag_selection).and_return(selection(tags: ["team:b"]))
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).to have_received(:error).with(not_sent_error).once
+        expect(logger).to have_received(:warn).with(differs_warning).once
+      end
+    end
+
+    context "when the selection makes the request URL too long" do
+      let(:provider_selection) { selection(tags: Array.new(31) { |index| format("%02d", index) + "\u00E9" * 99 }) }
+      let(:second_selection) { provider_selection }
+
+      it "requests the full configuration and reports the URL limit" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(requested_endpoints).to eq([endpoint])
+        expect(logger).to have_received(:error).with(
+          "flag_selection was not sent (too_many_values: the request URL is at most 8192 bytes). " \
+            "Loading the full flag configuration.",
+        ).twice
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "too_many_values"}).once
+      end
+    end
+
+    context "with Remote Configuration delivery" do
+      let(:remote_config_warning) do
+        "flag_selection is not supported when flags are delivered through Remote Config. " \
+          "Loading the full flag configuration."
+      end
+
+      before { settings.feature_flags.configuration_source = "remote_config" }
+
+      it "warns once per process when providers set a selection" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).to have_received(:warn).with(remote_config_warning).once
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+        expect(logger).not_to have_received(:error)
+        expect(telemetry).not_to have_received(:inc)
+      end
+
+      it "warns when Remote Configuration started before the provider" do
+        activation.start!
+        activation.activate(provider)
+
+        expect(logger).to have_received(:warn).with(remote_config_warning).once
+      end
+
+      it "warns for a selection that would be dropped" do
+        allow(provider).to receive(:flag_selection).and_return(selection(tags: [1]))
+        activation.activate(provider)
+
+        expect(logger).to have_received(:warn).with(remote_config_warning).once
+        expect(logger).not_to have_received(:error)
+      end
+
+      context "without a selection" do
+        let(:provider_selection) { nil }
+
+        it "does not warn" do
+          activation.activate(provider)
+
+          expect(logger).not_to have_received(:warn).with(remote_config_warning)
+        end
+      end
+    end
+
+    context "with Remote Configuration delivery from the legacy setting" do
+      before { settings.open_feature.enabled = true }
+
+      it "warns" do
+        activation.activate(provider)
+
+        expect(logger).to have_received(:warn).with(
+          "flag_selection is not supported when flags are delivered through Remote Config. " \
+            "Loading the full flag configuration.",
+        ).once
+      end
+    end
+
+    it "resets the once-per-process warnings in a forked child" do
+      third_provider = instance_double(
+        Datadog::OpenFeature::Provider,
+        after_fork: nil,
+        flag_selection: selection(tags: ["team:c"]),
+      )
+      activation.activate(provider)
+      activation.activate(second_provider)
+
+      activation.after_fork
+      activation.activate(third_provider)
+
+      expect(logger).to have_received(:warn).with(differs_warning).twice
     end
   end
 end

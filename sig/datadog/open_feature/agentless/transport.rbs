@@ -2,6 +2,8 @@ module Datadog
   module OpenFeature
     module Agentless
       class Transport
+        FLAG_SELECTION_IGNORED_HEADER: String
+
         @endpoint: Configuration::AgentlessEndpoint
 
         @api_key: String?
@@ -19,6 +21,8 @@ module Datadog
         private
 
         def apply_custom_authentication: (Net::HTTP::Get request) -> void
+
+        def flag_selection_ignored: (Net::HTTPResponse response, Integer status) -> String?
 
         def headers: (String? etag) -> Hash[String, String]
 

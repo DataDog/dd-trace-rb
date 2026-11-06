@@ -21,7 +21,7 @@ module Datadog
 
         attr_reader :etag
 
-        def self.build(settings, endpoint:, apply:, logger: Datadog.logger)
+        def self.build(settings, endpoint:, apply:, flag_selection_reporter:, logger: Datadog.logger)
           api_key = settings.api_key.to_s.strip
           if endpoint.managed? && api_key.empty?
             logger.warn("Feature Flags agentless delivery requires DD_API_KEY; agentless delivery is disabled")
@@ -35,6 +35,7 @@ module Datadog
             request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
             logger: logger,
+            flag_selection_reporter: flag_selection_reporter,
           )
         end
 
@@ -45,6 +46,7 @@ module Datadog
           request_timeout_seconds:,
           apply:,
           logger:,
+          flag_selection_reporter:,
           transport: nil,
           random: nil,
           retry_wait: nil
@@ -56,6 +58,7 @@ module Datadog
           )
           @apply = apply
           @logger = logger
+          @flag_selection_reporter = flag_selection_reporter
           @poll_interval_seconds = poll_interval_seconds
           @random = random || -> { Kernel.rand }
           @retry_wait = retry_wait || ->(delay) { wait_for_retry(delay) }
@@ -266,6 +269,7 @@ module Datadog
           @apply.call(configuration)
           etag = response.etag.to_s.strip
           @etag = etag.empty? ? nil : etag
+          @flag_selection_reporter.report_ignored(response.flag_selection_ignored)
         rescue EvaluationEngine::ReconfigurationError => error
           warn_once(:application) do
             @logger.warn("Feature Flags agentless UFC payload could not be applied: #{error.class}: #{error.message}")
