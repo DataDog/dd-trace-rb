@@ -119,14 +119,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         encoded = serializer.serialize
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
         profile = decode_profile(encoded)
-        expect(profile.string_table.first(9)).to eq(
-          ["", "cpu-time", "nanoseconds", "cpu-samples", "count", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline"],
+        expect(profile.string_table.first(22)).to eq(
+          [
+            "", "cpu-time", "nanoseconds", "cpu-samples", "count", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline",
+            "thread id", "thread name", "state", "had cpu", "miteruby", "end_timestamp_ns",
+            "(sampled by miteruby)", "(sampled in sighandler)", "In native code", "Truncated Frames",
+            "main", "(Unnamed thread from native code)", "(Unnamed thread)",
+          ],
         )
         expect(profile.sample_type.map { |type| [type.type, type.unit] }).to eq(
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
         expect(profile.sample).to be_empty
-        expect(profile.function.size).to eq(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
+        expect(profile.function.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
+        expect(profile.location.first(4).map { |location| decode_frame_from_pprof(profile, location.id) }).to eq([
+          ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0),
+          ProfileHelpers::Frame.new("(sampled in sighandler)", "", 0),
+          ProfileHelpers::Frame.new("", "In native code", 0),
+          ProfileHelpers::Frame.new("Truncated Frames", "", 0),
+        ])
         expect(profile.time_nanos).to be > 0
         expect(profile.duration_nanos).to be > 0
         expect(cpu_and_wall_time_worker.prepare_serialize(return_both: true)).to equal(recorders)
@@ -2319,7 +2330,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         "(TODO: resolve filename for cfuncs)",
       ])
       expect(profile.function.map(&:id)).to eq((1..profile.function.size).to_a)
-      expect(profile.location.size).to eq(cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
+      expect(profile.location.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
       expect(profile.location.map(&:id)).to eq((1..profile.location.size).to_a)
       frames = profile.location.map { |location| decode_frame_from_pprof(profile, location.id) }
       source_file, source_line = MiterubyStringEmission.instance_method(:capture).source_location
@@ -2349,7 +2360,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       profile = decode_profile(streaming_serializer.serialize)
       expect(profile.sample_type.size).to eq(6)
       expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)).to be > 1
-      expect(profile.function.size).to eq(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
+      expect(profile.function.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
       expect(recorded_miteruby_samples).to be_empty
       expect(decode_profile(streaming_serializer.serialize).function).to eq(profile.function)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
@@ -2696,6 +2707,35 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
+    it "emits thread name and ID pairs before function strings" do
+      original_name = Thread.current.name
+      Thread.current.name = nil
+      threads = []
+      capture_miteruby do
+        publish_miteruby_sample
+        [nil, "miteruby named thread"].each do |name|
+          threads << Thread.new do
+            Thread.current.name = name
+            publish_miteruby_sample
+          end
+          threads.last.join
+        end
+      end
+      consume_miteruby
+      samples = recorded_miteruby_samples
+      profile = decode_profile(streaming_serializer.serialize)
+      thread_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_threads_entries)
+      pairs = profile.string_table.to_a.slice(22, thread_count * 2).each_slice(2).to_a
+
+      expect(pairs).to include(*samples.map { |sample| sample.labels.values_at(:"thread name", :"thread id") }.uniq)
+      expect(pairs.map(&:first)).to include("main", "miteruby named thread")
+      expect(pairs.map(&:last)).to include(*threads.map { |thread| "0 (#{thread.object_id})" })
+      expect(profile.function.find { |function| function.id == 5 }.name).to eq(22 + thread_count * 2)
+    ensure
+      threads&.each { |thread| thread.kill.join }
+      Thread.current.name = original_name
+    end
+
     it "looks up thread names when recording instead of caching them" do
       original_name = Thread.current.name
       Thread.current.name = "miteruby first name"
@@ -2703,12 +2743,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consume_miteruby
       expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
         .to all(include("thread name": "miteruby first name"))
+      expect(decode_profile(streaming_serializer.serialize).string_table).to include("miteruby first name")
 
       capture_miteruby { publish_miteruby_sample }
       Thread.current.name = "miteruby second name"
       consume_miteruby
       expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
         .to all(include("thread name": "miteruby second name"))
+      strings = decode_profile(streaming_serializer.serialize).string_table
+      expect(strings).to include("miteruby second name")
+      expect(strings).to_not include("miteruby first name")
     ensure
       Thread.current.name = original_name
     end
