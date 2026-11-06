@@ -66,7 +66,7 @@ module Datadog
               # disabled the existing OTel `feature_flag.evaluations` metric is unaffected.
               option :evaluation_counts_enabled do |o|
                 o.type :bool
-                o.env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED"
+                o.env "DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED"
                 o.default true
               end
             end
