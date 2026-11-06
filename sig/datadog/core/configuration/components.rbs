@@ -56,7 +56,7 @@ module Datadog
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
-        attr_reader profiler_build_error: Exception?
+        attr_reader profiler_unavailable_reason: String?
 
         @environment_logger_extra: Hash[Symbol, untyped]
 
@@ -87,8 +87,6 @@ module Datadog
         def profiling_settings_values: (?untyped settings_object) -> Hash[Symbol, untyped]
 
         def build_profiler: () -> void
-
-        def start_profiler: () -> void
       end
     end
   end

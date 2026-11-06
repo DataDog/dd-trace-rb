@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
 require_relative "../core/telemetry/logger"
+require_relative "../core/utils/only_once"
 
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
     module Component
+      # Remote configuration can rebuild the profiler many times, and reports the reason itself.
+      UNSUPPORTED_WARNING_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
@@ -29,7 +33,16 @@ module Datadog
         # no-op if profiling is already loaded).
         require_relative "../profiling"
 
-        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled && Profiling.supported?
+        return [nil, {profiling_enabled: false}, nil] unless settings.profiling.enabled
+
+        unsupported_reason = Profiling.unsupported_reason
+        if unsupported_reason
+          UNSUPPORTED_WARNING_ONLY_ONCE.run do
+            # Tell users who expected profiling to be enabled
+            logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
+          end
+          return [nil, {profiling_enabled: false}, "Profiling is not supported: #{unsupported_reason}"]
+        end
 
         # Activate forking extensions
         Profiling::Tasks::Setup.new.run
@@ -95,7 +108,7 @@ module Datadog
         end
         Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
 
-        [nil, {profiling_enabled: false}, e]
+        [nil, {profiling_enabled: false}, "Profiling failed to initialize: #{e.class}: #{e.message}"]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, max_frames)

@@ -28,15 +28,33 @@ RSpec.describe Datadog::Profiling::Component do
       )
     end
 
-    context "when profiling is not supported" do
-      before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
+    context "when profiling is enabled but not supported" do
+      before do
+        described_class::UNSUPPORTED_WARNING_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+        settings.profiling.enabled = true
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason")
+      end
 
-      it { is_expected.to eq [nil, {profiling_enabled: false}] }
+      it "warns and returns the reason" do
+        expect(logger).to receive(:warn).with("Profiling was requested but is not supported, profiling disabled: test reason")
+
+        is_expected.to eq [nil, {profiling_enabled: false}, "Profiling is not supported: test reason"]
+      end
+
+      it "warns only once, as remote configuration can rebuild the profiler many times" do
+        expect(logger).to receive(:warn).once
+
+        2.times do
+          described_class.build_profiler_component(
+            settings: settings, agent_settings: agent_settings, optional_tracer: tracer, logger: logger,
+          )
+        end
+      end
     end
 
     context "by default" do
       it "does not build a profiler" do
-        is_expected.to eq [nil, {profiling_enabled: false}]
+        is_expected.to eq [nil, {profiling_enabled: false}, nil]
       end
     end
 
@@ -46,7 +64,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it "does not build a profiler" do
-        is_expected.to eq [nil, {profiling_enabled: false}]
+        is_expected.to eq [nil, {profiling_enabled: false}, nil]
       end
     end
 
@@ -71,17 +89,17 @@ RSpec.describe Datadog::Profiling::Component do
           )
         end
 
-        it "logs a warning, reports via telemetry, and returns nil with the error" do
+        it "logs a warning, reports via telemetry, and returns nil with the error message" do
           expect(logger).to receive(:warn) do |&block|
             expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
           end
           expect(Datadog::Core::Telemetry::Logger).to receive(:report)
             .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
 
-          is_expected.to match [
+          is_expected.to eq [
             nil,
             {profiling_enabled: false},
-            an_instance_of(ArgumentError).and(have_attributes(message: "Failed to initialize transport: something went wrong")),
+            "Profiling failed to initialize: ArgumentError: Failed to initialize transport: something went wrong",
           ]
         end
       end

@@ -167,7 +167,7 @@ module Datadog
           :agent_info,
           :data_streams,
           :symbol_database,
-          :profiler_build_error
+          :profiler_unavailable_reason
 
         def initialize(settings)
           @settings = settings
@@ -285,7 +285,7 @@ module Datadog
 
           @open_feature_activation.startup!
 
-          start_profiler
+          profiler&.start
 
           if dynamic_instrumentation && old_state
             dynamic_instrumentation.record_rc_enablement_signal_paths(old_state.rc_enablement_signal_paths)
@@ -428,7 +428,7 @@ module Datadog
         def rebuild_profiler
           @profiler&.shutdown!
           build_profiler
-          start_profiler
+          profiler&.start
         end
 
         # Whether the profiling settings changed since the profiler, which copies them, was built.
@@ -449,7 +449,7 @@ module Datadog
 
         def build_profiler
           @profiler_settings_values = profiling_settings_values
-          @profiler, profiler_logger_extra, @profiler_build_error = Datadog::Profiling::Component.build_profiler_component(
+          @profiler, profiler_logger_extra, @profiler_unavailable_reason = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: tracer,
@@ -458,18 +458,6 @@ module Datadog
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
           # The tracer can outlive the profiler, e.g. a c.tracing.instance kept across Datadog.configure.
           tracer.reset_profiling_enabled
-        end
-
-        def start_profiler
-          return unless settings.profiling.enabled
-
-          if profiler
-            profiler.start
-          else
-            # Display a warning for users who expected profiling to be enabled
-            unsupported_reason = Profiling.unsupported_reason
-            logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
-          end
         end
       end
     end

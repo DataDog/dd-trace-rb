@@ -1,12 +1,14 @@
 module Datadog
   module Profiling
     module Component
+      UNSUPPORTED_WARNING_ONLY_ONCE: Core::Utils::OnlyOnce
+
       def self.build_profiler_component: (
         settings: untyped,
         agent_settings: Datadog::Core::Configuration::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
         logger: Datadog::Core::Logger,
-      ) -> ([Datadog::Profiling::Profiler, {profiling_enabled: true}] | [nil, {profiling_enabled: false}] | [nil, {profiling_enabled: false}, Exception])
+      ) -> ([Datadog::Profiling::Profiler, {profiling_enabled: true}] | [nil, {profiling_enabled: false}, String?])
 
       def self.build_thread_context_collector: (
         untyped settings,

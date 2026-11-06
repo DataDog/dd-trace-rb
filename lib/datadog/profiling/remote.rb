@@ -123,28 +123,10 @@ module Datadog
 
           components = Datadog.send(:components, allow_initialization: false)
           profiler = components&.profiler
-          if profiler
-            start_failure = profiler.start_failure(timeout_seconds: START_TIMEOUT_SECONDS)
-            return "Profiling failed to start: #{start_failure.class}: #{start_failure.message}" if start_failure
+          return components&.profiler_unavailable_reason unless profiler
 
-            return
-          end
-
-          unsupported_reason = profiling_unsupported_reason
-          build_error = components&.profiler_build_error
-          if unsupported_reason
-            "Profiling is not supported: #{unsupported_reason}"
-          elsif build_error
-            "Profiling failed to initialize: #{build_error.class}: #{build_error.message}"
-          else
-            "Profiling failed to initialize"
-          end
-        end
-
-        def profiling_unsupported_reason
-          # Not required at the top of this file: datadog/profiling requires core, which requires this file.
-          require_relative "../profiling"
-          Datadog::Profiling.unsupported_reason
+          start_failure = profiler.start_failure(timeout_seconds: START_TIMEOUT_SECONDS)
+          "Profiling failed to start: #{start_failure.class}: #{start_failure.message}" if start_failure
         end
 
         # Invalid fields are reported as an error without preventing the valid ones from applying.

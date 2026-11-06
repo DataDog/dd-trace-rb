@@ -7,12 +7,12 @@ RSpec.describe Datadog::Profiling::Remote do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, client_configuration_change!: nil, report: nil) }
   let(:profiler) { instance_double(Datadog::Profiling::Profiler, start_failure: nil) }
-  let(:profiler_build_error) { nil }
+  let(:profiler_unavailable_reason) { nil }
   let(:components) do
     instance_double(
       Datadog::Core::Configuration::Components,
       profiler: profiler,
-      profiler_build_error: profiler_build_error,
+      profiler_unavailable_reason: profiler_unavailable_reason,
     )
   end
   let(:contents) { [] }
@@ -57,7 +57,6 @@ RSpec.describe Datadog::Profiling::Remote do
     allow(Datadog).to receive(:configuration).and_return(settings)
     allow(Datadog).to receive(:send).and_call_original
     allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
-    allow(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
     allow(Datadog::Core::Configuration::Components).to receive(:reconfigure_profiler)
   end
 
@@ -654,8 +653,7 @@ RSpec.describe Datadog::Profiling::Remote do
       end
 
       let(:profiler) { nil }
-
-      before { allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason") }
+      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
 
       it "reports every config as errored with the reason, including one that doesn't enable profiling" do
         apply_configs
@@ -668,11 +666,9 @@ RSpec.describe Datadog::Profiling::Remote do
     context "when profiling is enabled locally but not supported" do
       let(:contents) { [profiling_content("no-enablement", profilers: {})] }
       let(:profiler) { nil }
+      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
 
-      before do
-        settings.profiling.enabled = true
-        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason")
-      end
+      before { settings.profiling.enabled = true }
 
       it "reports a config that doesn't enable profiling as errored too" do
         apply_configs
@@ -709,7 +705,7 @@ RSpec.describe Datadog::Profiling::Remote do
     context "when the profiler fails to initialize" do
       let(:contents) { [profiling_content("preset-default", profilers: default_preset)] }
       let(:profiler) { nil }
-      let(:profiler_build_error) { ArgumentError.new("test error") }
+      let(:profiler_unavailable_reason) { "Profiling failed to initialize: ArgumentError: test error" }
 
       it "reports the config as errored with the error, instead of applied" do
         apply_configs
@@ -717,23 +713,12 @@ RSpec.describe Datadog::Profiling::Remote do
         expect(contents.first.apply_state).to eq(apply_state::ERROR)
         expect(contents.first.apply_error).to eq("Profiling failed to initialize: ArgumentError: test error")
       end
-
-      context "without an error recorded" do
-        let(:profiler_build_error) { nil }
-
-        it "reports the config as errored" do
-          apply_configs
-
-          expect(contents.first.apply_error).to eq("Profiling failed to initialize")
-        end
-      end
     end
 
     context "when profiling is disabled remotely and not supported" do
       let(:contents) { [profiling_content("preset-disabled", profilers: disabled_preset)] }
       let(:profiler) { nil }
-
-      before { allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason") }
+      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
 
       it "acknowledges the config, which is honored" do
         apply_configs

@@ -738,52 +738,37 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context "when building the profiler fails" do
-        let(:error) { RuntimeError.new("test error") }
+        let(:reason) { "Profiling failed to initialize: RuntimeError: test error" }
 
         before do
           allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
-            .and_return([nil, {profiling_enabled: false}, error])
+            .and_return([nil, {profiling_enabled: false}, reason])
         end
 
-        it "records the error" do
-          expect { reconfigure_profiler }.to change { components.profiler_build_error }.from(nil).to(error)
+        it "records why" do
+          expect { reconfigure_profiler }.to change { components.profiler_unavailable_reason }.from(nil).to(reason)
         end
 
-        it "clears the error once building succeeds" do
+        it "clears it once building succeeds" do
           reconfigure_profiler
           allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
             .and_return([new_profiler, {profiling_enabled: true}])
           settings.profiling.advanced.max_frames = 500
 
-          expect { described_class.reconfigure_profiler }.to change { components.profiler_build_error }.from(error).to(nil)
+          expect { described_class.reconfigure_profiler }.to change { components.profiler_unavailable_reason }.from(reason).to(nil)
         end
       end
 
       context "when profiling is disabled" do
         before do
           allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
-            .and_return([nil, {profiling_enabled: false}])
+            .and_return([nil, {profiling_enabled: false}, nil])
         end
 
         it "shuts the old profiler down and clears it" do
           expect(old_profiler).to receive(:shutdown!)
 
           expect { reconfigure_profiler }.to change { components.profiler }.from(old_profiler).to(nil)
-        end
-      end
-
-      context "when profiling is enabled but unsupported" do
-        before do
-          settings.profiling.enabled = true
-          allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
-            .and_return([nil, {profiling_enabled: false}])
-          allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason")
-        end
-
-        it "warns instead of starting" do
-          expect(components.logger).to receive(:warn).with(/not supported, profiling disabled: test reason/)
-
-          reconfigure_profiler
         end
       end
     end
@@ -839,15 +824,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .and_return(true)
           end
 
-          it do
-            expect(components.profiler)
-              .to be nil
+          it "warns once, while building the components" do
+            Datadog::Profiling::Component::UNSUPPORTED_WARNING_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+            allow(described_class).to receive(:build_logger).and_return(logger)
+            allow(logger).to receive(:info)
+            allow(logger).to receive(:warn)
 
-            expect(components.logger)
-              .to receive(:warn)
-              .with(/profiling disabled/)
-
+            expect(components.profiler).to be nil
             startup!
+
+            expect(logger).to have_received(:warn).with(/profiling disabled/).once
           end
         end
 
