@@ -172,10 +172,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         libdatadog_recorder, streaming_serializer = cpu_and_wall_time_worker.prepare_serialize(return_both: true)
         original = libdatadog_recorder.serialize!
         streaming = streaming_serializer.serialize
-        expect(samples_from_pprof(original)).to_not be_empty
+        original_samples = samples_from_pprof(original)
+        streaming_samples = samples_from_pprof(streaming)
+        expect(original_samples).to_not be_empty
+        expect(streaming_samples.map { |sample| [sample.values, sample.labels, sample.locations.size] })
+          .to match_array(original_samples.map { |sample| [sample.values, sample.labels, sample.locations.size] })
 
-        pending("Streaming serialization does not emit samples yet")
-        expect(samples_from_pprof(streaming)).to match_array(samples_from_pprof(original))
+        pending("Streaming serialization uses qualified names and placeholder filenames for C frames")
+        expect(streaming_samples).to match_array(original_samples)
       ensure
         cpu_and_wall_time_worker.stop
       end
@@ -2298,11 +2302,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples.size).to eq(3)
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       profile = decode_profile(streaming_serializer.serialize)
+      expect(profile.sample.size).to eq(3)
       expect(profile.sample_type.size).to eq(6)
       expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)).to be > 1
       expect(profile.function.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
       expect(recorded_miteruby_samples).to be_empty
-      expect(decode_profile(streaming_serializer.serialize).function).to eq(profile.function)
+      next_profile = decode_profile(streaming_serializer.serialize)
+      expect(next_profile.function).to eq(profile.function)
+      expect(next_profile.sample).to be_empty
       expect(streaming_serializer.stats).to eq(recorded_samples: 3)
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
 
@@ -2577,6 +2584,26 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(current.values.fetch(:"wall-time"))
           .to eq(current.labels.fetch(:end_timestamp_ns) - previous.labels.fetch(:end_timestamp_ns))
       end
+      streaming_samples = samples_for_thread(samples_from_pprof(streaming_serializer.serialize), Thread.current)
+        .sort_by { |sample| sample.labels.fetch(:end_timestamp_ns) }
+      expect(streaming_samples.map(&:values)).to eq(samples.map(&:values))
+      expect(streaming_samples.map(&:labels)).to eq(samples.map(&:labels))
+    end
+
+    it "emits the native fallback when the sampled thread has no stack" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      sampled_thread = Thread.new {}.join
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, -1)).to be true
+      consume_miteruby
+
+      samples = recorded_miteruby_samples
+      expect(samples.size).to eq(1)
+      expect(samples.first.locations).to eq([
+        ProfileHelpers::Frame.new("", "In native code", 0),
+        ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0),
+      ])
+      expect(samples_from_pprof(streaming_serializer.serialize)).to eq(samples)
     end
 
     it "retains the last valid CPU baseline across drains" do
@@ -2732,6 +2759,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(truncated.locations.last.label).to eq("(sampled by miteruby)")
       expect(truncated.locations.size).to eq(402)
       expect(truncated.locations.map(&:label)).to include("recurse_for_miteruby")
+      streaming_truncated = samples_from_pprof(streaming_serializer.serialize)
+        .find { |sample| sample.labels.fetch(:end_timestamp_ns) == truncated.labels.fetch(:end_timestamp_ns) }
+      expect(streaming_truncated.locations.first(2)).to eq(truncated.locations.first(2))
+      expect(streaming_truncated.locations.last).to eq(truncated.locations.last)
+      expect(streaming_truncated.locations.size).to eq(402)
     end
   end
 
