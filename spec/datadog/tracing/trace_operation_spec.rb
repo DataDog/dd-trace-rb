@@ -2,6 +2,7 @@ require "spec_helper"
 require "support/object_helpers"
 
 require "time"
+require "timeout"
 
 require "datadog/core"
 require "datadog/core/utils/time"
@@ -1965,6 +1966,77 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             expect(trace_op.resource).to eq("Articles#show")
           end
         end
+      end
+    end
+
+    context "when a non-StandardError exception interrupts the start of a span" do
+      let(:interrupt) { Class.new(Exception) } # rubocop:disable Lint/InheritException
+
+      it "does not activate the span as its own parent and finishes it" do
+        armed = false
+        interrupted = false
+        trace_op.send(:events).span_before_start.subscribe do |span_op, _|
+          armed = interrupted = true if span_op.name == "interrupted" && !interrupted
+        end
+
+        # Interrupt after `before_start` has activated the span, but before its start time is set
+        allow(Datadog::Core::Utils::Time).to receive(:now).and_wrap_original do |original|
+          if armed
+            armed = false
+            raise interrupt
+          end
+
+          original.call
+        end
+
+        parent_span = nil
+        interrupted_span = nil
+
+        expect do
+          Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") do # rubocop:disable Lint/InheritException
+            trace_op.measure("parent") do |parent_op|
+              parent_span = parent_op
+              trace_op.measure("interrupted") do |span_op|
+                interrupted_span = span_op
+                trace_op.measure("child") {}
+              end
+            end
+          end
+        end.to raise_error(interrupt)
+
+        expect(interrupted_span.send(:parent)).to be(parent_span)
+        expect(interrupted_span).to be_finished
+        expect(trace_op.active_span).to be_nil
+        expect(trace_op.active_span_count).to eq(0)
+      end
+
+      it "completes the activation bookkeeping when the exception is raised asynchronously in the middle of it" do
+        reached = Queue.new
+        release = Queue.new
+        allow(trace_op).to receive(:set_local_root_span!).and_wrap_original do |original, span_op|
+          if span_op.name == "interrupted"
+            reached << true
+            release.pop
+          end
+
+          original.call(span_op)
+        end
+
+        worker = Thread.new do
+          Thread.current.report_on_exception = false
+          trace_op.measure("interrupted") {}
+        end
+        reached.pop
+        worker.raise(interrupt)
+        release << true
+
+        expect do
+          Timeout.timeout(5, Class.new(Exception), "trace operation did not terminate") { worker.join } # rubocop:disable Lint/InheritException
+        end.to raise_error(interrupt)
+
+        expect(trace_op.send(:root_span).name).to eq("interrupted")
+        expect(trace_op.active_span_count).to eq(0)
+        expect(trace_op).to be_finished
       end
     end
   end
