@@ -8,6 +8,11 @@ module Datadog
           self.class._native_serialize(self)
         end
 
+        def serialize!
+          _start, _finish, encoded_profile = serialize
+          encoded_profile
+        end
+
         def reset_after_fork
           self.class._native_reset_after_fork(self)
         end
