@@ -25,7 +25,7 @@ module Datadog
     class SpanOperation
       include Metadata
 
-      DEFER_ASYNC_INTERRUPTS = {Exception => :never}.freeze
+      DEFER_ASYNC_INTERRUPTS = {Exception => :on_blocking}.freeze
       private_constant :DEFER_ASYNC_INTERRUPTS
 
       # Span attributes
@@ -211,7 +211,8 @@ module Datadog
 
         # `stop` starts again a span whose start was interrupted; a second before_start would
         # activate it twice in its trace. Deferring asynchronous exceptions (`Thread#raise`,
-        # e.g. from Rack::Timeout) until subscribers complete avoids a half-activated span.
+        # e.g. from Rack::Timeout) until subscribers complete avoids a half-activated span;
+        # blocking calls still raise them, so a blocking subscriber cannot outlast a timeout.
         unless @before_start_published
           Thread.handle_interrupt(DEFER_ASYNC_INTERRUPTS) do
             @before_start_published = true
