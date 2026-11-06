@@ -302,6 +302,48 @@ RSpec.describe "Native transport fork safety and cancellation" do
     let(:transport) { @transport }
     let(:exporter) { transport.instance_variable_get(:@exporter) }
 
+    [:_native_after_fork_in_parent, :_native_after_fork_in_child].each do |restore|
+      it "resumes sends after a transient #{restore} failure" do
+        skip "File descriptor limits are unavailable" unless defined?(::Process::RLIMIT_NOFILE)
+
+        expect_in_fork do
+          exporter._native_before_fork
+          soft, hard = Process.getrlimit(:NOFILE)
+          begin
+            Process.setrlimit(:NOFILE, 0, hard)
+            expect { exporter.public_send(restore) }.to raise_error(RuntimeError, /Failed to restore after fork/)
+          ensure
+            Process.setrlimit(:NOFILE, soft, hard)
+          end
+
+          expect(transport.send_traces([build_trace(name: "recovered.op")]).first).to be_ok
+          exporter.public_send(restore)
+          expect(transport.send_traces([build_trace(name: "restored.op")]).first).to be_ok
+        end
+      end
+    end
+
+    it "reports failed setup as unsent API errors rather than cancellation" do
+      skip "File descriptor limits are unavailable" unless defined?(::Process::RLIMIT_NOFILE)
+
+      expect_in_fork do
+        exporter._native_before_fork
+        spans = build_trace(name: "failed.setup").spans
+        reports = []
+        soft, hard = Process.getrlimit(:NOFILE)
+        begin
+          Process.setrlimit(:NOFILE, 0, hard)
+          expect { exporter._native_after_fork_in_child }.to raise_error(RuntimeError, /Failed to restore after fork/)
+          responses = exporter._native_send_traces([spans], false) { |report| reports << report }
+          expect(responses.first).to be_internal_error
+        ensure
+          Process.setrlimit(:NOFILE, soft, hard)
+        end
+        expect(reports).to eq([{chunks_dropped_send_failure: 1, spans_dropped_api_error: 1, spans_enqueued_for_serialization: 1}])
+        exporter._native_after_fork_in_child
+      end
+    end
+
     context "after resetting component fork hooks" do
       reset_at_fork_monkey_patch_for_components!
 
@@ -572,7 +614,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
     let(:transport) { @transport }
     let(:mock_agent) { @mock_agent }
 
-    it "drains the in-flight send before the fork, and both child and parent send succeed" do
+    it "cancels the in-flight send before the fork, and both processes can send afterwards" do
       exporter = transport.instance_variable_get(:@exporter)
       fork_prepared = Queue.new
 
@@ -602,11 +644,11 @@ RSpec.describe "Native transport fork safety and cancellation" do
       mock_agent.wait_for_connection(timeout: 10)
 
       # Fork through the real AtForkMonkeyPatch path so the transport's
-      # :before/:parent/:child hooks run. The :before hook locks @send_mutex,
-      # which BLOCKS until the in-flight send finishes, so `fork` itself blocks
-      # until the releaser below allows the agent to answer.
+      # :before/:parent/:child hooks run. The active send must relinquish the
+      # exporter before either process resumes it.
       releaser = Thread.new do
         Timeout.timeout(15) { fork_prepared.pop }
+        raise "send did not cancel" unless sender.join(5)
         mock_agent.release
       end
       read_io, write_io = IO.pipe
@@ -644,9 +686,8 @@ RSpec.describe "Native transport fork safety and cancellation" do
       expect(child_result).to eq("OK")
       expect(status.success?).to be(true)
 
-      # The in-flight parent send completed without error.
       parent_responses = Timeout.timeout(15) { sender_result.pop }
-      expect(parent_responses.first.ok?).to be(true)
+      expect(parent_responses.first).to be_internal_error
       expect(sender.join(10)).to_not be_nil
 
       # The parent transport still works after the fork.
@@ -664,21 +705,27 @@ RSpec.describe "Native transport fork safety and cancellation" do
       sender_result = Queue.new
       fork_result = Queue.new
       close_started = Queue.new
+      release_close = Queue.new
+      exporter = transport.instance_variable_get(:@exporter)
+      allow(exporter).to receive(:_native_cancel_pending).and_wrap_original do |method|
+        result = method.call
+        close_started << true
+        release_close.pop
+        result
+      end
 
       sender = Thread.new do
         sender_result << transport.send_traces([build_trace(name: "inflight-close.op")])
       end
       mock_agent.wait_for_connection(timeout: 10)
 
-      # Close acquires the lifecycle mutex, then blocks on the in-flight send.
       closer = Thread.new do
-        close_started << true
         transport.close
       end
       Timeout.timeout(5) { close_started.pop }
       wait_until_blocked(closer)
 
-      # Start the fork only after close is waiting for the send. The fork keeps
+      # Start the fork while close holds the lifecycle lock. The fork keeps
       # its callback snapshot even if close deregisters the global hooks first.
       fork_snapshotted = Queue.new
       allow(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:snapshot_at_fork_blocks).and_wrap_original do |method|
@@ -707,8 +754,9 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       Timeout.timeout(5) { fork_snapshotted.pop }
 
+      expect(sender.join(5)).to be(sender)
       mock_agent.release
-      expect(sender.join(10)).to be(sender)
+      release_close << true
       expect(forker.join(10)).to be(forker)
       expect(closer.join(10)).to be(closer)
       write_io.close
@@ -717,7 +765,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       read_io.close
       _, status = Process.wait2(Timeout.timeout(5) { fork_result.pop })
 
-      expect(Timeout.timeout(5) { sender_result.pop }.first.ok?).to be(true)
+      expect(Timeout.timeout(5) { sender_result.pop }.first).to be_internal_error
       expect(child_result).to match(/\A(?:OK|CLOSED)\z/)
       expect(status.success?).to be(true)
       expect(transport.send_traces([build_trace(name: "parent-after-close.op")]).first).to be_internal_error
@@ -728,6 +776,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         nil
       end
       sender&.join(5)
+      release_close << true if release_close
       forker&.join(5)
       closer&.join(5)
       read_io&.close unless read_io&.closed?

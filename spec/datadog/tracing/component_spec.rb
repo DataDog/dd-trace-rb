@@ -648,12 +648,29 @@ RSpec.describe Datadog::Tracing::Component do
       let(:writer) { double("writer") }
       let(:responses) do
         [
-          double("first response"),
-          double("last response", internal_error?: internal_error, service_rates: service_rates),
+          double("first response", ok?: true, internal_error?: false, service_rates: nil),
+          double("last response", ok?: !internal_error, internal_error?: internal_error, service_rates: service_rates),
         ]
       end
 
       let(:service_rates) { nil }
+
+      [true, false].each do |last_ok|
+        context "when the last response has no rates and ok? is #{last_ok}" do
+          let(:rates) { {"service:,env:" => 0.5} }
+          let(:responses) do
+            [
+              double("successful response", ok?: true, internal_error?: false, service_rates: rates),
+              double("last response", ok?: last_ok, internal_error?: false, service_rates: nil),
+            ]
+          end
+
+          it "preserves the earlier sampling update" do
+            expect(sampler).to receive(:update).with(rates, decision: "-1")
+            call
+          end
+        end
+      end
 
       context "with a successful response" do
         let(:internal_error) { false }
@@ -662,6 +679,7 @@ RSpec.describe Datadog::Tracing::Component do
           let(:service_rates) { double("service rates") }
 
           it "updates sampler with service rates and set decision to AGENT_RATE" do
+            expect(responses.last).to receive(:service_rates).once.and_return(service_rates)
             expect(sampler).to receive(:update).with(service_rates, decision: "-1")
             call
           end
