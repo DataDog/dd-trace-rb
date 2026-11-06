@@ -27,12 +27,6 @@
 #define LOCATION_SET_MAX_SIZE MiB_AS_BYTES(13)
 #define LOCATION_ARRAY_CAPACITY UINT20_MAX // ~4 MiB total
 
-typedef struct {
-  miteruby_location_t *entries;
-  size_t count;
-  size_t capacity;
-} miteruby_location_array_t;
-
 static void *mark_threads_calloc(size_t size);
 static void *mark_cme_iseq_calloc(size_t size);
 static uint64_t cme_iseq_hash(miteruby_cme_iseq_id_t id, const miteruby_mark_cme_iseq_array_t *array);
@@ -428,7 +422,7 @@ static VALUE prepare_serialize_locked(VALUE args) {
   prepare_serialize_args *recorders = (prepare_serialize_args *) args;
   miteruby_streaming_serializer_prepare_serialize(
     recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
-    &consumer_state.mark_cme_iseq_array
+    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array
   );
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 

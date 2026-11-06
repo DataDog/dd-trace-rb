@@ -10,6 +10,8 @@
 
 #include <string.h>
 
+RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
+
 enum { COMPRESSION_LEVEL = 1 };
 
 enum fixed_strings {
@@ -111,7 +113,7 @@ static void emit_string_table_entry(pb_ostream_t *stream, const char *string, si
 
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array
+  const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array
 ) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
@@ -126,6 +128,25 @@ void miteruby_streaming_serializer_prepare_serialize(
     miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
+  }
+
+  // Emit FragmentLocation
+  for (size_t i = 0; i < location_array->count; i++) {
+    miteruby_location_t location = location_array->entries[i];
+    const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
+    miteruby_pprof_fragment_location_t fragment = {
+      .has_location = true,
+      .location = {
+        .id = i + 1,
+        .has_line = true,
+        .line = {
+          .function_id = location.cme_iseq_id.value + 1,
+          .line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0,
+        },
+      },
+    };
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(&stream));
   }
 
   // Emit FragmentFunction
