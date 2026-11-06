@@ -8,6 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+// IMPORTANT NOTE
+//
+// This is a throwaway prototype that exists for the sole purpose of making it easier to compare miteruby
+// serialization code with libdatadog serialization code.
+// The `streaming_serializer` is the "real" miteruby serialization code, and this file shouldn't be taken very
+// seriously.
+
 enum { END_TIMESTAMP_NS = 3 };
 // Match libdatadog's profile compression level, which uses zstd's fast strategy.
 enum { COMPRESSION_LEVEL = 1 };
