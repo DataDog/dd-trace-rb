@@ -5,6 +5,11 @@
 #include "raw_events_queue.h"
 #include "../private_vm_api_access.h"
 
+#define NAME verstable_mark_threads_set
+#define KEY_TY VALUE
+#define HEADER_MODE
+#include "hashtable/verstable.h"
+
 typedef struct {
   miteruby_event_frame_refs_t *entries;
   size_t count;
