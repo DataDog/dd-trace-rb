@@ -324,14 +324,9 @@ end
 # To allow for leaky threads to be traced
 # back to their creation point.
 module DatadogThreadDebugger
-  def initialize(*args, &block)
+  def initialize(*args)
     @caller = caller
-    wrapped = lambda do |*thread_args|
-      block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
-    end
-    wrapped.send(:ruby2_keywords) if wrapped.respond_to?(:ruby2_keywords, true)
-
-    super(*args, &wrapped)
+    super
   end
 
   ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)

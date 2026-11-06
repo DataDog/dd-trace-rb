@@ -1137,9 +1137,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack).to match(
         [
           have_attributes(label: "Truncated Frames", path: "", lineno: 0),
-          *399.downto(3).map { |depth| have_attributes(label: "DeepStackSimulator#deep_stack_#{depth}") },
+          *399.downto(2).map { |depth| have_attributes(label: "DeepStackSimulator#deep_stack_#{depth}") },
           have_attributes(label: "DeepStackSimulator.thread_with_stack_depth (block)"),
-          have_attributes(label: "DatadogThreadDebugger#initialize (block)"),
         ],
       )
     end
@@ -1417,13 +1416,7 @@ class DeepStackSimulator
   def self.thread_with_stack_depth(depth)
     ready_queue = Queue.new
 
-    # In spec_helper.rb we have a DatadogThreadDebugger which is used to help us debug specs that leak threads.
-    # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
-    # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
-    first_method =
-      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_3 : :deep_stack_2
-
-    thread = Thread.new { DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).send(first_method) }
+    thread = Thread.new { DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).deep_stack_2 }
     thread.name = "Deep stack #{depth}"
     ready_queue.pop
 
