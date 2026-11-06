@@ -24,6 +24,20 @@ enum fixed_strings {
   PPROF_STRING_ALLOC_SAMPLES,
   PPROF_STRING_ALLOC_SAMPLES_UNSCALED,
   PPROF_STRING_TIMELINE,
+  PPROF_STRING_THREAD_ID,
+  PPROF_STRING_THREAD_NAME,
+  PPROF_STRING_STATE,
+  PPROF_STRING_HAD_CPU,
+  PPROF_STRING_MITERUBY,
+  PPROF_STRING_END_TIMESTAMP_NS,
+  PPROF_STRING_SAMPLED_BY_MITERUBY,
+  PPROF_STRING_SAMPLED_IN_SIGHANDLER,
+  PPROF_STRING_IN_NATIVE_CODE,
+  PPROF_STRING_TRUNCATED_FRAMES,
+  PPROF_STRING_MAIN_THREAD,
+  PPROF_STRING_UNNAMED_NATIVE_THREAD,
+  PPROF_STRING_UNNAMED_THREAD,
+  PPROF_STRING_FIRST_DYNAMIC,
 };
 
 static const char *const fixed_string_values[] = {
@@ -36,6 +50,49 @@ static const char *const fixed_string_values[] = {
   [PPROF_STRING_ALLOC_SAMPLES] = "alloc-samples",
   [PPROF_STRING_ALLOC_SAMPLES_UNSCALED] = "alloc-samples-unscaled",
   [PPROF_STRING_TIMELINE] = "timeline",
+  [PPROF_STRING_THREAD_ID] = "thread id",
+  [PPROF_STRING_THREAD_NAME] = "thread name",
+  [PPROF_STRING_STATE] = "state",
+  [PPROF_STRING_HAD_CPU] = "had cpu",
+  [PPROF_STRING_MITERUBY] = "miteruby",
+  [PPROF_STRING_END_TIMESTAMP_NS] = "end_timestamp_ns",
+  [PPROF_STRING_SAMPLED_BY_MITERUBY] = "(sampled by miteruby)",
+  [PPROF_STRING_SAMPLED_IN_SIGHANDLER] = "(sampled in sighandler)",
+  [PPROF_STRING_IN_NATIVE_CODE] = "In native code",
+  [PPROF_STRING_TRUNCATED_FRAMES] = "Truncated Frames",
+  [PPROF_STRING_MAIN_THREAD] = "main",
+  [PPROF_STRING_UNNAMED_NATIVE_THREAD] = "(Unnamed thread from native code)",
+  [PPROF_STRING_UNNAMED_THREAD] = "(Unnamed thread)",
+};
+
+enum fixed_functions {
+  PPROF_FUNCTION_ROOT = 1,
+  PPROF_FUNCTION_SIGHANDLER,
+  PPROF_FUNCTION_NATIVE,
+  PPROF_FUNCTION_TRUNCATED,
+  PPROF_FUNCTION_FIRST_DYNAMIC,
+};
+
+static const miteruby_pprof_fragment_function_function_t fixed_function_values[] = {
+  [PPROF_FUNCTION_ROOT] = {.id = PPROF_FUNCTION_ROOT, .name = PPROF_STRING_SAMPLED_BY_MITERUBY, .filename = PPROF_STRING_EMPTY},
+  [PPROF_FUNCTION_SIGHANDLER] = {.id = PPROF_FUNCTION_SIGHANDLER, .name = PPROF_STRING_SAMPLED_IN_SIGHANDLER, .filename = PPROF_STRING_EMPTY},
+  [PPROF_FUNCTION_NATIVE] = {.id = PPROF_FUNCTION_NATIVE, .name = PPROF_STRING_EMPTY, .filename = PPROF_STRING_IN_NATIVE_CODE},
+  [PPROF_FUNCTION_TRUNCATED] = {.id = PPROF_FUNCTION_TRUNCATED, .name = PPROF_STRING_TRUNCATED_FRAMES, .filename = PPROF_STRING_EMPTY},
+};
+
+enum fixed_locations {
+  PPROF_LOCATION_ROOT = 1,
+  PPROF_LOCATION_SIGHANDLER,
+  PPROF_LOCATION_NATIVE,
+  PPROF_LOCATION_TRUNCATED,
+  PPROF_LOCATION_FIRST_DYNAMIC,
+};
+
+static const miteruby_pprof_fragment_location_location_t fixed_location_values[] = {
+  [PPROF_LOCATION_ROOT] = {.id = PPROF_LOCATION_ROOT, .has_line = true, .line = {.function_id = PPROF_FUNCTION_ROOT}},
+  [PPROF_LOCATION_SIGHANDLER] = {.id = PPROF_LOCATION_SIGHANDLER, .has_line = true, .line = {.function_id = PPROF_FUNCTION_SIGHANDLER}},
+  [PPROF_LOCATION_NATIVE] = {.id = PPROF_LOCATION_NATIVE, .has_line = true, .line = {.function_id = PPROF_FUNCTION_NATIVE}},
+  [PPROF_LOCATION_TRUNCATED] = {.id = PPROF_LOCATION_TRUNCATED, .has_line = true, .line = {.function_id = PPROF_FUNCTION_TRUNCATED}},
 };
 
 static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
@@ -102,7 +159,15 @@ static void record_stack_sample(
 // After the fixed strings, each CME/ISEQ array index reserves two consecutive strings:
 // name, then filename. These pairs must be emitted in array order.
 static int64_t string_table_id_for(uint64_t function_id) {
-  return PPROF_STRING_TIMELINE + 1 + function_id * 2;
+  return PPROF_STRING_FIRST_DYNAMIC + function_id * 2;
+}
+
+static uint64_t function_id_for(uint64_t cme_iseq_index) {
+  return PPROF_FUNCTION_FIRST_DYNAMIC + cme_iseq_index;
+}
+
+static uint64_t location_id_for(uint64_t location_index) {
+  return PPROF_LOCATION_FIRST_DYNAMIC + location_index;
 }
 
 static void emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
@@ -131,16 +196,22 @@ void miteruby_streaming_serializer_prepare_serialize(
   }
 
   // Emit FragmentLocation
+  for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
+    miteruby_pprof_fragment_location_t fragment = {.has_location = true, .location = fixed_location_values[i]};
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(&stream));
+  }
+
   for (size_t i = 0; i < location_array->count; i++) {
     miteruby_location_t location = location_array->entries[i];
     const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
     miteruby_pprof_fragment_location_t fragment = {
       .has_location = true,
       .location = {
-        .id = i + 1,
+        .id = location_id_for(i),
         .has_line = true,
         .line = {
-          .function_id = location.cme_iseq_id.value + 1,
+          .function_id = function_id_for(location.cme_iseq_id.value),
           .line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0,
         },
       },
@@ -150,11 +221,17 @@ void miteruby_streaming_serializer_prepare_serialize(
   }
 
   // Emit FragmentFunction
+  for (size_t i = 1; i < sizeof(fixed_function_values) / sizeof(fixed_function_values[0]); i++) {
+    miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
+  }
+
   for (size_t i = 0; i < cme_iseq_array->count; i++) {
     int64_t name_id = string_table_id_for(i);
     miteruby_pprof_fragment_function_t fragment = {
       .has_function = true,
-      .function = {.id = i + 1, .name = name_id, .filename = name_id + 1},
+      .function = {.id = function_id_for(i), .name = name_id, .filename = name_id + 1},
     };
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
