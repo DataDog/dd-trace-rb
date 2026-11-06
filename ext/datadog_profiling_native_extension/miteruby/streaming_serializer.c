@@ -180,7 +180,7 @@ static VALUE serializer_new(VALUE klass) {
 
 static void record_stack_sample(
   streaming_serializer_state *state, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event,
-  DDTRACE_UNUSED miteruby_stack_t stack, DDTRACE_UNUSED miteruby_sample_values values
+  DDTRACE_UNUSED miteruby_stack_t stack, DDTRACE_UNUSED miteruby_sample_values values, DDTRACE_UNUSED int64_t end_timestamp_ns
 ) {
   state->recorded_samples++;
 }
@@ -297,7 +297,7 @@ static void emit_location_fragment(pb_ostream_t *stream, uint64_t location_id, u
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
-  const verstable_mark_threads_set *threads_set
+  const verstable_mark_threads_set *threads_set, monotonic_to_system_epoch_state *time_converter
 ) {
   streaming_serializer_state *state = get_state(serializer);
   // TODO: Keep thread context data from serialization to serialization
@@ -410,7 +410,8 @@ void miteruby_streaming_serializer_prepare_serialize(
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
     miteruby_sample_values values = sample_values_for(&state->thread_contexts, event->thread.value, event);
-    record_stack_sample(state, event, stack, values);
+    int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns);
+    record_stack_sample(state, event, stack, values, end_timestamp_ns);
     pos += event->header.size_bytes;
   }
 }
