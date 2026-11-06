@@ -5,7 +5,11 @@ module Datadog
       include Metadata::Errors
       prepend Metadata::Analytics
 
+      DEFER_ASYNC_INTERRUPTS: Hash[singleton(Exception), Symbol]
+
       @logger: Core::Logger
+
+      @before_start_published: bool
 
       @duration_start: Time?
 
