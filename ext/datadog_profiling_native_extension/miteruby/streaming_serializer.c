@@ -1,6 +1,7 @@
 #include "streaming_serializer.h"
 #include "allocator.h"
 #include "stack_dedup.h"
+#include "libdatadog_recorder.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
 #include "pprof/zstd.h"
@@ -15,6 +16,25 @@
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 enum { COMPRESSION_LEVEL = 1 };
+
+typedef struct {
+  cpu_time_t cpu_time_at_previous_sample;
+  monotonic_time_t monotonic_time_at_previous_sample;
+} streaming_thread_context;
+
+static void *thread_contexts_alloc(size_t size) {
+  if (size > MiB_AS_BYTES(16)) return NULL;
+  return miteruby_allocator_alloc(size, "streaming_thread_contexts");
+}
+
+#define NAME verstable_streaming_thread_contexts_map
+#define KEY_TY VALUE
+#define VAL_TY streaming_thread_context
+#define HASH_FN vt_hash_integer
+#define CMPR_FN vt_cmpr_integer
+#define MALLOC_FN thread_contexts_alloc
+#define FREE_FN miteruby_allocator_free_sized
+#include "hashtable/verstable.h"
 
 enum fixed_strings {
   PPROF_STRING_EMPTY = 0,
@@ -111,6 +131,7 @@ typedef struct {
   uint8_t *uncompressed_serialization_buffer;
   size_t uncompressed_serialization_size;
   ZSTD_CCtx *compression_context;
+  verstable_streaming_thread_contexts_map thread_contexts;
   long start_time_ns;
   long finish_time_ns;
   uint64_t recorded_samples;
@@ -120,13 +141,14 @@ static void serializer_free(void *data) {
   streaming_serializer_state *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
   miteruby_allocator_free(state->compression_context);
+  verstable_streaming_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
 }
 
 static size_t serializer_size(const void *data) {
   const streaming_serializer_state *state = data;
   return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
-    miteruby_allocator_alloc_size(state->compression_context) : 0;
+    miteruby_allocator_alloc_size(state->compression_context) + miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
 }
 
 static const rb_data_type_t serializer_type = {
@@ -144,6 +166,7 @@ static streaming_serializer_state *get_state(VALUE serializer) {
 static VALUE serializer_new(VALUE klass) {
   streaming_serializer_state *state;
   VALUE serializer = TypedData_Make_Struct(klass, streaming_serializer_state, &serializer_type, state);
+  verstable_streaming_thread_contexts_map_init(&state->thread_contexts);
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
@@ -153,9 +176,36 @@ static VALUE serializer_new(VALUE klass) {
 }
 
 static void record_stack_sample(
-  streaming_serializer_state *state, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event, DDTRACE_UNUSED miteruby_stack_t stack
+  streaming_serializer_state *state, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event,
+  DDTRACE_UNUSED miteruby_stack_t stack, DDTRACE_UNUSED miteruby_sample_values values
 ) {
   state->recorded_samples++;
+}
+
+static miteruby_sample_values sample_values_for(
+  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread, const miteruby_event_deduped_sample_t *event
+) {
+  cpu_time_t cpu_time = event->header.cpu_time;
+  monotonic_time_t monotonic_time = event->header.timestamp;
+  verstable_streaming_thread_contexts_map_itr entry = verstable_streaming_thread_contexts_map_get_or_insert(
+    thread_contexts, thread, (streaming_thread_context) {
+      .cpu_time_at_previous_sample = cpu_time,
+      .monotonic_time_at_previous_sample = monotonic_time,
+    }
+  );
+  if (verstable_streaming_thread_contexts_map_is_end(entry)) rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
+  streaming_thread_context *context = &entry.data->val;
+  miteruby_sample_values values = {
+    .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
+    .cpu_or_wall_samples = 1,
+  };
+  if (cpu_time.ns != INVALID_CPU_TIME.ns) {
+    values.cpu_time_ns = context->cpu_time_at_previous_sample.ns == INVALID_CPU_TIME.ns ?
+      0 : cpu_time.ns - context->cpu_time_at_previous_sample.ns;
+    context->cpu_time_at_previous_sample = cpu_time;
+  }
+  context->monotonic_time_at_previous_sample = monotonic_time;
+  return values;
 }
 
 // Fixed strings are followed by thread name/ID pairs in set order, then function name/filename
@@ -239,6 +289,8 @@ void miteruby_streaming_serializer_prepare_serialize(
   const verstable_mark_threads_set *threads_set
 ) {
   streaming_serializer_state *state = get_state(serializer);
+  // TODO: Keep thread context data from serialization to serialization
+  verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
   state->uncompressed_serialization_size = 0;
   long finish_time_ns = system_epoch_time_now_ns();
 
@@ -342,7 +394,8 @@ void miteruby_streaming_serializer_prepare_serialize(
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
-    record_stack_sample(state, event, stack);
+    miteruby_sample_values values = sample_values_for(&state->thread_contexts, event->thread.value, event);
+    record_stack_sample(state, event, stack, values);
     pos += event->header.size_bytes;
   }
 }
@@ -381,6 +434,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
+  verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
   state->recorded_samples = 0;
   state->uncompressed_serialization_size = 0;
   state->start_time_ns = system_epoch_time_now_ns();
