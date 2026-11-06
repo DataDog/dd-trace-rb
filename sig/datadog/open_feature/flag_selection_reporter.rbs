@@ -1,0 +1,55 @@
+module Datadog
+  module OpenFeature
+    class FlagSelectionReporter
+      TELEMETRY_NAMESPACE: String
+
+      DROPPED_METRIC: String
+
+      IGNORED_METRIC: String
+
+      LIMITS: Hash[String, String]
+
+      URL_LIMIT: String
+
+      IGNORED_REASONS: Array[String]
+
+      UNKNOWN_REASON: String
+
+      MAX_IGNORED_REASON_BYTES: Integer
+
+      SELECTION_DIFFERS_WARNING: String
+
+      REMOTE_CONFIG_WARNING: String
+
+      ONCE_KEYS: Array[String]
+
+      self.@once_guards: Hash[String, Core::Utils::OnlyOnce]
+
+      def self.reset_once_guards: () -> Hash[String, Core::Utils::OnlyOnce]
+
+      def self.run_once: (String key) { () -> void } -> void
+
+      @logger: Core::Logger
+
+      @telemetry: Core::Telemetry::Component
+
+      def initialize: (logger: Core::Logger, telemetry: Core::Telemetry::Component) -> void
+
+      def report_dropped: (String reason, ?String limit) -> void
+
+      def report_url_too_long: () -> void
+
+      def report_ignored: (String? header_value) -> void
+
+      def warn_selection_differs: () -> void
+
+      def warn_remote_config: () -> void
+
+      private
+
+      def ignored_reason: (String? header_value) -> String?
+
+      def count: (String metric_name, String reason) -> void
+    end
+  end
+end

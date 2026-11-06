@@ -4,6 +4,7 @@ require_relative "agentless/configuration_source"
 require_relative "component"
 require_relative "configuration/agentless_endpoint"
 require_relative "configuration/source"
+require_relative "flag_selection_reporter"
 require_relative "remote"
 
 module Datadog
@@ -18,6 +19,9 @@ module Datadog
         @remote = remote
         @logger = logger
         @telemetry = telemetry
+        @flag_selection_reporter = FlagSelectionReporter.new(logger: logger, telemetry: telemetry)
+        @claimed_flag_selection = nil
+        @flag_selection_dropped = false
         @component = nil
         @configuration_source = nil
         @delivery_source = nil
@@ -36,11 +40,20 @@ module Datadog
           return unless open_feature_available?
 
           @providers[provider] = true
-          return @component if @activated && @delivery_started
-          return if @activated
+          flag_selection = provider.send(:flag_selection)
+          if @activated
+            return unless @delivery_started
+
+            report_joining_flag_selection(flag_selection)
+            return @component
+          end
 
           resolution = Configuration::Source.resolve(@settings, logger: @logger)
-          activate_delivery(resolution)
+          component = activate_delivery(resolution, flag_selection)
+          if flag_selection && @delivery_started && @delivery_source == Configuration::Source::REMOTE_CONFIG
+            @flag_selection_reporter.warn_remote_config
+          end
+          component
         end
       end
 
@@ -60,7 +73,7 @@ module Datadog
           resolution = Configuration::Source.resolve(@settings, logger: @logger)
           return unless resolution.enabled? && resolution.source == Configuration::Source::REMOTE_CONFIG
 
-          activate_delivery(resolution)
+          activate_delivery(resolution, nil)
         end
       end
 
@@ -73,6 +86,7 @@ module Datadog
       end
 
       def after_fork
+        FlagSelectionReporter.reset_once_guards
         inherited_providers, component = @mutex.synchronize do
           @shutdown ? [[], nil] : [@providers.keys, @component]
         end
@@ -146,7 +160,7 @@ module Datadog
         @settings.respond_to?(:open_feature) && @settings.respond_to?(:feature_flags)
       end
 
-      def activate_delivery(resolution)
+      def activate_delivery(resolution, flag_selection)
         @activated = true
         unless resolution.enabled?
           @failure = "Feature Flags are disabled"
@@ -173,7 +187,7 @@ module Datadog
 
         @component = component
         @delivery_source = resolution.source
-        @delivery_started = start_delivery(resolution.source)
+        @delivery_started = start_delivery(resolution.source, flag_selection)
         return component if @delivery_started
 
         component.shutdown!
@@ -197,10 +211,10 @@ module Datadog
         raise
       end
 
-      def start_delivery(source)
+      def start_delivery(source, flag_selection)
         case source
         when Configuration::Source::AGENTLESS
-          start_agentless
+          start_agentless(flag_selection)
         when Configuration::Source::REMOTE_CONFIG
           start_remote_configuration
         else
@@ -209,7 +223,7 @@ module Datadog
         end
       end
 
-      def start_agentless
+      def start_agentless(flag_selection)
         component = @component
         return false unless component
 
@@ -224,11 +238,13 @@ module Datadog
           return false
         end
 
+        selected_endpoint = endpoint.with_flag_selection(flag_selection) if flag_selection && !flag_selection.dropped?
         configuration_source = Agentless::ConfigurationSource.build(
           @settings,
-          endpoint: endpoint,
+          endpoint: selected_endpoint || endpoint,
           apply: ->(configuration) { component.reconfigure!(configuration) },
           logger: @logger,
+          flag_selection_reporter: @flag_selection_reporter,
         )
         unless configuration_source
           @failure = "Feature Flags agentless delivery could not start"
@@ -251,8 +267,42 @@ module Datadog
         end
 
         started = configuration_source.start
-        @failure = "Feature Flags agentless delivery could not start" unless started
+        if started
+          claim_flag_selection(flag_selection, selected_endpoint)
+        else
+          @failure = "Feature Flags agentless delivery could not start"
+        end
         started
+      end
+
+      # Every provider shares one agentless source, so the provider that starts it decides what it requests.
+      # The claim lasts until delivery stops: the next start claims again.
+      def claim_flag_selection(flag_selection, selected_endpoint)
+        @claimed_flag_selection = flag_selection
+        @flag_selection_dropped = false
+        return unless flag_selection && selected_endpoint.nil?
+
+        @flag_selection_dropped = true
+        report_flag_selection_not_sent(flag_selection)
+      end
+
+      def report_joining_flag_selection(flag_selection)
+        if @delivery_source == Configuration::Source::REMOTE_CONFIG
+          @flag_selection_reporter.warn_remote_config if flag_selection
+        elsif flag_selection != @claimed_flag_selection
+          @flag_selection_reporter.warn_selection_differs
+        elsif flag_selection && @flag_selection_dropped
+          report_flag_selection_not_sent(flag_selection)
+        end
+      end
+
+      def report_flag_selection_not_sent(flag_selection)
+        drop_reason = flag_selection.drop_reason
+        if drop_reason
+          @flag_selection_reporter.report_dropped(drop_reason)
+        else
+          @flag_selection_reporter.report_url_too_long
+        end
       end
 
       def start_remote_configuration

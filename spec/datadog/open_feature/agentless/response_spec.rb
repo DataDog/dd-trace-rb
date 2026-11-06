@@ -10,6 +10,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Response do
       etag: "etag",
       body: "body",
       error: error,
+      flag_selection_ignored: "invalid_tag",
     )
   end
 
@@ -20,5 +21,6 @@ RSpec.describe Datadog::OpenFeature::Agentless::Response do
     expect(response.etag).to eq("etag")
     expect(response.body).to eq("body")
     expect(response.error).to equal(error)
+    expect(response.flag_selection_ignored).to eq("invalid_tag")
   end
 end

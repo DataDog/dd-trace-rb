@@ -2,6 +2,7 @@
 
 require_relative "ext"
 require_relative "../open_feature"
+require_relative "configuration/flag_selection"
 require_relative "../core/utils/time"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
 require "open_feature/sdk"
@@ -68,7 +69,7 @@ module Datadog
 
       attr_reader :metadata
 
-      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil, flag_selection: nil)
         @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
         when nil
           Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
@@ -77,6 +78,7 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
+        @flag_selection = Configuration::FlagSelection.canonicalize(flag_selection)
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -216,6 +218,9 @@ module Datadog
       end
 
       private
+
+      # Activation reads it through #send.
+      attr_reader :flag_selection
 
       def after_fork(component)
         handler = @initialization_mutex.synchronize do

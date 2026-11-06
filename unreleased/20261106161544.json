@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6652",
+  "message": "Add flag selection, so a provider loads only the flags with the given tags or key patterns; pass `flag_selection: {tags: [...], key_patterns: [...]}` to `Datadog::OpenFeature::Provider.new`."
+}
