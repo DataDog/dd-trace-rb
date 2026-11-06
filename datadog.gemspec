@@ -13,7 +13,6 @@ Gem::Specification.new do |spec|
   spec.version = Datadog::VERSION::STRING
   # required_ruby_version should be in a single line due to test-head workflow `sed` to unlock the version
   spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"] # rubocop:disable Layout/LineLength
-  spec.required_rubygems_version = ">= 2.0.0"
   spec.authors = ["Datadog, Inc."]
   spec.email = ["dev@datadoghq.com"]
 
@@ -27,13 +26,9 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/DataDog/dd-trace-rb"
   spec.licenses = ["BSD-3-Clause", "Apache-2.0"]
 
-  if spec.respond_to?(:metadata)
-    spec.metadata["allowed_push_host"] = "https://rubygems.org"
-    spec.metadata["changelog_uri"] = "https://github.com/DataDog/dd-trace-rb/blob/v#{spec.version}/CHANGELOG.md"
-    spec.metadata["source_code_uri"] = "https://github.com/DataDog/dd-trace-rb/tree/v#{spec.version}"
-  else
-    raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
-  end
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["changelog_uri"] = "https://github.com/DataDog/dd-trace-rb/blob/v#{spec.version}/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/DataDog/dd-trace-rb/tree/v#{spec.version}"
 
   spec.files =
     Dir[*%w[
@@ -54,12 +49,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Used to serialize traces to send them to the Datadog Agent.
-  #
-  # msgpack 1.4 fails for Ruby 2.1 (see https://github.com/msgpack/msgpack-ruby/issues/205)
-  # so a restriction needs to be manually added for the `Gemfile`.
-  #
-  # We can't add a restriction here, since there's no way to add it only for older
-  # rubies, see #1739 and #1336 for an extended discussion about this
   spec.add_dependency "msgpack"
 
   # Used by the profiler native extension, see NativeExtensionDesign.md for details

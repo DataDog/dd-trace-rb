@@ -3049,11 +3049,11 @@ If you have confirmed that traces are dropped due to large payloads, then enable
 
 Datadog tracing collects trace data by adding instrumentation into other common libraries (e.g. Rails, Rack, etc.) Some libraries provide APIs to add this instrumentation, but some do not. In order to add instrumentation into libraries lacking an instrumentation API, Datadog uses a technique called "monkey-patching" to modify the code of that library.
 
-In Ruby version 1.9.3 and earlier, "monkey-patching" often involved the use of [`alias_method`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method), also known as _method rewriting_, to destructively replace existing Ruby methods. However, this practice would often create conflicts & errors if two libraries attempted to "rewrite" the same method. (e.g. two different APM packages trying to instrument the same method.)
+"Monkey-patching" using [`alias_method`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method), also known as _method rewriting_, destructively replaces existing Ruby methods. This creates conflicts & errors if two libraries attempt to "rewrite" the same method. (e.g. two different APM packages trying to instrument the same method.)
 
-In Ruby 2.0, the [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature was introduced. This feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it has become the safest, preferred means to "monkey patch" code.
+The [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it is the safest, preferred means to "monkey patch" code.
 
-Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some other libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
+Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some other libraries still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
 
 As the implementation of `alias_method` exists within those libraries, Datadog generally cannot fix them. However, some libraries have known workarounds:
 
