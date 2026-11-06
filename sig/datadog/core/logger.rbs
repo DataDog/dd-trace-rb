@@ -3,6 +3,8 @@ module Datadog
     class Logger < ::Logger
       PREFIX: String
 
+      LIB_DATADOG_DIR: String
+
       def initialize: (*untyped args) ?{ () -> untyped } -> void
 
       def add: (untyped severity, ?untyped? message, ?untyped? progname) { () -> untyped } -> untyped
