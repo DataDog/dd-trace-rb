@@ -1,11 +1,11 @@
 #include "consumer_recorder.h"
-#include "consumer.h"
-#include "allocator.h"
-#include "compressed_deltas.h"
+#include "../consumer.h"
+#include "../allocator.h"
+#include "../compressed_deltas.h"
 
-#include "../datadog_ruby_common.h"
-#include "../helpers.h"
-#include "../private_vm_api_access.h"
+#include "../../datadog_ruby_common.h"
+#include "../../helpers.h"
+#include "../../private_vm_api_access.h"
 #include "libdatadog_recorder.h"
 
 #include <inttypes.h>
@@ -42,7 +42,7 @@ static void *thread_contexts_alloc(size_t size) {
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN thread_contexts_alloc
 #define FREE_FN miteruby_allocator_free_sized
-#include "hashtable/verstable.h"
+#include "../hashtable/verstable.h"
 
 // Ruby thread keys are marked and pinned via mark_threads_set.
 static verstable_thread_contexts_map thread_contexts;
