@@ -134,6 +134,35 @@ module Datadog
         end
       end
 
+      # Returns the tracer of the built component tree, or nil when tracing
+      # is not loaded or the tree is not built. The component lookup skips
+      # initialization because initialization would run from the customer's
+      # call stack.
+      #
+      # @return [Datadog::Tracing::Tracer, nil]
+      private def built_tracer
+        if defined?(Datadog::Tracing)
+          components = Datadog.send(:components, allow_initialization: false)
+          components&.tracer
+        end
+      end
+
+      # Returns the active APM trace, or nil when tracing is not loaded or
+      # no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace
+        built_tracer&.active_trace
+      end
+
+      # Returns the active APM span, or nil when tracing is not loaded or no
+      # span is active.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def active_span
+        built_tracer&.active_span
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

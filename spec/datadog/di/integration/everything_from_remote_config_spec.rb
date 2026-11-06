@@ -211,7 +211,7 @@ RSpec.describe "DI integration from remote config" do
       },
       message: nil,
       process_tags: String,
-      runtime_id: String,
+      runtime_id: be_valid_uuid,
       service: "rspec",
       timestamp: Integer,
     }
@@ -408,7 +408,7 @@ RSpec.describe "DI integration from remote config" do
               parentId: nil,
               probeId: "11",
               probeVersion: 0,
-              runtimeId: String,
+              runtimeId: be_valid_uuid,
               status: "ERROR",
               exception: {
                 type: "Datadog::DI::Error::InvalidExpression",
@@ -485,7 +485,7 @@ RSpec.describe "DI integration from remote config" do
           # second expression fails evaluation
           message: "hello false[evaluation error]",
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -662,7 +662,7 @@ RSpec.describe "DI integration from remote config" do
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
-          runtime_id: String,
+          runtime_id: be_valid_uuid,
           service: "rspec",
           timestamp: Integer,
         }
@@ -747,7 +747,7 @@ RSpec.describe "DI integration from remote config" do
             },
             message: nil,
             process_tags: String,
-            runtime_id: String,
+            runtime_id: be_valid_uuid,
             service: "rspec",
             timestamp: Integer,
           }
