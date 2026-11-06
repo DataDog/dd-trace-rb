@@ -12,6 +12,8 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   include_context "Rails test application"
 
   before do
+    skip "Rails 4.2 has no Live thread hook, so AppSec does not patch it" if Rails::VERSION::MAJOR < 5
+
     Datadog.configure do |c|
       c.tracing.instrument :rails
 
@@ -42,7 +44,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     end
 
     allow(Datadog.logger).to receive(:warn)
-    allow(ActionController::Base).to receive(:logger).and_return(Logger.new(rails_log))
     allow_any_instance_of(Datadog::AppSec::Context).to receive(:detach).and_wrap_original do |method|
       method.call
       live_signals[:detached].push(Thread.current)
@@ -57,7 +58,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     Datadog.registry[:rails].reset_configuration!
   end
 
-  let(:rails_log) { StringIO.new }
+  let(:logger) { Logger.new(log_output) }
   let(:routes) do
     {
       "/live" => "live#stream",
@@ -198,8 +199,6 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     end
 
     it "keeps AppSec context in the live thread" do
-      skip "Live thread hand-off hook exists only since Rails 5" if Rails::VERSION::MAJOR < 5
-
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.first).to be_a(Datadog::AppSec::Context)
     end
@@ -224,8 +223,8 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     it "does not log live thread errors" do
       stream_after_request_thread_returned("/live/query_after_write")
 
-      expect(rails_log.string).not_to include("FATAL")
-      expect(rails_log.string).not_to include("UncaughtThrowError")
+      expect(log_output.string).not_to include("FATAL")
+      expect(log_output.string).not_to include("UncaughtThrowError")
     end
   end
 
@@ -233,7 +232,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     it "does not run the query" do
       expect(stream_after_request_thread_returned("/live/query_after_close").first).to eq(200)
       expect(live_signals[:steps]).to eq([:before_query])
-      expect(rails_log.string).not_to include("FATAL")
+      expect(log_output.string).not_to include("FATAL")
     end
   end
 
@@ -241,7 +240,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     it "does not run the query" do
       expect(stream_after_request_thread_returned("/live/query_after_response_body").first).to eq(200)
       expect(live_signals[:steps]).to eq([:before_query])
-      expect(rails_log.string).not_to include("FATAL")
+      expect(log_output.string).not_to include("FATAL")
     end
   end
 
