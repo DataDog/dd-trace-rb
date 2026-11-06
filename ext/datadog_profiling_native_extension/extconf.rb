@@ -241,9 +241,15 @@ EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLAT
 # This gem ships source code copies of these VM headers for the different Ruby VM versions;
 # see https://github.com/DataDog/datadog-ruby_core_source for details
 
-$srcs = Dir["#{$srcdir}/*.c", "#{$srcdir}/miteruby/*.c", "#{$srcdir}/miteruby/pprof/*.c"]
-$headers.concat(Dir["#{$srcdir}/miteruby/*.h", "#{$srcdir}/miteruby/pprof/*.h", "#{$srcdir}/miteruby/hashtable/*.h"])
-$VPATH.concat(["$(srcdir)/miteruby", "$(srcdir)/miteruby/pprof"])
+$srcs = Dir[
+  "#{$srcdir}/*.c", "#{$srcdir}/miteruby/*.c", "#{$srcdir}/miteruby/pprof/*.c",
+  "#{$srcdir}/miteruby/serialize_with_libdatadog_for_testing/*.c",
+]
+$headers.concat(Dir[
+  "#{$srcdir}/miteruby/*.h", "#{$srcdir}/miteruby/pprof/*.h", "#{$srcdir}/miteruby/hashtable/*.h",
+  "#{$srcdir}/miteruby/serialize_with_libdatadog_for_testing/*.h",
+])
+$VPATH.concat(["$(srcdir)/miteruby", "$(srcdir)/miteruby/pprof", "$(srcdir)/miteruby/serialize_with_libdatadog_for_testing"])
 $INCFLAGS << " -I$(srcdir)/miteruby/pprof"
 
 create_header

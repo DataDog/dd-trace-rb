@@ -1,9 +1,9 @@
 #include "custom_profile.h"
-#include "allocator.h"
-#include "../datadog_ruby_common.h"
-#include "pprof/pb_encode.h"
-#include "pprof/pprof_fragments.pb.h"
-#include "pprof/zstd.h"
+#include "../allocator.h"
+#include "../../datadog_ruby_common.h"
+#include "../pprof/pb_encode.h"
+#include "../pprof/pprof_fragments.pb.h"
+#include "../pprof/zstd.h"
 
 #include <stdlib.h>
 #include <string.h>
