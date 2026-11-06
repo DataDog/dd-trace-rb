@@ -20,6 +20,8 @@ module Datadog
           # always exclude the command name
           options = Contrib::Utils::Quantization::HashFormatter.merge_options(quantization_options, exclude: [command_name.to_s])
 
+          # Quantized statement keys are strings because Symbols were not GC'ed before Ruby 2.2.
+          # Symbols would likely be fine now.
           base_info = Contrib::Utils::Quantization::HashFormatter.format(
             {
               "operation" => command_name,
