@@ -518,6 +518,9 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
   VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
+  VALUE stats = rb_hash_new();
+  rb_hash_aset(stats, ID2SYM(rb_intern("recorded_samples")), ULL2NUM(state->recorded_samples));
+  result = rb_ary_new_from_args(4, start, finish, result, stats);
   state->start_time_ns = finish_time_ns;
   RB_GC_GUARD(serializer);
   RB_GC_GUARD(bytes_string);

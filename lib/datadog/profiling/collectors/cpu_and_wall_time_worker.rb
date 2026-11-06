@@ -151,7 +151,7 @@ module Datadog
           end
         end
 
-        #: (?return_both: false) -> (StackRecorder | Miteruby::LibdatadogRecorder)
+        #: (?return_both: false) -> (StackRecorder | Miteruby::StreamingSerializer)
         #: (return_both: true) -> (StackRecorder | [Miteruby::LibdatadogRecorder, Miteruby::StreamingSerializer])
         def prepare_serialize(return_both: false)
           recorder = self.class._native_prepare_serialize(self)
@@ -160,7 +160,8 @@ module Datadog
 
           recorder.serialize
           self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder[0], miteruby_recorder[1])
-          return_both ? miteruby_recorder : miteruby_recorder[0]
+          Datadog.logger.info("Serializing with miteruby!")
+          return_both ? miteruby_recorder : miteruby_recorder[1]
         end
 
         #: () -> true
