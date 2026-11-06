@@ -60,6 +60,10 @@ module Datadog
               o.type :bool
               o.default false
             end
+            option :web_service_name do |o|
+              o.type :string
+              o.default Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+            end
 
             option :middleware, default: true, type: :bool
             option :middleware_names, default: false, type: :bool
