@@ -243,6 +243,89 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
     end
   end
 
+  describe "metric sources" do
+    let(:source) { double(:metric_source, report_metrics: nil, clear_metrics: nil) }
+
+    it "starts with no source" do
+      expect(manager.sources).to eq([])
+    end
+
+    describe "#register_source" do
+      it "registers the source once and returns nil" do
+        expect(manager.register_source(source)).to be_nil
+        manager.register_source(source)
+
+        expect(manager.sources).to eq([source])
+      end
+    end
+
+    describe "#flush!" do
+      it "asks each registered source to report before collecting, and returns the reported metrics" do
+        other_source = double(:other_metric_source, clear_metrics: nil)
+        allow(source).to receive(:report_metrics) do |metrics_manager|
+          metrics_manager.inc(namespace, metric_name, 2, tags: tags)
+        end
+        expect(other_source).to receive(:report_metrics).with(manager)
+        manager.register_source(source)
+        manager.register_source(other_source)
+
+        events = manager.flush!
+
+        expect(events.flat_map { |event| event.payload[:series] }).to contain_exactly(
+          a_hash_including(metric: metric_name, tags: %w[tag1:val1 tag2:val2], points: [[kind_of(Integer), 2]]),
+        )
+      end
+
+      context "when disabled" do
+        let(:enabled) { false }
+
+        it "asks no source to report" do
+          manager.register_source(source)
+
+          expect(manager.flush!).to eq([])
+          expect(source).not_to have_received(:report_metrics)
+        end
+      end
+    end
+
+    describe "#clear" do
+      it "discards the collections and asks each registered source to clear, returning nil" do
+        manager.register_source(source)
+        manager.inc(namespace, metric_name, value, tags: tags)
+
+        expect(manager.clear).to be_nil
+
+        expect(source).to have_received(:clear_metrics)
+        expect(manager.flush!.flat_map { |event| event.payload[:series] }).to eq([])
+      end
+    end
+
+    describe "#unregister_source" do
+      it "asks the source to report before removing it, and returns nil" do
+        manager.register_source(source)
+
+        expect(manager.unregister_source(source)).to be_nil
+
+        expect(source).to have_received(:report_metrics).with(manager).once
+        expect(manager.sources).to eq([])
+      end
+
+      it "asks the removed source nothing at later flushes" do
+        manager.register_source(source)
+        manager.unregister_source(source)
+        manager.flush!
+
+        expect(source).to have_received(:report_metrics).once
+      end
+
+      it "asks nothing of a source that was never registered" do
+        expect(manager.unregister_source(source)).to be_nil
+
+        expect(source).not_to have_received(:report_metrics)
+      end
+    end
+  end
+
   describe "#disable!" do
     subject(:disable!) { manager.disable! }
 

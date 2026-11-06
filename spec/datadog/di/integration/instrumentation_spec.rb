@@ -2039,9 +2039,7 @@ RSpec.describe "Instrumentation integration" do
         )
       end
 
-      it "drops the overflowing snapshot and emits the canonical queueFull drop metric" do
-        expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-          tags: {reason: "queueFull", event_type: "snapshot"})
+      it "drops the overflowing snapshot and records the canonical queueFull drop metric" do
         expect(input_transport).not_to receive(:send_input)
 
         probe_manager.add_probe(probe)
@@ -2053,6 +2051,9 @@ RSpec.describe "Instrumentation integration" do
         # overflows the queue.
         expect(component.probe_notifier_worker.send(:snapshot_queue).length).to eq 1
         expect(probe.enabled?).to be true
+        expect(reported_guardrail_metrics(component.guardrails_telemetry)).to include(
+          ["debugger", "events.dropped", 1, {reason: "queueFull", event_type: "snapshot"}],
+        )
       end
     end
 
@@ -2091,13 +2092,8 @@ RSpec.describe "Instrumentation integration" do
         )
       end
 
-      shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics" do
-        it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
-          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
-          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
-            be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"})
-
+      shared_examples "drops the snapshot at the transport and records the payloadTooLarge metrics" do
+        it "drops the snapshot, keeps the probe enabled and records the canonical drop metrics" do
           probe_manager.add_probe(probe)
 
           InstrumentationSpecTestClass.new.test_method(captured_value)
@@ -2105,19 +2101,24 @@ RSpec.describe "Instrumentation integration" do
 
           expect(input_requests).to be_empty
           expect(probe.enabled?).to be true
+          expect(reported_guardrail_metrics(component.guardrails_telemetry)).to include(
+            ["debugger", "events.dropped", 1, {reason: "payloadTooLarge", event_type: "snapshot"}],
+            ["debugger", "guardrails.queue.dropped_bytes", a_value > 2_000,
+              {reason: "payloadTooLarge", event_type: "snapshot"}],
+          )
         end
       end
 
       context "with a single-byte snapshot over the byte limit" do
         let(:captured_value) { "A" * 3_000 }
 
-        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+        include_examples "drops the snapshot at the transport and records the payloadTooLarge metrics"
       end
 
       context "with a multibyte snapshot within the character limit but over the byte limit" do
         let(:captured_value) { "あ" * 700 }
 
-        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+        include_examples "drops the snapshot at the transport and records the payloadTooLarge metrics"
       end
     end
   end

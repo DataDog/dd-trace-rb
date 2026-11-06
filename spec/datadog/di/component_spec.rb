@@ -42,6 +42,23 @@ RSpec.describe Datadog::DI::Component do
         component.shutdown!
       end
 
+      it "registers its guardrails telemetry as a telemetry metric source" do
+        telemetry = telemetry_component_double
+        component = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+
+        expect(telemetry).to have_received(:register_metric_source).with(component.guardrails_telemetry)
+        component.shutdown!
+      end
+
+      it "unregisters its guardrails telemetry at shutdown after stopping the probe notifier worker" do
+        telemetry = telemetry_component_double
+        component = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+        expect(component.probe_notifier_worker).to receive(:stop).ordered.and_call_original
+        expect(telemetry).to receive(:unregister_metric_source).with(component.guardrails_telemetry).ordered
+
+        component.shutdown!
+      end
+
       it "builds one capture expression evaluator shared by its consumers" do
         component = described_class.build(settings, agent_settings, logger)
         expect(component.capture_expression_evaluator)
@@ -671,7 +688,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:telemetry) do
-      instance_double(Datadog::Core::Telemetry::Component)
+      telemetry_component_double
     end
 
     let(:component) do

@@ -3,7 +3,11 @@ module Datadog
     TELEMETRY_NAMESPACE: String
 
     class GuardrailsTelemetry
-      type tags_memo = Hash[String, Hash[String, Hash[Symbol, String]]]
+      include Core::Telemetry::_MetricSource
+
+      type counts_by_event_type = Hash[String, Hash[String, Integer]]
+
+      type skipped_counts_table = Hash[String, Hash[String, Hash[String?, Integer]]]
 
       EVENTS_SKIPPED: String
 
@@ -23,11 +27,17 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
-      @skipped_tags_memo: tags_memo
+      @counts_lock: Thread::Mutex
 
-      @dropped_tags_memo: tags_memo
+      @skipped_counts: skipped_counts_table
 
-      @capture_incomplete_tags_memo: tags_memo
+      @dropped_counts: counts_by_event_type
+
+      @dropped_bytes: counts_by_event_type
+
+      @capture_incomplete_counts: counts_by_event_type
+
+      @last_reported_at: Time?
 
       def initialize: (settings: Datadog::Core::Configuration::Settings, logger: DI::Logger, telemetry: Core::Telemetry::Component?) -> void
 
@@ -37,13 +47,21 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader skipped_tags_memo: tags_memo
+      attr_reader counts_lock: Thread::Mutex
 
-      attr_reader dropped_tags_memo: tags_memo
+      attr_reader skipped_counts: skipped_counts_table
 
-      attr_reader capture_incomplete_tags_memo: tags_memo
+      attr_reader dropped_counts: counts_by_event_type
+
+      attr_reader dropped_bytes: counts_by_event_type
+
+      attr_reader capture_incomplete_counts: counts_by_event_type
+
+      attr_reader last_reported_at: Time?
 
       def self.probe_event_type_tag: (Probe probe) -> String
+
+      def counting?: () -> bool
 
       def skipped: (reason: String, probe: Probe) -> void
 
@@ -51,19 +69,23 @@ module Datadog
 
       def capture_incomplete: (reason: String, event_type: String) -> void
 
+      def report_metrics: (Core::Telemetry::MetricsManager metrics_manager) -> void
+
+      def clear_metrics: () -> void
+
       private
 
-      def inc_metric: (String namespace, String metric_name, Integer value, tags: Hash[Symbol, String]) -> void
+      def reset_counts: () -> void
+
+      def take_counts: () -> [skipped_counts_table, counts_by_event_type, counts_by_event_type, counts_by_event_type]
+
+      def add_count: (counts_by_event_type table, String reason, String event_type, Integer value) -> void
+
+      def record_table: (Core::Telemetry::MetricsManager metrics_manager, String metric_name, counts_by_event_type table) -> Integer
+
+      def record_metric: (Core::Telemetry::MetricsManager metrics_manager, String metric_name, Integer value, Hash[Symbol, String] tags) -> void
 
       def report_emission_failure: (String namespace, String metric_name, Exception exc) -> void
-
-      def skipped_tags: (String reason, String event_type, String? probe_id) -> Hash[Symbol, String]
-
-      def dropped_tags: (String reason, String event_type) -> Hash[Symbol, String]
-
-      def capture_incomplete_tags: (String reason, String event_type) -> Hash[Symbol, String]
-
-      def memoized_tags: (tags_memo memo, String reason, String event_type) -> Hash[Symbol, String]
     end
   end
 end

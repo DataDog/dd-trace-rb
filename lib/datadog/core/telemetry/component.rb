@@ -198,6 +198,23 @@ module Datadog
           @metrics_manager.inc(namespace, metric_name, value, tags: tags, common: common)
         end
 
+        # Registers a metric source with the metrics manager, which asks the
+        # source to report its locally aggregated metrics at each flush.
+        #
+        # @param source [#report_metrics, #clear_metrics] the metric source
+        # @return [void]
+        def register_metric_source(source)
+          metrics_manager.register_source(source)
+        end
+
+        # Unregisters a metric source after it reports its pending metrics.
+        #
+        # @param source [#report_metrics, #clear_metrics] the metric source
+        # @return [void]
+        def unregister_metric_source(source)
+          metrics_manager.unregister_source(source)
+        end
+
         # Decremenets a count metric.
         def dec(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.dec(namespace, metric_name, value, tags: tags, common: common)
