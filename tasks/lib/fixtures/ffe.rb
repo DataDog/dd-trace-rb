@@ -18,6 +18,7 @@ class FfeFixtures
 
   CACHE = File.join("tmp", "ffe-system-test-data")
   CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
+  FLAG_SELECTION_PATTERN = %r{\Aflag-selection/[^/]+\.json\z}.freeze
   HTTP_ATTEMPTS = 3
   HTTP_TIMEOUT_SECONDS = 15
   RETRYABLE_STATUS = /\A(429|5\d\d)\z/.freeze
@@ -59,7 +60,7 @@ class FfeFixtures
     Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(gzip))) do |tar|
       tar.each do |entry|
         relative = entry.full_name.sub(/\A[^\/]+\//, "")
-        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN)
+        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN) || relative.match?(FLAG_SELECTION_PATTERN)
 
         destination = File.join(staging, relative)
         FileUtils.mkdir_p(File.dirname(destination))
