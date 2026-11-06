@@ -15,7 +15,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     stub_di_settings(settings.dynamic_instrumentation,
       max_capture_depth: 10,
       max_capture_attribute_count: 20,
-      max_capture_collection_size: 20,)
+      max_capture_collection_size: 20)
     allow(settings.dynamic_instrumentation.internal).to receive_messages(
       untargeted_trace_points: false,
       propagate_all_exceptions: true,
@@ -38,7 +38,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil)
   end
 
   let(:instrumenter) do
@@ -369,6 +369,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
         capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: nil,
       )
     end
 

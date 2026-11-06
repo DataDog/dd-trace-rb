@@ -45,7 +45,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
 
           render plain: "OK"
         end
-      end
+      end,
     )
   end
 

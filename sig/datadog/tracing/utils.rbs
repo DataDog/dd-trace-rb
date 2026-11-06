@@ -4,7 +4,7 @@ module Datadog
       extend Datadog::Core::Utils::Forking
 
       RUBY_MAX_ID: untyped
-      RUBY_ID_RANGE: ::Range[::Integer]
+      RUBY_ID_RANGE: Range[Integer]
       EXTERNAL_MAX_ID: untyped
 
       self.@id_rng: Random
@@ -15,17 +15,17 @@ module Datadog
 
       def self.reset!: () -> untyped
 
-      def self.serialize_attribute: (untyped key, untyped value) -> (untyped | ::Array[::Array[untyped]])
+      def self.serialize_attribute: (untyped key, untyped value) -> (untyped | Array[Array[untyped]])
 
       module TraceId
         MAX: untyped
-        def self?.next_id: () -> untyped
+        def self.next_id: () -> untyped
 
-        def self?.to_high_order: (untyped trace_id) -> untyped
+        def self.to_high_order: (untyped trace_id) -> untyped
 
-        def self?.to_low_order: (untyped trace_id) -> untyped
+        def self.to_low_order: (untyped trace_id) -> untyped
 
-        def self?.concatenate: (untyped high_order, untyped low_order) -> untyped
+        def self.concatenate: (untyped high_order, untyped low_order) -> untyped
       end
     end
   end

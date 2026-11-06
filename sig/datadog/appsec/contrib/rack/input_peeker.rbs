@@ -3,15 +3,15 @@ module Datadog
     module Contrib
       module Rack
         module InputPeeker
-          @rewind: bool
+          self.@rewind: bool
 
-          def self?.peek_bytesize: (::Rack::env env, limit: Integer) -> Integer?
+          def self.peek_bytesize: (::Rack::env env, limit: Integer) -> Integer?
 
           private
 
-          def self?.rewind?: () -> bool
+          def self.rewind?: () -> bool
 
-          def self?.rewind: (Utils::HTTP::_RewindableIO io) -> bool
+          def self.rewind: (Utils::HTTP::_RewindableIO io) -> bool
         end
       end
     end

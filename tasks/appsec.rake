@@ -7,7 +7,8 @@ namespace :appsec do
       version = args.to_a[0]
       raise ArgumentError, "You must provide a version" if version.nil?
 
-      # Use a token authorized for ddoghq/appsec-event-rules with Contents: read permission.
+      # You need to generate a token with the `repo` scope
+      # and configure SSO for ddoghq's GitHub organization
       token = ENV["GITHUB_TOKEN"]
       raise ArgumentError, "You must set GITHUB_TOKEN env variable" if token.nil?
 

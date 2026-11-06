@@ -18,21 +18,19 @@ module Datadog
             placeholder: PLACEHOLDER,
           }.freeze
 
-          module_function
-
-          def format_url(url)
+          def self.format_url(url)
             # Url does not contain path, so just replace last digit(s) with '?' if '/' precedes the digit(s)
             url.to_s.gsub(%r{/\d+$}, PLACEHOLDER)
           end
 
           # Use Elasticsearch implementation
-          def format_body(body, options = {})
+          def self.format_body(body, options = {})
             format_body!(body, options)
           rescue
             options[:placeholder] || DEFAULT_PLACEHOLDER
           end
 
-          def format_body!(body, options = {})
+          def self.format_body!(body, options = {})
             options = merge_options(DEFAULT_OPTIONS, options)
 
             # Determine if bulk query or not, based on content
@@ -46,7 +44,7 @@ module Datadog
             end.join("\n")
           end
 
-          def merge_options(original, additional)
+          def self.merge_options(original, additional)
             {}.tap do |options|
               # Show
               # If either is :all, value becomes :all
@@ -64,7 +62,7 @@ module Datadog
           # Parses a JSON object from a string, passes its value
           # to the block provided, and dumps its result back to JSON.
           # If JSON parsing fails, it prints fail_value.
-          def reserialize_json(string, fail_value = DEFAULT_PLACEHOLDER)
+          def self.reserialize_json(string, fail_value = DEFAULT_PLACEHOLDER)
             return string unless block_given?
 
             begin

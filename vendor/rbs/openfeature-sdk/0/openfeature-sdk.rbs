@@ -89,6 +89,10 @@ module OpenFeature
       class HookContext
         def flag_key: () -> ::String
 
+        def flag_value_type: () -> ::Symbol
+
+        def default_value: () -> untyped
+
         def evaluation_context: () -> EvaluationContext?
       end
     end

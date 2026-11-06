@@ -366,7 +366,7 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
-          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::Fetch)
+          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::Fetch),
         )
       end
 
@@ -539,7 +539,7 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
 
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
-          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::FetchMulti)
+          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::FetchMulti),
         )
       end
 

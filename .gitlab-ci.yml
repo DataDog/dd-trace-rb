@@ -244,7 +244,9 @@ configure_system_tests:
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
-  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  # git >= 2.32 is required so the runner-injected GIT_CONFIG_GLOBAL
+  # (gitretriever mirror auth) is honored. ruby:3.2.x images ship git 2.30.
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.4.4
   stage: package
   needs: []
   script:

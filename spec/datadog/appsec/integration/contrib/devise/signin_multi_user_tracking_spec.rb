@@ -221,7 +221,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.login.success.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "user:1"
+        "_dd.appsec.usr.id" => "user:1",
       )
     end
   end
@@ -245,7 +245,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.login.success.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "admin:1"
+        "_dd.appsec.usr.id" => "admin:1",
       )
     end
   end
@@ -270,7 +270,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "appsec.events.users.login.success.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.login.success.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "user:1"
+        "_dd.appsec.usr.id" => "user:1",
       )
     end
   end
@@ -289,7 +289,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
             user: {id: "42"},
-            "usr.login": "hello@gmail.com"
+            "usr.login": "hello@gmail.com",
           )
 
           super
@@ -310,7 +310,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "_dd.appsec.events.users.login.success.sdk" => "true",
         "_dd.appsec.events.users.login.success.auto.mode" => "identification",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.usr.id" => "user:1"
+        "_dd.appsec.usr.id" => "user:1",
       )
     end
   end
@@ -358,7 +358,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "appsec.events.users.login.failure.usr.id" => "user:1",
         "_dd.appsec.usr.id" => "user:1",
         "_dd.appsec.usr.login" => "john.doe@example.com",
-        "_dd.appsec.events.users.login.failure.auto.mode" => "identification"
+        "_dd.appsec.events.users.login.failure.auto.mode" => "identification",
       )
     end
   end
@@ -405,7 +405,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
             Datadog::Tracing.active_span,
             user_exists: true,
             user_id: "42",
-            "usr.login": "hello@gmail.com"
+            "usr.login": "hello@gmail.com",
           )
 
           super
@@ -427,7 +427,7 @@ RSpec.describe "Devise auto login and signup events tracking" do
         "_dd.appsec.usr.id" => "user:1",
         "_dd.appsec.usr.login" => "john.doe@example.com",
         "_dd.appsec.events.users.login.failure.sdk" => "true",
-        "_dd.appsec.events.users.login.failure.auto.mode" => "identification"
+        "_dd.appsec.events.users.login.failure.auto.mode" => "identification",
       )
     end
   end

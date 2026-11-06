@@ -11,17 +11,15 @@ module Datadog
       module Sinatra
         # Gets and sets trace information from a Rack Env
         module Env
-          module_function
-
-          def datadog_span(env)
+          def self.datadog_span(env)
             env[Ext::RACK_ENV_SINATRA_REQUEST_SPAN]
           end
 
-          def set_datadog_span(env, span)
+          def self.set_datadog_span(env, span)
             env[Ext::RACK_ENV_SINATRA_REQUEST_SPAN] = span
           end
 
-          def route_path(env, use_script_names: Datadog.configuration.tracing[:sinatra][:resource_script_names])
+          def self.route_path(env, use_script_names: Datadog.configuration.tracing[:sinatra][:resource_script_names])
             return unless env["sinatra.route"]
 
             _, path = env["sinatra.route"].split(" ", 2)

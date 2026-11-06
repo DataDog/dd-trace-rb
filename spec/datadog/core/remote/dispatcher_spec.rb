@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
@@ -138,11 +138,62 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
 
         expect(receiver).to_not receive(:call).with(
           repository,
-          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)]
+          [instance_of(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)],
         )
 
         dispatcher.dispatch(changes, repository)
       end
+    end
+  end
+
+  describe "#reconcile" do
+    let(:invocations) { [] }
+
+    let(:receiver_block) do
+      proc { |_repository, changes| invocations << [:matched, changes] }
+    end
+
+    let(:receiver) do
+      described_class::Receiver.new(matcher, initial_reconcile: true, &receiver_block)
+    end
+
+    let(:skipped_receiver) do
+      described_class::Receiver.new(
+        described_class::Matcher.new { |_path| false },
+        initial_reconcile: true,
+      ) { |_repository, changes| invocations << [:skipped, changes] }
+    end
+
+    let(:non_participating_receiver) do
+      described_class::Receiver.new(
+        described_class::Matcher.new { |_path| false },
+      ) { |_repository, changes| invocations << [:non_participating, changes] }
+    end
+
+    subject(:dispatcher) do
+      described_class.new([receiver, skipped_receiver, non_participating_receiver])
+    end
+
+    it "invokes the participating receivers whose product held no change, with empty changes" do
+      changes = repository.transaction do |_repository, transaction|
+        transaction.insert(path, target, content)
+      end
+
+      dispatcher.reconcile(changes, repository)
+
+      expect(invocations).to contain_exactly([:skipped, []])
+    end
+
+    it "invokes every participating receiver when the change set is empty" do
+      dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+      expect(invocations).to contain_exactly([:matched, []], [:skipped, []])
+    end
+
+    it "does not invoke a receiver that does not declare initial reconcile" do
+      dispatcher.reconcile(Datadog::Core::Remote::Configuration::Repository::ChangeSet.new, repository)
+
+      expect(invocations).not_to include([:non_participating, []])
     end
   end
 

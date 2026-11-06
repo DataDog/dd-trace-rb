@@ -2,14 +2,14 @@ module Datadog
   module OpenFeature
     module Exposures
       class Deduplicator
-        DEFAULT_CACHE_LIMIT: ::Integer
+        DEFAULT_CACHE_LIMIT: Integer
 
-        @cache: ::Datadog::Core::Utils::LRUCache
-        @mutex: ::Mutex
+        @cache: Core::Utils::LRUCache
+        @mutex: Mutex
 
-        def initialize: (?limit: ::Integer) -> void
+        def initialize: (?limit: Integer) -> void
 
-        def duplicate?: (::String, ::String) -> bool
+        def duplicate?: (String, String) -> bool
       end
     end
   end

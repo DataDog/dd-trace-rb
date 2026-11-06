@@ -36,19 +36,19 @@ RSpec.describe Datadog::Core::Logger do
         expect(lines[0]).to match(/I,.*INFO -- datadog: \[datadog\] Info message/)
 
         expect(lines[1]).to match(
-          /W,.*WARN -- datadog: \[datadog\] Warning message/
+          /W,.*WARN -- datadog: \[datadog\] Warning message/,
         )
 
         expect(lines[2]).to match(
-          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #1/
+          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #1/,
         )
 
         expect(lines[3]).to match(
-          /E,.*ERROR -- my-progname: \[datadog\] \(.*logger_spec.rb.*\) Error message #2/
+          /E,.*ERROR -- my-progname: \[datadog\] \(.*logger_spec.rb.*\) Error message #2/,
         )
 
         expect(lines[4]).to match(
-          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #3/
+          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #3/,
         )
       end
     end
@@ -60,27 +60,27 @@ RSpec.describe Datadog::Core::Logger do
 
       it "produces log messages with expected format" do
         expect(lines[0]).to match(
-          /D,.*DEBUG -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Debug message/
+          /D,.*DEBUG -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Debug message/,
         )
 
         expect(lines[1]).to match(
-          /I,.*INFO -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Info message/
+          /I,.*INFO -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Info message/,
         )
 
         expect(lines[2]).to match(
-          /W,.*WARN -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Warning message/
+          /W,.*WARN -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Warning message/,
         )
 
         expect(lines[3]).to match(
-          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #1/
+          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #1/,
         )
 
         expect(lines[4]).to match(
-          /E,.*ERROR -- my-progname: \[datadog\] \(.*logger_spec.rb.*\) Error message #2/
+          /E,.*ERROR -- my-progname: \[datadog\] \(.*logger_spec.rb.*\) Error message #2/,
         )
 
         expect(lines[5]).to match(
-          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #3/
+          /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #3/,
         )
       end
     end

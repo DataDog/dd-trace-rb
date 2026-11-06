@@ -3,13 +3,13 @@ module Datadog
     class ThreadSafeRef
       @current: untyped
 
-      @finalizer: ::Symbol
+      @finalizer: Symbol
 
       @counters: Hash[untyped, Integer]
 
       @outdated: Array[untyped]
 
-      @mutex: ::Mutex
+      @mutex: Mutex
 
       def initialize: (WAF::Handle initial_obj, ?finalizer: Symbol) -> void
 

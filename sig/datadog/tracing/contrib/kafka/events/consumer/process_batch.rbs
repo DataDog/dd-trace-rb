@@ -13,9 +13,9 @@ module Datadog
 
               def self.process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
 
-              def self?.span_name: () -> untyped
+              def self.span_name: () -> untyped
 
-              def self?.span_options: () -> untyped
+              def self.span_options: () -> untyped
             end
           end
         end

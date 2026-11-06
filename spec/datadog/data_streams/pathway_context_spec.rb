@@ -12,7 +12,7 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
       described_class.new(
         hash_value: hash_value,
         pathway_start: pathway_start,
-        current_edge_start: current_edge_start
+        current_edge_start: current_edge_start,
       )
     end
 
@@ -50,7 +50,7 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
       large_context = described_class.new(
         hash_value: large_hash,
         pathway_start: large_time,
-        current_edge_start: large_time + 100
+        current_edge_start: large_time + 100,
       )
       encoded = large_context.encode_b64
       decoded = described_class.decode_b64(encoded)
@@ -130,7 +130,7 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
       context = described_class.new(
         hash_value: 424242,
         pathway_start: Time.at(1786000000.123),
-        current_edge_start: Time.at(1786000005.456)
+        current_edge_start: Time.at(1786000005.456),
       )
 
       expect(context.encode_b64).to eq(go_encoded_fixture)

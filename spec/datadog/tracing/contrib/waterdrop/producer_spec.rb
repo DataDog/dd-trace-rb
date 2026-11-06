@@ -38,7 +38,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "some_topic",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1",
       )
     end
   end
@@ -54,7 +54,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "some_topic",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "1",
       )
     end
   end
@@ -75,7 +75,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 3,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "other_topic,topic_name",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1",
       )
     end
   end
@@ -96,7 +96,7 @@ RSpec.describe "Waterdrop monitor" do
         Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 3,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM,
         Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION => "other_topic,topic_name",
-        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1"
+        Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => "0,1",
       )
     end
   end

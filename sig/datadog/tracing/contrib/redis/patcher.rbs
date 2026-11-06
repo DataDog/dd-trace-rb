@@ -25,9 +25,9 @@ module Datadog
             end
           end
 
-          def self?.default_tags: () -> untyped
+          def self.default_tags: () -> untyped
 
-          def self?.patch: () -> untyped
+          def self.patch: () -> untyped
         end
       end
     end

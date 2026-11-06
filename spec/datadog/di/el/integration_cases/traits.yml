@@ -3,7 +3,7 @@
     isEmpty:
       ref: var
 
-  compiled: "is_empty(ref('var'), 'var')"
+  compiled: "is_empty(ref(context, 'var'), 'var')"
 
   eval:
     - locals:
@@ -15,7 +15,7 @@
     isUndefined:
       ref: var
 
-  compiled: "is_undefined(ref('var'), 'var')"
+  compiled: "is_undefined(ref(context, 'var'), 'var')"
 
   eval:
     - name: string

@@ -12,7 +12,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
       propagation_style_inject: propagation_style_inject,
       propagation_style_extract: propagation_style_extract,
       propagation_extract_first: propagation_extract_first,
-      propagation_behavior_extract: propagation_behavior_extract
+      propagation_behavior_extract: propagation_behavior_extract,
     )
   end
 
@@ -134,7 +134,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
           trace_id: trace_id,
           trace_origin: origin,
           trace_sampling_priority: sampling_priority,
-          baggage: baggage
+          baggage: baggage,
         )
       end
 
@@ -169,17 +169,47 @@ RSpec.shared_examples "Distributed tracing propagator" do
           origin: origin,
           parent_span_id: span_id,
           sampling_priority: sampling_priority,
-          baggage: baggage
+          baggage: baggage,
         )
       end
 
       it_behaves_like "trace injection"
+    end
+
+    context "with an unknown style configured" do
+      let(:propagation_style_inject) { ["unknown", "datadog"] }
+      let(:trace) { Datadog::Tracing::TraceDigest.new(trace_id: 1234567890, span_id: 9876543210) }
+
+      before { allow(Datadog.logger).to receive(:error) }
+
+      it "injects the known styles without logging an error" do
+        is_expected.to eq(true)
+        expect(data).to include("x-datadog-trace-id" => "1234567890")
+        expect(Datadog.logger).to_not have_received(:error)
+      end
     end
   end
 
   describe ".extract" do
     subject(:extract) { propagator.extract(data) }
     let(:trace_digest) { extract }
+
+    context "with an unknown style configured" do
+      let(:propagation_style_extract) { ["unknown", "datadog"] }
+      let(:data) do
+        {
+          prepare_key["x-datadog-trace-id"] => "123",
+          prepare_key["x-datadog-parent-id"] => "456",
+        }
+      end
+
+      before { allow(Datadog.logger).to receive(:error) }
+
+      it "extracts the known styles without logging an error" do
+        expect(trace_digest).to have_attributes(trace_id: 123, span_id: 456)
+        expect(Datadog.logger).to_not have_received(:error)
+      end
+    end
 
     context "given `nil`" do
       let(:data) { nil }
@@ -589,7 +619,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             expect(link.trace_flags).to eq(1)
             expect(link.attributes).to eq(
               "reason" => "propagation_behavior_extract",
-              "context_headers" => "datadog"
+              "context_headers" => "datadog",
             )
             expect(link.to_hash).to eq(
               trace_id: datadog_trace_id,
@@ -598,7 +628,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
                 "reason" => "propagation_behavior_extract",
                 "context_headers" => "datadog",
               },
-              flags: 0x8000_0001
+              flags: 0x8000_0001,
             )
           end
 
@@ -637,14 +667,14 @@ RSpec.shared_examples "Distributed tracing propagator" do
             expect(link.trace_flags).to eq(tracecontext_trace_flags)
             expect(link.attributes).to eq(
               "reason" => "propagation_behavior_extract",
-              "context_headers" => "tracecontext"
+              "context_headers" => "tracecontext",
             )
           end
 
           context "with an inbound `ot=` member" do
             let(:data) do
               super().merge(
-                prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668"
+                prepare_key["tracestate"] => "dd=s:1,ot=rv:ef284ace7a91e1;th:e6666666666668",
               )
             end
 
@@ -672,7 +702,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               "tracecontext" => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
               "baggage" => Datadog::Tracing::Distributed::Baggage.new(
                 fetcher: fetcher_class,
-                baggage_tag_keys: ["user.id"]
+                baggage_tag_keys: ["user.id"],
               ),
             }
           end

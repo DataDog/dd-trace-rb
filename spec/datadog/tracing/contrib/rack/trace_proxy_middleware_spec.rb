@@ -94,7 +94,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
     context "when inferred proxy is not enabled" do
       before do
         described_class.call(
-          env, inferred_proxy_enabled: false, request_queuing: false, web_service_name: service
+          env, inferred_proxy_enabled: false, request_queuing: false, web_service_name: service,
         ) { :success }
       end
 
@@ -114,7 +114,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
     context "when x-dd-proxy header is present" do
       subject(:trace_proxy) do
         described_class.call(
-          env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service
+          env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service,
         ) { :success }
       end
 
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       context "when the block raises an exception" do
         before do
           described_class.call(
-            env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service
+            env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service,
           ) { raise error }
         rescue RuntimeError
           nil
@@ -507,7 +507,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       context "when request_queuing is true and x-request-start is also present" do
         before do
           described_class.call(
-            env, inferred_proxy_enabled: true, request_queuing: true, web_service_name: service
+            env, inferred_proxy_enabled: true, request_queuing: true, web_service_name: service,
           ) { :success }
         end
 

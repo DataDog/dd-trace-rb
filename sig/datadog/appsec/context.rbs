@@ -11,7 +11,7 @@ module Datadog
 
       @metrics: Metrics::Collector
 
-      @state: ::Hash[::Symbol, any]
+      @state: Hash[Symbol, any]
 
       @downstream_body_sampler: CounterSampler
 
@@ -23,7 +23,7 @@ module Datadog
 
       attr_reader metrics: Metrics::Collector
 
-      attr_reader state: ::Hash[::Symbol, any]
+      attr_reader state: Hash[Symbol, any]
 
       attr_reader downstream_body_sampler: CounterSampler
 
@@ -37,15 +37,15 @@ module Datadog
 
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
-      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: ::String?) -> SecurityEngine::result
+      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: String?) -> SecurityEngine::result
 
-      def events: () -> ::Array[SecurityEvent]
+      def events: () -> Array[SecurityEvent]
 
       def mark_as_interrupted!: () -> void
 
       def interrupted?: () -> bool
 
-      def waf_runner_ruleset_version: () -> ::String
+      def waf_runner_ruleset_version: () -> String
 
       def waf_runner_known_addresses: () -> WAF::known_addresses
 

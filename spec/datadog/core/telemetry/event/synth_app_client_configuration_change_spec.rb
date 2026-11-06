@@ -6,7 +6,7 @@ require "datadog/core/telemetry/metric"
 RSpec.describe Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange do
   subject(:event) {
     described_class.new(
-      components: Datadog.send(:components)
+      components: Datadog.send(:components),
     )
   }
 

@@ -87,7 +87,7 @@ module Datadog
           build_traceparent_string(
             digest.trace_id,
             digest.span_id || 0, # Fall back to zero (invalid) if not present
-            build_trace_flags(digest)
+            build_trace_flags(digest),
           )
         end
 

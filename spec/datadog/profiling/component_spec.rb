@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::Component do
       context "when an exception is raised during initialization" do
         before do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
-            ArgumentError.new("Failed to initialize transport: something went wrong")
+            ArgumentError.new("Failed to initialize transport: something went wrong"),
           )
         end
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
           expect(settings.profiling.advanced)
-            .to receive(:max_frames).and_return(:max_frames_config)
+            .to receive(:max_frames).and_return(500)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
@@ -99,13 +99,22 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
-            max_frames: :max_frames_config,
+            max_frames: 500,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
             show_classes: :experimental_show_classes_enabled_config,
           )
+
+          build_profiler_component
+        end
+
+        it "clamps max_frames to the supported range" do
+          settings.profiling.advanced.max_frames = 100
+          allow(logger).to receive(:warn)
+
+          expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(hash_including(max_frames: 400))
 
           build_profiler_component
         end
@@ -507,7 +516,7 @@ RSpec.describe Datadog::Profiling::Component do
         it "sets up the Profiler with the CpuAndWallTimeWorker collector" do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
-            scheduler: anything
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -525,8 +534,8 @@ RSpec.describe Datadog::Profiling::Component do
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 heap_sample_every: 456,
-              }
-            )
+              },
+            ),
           )
 
           build_profiler_component
@@ -560,7 +569,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "passes the setting value to HttpTransport" do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
-            hash_including(use_system_dns: :experimental_use_system_dns_setting_value)
+            hash_including(use_system_dns: :experimental_use_system_dns_setting_value),
           )
 
           build_profiler_component
@@ -780,7 +789,7 @@ RSpec.describe Datadog::Profiling::Component do
       context "when overhead_target_percentage is invalid value (#{invalid_value})" do
         it "logs an error" do
           expect(logger).to receive(:warn).with(
-            /Ignoring invalid value for profiling overhead_target_percentage/
+            /Ignoring invalid value for profiling overhead_target_percentage/,
           )
 
           valid_overhead_target
@@ -803,6 +812,42 @@ RSpec.describe Datadog::Profiling::Component do
     end
   end
 
+  describe ".valid_max_frames" do
+    subject(:valid_max_frames) { described_class.send(:valid_max_frames, max_frames, logger) }
+
+    {399 => 400, 601 => 600}.each do |invalid_value, clamped_value|
+      context "when max_frames is outside of the supported range (#{invalid_value})" do
+        let(:max_frames) { invalid_value }
+
+        it "logs a warning" do
+          expect(logger).to receive(:warn).with(
+            /max_frames is set to #{invalid_value}, but only values between 400 and 600 are supported. Using #{clamped_value}/,
+          )
+
+          valid_max_frames
+        end
+
+        it "clamps the value to the supported range" do
+          allow(logger).to receive(:warn)
+
+          expect(valid_max_frames).to eq clamped_value
+        end
+      end
+    end
+
+    [400, 600].each do |valid_value|
+      context "when max_frames is within the supported range (#{valid_value})" do
+        let(:max_frames) { valid_value }
+
+        it "returns the value without logging" do
+          expect(logger).to_not receive(:warn)
+
+          expect(valid_max_frames).to eq valid_value
+        end
+      end
+    end
+  end
+
   describe ".valid_cpu_sampling_interval" do
     subject(:valid_cpu_sampling_interval) do
       described_class.send(:valid_cpu_sampling_interval, cpu_sampling_interval_ms, logger)
@@ -813,7 +858,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "logs a warning" do
         expect(logger).to receive(:warn).with(
-          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/
+          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/,
         )
 
         valid_cpu_sampling_interval
@@ -871,7 +916,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "logs a warning message mentioning that this is is not recommended" do
           expect(logger).to receive(:warn).with(
-            /workaround has been disabled via configuration.*This is not recommended/
+            /workaround has been disabled via configuration.*This is not recommended/,
           )
 
           no_signals_workaround_enabled?
@@ -979,36 +1024,47 @@ RSpec.describe Datadog::Profiling::Component do
               end
             end
 
-            # See comments on looks_like_mariadb? for details on how this matching works
-            context "when mysql2 gem is linked to mariadb's version of libmysqlclient" do
-              before do
-                fake_client = double("Fake Mysql2::Client")
-                stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_return({version: "4.9.99", header_version: "10.0.0"})
-              end
+            [
+              {version: "4.9.99", header_version: "10.0.0"},
+              {version: "3.0.0", header_version: "3.0.0"},
+            ].each do |info|
+              context "when mysql2 gem is linked to MariaDB with client info #{info}" do
+                before do
+                  fake_client = double("Fake Mysql2::Client")
+                  stub_const("Mysql2::Client", fake_client)
+                  expect(fake_client).to receive(:info).and_return(info)
+                end
 
-              it { is_expected.to be false }
+                it { is_expected.to be false }
 
-              it "does not log any warning message" do
-                expect(logger).to_not receive(:warn)
+                it "does not log any warning message" do
+                  expect(logger).to_not receive(:warn)
 
-                no_signals_workaround_enabled?
+                  no_signals_workaround_enabled?
+                end
               end
             end
 
-            context "when mysql2 gem is using a version of libmysqlclient < 8.0.0" do
-              before do
-                fake_client = double("Fake Mysql2::Client")
-                stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_return({version: "7.9.9"})
-              end
+            [
+              {version: "7.9.9"},
+              {version: "4.0.0", header_version: "4.0.0"},
+              {version: "3.0.0", header_version: "4.0.0"},
+              {version: "4.0.0", header_version: "3.0.0"},
+            ].each do |info|
+              context "when mysql2 gem uses incompatible or unrecognized client info #{info}" do
+                before do
+                  fake_client = double("Fake Mysql2::Client")
+                  stub_const("Mysql2::Client", fake_client)
+                  expect(fake_client).to receive(:info).and_return(info)
+                end
 
-              it { is_expected.to be true }
+                it { is_expected.to be true }
 
-              it "logs a warning message mentioning that the no signals workaround is going to be used" do
-                expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+                it "logs a warning message mentioning that the no signals workaround is going to be used" do
+                  expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-                no_signals_workaround_enabled?
+                  no_signals_workaround_enabled?
+                end
               end
             end
 

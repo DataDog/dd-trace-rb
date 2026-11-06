@@ -5,13 +5,13 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          def self?.target_version: () -> untyped
+          def self.target_version: () -> untyped
 
-          def self?.patch: () -> untyped
+          def self.patch: () -> untyped
 
           SELF_DEPRECATION_ONLY_ONCE: untyped
-          def self?.patch_elasticsearch_transport_client: () -> untyped
-          def self?.transport_module: () -> untyped
+          def self.patch_elasticsearch_transport_client: () -> untyped
+          def self.transport_module: () -> untyped
         end
       end
     end

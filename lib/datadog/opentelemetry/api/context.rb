@@ -77,7 +77,7 @@ module Datadog
             # It effectively becomes an internal trace propagation.
             trace = Datadog::OpenTelemetry::Trace.start_trace_copy(
               current_span.datadog_trace,
-              parent_span: current_span.datadog_span
+              parent_span: current_span.datadog_span,
             )
           end
 
@@ -143,8 +143,8 @@ module Datadog
             unless calls_matched
               ::OpenTelemetry.handle_error(
                 exception: ::OpenTelemetry::Context::DetachError.new(
-                  "calls to detach should match corresponding calls to attach."
-                )
+                  "calls to detach should match corresponding calls to attach.",
+                ),
               )
             end
 

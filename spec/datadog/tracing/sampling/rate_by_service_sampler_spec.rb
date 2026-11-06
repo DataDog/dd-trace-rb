@@ -69,7 +69,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
         it "adds a new sampler" do
           expect(samplers).to include(
             described_class::DEFAULT_KEY => kind_of(Datadog::Tracing::Sampling::RateSampler),
-            new_key => kind_of(Datadog::Tracing::Sampling::RateSampler)
+            new_key => kind_of(Datadog::Tracing::Sampling::RateSampler),
           )
 
           expect(samplers[new_key].sample_rate).to eq(new_rate)
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
         it "updates the existing sampler" do
           expect(samplers).to include(
             described_class::DEFAULT_KEY => kind_of(Datadog::Tracing::Sampling::RateSampler),
-            existing_key => kind_of(Datadog::Tracing::Sampling::RateSampler)
+            existing_key => kind_of(Datadog::Tracing::Sampling::RateSampler),
           )
 
           expect(samplers[existing_key].sample_rate).to eq(new_rate)
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
 
         it "updates the existing sampler" do
           expect(samplers).to include(
-            described_class::DEFAULT_KEY => kind_of(Datadog::Tracing::Sampling::RateSampler)
+            described_class::DEFAULT_KEY => kind_of(Datadog::Tracing::Sampling::RateSampler),
           )
 
           expect(samplers.keys).to_not include(old_key)

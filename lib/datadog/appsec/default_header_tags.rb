@@ -32,16 +32,14 @@ module Datadog
         content-language
       ].freeze
 
-      module_function
-
-      def tag_request(span, headers)
+      def self.tag_request(span, headers)
         REQUEST_HEADERS_TAGS.each do |name|
           value = headers.get(name)
           span.set_tag("http.request.headers.#{name}", value) if value
         end
       end
 
-      def tag_response(span, headers)
+      def self.tag_response(span, headers)
         RESPONSE_HEADERS_TAGS.each do |name|
           value = headers.get(name)
           span.set_tag("http.response.headers.#{name}", value.to_s) if value

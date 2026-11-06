@@ -101,7 +101,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(label: end_with("_native_sample")),
           have_attributes(label: end_with("sample")),
           have_attributes(label: end_with("sample_and_decode")),
-        ]
+        ],
       )
       super()[3..-1]
     end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             %(
             ready_queue << true
             sleep
-          )
+          ),
           )
         end
       end
@@ -814,7 +814,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           ),
           binding,
           filename,
-          123456
+          123456,
         )
         # rubocop:enable Security/Eval
         # rubocop:enable Style/EvalWithLocation
@@ -826,7 +826,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(
             path: filename,
             label: end_with("_app_views_layouts_explore_html_haml"),
-          )
+          ),
         )
       end
 
@@ -838,7 +838,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(
               path: filename,
               label: end_with("_app_views_layouts_explore_html_haml"),
-            )
+            ),
           )
         end
       end
@@ -864,6 +864,88 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
         it "does not trim the method name" do
           expect(gathered_stack).to include(have_attributes(path: filename, label: end_with(untrimmed_method_name)))
+        end
+      end
+
+      context "when sampling a block inside the template method" do
+        let(:do_in_background_thread) do
+          # rubocop:disable Security/Eval
+          # rubocop:disable Style/EvalWithLocation
+          # rubocop:disable Style/DocumentDynamicEvalDefinition
+          eval(
+            %(
+              def dummy_template.#{untrimmed_method_name}(ready_queue)
+                [1].each do
+                  ready_queue << true
+                  sleep
+                end
+              end
+
+              proc { |ready_queue| dummy_template.#{untrimmed_method_name}(ready_queue) }
+            ),
+            binding,
+            filename,
+            123456,
+          )
+          # rubocop:enable Security/Eval
+          # rubocop:enable Style/EvalWithLocation
+          # rubocop:enable Style/DocumentDynamicEvalDefinition
+        end
+
+        it "samples the block frame with a simplified method name" do
+          expect(gathered_stack).to include(
+            have_attributes(
+              path: filename,
+              label: end_with("_app_views_layouts_explore_html_haml (block)"),
+            ),
+          )
+        end
+
+        context "when show_classes is disabled" do
+          let(:show_classes) { false }
+
+          it "samples the block frame with a simplified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: end_with("_app_views_layouts_explore_html_haml"),
+              ),
+            )
+          end
+        end
+
+        context "when the template method is on a named class" do
+          let(:do_in_background_thread) do
+            template_class = stub_const("DummyTemplateClass", Class.new)
+            # rubocop:disable Style/EvalWithLocation
+            # rubocop:disable Style/DocumentDynamicEvalDefinition
+            template_class.class_eval(
+              %(
+                def #{untrimmed_method_name}(ready_queue)
+                  [1].each do
+                    ready_queue << true
+                    sleep
+                  end
+                end
+              ),
+              filename,
+              123456,
+            )
+            # rubocop:enable Style/DocumentDynamicEvalDefinition
+            # rubocop:enable Style/EvalWithLocation
+            template = template_class.new
+
+            proc { |ready_queue| template.send(untrimmed_method_name, ready_queue) }
+          end
+
+          it "samples the block frame with a simplified qualified method name" do
+            expect(gathered_stack).to include(
+              have_attributes(
+                path: filename,
+                label: "DummyTemplateClass#_app_views_layouts_explore_html_haml (block)",
+              ),
+            )
+          end
         end
       end
     end
@@ -935,6 +1017,54 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  # Qualified names get kept in the per-thread sampling buffer and reused while a frame stays in it, so sampling an
+  # unchanged stack repeatedly must keep reporting the same name, including when it's too long to be kept around.
+  context "when sampling an unchanged stack repeatedly" do
+    let(:show_classes) { true }
+    let(:class_name) { "ClassWithShortName" }
+
+    def sample_class_three_times(klass)
+      recorder = Datadog::Profiling::StackRecorder.for_testing
+      thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
+        recorder: recorder, show_classes: show_classes,
+      )
+
+      3.times do
+        klass.new.method_being_sampled do
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+        end
+      end
+
+      samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current).map do |captured|
+        captured.locations.find { |frame| frame.label.end_with?("#method_being_sampled") }&.label
+      end
+    end
+
+    it "reports the same name for every sample" do
+      klass = stub_const(class_name, Class.new do
+        def method_being_sampled
+          yield
+        end
+      end)
+
+      expect(sample_class_three_times(klass)).to eq(["#{class_name}#method_being_sampled"] * 3)
+    end
+
+    context "when the name is longer than what the sampling buffer keeps" do
+      let(:class_name) { "ClassWith#{"AVeryLongName" * 10}" }
+
+      it "reports the same name for every sample" do
+        klass = stub_const(class_name, Class.new do
+          def method_being_sampled
+            yield
+          end
+        end)
+
+        expect(sample_class_three_times(klass)).to eq(["#{class_name}#method_being_sampled"] * 3)
+      end
+    end
+  end
+
   context "when sampling inside a Ruby::Box", if: RubyVersion.is?(">= 4.0") do
     it "reports the class name of a core class the box monkey patched" do
       skip "https://bugs.ruby-lang.org/issues/22339" if asan_build?
@@ -982,8 +1112,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   context "when sampling a thread with a stack that is deeper than the configured max_frames" do
-    let(:max_frames) { 5 }
-    let(:target_stack_depth) { 100 }
+    let(:max_frames) { 400 }
+    let(:target_stack_depth) { 500 }
     let(:thread_with_deep_stack) { DeepStackSimulator.thread_with_stack_depth(target_stack_depth) }
 
     let(:in_gc) { false }
@@ -1000,16 +1130,17 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     context "when adjusted for missing frames" do
       let(:reference_stack) { super()[-(max_frames - 1)..-1] }
-      include_examples "matches the Ruby backtrace API in range", (-4..-1)
+      include_examples "matches the Ruby backtrace API in range", (-399..-1)
     end
 
     it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
-      expect(gathered_stack).to contain_exactly(
-        have_attributes(label: "Truncated Frames", path: "", lineno: 0),
-        have_attributes(label: "DeepStackSimulator#deep_stack_4"),
-        have_attributes(label: "DeepStackSimulator#deep_stack_3"),
-        have_attributes(label: "DeepStackSimulator.thread_with_stack_depth (block)"),
-        have_attributes(label: "DatadogThreadDebugger#initialize (block)"),
+      expect(gathered_stack).to match(
+        [
+          have_attributes(label: "Truncated Frames", path: "", lineno: 0),
+          *399.downto(3).map { |depth| have_attributes(label: "DeepStackSimulator#deep_stack_#{depth}") },
+          have_attributes(label: "DeepStackSimulator.thread_with_stack_depth (block)"),
+          have_attributes(label: "DatadogThreadDebugger#initialize (block)"),
+        ],
       )
     end
 
@@ -1073,7 +1204,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           write_finish_pipe.close
           read_finish_pipe.read
           read_finish_pipe.close
-        end
+        end,
       )
     end
 
@@ -1123,16 +1254,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context "when max_frames is too small" do
     it "raises an ArgumentError" do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 4)
-      end.to raise_error(ArgumentError)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 399)
+      end.to raise_error(ArgumentError, "Invalid max_frames: value must be >= 400")
     end
   end
 
   context "when max_frames is too large" do
     it "raises an ArgumentError" do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 10_001)
-      end.to raise_error(ArgumentError)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.for_testing, metric_values, labels, max_frames: 601)
+      end.to raise_error(ArgumentError, "Invalid max_frames: value must be <= 600")
     end
   end
 
@@ -1326,7 +1457,7 @@ class DeepStackSimulator
       ),
         binding,
         __FILE__,
-        __LINE__ - 12
+        __LINE__ - 12,
       )
       # rubocop:enable Security/Eval
     end

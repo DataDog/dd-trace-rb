@@ -1,19 +1,19 @@
 # Class definitions
 
 Use these when typing a constant built with `Class.new` or `Struct.new`, or
-declaring a method that is both instance and singleton
+declaring a method that is both instance and singleton.
 
 ## Rules
 
-- MUST open the class for an empty subclass – `class Foo < Bar` / `end` – NEVER a
-  bare `Foo: Bar` constant, which Steep will not type as the class
-- MUST type a `Struct.new(...)` constant as a real class – parameterize
+- MUST open the class for an empty subclass – `class Foo < Bar` / `end`.
+  NEVER a bare `Foo: Bar` constant. Steep will not type it as the class.
+- MUST type a `Struct.new(...)` constant as a real class. Parameterize
   `Struct[E]` with the member value type (a union for mixed members, NEVER a
-  tuple), add an `attr_accessor` per member, and a `self.new` returning
-  `instance` – NEVER `untyped`
+  tuple). Add an `attr_accessor` per member, and a `self.new` returning
+  `instance`. NEVER `untyped`.
 - NEVER leak `struct` / `structure` naming into the public type – it names the
-  representation, not the concept
-- SHOULD use `def self?.method` for a method that is both instance and singleton
+  representation, not the concept.
+- SHOULD use `def self?.method` for a method that is both instance and singleton.
 
 ## Examples
 
@@ -51,11 +51,11 @@ end
 ```
 
 `Struct[untyped]` is acceptable only when members are reached solely through the
-named accessors; once anything uses the generic Struct API (`#[]`, `#each`,
-`#to_a`), type the element with the member value type – a union for mixed
-members, NEVER a tuple, which mistypes `#[]` as the whole tuple
+named accessors. Once anything uses the generic Struct API (`#[]`, `#each`,
+`#to_a`), type the element with the member value type. Use a union for mixed
+members, NEVER a tuple, which mistypes `#[]` as the whole tuple.
 
-Declare a dual instance/singleton method once, so the two can't drift:
+Declare a dual instance/singleton method once, so the two cannot drift:
 
 ```rbs
 # Good

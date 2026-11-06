@@ -177,7 +177,7 @@ RSpec.describe ReleasePrep::Fragments do
       write_fragment("keep.json", valid_entry("message" => "Keep me."))
       write_fragment("consume.json", valid_entry("message" => "Consume me."))
       consume_only = described_class.new(
-        described_class.read_all(dir: @unreleased_dir).select { |f| f.message == "Consume me." }
+        described_class.read_all(dir: @unreleased_dir).select { |f| f.message == "Consume me." },
       )
 
       consume_only.consume!

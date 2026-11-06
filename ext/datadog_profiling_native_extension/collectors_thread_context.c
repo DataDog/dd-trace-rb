@@ -122,6 +122,10 @@ static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Rub
 // in settings.rb. See `initialize_context` for details on why this is needed/used.
 static uint16_t latest_max_frames = 400;
 
+// Same as `latest_max_frames`, for deciding whether new sampling buffers need room to cache qualified frame names.
+// Should be kept in sync with the default for DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED in settings.rb.
+static bool latest_show_classes = true;
+
 // Global tracepoint for RUBY_EVENT_THREAD_BEGIN. Created and enabled once when the first ThreadContext collector is initialized.
 static VALUE thread_begin_tracepoint = Qnil;
 
@@ -1265,7 +1269,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
   // We always create per_thread_context's with latest_max_frames; that value is kept in sync with the
   // active profiler's max_frames by the global reset that runs when profiling starts
   // so we expect to always see here the latest correct value to be used.
-  sampling_buffer_initialize(&thread_context->sampling_buffer, latest_max_frames);
+  sampling_buffer_initialize(&thread_context->sampling_buffer, latest_max_frames, latest_show_classes);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
@@ -1327,6 +1331,7 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
   }
 
   latest_max_frames = state->locations.len;
+  latest_show_classes = state->show_classes;
 
   long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns();
 

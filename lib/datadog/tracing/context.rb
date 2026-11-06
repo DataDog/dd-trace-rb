@@ -63,7 +63,7 @@ module Datadog
 
         self.class.new(
           trace: forked_trace,
-          otel_thread_context: @otel_thread_context
+          otel_thread_context: @otel_thread_context,
         )
       end
 
