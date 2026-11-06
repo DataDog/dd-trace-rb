@@ -824,16 +824,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .and_return(true)
           end
 
-          it "warns once, while building the components" do
-            Datadog::Profiling::Component::UNSUPPORTED_WARNING_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+          it "doesn't build or start a profiler" do
             allow(described_class).to receive(:build_logger).and_return(logger)
-            allow(logger).to receive(:info)
             allow(logger).to receive(:warn)
 
             expect(components.profiler).to be nil
-            startup!
 
-            expect(logger).to have_received(:warn).with(/profiling disabled/).once
+            startup!
           end
         end
 
