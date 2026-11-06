@@ -32,7 +32,6 @@ module Datadog
 
         @gem_specs: Hash[String, Gem::Specification | untyped]
         @native_platform: String
-        @ruby_engine_version: String
         @tracer_version: String
 	@settings: untyped
 	@logger: Core::Logger
@@ -42,7 +41,6 @@ module Datadog
         def gem_spec: (String) -> (Gem::Specification | untyped)
         def tracer_version: () -> String
         def native_platform: () -> String
-        def ruby_engine_version: () -> String
 
 	def process_response: (Transport::Config::Response response) -> Configuration::Repository::ChangeSet
 	def apply_config: (Array[Configuration::Path] paths, Configuration::TargetMap targets, Configuration::ContentList contents) -> Configuration::Repository::ChangeSet
