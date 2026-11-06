@@ -37,11 +37,10 @@ module Datadog
 
         unsupported_reason = Profiling.unsupported_reason
         if unsupported_reason
-          UNSUPPORTED_WARNING_ONLY_ONCE.run do
-            # Tell users who expected profiling to be enabled
-            logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
-          end
-          return [nil, {profiling_enabled: false}, "Profiling is not supported: #{unsupported_reason}"]
+          unsupported_message = "Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}"
+          # Tell users who expected profiling to be enabled
+          UNSUPPORTED_WARNING_ONLY_ONCE.run { logger.warn(unsupported_message) }
+          return [nil, {profiling_enabled: false}, unsupported_message]
         end
 
         # Activate forking extensions
@@ -102,13 +101,11 @@ module Datadog
 
         [profiler, {profiling_enabled: true}]
       rescue Exception => e # rubocop:disable Lint/RescueException
-        logger.warn do
-          "Failed to initialize profiling: #{e.class}: #{e.message} " \
-          "Location: #{Array(e.backtrace).first}"
-        end
+        failure_message = "Failed to initialize profiling: #{e.class}: #{e.message}"
+        logger.warn { "#{failure_message} Location: #{Array(e.backtrace).first}" }
         Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
 
-        [nil, {profiling_enabled: false}, "Profiling failed to initialize: #{e.class}: #{e.message}"]
+        [nil, {profiling_enabled: false}, failure_message]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, max_frames)

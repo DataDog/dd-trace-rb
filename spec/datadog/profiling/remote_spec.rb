@@ -653,27 +653,27 @@ RSpec.describe Datadog::Profiling::Remote do
       end
 
       let(:profiler) { nil }
-      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
+      let(:profiler_unavailable_reason) { "Profiling was requested but is not supported, profiling disabled: test reason" }
 
       it "reports every config as errored with the reason, including one that doesn't enable profiling" do
         apply_configs
 
         expect(contents.map(&:apply_state)).to all(eq(apply_state::ERROR))
-        expect(contents.map(&:apply_error)).to all(eq("Profiling is not supported: test reason"))
+        expect(contents.map(&:apply_error)).to all(eq("Profiling was requested but is not supported, profiling disabled: test reason"))
       end
     end
 
     context "when profiling is enabled locally but not supported" do
       let(:contents) { [profiling_content("no-enablement", profilers: {})] }
       let(:profiler) { nil }
-      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
+      let(:profiler_unavailable_reason) { "Profiling was requested but is not supported, profiling disabled: test reason" }
 
       before { settings.profiling.enabled = true }
 
       it "reports a config that doesn't enable profiling as errored too" do
         apply_configs
 
-        expect(contents.first.apply_error).to eq("Profiling is not supported: test reason")
+        expect(contents.first.apply_error).to eq("Profiling was requested but is not supported, profiling disabled: test reason")
       end
     end
 
@@ -705,20 +705,20 @@ RSpec.describe Datadog::Profiling::Remote do
     context "when the profiler fails to initialize" do
       let(:contents) { [profiling_content("preset-default", profilers: default_preset)] }
       let(:profiler) { nil }
-      let(:profiler_unavailable_reason) { "Profiling failed to initialize: ArgumentError: test error" }
+      let(:profiler_unavailable_reason) { "Failed to initialize profiling: ArgumentError: test error" }
 
       it "reports the config as errored with the error, instead of applied" do
         apply_configs
 
         expect(contents.first.apply_state).to eq(apply_state::ERROR)
-        expect(contents.first.apply_error).to eq("Profiling failed to initialize: ArgumentError: test error")
+        expect(contents.first.apply_error).to eq("Failed to initialize profiling: ArgumentError: test error")
       end
     end
 
     context "when profiling is disabled remotely and not supported" do
       let(:contents) { [profiling_content("preset-disabled", profilers: disabled_preset)] }
       let(:profiler) { nil }
-      let(:profiler_unavailable_reason) { "Profiling is not supported: test reason" }
+      let(:profiler_unavailable_reason) { "Profiling was requested but is not supported, profiling disabled: test reason" }
 
       it "acknowledges the config, which is honored" do
         apply_configs

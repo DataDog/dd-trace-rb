@@ -38,7 +38,7 @@ RSpec.describe Datadog::Profiling::Component do
       it "warns and returns the reason" do
         expect(logger).to receive(:warn).with("Profiling was requested but is not supported, profiling disabled: test reason")
 
-        is_expected.to eq [nil, {profiling_enabled: false}, "Profiling is not supported: test reason"]
+        is_expected.to eq [nil, {profiling_enabled: false}, "Profiling was requested but is not supported, profiling disabled: test reason"]
       end
 
       it "warns only once, as remote configuration can rebuild the profiler many times" do
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Profiling::Component do
           is_expected.to eq [
             nil,
             {profiling_enabled: false},
-            "Profiling failed to initialize: ArgumentError: Failed to initialize transport: something went wrong",
+            "Failed to initialize profiling: ArgumentError: Failed to initialize transport: something went wrong",
           ]
         end
       end

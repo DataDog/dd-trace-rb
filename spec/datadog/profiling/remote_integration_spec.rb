@@ -157,7 +157,7 @@ RSpec.describe "Profiling remote configuration", :memcheck_valgrind_skip do
       include(
         "id" => "preset-default",
         "apply_state" => Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR,
-        "apply_error" => "Profiling failed to initialize: ArgumentError: Heap sample rate must be a positive integer. Was 0",
+        "apply_error" => "Failed to initialize profiling: ArgumentError: Heap sample rate must be a positive integer. Was 0",
       ),
     )
   end

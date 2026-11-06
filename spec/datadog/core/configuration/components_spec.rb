@@ -738,7 +738,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context "when building the profiler fails" do
-        let(:reason) { "Profiling failed to initialize: RuntimeError: test error" }
+        let(:reason) { "Failed to initialize profiling: RuntimeError: test error" }
 
         before do
           allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
