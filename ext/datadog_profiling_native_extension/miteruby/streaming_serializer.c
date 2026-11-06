@@ -2,7 +2,7 @@
 #include "allocator.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
-#include "libdatadog_recorder.h"
+#include "sample_values.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
 #include "pprof/zstd.h"

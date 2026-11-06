@@ -31,7 +31,7 @@ Libdatadog's profile is opaque, so the custom path keeps its own data. Libdatado
 - Aggregate matching untimestamped samples, with integer saturation; keep timestamped samples separate.
 - Preserve string and numeric labels, plus sample timestamps.
 
-The custom representation lives in [custom_profile.c](../custom_profile.c); [libdatadog_recorder.c](../libdatadog_recorder.c) feeds both paths.
+The custom representation lives in [custom_profile.c](../serialize_with_libdatadog_for_testing/custom_profile.c); [libdatadog_recorder.c](../serialize_with_libdatadog_for_testing/libdatadog_recorder.c) feeds both paths.
 
 ---
 
