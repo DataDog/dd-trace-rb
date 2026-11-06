@@ -78,7 +78,7 @@ module Datadog
 
         def try_run(persistent_data, ephemeral_data, timeout)
           waf_context.run(persistent_data, ephemeral_data, timeout)
-        rescue WAF::LibDDWAFError => e
+        rescue WAF::Error => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e.class}: #{e.message} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: "libddwaf-rb internal low-level error")
 

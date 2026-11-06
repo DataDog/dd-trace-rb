@@ -175,7 +175,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
           Datadog::AppSec::Contrib::Rails::Gateway::Watcher.watch_response_body_json(gateway)
         end
 
-        after { context.finalize! }
+        after { context.detach }
 
         let(:context) do
           Datadog::AppSec::Context.new(

@@ -37,17 +37,21 @@ module Datadog
           raise ArgumentError, "not a Datadog::AppSec::Context" unless context.instance_of?(Context)
           raise ActiveContextError, "another context is active, nested contexts are not supported" if active
 
+          # NOTE: Activation makes the caller a member. Callers like datadog-lambda-rb
+          #       rely on it, they only activate and deactivate and never call `attach`
+          context.attach
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
 
         def deactivate
-          active&.finalize!
+          active&.detach
         ensure
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
 
         def active
-          Thread.current[Ext::ACTIVE_CONTEXT_KEY]
+          context = Thread.current[Ext::ACTIVE_CONTEXT_KEY]
+          context if context&.alive?
         end
       end
 
@@ -55,6 +59,9 @@ module Datadog
         @trace = trace
         @span = span
         @waf_runner = waf_runner
+        @mutex = Mutex.new
+        @attached_count = 0
+        @alive = true
         @metrics = Metrics::Collector.new
         @downstream_body_sampler = CounterSampler.new(
           Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate,
@@ -86,12 +93,33 @@ module Datadog
         @state[:events]
       end
 
-      def mark_as_interrupted!
-        @state[:interrupted] = true
+      def catch_interrupt
+        Kernel.catch(Ext::INTERRUPT) do
+          yield
+          return false
+        end
+
+        true
+      end
+
+      def interrupt!(action_params)
+        @mutex.synchronize do
+          @state[:interrupted] = true
+          @state[:interrupt_params] = action_params unless @state.key?(:interrupt_params)
+        end
+
+        throw(Ext::INTERRUPT, action_params)
+      rescue UncaughtThrowError
+        # NOTE: Without a catch up the stack, the throw raises into the host app
+        Datadog.logger.warn("AppSec: request was interrupted outside of an interruption point, continuing execution")
       end
 
       def interrupted?
-        @state[:interrupted]
+        @mutex.synchronize { @state[:interrupted] }
+      end
+
+      def mark_as_interrupted!
+        @mutex.synchronize { @state[:interrupted] = true }
       end
 
       def waf_runner_ruleset_version
@@ -127,8 +155,37 @@ module Datadog
         Metrics::TelemetryExporter.export_api_security_metrics(self)
       end
 
-      def finalize!
+      def attach
+        @mutex.synchronize do
+          return false unless @alive
+
+          @attached_count += 1
+        end
+
+        true
+      end
+
+      def detach
+        @mutex.synchronize do
+          return if @attached_count.zero?
+
+          @attached_count -= 1
+          return unless @attached_count.zero?
+
+          @alive = false
+        end
+
         @waf_runner.finalize!
+      rescue => e
+        AppSec.telemetry.report(e, description: "AppSec: Failed to finalize context")
+      end
+
+      def alive?
+        @mutex.synchronize { @alive }
+      end
+
+      def shared?
+        @mutex.synchronize { @attached_count > 1 }
       end
     end
   end

@@ -255,6 +255,15 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(run_result.duration_ext_ns).to be > 0
       end
     end
+
+    context "when waf context was already finalized" do
+      before do
+        allow(waf_context).to receive(:run)
+          .and_raise(Datadog::AppSec::WAF::InstanceFinalizedError, "Cannot use WAF context after it has been finalized")
+      end
+
+      it { expect(runner.run({"addr.a" => "a"}, {}, 1_000)).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error) }
+    end
   end
 
   describe "#finalize!" do
