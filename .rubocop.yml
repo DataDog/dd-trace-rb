@@ -73,6 +73,15 @@ Style/ModuleFunction:
   Include:
     - "lib/**/*"
 
+# Prevent remove_instance_variable in library code; it is slow and changes the
+# object's shape, so assign nil instead.
+CustomCops/RemoveInstanceVariableCop:
+  Enabled: true
+  Description: 'Prevents usage of remove_instance_variable; assign nil instead'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+
 # The trailing-comma and leading-comment cops below should stay in sync with
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.
