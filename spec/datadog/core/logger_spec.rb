@@ -83,6 +83,19 @@ RSpec.describe Datadog::Core::Logger do
           /E,.*ERROR -- datadog: \[datadog\] \(.*logger_spec.rb.*\) Error message #3/,
         )
       end
+
+      it "logs the caller location relative to lib/datadog when the caller is in the gem" do
+        lib_datadog_dir = File.expand_path("../../../lib/datadog", File.dirname(__FILE__))
+        logger.instance_eval('debug("Debug message")', "#{lib_datadog_dir}/core/example.rb", 42) # rubocop:disable Style/EvalWithLocation
+
+        expect(buffer.string).to include("[datadog] (core/example.rb:42) Debug message")
+      end
+
+      it "logs the absolute caller location when the caller is outside the gem" do
+        logger.debug("Debug message")
+
+        expect(buffer.string).to include("[datadog] (#{__FILE__}:#{__LINE__ - 2}) Debug message")
+      end
     end
   end
 end
