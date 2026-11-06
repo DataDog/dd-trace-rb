@@ -209,6 +209,30 @@ static void emit_thread_name(pb_ostream_t *stream, VALUE thread) {
   emit_string_table_entry(stream, fallback, strlen(fallback));
 }
 
+static void emit_thread_id(pb_ostream_t *stream, VALUE thread) {
+  VALUE object_id = rb_obj_id(thread);
+  uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
+  char thread_id[44];
+  snprintf(
+    thread_id, sizeof(thread_id), "%"PRIu64" (%lu)",
+    native_thread_id, (unsigned long) (FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1)
+  );
+  emit_string_table_entry(stream, thread_id, strlen(thread_id));
+}
+
+static void emit_location_fragment(pb_ostream_t *stream, uint64_t location_id, uint64_t function_id, int64_t line) {
+  miteruby_pprof_fragment_location_t fragment = {
+    .has_location = true,
+    .location = {
+      .id = location_id,
+      .has_line = true,
+      .line = {.function_id = function_id, .line = line},
+    },
+  };
+  if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
+    rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(stream));
+}
+
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
@@ -229,38 +253,29 @@ void miteruby_streaming_serializer_prepare_serialize(
       rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
   }
 
-  // Emit FragmentLocation
+  // Emit FragmentLocation: Fixed placeholders
   for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
-    miteruby_pprof_fragment_location_t fragment = {.has_location = true, .location = fixed_location_values[i]};
-    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(&stream));
+    const miteruby_pprof_fragment_location_location_t *location = &fixed_location_values[i];
+    emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line);
   }
 
+  // Emit FragmentLocation: From profile data
   for (size_t i = 0; i < location_array->count; i++) {
     miteruby_location_t location = location_array->entries[i];
     const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
-    miteruby_pprof_fragment_location_t fragment = {
-      .has_location = true,
-      .location = {
-        .id = location_id_for(i),
-        .has_line = true,
-        .line = {
-          .function_id = function_id_for(location.cme_iseq_id.value),
-          .line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0,
-        },
-      },
-    };
-    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(&stream));
+    // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
+    int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
+    emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
   }
 
-  // Emit FragmentFunction
+  // Emit FragmentFunction: Fixed placeholders
   for (size_t i = 1; i < sizeof(fixed_function_values) / sizeof(fixed_function_values[0]); i++) {
     miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
   }
 
+  // Emit FragmentFunction: From profile data
   for (size_t i = 0; i < cme_iseq_array->count; i++) {
     int64_t name_id = string_table_id_for(i, verstable_mark_threads_set_size(threads_set));
     miteruby_pprof_fragment_function_t fragment = {
@@ -271,33 +286,29 @@ void miteruby_streaming_serializer_prepare_serialize(
       rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
   }
 
-  // Emit FragmentStringTable
+  // Emit FragmentStringTable: Fixed strings
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
     emit_string_table_entry(&stream, string, strlen(string));
   }
 
+  // Emit FragmentStringTable: From profile data - threads
   for (
     verstable_mark_threads_set_itr entry = verstable_mark_threads_set_first(threads_set);
     !verstable_mark_threads_set_is_end(entry);
     entry = verstable_mark_threads_set_next(entry)
   ) {
     VALUE thread = entry.data->key;
+    // Upcall into Ruby: Thread metadata (name, id, etc)
     emit_thread_name(&stream, thread);
-
-    VALUE object_id = rb_obj_id(thread);
-    uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
-    char thread_id[44];
-    snprintf(
-      thread_id, sizeof(thread_id), "%"PRIu64" (%lu)",
-      native_thread_id, (unsigned long) (FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1)
-    );
-    emit_string_table_entry(&stream, thread_id, strlen(thread_id));
+    emit_thread_id(&stream, thread);
   }
 
+  // Emit FragmentStringTable: From profile data - frame names and filenames
   char qualified_name[4096];
   for (size_t i = 0; i < cme_iseq_array->count; i++) {
     miteruby_event_frame_refs_t refs = cme_iseq_array->entries[i];
+    // Upcall into Ruby: Class names, method names, method metadata
     ssize_t written = ddtrace_location_label(refs.cme, refs.iseq, qualified_name, sizeof(qualified_name));
     if (written > 0) {
       emit_string_table_entry(&stream, qualified_name, written);
@@ -306,6 +317,7 @@ void miteruby_streaming_serializer_prepare_serialize(
       emit_string_table_entry(&stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name));
     }
 
+    // Upcall into Ruby: Method metadata, filenames
     if (refs.iseq != NULL) {
       VALUE filename = ddtrace_iseq_path(refs.iseq);
       emit_string_table_entry(&stream, RSTRING_PTR(filename), RSTRING_LEN(filename));
