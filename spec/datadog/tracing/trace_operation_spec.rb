@@ -2041,11 +2041,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         trace_op.send(:events).span_before_start.subscribe { |span_op, _| started_span_names << span_op.name }
 
         reached = Queue.new
-        release = Queue.new
         allow(trace_op).to receive(:set_local_root_span!).and_wrap_original do |original, span_op|
           if span_op.name == "interrupted"
             reached << true
-            release.pop
+            # Not a blocking call, so a deferred exception stays pending
+            Thread.pass until Thread.pending_interrupt?
           end
 
           original.call(span_op)
@@ -2058,7 +2058,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
         reached.pop
         worker.raise(interrupt)
-        release << true
 
         joined = worker.join(5)
         worker.kill.join unless joined
@@ -2069,6 +2068,29 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(trace_op.send(:root_span).name).to eq("interrupted")
         expect(trace_op.active_span_count).to eq(0)
         expect(trace_op).to be_finished
+      end
+
+      it "raises the exception asynchronously while a span_before_start subscriber blocks" do
+        reached = Queue.new
+        trace_op.send(:events).span_before_start.subscribe do |span_op, _|
+          if span_op.name == "interrupted"
+            reached << true
+            Queue.new.pop
+          end
+        end
+
+        worker = Thread.new do
+          trace_op.measure("interrupted") {}
+        rescue interrupt => e
+          e
+        end
+        reached.pop
+        worker.raise(interrupt)
+
+        joined = worker.join(5)
+        worker.kill.join unless joined
+        expect(joined).to be(worker), "the blocking subscriber was not interrupted"
+        expect(worker.value).to be_a(interrupt)
       end
     end
   end
