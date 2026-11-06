@@ -1,6 +1,7 @@
 #include "streaming_serializer.h"
 #include "allocator.h"
 #include "stack_dedup.h"
+#include "compressed_deltas.h"
 #include "libdatadog_recorder.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
@@ -178,13 +179,6 @@ static VALUE serializer_new(VALUE klass) {
   return serializer;
 }
 
-static void record_stack_sample(
-  streaming_serializer_state *state, DDTRACE_UNUSED const miteruby_event_deduped_sample_t *event,
-  DDTRACE_UNUSED miteruby_stack_t stack, DDTRACE_UNUSED miteruby_sample_values values, DDTRACE_UNUSED int64_t end_timestamp_ns
-) {
-  state->recorded_samples++;
-}
-
 static streaming_thread_context *thread_context_for(
   verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread
 ) {
@@ -231,6 +225,20 @@ static uint64_t function_id_for(uint64_t cme_iseq_index) {
 
 static uint64_t location_id_for(uint64_t location_index) {
   return PPROF_LOCATION_FIRST_DYNAMIC + location_index;
+}
+
+static void read_location_ids(miteruby_stack_t stack, uint64_t *location_ids) {
+  const uint8_t *cursor = stack.ids;
+  uint20_t previous_value = {0};
+  for (uint16_t i = 0; i < stack.frame_count; i++) {
+    miteruby_location_id_t location_id;
+    if (!miteruby_compressed_deltas_read(previous_value, &location_id.value, &cursor, stack.end))
+      rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
+    previous_value = location_id.value;
+    // Interned stacks are root-first; pprof samples are leaf-first.
+    location_ids[stack.frame_count - 1 - i] = location_id_for(location_id.value.value);
+  }
+  if (cursor != stack.end) rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
 }
 
 static void emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
@@ -292,6 +300,58 @@ static void emit_location_fragment(pb_ostream_t *stream, uint64_t location_id, u
   };
   if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
     rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(stream));
+}
+
+static bool encode_packed_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
+  pb_ostream_t sizing = PB_OSTREAM_SIZING;
+  for (size_t i = 0; i < count; i++) {
+    if (!pb_encode_varint(&sizing, values[i])) return false;
+  }
+  if (!pb_encode_tag(stream, PB_WT_STRING, tag) || !pb_encode_varint(stream, sizing.bytes_written)) return false;
+  for (size_t i = 0; i < count; i++) {
+    if (!pb_encode_varint(stream, values[i])) return false;
+  }
+  return true;
+}
+
+static bool encode_sample(
+  pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, const uint64_t *values, size_t value_count,
+  const miteruby_pprof_fragment_sample_sample_label_t *labels, size_t label_count
+) {
+  if (!encode_packed_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LOCATION_ID_TAG, location_ids, location_count) ||
+      !encode_packed_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, values, value_count)) return false;
+  for (size_t i = 0; i < label_count; i++) {
+    if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
+        !pb_encode_submessage(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i])) return false;
+  }
+  return true;
+}
+
+static void emit_sample_fragment(
+  pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, miteruby_sample_values values,
+  const streaming_thread_context *context, int64_t end_timestamp_ns
+) {
+  // Protobuf int64 uses two's-complement varints, so signed values are cast to uint64_t, not zigzag encoded.
+  uint64_t sample_values[] = {
+    (uint64_t) values.cpu_time_ns, values.cpu_or_wall_samples, (uint64_t) values.wall_time_ns,
+    values.alloc_samples, values.alloc_samples_unscaled, (uint64_t) values.timeline_wall_time_ns,
+  };
+  miteruby_pprof_fragment_sample_sample_label_t labels[] = {
+    {.key = PPROF_STRING_THREAD_ID, .str = context->thread_id_string_id},
+    {.key = PPROF_STRING_THREAD_NAME, .str = context->thread_name_string_id},
+    {.key = PPROF_STRING_STATE, .str = PPROF_STRING_HAD_CPU},
+    {.key = PPROF_STRING_MITERUBY, .num = 1},
+    {.key = PPROF_STRING_END_TIMESTAMP_NS, .num = end_timestamp_ns},
+  };
+  size_t value_count = sizeof(sample_values) / sizeof(sample_values[0]);
+  size_t label_count = sizeof(labels) / sizeof(labels[0]);
+  pb_ostream_t sizing = PB_OSTREAM_SIZING;
+  if (!encode_sample(&sizing, location_ids, location_count, sample_values, value_count, labels, label_count))
+    rb_raise(rb_eRuntimeError, "Failed to size streaming sample: %s", PB_GET_ERROR(&sizing));
+  if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_TAG) ||
+      !pb_encode_varint(stream, sizing.bytes_written) ||
+      !encode_sample(stream, location_ids, location_count, sample_values, value_count, labels, label_count))
+    rb_raise(rb_eRuntimeError, "Failed to encode streaming sample: %s", PB_GET_ERROR(stream));
 }
 
 void miteruby_streaming_serializer_prepare_serialize(
@@ -403,17 +463,33 @@ void miteruby_streaming_serializer_prepare_serialize(
   if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, &profile))
     rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata: %s", PB_GET_ERROR(&stream));
 
-  state->uncompressed_serialization_size = stream.bytes_written;
-  state->finish_time_ns = finish_time_ns;
-
+  // Emit FragmentSample
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
+    uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
+    bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || stack.frame_count == 0;
+    size_t frame_offset = (event->header.flags & MITERUBY_EVENT_FROM_SIGNAL_HANDLER) ? 1 : 0;
+    size_t location_count = (unavailable ? 1 : stack.frame_count) + frame_offset + 1;
+    uint64_t location_ids[location_count];
+    location_ids[location_count - 1] = PPROF_LOCATION_ROOT;
+    if (frame_offset != 0) location_ids[0] = PPROF_LOCATION_SIGHANDLER;
+    if (unavailable) {
+      location_ids[frame_offset] = PPROF_LOCATION_NATIVE;
+    } else {
+      read_location_ids(stack, location_ids + frame_offset);
+      if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
+    }
     miteruby_sample_values values = sample_values_for(&state->thread_contexts, event->thread.value, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns);
-    record_stack_sample(state, event, stack, values, end_timestamp_ns);
+    emit_sample_fragment(
+      &stream, location_ids, location_count, values, thread_context_for(&state->thread_contexts, event->thread.value), end_timestamp_ns
+    );
+    state->recorded_samples++;
     pos += event->header.size_bytes;
   }
+  state->uncompressed_serialization_size = stream.bytes_written;
+  state->finish_time_ns = finish_time_ns;
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
