@@ -2949,17 +2949,17 @@ require "datadog"
 require "datadog/open_feature/provider"
 
 provider = Datadog::OpenFeature::Provider.new(
-  flag_selection: {tags: ["team:checkout"], key_patterns: ["checkout.*"]},
+  flag_selection: {tags: ["checkout"], key_patterns: ["checkout.*"]},
 )
 OpenFeature::SDK.set_provider_and_wait(provider)
 ```
 
-- A flag is loaded when it has any of the tags or its key matches any of the key patterns, where `*` matches any run of characters. Evaluating a flag outside the selection returns the default value.
+- A flag is loaded when it has any of the tags or its key matches any of the key patterns. Tags match exactly. A key pattern matches the whole key: `*` matches any run of characters, including none, and every other character, such as `.` or `?`, is literal. Matching is case-sensitive. Evaluating a flag outside the selection returns the default value with the `FLAG_NOT_FOUND` error code.
 - `tags` and `key_patterns` are optional arrays of strings, with Symbol or String keys. Other keys, such as `keyPatterns`, are ignored.
 - Surrounding whitespace, empty values, and duplicates are removed. Each list accepts at most 31 values, and each value at most 200 UTF-8 bytes.
 - The selection is a provider option only, with no environment variable or `Datadog.configure` setting.
 - Unlike `enable_evaluation_telemetry_opt_out_parameter`, an invalid selection never raises. The provider logs an error, loads every flag, and still becomes ready. It does the same when the request URL with the selection would exceed 8192 bytes, or when the server cannot apply the selection.
-- All providers in a process share one flag configuration. The first provider to fetch it sets the selection; a later provider with a different selection, or none, logs a warning and uses the first selection. Once every provider has shut down, the next provider sets the selection again.
+- All providers in a process share one flag configuration. The first provider to fetch it sets the selection; a later provider with a different selection, or none, uses the first selection, and the first such provider in the process logs a warning. Once every provider has shut down, the next provider sets the selection again.
 - With `remote_config` delivery, the selection is not applied: the provider logs a warning and loads every flag.
 - These errors and warnings go to the Datadog logger, which prints them by default.
 

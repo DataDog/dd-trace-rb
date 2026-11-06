@@ -677,16 +677,20 @@ RSpec.describe Datadog::OpenFeature::Activation do
         activation.activate(second_provider)
 
         expect(logger).not_to have_received(:warn).with(differs_warning)
+        expect(logger).not_to have_received(:error)
+        expect(telemetry).not_to have_received(:inc)
       end
     end
 
     it "releases the claim when the last provider detaches" do
       replacement_component = instance_double(Datadog::OpenFeature::Component, shutdown!: nil)
       allow(Datadog::OpenFeature::Component).to receive(:build).and_return(component, replacement_component)
+      third_provider = instance_double(Datadog::OpenFeature::Provider, after_fork: nil, flag_selection: second_selection)
       activation.activate(provider)
       activation.deactivate(provider)
 
       expect(activation.activate(second_provider)).to be(replacement_component)
+      activation.activate(third_provider)
       expect(requested_urls).to eq(
         [
           "https://example.test/config?selected_flag_tags=team%3Aa",
@@ -733,6 +737,35 @@ RSpec.describe Datadog::OpenFeature::Activation do
 
         expect(logger).to have_received(:error).with(not_sent_error).once
         expect(logger).to have_received(:warn).with(differs_warning).once
+      end
+    end
+
+    context "when agentless delivery does not start" do
+      let(:provider_selection) { selection(tags: ["a" * 201]) }
+
+      before { allow(configuration_source).to receive(:start).and_return(false) }
+
+      it "reports nothing for the starting or a joining provider" do
+        expect(activation.activate(provider)).to be_nil
+        expect(activation.activate(second_provider)).to be_nil
+        expect(logger).not_to have_received(:error)
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+        expect(telemetry).not_to have_received(:inc)
+      end
+    end
+
+    context "when the custom endpoint query ends in a stray percent sign" do
+      let(:endpoint) do
+        Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
+          URI("https://example.test/config?token=abc%"),
+          managed: false,
+        )
+      end
+
+      it "requests the endpoint as built and reports the selection as not sent" do
+        expect(activation.activate(provider)).to be(component)
+        expect(requested_endpoints).to eq([endpoint])
+        expect(logger).to have_received(:error).with(/\Aflag_selection was not sent \(/).once
       end
     end
 
@@ -787,10 +820,26 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(logger).not_to have_received(:error)
       end
 
+      it "warns for a selection that would be dropped when Remote Configuration started before the provider" do
+        allow(provider).to receive(:flag_selection).and_return(selection(tags: [1]))
+        activation.start!
+        activation.activate(provider)
+
+        expect(logger).to have_received(:warn).with(remote_config_warning).once
+        expect(logger).not_to have_received(:error)
+      end
+
       context "without a selection" do
         let(:provider_selection) { nil }
 
         it "does not warn" do
+          activation.activate(provider)
+
+          expect(logger).not_to have_received(:warn).with(remote_config_warning)
+        end
+
+        it "does not warn when Remote Configuration started before the provider" do
+          activation.start!
           activation.activate(provider)
 
           expect(logger).not_to have_received(:warn).with(remote_config_warning)
@@ -809,6 +858,16 @@ RSpec.describe Datadog::OpenFeature::Activation do
             "Loading the full flag configuration.",
         ).once
       end
+    end
+
+    it "keeps the once-per-process warnings when the activation is rebuilt" do
+      activation.activate(provider)
+      activation.activate(second_provider)
+      rebuilt = described_class.new(settings, agent_settings, remote, logger: logger, telemetry: telemetry)
+      rebuilt.activate(provider)
+      rebuilt.activate(second_provider)
+
+      expect(logger).to have_received(:warn).with(differs_warning).once
     end
 
     it "resets the once-per-process warnings in a forked child" do

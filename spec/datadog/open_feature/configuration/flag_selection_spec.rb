@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "timeout"
 require "spec_helper"
 require_relative "../../../../tasks/lib/fixtures/ffe"
 require "datadog/open_feature/configuration/flag_selection"
@@ -99,6 +100,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::FlagSelection do
       "a Symbol element" => {key_patterns: [:checkout]},
       "a UTF-8 String with invalid bytes" => {tags: [(+"team:\xFF").force_encoding(Encoding::UTF_8)]},
       "a binary String with non-ASCII bytes" => {tags: ["team:\u00E9".b]},
+      "a String in an encoding without a UTF-8 converter" => {tags: [(+"team:a").force_encoding(Encoding::UTF_7)]},
       "both spellings of one key" => {:tags => ["team:a"], "tags" => ["team:b"]},
       "a malformed key pattern list with too many tags" => {tags: Array.new(32) { |index| "t#{index}" }, key_patterns: [1]},
     }
@@ -128,6 +130,12 @@ RSpec.describe Datadog::OpenFeature::Configuration::FlagSelection do
       expect(canonicalize(tags: ["\u00E9" * 100])).not_to be_dropped
       expect(canonicalize(tags: ["\u00E9" * 100 + "a"]).drop_reason).to eq("invalid_tag")
     end
+
+    it "trims a long value with interior whitespace in linear time" do
+      value = "a" + " " * 100_000 + "b"
+
+      expect(Timeout.timeout(1) { canonicalize(tags: [value]) }.drop_reason).to eq("invalid_tag")
+    end
   end
 
   describe "#==" do
@@ -150,6 +158,10 @@ RSpec.describe Datadog::OpenFeature::Configuration::FlagSelection do
       expect(selection.query).to eq(
         "selected_flag_tags=team%3Aa&selected_flag_tags=team%3Ab&selected_flag_key_patterns=checkout.%2A",
       )
+    end
+
+    it "leaves uppercase letters, digits, and the other unreserved characters unencoded" do
+      expect(canonicalize(tags: ["AZaz09-._~"]).query).to eq("selected_flag_tags=AZaz09-._~")
     end
 
     it "percent-encodes every byte outside the RFC 3986 unreserved set with uppercase hex" do

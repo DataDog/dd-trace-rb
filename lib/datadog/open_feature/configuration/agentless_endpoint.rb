@@ -100,6 +100,9 @@ module Datadog
           return if selected_uri.to_s.bytesize > FlagSelection::MAX_URL_BYTES
 
           self.class.new(selected_uri, managed: managed?, flag_selection_sent: true)
+        # URI.parse keeps an incomplete percent escape at the end of a custom query, but #query= rejects it once text follows.
+        rescue URI::InvalidURIError
+          nil
         end
 
         # Excludes userinfo, path, and query, which may carry credentials.

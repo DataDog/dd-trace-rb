@@ -158,6 +158,15 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
       end
     end
 
+    context "with a custom endpoint whose query ends in a stray percent sign" do
+      let(:base_url) { "https://proxy.example.test/ufc?token=abc%" }
+
+      it "returns nil instead of raising" do
+        expect(endpoint.uri.query).to eq("token=abc%")
+        expect(selected_endpoint).to be_nil
+      end
+    end
+
     context "with a custom endpoint without a query" do
       let(:base_url) { "http://localhost:8126" }
 

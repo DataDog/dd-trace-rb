@@ -24,7 +24,9 @@ module Datadog
         }.freeze
 
         # Not String#strip, which misses Unicode White_Space and strips NUL.
-        SURROUNDING_WHITE_SPACE = /\A\p{White_Space}+|\p{White_Space}+\z/
+        # The lookbehind keeps the trailing branch from rescanning an interior run, which is quadratic before
+        # Ruby 3.2 added match memoization: https://bugs.ruby-lang.org/issues/19104
+        SURROUNDING_WHITE_SPACE = /\A\p{White_Space}+|(?<!\p{White_Space})\p{White_Space}+\z/
         # RFC 3986 unreserved characters. Form encoding would send a space as "+".
         RESERVED_BYTE = /[^A-Za-z0-9\-._~]/n
 
@@ -43,7 +45,7 @@ module Datadog
             return if tags.empty? && key_patterns.empty?
 
             new(tags: tags, key_patterns: key_patterns)
-          rescue EncodingError, ArgumentError
+          rescue EncodingError, ArgumentError, RegexpError
             new(drop_reason: MALFORMED_SELECTION)
           end
 
