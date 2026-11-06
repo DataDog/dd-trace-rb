@@ -41,6 +41,7 @@ static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t r
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN mark_threads_calloc
 #define FREE_FN miteruby_allocator_free_sized
+#define IMPLEMENTATION_MODE
 #include "hashtable/verstable.h"
 
 #define NAME verstable_mark_cme_iseq_set
@@ -422,7 +423,7 @@ static VALUE prepare_serialize_locked(VALUE args) {
   prepare_serialize_args *recorders = (prepare_serialize_args *) args;
   miteruby_streaming_serializer_prepare_serialize(
     recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
-    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array
+    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
