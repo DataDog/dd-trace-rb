@@ -103,7 +103,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     worker.stop(true, 0)
     span_hook.shutdown
     metric_reader.shutdown
-    api_configuration.send(:reset)
+    api_configuration.set_provider_and_wait(OpenFeature::SDK::Provider::NoOpProvider.new)
   end
 
   def context(subject, value)
