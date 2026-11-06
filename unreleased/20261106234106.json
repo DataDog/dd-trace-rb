@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6653",
+  "message": "Fix remote settings from the Datadog UI, such as Dynamic Instrumentation enablement, being ignored by services whose `DD_SERVICE` or `DD_ENV` differs from the name shown in the UI (`MyApp` shown as `myapp`) or that run without `DD_ENV`."
+}
