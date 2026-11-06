@@ -1,10 +1,10 @@
 #include "libdatadog_recorder.h"
 #include "custom_profile.h"
-#include "../datadog_ruby_common.h"
-#include "../encoded_profile.h"
-#include "../helpers.h"
-#include "../ruby_helpers.h"
-#include "../time_helpers.h"
+#include "../../datadog_ruby_common.h"
+#include "../../encoded_profile.h"
+#include "../../helpers.h"
+#include "../../ruby_helpers.h"
+#include "../../time_helpers.h"
 
 #include <ruby/thread.h>
 
