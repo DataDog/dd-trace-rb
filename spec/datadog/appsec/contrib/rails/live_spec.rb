@@ -59,117 +59,45 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
 
   let(:logger) { Logger.new(log_output) }
-  let(:routes) do
-    {
-      "/live" => "live#stream",
-      "/live/current_context" => "live#current_context",
-      "/live/query_before_commit" => "live#query_before_commit",
-      "/live/query_after_write" => "live#query_after_write",
-      "/live/query_after_close" => "live#query_after_close",
-      "/live/query_after_response_body" => "live#query_after_response_body",
-      "/live/safe_query_after_write" => "live#safe_query_after_write",
-    }
-  end
-  let(:controllers) { [controller] }
-  let(:controller) do
+  let(:routes) { {"/live" => "live#index"} }
+  let(:controllers) do
     signals = live_signals
+    index = action
 
-    stub_const(
-      "LiveController",
-      Class.new(ActionController::Base) do
-        include ActionController::Live
+    [
+      stub_const(
+        "LiveController",
+        Class.new(ActionController::Base) do
+          include ActionController::Live
 
-        after_action only: :stream do
-          signals[:resumed].pop
+          define_method(:signals) { signals }
+          define_method(:index, &index)
 
-          signals[:result].push(
-            begin
-              [Datadog::AppSec.active_context, ActiveRecord::Base.connection.select_value("SELECT 1")]
-            rescue => e
-              e
-            end,
-          )
-        end
+          private
 
-        def stream
-          response.stream.write("ok")
-        ensure
-          response.stream.close
-        end
+          def sql_injection_query
+            signals[:steps] << :before_query
+            ActiveRecord::Base.connection.select_value("SELECT '#{params[:name]}'")
+            signals[:steps] << :after_query
+          end
+        end,
+      ),
+    ]
+  end
+  let(:action) do
+    proc do
+      signals[:result].push([Datadog::AppSec.active_context, request.env[Datadog::AppSec::Ext::CONTEXT_KEY]])
 
-        define_method(:current_context) do
-          signals[:result].push([Datadog::AppSec.active_context, request.env[Datadog::AppSec::Ext::CONTEXT_KEY]])
-
-          response.stream.write("ok")
-          response.stream.close
-        end
-
-        define_method(:query_before_commit) do
-          signals[:steps] << :before_query
-          ActiveRecord::Base.connection.select_value("SELECT '#{params[:name]}'")
-          signals[:steps] << :after_query
-
-          response.stream.write("ok")
-          response.stream.close
-        end
-
-        define_method(:query_after_write) do
-          response.headers["Last-Modified"] = "Wed, 21 Oct 2015 07:28:00 GMT"
-          signals[:streams] << response.stream
-          response.stream.write("ok")
-
-          signals[:resumed].pop
-          signals[:steps] << :before_query
-          ActiveRecord::Base.connection.select_value("SELECT '#{params[:name]}'")
-          signals[:steps] << :after_query
-
-          response.stream.close
-        end
-
-        define_method(:query_after_close) do
-          response.stream.close
-
-          signals[:resumed].pop
-          signals[:steps] << :before_query
-          ActiveRecord::Base.connection.select_value("SELECT '#{params[:name]}'")
-          signals[:steps] << :after_query
-        end
-
-        define_method(:query_after_response_body) do
-          self.response_body = "ok"
-
-          signals[:resumed].pop
-          signals[:steps] << :before_query
-          ActiveRecord::Base.connection.select_value("SELECT '#{params[:name]}'")
-          signals[:steps] << :after_query
-        end
-
-        define_method(:safe_query_after_write) do
-          response.headers["Last-Modified"] = "Wed, 21 Oct 2015 07:28:00 GMT"
-          response.stream.write("ok")
-
-          signals[:resumed].pop
-          signals[:result].push(ActiveRecord::Base.connection.select_value("SELECT 1"))
-          signals[:decided].pop
-
-          response.stream.close
-        end
-      end,
-    )
+      response.stream.write("ok")
+      response.stream.close
+    end
   end
   let(:live_signals) do
     {resumed: Queue.new, result: Queue.new, detached: Queue.new, decided: Queue.new, steps: [], streams: []}
   end
-  let(:after_action_result) do
-    Timeout.timeout(5) do
-      get_live("/live")
-      live_signals[:resumed].push(true)
-      live_signals[:result].pop
-    end
-  end
 
-  def get_live(path, params = {})
-    get(path, params, {"SERVER_PROTOCOL" => "HTTP/1.1", "HTTP_VERSION" => "HTTP/1.1"})
+  def get_live(params = {})
+    get("/live", params, {"SERVER_PROTOCOL" => "HTTP/1.1", "HTTP_VERSION" => "HTTP/1.1"})
   end
 
   def wait_for_controller_thread
@@ -178,9 +106,9 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     end
   end
 
-  def stream_after_request_thread_returned(path)
+  def stream_after_request_thread_returned
     Timeout.timeout(5) do
-      status, _headers, body = app.call(Rack::MockRequest.env_for(path, params: {"name" => "1' OR '1'='1"}))
+      status, _headers, body = app.call(Rack::MockRequest.env_for("/live", params: {"name" => "1' OR '1'='1"}))
       live_signals[:resumed].push(true)
 
       chunks = []
@@ -193,6 +121,36 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
 
   context "when after_action runs a query after the request ended in the request thread" do
+    let(:controllers) do
+      super().each do |controller|
+        controller.after_action do
+          signals[:resumed].pop
+
+          signals[:result].push(
+            begin
+              [Datadog::AppSec.active_context, ActiveRecord::Base.connection.select_value("SELECT 1")]
+            rescue => e
+              e
+            end,
+          )
+        end
+      end
+    end
+    let(:action) do
+      proc do
+        response.stream.write("ok")
+      ensure
+        response.stream.close
+      end
+    end
+    let(:after_action_result) do
+      Timeout.timeout(5) do
+        get_live
+        live_signals[:resumed].push(true)
+        live_signals[:result].pop
+      end
+    end
+
     it "runs the query without error" do
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.last).to eq(1)
@@ -202,12 +160,40 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
       expect(after_action_result).not_to be_a(Exception)
       expect(after_action_result.first).to be_a(Datadog::AppSec::Context)
     end
+
+    context "when request thread returns before live thread ends" do
+      before do
+        allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
+          finalized_threads << Thread.current
+          method.call
+        end
+
+        after_action_result
+        wait_for_controller_thread
+      end
+
+      let(:finalized_threads) { [] }
+
+      it "frees the WAF once in the live thread" do
+        expect(finalized_threads.size).to eq(1)
+        expect(finalized_threads.first).not_to eq(Thread.current)
+      end
+    end
   end
 
   context "when live thread is blocked while request thread waits for commit" do
     before do
-      Timeout.timeout(5) { get_live("/live/query_before_commit", {"name" => "1' OR '1'='1"}) }
+      Timeout.timeout(5) { get_live({"name" => "1' OR '1'='1"}) }
       wait_for_controller_thread
+    end
+
+    let(:action) do
+      proc do
+        sql_injection_query
+
+        response.stream.write("ok")
+        response.stream.close
+      end
     end
 
     it { expect(last_response.status).to eq(200) }
@@ -215,13 +201,25 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
 
   context "when live thread is blocked after request thread returned" do
+    let(:action) do
+      proc do
+        response.headers["Last-Modified"] = "Wed, 21 Oct 2015 07:28:00 GMT"
+        response.stream.write("ok")
+
+        signals[:resumed].pop
+        sql_injection_query
+
+        response.stream.close
+      end
+    end
+
     it "ends the stream without running the query" do
-      expect(stream_after_request_thread_returned("/live/query_after_write")).to eq([200, "ok"])
+      expect(stream_after_request_thread_returned).to eq([200, "ok"])
       expect(live_signals[:steps]).to eq([:before_query])
     end
 
     it "does not log live thread errors" do
-      stream_after_request_thread_returned("/live/query_after_write")
+      stream_after_request_thread_returned
 
       expect(log_output.string).not_to include("FATAL")
       expect(log_output.string).not_to include("UncaughtThrowError")
@@ -229,16 +227,34 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
   end
 
   context "when live thread is blocked after stream was closed and request thread returned" do
+    let(:action) do
+      proc do
+        response.stream.close
+
+        signals[:resumed].pop
+        sql_injection_query
+      end
+    end
+
     it "does not run the query" do
-      expect(stream_after_request_thread_returned("/live/query_after_close").first).to eq(200)
+      expect(stream_after_request_thread_returned.first).to eq(200)
       expect(live_signals[:steps]).to eq([:before_query])
       expect(log_output.string).not_to include("FATAL")
     end
   end
 
   context "when live thread is blocked after response body was set and request thread returned" do
+    let(:action) do
+      proc do
+        self.response_body = "ok"
+
+        signals[:resumed].pop
+        sql_injection_query
+      end
+    end
+
     it "does not run the query" do
-      expect(stream_after_request_thread_returned("/live/query_after_response_body").first).to eq(200)
+      expect(stream_after_request_thread_returned.first).to eq(200)
       expect(live_signals[:steps]).to eq([:before_query])
       expect(log_output.string).not_to include("FATAL")
     end
@@ -255,7 +271,20 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         method.call(name, *args, &block)
       end
 
-      Timeout.timeout(5) { get_live("/live/query_after_write", {"name" => "1' OR '1'='1"}) }
+      Timeout.timeout(5) { get_live({"name" => "1' OR '1'='1"}) }
+    end
+
+    let(:action) do
+      proc do
+        response.headers["Last-Modified"] = "Wed, 21 Oct 2015 07:28:00 GMT"
+        signals[:streams] << response.stream
+        response.stream.write("ok")
+
+        signals[:resumed].pop
+        sql_injection_query
+
+        response.stream.close
+      end
     end
 
     it { expect(last_response.status).to eq(200) }
@@ -283,11 +312,23 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
       end
 
       Timeout.timeout(5) do
-        get_live("/live/safe_query_after_write")
+        get_live
         wait_for_controller_thread
       end
     end
 
+    let(:action) do
+      proc do
+        response.headers["Last-Modified"] = "Wed, 21 Oct 2015 07:28:00 GMT"
+        response.stream.write("ok")
+
+        signals[:resumed].pop
+        signals[:result].push(ActiveRecord::Base.connection.select_value("SELECT 1"))
+        signals[:decided].pop
+
+        response.stream.close
+      end
+    end
     let(:rasp_threads) { [] }
 
     it { expect(last_response.status).to eq(200) }
@@ -307,7 +348,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         method.call(name, *args, &block)
       end
 
-      Timeout.timeout(5) { get_live("/live/current_context") }
+      Timeout.timeout(5) { get_live }
     end
 
     it { expect(last_response.status).to eq(403) }
@@ -325,7 +366,7 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         method.call
       end
 
-      Timeout.timeout(5) { get_live("/live/current_context") }
+      Timeout.timeout(5) { get_live }
     end
 
     let(:finalized_threads) { [] }
@@ -333,30 +374,11 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
     it { expect(finalized_threads).to eq([Thread.current]) }
   end
 
-  context "when request thread returns before live thread ends" do
-    before do
-      allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:finalize!).and_wrap_original do |method|
-        finalized_threads << Thread.current
-        method.call
-      end
-
-      after_action_result
-      wait_for_controller_thread
-    end
-
-    let(:finalized_threads) { [] }
-
-    it "frees the WAF once in the live thread" do
-      expect(finalized_threads.size).to eq(1)
-      expect(finalized_threads.first).not_to eq(Thread.current)
-    end
-  end
-
   context "when two live requests run one after the other" do
     before do
       Timeout.timeout(5) do
-        get_live("/live/current_context")
-        get_live("/live/current_context")
+        get_live
+        get_live
       end
     end
 
