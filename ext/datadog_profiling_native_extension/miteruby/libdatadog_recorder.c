@@ -8,6 +8,13 @@
 
 #include <ruby/thread.h>
 
+// IMPORTANT NOTE
+//
+// This is a throwaway prototype that exists for the sole purpose of making it easier to compare miteruby
+// serialization code with libdatadog serialization code.
+// The `streaming_serializer` is the "real" miteruby serialization code, and this file shouldn't be taken very
+// seriously.
+
 static const ddog_prof_SampleType sample_types[] = {
   DDOG_PROF_SAMPLE_TYPE_CPU_TIME,
   DDOG_PROF_SAMPLE_TYPE_CPU_SAMPLES,

@@ -12,6 +12,13 @@
 #include <stdio.h>
 #include <string.h>
 
+// IMPORTANT NOTE
+//
+// This is a throwaway prototype that exists for the sole purpose of making it easier to compare miteruby
+// serialization code with libdatadog serialization code.
+// The `streaming_serializer` is the "real" miteruby serialization code, and this file shouldn't be taken very
+// seriously.
+
 #define THREAD_ID_LIMIT_CHARS 44
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define MITERUBY_DEBUG_SIGHANDLER_FRAME true
