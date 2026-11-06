@@ -81,6 +81,13 @@ libdatadog_version = gem_version_mapping.fetch('libdatadog')
 puts "=== libdatadog version ==="
 puts libdatadog_version
 
+msgpack_version = gem_version_mapping.fetch('msgpack')
+puts "=== msgpack version ==="
+puts msgpack_version
+
+cgi_version = gem_version_mapping.fetch('cgi')
+puts "=== cgi version ==="
+puts cgi_version
 
 env = {
   'GEM_HOME' => versioned_path.to_s,
@@ -175,10 +182,18 @@ unless lockfile.sub!(/\nCHECKSUMS\n.*?(?=\n[A-Z][A-Z ]+\n|\z)/m, checksum_sectio
 end
 File.write(lock_file_path, lockfile)
 
+# RubyGems puts each gem's extensions dir on the require path after `lib`,
+# so the compiled extensions load from there without the gem-dir `lib/`
+# copies; the SSI package dedup requires the ffi, msgpack and cgi gem dirs
+# to be byte-identical across gem homes.
 FileUtils.rm_r(
   [
     *cached_gems,
     versioned_path.join("gems/ffi-#{ffi_version}/ext"),
+    versioned_path.join("gems/msgpack-#{msgpack_version}/ext"),
+    versioned_path.join("gems/ffi-#{ffi_version}/lib/ffi_c.so"),
+    versioned_path.join("gems/msgpack-#{msgpack_version}/lib/msgpack/msgpack.so"),
+    versioned_path.join("gems/cgi-#{cgi_version}/lib/cgi/escape.so"),
   ],
   verbose: true
 )
