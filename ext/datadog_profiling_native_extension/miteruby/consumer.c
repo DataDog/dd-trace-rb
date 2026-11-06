@@ -421,11 +421,11 @@ void miteruby_consumer_prepare_serialize(VALUE recorder_instance, VALUE streamin
 
 static VALUE prepare_serialize_locked(VALUE args) {
   prepare_serialize_args *recorders = (prepare_serialize_args *) args;
+  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   miteruby_streaming_serializer_prepare_serialize(
     recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
-    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
+    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set, &time_converter
   );
-  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
   for (size_t pos = 0; pos < consumer_state.interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(consumer_state.interned_events_queue + pos);
