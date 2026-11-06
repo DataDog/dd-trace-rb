@@ -33,6 +33,14 @@ static void test_sample_values(void) {
   size_t allocated_bytes = 0;
   for (int serialization = 0; serialization < 2; serialization++) {
     verstable_streaming_thread_contexts_map_clear(&contexts);
+    if (serialization == 1) {
+      for (int thread = 1; thread <= 2; thread++) {
+        streaming_thread_context *context = thread_context_for(&contexts, INT2FIX(thread));
+        context->thread_name_string_id = 22 + thread * 2;
+        context->thread_id_string_id = context->thread_name_string_id + 1;
+        assert(!context->has_previous_sample);
+      }
+    }
     for (size_t i = 0; i < sizeof(samples) / sizeof(samples[0]); i++) {
       miteruby_event_deduped_sample_t event = {
         .header = {.cpu_time = {.ns = samples[i].cpu}, .timestamp = {.ns = samples[i].monotonic}},
@@ -42,6 +50,12 @@ static void test_sample_values(void) {
       assert(values.wall_time_ns == samples[i].expected_wall);
       assert(values.cpu_or_wall_samples == 1);
       assert(values.alloc_samples == 0 && values.alloc_samples_unscaled == 0 && values.timeline_wall_time_ns == 0);
+      streaming_thread_context *context = thread_context_for(&contexts, INT2FIX(samples[i].thread));
+      assert(context->has_previous_sample);
+      if (serialization == 1) {
+        assert(context->thread_name_string_id == 22 + samples[i].thread * 2);
+        assert(context->thread_id_string_id == context->thread_name_string_id + 1);
+      }
     }
     assert(verstable_streaming_thread_contexts_map_size(&contexts) == 2);
     if (serialization == 0) allocated_bytes = miteruby_allocator_requested_bytes();
