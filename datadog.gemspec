@@ -13,7 +13,6 @@ Gem::Specification.new do |spec|
   spec.version = Datadog::VERSION::STRING
   # required_ruby_version should be in a single line due to test-head workflow `sed` to unlock the version
   spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"] # rubocop:disable Layout/LineLength
-  spec.required_rubygems_version = ">= 2.7.3"
   spec.authors = ["Datadog, Inc."]
   spec.email = ["dev@datadoghq.com"]
 
