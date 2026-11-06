@@ -6,6 +6,12 @@
 #include "../private_vm_api_access.h"
 
 typedef struct {
+  miteruby_event_frame_refs_t *entries;
+  size_t count;
+  size_t capacity;
+} miteruby_mark_cme_iseq_array_t;
+
+typedef struct {
   miteruby_cme_iseq_id_t cme_iseq_id;
   miteruby_event_frame_position_t position;
 } miteruby_location_t;
