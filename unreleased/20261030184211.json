@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6597",
+  "message": "Fix missing `_dd.appsec.enabled` tags when the library is enabled through stable configuration, as Single Step Instrumentation delivers it: automatic instrumentation now runs whenever the resolved `appsec.enabled` setting is true."
+}

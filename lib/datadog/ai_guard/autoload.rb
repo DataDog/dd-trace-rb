@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-if %w[1 true].include?((Datadog::DATADOG_ENV["DD_AI_GUARD_ENABLED"] || "").downcase)
+if Datadog.configuration.ai_guard.enabled
   begin
     require_relative "contrib/auto_instrument"
     Datadog::AIGuard::Contrib::AutoInstrument.patch_all
