@@ -3046,7 +3046,7 @@ If traces are missing, enable [debug mode](#debugging-and-diagnostics) to check 
 
 Since debug mode is verbose, **Datadog does not recommend leaving this enabled or enabling this in production.** Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
 
-Partial flushing is enabled by default and breaks down large traces into smaller chunks after 500 spans finish. If traces are still dropped due to large payloads, lower [`tracing.partial_flush.min_spans_threshold`](#additional-configuration). If you have disabled partial flushing, re-enable it with `c.tracing.partial_flush.enabled = true` in `Datadog.configure`.
+Partial flushing is enabled by default and splits large traces into smaller chunks after 500 spans finish. If traces are still dropped due to large payloads, lower [`tracing.partial_flush.min_spans_threshold`](#additional-configuration). If you have disabled partial flushing, re-enable it by setting `c.tracing.partial_flush.enabled = true` in `Datadog.configure`.
 
 ### Stack level too deep
 
