@@ -4,7 +4,17 @@ module Datadog
       module Aws
         module Service
           class States < Base
+            SERVICE: ::String
+
+            STATE_MACHINE_RESOURCE_TYPES: ::Array[::String]
+
+            EXECUTION_RESOURCE_TYPES: ::Array[::String]
+
             def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def target_identity: (Arn arn, ::String name) -> ::Array[::String?]
           end
         end
       end

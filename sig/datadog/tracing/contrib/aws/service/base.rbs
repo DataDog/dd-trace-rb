@@ -5,6 +5,10 @@ module Datadog
         module Service
           class Base
             def add_tags: (untyped span, untyped params) -> nil
+
+            private
+
+            def set_resolved_name: (untyped span, ::String key, untyped name) -> untyped
           end
         end
       end
