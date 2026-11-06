@@ -18,6 +18,9 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 enum { COMPRESSION_LEVEL = 1 };
 
 typedef struct {
+  int64_t thread_name_string_id;
+  int64_t thread_id_string_id;
+  bool has_previous_sample;
   cpu_time_t cpu_time_at_previous_sample;
   monotonic_time_t monotonic_time_at_previous_sample;
 } streaming_thread_context;
@@ -182,19 +185,27 @@ static void record_stack_sample(
   state->recorded_samples++;
 }
 
+static streaming_thread_context *thread_context_for(
+  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread
+) {
+  verstable_streaming_thread_contexts_map_itr entry = verstable_streaming_thread_contexts_map_get_or_insert(
+    thread_contexts, thread, (streaming_thread_context) {0}
+  );
+  if (verstable_streaming_thread_contexts_map_is_end(entry)) rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
+  return &entry.data->val;
+}
+
 static miteruby_sample_values sample_values_for(
   verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread, const miteruby_event_deduped_sample_t *event
 ) {
   cpu_time_t cpu_time = event->header.cpu_time;
   monotonic_time_t monotonic_time = event->header.timestamp;
-  verstable_streaming_thread_contexts_map_itr entry = verstable_streaming_thread_contexts_map_get_or_insert(
-    thread_contexts, thread, (streaming_thread_context) {
-      .cpu_time_at_previous_sample = cpu_time,
-      .monotonic_time_at_previous_sample = monotonic_time,
-    }
-  );
-  if (verstable_streaming_thread_contexts_map_is_end(entry)) rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
-  streaming_thread_context *context = &entry.data->val;
+  streaming_thread_context *context = thread_context_for(thread_contexts, thread);
+  if (!context->has_previous_sample) {
+    context->cpu_time_at_previous_sample = cpu_time;
+    context->monotonic_time_at_previous_sample = monotonic_time;
+    context->has_previous_sample = true;
+  }
   miteruby_sample_values values = {
     .wall_time_ns = monotonic_time.ns - context->monotonic_time_at_previous_sample.ns,
     .cpu_or_wall_samples = 1,
@@ -345,12 +356,16 @@ void miteruby_streaming_serializer_prepare_serialize(
   }
 
   // Emit FragmentStringTable: From profile data - threads
+  int64_t thread_string_id = PPROF_STRING_FIRST_DYNAMIC;
   for (
     verstable_mark_threads_set_itr entry = verstable_mark_threads_set_first(threads_set);
     !verstable_mark_threads_set_is_end(entry);
     entry = verstable_mark_threads_set_next(entry)
   ) {
     VALUE thread = entry.data->key;
+    streaming_thread_context *context = thread_context_for(&state->thread_contexts, thread);
+    context->thread_name_string_id = thread_string_id++;
+    context->thread_id_string_id = thread_string_id++;
     // Upcall into Ruby: Thread metadata (name, id, etc)
     emit_thread_name(&stream, thread);
     emit_thread_id(&stream, thread);
