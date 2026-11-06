@@ -2297,9 +2297,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       samples_from_pprof(miteruby_recorder.serialize!)
     end
 
-    it "emits function names and filenames in the streaming string table" do
+    it "emits streaming functions, strings, and locations with Ruby line numbers" do
       stub_const("MiterubyStringEmission", Class.new do
         def capture
+          yield
           yield
         end
       end)
@@ -2318,6 +2319,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         "(TODO: resolve filename for cfuncs)",
       ])
       expect(profile.function.map(&:id)).to eq((1..profile.function.size).to_a)
+      expect(profile.location.size).to eq(cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
+      expect(profile.location.map(&:id)).to eq((1..profile.location.size).to_a)
+      frames = profile.location.map { |location| decode_frame_from_pprof(profile, location.id) }
+      source_file, source_line = MiterubyStringEmission.instance_method(:capture).source_location
+      expect(frames).to include(
+        ProfileHelpers::Frame.new("MiterubyStringEmission#capture", source_file, source_line + 1),
+        ProfileHelpers::Frame.new("MiterubyStringEmission#capture", source_file, source_line + 2),
+        ProfileHelpers::Frame.new(
+          "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal",
+          "(TODO: resolve filename for cfuncs)",
+          0,
+        ),
+      )
     end
 
     it "passes every buffered event to both backends before clearing the queue" do
