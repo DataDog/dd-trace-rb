@@ -5,6 +5,8 @@ module Datadog
         module Service
           class S3 < Base
             def add_tags: (untyped span, untyped params) -> untyped
+
+            def add_owner_tags: (untyped span, untyped params, untyped context) -> untyped
           end
         end
       end

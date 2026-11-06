@@ -51,9 +51,8 @@ module Datadog
             aws_service = span.resource.split(".")[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
-            if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
-              handler.add_tags(span, params)
-            end
+            handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service]
+            handler&.add_tags(span, params)
 
             if configuration[:peer_service]
               span.set_tag(
@@ -85,12 +84,26 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+
+            # Owner tagging is optional, so it runs after every mandatory tag
+            # and behind its own rescue. It reads credential and endpoint state
+            # that nothing above depends on, and the rescue below would
+            # otherwise abandon the rest of this method, costing the span tags
+            # that have nothing to do with resource ownership.
+            annotate_owner!(span, handler, params, context) if handler
           rescue => e
             Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/MethodLength
           # rubocop:enable Metrics/AbcSize
+
+          def annotate_owner!(span, handler, params, context)
+            handler.add_owner_tags(span, params, context)
+          rescue => e
+            Datadog.logger.error("#{e.class}: #{e.message}")
+            Datadog::Core::Telemetry::Logger.report(e)
+          end
 
           def configuration
             Datadog.configuration.tracing[:aws]
