@@ -2,10 +2,10 @@
 
 #include <ruby.h>
 
-#include "stack_dedup.h"
+#include "../stack_dedup.h"
 
-#include "../private_vm_api_access.h"
-#include "../time_helpers.h"
+#include "../../private_vm_api_access.h"
+#include "../../time_helpers.h"
 
 // Miteruby replacement for the `collectors_stack.c` (and heavily borrows from it).
 // Given a miteruby stack sample, symbolicates it and places it inside libdatadog.

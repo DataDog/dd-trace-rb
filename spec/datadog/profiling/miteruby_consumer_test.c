@@ -16,7 +16,7 @@ static void test_mark_locations(const VALUE *start, const VALUE *end);
 #define rb_gc_mark_locations test_mark_locations
 #include "../../../ext/datadog_profiling_native_extension/miteruby/consumer.c"
 #undef rb_gc_mark_locations
-#include "../../../ext/datadog_profiling_native_extension/miteruby/consumer_recorder.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/serialize_with_libdatadog_for_testing/consumer_recorder.c"
 #undef miteruby_allocator_alloc
 
 #undef NDEBUG
