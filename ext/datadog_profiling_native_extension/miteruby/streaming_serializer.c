@@ -9,6 +9,8 @@
 #include "../time_helpers.h"
 
 #include <string.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
@@ -156,10 +158,10 @@ static void record_stack_sample(
   state->recorded_samples++;
 }
 
-// After the fixed strings, each CME/ISEQ array index reserves two consecutive strings:
-// name, then filename. These pairs must be emitted in array order.
-static int64_t string_table_id_for(uint64_t function_id) {
-  return PPROF_STRING_FIRST_DYNAMIC + function_id * 2;
+// Fixed strings are followed by thread name/ID pairs in set order, then function name/filename
+// pairs in CME/ISEQ array order. Every thread reserves two strings, including fallback names.
+static int64_t string_table_id_for(uint64_t function_id, size_t thread_count) {
+  return PPROF_STRING_FIRST_DYNAMIC + thread_count * 2 + function_id * 2;
 }
 
 static uint64_t function_id_for(uint64_t cme_iseq_index) {
@@ -176,9 +178,41 @@ static void emit_string_table_entry(pb_ostream_t *stream, const char *string, si
     rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(stream));
 }
 
+static void emit_thread_name(pb_ostream_t *stream, VALUE thread) {
+  VALUE name = thread_name_for(thread);
+  if (name != Qnil) {
+    emit_string_table_entry(stream, RSTRING_PTR(name), RSTRING_LEN(name));
+    return;
+  }
+
+  const char *fallback;
+  char invoke_location[512];
+  if (thread == rb_thread_main()) {
+    fallback = fixed_string_values[PPROF_STRING_MAIN_THREAD];
+  } else {
+    int line;
+    VALUE filename = invoke_location_for(thread, &line);
+    if (filename == Qnil) {
+      fallback = fixed_string_values[PPROF_STRING_UNNAMED_NATIVE_THREAD];
+    } else {
+      const char *path = StringValueCStr(filename);
+      const char *logging_path = "/lib/logging/diagnostic_context.rb";
+      size_t path_length = strlen(path), logging_path_length = strlen(logging_path);
+      if (path_length >= logging_path_length && strcmp(path + path_length - logging_path_length, logging_path) == 0) {
+        fallback = fixed_string_values[PPROF_STRING_UNNAMED_THREAD];
+      } else {
+        snprintf(invoke_location, sizeof(invoke_location), "%s:%d", path, line);
+        fallback = invoke_location;
+      }
+    }
+  }
+  emit_string_table_entry(stream, fallback, strlen(fallback));
+}
+
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array
+  const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
+  const verstable_mark_threads_set *threads_set
 ) {
   streaming_serializer_state *state = get_state(serializer);
   state->uncompressed_serialization_size = 0;
@@ -228,7 +262,7 @@ void miteruby_streaming_serializer_prepare_serialize(
   }
 
   for (size_t i = 0; i < cme_iseq_array->count; i++) {
-    int64_t name_id = string_table_id_for(i);
+    int64_t name_id = string_table_id_for(i, verstable_mark_threads_set_size(threads_set));
     miteruby_pprof_fragment_function_t fragment = {
       .has_function = true,
       .function = {.id = function_id_for(i), .name = name_id, .filename = name_id + 1},
@@ -241,6 +275,24 @@ void miteruby_streaming_serializer_prepare_serialize(
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
     emit_string_table_entry(&stream, string, strlen(string));
+  }
+
+  for (
+    verstable_mark_threads_set_itr entry = verstable_mark_threads_set_first(threads_set);
+    !verstable_mark_threads_set_is_end(entry);
+    entry = verstable_mark_threads_set_next(entry)
+  ) {
+    VALUE thread = entry.data->key;
+    emit_thread_name(&stream, thread);
+
+    VALUE object_id = rb_obj_id(thread);
+    uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
+    char thread_id[44];
+    snprintf(
+      thread_id, sizeof(thread_id), "%"PRIu64" (%lu)",
+      native_thread_id, (unsigned long) (FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1)
+    );
+    emit_string_table_entry(&stream, thread_id, strlen(thread_id));
   }
 
   char qualified_name[4096];
