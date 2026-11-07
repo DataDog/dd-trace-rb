@@ -13,8 +13,7 @@ module Datadog
     # The objects are ranked by (truncated for depth, nesting level, carries
     # a notCapturedReason, size), the highest-ranked objects are selected
     # until the excess is covered, and a parent whose children are all
-    # selected replaces them as one candidate. The Live Debugger UI renders
-    # PRUNED_MARKER in place of a captured value as a pruned value.
+    # selected replaces them as one candidate.
     #
     # @api private
     class SnapshotPruner
