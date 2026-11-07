@@ -7,8 +7,8 @@ module Datadog
   module DI
     class SnapshotPruner
       # Builds the tree of JSON objects of an encoded snapshot in one scan,
-      # recording each object's byte range and nesting level. Arrays and
-      # scalars produce no nodes.
+      # recording each object's byte range and nesting level. Creates a
+      # node for each JSON object.
       #
       # @api private
       class Parser
