@@ -1,0 +1,47 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class Pruner
+        TIMEOUT_REASON: String
+        SIZED_ELEMENT_MEMBERS: Array[String]
+
+        @root: ObjectNode
+        @step1_candidates: Array[Prunable]
+        @step2_candidates: Array[Prunable]
+        @collections: Array[Prunable]
+        @cap: Integer
+        @removed_ranges: Array[[Integer, Integer]]
+
+        def initialize: (
+          root: ObjectNode,
+          step1_candidates: Array[Prunable],
+          step2_candidates: Array[Prunable],
+          collections: Array[Prunable],
+          cap: Integer
+        ) -> void
+
+        attr_reader root: ObjectNode
+        attr_reader cap: Integer
+
+        def prune: () -> { replaced_primitives: Integer, cut_collections: Integer, replaced_collections: Integer }
+
+        private
+
+        attr_reader step1_candidates: Array[Prunable]
+        attr_reader step2_candidates: Array[Prunable]
+        attr_reader collections: Array[Prunable]
+        attr_reader removed_ranges: Array[[Integer, Integer]]
+
+        def fits?: () -> bool
+        def replace_primitives: () -> Integer
+        def cut_collections_step: () -> Integer
+        def replace_collections: () -> Integer
+        def replace_with_placeholder: (Prunable candidate) -> void
+        def cut: (Prunable candidate) -> void
+        def mark_cut: (Prunable candidate) -> void
+        def record_removed_range: (Integer first_ordinal, Integer last_ordinal) -> void
+        def removed?: (Integer ordinal) -> bool
+      end
+    end
+  end
+end

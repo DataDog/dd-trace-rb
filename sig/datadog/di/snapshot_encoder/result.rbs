@@ -1,0 +1,35 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class Result
+        @encoded: String?
+        @pruned: bool
+        @bytes: Integer
+        @replaced_primitives: Integer
+        @cut_collections: Integer
+        @replaced_collections: Integer
+
+        def initialize: (
+          encoded: String?,
+          pruned: bool,
+          bytes: Integer,
+          replaced_primitives: Integer,
+          cut_collections: Integer,
+          replaced_collections: Integer
+        ) -> void
+
+        attr_reader encoded: String?
+        attr_reader bytes: Integer
+        attr_reader replaced_primitives: Integer
+        attr_reader cut_collections: Integer
+        attr_reader replaced_collections: Integer
+
+        def pruned?: () -> bool
+
+        private
+
+        attr_reader pruned: bool
+      end
+    end
+  end
+end

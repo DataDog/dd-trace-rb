@@ -1,0 +1,13 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      MEMBER_NAME_JSON: Hash[String, String]
+      PLACEHOLDER_JSON: String
+      PAYLOAD_TOO_LARGE_JSON: String
+      PRIMITIVE_SIZE_LIMIT: Integer
+      KEPT_ELEMENT_COUNT: Integer
+
+      def self.encode: (Hash[untyped, untyped] snapshot, Integer cap) -> Result
+    end
+  end
+end

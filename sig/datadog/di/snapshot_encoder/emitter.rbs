@@ -1,0 +1,13 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class Emitter
+        def emit: (Node root) -> String
+
+        private
+
+        def append_node: (String output, Array[[ContainerNode, Integer]] stack, Node node) -> void
+      end
+    end
+  end
+end

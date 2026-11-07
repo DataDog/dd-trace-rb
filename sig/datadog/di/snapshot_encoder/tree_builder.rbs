@@ -1,0 +1,86 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class TreeBuilder
+        type record = [String, String, untyped]
+        type frame = Array[untyped]
+        type registration = Hash[Symbol, untyped]
+
+        HASH_EACH_PAIR: UnboundMethod
+        ARRAY_EACH: UnboundMethod
+        TRUE_JSON: String
+        FALSE_JSON: String
+        NULL_JSON: String
+        TYPE_MEMBER: String
+        PAIR_LENGTH: Integer
+        ROLE_ENVELOPE: Symbol
+        ROLE_ROOT: Symbol
+        ROLE_DEBUGGER: Symbol
+        ROLE_SNAPSHOT: Symbol
+        ROLE_CAPTURES: Symbol
+        ROLE_LINES: Symbol
+        ROLE_CAPTURE_SET: Symbol
+        ROLE_VARIABLE_MAP: Symbol
+        ROLE_CAPTURED_VALUE: Symbol
+        ROLE_VALUE_COLLECTION: Symbol
+        ROLE_FIELDS: Symbol
+        ROLE_ELEMENTS: Symbol
+        ROLE_ENTRIES: Symbol
+        ROLE_PAIR: Symbol
+        MEMBER_ROLES: Hash[Symbol, Hash[String, Symbol]]
+        CLASSIFICATION_MEMBERS: Hash[String, bool]
+        ELEMENT_MEMBERS: Array[[String, Class, Symbol]]
+        FRAME_NODE: Integer
+        FRAME_ITEMS: Integer
+        FRAME_CURSOR: Integer
+        FRAME_ROLE: Integer
+        FRAME_DEPTH: Integer
+        FRAME_FIRST_MEMBERS: Integer
+        FRAME_COLLECTION: Integer
+        FRAME_ELEMENT_OWNER: Integer
+        FRAME_ELEMENT_INDEX: Integer
+
+        @member_name_json: Hash[String, String]
+        @type_json: Hash[String | Symbol, String]
+        @next_ordinal: Integer
+        @step1_candidates: Array[Prunable]
+        @step2_candidates: Array[Prunable]
+        @collections: Array[Prunable]
+
+        def initialize: () -> void
+
+        def build: (Hash[untyped, untyped] snapshot) -> [ObjectNode, Array[Prunable], Array[Prunable], Array[Prunable]]
+
+        private
+
+        attr_reader member_name_json: Hash[String, String]
+        attr_reader type_json: Hash[String | Symbol, String]
+        attr_reader next_ordinal: Integer
+        attr_reader step1_candidates: Array[Prunable]
+        attr_reader step2_candidates: Array[Prunable]
+        attr_reader collections: Array[Prunable]
+
+        def build_item: (frame frame, Array[frame] stack) -> void
+        def build_named_member: (frame frame, String name, untyped value, Array[frame] stack) -> void
+        def build_envelope_value: (frame frame, String? name, untyped value, Array[frame] stack) -> void
+        def push_capture_set: (Hash[untyped, untyped] capture_set, Array[frame] stack) -> void
+        def push_variable_map: (Hash[untyped, untyped] variable_map, Array[frame] stack) -> void
+        def build_entry: (frame frame, untyped value, Array[frame] stack) -> void
+        def build_captured_value: (frame frame, String? name, untyped value, Integer depth, Array[frame] stack) -> void
+        def element_member_of: (Array[record] records, Hash[String, Integer] first_members) -> ([Integer, String, Symbol] | [nil, nil, nil])
+        def push_element_container: (frame frame, Hash[untyped, untyped] | Array[untyped] value, Array[frame] stack) -> void
+        def add_primitive: (frame frame, String fragment, Integer depth, Integer ordinal) -> void
+        def collection_registration: (depth: Integer, ordinal: Integer, element_count: Integer) -> registration
+        def complete_frame: (frame frame, frame? parent_frame) -> void
+        def add_to_frame: (frame frame, Node node) -> void
+        def reserve_ordinal: () -> Integer
+        def hash_records: (Hash[untyped, untyped] hash, ?tracked_names: Hash[String, untyped]?, ?first_members: Hash[String, Integer]?) -> Array[record]
+        def array_items: (Array[untyped] array) -> Array[untyped]
+        def assemble_composite: (Array[untyped] items, bool hash) -> String
+        def encode_member_name: (untyped key, untyped name) -> String
+        def encode_member_value: (String? name, untyped value) -> String
+        def encode_scalar: (untyped value) -> String
+      end
+    end
+  end
+end

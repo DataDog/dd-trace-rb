@@ -1,0 +1,28 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class ContainerNode < Node
+        EMPTY_SIZE: Integer
+
+        @prefix_size: Integer
+        @children: Array[Node]
+
+        def initialize: () -> void
+
+        attr_reader prefix_size: Integer
+        attr_reader children: Array[Node]
+
+        def replace_child: (Integer index, Node node) -> void
+        def apply_child_delta: (Integer child_index, Integer delta) -> void
+
+        def add_size_delta: (Integer child_index, Integer delta) -> void
+
+        private
+
+        def add_child: (Node node, Integer contribution) -> void
+        def append_child: (Node node, Integer contribution) -> void
+        def truncate_children: (Integer kept_count) -> void
+      end
+    end
+  end
+end
