@@ -78,7 +78,7 @@ module Datadog
           end_offset - start_offset
         end
 
-        # Returns whether the object contains no nested objects.
+        # Returns whether the object is a leaf.
         #
         # @return [Boolean]
         def leaf?
