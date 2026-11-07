@@ -96,6 +96,7 @@ module Datadog
             index = child_index
           end
           heap[index] = node
+          nil
         end
       end
     end
