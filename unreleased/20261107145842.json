@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6656",
+  "message": "Send a `Hash` or `Array` subclass returned by a custom serializer as a plain `Hash` or `Array`, without calling its `to_json` override; with json 2.1.0 (Ruby 2.6), send a `Hash` subclass that overrides `keys` with its actual entries."
+}

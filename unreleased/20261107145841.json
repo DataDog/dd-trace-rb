@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6656",
+  "message": "Prune snapshots larger than 1 MiB minus 4 KiB and send them, instead of dropping snapshots larger than 1 MiB."
+}
