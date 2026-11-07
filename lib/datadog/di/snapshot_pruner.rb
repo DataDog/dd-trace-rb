@@ -20,8 +20,7 @@ module Datadog
       # +debugger+, +snapshot+, +captures+ and the capture sets above the
       # captured values, which start at level 5 (method probe +arguments+
       # and +locals+ members, line probe line objects). Applying the level
-      # to promoted parents as well keeps +captures+ and the capture sets,
-      # which the event schema requires.
+      # to promoted parents as well keeps +captures+ and the capture sets.
       MIN_LEVEL = 5
 
       # Initializes the pruner.
