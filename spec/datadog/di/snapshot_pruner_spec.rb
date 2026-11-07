@@ -227,14 +227,14 @@ RSpec.describe Datadog::DI::SnapshotPruner do
     end
 
     context "when strings contain braces, quotes and backslashes" do
-      let(:tricky) { string_value(1, char: "{\"}\\{") }
-      let(:json) { snapshot_json(arguments: {tricky: tricky, large: string_value(300), small: string_value(10)}) }
+      let(:specials) { string_value(1, char: "{\"}\\{") }
+      let(:json) { snapshot_json(arguments: {specials: specials, large: string_value(300), small: string_value(10)}) }
 
       it "keeps the object structure of the snapshot" do
         result = pruner.prune(json, max_size: json.bytesize - 10)
 
         expect(pruned_arguments(result)).to eq(
-          "tricky" => {"type" => "String", "value" => "{\"}\\{"},
+          "specials" => {"type" => "String", "value" => "{\"}\\{"},
           "large" => {"pruned" => true},
           "small" => {"type" => "String", "value" => "x" * 10},
         )
