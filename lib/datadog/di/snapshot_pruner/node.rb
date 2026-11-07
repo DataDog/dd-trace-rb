@@ -103,7 +103,7 @@ module Datadog
         #
         # @return [Integer] a greater value for an object to prune earlier
         def priority
-          ((not_captured_depth? || promoted?) ? PRUNE_FIRST_BIT : 0) |
+          @priority ||= ((not_captured_depth? || promoted?) ? PRUNE_FIRST_BIT : 0) |
             (level << LEVEL_SHIFT) |
             (not_captured? ? NOT_CAPTURED_BIT : 0) |
             size
@@ -166,6 +166,7 @@ module Datadog
         # @return [void]
         def promote
           @promoted = true
+          @priority = nil
         end
 
         # Yields every leaf of the subtree.

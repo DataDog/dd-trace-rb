@@ -150,6 +150,14 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
 
       expect(largest.priority).to be < (1 << 62)
     end
+
+    it "recomputes the packed key after a promotion" do
+      promoted = node(level: 5, end_offset: 100)
+      packed_before = promoted.priority
+      promoted.promote
+
+      expect(promoted.priority).to be > packed_before
+    end
   end
 
   describe "#each_leaf" do

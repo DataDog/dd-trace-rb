@@ -26,6 +26,8 @@ module Datadog
 
         @promoted: bool
 
+        @priority: Integer?
+
         def initialize: (start_offset: Integer, level: Integer, parent: Node?) -> void
 
         attr_reader start_offset: Integer
