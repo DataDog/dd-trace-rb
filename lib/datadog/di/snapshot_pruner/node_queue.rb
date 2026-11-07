@@ -69,6 +69,7 @@ module Datadog
             index = parent_index
           end
           heap[index] = node
+          nil
         end
 
         # Moves the object at +index+ toward the leaves until every child
