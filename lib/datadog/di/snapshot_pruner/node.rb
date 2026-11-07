@@ -150,9 +150,9 @@ module Datadog
           mark_not_captured_depth
         end
 
-        # Yields every object of the subtree that contains no nested objects.
+        # Yields every leaf of the subtree.
         #
-        # @yieldparam leaf [Node] an object without nested objects
+        # @yieldparam leaf [Node] a leaf object
         # @return [void]
         def each_leaf
           pending = [self] #: Array[Node]
