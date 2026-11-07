@@ -1611,6 +1611,8 @@ end
 | `service_name`        | | `String` | Service name used when tracing application requests (on the `rack` level)                                                                                   | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path`  | | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value                          | `'views/'`                                                      |
 
+The Rails integration applies `service_name`, `middleware_names`, `distributed_tracing` and `request_queuing` to the Rack integration when the application initializes. An option configured on the Rails integration replaces the Rack integration's value, unless the Rack value comes from a higher-precedence source, such as code when the Rails value comes from an environment variable. Options not configured on the Rails integration keep the Rack integration's value.
+
 **Supported versions**
 
 | MRI Versions | Rails Versions |
