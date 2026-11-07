@@ -269,10 +269,38 @@ generated.
 
 ### Snapshot Size
 
-- Maximum snapshot size is **1 MB**
-- Snapshots exceeding this size will be dropped entirely
+- Maximum snapshot size is **1 MiB minus 4 KiB** (1,044,480 bytes).
+- A larger snapshot is reduced until it fits:
+  1. the largest captured values over 200 bytes are replaced with a
+     pruned marker;
+  2. the largest collections over 20 elements are shortened to their
+     first 20 elements;
+  3. the most deeply nested collections are replaced with a pruned
+     marker.
+- A snapshot that still exceeds the limit after these steps is dropped.
+- Other Datadog libraries that prune order what they prune by nesting
+  depth and size and do not shorten collections; some of them send a
+  snapshot that does not fit instead of dropping it. PHP stops capturing
+  at its size limit instead of pruning.
+- Java prunes to 1,048,576 UTF-16 code units, .NET to just below 1 MiB,
+  Python to 1 MiB minus 2 bytes, and Node.js and Go to 1 MiB minus 4 KiB.
+  Ruby's limit is fixed.
+- When pruning shortens an argument, local-variable or capture-expression
+  list, it keeps the first 20 entries and adds no marker. When a whole
+  list is replaced, the Live Debugger shows it as a single variable named
+  `pruned`.
+- A shortened collection shows the reason `payloadTooLarge`, except a
+  collection whose capture had timed out, which keeps the reason
+  `timeout`, and a shortened exception stack trace, which shows no
+  reason.
+- An array whose first element was replaced, or a hash with a replaced key
+  or value, shows no entries in the Live Debugger.
+- A replaced exception shows as an uncaught exception without its type,
+  message or stack frames.
+- A replaced method entry, method return or line capture shows as an
+  empty capture in the Live Debugger.
 - Consider reducing capture depth or collection sizes if you encounter
-  this limit
+  this limit.
 
 ### Default Capture Limits
 
@@ -309,6 +337,18 @@ serializer will be skipped and the next serializer will be tried. This
 prevents custom serializers from breaking the entire serialization process.
 The value will fall back to default serialization.
 
+- A Hash or Array subclass returned by a custom serializer whose class
+  overrides `to_json` is sent as a plain Hash or Array; the override is
+  not called. With json 2.1.0 (Ruby 2.6), a Hash subclass that
+  overrides `keys` is sent with its actual entries.
+- A binary (ASCII-8BIT) string that is valid UTF-8, returned by a custom
+  serializer, used as an exception message, or interpolated into a log
+  message template, is sent with json 2.6 through 2.x (json 2.9 and later
+  print a deprecation warning for it) and disables the probe with older
+  json versions (the default on Ruby 2.6 through 3.0). An exception
+  message that is not valid UTF-8 disables the probe with every json
+  version.
+
 ## What Data Is Captured
 
 Dynamic instrumentation sends some of the application data to Datadog.
@@ -317,7 +357,8 @@ Dynamic instrumentation sends some of the application data to Datadog.
 
 - **Variable values** — local variables, method arguments, and return
   values, subject to the capture depth and collection size limits
-  described below. Values are automatically redacted when their
+  described below and to the snapshot size limit described in Data
+  Capture Limits above. Values are automatically redacted when their
   identifier names match built-in redaction rules. You can also
   configure additional identifiers and class names to redact.
 - **Object class names** — the class of each captured value.

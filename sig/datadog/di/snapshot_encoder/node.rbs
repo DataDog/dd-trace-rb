@@ -1,0 +1,19 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class Node
+        @size: Integer
+        @parent: ContainerNode?
+        @parent_index: Integer?
+
+        def initialize: (Integer size) -> void
+
+        attr_reader size: Integer
+        attr_reader parent: ContainerNode?
+        attr_reader parent_index: Integer?
+
+        def attach: (ContainerNode parent, Integer parent_index) -> void
+      end
+    end
+  end
+end

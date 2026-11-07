@@ -13,6 +13,23 @@ RSpec.describe Datadog::Core::Chunker do
       expect(chunk_by_size.to_a).to eq([%w[1 22], ["333"]])
     end
 
+    context "with multibyte UTF-8 strings" do
+      let(:list) { ["\u20ac", "a", "\u20ac"] }
+      let(:max_chunk_size) { 4 }
+
+      it "adds up byte sizes" do
+        expect(chunk_by_size.to_a).to eq([["\u20ac", "a"], ["\u20ac"]])
+      end
+    end
+
+    context "with BINARY strings" do
+      let(:list) { ["\x01".b, "\xff\xfe".b, "\x00\x00\x00".b] }
+
+      it "chunks them by size as before" do
+        expect(chunk_by_size.to_a).to eq([["\x01".b, "\xff\xfe".b], ["\x00\x00\x00".b]])
+      end
+    end
+
     context "with single element that is too large" do
       let(:list) { ["55555"] }
 

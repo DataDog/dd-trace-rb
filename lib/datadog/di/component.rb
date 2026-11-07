@@ -207,12 +207,14 @@ module Datadog
         @started
       end
 
-      # Rebuilds the process-scoped coordinated-sampling state after the
-      # process forks, so the child starts with fresh budgets.
+      # Rebuilds the process-scoped coordinated-sampling state and resets
+      # the probe notifier worker's snapshot pruning state after the
+      # process forks, so the child starts with fresh budgets and counts.
       #
       # @return [void]
       def after_fork
         correlation_sampler.after_fork!
+        probe_notifier_worker.after_fork
       end
 
       # Whether the component is started while the customer left

@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class ObjectNode < ContainerNode
+        NAME_SEPARATOR_SIZE: Integer
+
+        @member_names: Array[String]
+        @member_names_json: Array[String]
+
+        def initialize: () -> void
+
+        attr_reader member_names: Array[String]
+        attr_reader member_names_json: Array[String]
+
+        def add_member: (String name, String name_json, Node node) -> void
+        def append_member: (String name, String name_json, Node node) -> void
+        def truncate_members: (Integer kept_count) -> void
+      end
+    end
+  end
+end

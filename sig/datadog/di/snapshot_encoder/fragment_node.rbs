@@ -1,0 +1,13 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class FragmentNode < Node
+        @fragment: String
+
+        def initialize: (String fragment) -> void
+
+        attr_reader fragment: String
+      end
+    end
+  end
+end

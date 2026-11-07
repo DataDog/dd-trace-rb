@@ -37,7 +37,8 @@ module Datadog
       #   creating status notifications. Used for reporting ERROR status.
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component worker errors are reported through
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical
-      #   guardrails drop metric at the queue-full admission drop
+      #   guardrail metrics: the queue-full admission drop, and the snapshot
+      #   transport's payload drops and pruned payloads
       def initialize(settings, logger, agent_settings:,
         probe_repository:, probe_notification_builder:, guardrails_telemetry:, telemetry: nil)
         @settings = settings
@@ -50,6 +51,7 @@ module Datadog
         @lock = Mutex.new
         @wake = Core::Semaphore.new
         @io_in_progress = false
+        @snapshot_send_in_progress = false
         @sleep_remaining = nil
         @wake_scheduled = false
         @thread = nil
@@ -198,10 +200,63 @@ module Datadog
         end
       end
 
+      # The number of snapshot payloads the snapshot transport pruned to
+      # fit the size cap; 0 before the transport exists.
+      #
+      # @return [Integer]
+      def pruned_snapshot_count
+        existing_snapshot_transport&.pruned_snapshot_count || 0
+      end
+
+      # The Core::Utils::Time.get_time reading when the snapshot transport
+      # encoded its most recent pruned payload; nil before the transport
+      # exists and until a payload is pruned.
+      #
+      # @return [Float, nil]
+      def last_pruned_at
+        existing_snapshot_transport&.last_pruned_at
+      end
+
+      # Whether the worker is sending a snapshot batch now.
+      #
+      # @return [Boolean]
+      def snapshot_send_in_progress?
+        @lock.synchronize do
+          snapshot_send_in_progress
+        end
+      end
+
+      # Resets the snapshot pruning state in a forked child process: the
+      # snapshot-send flag and the snapshot transport's pruning counts. The
+      # transport, with its endpoint selection, is kept.
+      #
+      # @return [void]
+      def after_fork
+        @lock.synchronize do
+          @snapshot_send_in_progress = false
+        end
+        existing_snapshot_transport&.reset_pruning_state
+        logger.trace { "di: reset snapshot pruning state after fork: pid #{Process.pid}" }
+        nil
+      end
+
       private
 
       attr_reader :wake
       attr_reader :thread
+
+      # Whether the worker is sending a snapshot batch now. Read while
+      # @lock is held.
+      # @return [Boolean]
+      attr_reader :snapshot_send_in_progress
+
+      # The snapshot input transport, or nil before the first snapshot
+      # send creates it.
+      #
+      # @return [DI::Transport::Input::Transport, nil]
+      def existing_snapshot_transport
+        @snapshot_transport
+      end
 
       # Convenience method to keep line length reasonable in the rest of the file.
       def min_send_interval
@@ -393,6 +448,11 @@ module Datadog
           if batch.any?
             begin
               logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
+              if event_type == :snapshot
+                @lock.synchronize do
+                  @snapshot_send_in_progress = true
+                end
+              end
               send("do_send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
@@ -410,11 +470,12 @@ module Datadog
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
           # while consuming it here. Rescue ThreadError and return.
-          logger.debug { "di: unexpected #{event_name} queue underflow - consumed elsewhere?" }
+          logger.debug { "di: unexpected #{event_name} queue underflow - consumed elsewhere? #{exc.class}: #{exc} (at #{exc.backtrace&.first})" }
           telemetry&.report(exc, description: "Unexpected #{event_name} queue underflow")
         ensure
           @lock.synchronize do
             @io_in_progress = false
+            @snapshot_send_in_progress = false if event_type == :snapshot
           end
         end
       end

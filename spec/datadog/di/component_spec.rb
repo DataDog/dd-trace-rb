@@ -425,6 +425,12 @@ RSpec.describe Datadog::DI::Component do
 
       component.after_fork
     end
+
+    it "resets the probe notifier worker's snapshot pruning state" do
+      expect(component.probe_notifier_worker).to receive(:after_fork)
+
+      component.after_fork
+    end
   end
 
   describe "RC enablement state" do

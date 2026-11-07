@@ -579,6 +579,175 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
   end
 
+  describe "snapshot pruning state" do
+    let(:snapshot) { {hello: "world"} }
+
+    let(:trace_messages) { [] }
+
+    before do
+      allow(logger).to receive(:trace) { |&block| trace_messages << block.call }
+      allow(input_transport).to receive_messages(pruned_snapshot_count: 3, last_pruned_at: 7.5, reset_pruning_state: nil)
+    end
+
+    context "before the first snapshot send" do
+      it "reports no pruned snapshot and no send without creating the transport" do
+        expect(worker.pruned_snapshot_count).to eq 0
+        expect(worker.last_pruned_at).to be nil
+        expect(worker.snapshot_send_in_progress?).to be false
+        expect(Datadog::DI::Transport::HTTP).not_to have_received(:input)
+      end
+    end
+
+    context "when started" do
+      before do
+        allow(diagnostics_transport).to receive(:send_diagnostics)
+        worker.start
+      end
+
+      it "reads the pruning state from the snapshot transport after a send" do
+        allow(input_transport).to receive(:send_input)
+
+        worker.add_snapshot(snapshot, probe: probe)
+        worker.flush
+
+        expect(worker.pruned_snapshot_count).to eq 3
+        expect(worker.last_pruned_at).to eq 7.5
+      end
+
+      it "reports a snapshot send in progress only during the snapshot send" do
+        during_send = nil
+        allow(input_transport).to receive(:send_input) { during_send = worker.snapshot_send_in_progress? }
+
+        expect(worker.snapshot_send_in_progress?).to be false
+        worker.add_snapshot(snapshot, probe: probe)
+        worker.flush
+
+        expect(during_send).to be true
+        expect(worker.snapshot_send_in_progress?).to be false
+      end
+
+      it "clears the snapshot send flag after a send that raises" do
+        allow(logger).to receive(:debug)
+        during_send = nil
+        allow(input_transport).to receive(:send_input) do
+          during_send = worker.snapshot_send_in_progress?
+          raise StandardError, "network error"
+        end
+
+        worker.add_snapshot(snapshot, probe: probe)
+        worker.flush
+
+        expect(during_send).to be true
+        expect(worker.snapshot_send_in_progress?).to be false
+      end
+
+      it "reports no snapshot send in progress during a status send" do
+        during_status_send = nil
+        allow(diagnostics_transport).to receive(:send_diagnostics) do
+          during_status_send = worker.snapshot_send_in_progress?
+        end
+
+        worker.add_status({status: "received"})
+        worker.flush
+
+        expect(during_status_send).to be false
+      end
+    end
+
+    describe "#after_fork" do
+      context "without a snapshot transport" do
+        it "writes the reset trace line and creates no transport" do
+          worker.after_fork
+
+          expect(trace_messages).to eq ["di: reset snapshot pruning state after fork: pid #{Process.pid}"]
+          expect(Datadog::DI::Transport::HTTP).not_to have_received(:input)
+          expect(worker.pruned_snapshot_count).to eq 0
+        end
+      end
+
+      context "during a snapshot send" do
+        it "clears the snapshot send flag and resets the transport's pruning state" do
+          flag_after_fork = nil
+          allow(input_transport).to receive(:send_input) do
+            worker.after_fork
+            flag_after_fork = worker.snapshot_send_in_progress?
+          end
+          expect(input_transport).to receive(:reset_pruning_state)
+          worker.start
+
+          worker.add_snapshot(snapshot, probe: probe)
+          worker.flush
+
+          expect(flag_after_fork).to be false
+          expect(trace_messages).to include("di: reset snapshot pruning state after fork: pid #{Process.pid}")
+        end
+      end
+
+      context "with a real snapshot transport that pruned a snapshot" do
+        let(:agent_settings) do
+          Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog::Core::Configuration::Settings.new, logger: nil)
+        end
+
+        let(:transport) { worker.send(:snapshot_transport) }
+
+        before do
+          allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
+          allow(transport).to receive(:send_input_chunk)
+          stub_const("Datadog::DI::Transport::Input::Transport::SNAPSHOT_SIZE_CAP", 1_000)
+          oversized = {debugger: {snapshot: {captures: {entry: {arguments: {a: {type: "String", value: "x" * 2_000}}}}}}}
+          transport.send_input([Datadog::DI::SnapshotEvent.new(payload: oversized, event_type: "snapshot")], {},
+            on_serialization_error: ->(_probe_id, _exc) {})
+        end
+
+        it "resets the readers and keeps the transport and its endpoint selection" do
+          api_id = transport.current_api_id
+          expect(worker.pruned_snapshot_count).to eq 1
+          expect(worker.last_pruned_at).to be_a(Float)
+
+          worker.after_fork
+
+          expect(worker.pruned_snapshot_count).to eq 0
+          expect(worker.last_pruned_at).to be nil
+          expect(worker.snapshot_send_in_progress?).to be false
+          expect(worker.send(:snapshot_transport)).to equal transport
+          expect(transport.current_api_id).to eq api_id
+          expect(Datadog::DI::Transport::HTTP).to have_received(:input).once
+        end
+      end
+    end
+
+    context "when the snapshot queue raises ThreadError" do
+      it "logs the exception class, message and first backtrace frame" do
+        exc = ThreadError.new("queue empty")
+        exc.set_backtrace(["/app/queue.rb:7:in `shift'"])
+        allow(logger).to receive(:trace).and_raise(exc)
+
+        expect_lazy_log(logger, :debug,
+          "di: unexpected snapshot queue underflow - consumed elsewhere? ThreadError: queue empty (at /app/queue.rb:7:in `shift')")
+
+        worker.send(:maybe_send_snapshot)
+
+        # The worker's stop in the after hook writes a trace line.
+        allow(logger).to receive(:trace)
+      end
+
+      it "logs the exception without a backtrace" do
+        exc = ThreadError.new("queue empty")
+        def exc.backtrace
+          nil
+        end
+        allow(logger).to receive(:trace).and_raise(exc)
+
+        expect_lazy_log(logger, :debug,
+          "di: unexpected snapshot queue underflow - consumed elsewhere? ThreadError: queue empty (at )")
+
+        worker.send(:maybe_send_snapshot)
+
+        allow(logger).to receive(:trace)
+      end
+    end
+  end
+
   describe "#initialize" do
     let(:worker_settings) do
       Datadog::Core::Configuration::Settings.new

@@ -29,6 +29,7 @@
       error_tracking_simple.rb
       tracing_trace.rb
       di_instrument.rb
+      di_snapshot_encoder.rb
       library_gem_loading.rb
 
 .execution:

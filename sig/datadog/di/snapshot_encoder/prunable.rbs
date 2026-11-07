@@ -1,0 +1,57 @@
+module Datadog
+  module DI
+    module SnapshotEncoder
+      class Prunable
+        KIND_PRIMITIVE: :primitive
+        KIND_COLLECTION: :collection
+
+        @node: Node
+        @parent: ContainerNode
+        @index: Integer
+        @kind: Symbol
+        @depth: Integer
+        @ordinal: Integer
+        @last_ordinal: Integer
+        @element_member: String?
+        @element_container: ContainerNode?
+        @element_count: Integer
+        @cut_start_ordinal: Integer?
+        @not_captured_reason: String?
+        @reason_member_index: Integer?
+        @size_member_index: Integer?
+
+        def initialize: (
+          node: Node,
+          parent: ContainerNode,
+          index: Integer,
+          kind: Symbol,
+          depth: Integer,
+          ordinal: Integer,
+          last_ordinal: Integer,
+          element_member: String?,
+          element_container: ContainerNode?,
+          element_count: Integer,
+          cut_start_ordinal: Integer?,
+          not_captured_reason: String?,
+          reason_member_index: Integer?,
+          size_member_index: Integer?
+        ) -> void
+
+        attr_reader node: Node
+        attr_reader parent: ContainerNode
+        attr_reader index: Integer
+        attr_reader kind: Symbol
+        attr_reader depth: Integer
+        attr_reader ordinal: Integer
+        attr_reader last_ordinal: Integer
+        attr_reader element_member: String?
+        attr_reader element_container: ContainerNode?
+        attr_reader element_count: Integer
+        attr_reader cut_start_ordinal: Integer?
+        attr_reader not_captured_reason: String?
+        attr_reader reason_member_index: Integer?
+        attr_reader size_member_index: Integer?
+      end
+    end
+  end
+end

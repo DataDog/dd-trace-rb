@@ -2,21 +2,19 @@
 
 module Datadog
   module Core
-    # Chunks list of elements into batches
+    # Chunks lists of Strings into batches by byte size.
     module Chunker
-      # Chunks a list into batches of at most +max_chunk_size+ elements each.
+      # Chunks a list of Strings into batches whose element byte sizes add
+      # up to at most +max_chunk_size+. An element larger than
+      # +max_chunk_size+ forms its own chunk.
       #
-      # An exception can occur if a single element is too large. That single
-      # element will be returned in its own chunk. You have to verify by yourself
-      # when such elements are returned.
-      #
-      # @param list [Enumerable] list of elements
-      # @param max_chunk_size [Numeric] maximum acceptable chunk size
-      # @return [Enumerable] lazy list of chunks
+      # @param list [Enumerable<String>] list of elements
+      # @param max_chunk_size [Integer] maximum byte size of the elements of one chunk
+      # @return [Enumerable<Array<String>>] lazy list of chunks
       def self.chunk_by_size(list, max_chunk_size)
         chunk_agg = 0
         list.slice_before do |elem|
-          size = elem.size
+          size = elem.bytesize
           chunk_agg += size
           if chunk_agg > max_chunk_size
             # Can't fit element in current chunk, start a new one.

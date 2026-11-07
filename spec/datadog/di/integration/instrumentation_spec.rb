@@ -2061,10 +2061,21 @@ RSpec.describe "Instrumentation integration" do
 
       let(:input_requests) { [] }
 
+      let(:encoded_payloads) { [] }
+
+      let(:debug_messages) { [] }
+
       before do
         allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
-        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        # The cap is smaller than the required envelope, so pruning cannot
+        # fit the snapshot.
+        stub_const("Datadog::DI::Transport::Input::Transport::SNAPSHOT_SIZE_CAP", 300)
         settings.dynamic_instrumentation.max_capture_string_length = 10_000
+        allow(Datadog::DI::SnapshotEncoder).to receive(:encode).and_wrap_original do |original, payload, cap|
+          encoded_payloads << payload
+          original.call(payload, cap)
+        end
+        allow(logger).to receive(:debug) { |*args, &block| debug_messages << (block ? block.call : args.first) }
       end
 
       let(:agent_settings) do
@@ -2093,16 +2104,21 @@ RSpec.describe "Instrumentation integration" do
 
       shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics" do
         it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
-          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
-          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
-            be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          metrics = []
+          allow(telemetry).to receive(:inc) { |*args, **kwargs| metrics << [*args, kwargs] }
 
           probe_manager.add_probe(probe)
 
           InstrumentationSpecTestClass.new.test_method(captured_value)
           component.probe_notifier_worker.flush
 
+          expect(encoded_payloads.length).to eq 1
+          tags = {tags: {reason: "payloadTooLarge", event_type: "snapshot"}}
+          expect(metrics).to include(["debugger", "events.dropped", 1, tags])
+          expect(metrics).to include(
+            ["debugger", "guardrails.queue.dropped_bytes", JSON.dump(encoded_payloads.first).bytesize, tags],
+          )
+          expect(debug_messages).to include("di: dropping snapshot: pruning cannot fit it within the 300-byte limit (payloadTooLarge)")
           expect(input_requests).to be_empty
           expect(probe.enabled?).to be true
         end
@@ -2114,7 +2130,7 @@ RSpec.describe "Instrumentation integration" do
         include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
       end
 
-      context "with a multibyte snapshot within the character limit but over the byte limit" do
+      context "with a multibyte snapshot, dropped bytes counted in bytes" do
         let(:captured_value) { "あ" * 700 }
 
         include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"

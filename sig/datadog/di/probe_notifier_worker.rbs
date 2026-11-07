@@ -18,6 +18,8 @@ module Datadog
 
       @io_in_progress: bool
 
+      @snapshot_send_in_progress: bool
+
       @thread: Thread?
 
       @stop_requested: bool
@@ -67,7 +69,16 @@ module Datadog
       def add_status: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
       def add_snapshot: (Hash[Symbol, untyped] event, ?probe: DI::Probe?) -> void
 
+      def pruned_snapshot_count: () -> Integer
+      def last_pruned_at: () -> Float?
+      def snapshot_send_in_progress?: () -> bool
+      def after_fork: () -> void
+
       private
+
+      attr_reader snapshot_send_in_progress: bool
+
+      def existing_snapshot_transport: () -> DI::Transport::Input::Transport?
 
       def last_sent: () -> Numeric
 

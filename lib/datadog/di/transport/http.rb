@@ -54,7 +54,7 @@ module Datadog
         # @param logger [DI::Logger] logger for transport diagnostics
         # @param headers [Hash{String => String}, nil] headers to send with every request
         # @param telemetry [Datadog::Core::Telemetry::Component, nil] component transport errors are reported through
-        # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrails drop metric
+        # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical guardrail metrics, including payload drops and pruned payloads
         # @return [DI::Transport::Input::Transport]
         # @yield [builder] block overriding the default transport builder settings
         def self.input(
