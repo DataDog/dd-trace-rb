@@ -54,9 +54,12 @@ module Datadog
         # @param delta [Integer] the byte size change of the child
         # @return [void]
         def apply_child_delta(child_index, delta)
+          # @type var node: ContainerNode?
           node = self
+          # @type var index: Integer?
           index = child_index
-          while node
+          # A node has a parent_index exactly when it has a parent.
+          while node && index
             node.add_size_delta(index, delta)
             index = node.parent_index
             node = node.parent

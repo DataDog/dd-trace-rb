@@ -162,9 +162,9 @@ module Datadog
           root = ObjectNode.new
           first_members = {}
           records = hash_records(snapshot, tracked_names: MEMBER_ROLES[ROLE_ROOT], first_members: first_members)
-          stack = [[root, records, 0, ROLE_ROOT, 0, first_members, nil, nil, nil]]
+          stack = [[root, records, 0, ROLE_ROOT, 0, first_members, nil, nil, nil]] #: Array[Array[untyped]]
           until stack.empty?
-            frame = stack.last
+            frame = stack.last #: Array[untyped]
             if frame[FRAME_CURSOR] == frame[FRAME_ITEMS].length
               stack.pop
               complete_frame(frame, stack.last)
@@ -580,9 +580,9 @@ module Datadog
         def assemble_composite(items, hash)
           buffer = String.new(encoding: ::Encoding::UTF_8)
           buffer << (hash ? "{" : "[")
-          stack = [[items, 0, hash]]
+          stack = [[items, 0, hash]] #: Array[Array[untyped]]
           until stack.empty?
-            frame = stack.last
+            frame = stack.last #: Array[untyped]
             frame_items = frame[0]
             index = frame[1]
             if index == frame_items.length

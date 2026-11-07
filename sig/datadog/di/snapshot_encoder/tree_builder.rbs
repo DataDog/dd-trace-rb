@@ -29,7 +29,7 @@ module Datadog
         ROLE_PAIR: Symbol
         MEMBER_ROLES: Hash[Symbol, Hash[String, Symbol]]
         CLASSIFICATION_MEMBERS: Hash[String, bool]
-        ELEMENT_MEMBERS: Array[[String, Class, Symbol]]
+        ELEMENT_MEMBERS: Array[Array[untyped]]
         FRAME_NODE: Integer
         FRAME_ITEMS: Integer
         FRAME_CURSOR: Integer
@@ -68,7 +68,7 @@ module Datadog
         def build_entry: (frame frame, untyped value, Array[frame] stack) -> void
         def build_captured_value: (frame frame, String? name, untyped value, Integer depth, Array[frame] stack) -> void
         def element_member_of: (Array[record] records, Hash[String, Integer] first_members) -> ([Integer, String, Symbol] | [nil, nil, nil])
-        def push_element_container: (frame frame, Hash[untyped, untyped] | Array[untyped] value, Array[frame] stack) -> void
+        def push_element_container: (frame frame, untyped value, Array[frame] stack) -> void
         def add_primitive: (frame frame, String fragment, Integer depth, Integer ordinal) -> void
         def collection_registration: (depth: Integer, ordinal: Integer, element_count: Integer) -> registration
         def complete_frame: (frame frame, frame? parent_frame) -> void
