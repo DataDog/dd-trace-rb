@@ -1,0 +1,71 @@
+module Datadog
+  module DI
+    class SnapshotPruner
+      class Node
+        NOT_CAPTURED_DEPTH_BIT: Integer
+
+        LEVEL_SHIFT: Integer
+
+        NOT_CAPTURED_BIT: Integer
+
+        @start_offset: Integer
+
+        @end_offset: Integer
+
+        @level: Integer
+
+        @parent: Node?
+
+        @children: Array[Node]
+
+        @pruned_child_count: Integer
+
+        @not_captured: bool
+
+        @not_captured_depth: bool
+
+        def initialize: (start_offset: Integer, level: Integer, parent: Node?) -> void
+
+        attr_reader start_offset: Integer
+
+        attr_reader end_offset: Integer
+
+        attr_reader level: Integer
+
+        attr_reader parent: Node?
+
+        attr_reader children: Array[Node]
+
+        attr_reader pruned_child_count: Integer
+
+        attr_reader not_captured: bool
+
+        def not_captured?: () -> bool
+
+        attr_reader not_captured_depth: bool
+
+        def not_captured_depth?: () -> bool
+
+        def size: () -> Integer
+
+        def leaf?: () -> bool
+
+        def priority: () -> Integer
+
+        def add_child: (Node child) -> void
+
+        def close: (Integer end_offset) -> void
+
+        def mark_not_captured: () -> void
+
+        def mark_not_captured_depth: () -> void
+
+        def count_pruned_child: () -> bool
+
+        def promote: () -> void
+
+        def each_leaf: () { (Node leaf) -> void } -> void
+      end
+    end
+  end
+end
