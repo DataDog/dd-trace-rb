@@ -9,8 +9,10 @@ module Datadog
       #
       # @api private
       class Node
-        # Bit of the packed priority set for an object truncated for depth.
-        NOT_CAPTURED_DEPTH_BIT = 1 << 61
+        # Bit of the packed priority set for an object truncated for depth
+        # or promoted to a pruning candidate, ranking it ahead of every
+        # object without the bit.
+        PRUNE_FIRST_BIT = 1 << 61
 
         # Shift of the level within the packed priority.
         LEVEL_SHIFT = 44
@@ -34,6 +36,7 @@ module Datadog
           @pruned_child_count = 0
           @not_captured = false
           @not_captured_depth = false
+          @promoted = false
         end
 
         # The byte offset of the object's opening brace.
@@ -66,11 +69,16 @@ module Datadog
         attr_reader :not_captured
         alias_method :not_captured?, :not_captured
 
-        # Whether the object's +notCapturedReason+ is +depth+, or the object
-        # was promoted to a pruning candidate.
+        # Whether the object's +notCapturedReason+ is +depth+.
         # @return [Boolean]
         attr_reader :not_captured_depth
         alias_method :not_captured_depth?, :not_captured_depth
+
+        # Whether the object was promoted to a pruning candidate because
+        # all of its children were resolved.
+        # @return [Boolean]
+        attr_reader :promoted
+        alias_method :promoted?, :promoted
 
         # Returns the encoded size of the object.
         #
@@ -86,14 +94,16 @@ module Datadog
           children.empty?
         end
 
-        # Packs the pruning sort key (depth flag, level, not-captured flag,
-        # size) into one Integer, so that ranking two objects is one Integer
-        # comparison. The fields fit below 2**62 for levels below 2**17 and
+        # Packs the pruning sort key (prune-first bit, level, not-captured
+        # flag, size) into one Integer, so that ranking two objects is one
+        # Integer comparison. The prune-first bit is set for an object
+        # truncated for depth and for an object promoted to a pruning
+        # candidate. The fields fit below 2**62 for levels below 2**17 and
         # sizes below 2**43 bytes.
         #
         # @return [Integer] a greater value for an object to prune earlier
         def priority
-          (not_captured_depth? ? NOT_CAPTURED_DEPTH_BIT : 0) |
+          ((not_captured_depth? || promoted?) ? PRUNE_FIRST_BIT : 0) |
             (level << LEVEL_SHIFT) |
             (not_captured? ? NOT_CAPTURED_BIT : 0) |
             size
@@ -150,13 +160,12 @@ module Datadog
         end
 
         # Turns the object, whose children are all selected, into a
-        # pruning candidate that ranks ahead of every object without the
-        # depth flag.
+        # pruning candidate that ranks ahead of every object without
+        # the prune-first bit.
         #
         # @return [void]
         def promote
-          mark_not_captured
-          mark_not_captured_depth
+          @promoted = true
         end
 
         # Yields every leaf of the subtree.

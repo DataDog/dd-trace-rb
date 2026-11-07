@@ -22,6 +22,7 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
       expect(open_node.pruned_child_count).to eq 0
       expect(open_node.not_captured?).to be false
       expect(open_node.not_captured_depth?).to be false
+      expect(open_node.promoted?).to be false
     end
   end
 
@@ -94,12 +95,13 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
   end
 
   describe "#promote" do
-    it "sets both flags" do
+    it "sets the promoted flag only" do
       promoted = node
       promoted.promote
 
-      expect(promoted.not_captured?).to be true
-      expect(promoted.not_captured_depth?).to be true
+      expect(promoted.promoted?).to be true
+      expect(promoted.not_captured?).to be false
+      expect(promoted.not_captured_depth?).to be false
     end
   end
 
@@ -111,6 +113,15 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
       deep_large.mark_not_captured
 
       expect(depth.priority).to be > deep_large.priority
+    end
+
+    it "ranks a promoted node above level, not-captured flag and size" do
+      promoted = node(level: 5, end_offset: 2)
+      promoted.promote
+      deep_large = node(level: 9, end_offset: 1_000_000)
+      deep_large.mark_not_captured
+
+      expect(promoted.priority).to be > deep_large.priority
     end
 
     it "ranks level above the not-captured flag and size" do

@@ -2,7 +2,7 @@ module Datadog
   module DI
     class SnapshotPruner
       class Node
-        NOT_CAPTURED_DEPTH_BIT: Integer
+        PRUNE_FIRST_BIT: Integer
 
         LEVEL_SHIFT: Integer
 
@@ -23,6 +23,8 @@ module Datadog
         @not_captured: bool
 
         @not_captured_depth: bool
+
+        @promoted: bool
 
         def initialize: (start_offset: Integer, level: Integer, parent: Node?) -> void
 
@@ -45,6 +47,10 @@ module Datadog
         attr_reader not_captured_depth: bool
 
         def not_captured_depth?: () -> bool
+
+        attr_reader promoted: bool
+
+        def promoted?: () -> bool
 
         def size: () -> Integer
 
