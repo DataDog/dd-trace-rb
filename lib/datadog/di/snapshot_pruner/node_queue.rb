@@ -71,8 +71,8 @@ module Datadog
           heap[index] = node
         end
 
-        # Moves the object at +index+ toward the leaves until no child has a
-        # greater priority.
+        # Moves the object at +index+ toward the leaves until every child
+        # has an equal or lower priority.
         #
         # @param index [Integer] heap position of the object to move
         # @return [void]
