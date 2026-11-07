@@ -95,7 +95,7 @@ module Datadog
           end
         end
 
-        selected.values.sort_by(&:start_offset)
+        selected.values.sort_by!(&:start_offset)
       end
 
       # Returns the bytes saved by replacing an object with PRUNED_MARKER.
