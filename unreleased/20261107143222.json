@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Dynamic Instrumentation",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6655",
+  "message": "Send snapshots larger than 1 MB with their largest, most deeply nested captured values marked as pruned, instead of dropping the whole snapshot; snapshots that still exceed 1 MB after pruning are dropped."
+}
