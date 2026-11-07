@@ -130,7 +130,7 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
   end
 
   describe "#each_leaf" do
-    it "yields every node of the subtree without children" do
+    it "yields every leaf of the subtree" do
       root = node(level: 0)
       branch = node(level: 1, parent: root)
       leaf_a = node(level: 2, parent: branch)
