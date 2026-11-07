@@ -57,7 +57,7 @@ module Datadog
       private
 
       # Selects the objects to replace, highest priority first, until their
-      # replacement saves more than +excess+ bytes or no candidate is left.
+      # replacement saves at least +excess+ bytes or no candidate is left.
       #
       # An object no larger than PRUNED_MARKER, such as an empty Hash, is
       # kept, because replacing it would grow the snapshot; it
@@ -80,7 +80,7 @@ module Datadog
           if node_saving > 0
             selected[node.start_offset] = node
             saving += node_saving
-            break if saving > excess
+            break if saving >= excess
           end
 
           parent = node.parent

@@ -128,6 +128,22 @@ RSpec.describe Datadog::DI::SnapshotPruner do
       end
     end
 
+    context "when a single replacement saves exactly the excess" do
+      let(:json) { snapshot_json(arguments: {large: string_value(1_000), small: string_value(50)}) }
+      let(:large_saving) { encoded_size(string_value(1_000)) - marker_size }
+
+      it "stops once the savings cover the excess exactly" do
+        max_size = json.bytesize - large_saving
+        result = pruner.prune(json, max_size: max_size)
+
+        expect(pruned_arguments(result)).to eq(
+          "large" => {"pruned" => true},
+          "small" => {"type" => "String", "value" => "x" * 50},
+        )
+        expect(result.bytesize).to eq max_size
+      end
+    end
+
     context "when every child of a parent at level 6 is selected" do
       let(:children) { [string_value(200), string_value(200)] }
       let(:json) do
