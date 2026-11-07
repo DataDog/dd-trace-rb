@@ -36,7 +36,7 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
   end
 
   describe "#add_child" do
-    it "appends the child and makes the node a non-leaf" do
+    it "appends the child and makes the node a branch" do
       parent = node
       child = node(parent: parent)
 
