@@ -8,12 +8,8 @@ module Datadog
   module DI
     # Reduces an encoded snapshot below a byte limit by replacing captured
     # value objects with the pruned marker, operating directly on the
-    # encoded bytes.
-    #
-    # The objects are ranked by (truncated for depth, nesting level, carries
-    # a notCapturedReason, size), the highest-ranked objects are selected
-    # until the excess is covered, and a parent whose children are all
-    # selected replaces them as one candidate.
+    # encoded bytes. The largest, most deeply nested captured values are
+    # replaced first.
     #
     # @api private
     class SnapshotPruner
