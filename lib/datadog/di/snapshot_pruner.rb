@@ -7,7 +7,8 @@ require_relative "snapshot_pruner/parser"
 module Datadog
   module DI
     # Reduces an encoded snapshot below a byte limit by replacing captured
-    # value objects with the pruned marker, without decoding the snapshot.
+    # value objects with the pruned marker, operating directly on the
+    # encoded bytes.
     #
     # The objects are ranked by (truncated for depth, nesting level, carries
     # a notCapturedReason, size), the highest-ranked objects are selected
