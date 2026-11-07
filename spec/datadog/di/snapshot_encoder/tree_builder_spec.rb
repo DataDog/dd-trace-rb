@@ -267,14 +267,21 @@ RSpec.describe Datadog::DI::SnapshotEncoder::TreeBuilder do
     context "with an object whose to_s returns an Integer" do
       let(:payload) { return_payload({type: "Custom", value: TreeBuilderSpecIntegerToS.new}) }
 
-      it "raises the error class JSON.dump raises" do
-        expected_class = begin
+      # json 2.9.1 and older raise TypeError for such an object; json
+      # 2.18.0 encodes it.
+      it "raises the error JSON.dump raises, or emits its bytes" do
+        expected = begin
           JSON.dump(payload)
         rescue => exc
           exc.class
         end
-        expect(expected_class).to eq TypeError
-        expect { build }.to raise_error(expected_class)
+
+        if expected.is_a?(String)
+          expect(emit(root)).to eq expected
+        else
+          expect(expected).to eq TypeError
+          expect { build }.to raise_error(expected)
+        end
       end
     end
 
