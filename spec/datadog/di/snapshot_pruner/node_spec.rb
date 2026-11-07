@@ -69,15 +69,27 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
     end
   end
 
-  describe "#count_pruned_child" do
-    it "returns true once every child is counted" do
+  describe "#record_pruned_child" do
+    it "records one resolved child at a time" do
       parent = node
       2.times { parent.add_child(node(parent: parent)) }
 
-      expect(parent.count_pruned_child).to be false
+      parent.record_pruned_child
+
       expect(parent.pruned_child_count).to eq 1
-      expect(parent.count_pruned_child).to be true
-      expect(parent.pruned_child_count).to eq 2
+    end
+  end
+
+  describe "#all_children_pruned?" do
+    it "returns true once every child is recorded" do
+      parent = node
+      2.times { parent.add_child(node(parent: parent)) }
+
+      expect(parent.all_children_pruned?).to be false
+      parent.record_pruned_child
+      expect(parent.all_children_pruned?).to be false
+      parent.record_pruned_child
+      expect(parent.all_children_pruned?).to be true
     end
   end
 

@@ -60,7 +60,9 @@ module Datadog
 
         def mark_not_captured_depth: () -> void
 
-        def count_pruned_child: () -> bool
+        def record_pruned_child: () -> void
+
+        def all_children_pruned?: () -> bool
 
         def promote: () -> void
 

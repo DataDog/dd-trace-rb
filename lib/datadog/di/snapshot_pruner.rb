@@ -84,7 +84,9 @@ module Datadog
           end
 
           parent = node.parent
-          next unless parent && parent.level >= MIN_LEVEL && parent.count_pruned_child
+          next unless parent && parent.level >= MIN_LEVEL
+          parent.record_pruned_child
+          next unless parent.all_children_pruned?
 
           parent.promote
           queue.push(parent)

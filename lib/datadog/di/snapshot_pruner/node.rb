@@ -56,7 +56,8 @@ module Datadog
         # @return [Array<Node>]
         attr_reader :children
 
-        # The number of children selected for pruning.
+        # The number of children already resolved from the pruning queue,
+        # whether selected for pruning or subsumed by promotion.
         # @return [Integer]
         attr_reader :pruned_child_count
 
@@ -132,11 +133,19 @@ module Datadog
           nil
         end
 
-        # Counts one child selected for pruning.
+        # Records one child resolved from the pruning queue.
         #
-        # @return [Boolean] whether every child is now selected
-        def count_pruned_child
+        # @return [void]
+        def record_pruned_child
           @pruned_child_count = pruned_child_count + 1
+          nil
+        end
+
+        # Returns whether every child has been resolved from the pruning
+        # queue.
+        #
+        # @return [Boolean]
+        def all_children_pruned?
           pruned_child_count >= children.size
         end
 
