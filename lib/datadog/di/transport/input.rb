@@ -6,7 +6,6 @@ require_relative "../../core/tag_builder"
 require_relative "../../core/transport/parcel"
 require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
-require_relative "../../core/utils/time"
 require_relative "../error"
 require_relative "../fatal_exceptions"
 require_relative "../guardrails_telemetry"
@@ -35,13 +34,6 @@ module Datadog
           # The pruner applied to snapshots above MAX_SERIALIZED_SNAPSHOT_SIZE.
           # @return [SnapshotPruner]
           attr_reader :snapshot_pruner
-          # The number of snapshots pruned to fit MAX_SERIALIZED_SNAPSHOT_SIZE.
-          # @return [Integer]
-          attr_reader :pruned_snapshot_count
-          # The time the latest snapshot was pruned to fit
-          # MAX_SERIALIZED_SNAPSHOT_SIZE, nil until a snapshot is pruned.
-          # @return [Time, nil]
-          attr_reader :last_snapshot_pruned_at
 
           # Initializes the transport.
           #
@@ -56,8 +48,6 @@ module Datadog
             @telemetry = telemetry
             @guardrails_telemetry = guardrails_telemetry
             @snapshot_pruner = SnapshotPruner.new
-            @pruned_snapshot_count = 0
-            @last_snapshot_pruned_at = nil
           end
 
           # The limit on an individual snapshot payload, aka "log line",
@@ -190,8 +180,6 @@ module Datadog
               "di: pruned snapshot from #{encoded.bytesize} to #{pruned.bytesize} bytes " \
                 "(#{GuardrailsTelemetry::Reason::PAYLOAD_TOO_LARGE})"
             end
-            @pruned_snapshot_count = pruned_snapshot_count + 1
-            @last_snapshot_pruned_at = Core::Utils::Time.now
             pruned
           rescue Exception => exc # standard:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)

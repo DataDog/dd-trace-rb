@@ -331,11 +331,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           end
         end
 
-        it "starts with no pruned snapshot recorded" do
-          expect(transport.pruned_snapshot_count).to eq 0
-          expect(transport.last_snapshot_pruned_at).to be_nil
-        end
-
         it "sends the snapshot with its largest captured value pruned" do
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
 
@@ -361,24 +356,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect_lazy_log(logger, :debug, /\Adi: pruned snapshot from \d+ to \d+ bytes \(payloadTooLarge\)\z/)
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
-        end
-
-        it "records the pruned snapshot count and time" do
-          pruned_at = Time.at(1_700_000_000)
-          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(pruned_at)
-
-          transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
-
-          expect(transport.pruned_snapshot_count).to eq 1
-          expect(transport.last_snapshot_pruned_at).to eq pruned_at
-
-          later = Time.at(1_700_000_005)
-          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(later)
-
-          transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
-
-          expect(transport.pruned_snapshot_count).to eq 2
-          expect(transport.last_snapshot_pruned_at).to eq later
         end
 
         context "when the snapshot was produced by a log probe" do
@@ -420,7 +397,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         let(:snapshots) { [snapshot_event(unfittable_snapshot)] }
 
-        it "drops the snapshot with the drop metrics and records no pruned snapshot" do
+        it "drops the snapshot with the drop metrics" do
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
             tags: {reason: "payloadTooLarge", event_type: "snapshot"})
           expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
@@ -430,9 +407,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(transport).not_to receive(:send_input_chunk)
 
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
-
-          expect(transport.pruned_snapshot_count).to eq 0
-          expect(transport.last_snapshot_pruned_at).to be_nil
         end
       end
 
@@ -457,7 +431,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           transport.send_input(snapshots, tags, on_serialization_error: on_serialization_error)
 
           expect(serialization_errors).to be_empty
-          expect(transport.pruned_snapshot_count).to eq 0
         end
 
         context "with a fatal exception" do

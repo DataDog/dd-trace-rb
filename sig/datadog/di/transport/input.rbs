@@ -17,10 +17,6 @@ module Datadog
 
           @snapshot_pruner: DI::SnapshotPruner
 
-          @pruned_snapshot_count: Integer
-
-          @last_snapshot_pruned_at: Time?
-
           MAX_SERIALIZED_SNAPSHOT_SIZE: Integer
           MAX_CHUNK_SIZE: Integer
           DEFAULT_CHUNK_SIZE: Integer
@@ -30,10 +26,6 @@ module Datadog
           attr_reader guardrails_telemetry: DI::GuardrailsTelemetry
 
           attr_reader snapshot_pruner: DI::SnapshotPruner
-
-          attr_reader pruned_snapshot_count: Integer
-
-          attr_reader last_snapshot_pruned_at: Time?
 
           def initialize: (
             Datadog::Core::Transport::HTTP::API::Map apis,
