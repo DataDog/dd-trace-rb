@@ -248,10 +248,8 @@ module Datadog
                 end
 
                 # Number of snapshots that can be stored in the probe
-                # notifier worker queue. Larger capacity runs the risk of
-                # creating snapshots that exceed the agent's request size
-                # limit. Smaller capacity increases the risk of dropping
-                # snapshots.
+                # notifier worker queue. Smaller capacity increases the risk
+                # of dropping snapshots.
                 option :snapshot_queue_capacity do |o|
                   o.type :int
                   o.default 100
