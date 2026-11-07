@@ -54,6 +54,10 @@ module Datadog
           # is 1 MB. Larger snapshots are pruned to fit.
           MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
 
+          # The intake adds host tags and +ddtags+ before the backend
+          # applies its 1 MB cap; dd-trace-js/dd-trace-go keep this headroom.
+          BACKEND_ENRICHMENT_HEADROOM = 4 * 1024
+
           # The maximum chunk (batch) size that intake permits is 5 MB.
           #
           # Two bytes are for the [ and ] of JSON array syntax.
@@ -160,7 +164,8 @@ module Datadog
             payload
           end
 
-          # Prunes an encoded snapshot that exceeds MAX_SERIALIZED_SNAPSHOT_SIZE.
+          # Prunes an encoded snapshot that exceeds MAX_SERIALIZED_SNAPSHOT_SIZE
+          # to fit MAX_SERIALIZED_SNAPSHOT_SIZE less BACKEND_ENRICHMENT_HEADROOM.
           #
           # A pruner failure drops the snapshot and is reported here, so
           # that it does not reach the serialization error callback, which
@@ -170,8 +175,9 @@ module Datadog
           # @return [String, nil] the pruned snapshot, nil when the snapshot
           #   is to be dropped because pruning cannot fit it or failed
           def prune_snapshot(encoded)
-            pruned = snapshot_pruner.prune(encoded, max_size: MAX_SERIALIZED_SNAPSHOT_SIZE)
-            if pruned.bytesize > MAX_SERIALIZED_SNAPSHOT_SIZE
+            target = MAX_SERIALIZED_SNAPSHOT_SIZE - BACKEND_ENRICHMENT_HEADROOM
+            pruned = snapshot_pruner.prune(encoded, max_size: target)
+            if pruned.bytesize > target
               log_snapshot_drop
               return
             end

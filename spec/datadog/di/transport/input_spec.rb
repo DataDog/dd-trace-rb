@@ -171,6 +171,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       before do
         # Reduce limits even more to force a reasonably-sized snapshot to be dropped
         stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        stub_const("Datadog::DI::Transport::Input::Transport::BACKEND_ENRICHMENT_HEADROOM", 500)
       end
 
       let(:small_snapshot) do
@@ -341,7 +342,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
             "kept" => {"type" => "String", "value" => "k" * 100},
             "large" => {"pruned" => true},
           )
-          expect(JSON.dump(sent.first).bytesize).to be <= 2_000
+          expect(JSON.dump(sent.first).bytesize).to be <= 1_500
         end
 
         it "emits the payloadTooLarge capture.incomplete metric and no drop metric" do
