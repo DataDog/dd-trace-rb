@@ -271,8 +271,8 @@ generated.
 
 - Maximum snapshot size is **1 MB**
 - Snapshots exceeding this size are pruned: their largest, most deeply
-  nested captured values are replaced with a marker, which the Live
-  Debugger shows as a pruned value, until the snapshot fits
+  nested captured values are replaced with a pruned-value marker, until
+  the snapshot fits
 - Snapshots that still exceed this size after pruning are dropped
   entirely
 - Consider reducing capture depth or collection sizes if you encounter
