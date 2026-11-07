@@ -4,8 +4,8 @@ module Datadog
   module DI
     class SnapshotPruner
       # Priority queue of snapshot objects that yields the object with the
-      # greatest pruning priority first. Ruby's standard library has no
-      # heap, so the queue is a binary max-heap over an Array.
+      # greatest pruning priority first, implemented as a binary max-heap
+      # over an Array.
       #
       # @api private
       class NodeQueue
