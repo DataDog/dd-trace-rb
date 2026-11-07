@@ -147,7 +147,7 @@ RSpec.describe Datadog::DI::SnapshotPruner::Node do
       expect(leaves).to contain_exactly(leaf_a, leaf_b, leaf_c)
     end
 
-    it "yields a node without children itself" do
+    it "yields the node itself when it is a leaf" do
       single = node
       leaves = []
       single.each_leaf { |leaf| leaves << leaf }
