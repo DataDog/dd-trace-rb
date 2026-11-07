@@ -48,13 +48,12 @@ module Datadog
       #   no object that can be pruned; otherwise a copy with the selected
       #   objects replaced by PRUNED_MARKER, which exceeds +max_size+ only
       #   when pruning every candidate cannot cover the excess
+      # @raise [ArgumentError] when the document is malformed
       def prune(json, max_size:)
         excess = json.bytesize - max_size
         return json if excess <= 0
 
         root = parser.parse(json)
-        return json unless root
-
         selected_nodes = select_nodes(root, excess)
         return json if selected_nodes.empty?
 

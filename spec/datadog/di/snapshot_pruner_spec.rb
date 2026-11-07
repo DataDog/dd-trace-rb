@@ -213,16 +213,18 @@ RSpec.describe Datadog::DI::SnapshotPruner do
     context "when the root object is not closed" do
       let(:json) { snapshot_json(arguments: {a: string_value(500)}).chomp("}") }
 
-      it "returns the snapshot itself" do
-        expect(pruner.prune(json, max_size: 100)).to be(json)
+      it "raises the no closed root object error" do
+        expect { pruner.prune(json, max_size: 100) }
+          .to raise_error(ArgumentError, "no closed root object in the document")
       end
     end
 
     context "when a string is not closed" do
       let(:json) { '{"debugger":{"snapshot":{"captures":{"return":{"arguments":{"a":{"value":"' + "x" * 500 }
 
-      it "returns the snapshot itself" do
-        expect(pruner.prune(json, max_size: 100)).to be(json)
+      it "raises the unclosed string error" do
+        expect { pruner.prune(json, max_size: 100) }
+          .to raise_error(ArgumentError, /\Aunclosed string starting at byte \d+\z/)
       end
     end
 

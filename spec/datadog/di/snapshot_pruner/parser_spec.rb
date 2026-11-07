@@ -109,26 +109,30 @@ RSpec.describe Datadog::DI::SnapshotPruner::Parser do
     end
 
     context "when the root object is not closed" do
-      it "returns nil" do
-        expect(parser.parse('{"a":{"b":{}}')).to be_nil
+      it "raises the no closed root object error" do
+        expect { parser.parse('{"a":{"b":{}}') }
+          .to raise_error(ArgumentError, "no closed root object in the document")
       end
     end
 
     context "when a string is not closed" do
-      it "returns nil" do
-        expect(parser.parse('{"a":"unterminated')).to be_nil
+      it "raises the unclosed string error with its byte offset" do
+        expect { parser.parse('{"a":"unterminated') }
+          .to raise_error(ArgumentError, "unclosed string starting at byte 5")
       end
     end
 
     context "when a closing brace precedes every opening brace" do
-      it "returns nil" do
-        expect(parser.parse('}{"a":1}')).to be_nil
+      it "raises the closing brace error with its byte offset" do
+        expect { parser.parse('}{"a":1}') }
+          .to raise_error(ArgumentError, "closing brace at byte 0 without an open object")
       end
     end
 
     context "when the document holds no object" do
-      it "returns nil" do
-        expect(parser.parse('["a",1]')).to be_nil
+      it "raises the no closed root object error" do
+        expect { parser.parse('["a",1]') }
+          .to raise_error(ArgumentError, "no closed root object in the document")
       end
     end
   end

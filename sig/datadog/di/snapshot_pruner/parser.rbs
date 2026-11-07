@@ -18,7 +18,7 @@ module Datadog
 
         CLOSE_BRACE: Integer
 
-        def parse: (String json) -> Node?
+        def parse: (String json) -> Node
 
         private
 

@@ -45,8 +45,9 @@ module Datadog
         # value with the same text is skipped like any other value.
         #
         # @param json [String] the encoded snapshot, a JSON object
-        # @return [Node, nil] the root object, nil when the document has no
-        #   closed root object or holds an unclosed string
+        # @return [Node] the root object
+        # @raise [ArgumentError] when the document holds an unclosed string,
+        #   a closing brace with no open object, or no closed root object
         def parse(json)
           scanner = StringScanner.new(json)
           open_nodes = []
@@ -59,15 +60,17 @@ module Datadog
               open_nodes.push(node)
             when CLOSE_BRACE
               node = open_nodes.pop
-              return unless node
+              raise ArgumentError, "closing brace at byte #{offset} without an open object" unless node
 
               node.close(scanner.pos)
               return node if open_nodes.empty?
             else
-              return unless skip_string(scanner, open_nodes.last)
+              unless skip_string(scanner, open_nodes.last)
+                raise ArgumentError, "unclosed string starting at byte #{offset}"
+              end
             end
           end
-          nil
+          raise ArgumentError, "no closed root object in the document"
         end
 
         private
