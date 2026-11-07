@@ -67,7 +67,7 @@ module Datadog
       # replacement saves more than +excess+ bytes or no candidate is left.
       #
       # An object no larger than PRUNED_MARKER, such as an empty Hash, is
-      # not replaced, because replacing it would grow the snapshot; it
+      # kept, because replacing it would grow the snapshot; it
       # still counts as pruned toward its parent's promotion, so that the
       # parent can be replaced whole.
       #
