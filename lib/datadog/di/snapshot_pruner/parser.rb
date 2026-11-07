@@ -41,7 +41,7 @@ module Datadog
 
         # Builds the object tree of an encoded snapshot.
         #
-        # Only a +notCapturedReason+ member name flags its object: a string
+        # A +notCapturedReason+ member name flags its object: a string
         # value with the same text is skipped like any other value.
         #
         # @param json [String] the encoded snapshot, a JSON object
