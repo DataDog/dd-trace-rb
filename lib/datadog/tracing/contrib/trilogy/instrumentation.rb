@@ -20,7 +20,7 @@ module Datadog
           # Trilogy patch instance methods
           module InstanceMethods
             def query(sql)
-              return super unless Tracing.enabled?
+              return super unless Tracing.enabled? || comment_propagation_enabled?
 
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
@@ -88,6 +88,10 @@ module Datadog
 
             def comment_propagation
               datadog_configuration[:comment_propagation]
+            end
+
+            def comment_propagation_enabled?
+              Contrib::Propagation::SqlComment::Mode.new(comment_propagation).enabled?
             end
           end
         end
