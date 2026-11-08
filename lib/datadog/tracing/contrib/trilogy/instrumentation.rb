@@ -20,6 +20,8 @@ module Datadog
           # Trilogy patch instance methods
           module InstanceMethods
             def query(sql)
+              return super unless Tracing.enabled?
+
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|

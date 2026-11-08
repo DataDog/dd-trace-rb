@@ -20,10 +20,14 @@ module Datadog
           # InstanceMethods - implementing instrumentation
           module InstanceMethods
             def call(*args, &block)
+              return super unless Tracing.enabled?
+
               TraceMiddleware.call(self, args[0], service_name, command_args?) { super }
             end
 
             def call_pipeline(*args, &block)
+              return super unless Tracing.enabled?
+
               TraceMiddleware.call_pipelined(self, args[0].commands, service_name, command_args?) { super }
             end
 

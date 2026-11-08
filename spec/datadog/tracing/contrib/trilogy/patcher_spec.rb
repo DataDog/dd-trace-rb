@@ -62,6 +62,12 @@ RSpec.describe "Trlogy::Client patcher" do
 
           expect(spans).to be_empty
         end
+
+        it "runs the query without starting a trace" do
+          expect(Datadog::Tracing).to_not receive(:trace)
+
+          expect(query.count).to eq(1)
+        end
       end
 
       context "when the client is configured directly" do

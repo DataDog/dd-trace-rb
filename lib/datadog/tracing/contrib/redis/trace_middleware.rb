@@ -13,12 +13,16 @@ module Datadog
         module TraceMiddleware
           # Instruments {RedisClient::ConnectionMixin#call}.
           def call(command, redis_config)
+            return super unless Tracing.enabled?
+
             config = resolve(redis_config)
             TraceMiddleware.call(redis_config, command, config[:service_name], config[:command_args]) { super }
           end
 
           # Instruments {RedisClient::ConnectionMixin#call_pipelined}.
           def call_pipelined(commands, redis_config)
+            return super unless Tracing.enabled?
+
             config = resolve(redis_config)
             TraceMiddleware.call_pipelined(redis_config, commands, config[:service_name], config[:command_args]) { super }
           end

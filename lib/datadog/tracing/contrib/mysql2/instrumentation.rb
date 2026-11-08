@@ -20,6 +20,8 @@ module Datadog
           # Mysql2::Client patch instance methods
           module InstanceMethods
             def query(sql, options = {})
+              return super unless Tracing.enabled?
+
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
