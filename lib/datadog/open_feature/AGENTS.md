@@ -174,7 +174,6 @@ These apply across the whole repository, not just this directory.
 
 - **Time.** `Datadog::Core::Utils::Time.now` / `.get_time`, not `Time.now` — the provider is injectable for tests and Timecop.
 - **Environment variables.** Read through `Datadog::Core::Environment::VariableHelpers` or the settings layer. Run `rake local_config_map:generate` after adding a new one.
-- **`filter_map`.** Use `Core::Utils::EnumerableCompat.filter_map` — the native method requires Ruby 2.7+ and this codebase supports 2.5 and 2.6.
 - **Settings and component wiring.** New configuration goes in `Configuration::Settings`; new components are built in `Component.build` and wired into `components.rb`.
 - **Accessing private members.** `.send(:member)` is accepted when no public accessor exists. Prefer adding a real accessor when practical.
 

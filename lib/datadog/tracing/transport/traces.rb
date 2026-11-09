@@ -4,7 +4,6 @@ require_relative "../../core/chunker"
 require_relative "../../core/transport/parcel"
 require_relative "../../core/transport/request"
 require_relative "../../core/transport/transport"
-require_relative "../../core/utils/enumerable_compat"
 require_relative "http/client"
 require_relative "http/telemetry"
 require_relative "serializable_trace"
@@ -92,7 +91,7 @@ module Datadog
           #   plus span count when telemetry accounting is enabled
           def encode_in_chunks(traces)
             span_counts = [] if @batch
-            encoded_traces = Core::Utils::EnumerableCompat.filter_map(traces) do |trace|
+            encoded_traces = traces.filter_map do |trace|
               encoded = encode_one(trace)
               span_counts << trace.length if encoded && span_counts
               encoded

@@ -4,7 +4,6 @@ require "json"
 require_relative "../core/remote/dispatcher"
 require_relative "../core/tag_normalizer"
 require_relative "../core/telemetry/configuration_value"
-require_relative "../core/utils/enumerable_compat"
 
 module Datadog
   module Profiling
@@ -77,10 +76,10 @@ module Datadog
           settings = Datadog.configuration
 
           # @type var parsed: Array[[Core::Remote::Configuration::Content, Array[String], config?]]
-          parsed = Core::Utils::EnumerableCompat.filter_map(repository.contents) do |content|
+          parsed = repository.contents.filter_map do |content|
             parse_content(content) if PRODUCTS.include?(content.path.product)
           end
-          configs = Core::Utils::EnumerableCompat.filter_map(parsed) { |_content, _problems, config| config }
+          configs = parsed.filter_map { |_content, _problems, config| config }
 
           profilers, remote_settings = merge(configs, settings)
           values = to_values(profilers, remote_settings, local_profilers(settings))

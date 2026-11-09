@@ -3,7 +3,6 @@
 require_relative "scope"
 require_relative "symbol"
 require_relative "file_hash"
-require_relative "../core/utils/enumerable_compat"
 require_relative "../di/fatal_exceptions"
 
 module Datadog
@@ -596,7 +595,7 @@ module Datadog
           klass.protected_instance_methods(false) +
           klass.private_instance_methods(false)).uniq
 
-        Core::Utils::EnumerableCompat.filter_map(method_names) do |method_name|
+        method_names.filter_map do |method_name|
           method = declared_instance_method(klass, method_name)
           location = method.source_location
           next unless location
@@ -696,7 +695,7 @@ module Datadog
 
         return [] if params.nil? || params.empty?
 
-        Core::Utils::EnumerableCompat.filter_map(params) do |param_type, param_name|
+        params.filter_map do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
 
@@ -839,7 +838,7 @@ module Datadog
           # Resolve UnboundMethods for this (mod, file) just-in-time. These objects
           # live only as long as the tree node holds them; they are released when
           # convert_tree_to_scope finishes building the file's Scope.
-          method_infos = Core::Utils::EnumerableCompat.filter_map(method_names) do |name|
+          method_infos = method_names.filter_map do |name|
             method = declared_instance_method(mod, name)
             # Pass 1 (build_per_file_index) recorded this method under file_path.
             # If the method has been redefined in another file between the two
@@ -965,7 +964,7 @@ module Datadog
       # @return [Scope] Scope object
       def convert_node_to_scope(node)
         # Build method scopes from collected method entries
-        method_scopes = Core::Utils::EnumerableCompat.filter_map(node[:methods]) do |method_info|
+        method_scopes = node[:methods].filter_map do |method_info|
           build_instance_method_scope(node[:mod], method_info[:name], method_info[:method])
         end
 
