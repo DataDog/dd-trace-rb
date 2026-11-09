@@ -146,7 +146,6 @@ typedef struct {
   verstable_streaming_thread_contexts_map thread_contexts;
   long start_time_ns;
   long finish_time_ns;
-  uint64_t recorded_samples;
 } streaming_serializer_state;
 
 static void serializer_free(void *data) {
@@ -494,7 +493,6 @@ void miteruby_streaming_serializer_prepare_serialize(
     emit_sample_fragment(
       &stream, location_ids, location_count, values, thread_context_for(&state->thread_contexts, event->thread.value), end_timestamp_ns
     );
-    state->recorded_samples++;
     pos += event->header.size_bytes;
   }
   state->uncompressed_serialization_size = stream.bytes_written;
@@ -527,9 +525,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
   VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
-  VALUE stats = rb_hash_new();
-  rb_hash_aset(stats, ID2SYM(rb_intern("recorded_samples")), ULL2NUM(state->recorded_samples));
-  result = rb_ary_new_from_args(4, start, finish, result, stats);
+  result = rb_ary_new_from_args(4, start, finish, result, rb_hash_new());
   state->start_time_ns = finish_time_ns;
   RB_GC_GUARD(serializer);
   RB_GC_GUARD(bytes_string);
@@ -539,18 +535,14 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
-  state->recorded_samples = 0;
   state->uncompressed_serialization_size = 0;
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
 }
 
-static VALUE native_stats(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  uint64_t recorded_samples = get_state(serializer)->recorded_samples;
-  VALUE stats = rb_hash_new();
-  rb_hash_aset(stats, ID2SYM(rb_intern("recorded_samples")), ULL2NUM(recorded_samples));
-  return stats;
+static VALUE native_stats(DDTRACE_UNUSED VALUE klass, DDTRACE_UNUSED VALUE serializer) {
+  return rb_hash_new();
 }
 
 void miteruby_streaming_serializer_init(VALUE profiling_module) {
