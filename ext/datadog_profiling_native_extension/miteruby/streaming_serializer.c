@@ -441,59 +441,14 @@ void miteruby_streaming_serializer_prepare_serialize(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
 
-  // Emit FragmentSampleType (Does not require GVL)
-  for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
-    miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
-    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
-    flush_if_needed(state, &stream);
-  }
-
-  // Emit FragmentLocation: Fixed placeholders (Does not require GVL)
-  for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
-    const miteruby_pprof_fragment_location_location_t *location = &fixed_location_values[i];
-    emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line);
-    flush_if_needed(state, &stream);
-  }
-
-  // Emit FragmentLocation: From profile data (Requires GVL)
-  for (size_t i = 0; i < location_array->count; i++) {
-    miteruby_location_t location = location_array->entries[i];
-    const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
-    // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
-    int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
-    emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
-    flush_if_needed(state, &stream);
-  }
-
-  // Emit FragmentFunction: Fixed placeholders (Does not require GVL)
-  for (size_t i = 1; i < sizeof(fixed_function_values) / sizeof(fixed_function_values[0]); i++) {
-    miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
-    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
-    flush_if_needed(state, &stream);
-  }
-
-  // Emit FragmentFunction: From profile data (Does not require GVL)
-  for (size_t i = 0; i < cme_iseq_array->count; i++) {
-    int64_t name_id = string_table_id_for(i, verstable_mark_threads_set_size(threads_set));
-    miteruby_pprof_fragment_function_t fragment = {
-      .has_function = true,
-      .function = {.id = function_id_for(i), .name = name_id, .filename = name_id + 1},
-    };
-    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
-    flush_if_needed(state, &stream);
-  }
-
-  // Emit FragmentStringTable: Fixed strings (Does not require GVL)
+  // 1. Emit FragmentStringTable: Fixed strings (Does not require GVL)
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
     emit_string_table_entry(&stream, string, strlen(string));
     flush_if_needed(state, &stream);
   }
 
-  // Emit FragmentStringTable: From profile data - threads (Requires GVL)
+  // 2. Emit FragmentStringTable: From profile data - threads (Requires GVL, depends: 1)
   int64_t thread_string_id = PPROF_STRING_FIRST_DYNAMIC;
   for (
     verstable_mark_threads_set_itr entry = verstable_mark_threads_set_first(threads_set);
@@ -510,7 +465,7 @@ void miteruby_streaming_serializer_prepare_serialize(
     flush_if_needed(state, &stream);
   }
 
-  // Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL)
+  // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
   char qualified_name[4096];
   for (size_t i = 0; i < cme_iseq_array->count; i++) {
     miteruby_event_frame_refs_t refs = cme_iseq_array->entries[i];
@@ -535,7 +490,52 @@ void miteruby_streaming_serializer_prepare_serialize(
     flush_if_needed(state, &stream);
   }
 
-  // Emit FragmentProfile (Does not require GVL)
+  // 4. Emit FragmentLocation: Fixed placeholders (Does not require GVL)
+  for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
+    const miteruby_pprof_fragment_location_location_t *location = &fixed_location_values[i];
+    emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line);
+    flush_if_needed(state, &stream);
+  }
+
+  // 5. Emit FragmentLocation: From profile data (Requires GVL)
+  for (size_t i = 0; i < location_array->count; i++) {
+    miteruby_location_t location = location_array->entries[i];
+    const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
+    // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
+    int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
+    emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
+    flush_if_needed(state, &stream);
+  }
+
+  // 6. Emit FragmentSampleType (Does not require GVL)
+  for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
+    miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
+  }
+
+  // 7. Emit FragmentFunction: Fixed placeholders (Does not require GVL)
+  for (size_t i = 1; i < sizeof(fixed_function_values) / sizeof(fixed_function_values[0]); i++) {
+    miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
+  }
+
+  // 8. Emit FragmentFunction: From profile data (Does not require GVL)
+  for (size_t i = 0; i < cme_iseq_array->count; i++) {
+    int64_t name_id = string_table_id_for(i, verstable_mark_threads_set_size(threads_set));
+    miteruby_pprof_fragment_function_t fragment = {
+      .has_function = true,
+      .function = {.id = function_id_for(i), .name = name_id, .filename = name_id + 1},
+    };
+    if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
+      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
+  }
+
+  // 9. Emit FragmentProfile (Does not require GVL)
   int64_t duration_ns = finish_time_ns - state->start_time_ns;
   miteruby_pprof_fragment_profile_t profile = {
     .time_nanos = state->start_time_ns,
@@ -545,7 +545,7 @@ void miteruby_streaming_serializer_prepare_serialize(
     rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata: %s", PB_GET_ERROR(&stream));
   flush_if_needed(state, &stream);
 
-  // Emit FragmentSample (Does not require GVL)
+  // 10. Emit FragmentSample (Does not require GVL, depends: 2)
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
