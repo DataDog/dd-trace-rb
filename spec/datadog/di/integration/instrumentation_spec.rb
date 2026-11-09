@@ -2119,6 +2119,47 @@ RSpec.describe "Instrumentation integration" do
 
         include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
       end
+
+      context "when pruning the captured argument fits the snapshot within the limit" do
+        let(:payload_limit) { 40_000 }
+
+        let(:settings) do
+          super().tap do |settings|
+            settings.agent.host = "localhost"
+            settings.agent.port = http_server_port
+            settings.agent.use_ssl = false
+            settings.agent.timeout_seconds = 1
+          end
+        end
+
+        let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+        before do
+          stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", payload_limit)
+          settings.dynamic_instrumentation.max_capture_string_length = 50_000
+        end
+
+        it "sends the snapshot with the argument pruned and emits the payloadTooLarge capture.incomplete metric" do
+          expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(telemetry).not_to receive(:inc).with("debugger", "events.dropped", any_args)
+
+          probe_manager.add_probe(probe)
+
+          InstrumentationSpecTestClass.new.test_method("A" * 50_000)
+          component.probe_notifier_worker.flush
+
+          expect(input_requests.size).to eq 1
+          snapshots = JSON.parse(input_requests.first)
+          expect(snapshots.size).to eq 1
+          snapshot = snapshots.first
+          expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "arg1")).to eq("pruned" => true)
+          expect(snapshot.dig("debugger", "snapshot", "probe", "id")).to eq "payload-too-large-test"
+          expect(JSON.dump(snapshot).bytesize).to be <= payload_limit -
+            Datadog::DI::Transport::Input::Transport::BACKEND_ENRICHMENT_HEADROOM
+          expect(probe.enabled?).to be true
+        end
+      end
     end
   end
 end
