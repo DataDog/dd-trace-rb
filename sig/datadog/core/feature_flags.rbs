@@ -19,7 +19,7 @@ module Datadog
       class ResolutionDetails
         type metadata_t = Hash[String, String]
 
-        type feature_t = [::String, ::String | ::Float | bool, ::Array[::String]]
+        type feature_t = [String, String | Float | bool, Array[String]]
 
         @value: Datadog::Helpers::json
 
@@ -49,7 +49,7 @@ module Datadog
 
         def flag_metadata: () -> metadata_t
 
-        def features: () -> ::Array[feature_t]
+        def features: () -> Array[feature_t]
 
         private
 
