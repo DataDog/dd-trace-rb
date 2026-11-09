@@ -32,7 +32,7 @@ class SupportedVersionsGenerator
       build_entry(integration, dependency_name, supported_range(integration.class, dependency_name))
     end.compact
     entries.concat(exception_entries)
-    entries.sort_by! { |entry| [entry[:integrationName], entry[:dependencyName]] }
+    entries.sort_by! { |entry| [entry[:integrationName], entry[:libraryName]] }
     File.write(OUTPUT_PATH, "#{JSON.pretty_generate(entries)}\n")
   end
 
@@ -44,7 +44,7 @@ class SupportedVersionsGenerator
     return if tested.empty?
 
     {
-      dependencyName: dependency_name,
+      libraryName: dependency_name,
       integrationName: integration.name.to_s,
       autoInstrumented: integration.auto_instrument?,
       versions: build_versions(tested, supported_range),
