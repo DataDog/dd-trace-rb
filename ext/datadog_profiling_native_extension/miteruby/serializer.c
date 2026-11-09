@@ -616,10 +616,11 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
     RETURN_IF_ERROR(flush_if_needed(state));
   }
 
-  // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
-  // have been serialized.
   state->function_count = cme_iseq_array->count;
   state->thread_count = verstable_mark_threads_set_size(threads_set);
+
+  // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
+  // have been serialized.
   return miteruby_serializer_prepare_serialize_no_gvl(state);
 }
 
