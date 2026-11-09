@@ -125,7 +125,7 @@ Do compression in the consumer, keeping signal capture simple. Periodic full sta
 
 ## 9. Own the encoding too
 
-The streaming serializer emits pprof fragments directly from interned events, frame references, and locations using nanopb.
+The serializer emits pprof fragments directly from interned events, frame references, and locations using nanopb.
 
 - Resolve function names, filenames, line numbers, and thread labels at export.
 - Compute CPU and wall-time deltas per thread while emitting samples.
@@ -165,4 +165,4 @@ The streaming serializer emits pprof fragments directly from interned events, fr
 
 **Next:** measure application overhead, YJIT effects, export pauses, memory retention, and sample loss against the existing profiler. The branch includes a side-exit experiment and Fibonacci demo; no speedup is claimed here.
 
-Source notes: [raw events queue design](RawEventsQueueDesign.md), [event format](EventDesign.md), [streaming serializer](../streaming_serializer.c), [optimization ideas](OptimizationIdeas.md).
+Source notes: [raw events queue design](RawEventsQueueDesign.md), [event format](EventDesign.md), [serializer](../serializer.c), [optimization ideas](OptimizationIdeas.md).

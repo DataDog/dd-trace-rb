@@ -1,7 +1,7 @@
 #include "allocator.h"
 #include "raw_events_queue_marking.h"
 #include "consumer.h"
-#include "streaming_serializer.h"
+#include "serializer.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
 
@@ -397,18 +397,18 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-void miteruby_consumer_prepare_serialize(VALUE streaming_serializer_instance) {
+void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
   mutex_lock(&consumer_state.mutex);
-  rb_ensure(prepare_serialize_locked, streaming_serializer_instance, prepare_serialize_unlock_ensure, Qnil);
-  RB_GC_GUARD(streaming_serializer_instance);
+  rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_unlock_ensure, Qnil);
+  RB_GC_GUARD(serializer_instance);
 }
 
-static VALUE prepare_serialize_locked(VALUE streaming_serializer_instance) {
-  miteruby_serializer_exit_reason_t reason = miteruby_streaming_serializer_prepare_serialize(
-    streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
+static VALUE prepare_serialize_locked(VALUE serializer_instance) {
+  miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
+    serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
     &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
-  miteruby_streaming_serializer_raise_if_failed(reason);
+  miteruby_serializer_raise_if_failed(reason);
 
   consumer_state.interned_events_pos = 0;
   miteruby_stack_dedup_reset();
