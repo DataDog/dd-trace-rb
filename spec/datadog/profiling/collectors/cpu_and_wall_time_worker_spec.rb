@@ -2343,6 +2343,71 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       )
     end
 
+    it "rejects streaming serialization before preparation" do
+      unprepared_serializer = Datadog::Profiling::Miteruby::StreamingSerializer.new
+
+      expect { unprepared_serializer.serialize! }
+        .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
+    end
+
+    it "requires streaming preparation again after a fork reset" do
+      streaming_serializer.reset_after_fork
+
+      expect { streaming_serializer.serialize! }
+        .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
+      expect(recorded_miteruby_samples).to be_empty
+    end
+
+    it "streams profiles larger than the uncompressed buffer and reuses the compression context" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+
+      2.times do
+        100.times do
+          100.times do
+            expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
+          end
+          consume_miteruby
+        end
+        described_class._native_miteruby_consumer_prepare_serialize(streaming_serializer)
+        encoded_profile = streaming_serializer.serialize!
+        bytes = encoded_profile._native_bytes
+
+        expect(Zstd.decompress(bytes).bytesize).to be > 256 * 1024
+        profile = decode_profile(encoded_profile)
+        expect(profile.sample.size).to eq(10_000)
+        expect(profile.sample.map { |sample| sample.value[1] }).to all(eq(1))
+        expect(streaming_serializer.serialize!._native_bytes).to eq(bytes)
+      end
+
+      expect(recorded_miteruby_samples).to be_empty
+    end
+
+    it "streams string tables larger than the uncompressed buffer" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      frames = Class.new
+      filenames = Array.new(400) { |index| "/#{"x" * 900}/#{index}.rb" }
+      filenames.each_with_index do |filename, index|
+        frames.class_eval(
+          "def frame_#{index}; Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100); end",
+          filename, # rubocop:disable Style/EvalWithLocation
+          1, # rubocop:disable Style/EvalWithLocation
+        )
+      end
+      instance = frames.new
+      filenames.each_index do |index|
+        expect(instance.public_send("frame_#{index}")).to be true
+      end
+      consume_miteruby
+      described_class._native_miteruby_consumer_prepare_serialize(streaming_serializer)
+      profile = decode_profile(streaming_serializer.serialize!)
+
+      expect(profile.string_table.to_a).to include(*filenames)
+      expect(profile.sample.size).to eq(400)
+      expect(profile.location.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
+    end
+
     it "serializes every buffered event before clearing the queue" do
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
