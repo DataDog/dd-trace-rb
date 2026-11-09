@@ -72,7 +72,7 @@ RSpec.describe ReleasePrep::Fragment do
     end
 
     it "reports a missing required field, naming the field and file" do
-      path = write_fragment("1.json", valid_entry.reject { |k, _| k == "message" })
+      path = write_fragment("1.json", valid_entry.except("message"))
 
       expect(described_class.read(path).errors)
         .to contain_exactly(/1\.json: missing required field "message"/)

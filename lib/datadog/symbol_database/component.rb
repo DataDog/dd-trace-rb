@@ -670,7 +670,7 @@ module Datadog
           # backtraces through `<class:CustomerClass>` in Ruby 3.x.
 
           mod = tp.self
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+          next if MODULE_SINGLETON_CLASS_PRED.bind_call(mod)
           component.send(:enqueue_hot_load, mod)
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)

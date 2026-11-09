@@ -180,7 +180,7 @@ module Datadog
 
               unless integration.nil? || !integration.default_configuration.enabled
                 configuration_name = options[:describes] || :default
-                filtered_options = options.reject { |k, _v| k == :describes }
+                filtered_options = options.except(:describes)
                 integration.configure(configuration_name, filtered_options, &block)
                 INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
                   @instrumented_integrations ||= {}

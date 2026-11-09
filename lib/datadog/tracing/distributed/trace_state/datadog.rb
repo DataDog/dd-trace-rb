@@ -43,11 +43,7 @@ module Datadog
                 key, field = pair.split(":", 2)
                 case key
                 when "s"
-                  sampling_priority = begin
-                    Integer(field)
-                  rescue
-                    nil
-                  end
+                  sampling_priority = Integer(field, exception: false)
                 when "o"
                   origin = field
                 when "p"

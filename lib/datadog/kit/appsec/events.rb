@@ -36,7 +36,7 @@ module Datadog
 
               raise ArgumentError, "missing required key: :user => { :id }" if user_id.nil?
 
-              others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
+              others = others.except(*USER_LOGIN_KEYS)
               others[:"usr.login"] = user_login
               track(LOGIN_SUCCESS_EVENT, active_trace, active_span, **others)
 
@@ -91,7 +91,7 @@ module Datadog
 
               raise ArgumentError, "missing required key: :user => { :id }" if user_id.nil?
 
-              others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
+              others = others.except(*USER_LOGIN_KEYS)
               others[:"usr.login"] = user_login
               track(SIGNUP_EVENT, active_trace, active_span, **others)
 

@@ -226,7 +226,7 @@ module Datadog
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
-        MODULE_NAME.bind(mod).call
+        MODULE_NAME.bind_call(mod)
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
@@ -263,9 +263,9 @@ module Datadog
         current = Object
         mod_name.split("::").each do |seg|
           sym = seg.to_sym
-          return false if MODULE_AUTOLOAD_P.bind(current).call(sym, false)
-          return false unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
-          current = MODULE_CONST_GET.bind(current).call(sym, false)
+          return false if MODULE_AUTOLOAD_P.bind_call(current, sym, false)
+          return false unless MODULE_CONST_DEFINED.bind_call(current, sym, false)
+          current = MODULE_CONST_GET.bind_call(current, sym, false)
         end
         current.equal?(mod)
       rescue NameError, ArgumentError, TypeError
@@ -421,7 +421,7 @@ module Datadog
           const_name = parts.last
           namespace = if parts.length > 1
             begin
-              MODULE_CONST_GET.bind(Object).call(parts[0..-2].join("::")) # steep:ignore
+              MODULE_CONST_GET.bind_call(Object, parts[0..-2].join("::")) # steep:ignore
             rescue NameError
               nil
             end
@@ -446,7 +446,7 @@ module Datadog
           end
 
           # Also scan constants defined by mod itself (namespace-only modules).
-          MODULE_CONSTANTS.bind(mod).call(false).each do |child_const_name|
+          MODULE_CONSTANTS.bind_call(mod, false).each do |child_const_name|
             location = begin
               mod.const_source_location(child_const_name)
             rescue Exception => e # standard:disable Lint/RescueException
@@ -552,7 +552,7 @@ module Datadog
         # Emitted as an array named super_classes — consistent with Java, .NET, and Python.
         # Array allows for multiple entries if future Ruby versions or mixins expand the chain.
         # Anonymous superclasses (class Foo < Class.new { ... }) have nil name; compact to skip.
-        superclass = CLASS_SUPERCLASS.bind(klass).call
+        superclass = CLASS_SUPERCLASS.bind_call(klass)
         if superclass && !superclass.equal?(Object) && !superclass.equal?(BasicObject)
           super_name = safe_mod_name(superclass)
           specifics[:super_classes] = [super_name] if super_name
@@ -562,7 +562,7 @@ module Datadog
         # included_modules returns the entire ancestor chain's mixins, not only directly
         # included ones. This is intentional: the field reports "modules this class
         # responds to," which is what the consumer (UI navigation, probe context) needs.
-        included = MODULE_INCLUDED_MODULES.bind(klass).call.map { |m| safe_mod_name(m) }.reject do |name|
+        included = MODULE_INCLUDED_MODULES.bind_call(klass).map { |m| safe_mod_name(m) }.reject do |name|
           name.nil? || EXCLUDED_COMMON_MODULES.any? { |prefix| name.start_with?(prefix) }
         end
         specifics[:included_modules] = included unless included.empty?
@@ -573,7 +573,7 @@ module Datadog
         # Single-pass collection avoids the intermediate arrays from take_while.map.compact.
         # Test coverage: spec/datadog/symbol_database/extractor_spec.rb tests prepend behavior.
         prepended = []
-        MODULE_ANCESTORS.bind(klass).call.each do |a|
+        MODULE_ANCESTORS.bind_call(klass).each do |a|
           break if a.equal?(klass)
           name = safe_mod_name(a)
           prepended << name if name
@@ -665,7 +665,7 @@ module Datadog
         range_start = lines[0]
         prev = range_start
 
-        lines[1..-1].each do |line| # steep:ignore
+        lines[1..].each do |line| # steep:ignore
           if line == prev + 1
             prev = line
           else
@@ -752,7 +752,7 @@ module Datadog
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
           # object instance, so skipping them is both correct and cheap.
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+          next if MODULE_SINGLETON_CLASS_PRED.bind_call(mod)
 
           seen += 1
           sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
@@ -930,13 +930,13 @@ module Datadog
         fqn.split("::").each do |seg|
           sym = seg.to_sym
           pending_autoload = if RubyVersion.is?(">= 2.7")
-            MODULE_AUTOLOAD_P.bind(current).call(sym, false)
+            MODULE_AUTOLOAD_P.bind_call(current, sym, false)
           else
-            MODULE_AUTOLOAD_P.bind(current).call(sym)
+            MODULE_AUTOLOAD_P.bind_call(current, sym)
           end
           return "MODULE" if pending_autoload
-          return "MODULE" unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
-          current = MODULE_CONST_GET.bind(current).call(sym, false)
+          return "MODULE" unless MODULE_CONST_DEFINED.bind_call(current, sym, false)
+          current = MODULE_CONST_GET.bind_call(current, sym, false)
         end
         (Class === current) ? "CLASS" : "MODULE"
       rescue Exception => e # standard:disable Lint/RescueException
@@ -1045,7 +1045,7 @@ module Datadog
 
         # Class variables (only for classes)
         if Class === mod
-          MODULE_CLASS_VARIABLES.bind(mod).call(false).each do |var_name|
+          MODULE_CLASS_VARIABLES.bind_call(mod, false).each do |var_name|
             symbols << Symbol.new(
               symbol_type: "STATIC_FIELD",
               name: var_name.to_s,
@@ -1056,16 +1056,16 @@ module Datadog
 
         # Constants (excluding nested modules/classes).
         # Skip autoloaded constants to avoid triggering loading as a side effect.
-        MODULE_CONSTANTS.bind(mod).call(false).each do |const_name|
-          next if MODULE_AUTOLOAD_P.bind(mod).call(const_name)
-          const_value = MODULE_CONST_GET.bind(mod).call(const_name)
+        MODULE_CONSTANTS.bind_call(mod, false).each do |const_name|
+          next if MODULE_AUTOLOAD_P.bind_call(mod, const_name)
+          const_value = MODULE_CONST_GET.bind_call(mod, const_name)
           next if Module === const_value
 
           symbols << Symbol.new(
             symbol_type: "STATIC_FIELD",
             name: const_name.to_s,
             line: UNKNOWN_MIN_LINE,
-            type: safe_mod_name(KERNEL_CLASS.bind(const_value).call),
+            type: safe_mod_name(KERNEL_CLASS.bind_call(const_value)),
           )
         rescue NameError, LoadError, NoMethodError, TypeError => e # standard:disable Lint/ShadowedException
           # Expected: constant removed/undefined (NameError), autoload failure (LoadError),

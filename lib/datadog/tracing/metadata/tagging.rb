@@ -11,7 +11,7 @@ module Datadog
       # @public_api
       module Tagging
         # This limit is for numeric tags because uint64 could end up rounded.
-        NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
+        NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
 
         # Some associated values should always be sent as Tags, never as Metrics, regardless
         # if their value is numeric or not.

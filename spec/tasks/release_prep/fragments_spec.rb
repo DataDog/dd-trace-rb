@@ -160,7 +160,7 @@ RSpec.describe ReleasePrep::Fragments do
 
     it "collects every error from every fragment, each naming its file" do
       write_fragment("1.json", valid_entry("type" => "Removed", "product" => "Redis"))
-      write_fragment("2.json", valid_entry.reject { |k, _| k == "message" })
+      write_fragment("2.json", valid_entry.except("message"))
 
       errors = described_class.read_all(dir: @unreleased_dir).validate
 

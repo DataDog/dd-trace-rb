@@ -70,7 +70,7 @@ module Datadog
         return path if next_char && next_char != "/"
 
         # NOTE: `start_with?` guards impossible `nil` case
-        stripped = path[prefix.length..-1] # : String
+        stripped = path[prefix.length..] # : String
         stripped.empty? ? "/" : stripped
       end
     end

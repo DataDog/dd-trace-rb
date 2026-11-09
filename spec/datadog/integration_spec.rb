@@ -85,7 +85,7 @@ RSpec.describe "Datadog integration" do
           anon_inode:\[eventfd\] |
           pipe:\[\d+\]
         ) \z
-      }x.freeze
+      }x
       # standard:enable Lint/ConstantDefinitionInBlock:
 
       it "closes tracer file descriptors", skip: "Flaky: intermittently fails in CI with leaked file descriptors, cause not yet identified" do

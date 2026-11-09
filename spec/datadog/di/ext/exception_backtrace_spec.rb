@@ -2,7 +2,7 @@ require "datadog/di/spec_helper"
 
 RSpec.describe "EXCEPTION_BACKTRACE_LOCATIONS" do
   subject(:backtrace) do
-    Datadog::DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call
+    Datadog::DI::EXCEPTION_BACKTRACE_LOCATIONS.bind_call(exception)
   end
 
   context "when exception has a backtrace" do
@@ -75,7 +75,7 @@ end
 
 RSpec.describe "EXCEPTION_BACKTRACE" do
   subject(:backtrace) do
-    Datadog::DI::EXCEPTION_BACKTRACE.bind(exception).call
+    Datadog::DI::EXCEPTION_BACKTRACE.bind_call(exception)
   end
 
   context "when exception has a backtrace" do

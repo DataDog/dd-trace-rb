@@ -71,6 +71,6 @@ module DependencyAuditing
     return {} unless File.exist?(config_path)
 
     require "yaml"
-    YAML.safe_load(File.read(config_path)) || {}
+    YAML.safe_load_file(config_path) || {}
   end
 end

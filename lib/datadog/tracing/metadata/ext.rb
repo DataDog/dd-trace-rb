@@ -128,7 +128,7 @@ module Datadog
 
           # General header functionality
           module Headers
-            INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}.freeze
+            INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}
 
             # Normalizes an HTTP header string into a valid tag string.
             #

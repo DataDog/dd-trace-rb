@@ -11,7 +11,7 @@ module Datadog
       #
       # It represents the stack trace that is added to span metastruct field.
       class SerializableBacktrace
-        CLASS_AND_FUNCTION_NAME_REGEX = /\b((?:\w+::)*\w+)?[#.]?\b(\w+)\z/.freeze
+        CLASS_AND_FUNCTION_NAME_REGEX = /\b((?:\w+::)*\w+)?[#.]?\b(\w+)\z/
 
         def initialize(locations:, stack_id:)
           @stack_id = stack_id

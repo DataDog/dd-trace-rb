@@ -16,7 +16,7 @@ module Datadog
       module Excon
         # AppSec Middleware for Excon
         class SSRFDetectionMiddleware < ::Excon::Middleware::Base
-          REDIRECT_STATUS_CODES = (300..399).freeze
+          REDIRECT_STATUS_CODES = (300..399)
           SAMPLE_BODY_KEY = :__datadog_appsec_sample_downstream_body
 
           def request_call(data)

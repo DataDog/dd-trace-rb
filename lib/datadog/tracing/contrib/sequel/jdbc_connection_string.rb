@@ -58,7 +58,7 @@ module Datadog
                     connection_string =
                       # Steep: https://github.com/soutaro/steep/issues/1219
                       connection_string[0...authority_start] + # steep:ignore NoMethod
-                      connection_string[(userinfo_end + 1)..-1].to_s
+                      connection_string[(userinfo_end + 1)..].to_s
                   end
                 end
 

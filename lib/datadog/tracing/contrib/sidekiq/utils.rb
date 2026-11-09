@@ -33,7 +33,7 @@ module Datadog
           def delay_extension_class(job)
             clazz, method = YAML.parse(job["args"].first).children.first.children
 
-            method = method.value[1..-1] # Remove leading `:` from method symbol
+            method = method.value[1..] # Remove leading `:` from method symbol
 
             "#{clazz.value}.#{method}"
           end

@@ -136,7 +136,7 @@ RSpec.describe "Sequel instrumentation" do
       let(:sequel_cmd1_span) { spans[2] }
       let(:sequel_cmd2_span) { spans[3] }
       let(:sequel_cmd3_span) { spans[4] }
-      let(:sequel_internal_spans) { spans[5..-1] }
+      let(:sequel_internal_spans) { spans[5..] }
 
       before do
         tracer.trace("publish") do |span|

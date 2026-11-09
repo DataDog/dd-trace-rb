@@ -62,9 +62,7 @@ module Datadog
             def route_params
               excluded = [:controller, :action]
 
-              request.env.fetch("action_dispatch.request.path_parameters", {}).reject do |k, _v|
-                excluded.include?(k)
-              end
+              request.env.fetch("action_dispatch.request.path_parameters", {}).except(*excluded)
             end
 
             # Returns the request body size in bytes using all available methods,

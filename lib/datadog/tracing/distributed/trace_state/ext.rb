@@ -15,13 +15,13 @@ module Datadog
 
           module Datadog
             # ASCII characters 32-126, except `,`, `=`, and ` `. At least one character.
-            VALID_KEY_CHARS = /\A(?:(?![,= ])[\u0020-\u007E])+\Z/.freeze
+            VALID_KEY_CHARS = /\A(?:(?![,= ])[\u0020-\u007E])+\Z/
             # ASCII characters 32-126, except `,`. At least one character.
-            VALID_VALUE_CHARS = /\A(?:(?!,)[\u0020-\u007E])+\Z/.freeze
-            INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;~\u007F-\u{10FFFF}]/.freeze
-            REMAP_ORIGIN_CHARS = /=/.freeze
-            INVALID_TAG_KEY_CHARS = /[\u0000-\u0020,=\u007F-\u{10FFFF}]/.freeze
-            INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,;\u007E-\u{10FFFF}]/.freeze
+            VALID_VALUE_CHARS = /\A(?:(?!,)[\u0020-\u007E])+\Z/
+            INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;~\u007F-\u{10FFFF}]/
+            REMAP_ORIGIN_CHARS = /=/
+            INVALID_TAG_KEY_CHARS = /[\u0000-\u0020,=\u007F-\u{10FFFF}]/
+            INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,;\u007E-\u{10FFFF}]/
           end
 
           module OpenTelemetry

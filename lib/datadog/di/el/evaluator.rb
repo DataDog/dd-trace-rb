@@ -105,14 +105,14 @@ module Datadog
           case collection
           when Array
             i = 0
-            ARRAY_EACH.bind(collection).call do |item|
+            ARRAY_EACH.bind_call(collection) do |item|
               raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               yield item, nil, nil
             end
           when Hash
             i = 0
-            HASH_EACH.bind(collection).call do |key, value|
+            HASH_EACH.bind_call(collection) do |key, value|
               raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               yield [key, value], key, value
@@ -374,7 +374,7 @@ module Datadog
 
           def filter_hash(collection, evaluation_deadline, &block)
             i = 0
-            HASH_SELECT.bind(collection).call do |key, value|
+            HASH_SELECT.bind_call(collection) do |key, value|
               raise_if_deadline_check_due_and_exceeded(i, evaluation_deadline)
               i += 1
               block.call([key, value], key, value)
@@ -389,7 +389,7 @@ module Datadog
 
           def filter_hash(collection, evaluation_deadline, &block)
             result = {}
-            result.compare_by_identity if IDENTITY_MODE_CHECK.bind(collection).call
+            result.compare_by_identity if IDENTITY_MODE_CHECK.bind_call(collection)
             each_collection_item(collection, evaluation_deadline, "filter") do |_current_item, current_key, current_value|
               result[current_key] = current_value if block.call([current_key, current_value], current_key, current_value)
             end
