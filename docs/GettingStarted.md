@@ -2909,7 +2909,7 @@ The provider requires `openfeature-sdk` 0.5.1 or later. It sends exposures, eval
 
 Exposures are sent only for evaluations that run the provider's hooks, which happens when the application evaluates through an OpenFeature client with the Datadog provider registered directly:
 
-- An evaluation is sent and recorded as an exposure only after it completes successfully. When an application `after` hook raises, the evaluation returns the default value, sends no exposure, and does not mark the subject as exposed.
+- An exposure is sent and recorded only after the evaluation completes successfully. When an application `after` hook raises an exception, the evaluation returns the default value, sends no exposure, and does not mark the subject as exposed.
 - Calling `fetch_*_value` on the provider directly runs no hooks, so it sends no exposures.
 - Composed providers, such as `OpenFeature::MetaProvider` from the `openfeature-meta_provider` gem, do not run the Datadog provider's hooks, so Datadog receives no exposures from them.
 
@@ -2955,12 +2955,11 @@ end
 - Register the hook on the OpenFeature API, a client, or a single evaluation. The callback receives every evaluation, including errors and repeats. Use `should_send?` to keep new or changed exposures.
 - The callback runs on the evaluation thread and must not block or do I/O. Hand the data to a background queue.
 - An exception raised by the callback never affects the evaluation. The first one is logged at warn level, later ones at debug level.
-- The exposure cache keeps the last exposure of 1,000 flag and subject pairs. A cache hit does not confirm delivery to your data store; your code owns queueing and retries.
+- The exposure cache keeps the last exposure for up to 1,000 of the most recently used flag and subject pairs. A cache hit does not confirm delivery to your data store; your code owns queueing and retries.
 - To record exposures only in your own data store, set `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED=false`. `should_send?` keeps returning the same results.
 - The hook skips its callback, with one warning, for evaluations that do not come from a directly registered Datadog provider, such as evaluations through a composed provider.
 - Flag metadata contains one `__dd_feature.<key>` entry for each feature of the selected split. These entries are public.
-- Other flag metadata keys that start with `__dd_` are internal. They can change or be missing.
-- To get the exposure decision, use `ExposureHook` (`exposure?`, `cache_hit?` and `should_send?`).
+- Other flag metadata keys that start with `__dd_` are internal and can change or be missing. To get the exposure decision, use `ExposureHook` (`exposure?`, `cache_hit?`, and `should_send?`) instead of reading flag metadata.
 
 #### Evaluation telemetry opt-out
 
