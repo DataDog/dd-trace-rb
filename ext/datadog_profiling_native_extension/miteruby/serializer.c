@@ -244,11 +244,10 @@ static miteruby_serializer_exit_reason_t initialize_compression(miteruby_seriali
 
 static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_prepare_serialization_state_t *state, ZSTD_EndDirective end_op) {
   ZSTD_inBuffer input = {.src = state->persistent_state->uncompressed_serialization_buffer, .size = state->stream.bytes_written};
-  ZSTD_outBuffer *output = &state->compressed_buffer;
   size_t result;
   do {
-    if (output->pos == output->size) return MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL;
-    result = ZSTD_compressStream2(state->compression_context, output, &input, end_op);
+    if (state->compressed_buffer.pos == state->compressed_buffer.size) return MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL;
+    result = ZSTD_compressStream2(state->compression_context, &state->compressed_buffer, &input, end_op);
     if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_ERROR;
   } while (input.pos < input.size || (end_op == ZSTD_e_end && result != 0));
   return MITERUBY_SERIALIZER_OK;
@@ -256,6 +255,7 @@ static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_pre
 
 static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_prepare_serialization_state_t *state) {
   if (RB_LIKELY(state->stream.bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
+
   RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_continue));
   uint8_t *buffer = state->persistent_state->uncompressed_serialization_buffer;
   state->stream = pb_ostream_from_buffer(buffer, miteruby_allocator_alloc_size(buffer));
@@ -265,12 +265,17 @@ static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_pre
 static VALUE serializer_new(VALUE klass) {
   miteruby_serializer_persistent_state_t *state;
   VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_persistent_state_t, &serializer_type, state);
+
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
-  if (state->uncompressed_serialization_buffer == NULL)
+  if (state->uncompressed_serialization_buffer == NULL) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
+  }
+
   state->compressed_serialization_buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
-  if (state->compressed_serialization_buffer == NULL)
+  if (state->compressed_serialization_buffer == NULL) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
+  }
+
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return serializer;
@@ -329,8 +334,10 @@ static miteruby_serializer_exit_reason_t read_location_ids(miteruby_stack_t stac
   uint20_t previous_value = {0};
   for (uint16_t i = 0; i < stack.frame_count; i++) {
     miteruby_location_id_t location_id;
+
     if (!miteruby_compressed_deltas_read(previous_value, &location_id.value, &cursor, stack.end))
       return MITERUBY_SERIALIZER_INVALID_COMPRESSED_STACK;
+
     previous_value = location_id.value;
     // Interned stacks are root-first; pprof samples are leaf-first.
     location_ids[stack.frame_count - 1 - i] = location_id_for(location_id.value.value);
@@ -341,9 +348,11 @@ static miteruby_serializer_exit_reason_t read_location_ids(miteruby_stack_t stac
 
 static miteruby_serializer_exit_reason_t emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
   if (length > MAX_STRING_TABLE_ENTRY_BYTES) length = MAX_STRING_TABLE_ENTRY_BYTES;
+
   if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
       !pb_encode_string(stream, (const pb_byte_t *) string, length))
     return MITERUBY_SERIALIZER_STRING_TABLE_ENCODING_ERROR;
+
   return MITERUBY_SERIALIZER_OK;
 }
 
@@ -404,7 +413,7 @@ static miteruby_serializer_exit_reason_t emit_location_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-static bool encode_packed_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
+static bool encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
   pb_ostream_t sizing = PB_OSTREAM_SIZING;
   for (size_t i = 0; i < count; i++) {
     if (!pb_encode_varint(&sizing, values[i])) return false;
@@ -420,8 +429,8 @@ static bool encode_sample(
   pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, const uint64_t *values, size_t value_count,
   const miteruby_pprof_fragment_sample_sample_label_t *labels, size_t label_count
 ) {
-  if (!encode_packed_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LOCATION_ID_TAG, location_ids, location_count) ||
-      !encode_packed_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, values, value_count)) return false;
+  if (!encode_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LOCATION_ID_TAG, location_ids, location_count) ||
+      !encode_values(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_VALUE_TAG, values, value_count)) return false;
   for (size_t i = 0; i < label_count; i++) {
     if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_TAG) ||
         !pb_encode_submessage(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_LABEL_FIELDS, &labels[i])) return false;
@@ -433,7 +442,6 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, miteruby_sample_values values,
   const serializer_thread_context *context, int64_t end_timestamp_ns
 ) {
-  // Protobuf int64 uses two's-complement varints, so signed values are cast to uint64_t, not zigzag encoded.
   uint64_t sample_values[] = {
     (uint64_t) values.cpu_time_ns, values.cpu_or_wall_samples, (uint64_t) values.wall_time_ns,
     values.alloc_samples, values.alloc_samples_unscaled, (uint64_t) values.timeline_wall_time_ns,
