@@ -95,7 +95,7 @@ static VALUE prepare_with_exception(VALUE state_value) {
   miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
   assert(initialize_compression(state) == MITERUBY_SERIALIZER_OK);
   serializer_thread_context *context;
-  assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+  assert(thread_context_for(&state->persistent_state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
   rb_raise(rb_eRuntimeError, "Interrupted preparation");
 }
 
@@ -104,52 +104,55 @@ static VALUE prepare_with_exception_and_cleanup(VALUE state_value) {
 }
 
 static void test_preparation_cleanup(void) {
-  enum { SUCCESS, BUFFER_FULL, ALLOCATION_FAILURE, RUBY_EXCEPTION };
+  enum { SUCCESS, BUFFER_FULL, RUBY_EXCEPTION, REUSE_AFTER_EXCEPTION };
   uint8_t *input = miteruby_allocator_alloc(1024, "test_input");
   uint8_t *output = miteruby_allocator_alloc(1024, "test_output");
   assert(input != NULL && output != NULL);
   size_t persistent_bytes = miteruby_allocator_requested_bytes();
-  miteruby_serializer_persistent_state_t persistent_state = {
-    .uncompressed_serialization_buffer = input,
-    .compressed_serialization_buffer = output,
-  };
+  miteruby_serializer_persistent_state_t *persistent_state = ruby_xcalloc(1, sizeof(*persistent_state));
+  persistent_state->uncompressed_serialization_buffer = input;
+  persistent_state->compressed_serialization_buffer = output;
+  verstable_serializer_thread_contexts_map_init(&persistent_state->thread_contexts);
+  persistent_state->compression_workspace = miteruby_allocator_alloc(ZSTD_estimateCStreamSize(COMPRESSION_LEVEL), "serializer_zstd");
+  void *workspace = persistent_state->compression_workspace;
+  assert(workspace != NULL);
 
-  for (int scenario = SUCCESS; scenario <= RUBY_EXCEPTION; scenario++) {
-    persistent_state.status = SERIALIZER_WORKING;
+  for (int scenario = SUCCESS; scenario <= REUSE_AFTER_EXCEPTION; scenario++) {
+    persistent_state->status = SERIALIZER_WORKING;
     miteruby_serializer_prepare_serialization_state_t state = {
-      .persistent_state = &persistent_state,
+      .persistent_state = persistent_state,
       .stream = pb_ostream_from_buffer(input, 1024),
       .compressed_buffer = {.dst = output, .size = scenario == BUFFER_FULL ? 1 : 1024},
     };
-    verstable_serializer_thread_contexts_map_init(&state.thread_contexts);
+    verstable_serializer_thread_contexts_map_clear(&persistent_state->thread_contexts);
     if (scenario == RUBY_EXCEPTION) {
       int error = 0;
       rb_protect(prepare_with_exception_and_cleanup, (VALUE)&state, &error);
       assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
       rb_set_errinfo(Qnil);
     } else {
-      fail_allocations = scenario == ALLOCATION_FAILURE;
+      fail_allocations = scenario == REUSE_AFTER_EXCEPTION;
       miteruby_serializer_exit_reason_t reason = initialize_compression(&state);
+      assert(reason == MITERUBY_SERIALIZER_OK);
+      serializer_thread_context *context;
+      assert(thread_context_for(&persistent_state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+      assert(pb_write(&state.stream, (const pb_byte_t *)"profile", 7));
+      reason = compress_buffer(&state, ZSTD_e_end);
+      assert(reason == (scenario == BUFFER_FULL ? MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL : MITERUBY_SERIALIZER_OK));
       fail_allocations = false;
-      if (scenario == ALLOCATION_FAILURE) {
-        assert(reason == MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_ALLOCATION_ERROR);
-      } else {
-        assert(reason == MITERUBY_SERIALIZER_OK);
-        serializer_thread_context *context;
-        assert(thread_context_for(&state.thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
-        assert(pb_write(&state.stream, (const pb_byte_t *)"profile", 7));
-        reason = compress_buffer(&state, ZSTD_e_end);
-        assert(reason == (scenario == SUCCESS ? MITERUBY_SERIALIZER_OK : MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL));
-      }
       prepare_serialize_cleanup((VALUE)&state);
     }
+    if (scenario == SUCCESS) {
+      persistent_bytes = miteruby_allocator_requested_bytes();
+    }
+    assert(persistent_state->compression_workspace == workspace);
     assert(miteruby_allocator_requested_bytes() == persistent_bytes);
-    assert(persistent_state.status == SERIALIZER_EMPTY);
+    assert(serializer_size(persistent_state) == sizeof(*persistent_state) + persistent_bytes);
+    assert(persistent_state->status == SERIALIZER_EMPTY);
     assert(miteruby_allocator_alloc_size(input) == 1024);
     assert(miteruby_allocator_alloc_size(output) == 1024);
   }
-  miteruby_allocator_free(input);
-  miteruby_allocator_free(output);
+  serializer_free(persistent_state);
   assert(miteruby_allocator_requested_bytes() == 0);
 }
 
@@ -162,8 +165,10 @@ static VALUE reset_working_profile(VALUE serializer) {
 }
 
 static void test_working_status(void) {
-  miteruby_serializer_persistent_state_t *state;
-  VALUE serializer = TypedData_Make_Struct(rb_cObject, miteruby_serializer_persistent_state_t, &serializer_type, state);
+  VALUE serializer = serializer_new(rb_cObject);
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  assert(state->compression_workspace != NULL);
+  assert(miteruby_allocator_alloc_size(state->compression_workspace) == ZSTD_estimateCStreamSize(COMPRESSION_LEVEL));
   assert(state->status == SERIALIZER_EMPTY);
   assert(!miteruby_serializer_is_working(serializer));
   assert(!miteruby_serializer_is_working(Qnil));
