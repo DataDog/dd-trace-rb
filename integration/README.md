@@ -24,7 +24,6 @@ See `README.md` in each directory for more information:
 
 - `apps/opentelemetry`: OpenTelemetry traces
 - `apps/rack`: Rack application
-- `apps/rails-five`: Rails 5 application
 - `apps/rails-six`: Rails 6 application
 - `apps/rails-seven`: Rails 7 application
 - `apps/rspec`: RSpec test suite (CI)
@@ -38,7 +37,7 @@ The `images/` folders hosts some images for Ruby applications.
 
 - `datadog/dd-apm-demo:wrk` / `images/wrk/Dockerfile`: `wrk` load testing application (for generating load)
 - `datadog/dd-apm-demo:agent` / `images/agent/Dockerfile`: Datadog agent (with default configuration)
-- `datadog/dd-apm-demo:rb-<RUBY_VERSION>` / `images/<RUBY_VERSION>/Dockerfile`: MRI Ruby & `Datadog::DemoEnv` (where `<RUBY_VERSION>` is minor version e.g. `2.7`)
+- `datadog/dd-apm-demo:rb-<RUBY_VERSION>` / `images/<RUBY_VERSION>/Dockerfile`: MRI Ruby & `Datadog::DemoEnv` (where `<RUBY_VERSION>` is minor version e.g. `3.4`)
 
 Ruby base images include `Datadog::DemoEnv` and other helpers.
 

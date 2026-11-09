@@ -120,9 +120,9 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 ```ruby
 {
   'redis' => {
-    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
-    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
-    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4'
+    'redis-3' => '✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-4' => '✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-5' => '✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4'
   }
 }
 ```
@@ -190,7 +190,7 @@ The two layers are independent Bundler resolutions of overlapping gem sets and w
 
 Gemfiles for Ruby 3.2 and later declare a 2-day cooldown window, so Bundler will
 not resolve to a gem version published within the last two days. This is applied
-automatically and needs no setup. Ruby 2.5 through 3.1 ship a Bundler that
+automatically and needs no setup. Ruby 3.0 and 3.1 ship a Bundler that
 predates the feature and are unaffected.
 
 Bumping a Datadog-owned gem (`libdatadog`, `libddwaf`,
@@ -242,11 +242,11 @@ For example, if you want tests to run only on Ruby 3.3 for tracing, you can defi
 {
   'tracing:ruby_on_rails' => {
     # With default dependencies for each Ruby runtime
-    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
+    '' => '❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # or with dependency group definition `ruby-on-rails`, that includes additional gems or specific versions
-    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
+    'rails-1' => '❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # ...
-    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
+    'rails-edge' => '❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
   }
 }
 ```

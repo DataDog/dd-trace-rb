@@ -156,14 +156,14 @@ Canonical FFE fixtures for OpenFeature are not checked in. `bundle exec rake fix
 Before marking a task complete, run the relevant test task on the earliest and latest Ruby versions supported by its `Matrixfile` entry. Skip unsupported versions.
 
 ```bash
-# If mise is available (use 2.6 if 2.5 is unavailable; 2.5 no longer builds on macOS):
-mise exec ruby@2.6 -- bundle exec rake test:TASK_KEY
+# If mise is available:
+mise exec ruby@3.0 -- bundle exec rake test:TASK_KEY
 mise exec ruby@4.0 -- bundle exec rake test:TASK_KEY
 ```
 
 ```bash
 # Otherwise, use Docker:
-docker compose run --rm tracer-2.5 bundle exec rake test:TASK_KEY
+docker compose run --rm tracer-3.0 bundle exec rake test:TASK_KEY
 docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 ```
 

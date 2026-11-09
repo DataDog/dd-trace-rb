@@ -21,8 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - app: rails-five
-            ruby: "2.7"
           - app: rails-six
             ruby: "3.3"
           - app: rails-seven

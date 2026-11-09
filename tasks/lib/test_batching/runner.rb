@@ -180,12 +180,9 @@ module TestBatching
     end
 
     # `sh` equivalent: runs the command with the given environment and
-    # raises RuntimeError when it fails. The manual raise replaces
-    # `exception: true`, which Ruby 2.5 does not support.
+    # raises RuntimeError when it fails.
     def run_command(env, cmd)
-      return if system(env, cmd)
-
-      raise "Command failed: #{cmd}"
+      system(env, cmd, exception: true)
     end
 
     private_class_method :annotate_test_failures, :escape_annotation, :execute, :install, :junit_suite_time, :measure_duration,

@@ -1,6 +1,6 @@
 services:
-  tracer-2.5:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.5-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
+  tracer-3.0:
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
     working_dir: /app
     command: /bin/bash
     depends_on: &common-depends-on
@@ -16,7 +16,7 @@ services:
       - testagent
     env_file: ./.env
     environment: &common-environment
-      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.5.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.0.gemfile
       DD_AGENT_HOST: testagent
       DD_TRACE_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1
@@ -31,54 +31,6 @@ services:
       TEST_PRESTO_HOST: presto
       TEST_REDIS_HOST: redis
       DATADOG_GEM_CI: 'true'
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-2.5:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-2.6:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.6-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.6.gemfile
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-2.6:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-2.7:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.7-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.7.gemfile
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-2.7:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.0:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
-    working_dir: /app
-    command: /bin/bash
-    depends_on: *common-depends-on
-    env_file: ./.env
-    environment:
-      <<: *common-environment
-      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.0.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -289,9 +241,6 @@ services:
     ports:
       - "127.0.0.1:${TEST_REDIS_PORT}:6379"
 volumes:
-  bundle-2.5:
-  bundle-2.6:
-  bundle-2.7:
   bundle-3.0:
   bundle-3.1:
   bundle-3.2:

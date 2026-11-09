@@ -15,7 +15,7 @@ body:
     attributes:
       label: Ruby Version(s)
       description: "Version(s) of Ruby (`ruby --version`) that you've encountered this bug with"
-      placeholder: "ruby 2.7.5p203 (2021-11-24 revision f69aeb8314) [arm64-darwin21]"
+      placeholder: "ruby 3.4.1 (2024-12-25 revision 48d4efcb85) +PRISM [arm64-darwin24]"
     validations:
       required: true
 

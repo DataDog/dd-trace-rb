@@ -46,12 +46,6 @@ jobs:
             version: "3.1"
           - name: ruby
             version: "3.0"
-          - name: ruby
-            version: "2.7"
-          - name: ruby
-            version: "2.6"
-          - name: ruby
-            version: "2.5"
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
