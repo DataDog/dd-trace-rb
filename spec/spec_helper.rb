@@ -137,7 +137,7 @@ RSpec.configure do |config|
   #
   # 2. Guard with implicit matcher `==` (equal to)
   #
-  #    it 'runs only for Ruby 2.7.x', ruby: '2.7' do
+  #    it 'runs only for Ruby 3.4.x', ruby: '3.4' do
   #      expect(something).to be_good
   #    end
   config.before(:each, ruby: ->(value) { !PlatformHelpers.ruby_version_matches?(value) }) do |example|

@@ -6,7 +6,7 @@ alwaysApply: true
 
 ## Ruby usage
 
-- Code is in Ruby 2.5 syntax.
+- Code is in Ruby 3.0 syntax.
 - Use exceptions for exceptional cases, not for control flow.
 - Logging: log statements should only be used when either communicating important information to end-users (e.g. that something failed and the library somehow recovered from it) OR when not intended for end-users should be always at debug level
 - Code annotated with `@public_api` is user-facing, and subject to semantic versioning. ⚠️ Before modifying existing or introducing new `@public_api`, you MUST read `docs/PublicApi.md` and MUST ask the user for guidance.

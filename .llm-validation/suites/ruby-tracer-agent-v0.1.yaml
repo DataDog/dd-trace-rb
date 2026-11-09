@@ -13,7 +13,7 @@ cases:
       Which specs do I need to run to be covered, and how do I find them?
     expected_criteria:
       - "Notes the change is an instrumentation change, not a change to the tracing core."
-      - "Mentions the `Matrixfile` for finding the impacted Ruby versions and gemsets (the pg entry uses the `relational_db` group, validated on Ruby 2.5 through 4.0)."
+      - "Mentions the `Matrixfile` for finding the impacted Ruby versions and gemsets (the pg entry uses the `relational_db` group, validated on Ruby 3.0 through 4.0)."
       - "Recommends `bundle exec rake test:pg` as the covering task for the current Ruby version, discoverable via `bundle exec rake -T test`."
     bad_signals:
       - "Invents a task or gemfile name for verifying pg (anything other than the pg rake task and its relational_db gemfiles)."
