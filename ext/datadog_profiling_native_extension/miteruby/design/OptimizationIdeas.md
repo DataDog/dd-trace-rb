@@ -25,28 +25,6 @@ on every minor GC.
 
 We could even "shard" some of our storage to take better advantage of this.
 
-## Bulk marking references
-
-The `mark_threads_set` Verstable set stores `VALUE`-sized keys. We could consider using `rb_gc_mark_locations` over the
-bucket array, as we already do in `raw_events_queue_marking.c`, instead of iterating occupied buckets and calling
-`rb_gc_mark` individually.
-
-Empty buckets must not retain stale references: our allocator initially zeroes the storage, but Verstable's `clear`
-only clears metadata and leaves old keys behind. We would need to zero the bucket array when clearing each table to avoid
-retaining objects from previous profiles. Any future individual deletions would also need to zero vacated buckets.
-
-Benchmark before adopting: this avoids metadata-driven iteration and individual marking calls, but scans every bucket,
-including empty ones, and adds the cost of zeroing keys on clear.
-
-## Custom serializer ideas (Added by AI friend)
-
-* Replace linear searches for strings, functions, locations, mappings, and aggregate samples with hash tables.
-* Grow arrays geometrically and reuse their storage between profiles instead of reallocating on every append.
-* Reuse the consumer's deduplicated stacks directly instead of building a second set of tables while recording.
-* Reduce temporary allocations and copies, including the Ruby string passed to `EncodedProfile.from_custom`.
-* Explore streaming protobuf output into zstd to avoid keeping the entire uncompressed pprof in memory.
-* Move custom encoding outside the GVL once ownership and interruption handling have been designed for that path.
-
 ## Reuse stack prefixes when deduping stacks
 
 It's very common to have stacks that share a prefix:
@@ -63,3 +41,19 @@ Then, for instance for N = 3, we could store only
 * [3 frames from previous stack]
 
 This can be as stupid as "prefix reuse only" or a bit fancier.
+
+## Explore serialization without GVL
+
+Currently, in the serializer, we need the GVL to:
+
+* Build thread contexts + emitting thread name/id
+* Compute line numbers
+* Emit frame names && filenames
+
+Yet, if we wanted to fully release the GVL during serialization, we could cache all of those across multiple
+serializations, and reuse their results. Thus, on every serialization, we'd just need to make sure our caches
+have everything (possibly by checking ahead of time, again without GVL, and only requiring GVL during a brief period
+to get whatever's new/missing).
+
+The trade-off of enabling such "no-GVL" serialization is increased memory usage: we'd be copying a lot of
+strings that already live inside the Ruby heap. So it's a bit unclear how worth it is the trade-off.
