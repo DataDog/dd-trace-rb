@@ -149,7 +149,6 @@ module Datadog
       require_relative "profiling/collectors/stack"
       require_relative "profiling/collectors/thread_context"
       require_relative "profiling/stack_recorder"
-      require_relative "profiling/miteruby/libdatadog_recorder"
       require_relative "profiling/miteruby/streaming_serializer"
       require_relative "profiling/exporter"
       require_relative "profiling/encoded_profile"

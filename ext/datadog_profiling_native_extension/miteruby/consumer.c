@@ -1,8 +1,6 @@
 #include "allocator.h"
 #include "raw_events_queue_marking.h"
-#include "serialize_with_libdatadog_for_testing/consumer_recorder.h"
 #include "consumer.h"
-#include "serialize_with_libdatadog_for_testing/libdatadog_recorder.h"
 #include "streaming_serializer.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
@@ -10,7 +8,6 @@
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
 #include "../setup_signal_handler.h"
-#include "../time_helpers.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -238,7 +235,6 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   size_t mark_cme_iseq_entries = consumer_state.mark_cme_iseq_array.count;
   size_t location_entries = consumer_state.location_array.count;
   miteruby_stack_dedup_stats_t stack_dedup = miteruby_stack_dedup_stats();
-  miteruby_consumer_recorder_stats_t recorder = miteruby_consumer_recorder_stats();
   mutex_unlock(&consumer_state.mutex);
 
   VALUE arguments[] = {
@@ -260,8 +256,6 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
     ID2SYM(rb_intern("miteruby_location_set_entries")), SIZET2NUM(location_entries),
     ID2SYM(rb_intern("miteruby_unique_stacks_map_max_size_bytes")), SIZET2NUM(stack_dedup.map_max_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_map_entries")), SIZET2NUM(stack_dedup.map_entries),
-    ID2SYM(rb_intern("miteruby_thread_contexts_max_size_bytes")), SIZET2NUM(recorder.thread_contexts_max_size_bytes),
-    ID2SYM(rb_intern("miteruby_thread_contexts_entries")), SIZET2NUM(recorder.thread_contexts_entries),
   };
   for (size_t i = 0; i < sizeof(arguments) / sizeof(*arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
 }
@@ -337,8 +331,6 @@ void miteruby_consumer_reset(void) {
     .capacity = LOCATION_ARRAY_CAPACITY,
   };
 
-  miteruby_consumer_recorder_init();
-
   mutex_unlock(&consumer_state.mutex);
 }
 
@@ -405,34 +397,17 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
   return Qnil;
 }
 
-typedef struct {
-  VALUE recorder_instance;
-  VALUE streaming_serializer_instance;
-} prepare_serialize_args;
-
-void miteruby_consumer_prepare_serialize(VALUE recorder_instance, VALUE streaming_serializer_instance) {
-  miteruby_libdatadog_recorder_enforce_available(recorder_instance);
-  prepare_serialize_args args = {recorder_instance, streaming_serializer_instance};
+void miteruby_consumer_prepare_serialize(VALUE streaming_serializer_instance) {
   mutex_lock(&consumer_state.mutex);
-  rb_ensure(prepare_serialize_locked, (VALUE) &args, prepare_serialize_unlock_ensure, Qnil);
-  RB_GC_GUARD(recorder_instance);
+  rb_ensure(prepare_serialize_locked, streaming_serializer_instance, prepare_serialize_unlock_ensure, Qnil);
   RB_GC_GUARD(streaming_serializer_instance);
 }
 
-static VALUE prepare_serialize_locked(VALUE args) {
-  prepare_serialize_args *recorders = (prepare_serialize_args *) args;
-  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+static VALUE prepare_serialize_locked(VALUE streaming_serializer_instance) {
   miteruby_streaming_serializer_prepare_serialize(
-    recorders->streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
-    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set, &time_converter
+    streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
+    &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
-
-  for (size_t pos = 0; pos < consumer_state.interned_events_pos;) {
-    const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(consumer_state.interned_events_queue + pos);
-    miteruby_stack_t stack = miteruby_stack_dedup_get(consumer_state.interned_events_queue, event->stack_id);
-    miteruby_consumer_record_stack_sample(recorders->recorder_instance, event, stack, &time_converter);
-    pos += event->header.size_bytes;
-  }
 
   consumer_state.interned_events_pos = 0;
   miteruby_stack_dedup_reset();
@@ -467,18 +442,6 @@ static miteruby_consumer_exit_reason_t retain_cme_iseq(miteruby_event_frame_refs
   *id = entry.data->key;
   if (id->value == array->count) array->count++;
   return MITERUBY_CONSUMER_OK;
-}
-
-miteruby_event_frame_refs_t miteruby_id_to_frame_refs(miteruby_cme_iseq_id_t id) {
-  if (id.value >= consumer_state.mark_cme_iseq_array.count)
-    rb_raise(rb_eRuntimeError, "Miteruby unknown CME/ISEQ ID: %u", (unsigned int) id.value);
-  return consumer_state.mark_cme_iseq_array.entries[id.value];
-}
-
-miteruby_location_t miteruby_id_to_location(miteruby_location_id_t id) {
-  if (id.value.value >= consumer_state.location_array.count)
-    rb_raise(rb_eRuntimeError, "Miteruby unknown location ID: %u", (unsigned int) id.value.value);
-  return consumer_state.location_array.entries[id.value.value];
 }
 
 static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t location, miteruby_location_id_t *id) {
