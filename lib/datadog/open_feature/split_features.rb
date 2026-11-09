@@ -69,6 +69,9 @@ module Datadog
             "Feature Flags: ignoring unknown split feature destination #{destination.inspect}; " \
             "known destinations are #{DESTINATION_PREFIXES.keys.join(", ")}",
           )
+        rescue
+          # Runs inside flag evaluation; a failing logger must not turn a valid assignment into an error.
+          nil
         end
       end
     end

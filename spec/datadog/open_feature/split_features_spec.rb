@@ -65,6 +65,16 @@ RSpec.describe Datadog::OpenFeature::SplitFeatures do
       end
     end
 
+    context "when the logger raises while warning" do
+      let(:features) { [["holdout.key", "h-1", ["HOOK", "UNKNOWN_#{SecureRandom.hex(4)}"]]] }
+
+      before { allow(logger).to receive(:warn).and_raise("logger failure") }
+
+      it "still writes the known destinations" do
+        expect(metadata).to eq("existing" => 1, "__dd_feature.holdout.key" => "h-1")
+      end
+    end
+
     context "when more unknown destinations arrive than the warning cap" do
       let(:features) do
         Array.new(described_class::MAX_WARNED_DESTINATIONS + 1) { |index| ["key", "v", ["CAP_#{SecureRandom.hex(4)}_#{index}"]] }
