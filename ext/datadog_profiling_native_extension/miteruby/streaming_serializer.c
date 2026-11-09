@@ -20,6 +20,7 @@ enum { COMPRESSION_LEVEL = 1 };
 // This is more than enough to contain any individual fragment, and allows us to accumulate a bit before feeding
 // to zstd, to avoid overhead here.
 #define MAX_UNCOMPRESSED_BUFFER_BYTES KiB_AS_BYTES(256)
+#define UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES KiB_AS_BYTES(128)
 
 // Matches profiling-backend's 10 MiB limit for compressed profiles (search "Limits in profile size" in the wiki).
 #define MAX_COMPRESSED_BUFFER_BYTES MiB_AS_BYTES(10)
@@ -150,11 +151,12 @@ static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
 };
 
 typedef struct {
-  // TODO: This can probably be max-sized better given limits on stack depth, etc
   uint8_t *uncompressed_serialization_buffer;
   size_t uncompressed_serialization_size;
   uint8_t *compressed_serialization_buffer;
+  size_t compressed_serialization_size;
   ZSTD_CCtx *compression_context;
+  bool compression_finished;
   verstable_streaming_thread_contexts_map thread_contexts;
   long start_time_ns;
   long finish_time_ns;
@@ -188,11 +190,45 @@ static streaming_serializer_state *get_state(VALUE serializer) {
   return state;
 }
 
+static void reset_compression(streaming_serializer_state *state) {
+  size_t result = ZSTD_initCStream(state->compression_context, COMPRESSION_LEVEL);
+  if (ZSTD_isError(result)) rb_raise(rb_eRuntimeError, "Failed to initialize zstd stream: %s", ZSTD_getErrorName(result));
+  state->uncompressed_serialization_size = 0;
+  state->compressed_serialization_size = 0;
+  state->compression_finished = false;
+}
+
+static void compress_buffer(streaming_serializer_state *state, ZSTD_EndDirective end_op) {
+  ZSTD_inBuffer input = {.src = state->uncompressed_serialization_buffer, .size = state->uncompressed_serialization_size};
+  ZSTD_outBuffer output = {
+    .dst = state->compressed_serialization_buffer,
+    .size = miteruby_allocator_alloc_size(state->compressed_serialization_buffer),
+    .pos = state->compressed_serialization_size,
+  };
+  size_t result;
+  do {
+    if (output.pos == output.size) rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
+    result = ZSTD_compressStream2(state->compression_context, &output, &input, end_op);
+    if (ZSTD_isError(result)) rb_raise(rb_eRuntimeError, "Failed to compress streaming profile: %s", ZSTD_getErrorName(result));
+  } while (input.pos < input.size || (end_op == ZSTD_e_end && result != 0));
+  state->compressed_serialization_size = output.pos;
+  state->uncompressed_serialization_size = 0;
+}
+
+static void flush_if_needed(streaming_serializer_state *state, pb_ostream_t *stream) {
+  if (RB_LIKELY(stream->bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return;
+  state->uncompressed_serialization_size = stream->bytes_written;
+  compress_buffer(state, ZSTD_e_continue);
+  *stream = pb_ostream_from_buffer(
+    state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
+  );
+}
+
 static VALUE serializer_new(VALUE klass) {
   streaming_serializer_state *state;
   VALUE serializer = TypedData_Make_Struct(klass, streaming_serializer_state, &serializer_type, state);
   verstable_streaming_thread_contexts_map_init(&state->thread_contexts);
-  state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
+  state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
   state->compressed_serialization_buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
@@ -207,6 +243,7 @@ static VALUE serializer_new(VALUE klass) {
     miteruby_allocator_free(workspace);
     rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
   }
+  reset_compression(state);
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return serializer;
@@ -396,7 +433,7 @@ void miteruby_streaming_serializer_prepare_serialize(
   streaming_serializer_state *state = get_state(serializer);
   // TODO: Keep thread context data from serialization to serialization
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
-  state->uncompressed_serialization_size = 0;
+  reset_compression(state);
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   long finish_time_ns = system_epoch_time_now_ns();
 
@@ -409,12 +446,14 @@ void miteruby_streaming_serializer_prepare_serialize(
     miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentLocation: Fixed placeholders
   for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
     const miteruby_pprof_fragment_location_location_t *location = &fixed_location_values[i];
     emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line);
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentLocation: From profile data
@@ -424,6 +463,7 @@ void miteruby_streaming_serializer_prepare_serialize(
     // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
     int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
     emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentFunction: Fixed placeholders
@@ -431,6 +471,7 @@ void miteruby_streaming_serializer_prepare_serialize(
     miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentFunction: From profile data
@@ -442,12 +483,14 @@ void miteruby_streaming_serializer_prepare_serialize(
     };
     if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
       rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(&stream));
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentStringTable: Fixed strings
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
     emit_string_table_entry(&stream, string, strlen(string));
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentStringTable: From profile data - threads
@@ -464,6 +507,7 @@ void miteruby_streaming_serializer_prepare_serialize(
     // Upcall into Ruby: Thread metadata (name, id, etc)
     emit_thread_name(&stream, thread);
     emit_thread_id(&stream, thread);
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentStringTable: From profile data - frame names and filenames
@@ -478,6 +522,7 @@ void miteruby_streaming_serializer_prepare_serialize(
       VALUE name = ddtrace_location_base_label(refs.cme, refs.iseq);
       emit_string_table_entry(&stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name));
     }
+    flush_if_needed(state, &stream);
 
     // Upcall into Ruby: Method metadata, filenames
     if (refs.iseq != NULL) {
@@ -487,6 +532,7 @@ void miteruby_streaming_serializer_prepare_serialize(
       const char *filename = "(TODO: resolve filename for cfuncs)";
       emit_string_table_entry(&stream, filename, strlen(filename));
     }
+    flush_if_needed(state, &stream);
   }
 
   // Emit FragmentProfile
@@ -497,6 +543,7 @@ void miteruby_streaming_serializer_prepare_serialize(
   };
   if (!pb_encode(&stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, &profile))
     rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata: %s", PB_GET_ERROR(&stream));
+  flush_if_needed(state, &stream);
 
   // Emit FragmentSample
   for (size_t pos = 0; pos < interned_events_pos;) {
@@ -520,22 +567,20 @@ void miteruby_streaming_serializer_prepare_serialize(
     emit_sample_fragment(
       &stream, location_ids, location_count, values, thread_context_for(&state->thread_contexts, event->thread.value), end_timestamp_ns
     );
+    flush_if_needed(state, &stream);
     pos += event->header.size_bytes;
   }
   state->uncompressed_serialization_size = stream.bytes_written;
+  compress_buffer(state, ZSTD_e_end);
+  state->compression_finished = true;
   state->finish_time_ns = finish_time_ns;
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
   long finish_time_ns = state->finish_time_ns;
-  size_t compressed_size = ZSTD_compressCCtx(
-    state->compression_context, state->compressed_serialization_buffer,
-    miteruby_allocator_alloc_size(state->compressed_serialization_buffer),
-    state->uncompressed_serialization_buffer, state->uncompressed_serialization_size, COMPRESSION_LEVEL
-  );
-  if (ZSTD_isError(compressed_size)) rb_raise(rb_eRuntimeError, "Failed to compress streaming profile: %s", ZSTD_getErrorName(compressed_size));
-  VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, compressed_size);
+  if (!state->compression_finished) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
+  VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
   VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
   VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
@@ -549,7 +594,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
-  state->uncompressed_serialization_size = 0;
+  reset_compression(state);
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
