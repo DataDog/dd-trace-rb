@@ -159,6 +159,7 @@ typedef enum {
 typedef struct {
   uint8_t *uncompressed_serialization_buffer;
   uint8_t *compressed_serialization_buffer;
+  uint8_t *interned_events_queue;
   void *compression_workspace;
   verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
   size_t compressed_serialization_size;
@@ -168,11 +169,10 @@ typedef struct {
 } miteruby_serializer_persistent_state_t;
 
 typedef struct {
-  // Buffer storage belongs to the persistent state; consumer inputs are borrowed while its mutex is held.
+  // Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
   miteruby_serializer_persistent_state_t *persistent_state;
   pb_ostream_t stream;
   ZSTD_outBuffer compressed_buffer;
-  uint8_t *interned_events_queue;
   size_t interned_events_pos;
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array;
   const miteruby_location_array_t *location_array;
@@ -198,6 +198,7 @@ static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
   miteruby_allocator_free(state->compressed_serialization_buffer);
+  miteruby_allocator_free(state->interned_events_queue);
   miteruby_allocator_free(state->compression_workspace);
   verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
@@ -207,6 +208,7 @@ static size_t serializer_size(const void *data) {
   const miteruby_serializer_persistent_state_t *state = data;
   return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
+    miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->compression_workspace) +
     miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
 }
@@ -225,6 +227,11 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
 
 bool miteruby_serializer_is_working(VALUE serializer) {
   return rb_typeddata_is_kind_of(serializer, &serializer_type) && get_state(serializer)->status == SERIALIZER_WORKING;
+}
+
+void miteruby_serializer_check_available(VALUE serializer) {
+  if (get_state(serializer)->status == SERIALIZER_WORKING)
+    miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
 }
 
 void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
@@ -499,8 +506,10 @@ static VALUE prepare_serialize_body(VALUE state_value) {
 }
 
 static VALUE prepare_serialize_cleanup(VALUE state_value) {
-  miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
-  state->persistent_state->status = SERIALIZER_EMPTY;
+  miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
+  state->status = SERIALIZER_EMPTY;
   return Qnil;
 }
 
@@ -525,16 +534,16 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
       .dst = persistent_state->compressed_serialization_buffer,
       .size = miteruby_allocator_alloc_size(persistent_state->compressed_serialization_buffer),
     },
-    .interned_events_queue = interned_events_queue,
     .interned_events_pos = interned_events_pos,
     .cme_iseq_array = cme_iseq_array,
     .location_array = location_array,
     .threads_set = threads_set,
   };
 
+  persistent_state->interned_events_queue = interned_events_queue;
   persistent_state->status = SERIALIZER_WORKING;
 
-  rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)&state);
+  rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)persistent_state);
 
   if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
     persistent_state->compressed_serialization_size = state.compressed_buffer.pos;
@@ -650,7 +659,7 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
   miteruby_serializer_prepare_serialization_state_t *state
 ) {
   pb_ostream_t *stream = &state->stream;
-  uint8_t *interned_events_queue = state->interned_events_queue;
+  uint8_t *interned_events_queue = state->persistent_state->interned_events_queue;
   size_t interned_events_pos = state->interned_events_pos;
   size_t function_count = state->function_count;
   size_t thread_count = state->thread_count;
@@ -743,8 +752,8 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  prepare_serialize_cleanup((VALUE)state);
   state->compressed_serialization_size = 0;
-  state->status = SERIALIZER_EMPTY;
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
