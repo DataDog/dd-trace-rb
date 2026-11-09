@@ -533,7 +533,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     it "reports name, method_name, thread_name, thread_id and generation in logger" do
       expect(payload[:logger].keys).to contain_exactly(
-        :name, :method_name, :thread_name, :thread_id, :generation
+        :name, :method_name, :thread_name, :thread_id, :generation,
       )
     end
 
