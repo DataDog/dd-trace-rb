@@ -178,6 +178,11 @@ typedef struct {
   miteruby_serializer_exit_reason_t exit_reason;
 } miteruby_serializer_prepare_serialization_state_t;
 
+static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
+  miteruby_serializer_prepare_serialization_state_t *state
+);
+static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *state);
+
 #define RETURN_IF_ERROR(expression) do { \
   miteruby_serializer_exit_reason_t exit_reason_ = (expression); \
   if (exit_reason_ != MITERUBY_SERIALIZER_OK) return exit_reason_; \
@@ -413,12 +418,16 @@ static miteruby_serializer_exit_reason_t emit_location_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
+static bool encode_tag_and_varint(pb_ostream_t *stream, pb_wire_type_t wire_type, uint32_t tag, uint64_t value) {
+  return pb_encode_tag(stream, wire_type, tag) && pb_encode_varint(stream, value);
+}
+
 static bool encode_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
   pb_ostream_t sizing = PB_OSTREAM_SIZING;
   for (size_t i = 0; i < count; i++) {
     if (!pb_encode_varint(&sizing, values[i])) return false;
   }
-  if (!pb_encode_tag(stream, PB_WT_STRING, tag) || !pb_encode_varint(stream, sizing.bytes_written)) return false;
+  if (!encode_tag_and_varint(stream, PB_WT_STRING, tag, sizing.bytes_written)) return false;
   for (size_t i = 0; i < count; i++) {
     if (!pb_encode_varint(stream, values[i])) return false;
   }
@@ -458,17 +467,11 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   pb_ostream_t sizing = PB_OSTREAM_SIZING;
   if (!encode_sample(&sizing, location_ids, location_count, sample_values, value_count, labels, label_count))
     return MITERUBY_SERIALIZER_SAMPLE_SIZING_ERROR;
-  if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_TAG) ||
-      !pb_encode_varint(stream, sizing.bytes_written) ||
+  if (!encode_tag_and_varint(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_TAG, sizing.bytes_written) ||
       !encode_sample(stream, location_ids, location_count, sample_values, value_count, labels, label_count))
     return MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR;
   return MITERUBY_SERIALIZER_OK;
 }
-
-static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
-  miteruby_serializer_prepare_serialization_state_t *state
-);
-static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *state);
 
 static VALUE prepare_serialize_body(VALUE state_value) {
   miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
@@ -699,16 +702,16 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
-  long finish_time_ns = state->finish_time_ns;
   if (!state->compression_finished) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
   VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
+
   VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
-  VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
+  VALUE finish = rb_time_nano_new(state->finish_time_ns / SECONDS_AS_NS(1), state->finish_time_ns % SECONDS_AS_NS(1));
+
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
   result = rb_ary_new_from_args(4, start, finish, result, rb_hash_new());
-  state->start_time_ns = finish_time_ns;
+  state->start_time_ns = state->finish_time_ns;
   RB_GC_GUARD(serializer);
-  RB_GC_GUARD(bytes_string);
   return result;
 }
 
