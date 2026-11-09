@@ -21,6 +21,9 @@ enum { COMPRESSION_LEVEL = 1 };
 // to zstd, to avoid overhead here.
 #define MAX_UNCOMPRESSED_BUFFER_BYTES KiB_AS_BYTES(256)
 
+// Matches profiling-backend's 10 MiB limit for compressed profiles (search "Limits in profile size" in the wiki).
+#define MAX_COMPRESSED_BUFFER_BYTES MiB_AS_BYTES(10)
+
 // This limit is arbitrary, yet set to large enough that even when representing paths
 // with lots of complex unicode characters it should be ample space.
 #define MAX_STRING_TABLE_ENTRY_BYTES 1000
@@ -150,6 +153,7 @@ typedef struct {
   // TODO: This can probably be max-sized better given limits on stack depth, etc
   uint8_t *uncompressed_serialization_buffer;
   size_t uncompressed_serialization_size;
+  uint8_t *compressed_serialization_buffer;
   ZSTD_CCtx *compression_context;
   verstable_streaming_thread_contexts_map thread_contexts;
   long start_time_ns;
@@ -159,6 +163,7 @@ typedef struct {
 static void serializer_free(void *data) {
   streaming_serializer_state *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
+  miteruby_allocator_free(state->compressed_serialization_buffer);
   miteruby_allocator_free(state->compression_context);
   verstable_streaming_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
@@ -167,6 +172,7 @@ static void serializer_free(void *data) {
 static size_t serializer_size(const void *data) {
   const streaming_serializer_state *state = data;
   return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
+    miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compression_context) + miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
 }
 
@@ -189,6 +195,9 @@ static VALUE serializer_new(VALUE klass) {
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
+  state->compressed_serialization_buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
+  if (state->compressed_serialization_buffer == NULL)
+    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
   size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
   if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace: %s", ZSTD_getErrorName(workspace_size));
   void *workspace = miteruby_allocator_alloc(workspace_size, "streaming_serializer_zstd");
@@ -520,15 +529,13 @@ void miteruby_streaming_serializer_prepare_serialize(
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
   long finish_time_ns = state->finish_time_ns;
-  size_t capacity = ZSTD_compressBound(state->uncompressed_serialization_size);
-  if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
-  VALUE bytes_string = rb_str_new(NULL, capacity);
   size_t compressed_size = ZSTD_compressCCtx(
-    state->compression_context, RSTRING_PTR(bytes_string), capacity,
+    state->compression_context, state->compressed_serialization_buffer,
+    miteruby_allocator_alloc_size(state->compressed_serialization_buffer),
     state->uncompressed_serialization_buffer, state->uncompressed_serialization_size, COMPRESSION_LEVEL
   );
   if (ZSTD_isError(compressed_size)) rb_raise(rb_eRuntimeError, "Failed to compress streaming profile: %s", ZSTD_getErrorName(compressed_size));
-  rb_str_resize(bytes_string, compressed_size);
+  VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, compressed_size);
   VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
   VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
