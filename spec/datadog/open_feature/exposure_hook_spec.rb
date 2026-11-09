@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenFeature::ExposureHook do
   let(:datadog_logging_enabled) { true }
   let(:reporter) do
     Datadog::OpenFeature::Exposures::Reporter.new(
-      worker, telemetry: telemetry, logger: logger, datadog_logging_enabled: datadog_logging_enabled,
+      worker, logger: logger, datadog_logging_enabled: datadog_logging_enabled,
     )
   end
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }

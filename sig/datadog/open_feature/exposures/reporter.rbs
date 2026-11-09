@@ -6,15 +6,12 @@ module Datadog
 
         @logger: Core::Logger
 
-        @telemetry: Core::Telemetry::Component
-
         @datadog_logging_enabled: bool
 
         @deduplicator: Deduplicator
 
         def initialize: (
           Worker worker,
-          telemetry: Core::Telemetry::Component,
           logger: Core::Logger,
           ?datadog_logging_enabled: bool
         ) -> void

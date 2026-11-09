@@ -27,7 +27,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       settings: Datadog.configuration, transport: transport, telemetry: telemetry, logger: logger,
     )
   end
-  let(:reporter) { Datadog::OpenFeature::Exposures::Reporter.new(worker, telemetry: telemetry, logger: logger) }
+  let(:reporter) { Datadog::OpenFeature::Exposures::Reporter.new(worker, logger: logger) }
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }
   let(:metrics) { Datadog::OpenFeature::Metrics::FlagEvalMetrics.new(telemetry: telemetry, logger: logger) }
   let(:meter_provider) { OpenTelemetry::SDK::Metrics::MeterProvider.new }

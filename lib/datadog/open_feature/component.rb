@@ -167,7 +167,6 @@ module Datadog
 
         reporter = Exposures::Reporter.new(
           @worker,
-          telemetry: @telemetry,
           logger: @logger,
           datadog_logging_enabled: @settings.feature_flags.exposures_datadog_logging_enabled,
         )

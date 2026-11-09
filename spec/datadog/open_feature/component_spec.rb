@@ -166,7 +166,7 @@ RSpec.describe Datadog::OpenFeature::Component do
         it "builds the hook over a reporter that follows the setting" do
           expect(component.exposure_logging_hook).to be_a(Datadog::OpenFeature::Hooks::ExposureLoggingHook)
           expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
-            .with(worker, telemetry: telemetry, logger: logger, datadog_logging_enabled: enabled)
+            .with(worker, logger: logger, datadog_logging_enabled: enabled)
         end
       end
     end

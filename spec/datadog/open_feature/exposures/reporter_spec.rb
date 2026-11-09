@@ -6,14 +6,11 @@ require "datadog/open_feature/exposures/reporter"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   subject(:reporter) do
-    described_class.new(
-      worker, telemetry: telemetry, logger: logger, datadog_logging_enabled: datadog_logging_enabled,
-    )
+    described_class.new(worker, logger: logger, datadog_logging_enabled: datadog_logging_enabled)
   end
 
   let(:debug_messages) { [] }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: true) }
   let(:datadog_logging_enabled) { true }
   let(:context) { OpenFeature::SDK::EvaluationContext.new(targeting_key: "john-doe") }

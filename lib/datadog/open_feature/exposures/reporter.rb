@@ -8,10 +8,9 @@ module Datadog
     module Exposures
       # Owns the exposure cache and sends new or changed exposures to the Agent
       class Reporter
-        def initialize(worker, telemetry:, logger:, datadog_logging_enabled: true)
+        def initialize(worker, logger:, datadog_logging_enabled: true)
           @worker = worker
           @logger = logger
-          @telemetry = telemetry
           @datadog_logging_enabled = datadog_logging_enabled
           @deduplicator = Deduplicator.new
         end
