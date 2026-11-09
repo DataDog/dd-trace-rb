@@ -150,11 +150,17 @@ static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
   {.type = PPROF_STRING_TIMELINE, .unit = PPROF_STRING_NANOSECONDS},
 };
 
+typedef enum {
+  SERIALIZER_EMPTY = 0,
+  SERIALIZER_WORKING,
+  SERIALIZER_FINISHED,
+} serializer_status;
+
 typedef struct {
   uint8_t *uncompressed_serialization_buffer;
   uint8_t *compressed_serialization_buffer;
   size_t compressed_serialization_size;
-  bool compression_finished;
+  serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
   long finish_time_ns;
 } miteruby_serializer_persistent_state_t;
@@ -213,9 +219,14 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
   return state;
 }
 
+bool miteruby_serializer_is_working(VALUE serializer) {
+  return rb_typeddata_is_kind_of(serializer, &serializer_type) && get_state(serializer)->status == SERIALIZER_WORKING;
+}
+
 void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
   switch (reason) {
     case MITERUBY_SERIALIZER_OK: return;
+    case MITERUBY_SERIALIZER_ALREADY_WORKING: rb_raise(rb_eRuntimeError, "Streaming profile preparation is already in progress");
     case MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
     case MITERUBY_SERIALIZER_COMPRESSION_ERROR: rb_raise(rb_eRuntimeError, "Failed to compress streaming profile");
     case MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_SIZE_ERROR: rb_raise(rb_eRuntimeError, "Failed to size zstd workspace");
@@ -475,6 +486,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
 
 static VALUE prepare_serialize_body(VALUE state_value) {
   miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
+  state->finish_time_ns = system_epoch_time_now_ns();
   state->exit_reason = prepare_serialize(state);
   return Qnil;
 }
@@ -485,6 +497,7 @@ static VALUE prepare_serialize_cleanup(VALUE state_value) {
   state->compression_workspace = NULL;
   state->compression_context = NULL;
   verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
+  state->persistent_state->status = SERIALIZER_EMPTY;
   return Qnil;
 }
 
@@ -494,7 +507,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   const verstable_mark_threads_set *threads_set
 ) {
   miteruby_serializer_persistent_state_t *persistent_state = get_state(serializer);
-  persistent_state->compression_finished = false;
+  if (persistent_state->status == SERIALIZER_WORKING) return MITERUBY_SERIALIZER_ALREADY_WORKING;
   persistent_state->compressed_serialization_size = 0;
   miteruby_serializer_prepare_serialization_state_t state = {
     .persistent_state = persistent_state,
@@ -510,14 +523,14 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
     .cme_iseq_array = cme_iseq_array,
     .location_array = location_array,
     .threads_set = threads_set,
-    .finish_time_ns = system_epoch_time_now_ns(),
   };
   verstable_serializer_thread_contexts_map_init(&state.thread_contexts);
+  persistent_state->status = SERIALIZER_WORKING;
   rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)&state);
   if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
     persistent_state->compressed_serialization_size = state.compressed_buffer.pos;
     persistent_state->finish_time_ns = state.finish_time_ns;
-    persistent_state->compression_finished = true;
+    persistent_state->status = SERIALIZER_FINISHED;
   }
   RB_GC_GUARD(serializer);
   return state.exit_reason;
@@ -703,23 +716,28 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
-  if (!state->compression_finished) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
+  if (state->status != SERIALIZER_FINISHED) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
+  state->status = SERIALIZER_EMPTY;
+  long start_time_ns = state->start_time_ns;
+  long finish_time_ns = state->finish_time_ns;
+  state->start_time_ns = finish_time_ns;
   VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
 
-  VALUE start = rb_time_nano_new(state->start_time_ns / SECONDS_AS_NS(1), state->start_time_ns % SECONDS_AS_NS(1));
-  VALUE finish = rb_time_nano_new(state->finish_time_ns / SECONDS_AS_NS(1), state->finish_time_ns % SECONDS_AS_NS(1));
+  VALUE start = rb_time_nano_new(start_time_ns / SECONDS_AS_NS(1), start_time_ns % SECONDS_AS_NS(1));
+  VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
 
   VALUE result = rb_funcall(rb_path2class("Datadog::Profiling::EncodedProfile"), rb_intern("from_custom"), 3, start, finish, bytes_string);
   result = rb_ary_new_from_args(4, start, finish, result, rb_hash_new());
-  state->start_time_ns = state->finish_time_ns;
   RB_GC_GUARD(serializer);
   return result;
 }
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  if (state->status == SERIALIZER_WORKING)
+    rb_raise(rb_eRuntimeError, "Cannot reset a streaming profile while preparation is in progress");
   state->compressed_serialization_size = 0;
-  state->compression_finished = false;
+  state->status = SERIALIZER_EMPTY;
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
