@@ -2301,9 +2301,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    def recorded_miteruby_samples
+    def recorded_miteruby_profile
       described_class._native_miteruby_consumer_prepare_serialize(serializer)
-      samples_from_pprof(serializer.serialize!)
+      serializer.serialize!
+    end
+
+    def recorded_miteruby_samples
+      samples_from_pprof(recorded_miteruby_profile)
     end
 
     it "emits streaming functions, strings, and locations with Ruby line numbers" do
@@ -2357,6 +2361,26 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect { serializer.serialize! }
         .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
       expect(recorded_miteruby_samples).to be_empty
+    end
+
+    it "consumes a prepared profile even when constructing the result fails" do
+      described_class._native_miteruby_consumer_prepare_serialize(serializer)
+      lost_finish = nil
+      expect(Datadog::Profiling::EncodedProfile).to receive(:from_custom) do |_start, finish, _bytes|
+        lost_finish = finish
+        expect { serializer.serialize! }
+          .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
+        raise "result construction failed"
+      end
+
+      expect { serializer.serialize! }.to raise_error(RuntimeError, "result construction failed")
+      expect { serializer.serialize! }
+        .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
+
+      allow(Datadog::Profiling::EncodedProfile).to receive(:from_custom).and_call_original
+      described_class._native_miteruby_consumer_prepare_serialize(serializer)
+      start, = serializer.serialize
+      expect(start).to eq(lost_finish)
     end
 
     it "discards the batch on compressed buffer exhaustion and can collect a new profile" do
@@ -2416,7 +2440,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         profile = decode_profile(encoded_profile)
         expect(profile.sample.size).to eq(10_000)
         expect(profile.sample.map { |sample| sample.value[1] }).to all(eq(1))
-        expect(serializer.serialize!._native_bytes).to eq(bytes)
+        expect { serializer.serialize! }
+          .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
       end
 
       expect(recorded_miteruby_samples).to be_empty
@@ -2460,14 +2485,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries)
       expect(function_count).to be > 1
-      expect(recorded_miteruby_samples.size).to eq(3)
+      encoded_profile = recorded_miteruby_profile
+      expect(samples_from_pprof(encoded_profile).size).to eq(3)
       expect(serializer.stats).to eq({})
-      profile = decode_profile(serializer.serialize!)
+      profile = decode_profile(encoded_profile)
       expect(profile.sample.size).to eq(3)
       expect(profile.sample_type.size).to eq(6)
       expect(profile.function.size).to eq(4 + function_count)
-      expect(recorded_miteruby_samples).to be_empty
-      next_profile = decode_profile(serializer.serialize!)
+      next_profile = decode_profile(recorded_miteruby_profile)
       expect(next_profile.function.size).to eq(4)
       expect(next_profile.sample).to be_empty
       expect(serializer.stats).to eq({})
@@ -2586,7 +2611,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         [100, 250].each do |cpu_time_ns|
           described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, cpu_time_ns)
           consume_miteruby
-          expect(samples_from_pprof(serializer.serialize!)).to be_empty
+          expect { serializer.serialize! }
+            .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
         end
       end
 
@@ -2868,8 +2894,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
       consume_miteruby
       thread_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_threads_entries)
-      samples = recorded_miteruby_samples
-      profile = decode_profile(serializer.serialize!)
+      encoded_profile = recorded_miteruby_profile
+      samples = samples_from_pprof(encoded_profile)
+      profile = decode_profile(encoded_profile)
       pairs = profile.string_table.to_a.slice(22, thread_count * 2).each_slice(2).to_a
 
       expect(pairs).to include(*samples.map { |sample| sample.labels.values_at(:"thread name", :"thread id") }.uniq)
@@ -2886,16 +2913,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       Thread.current.name = "miteruby first name"
       capture_miteruby { publish_miteruby_sample }
       consume_miteruby
-      expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
+      encoded_profile = recorded_miteruby_profile
+      expect(samples_for_thread(samples_from_pprof(encoded_profile), Thread.current).map(&:labels))
         .to all(include("thread name": "miteruby first name"))
-      expect(decode_profile(serializer.serialize!).string_table).to include("miteruby first name")
+      expect(decode_profile(encoded_profile).string_table).to include("miteruby first name")
 
       capture_miteruby { publish_miteruby_sample }
       Thread.current.name = "miteruby second name"
       consume_miteruby
-      expect(samples_for_thread(recorded_miteruby_samples, Thread.current).map(&:labels))
+      encoded_profile = recorded_miteruby_profile
+      expect(samples_for_thread(samples_from_pprof(encoded_profile), Thread.current).map(&:labels))
         .to all(include("thread name": "miteruby second name"))
-      strings = decode_profile(serializer.serialize!).string_table
+      strings = decode_profile(encoded_profile).string_table
       expect(strings).to include("miteruby second name")
       expect(strings).to_not include("miteruby first name")
     ensure

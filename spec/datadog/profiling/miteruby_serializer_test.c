@@ -115,6 +115,7 @@ static void test_preparation_cleanup(void) {
   };
 
   for (int scenario = SUCCESS; scenario <= RUBY_EXCEPTION; scenario++) {
+    persistent_state.status = SERIALIZER_WORKING;
     miteruby_serializer_prepare_serialization_state_t state = {
       .persistent_state = &persistent_state,
       .stream = pb_ostream_from_buffer(input, 1024),
@@ -143,12 +144,42 @@ static void test_preparation_cleanup(void) {
       prepare_serialize_cleanup((VALUE)&state);
     }
     assert(miteruby_allocator_requested_bytes() == persistent_bytes);
+    assert(persistent_state.status == SERIALIZER_EMPTY);
     assert(miteruby_allocator_alloc_size(input) == 1024);
     assert(miteruby_allocator_alloc_size(output) == 1024);
   }
   miteruby_allocator_free(input);
   miteruby_allocator_free(output);
   assert(miteruby_allocator_requested_bytes() == 0);
+}
+
+static VALUE serialize_working_profile(VALUE serializer) {
+  return native_serialize(Qnil, serializer);
+}
+
+static VALUE reset_working_profile(VALUE serializer) {
+  return native_reset_after_fork(Qnil, serializer);
+}
+
+static void test_working_status(void) {
+  miteruby_serializer_persistent_state_t *state;
+  VALUE serializer = TypedData_Make_Struct(rb_cObject, miteruby_serializer_persistent_state_t, &serializer_type, state);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(!miteruby_serializer_is_working(serializer));
+  assert(!miteruby_serializer_is_working(Qnil));
+  state->status = SERIALIZER_WORKING;
+  assert(miteruby_serializer_is_working(serializer));
+  assert(miteruby_serializer_prepare_serialize(serializer, NULL, 0, NULL, NULL, NULL) == MITERUBY_SERIALIZER_ALREADY_WORKING);
+  VALUE (*operations[])(VALUE) = {serialize_working_profile, reset_working_profile};
+  for (size_t i = 0; i < sizeof(operations) / sizeof(operations[0]); i++) {
+    int error = 0;
+    rb_protect(operations[i], serializer, &error);
+    assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
+    assert(state->status == SERIALIZER_WORKING);
+    rb_set_errinfo(Qnil);
+  }
+  state->status = SERIALIZER_EMPTY;
+  RB_GC_GUARD(serializer);
 }
 
 int main(int argc, char **argv) {
@@ -158,6 +189,7 @@ int main(int argc, char **argv) {
   test_sample_values();
   test_reuse_after_error();
   test_preparation_cleanup();
+  test_working_status();
   puts("Miteruby serializer tests passed");
   return ruby_cleanup(0);
 }
