@@ -181,6 +181,15 @@ static VALUE serializer_new(VALUE klass) {
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MiB_AS_BYTES(100), "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
+  size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
+  if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace: %s", ZSTD_getErrorName(workspace_size));
+  void *workspace = miteruby_allocator_alloc(workspace_size, "streaming_serializer_zstd");
+  if (workspace == NULL) rb_memerror();
+  state->compression_context = ZSTD_initStaticCCtx(workspace, workspace_size);
+  if (state->compression_context == NULL) {
+    miteruby_allocator_free(workspace);
+    rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
+  }
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return serializer;
@@ -505,17 +514,6 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   size_t capacity = ZSTD_compressBound(state->uncompressed_serialization_size);
   if (ZSTD_isError(capacity)) rb_raise(rb_eRuntimeError, "Failed to size zstd buffer: %s", ZSTD_getErrorName(capacity));
   VALUE bytes_string = rb_str_new(NULL, capacity);
-  if (state->compression_context == NULL) {
-    size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
-    if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace: %s", ZSTD_getErrorName(workspace_size));
-    void *workspace = miteruby_allocator_alloc(workspace_size, "streaming_serializer_zstd");
-    if (workspace == NULL) rb_memerror();
-    state->compression_context = ZSTD_initStaticCCtx(workspace, workspace_size);
-    if (state->compression_context == NULL) {
-      miteruby_allocator_free(workspace);
-      rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
-    }
-  }
   size_t compressed_size = ZSTD_compressCCtx(
     state->compression_context, RSTRING_PTR(bytes_string), capacity,
     state->uncompressed_serialization_buffer, state->uncompressed_serialization_size, COMPRESSION_LEVEL
