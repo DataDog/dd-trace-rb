@@ -409,6 +409,8 @@ void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
 static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   size_t interned_events_pos = consumer_state.interned_events_pos;
 
+  miteruby_serializer_check_available(serializer_instance);
+
   // Reset all of these, they're only used to quick lookup during consumption data that lives in the arrays we use below
   //
   // This does mean that any failure during serialization means this data is discarded. That's OK because we don't
@@ -418,7 +420,7 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   verstable_mark_cme_iseq_set_clear(&consumer_state.mark_cme_iseq_set);
   verstable_location_set_clear(&consumer_state.location_set);
 
-  miteruby_serializer_check_available(serializer_instance);
+  // The existing interned_events_queue will become owned by the serializer, and the consumer gets a fresh new one
   uint8_t *new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
   if (new_queue == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
   uint8_t *interned_events_queue = consumer_state.interned_events_queue;
