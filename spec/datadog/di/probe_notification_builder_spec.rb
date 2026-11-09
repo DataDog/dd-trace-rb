@@ -531,8 +531,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       expect(payload[:logger]).not_to have_key(:method)
     end
 
-    it "reports name, method_name, thread_name and thread_id in logger" do
-      expect(payload[:logger].keys).to contain_exactly(:name, :method_name, :thread_name, :thread_id)
+    it "reports name, method_name, thread_name, thread_id and generation in logger" do
+      expect(payload[:logger].keys).to contain_exactly(
+        :name, :method_name, :thread_name, :thread_id, :generation
+      )
     end
 
     context "when the capture time budget is exhausted" do
