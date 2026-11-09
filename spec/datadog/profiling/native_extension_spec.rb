@@ -166,41 +166,31 @@ RSpec.describe Datadog::Profiling::NativeExtension do
   describe "ddtrace_rb_ractor_main_p" do
     subject(:ddtrace_rb_ractor_main_p) { described_class::Testing._native_ddtrace_rb_ractor_main_p }
 
-    context "when Ruby has no support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3") }
-
+    context "on the main Ractor" do
       it { is_expected.to be true }
     end
 
-    context "when Ruby has support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3") }
-
-      context "on the main Ractor" do
-        it { is_expected.to be true }
+    context "on a non-main Ractor", ractors: true do
+      before do
+        # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
+        # this one).
+        #
+        # It turns out that Ruby 3.0 Ractors seem to have some bug that even running `Ractor.new { 'hello' }.take` will
+        # cause a later spec to fail, usually with a (native C) stack with `gc_finalize_deferred`.
+        #
+        # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
+        # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
+        # coverage on 3.1+ anyway.
+        skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
       end
 
-      context "on a non-main Ractor", ractors: true do
-        before do
-          # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
-          # this one).
-          #
-          # It turns out that Ruby 3.0 Ractors seem to have some bug that even running `Ractor.new { 'hello' }.take` will
-          # cause a later spec to fail, usually with a (native C) stack with `gc_finalize_deferred`.
-          #
-          # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
-          # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
-          # coverage on 3.1+ anyway.
-          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
-        end
-
-        subject(:ddtrace_rb_ractor_main_p) do
-          Ractor.new do
-            Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p
-          end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
-        end
-
-        it { is_expected.to be false }
+      subject(:ddtrace_rb_ractor_main_p) do
+        Ractor.new do
+          Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p
+        end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
       end
+
+      it { is_expected.to be false }
     end
   end
 
@@ -293,7 +283,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:safe_object_info) { described_class::Testing._native_safe_object_info(object_to_inspect) }
 
     # Yes, 3.4 dropped it and it came back in 4.0, you're reading right ;)
-    let(:has_object_info) { RubyVersion.is?("< 2.6") || RubyVersion.is?(">= 3.3", "< 3.4") || RubyVersion.is?(">= 4") }
+    let(:has_object_info) { RubyVersion.is?(">= 3.3", "< 3.4") || RubyVersion.is?(">= 4") }
 
     context "on a Ruby with rb_obj_info" do
       before { skip "Behavior does not apply to current Ruby version" if has_object_info }

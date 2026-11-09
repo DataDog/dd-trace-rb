@@ -143,9 +143,7 @@ size_t ruby_obj_memsize_of(VALUE obj) {
     // case T_NODE: -> Crashes the vm in rb_obj_memsize_of
     case T_STRUCT:
     case T_ZOMBIE:
-    #ifndef NO_T_MOVED
     case T_MOVED:
-    #endif
       return rb_obj_memsize_of(obj);
     default:
       // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing

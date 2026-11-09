@@ -30,21 +30,17 @@
   #endif
 #pragma GCC diagnostic pop
 
-#ifndef NO_INTERNAL_CLASS_HEADER_INCLUDE
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <internal/class.h>
-  #pragma GCC diagnostic pop
-#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <internal/class.h>
+#pragma GCC diagnostic pop
 
 #include <ruby.h>
 
-#ifndef NO_RACTOR_HEADER_INCLUDE
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <ractor_core.h>
-  #pragma GCC diagnostic pop
-#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  #include <ractor_core.h>
+#pragma GCC diagnostic pop
 
 // This file can't include datadog_ruby_common.h so we replicate this here
 #ifdef __GNUC__
@@ -56,11 +52,7 @@
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
-#ifdef HAVE_RUBY_RACTOR_H
-  typedef rb_ractor_t gvl_owner_context_t;
-#else
-  typedef rb_vm_t gvl_owner_context_t;
-#endif
+typedef rb_ractor_t gvl_owner_context_t;
 
 static inline const rb_callable_method_entry_t* get_cfunc_method_entry(const rb_control_frame_t *cfp);
 static const rb_callable_method_entry_t* safe_vm_frame_method_entry(const rb_control_frame_t *cfp);
@@ -124,7 +116,6 @@ bool is_current_thread_in_main_ractor_and_holding_the_gvl(void) {
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
-#ifdef HAVE_RUBY_RACTOR_H
 static inline rb_ractor_t *ddtrace_get_ractor(void) {
   #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
     return thread_struct_from_object(rb_thread_current())->ractor;
@@ -132,21 +123,15 @@ static inline rb_ractor_t *ddtrace_get_ractor(void) {
     return GET_RACTOR();
   #endif
 }
-#endif
 
 static gvl_owner_context_t *get_gvl_owner_context(void) {
   if (!ddtrace_rb_ractor_main_p()) {
     rb_raise(rb_eRuntimeError, "BUG: get_gvl_owner_context must be called from the main ractor");
   }
 
-  #ifdef HAVE_RUBY_RACTOR_H
-    return ddtrace_get_ractor();
-  #else
-    return GET_VM();
-  #endif
+  return ddtrace_get_ractor();
 }
 
-#ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
 // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
 //
 // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
@@ -161,10 +146,8 @@ current_gvl_owner main_ractor_gvl_owner(void) {
   const rb_thread_t *current_owner =
     #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
       private_vm_api_global.main_ractor_gvl_owner_context->threads.sched.running;
-    #elif HAVE_RUBY_RACTOR_H
-      private_vm_api_global.main_ractor_gvl_owner_context->threads.gvl.owner;
     #else
-      private_vm_api_global.main_ractor_gvl_owner_context->gvl.owner;
+      private_vm_api_global.main_ractor_gvl_owner_context->threads.gvl.owner;
     #endif
 
   if (current_owner == NULL) {
@@ -184,50 +167,6 @@ current_gvl_owner main_ractor_gvl_owner(void) {
     return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
   #endif
 }
-#else
-current_gvl_owner main_ractor_gvl_owner(void) {
-  rb_vm_t *vm = private_vm_api_global.main_ractor_gvl_owner_context;
-  if (vm == NULL) return (current_gvl_owner) {.valid = false};
-
-  // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
-  // "atomic" -- when a thread sets it, it "declares" two things in a single step
-  // * Declaration 1: Someone has the GVL
-  // * Declaration 2: That someone is the specific thread
-  //
-  // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
-  // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
-  // `ruby_current_execution_context_ptr`) represents declaration 2.
-  //
-  // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
-  // DOES NOT CHANGE THE OTHER global variables**.
-  //
-  // Observation 1+2 above lead to the following possible race:
-  // * Thread A grabs the GVL (`gvl.acquired == 1`)
-  // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
-  // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
-  // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
-  // * Thread A calls main_ractor_gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
-  //   function returns an incorrect result.
-  // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
-  //
-  // This is especially problematic because we use `main_ractor_gvl_owner` to implement `is_current_thread_in_main_ractor_and_holding_the_gvl` which
-  // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
-  // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
-  //
-  // Thus an incorrect `is_current_thread_in_main_ractor_and_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
-  //
-  // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
-  // warning when customers force-enable it.
-  bool gvl_acquired = vm->gvl.acquired != 0;
-  rb_thread_t *current_owner = vm->running_thread;
-
-  if (!gvl_acquired || current_owner == NULL) {
-    return (current_gvl_owner) {.valid = false};
-  }
-
-  return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
-}
-#endif // NO_GVL_OWNER
 
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
@@ -288,23 +227,17 @@ void ddtrace_thread_list(VALUE result_array) {
   //
   // I suspect the design in `rb_ractor_thread_list` may be done that way to perhaps in the future expose it to be
   // called from a different Ractor, but I'm not sure...
-  #ifdef HAVE_RUBY_RACTOR_H
-    rb_ractor_t *current_ractor = ddtrace_get_ractor();
-    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node)
-  #else
-    rb_vm_t *vm = GET_VM();
-    list_for_each(&vm->living_threads, thread, vmlt_node)
-  #endif
-    {
-      switch (thread->status) {
-        case THREAD_RUNNABLE:
-        case THREAD_STOPPED:
-        case THREAD_STOPPED_FOREVER:
-          rb_ary_push(result_array, thread->self);
-        default:
-          break;
-      }
+  rb_ractor_t *current_ractor = ddtrace_get_ractor();
+  ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
+    switch (thread->status) {
+      case THREAD_RUNNABLE:
+      case THREAD_STOPPED:
+      case THREAD_STOPPED_FOREVER:
+        rb_ary_push(result_array, thread->self);
+      default:
+        break;
     }
+  }
 }
 
 bool is_thread_alive(VALUE thread) {
@@ -659,13 +592,11 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       }
     #endif
 
-    #ifndef NO_T_MOVED
-      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) {
-        // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
-        // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
-        continue;
-      }
-    #endif
+    if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) {
+      // The profiler is not supposed to sample during GC compaction, so T_MOVED is not expected here.
+      // Yet, crash tracking also uses this walker and may run at any time. For now, we choose to skip these frames.
+      continue;
+    }
 
     if (iseq && !pc) {
       // Fix: Do nothing -- this frame should not be used
@@ -837,7 +768,6 @@ get_cfunc_method_entry(const rb_control_frame_t *cfp) {
   return check_method_entry(cfp->ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
 }
 
-#ifndef NO_RACTORS
 // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
 // repeat it here to be able to use in our code.
 #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
@@ -869,11 +799,6 @@ bool ddtrace_rb_ractor_main_p(void) {
     return rb_ractor_main_p_();
   }
 }
-#else
-// Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
-// they're always on the main Ractor
-bool ddtrace_rb_ractor_main_p(void) { return true; }
-#endif // NO_RACTORS
 
 // This is a tweaked and inlined version of
 // threadptr_invoke_proc_location + rb_proc_location + iseq_location .
@@ -883,19 +808,11 @@ bool ddtrace_rb_ractor_main_p(void) { return true; }
 static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
   rb_thread_t *thread = thread_struct_from_object(thread_value);
 
-  #ifndef NO_THREAD_INVOKE_ARG // Ruby 2.6+
-    if (thread->invoke_type != thread_invoke_type_proc) {
-      return NULL;
-    }
+  if (thread->invoke_type != thread_invoke_type_proc) {
+    return NULL;
+  }
 
-    VALUE proc = thread->invoke_arg.proc.proc;
-  #else
-    if (thread->first_func || !thread->first_proc) {
-      return NULL;
-    }
-
-    VALUE proc = thread->first_proc;
-  #endif
+  VALUE proc = thread->invoke_arg.proc.proc;
 
   const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
   if (iseq == NULL) {
@@ -929,15 +846,9 @@ void self_test_mn_enabled(void) {
 
 // Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
 // a string that doesn't make any sense.
-#ifndef NO_IMEMO_NAME
 const char *imemo_kind(VALUE imemo) {
   return rb_imemo_name(imemo_type(imemo));
 }
-#else
-const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
-  return NULL;
-}
-#endif
 
 int imemo_mask(void) {
   return IMEMO_MASK;
@@ -1088,9 +999,7 @@ VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod) {
   VALUE name = RCLASS_EXT_PRIME(mod)->classpath;
 #elif defined(HAVE_PERMANENT_CLASSPATH) // 3.3 - 3.4
   VALUE name = RCLASS_EXT(mod)->classpath;
-#elif defined(NO_ALLOC_FREE_MOD_NAME) // 2.6 and older
-  VALUE name = rb_attr_get(mod, rb_intern("__classpath__"));
-#else // 2.7 - 3.2
+#else // 3.0 - 3.2
   VALUE name = rb_mod_name(mod);
 #endif
   // `classpath` is Qfalse, not Qnil, for a module that has no name.

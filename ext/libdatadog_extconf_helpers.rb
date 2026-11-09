@@ -179,9 +179,6 @@ module Datadog
     # and is not printed, which is confusing and complicates debugging. To fix that, this monkey patch actually
     # prints the failure.
     def self.dump_mkmf_log_on_failure!
-      # Doesn't work on 2.5/2.6 and not worth extra complexity to support
-      return if RUBY_VERSION < "2.7"
-
       MakeMakefile.prepend(DumpMkmfLogOnFailure)
     end
 
