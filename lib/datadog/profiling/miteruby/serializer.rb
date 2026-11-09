@@ -3,7 +3,7 @@
 module Datadog
   module Profiling
     module Miteruby
-      class StreamingSerializer
+      class Serializer
         def serialize
           self.class._native_serialize(self)
         end

@@ -13,7 +13,7 @@ module Datadog
         # @rbs @start_stop_mutex: ::Thread::Mutex
         # @rbs @idle_sampling_helper: IdleSamplingHelper
         # @rbs @worker_state: WorkerState
-        # @rbs @miteruby_recorder: Miteruby::StreamingSerializer?
+        # @rbs @miteruby_recorder: Miteruby::Serializer?
         # @rbs @miteruby_consumer_thread: Thread?
 
         # @rbs gc_profiling_enabled: bool
@@ -86,7 +86,7 @@ module Datadog
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
           @worker_state = WorkerState.new
-          @miteruby_recorder = miteruby_enabled ? Miteruby::StreamingSerializer.new : nil
+          @miteruby_recorder = miteruby_enabled ? Miteruby::Serializer.new : nil
           @miteruby_consumer_thread = nil
         end
 
@@ -151,7 +151,7 @@ module Datadog
           end
         end
 
-        #: () -> (StackRecorder | Miteruby::StreamingSerializer)
+        #: () -> (StackRecorder | Miteruby::Serializer)
         def prepare_serialize
           recorder = self.class._native_prepare_serialize(self)
           miteruby_recorder = @miteruby_recorder

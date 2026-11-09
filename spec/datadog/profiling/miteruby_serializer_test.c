@@ -8,14 +8,14 @@ static void *test_allocator_alloc(size_t size, const char *name) {
 }
 
 #define miteruby_allocator_alloc test_allocator_alloc
-#include "../../../ext/datadog_profiling_native_extension/miteruby/streaming_serializer.c"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/serializer.c"
 #undef miteruby_allocator_alloc
 
 #undef NDEBUG
 #include <assert.h>
 
 static void test_sample_values(void) {
-  verstable_streaming_thread_contexts_map contexts;
+  verstable_serializer_thread_contexts_map contexts;
   const struct {
     int thread;
     long cpu, monotonic, expected_cpu, expected_wall;
@@ -29,13 +29,13 @@ static void test_sample_values(void) {
     {1, 180, 200, 80, 20},
   };
 
-  verstable_streaming_thread_contexts_map_init(&contexts);
+  verstable_serializer_thread_contexts_map_init(&contexts);
   size_t allocated_bytes = 0;
   for (int serialization = 0; serialization < 2; serialization++) {
-    verstable_streaming_thread_contexts_map_clear(&contexts);
+    verstable_serializer_thread_contexts_map_clear(&contexts);
     if (serialization == 1) {
       for (int thread = 1; thread <= 2; thread++) {
-        streaming_thread_context *context;
+        serializer_thread_context *context;
         assert(thread_context_for(&contexts, INT2FIX(thread), &context) == MITERUBY_SERIALIZER_OK);
         context->thread_name_string_id = 22 + thread * 2;
         context->thread_id_string_id = context->thread_name_string_id + 1;
@@ -46,7 +46,7 @@ static void test_sample_values(void) {
       miteruby_event_deduped_sample_t event = {
         .header = {.cpu_time = {.ns = samples[i].cpu}, .timestamp = {.ns = samples[i].monotonic}},
       };
-      streaming_thread_context *context;
+      serializer_thread_context *context;
       assert(thread_context_for(&contexts, INT2FIX(samples[i].thread), &context) == MITERUBY_SERIALIZER_OK);
       miteruby_sample_values values = sample_values_for(context, &event);
       assert(values.cpu_time_ns == samples[i].expected_cpu);
@@ -59,18 +59,18 @@ static void test_sample_values(void) {
         assert(context->thread_id_string_id == context->thread_name_string_id + 1);
       }
     }
-    assert(verstable_streaming_thread_contexts_map_size(&contexts) == 2);
+    assert(verstable_serializer_thread_contexts_map_size(&contexts) == 2);
     if (serialization == 0) allocated_bytes = miteruby_allocator_requested_bytes();
     else assert(miteruby_allocator_requested_bytes() == allocated_bytes);
   }
-  verstable_streaming_thread_contexts_map_cleanup(&contexts);
+  verstable_serializer_thread_contexts_map_cleanup(&contexts);
   assert(miteruby_allocator_requested_bytes() == 0);
 }
 
 static void test_reuse_after_error(void) {
-  verstable_streaming_thread_contexts_map contexts;
-  verstable_streaming_thread_contexts_map_init(&contexts);
-  streaming_thread_context *context;
+  verstable_serializer_thread_contexts_map contexts;
+  verstable_serializer_thread_contexts_map_init(&contexts);
+  serializer_thread_context *context;
   assert(thread_context_for(&contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
   fail_allocations = true;
   miteruby_serializer_exit_reason_t reason = MITERUBY_SERIALIZER_OK;
@@ -78,23 +78,23 @@ static void test_reuse_after_error(void) {
     reason = thread_context_for(&contexts, INT2FIX(i), &context);
   }
   assert(reason == MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL);
-  assert(verstable_streaming_thread_contexts_map_size(&contexts) > 0);
+  assert(verstable_serializer_thread_contexts_map_size(&contexts) > 0);
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
-  verstable_streaming_thread_contexts_map_clear(&contexts);
+  verstable_serializer_thread_contexts_map_clear(&contexts);
   miteruby_event_deduped_sample_t event = {.header = {.cpu_time = {.ns = 100}, .timestamp = {.ns = 200}}};
   assert(thread_context_for(&contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
   miteruby_sample_values values = sample_values_for(context, &event);
   assert(values.cpu_time_ns == 0 && values.wall_time_ns == 0);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
   fail_allocations = false;
-  verstable_streaming_thread_contexts_map_cleanup(&contexts);
+  verstable_serializer_thread_contexts_map_cleanup(&contexts);
   assert(miteruby_allocator_requested_bytes() == 0);
 }
 
 static VALUE prepare_with_exception(VALUE state_value) {
   miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
   assert(initialize_compression(state) == MITERUBY_SERIALIZER_OK);
-  streaming_thread_context *context;
+  serializer_thread_context *context;
   assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
   rb_raise(rb_eRuntimeError, "Interrupted preparation");
 }
@@ -120,7 +120,7 @@ static void test_preparation_cleanup(void) {
       .stream = pb_ostream_from_buffer(input, 1024),
       .compressed_buffer = {.dst = output, .size = scenario == BUFFER_FULL ? 1 : 1024},
     };
-    verstable_streaming_thread_contexts_map_init(&state.thread_contexts);
+    verstable_serializer_thread_contexts_map_init(&state.thread_contexts);
     if (scenario == RUBY_EXCEPTION) {
       int error = 0;
       rb_protect(prepare_with_exception_and_cleanup, (VALUE)&state, &error);
@@ -134,7 +134,7 @@ static void test_preparation_cleanup(void) {
         assert(reason == MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_ALLOCATION_ERROR);
       } else {
         assert(reason == MITERUBY_SERIALIZER_OK);
-        streaming_thread_context *context;
+        serializer_thread_context *context;
         assert(thread_context_for(&state.thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
         assert(pb_write(&state.stream, (const pb_byte_t *)"profile", 7));
         reason = compress_buffer(&state, ZSTD_e_end);
@@ -158,6 +158,6 @@ int main(int argc, char **argv) {
   test_sample_values();
   test_reuse_after_error();
   test_preparation_cleanup();
-  puts("Miteruby streaming serializer tests passed");
+  puts("Miteruby serializer tests passed");
   return ruby_cleanup(0);
 }
