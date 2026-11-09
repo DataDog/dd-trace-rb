@@ -17,6 +17,10 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 enum { COMPRESSION_LEVEL = 1 };
 
+// This is more than enough to contain any individual fragment, and allows us to accumulate a bit before feeding
+// to zstd, to avoid overhead here.
+#define MAX_UNCOMPRESSED_BUFFER_BYTES KiB_AS_BYTES(256)
+
 // This limit is arbitrary, yet set to large enough that even when representing paths
 // with lots of complex unicode characters it should be ample space.
 #define MAX_STRING_TABLE_ENTRY_BYTES 1000
