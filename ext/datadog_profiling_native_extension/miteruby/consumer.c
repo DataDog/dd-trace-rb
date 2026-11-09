@@ -399,6 +399,8 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
+  if (miteruby_serializer_is_working(serializer_instance))
+    miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
   mutex_lock(&consumer_state.mutex);
   rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
   RB_GC_GUARD(serializer_instance);
