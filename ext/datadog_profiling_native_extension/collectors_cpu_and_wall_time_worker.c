@@ -273,7 +273,7 @@ static VALUE safely_call(
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_raw_events_queue_empty(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self);
-static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE streaming_serializer_instance);
+static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE serializer_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_miteruby_sample_event_publish_testing(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE cpu_time_ns);
@@ -1248,8 +1248,8 @@ static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self) {
   return Qnil;
 }
 
-static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE streaming_serializer_instance) {
-  miteruby_consumer_prepare_serialize(streaming_serializer_instance);
+static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE serializer_instance) {
+  miteruby_consumer_prepare_serialize(serializer_instance);
   return Qnil;
 }
 

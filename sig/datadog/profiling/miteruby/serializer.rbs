@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     module Miteruby
-      class StreamingSerializer
+      class Serializer
         def initialize: () -> void
 
         def serialize: () -> [Time, Time, EncodedProfile, Hash[Symbol, Integer]]
@@ -12,11 +12,11 @@ module Datadog
 
         def stats: () -> Hash[Symbol, Integer]
 
-        def self._native_serialize: (StreamingSerializer serializer) -> [Time, Time, EncodedProfile, Hash[Symbol, Integer]]
+        def self._native_serialize: (Serializer serializer) -> [Time, Time, EncodedProfile, Hash[Symbol, Integer]]
 
-        def self._native_reset_after_fork: (StreamingSerializer serializer) -> true
+        def self._native_reset_after_fork: (Serializer serializer) -> true
 
-        def self._native_stats: (StreamingSerializer serializer) -> Hash[Symbol, Integer]
+        def self._native_stats: (Serializer serializer) -> Hash[Symbol, Integer]
       end
     end
   end

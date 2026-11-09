@@ -1,4 +1,4 @@
-#include "streaming_serializer.h"
+#include "serializer.h"
 #include "allocator.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
@@ -44,16 +44,16 @@ typedef struct {
   bool has_previous_sample;
   cpu_time_t cpu_time_at_previous_sample;
   monotonic_time_t monotonic_time_at_previous_sample;
-} streaming_thread_context;
+} serializer_thread_context;
 
 static void *thread_contexts_alloc(size_t size) {
   if (size > MiB_AS_BYTES(16)) return NULL;
-  return miteruby_allocator_alloc(size, "streaming_thread_contexts");
+  return miteruby_allocator_alloc(size, "serializer_thread_contexts");
 }
 
-#define NAME verstable_streaming_thread_contexts_map
+#define NAME verstable_serializer_thread_contexts_map
 #define KEY_TY VALUE
-#define VAL_TY streaming_thread_context
+#define VAL_TY serializer_thread_context
 #define HASH_FN vt_hash_integer
 #define CMPR_FN vt_cmpr_integer
 #define MALLOC_FN thread_contexts_alloc
@@ -174,7 +174,7 @@ typedef struct {
   long finish_time_ns;
   void *compression_workspace;
   ZSTD_CCtx *compression_context;
-  verstable_streaming_thread_contexts_map thread_contexts;
+  verstable_serializer_thread_contexts_map thread_contexts;
   miteruby_serializer_exit_reason_t exit_reason;
 } miteruby_serializer_prepare_serialization_state_t;
 
@@ -197,7 +197,7 @@ static size_t serializer_size(const void *data) {
 }
 
 static const rb_data_type_t serializer_type = {
-  .wrap_struct_name = "Datadog::Profiling::Miteruby::StreamingSerializer",
+  .wrap_struct_name = "Datadog::Profiling::Miteruby::Serializer",
   .function = {.dfree = serializer_free, .dsize = serializer_size},
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
@@ -208,7 +208,7 @@ static miteruby_serializer_persistent_state_t *get_state(VALUE serializer) {
   return state;
 }
 
-void miteruby_streaming_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
+void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
   switch (reason) {
     case MITERUBY_SERIALIZER_OK: return;
     case MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
@@ -233,7 +233,7 @@ void miteruby_streaming_serializer_raise_if_failed(miteruby_serializer_exit_reas
 static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_prepare_serialization_state_t *state) {
   size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
   if (ZSTD_isError(workspace_size)) return MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_SIZE_ERROR;
-  state->compression_workspace = miteruby_allocator_alloc(workspace_size, "streaming_serializer_zstd");
+  state->compression_workspace = miteruby_allocator_alloc(workspace_size, "serializer_zstd");
   if (state->compression_workspace == NULL) return MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_ALLOCATION_ERROR;
   state->compression_context = ZSTD_initStaticCCtx(state->compression_workspace, workspace_size);
   if (state->compression_context == NULL) return MITERUBY_SERIALIZER_COMPRESSION_CONTEXT_INIT_ERROR;
@@ -277,18 +277,18 @@ static VALUE serializer_new(VALUE klass) {
 }
 
 static miteruby_serializer_exit_reason_t thread_context_for(
-  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread, streaming_thread_context **context
+  verstable_serializer_thread_contexts_map *thread_contexts, VALUE thread, serializer_thread_context **context
 ) {
-  verstable_streaming_thread_contexts_map_itr entry = verstable_streaming_thread_contexts_map_get_or_insert(
-    thread_contexts, thread, (streaming_thread_context) {0}
+  verstable_serializer_thread_contexts_map_itr entry = verstable_serializer_thread_contexts_map_get_or_insert(
+    thread_contexts, thread, (serializer_thread_context) {0}
   );
-  if (verstable_streaming_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL;
+  if (verstable_serializer_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL;
   *context = &entry.data->val;
   return MITERUBY_SERIALIZER_OK;
 }
 
 static miteruby_sample_values sample_values_for(
-  streaming_thread_context *context, const miteruby_event_deduped_sample_t *event
+  serializer_thread_context *context, const miteruby_event_deduped_sample_t *event
 ) {
   cpu_time_t cpu_time = event->header.cpu_time;
   monotonic_time_t monotonic_time = event->header.timestamp;
@@ -431,7 +431,7 @@ static bool encode_sample(
 
 static miteruby_serializer_exit_reason_t emit_sample_fragment(
   pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, miteruby_sample_values values,
-  const streaming_thread_context *context, int64_t end_timestamp_ns
+  const serializer_thread_context *context, int64_t end_timestamp_ns
 ) {
   // Protobuf int64 uses two's-complement varints, so signed values are cast to uint64_t, not zigzag encoded.
   uint64_t sample_values[] = {
@@ -457,7 +457,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
+static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
   miteruby_serializer_prepare_serialization_state_t *state
 );
 static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *state);
@@ -473,11 +473,11 @@ static VALUE prepare_serialize_cleanup(VALUE state_value) {
   miteruby_allocator_free(state->compression_workspace);
   state->compression_workspace = NULL;
   state->compression_context = NULL;
-  verstable_streaming_thread_contexts_map_cleanup(&state->thread_contexts);
+  verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   return Qnil;
 }
 
-miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize(
+miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
@@ -501,7 +501,7 @@ miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serializ
     .threads_set = threads_set,
     .finish_time_ns = system_epoch_time_now_ns(),
   };
-  verstable_streaming_thread_contexts_map_init(&state.thread_contexts);
+  verstable_serializer_thread_contexts_map_init(&state.thread_contexts);
   rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)&state);
   if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
     persistent_state->compressed_serialization_size = state.compressed_buffer.pos;
@@ -551,7 +551,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
     entry = verstable_mark_threads_set_next(entry)
   ) {
     VALUE thread = entry.data->key;
-    streaming_thread_context *context;
+    serializer_thread_context *context;
     RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, &context));
     context->thread_name_string_id = thread_string_id++;
     context->thread_id_string_id = thread_string_id++;
@@ -609,10 +609,10 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   // have been serialized.
   state->function_count = cme_iseq_array->count;
   state->thread_count = verstable_mark_threads_set_size(threads_set);
-  return miteruby_streaming_serializer_prepare_serialize_no_gvl(state);
+  return miteruby_serializer_prepare_serialize_no_gvl(state);
 }
 
-static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
+static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
   miteruby_serializer_prepare_serialization_state_t *state
 ) {
   pb_ostream_t *stream = &state->stream;
@@ -678,7 +678,7 @@ static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_s
       RETURN_IF_ERROR(read_location_ids(stack, location_ids + frame_offset));
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
-    streaming_thread_context *context;
+    serializer_thread_context *context;
     RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, &context));
     miteruby_sample_values values = sample_values_for(context, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
@@ -717,9 +717,9 @@ static VALUE native_stats(DDTRACE_UNUSED VALUE klass, DDTRACE_UNUSED VALUE seria
   return rb_hash_new();
 }
 
-void miteruby_streaming_serializer_init(VALUE profiling_module) {
+void miteruby_serializer_init(VALUE profiling_module) {
   VALUE miteruby = rb_define_module_under(profiling_module, "Miteruby");
-  VALUE klass = rb_define_class_under(miteruby, "StreamingSerializer", rb_cObject);
+  VALUE klass = rb_define_class_under(miteruby, "Serializer", rb_cObject);
   rb_define_alloc_func(klass, serializer_new);
   rb_define_singleton_method(klass, "_native_serialize", native_serialize, 1);
   rb_define_singleton_method(klass, "_native_reset_after_fork", native_reset_after_fork, 1);
