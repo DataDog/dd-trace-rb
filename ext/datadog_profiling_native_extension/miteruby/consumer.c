@@ -404,10 +404,11 @@ void miteruby_consumer_prepare_serialize(VALUE streaming_serializer_instance) {
 }
 
 static VALUE prepare_serialize_locked(VALUE streaming_serializer_instance) {
-  miteruby_streaming_serializer_prepare_serialize(
+  miteruby_serializer_exit_reason_t reason = miteruby_streaming_serializer_prepare_serialize(
     streaming_serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
     &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
+  miteruby_streaming_serializer_raise_if_failed(reason);
 
   consumer_state.interned_events_pos = 0;
   miteruby_stack_dedup_reset();
