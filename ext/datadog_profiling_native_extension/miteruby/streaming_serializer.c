@@ -2,7 +2,6 @@
 #include "allocator.h"
 #include "stack_dedup.h"
 #include "compressed_deltas.h"
-#include "sample_values.h"
 #include "pprof/pb_encode.h"
 #include "pprof/pprof_fragments.pb.h"
 #include "pprof/zstd.h"
@@ -17,6 +16,15 @@
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 enum { COMPRESSION_LEVEL = 1 };
+
+typedef struct {
+  int64_t cpu_time_ns;
+  uint32_t cpu_or_wall_samples;
+  int64_t wall_time_ns;
+  uint32_t alloc_samples;
+  uint32_t alloc_samples_unscaled;
+  int64_t timeline_wall_time_ns;
+} miteruby_sample_values;
 
 typedef struct {
   int64_t thread_name_string_id;
@@ -357,12 +365,13 @@ static void emit_sample_fragment(
 void miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
-  const verstable_mark_threads_set *threads_set, monotonic_to_system_epoch_state *time_converter
+  const verstable_mark_threads_set *threads_set
 ) {
   streaming_serializer_state *state = get_state(serializer);
   // TODO: Keep thread context data from serialization to serialization
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
   state->uncompressed_serialization_size = 0;
+  monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   long finish_time_ns = system_epoch_time_now_ns();
 
   pb_ostream_t stream = pb_ostream_from_buffer(
@@ -481,7 +490,7 @@ void miteruby_streaming_serializer_prepare_serialize(
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
     miteruby_sample_values values = sample_values_for(&state->thread_contexts, event->thread.value, event);
-    int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(time_converter, event->header.timestamp.ns);
+    int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
     emit_sample_fragment(
       &stream, location_ids, location_count, values, thread_context_for(&state->thread_contexts, event->thread.value), end_timestamp_ns
     );
