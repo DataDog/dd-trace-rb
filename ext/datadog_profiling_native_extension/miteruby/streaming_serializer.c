@@ -441,6 +441,23 @@ void miteruby_streaming_serializer_prepare_serialize(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
 
+  // Design note - Currently we need the GVL to:
+  //
+  // * Build thread contexts + emitting thread name/id
+  // * Compute line numbers
+  // * Emit frame names && filenames
+  //
+  // Yet, if we wanted to fully release the GVL during serialization, we could cache all of those across multiple
+  // serializations, and reuse their results. Thus, on every serialization, we'd just need to make sure our caches
+  // have everything (possibly by checking ahead of time, again without GVL, and only requiring GVL during a brief period
+  // to get whatever's new/missing).
+  //
+  // The trade-off of enabling such "no-GVL" serialization is increased memory usage: we'd be copying a lot of
+  // strings that already live inside the Ruby heap.
+  //
+  // For now, we do something slightly simpler below: we make sure to serialize all the things that require GVL +
+  // their prerequisite steps first; and then we release the GVL for the rest of the work.
+
   // 1. Emit FragmentStringTable: Fixed strings (Does not require GVL)
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
@@ -506,6 +523,9 @@ void miteruby_streaming_serializer_prepare_serialize(
     emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
     flush_if_needed(state, &stream);
   }
+
+  // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
+  // have been serialized.
 
   // 6. Emit FragmentSampleType (Does not require GVL)
   for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
