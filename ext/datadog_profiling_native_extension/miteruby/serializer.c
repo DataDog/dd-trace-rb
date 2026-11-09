@@ -159,6 +159,8 @@ typedef enum {
 typedef struct {
   uint8_t *uncompressed_serialization_buffer;
   uint8_t *compressed_serialization_buffer;
+  void *compression_workspace;
+  verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
   size_t compressed_serialization_size;
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
@@ -178,9 +180,7 @@ typedef struct {
   size_t function_count;
   size_t thread_count;
   long finish_time_ns;
-  void *compression_workspace;
   ZSTD_CCtx *compression_context;
-  verstable_serializer_thread_contexts_map thread_contexts;
   miteruby_serializer_exit_reason_t exit_reason;
 } miteruby_serializer_prepare_serialization_state_t;
 
@@ -198,13 +198,17 @@ static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
   miteruby_allocator_free(state->compressed_serialization_buffer);
+  miteruby_allocator_free(state->compression_workspace);
+  verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
 }
 
 static size_t serializer_size(const void *data) {
   const miteruby_serializer_persistent_state_t *state = data;
   return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
-    miteruby_allocator_alloc_size(state->compressed_serialization_buffer) : 0;
+    miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
+    miteruby_allocator_alloc_size(state->compression_workspace) +
+    miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
 }
 
 static const rb_data_type_t serializer_type = {
@@ -229,8 +233,6 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
     case MITERUBY_SERIALIZER_ALREADY_WORKING: rb_raise(rb_eRuntimeError, "Streaming profile preparation is already in progress");
     case MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
     case MITERUBY_SERIALIZER_COMPRESSION_ERROR: rb_raise(rb_eRuntimeError, "Failed to compress streaming profile");
-    case MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_SIZE_ERROR: rb_raise(rb_eRuntimeError, "Failed to size zstd workspace");
-    case MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_ALLOCATION_ERROR: rb_memerror();
     case MITERUBY_SERIALIZER_COMPRESSION_CONTEXT_INIT_ERROR: rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
     case MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR: rb_raise(rb_eRuntimeError, "Failed to initialize zstd stream");
     case MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL: rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
@@ -247,11 +249,10 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
 }
 
 static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_prepare_serialization_state_t *state) {
-  size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
-  if (ZSTD_isError(workspace_size)) return MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_SIZE_ERROR;
-  state->compression_workspace = miteruby_allocator_alloc(workspace_size, "serializer_zstd");
-  if (state->compression_workspace == NULL) return MITERUBY_SERIALIZER_COMPRESSION_WORKSPACE_ALLOCATION_ERROR;
-  state->compression_context = ZSTD_initStaticCCtx(state->compression_workspace, workspace_size);
+  miteruby_serializer_persistent_state_t *persistent_state = state->persistent_state;
+  state->compression_context = ZSTD_initStaticCCtx(
+    persistent_state->compression_workspace, miteruby_allocator_alloc_size(persistent_state->compression_workspace)
+  );
   if (state->compression_context == NULL) return MITERUBY_SERIALIZER_COMPRESSION_CONTEXT_INIT_ERROR;
   size_t result = ZSTD_initCStream(state->compression_context, COMPRESSION_LEVEL);
   if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR;
@@ -281,6 +282,7 @@ static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_pre
 static VALUE serializer_new(VALUE klass) {
   miteruby_serializer_persistent_state_t *state;
   VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_persistent_state_t, &serializer_type, state);
+  verstable_serializer_thread_contexts_map_init(&state->thread_contexts);
 
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL) {
@@ -291,6 +293,11 @@ static VALUE serializer_new(VALUE klass) {
   if (state->compressed_serialization_buffer == NULL) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
   }
+
+  size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
+  if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace");
+  state->compression_workspace = miteruby_allocator_alloc(workspace_size, "serializer_zstd");
+  if (state->compression_workspace == NULL) rb_memerror();
 
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
@@ -493,10 +500,6 @@ static VALUE prepare_serialize_body(VALUE state_value) {
 
 static VALUE prepare_serialize_cleanup(VALUE state_value) {
   miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
-  miteruby_allocator_free(state->compression_workspace);
-  state->compression_workspace = NULL;
-  state->compression_context = NULL;
-  verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   state->persistent_state->status = SERIALIZER_EMPTY;
   return Qnil;
 }
@@ -524,7 +527,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
     .location_array = location_array,
     .threads_set = threads_set,
   };
-  verstable_serializer_thread_contexts_map_init(&state.thread_contexts);
+  verstable_serializer_thread_contexts_map_clear(&persistent_state->thread_contexts);
   persistent_state->status = SERIALIZER_WORKING;
   rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)&state);
   if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
@@ -576,7 +579,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   ) {
     VALUE thread = entry.data->key;
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->persistent_state->thread_contexts, thread, &context));
     context->thread_name_string_id = thread_string_id++;
     context->thread_id_string_id = thread_string_id++;
     // Upcall into Ruby: Thread metadata (name, id, etc)
@@ -704,7 +707,7 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->persistent_state->thread_contexts, event->thread.value, &context));
     miteruby_sample_values values = sample_values_for(context, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
     RETURN_IF_ERROR(emit_sample_fragment(stream, location_ids, location_count, values, context, end_timestamp_ns));
