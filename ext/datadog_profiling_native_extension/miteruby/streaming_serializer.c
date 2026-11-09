@@ -162,6 +162,11 @@ typedef struct {
   long finish_time_ns;
 } streaming_serializer_state;
 
+#define RETURN_IF_ERROR(expression) do { \
+  miteruby_serializer_exit_reason_t exit_reason_ = (expression); \
+  if (exit_reason_ != MITERUBY_SERIALIZER_OK) return exit_reason_; \
+} while (0)
+
 static void serializer_free(void *data) {
   streaming_serializer_state *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
@@ -190,15 +195,35 @@ static streaming_serializer_state *get_state(VALUE serializer) {
   return state;
 }
 
-static void reset_compression(streaming_serializer_state *state) {
+void miteruby_streaming_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
+  switch (reason) {
+    case MITERUBY_SERIALIZER_OK: return;
+    case MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
+    case MITERUBY_SERIALIZER_COMPRESSION_ERROR: rb_raise(rb_eRuntimeError, "Failed to compress streaming profile");
+    case MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR: rb_raise(rb_eRuntimeError, "Failed to initialize zstd stream");
+    case MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL: rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
+    case MITERUBY_SERIALIZER_INVALID_COMPRESSED_STACK: rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
+    case MITERUBY_SERIALIZER_STRING_TABLE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming string table");
+    case MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming location");
+    case MITERUBY_SERIALIZER_SAMPLE_TYPE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type");
+    case MITERUBY_SERIALIZER_FUNCTION_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming function");
+    case MITERUBY_SERIALIZER_PROFILE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata");
+    case MITERUBY_SERIALIZER_SAMPLE_SIZING_ERROR: rb_raise(rb_eRuntimeError, "Failed to size streaming sample");
+    case MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming sample");
+  }
+  rb_raise(rb_eRuntimeError, "Unknown miteruby serializer exit reason: %d", reason);
+}
+
+static miteruby_serializer_exit_reason_t reset_compression(streaming_serializer_state *state) {
   size_t result = ZSTD_initCStream(state->compression_context, COMPRESSION_LEVEL);
-  if (ZSTD_isError(result)) rb_raise(rb_eRuntimeError, "Failed to initialize zstd stream: %s", ZSTD_getErrorName(result));
+  if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR;
   state->uncompressed_serialization_size = 0;
   state->compressed_serialization_size = 0;
   state->compression_finished = false;
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static void compress_buffer(streaming_serializer_state *state, ZSTD_EndDirective end_op) {
+static miteruby_serializer_exit_reason_t compress_buffer(streaming_serializer_state *state, ZSTD_EndDirective end_op) {
   ZSTD_inBuffer input = {.src = state->uncompressed_serialization_buffer, .size = state->uncompressed_serialization_size};
   ZSTD_outBuffer output = {
     .dst = state->compressed_serialization_buffer,
@@ -207,21 +232,23 @@ static void compress_buffer(streaming_serializer_state *state, ZSTD_EndDirective
   };
   size_t result;
   do {
-    if (output.pos == output.size) rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
+    if (output.pos == output.size) return MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL;
     result = ZSTD_compressStream2(state->compression_context, &output, &input, end_op);
-    if (ZSTD_isError(result)) rb_raise(rb_eRuntimeError, "Failed to compress streaming profile: %s", ZSTD_getErrorName(result));
+    if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_ERROR;
   } while (input.pos < input.size || (end_op == ZSTD_e_end && result != 0));
   state->compressed_serialization_size = output.pos;
   state->uncompressed_serialization_size = 0;
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static void flush_if_needed(streaming_serializer_state *state, pb_ostream_t *stream) {
-  if (RB_LIKELY(stream->bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return;
+static miteruby_serializer_exit_reason_t flush_if_needed(streaming_serializer_state *state, pb_ostream_t *stream) {
+  if (RB_LIKELY(stream->bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
   state->uncompressed_serialization_size = stream->bytes_written;
-  compress_buffer(state, ZSTD_e_continue);
+  RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_continue));
   *stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
+  return MITERUBY_SERIALIZER_OK;
 }
 
 static VALUE serializer_new(VALUE klass) {
@@ -243,28 +270,28 @@ static VALUE serializer_new(VALUE klass) {
     miteruby_allocator_free(workspace);
     rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
   }
-  reset_compression(state);
+  miteruby_streaming_serializer_raise_if_failed(reset_compression(state));
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return serializer;
 }
 
-static streaming_thread_context *thread_context_for(
-  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread
+static miteruby_serializer_exit_reason_t thread_context_for(
+  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread, streaming_thread_context **context
 ) {
   verstable_streaming_thread_contexts_map_itr entry = verstable_streaming_thread_contexts_map_get_or_insert(
     thread_contexts, thread, (streaming_thread_context) {0}
   );
-  if (verstable_streaming_thread_contexts_map_is_end(entry)) rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
-  return &entry.data->val;
+  if (verstable_streaming_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL;
+  *context = &entry.data->val;
+  return MITERUBY_SERIALIZER_OK;
 }
 
 static miteruby_sample_values sample_values_for(
-  verstable_streaming_thread_contexts_map *thread_contexts, VALUE thread, const miteruby_event_deduped_sample_t *event
+  streaming_thread_context *context, const miteruby_event_deduped_sample_t *event
 ) {
   cpu_time_t cpu_time = event->header.cpu_time;
   monotonic_time_t monotonic_time = event->header.timestamp;
-  streaming_thread_context *context = thread_context_for(thread_contexts, thread);
   if (!context->has_previous_sample) {
     context->cpu_time_at_previous_sample = cpu_time;
     context->monotonic_time_at_previous_sample = monotonic_time;
@@ -297,32 +324,33 @@ static uint64_t location_id_for(uint64_t location_index) {
   return PPROF_LOCATION_FIRST_DYNAMIC + location_index;
 }
 
-static void read_location_ids(miteruby_stack_t stack, uint64_t *location_ids) {
+static miteruby_serializer_exit_reason_t read_location_ids(miteruby_stack_t stack, uint64_t *location_ids) {
   const uint8_t *cursor = stack.ids;
   uint20_t previous_value = {0};
   for (uint16_t i = 0; i < stack.frame_count; i++) {
     miteruby_location_id_t location_id;
     if (!miteruby_compressed_deltas_read(previous_value, &location_id.value, &cursor, stack.end))
-      rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
+      return MITERUBY_SERIALIZER_INVALID_COMPRESSED_STACK;
     previous_value = location_id.value;
     // Interned stacks are root-first; pprof samples are leaf-first.
     location_ids[stack.frame_count - 1 - i] = location_id_for(location_id.value.value);
   }
-  if (cursor != stack.end) rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
+  if (cursor != stack.end) return MITERUBY_SERIALIZER_INVALID_COMPRESSED_STACK;
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static void emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
+static miteruby_serializer_exit_reason_t emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
   if (length > MAX_STRING_TABLE_ENTRY_BYTES) length = MAX_STRING_TABLE_ENTRY_BYTES;
   if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
       !pb_encode_string(stream, (const pb_byte_t *) string, length))
-    rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(stream));
+    return MITERUBY_SERIALIZER_STRING_TABLE_ENCODING_ERROR;
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static void emit_thread_name(pb_ostream_t *stream, VALUE thread) {
+static miteruby_serializer_exit_reason_t emit_thread_name(pb_ostream_t *stream, VALUE thread) {
   VALUE name = thread_name_for(thread);
   if (name != Qnil) {
-    emit_string_table_entry(stream, RSTRING_PTR(name), RSTRING_LEN(name));
-    return;
+    return emit_string_table_entry(stream, RSTRING_PTR(name), RSTRING_LEN(name));
   }
 
   const char *fallback;
@@ -346,10 +374,10 @@ static void emit_thread_name(pb_ostream_t *stream, VALUE thread) {
       }
     }
   }
-  emit_string_table_entry(stream, fallback, strlen(fallback));
+  return emit_string_table_entry(stream, fallback, strlen(fallback));
 }
 
-static void emit_thread_id(pb_ostream_t *stream, VALUE thread) {
+static miteruby_serializer_exit_reason_t emit_thread_id(pb_ostream_t *stream, VALUE thread) {
   VALUE object_id = rb_obj_id(thread);
   uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
   char thread_id[44];
@@ -357,10 +385,12 @@ static void emit_thread_id(pb_ostream_t *stream, VALUE thread) {
     thread_id, sizeof(thread_id), "%"PRIu64" (%lu)",
     native_thread_id, (unsigned long) (FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1)
   );
-  emit_string_table_entry(stream, thread_id, strlen(thread_id));
+  return emit_string_table_entry(stream, thread_id, strlen(thread_id));
 }
 
-static void emit_location_fragment(pb_ostream_t *stream, uint64_t location_id, uint64_t function_id, int64_t line) {
+static miteruby_serializer_exit_reason_t emit_location_fragment(
+  pb_ostream_t *stream, uint64_t location_id, uint64_t function_id, int64_t line
+) {
   miteruby_pprof_fragment_location_t fragment = {
     .has_location = true,
     .location = {
@@ -370,7 +400,8 @@ static void emit_location_fragment(pb_ostream_t *stream, uint64_t location_id, u
     },
   };
   if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_LOCATION_FIELDS, &fragment))
-    rb_raise(rb_eRuntimeError, "Failed to encode streaming location: %s", PB_GET_ERROR(stream));
+    return MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR;
+  return MITERUBY_SERIALIZER_OK;
 }
 
 static bool encode_packed_values(pb_ostream_t *stream, uint32_t tag, const uint64_t *values, size_t count) {
@@ -398,7 +429,7 @@ static bool encode_sample(
   return true;
 }
 
-static void emit_sample_fragment(
+static miteruby_serializer_exit_reason_t emit_sample_fragment(
   pb_ostream_t *stream, const uint64_t *location_ids, size_t location_count, miteruby_sample_values values,
   const streaming_thread_context *context, int64_t end_timestamp_ns
 ) {
@@ -418,19 +449,20 @@ static void emit_sample_fragment(
   size_t label_count = sizeof(labels) / sizeof(labels[0]);
   pb_ostream_t sizing = PB_OSTREAM_SIZING;
   if (!encode_sample(&sizing, location_ids, location_count, sample_values, value_count, labels, label_count))
-    rb_raise(rb_eRuntimeError, "Failed to size streaming sample: %s", PB_GET_ERROR(&sizing));
+    return MITERUBY_SERIALIZER_SAMPLE_SIZING_ERROR;
   if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_SAMPLE_SAMPLE_TAG) ||
       !pb_encode_varint(stream, sizing.bytes_written) ||
       !encode_sample(stream, location_ids, location_count, sample_values, value_count, labels, label_count))
-    rb_raise(rb_eRuntimeError, "Failed to encode streaming sample: %s", PB_GET_ERROR(stream));
+    return MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR;
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
+static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
   streaming_serializer_state *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
   size_t function_count, size_t thread_count, long finish_time_ns
 );
 
-void miteruby_streaming_serializer_prepare_serialize(
+miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
@@ -438,7 +470,7 @@ void miteruby_streaming_serializer_prepare_serialize(
   streaming_serializer_state *state = get_state(serializer);
   // TODO: Keep thread context data from serialization to serialization
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
-  reset_compression(state);
+  RETURN_IF_ERROR(reset_compression(state));
   long finish_time_ns = system_epoch_time_now_ns();
 
   pb_ostream_t stream = pb_ostream_from_buffer(
@@ -465,8 +497,8 @@ void miteruby_streaming_serializer_prepare_serialize(
   // 1. Emit FragmentStringTable: Fixed strings (Does not require GVL)
   for (size_t i = 0; i < sizeof(fixed_string_values) / sizeof(fixed_string_values[0]); i++) {
     const char *string = fixed_string_values[i];
-    emit_string_table_entry(&stream, string, strlen(string));
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(emit_string_table_entry(&stream, string, strlen(string)));
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
   }
 
   // 2. Emit FragmentStringTable: From profile data - threads (Requires GVL, depends: 1)
@@ -477,13 +509,14 @@ void miteruby_streaming_serializer_prepare_serialize(
     entry = verstable_mark_threads_set_next(entry)
   ) {
     VALUE thread = entry.data->key;
-    streaming_thread_context *context = thread_context_for(&state->thread_contexts, thread);
+    streaming_thread_context *context;
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, &context));
     context->thread_name_string_id = thread_string_id++;
     context->thread_id_string_id = thread_string_id++;
     // Upcall into Ruby: Thread metadata (name, id, etc)
-    emit_thread_name(&stream, thread);
-    emit_thread_id(&stream, thread);
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(emit_thread_name(&stream, thread));
+    RETURN_IF_ERROR(emit_thread_id(&stream, thread));
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
   }
 
   // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
@@ -493,29 +526,31 @@ void miteruby_streaming_serializer_prepare_serialize(
     // Upcall into Ruby: Class names, method names, method metadata
     ssize_t written = ddtrace_location_label(refs.cme, refs.iseq, qualified_name, sizeof(qualified_name));
     if (written > 0) {
-      emit_string_table_entry(&stream, qualified_name, written);
+      RETURN_IF_ERROR(emit_string_table_entry(&stream, qualified_name, written));
     } else {
       VALUE name = ddtrace_location_base_label(refs.cme, refs.iseq);
-      emit_string_table_entry(&stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name));
+      RETURN_IF_ERROR(emit_string_table_entry(
+        &stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name)
+      ));
     }
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
 
     // Upcall into Ruby: Method metadata, filenames
     if (refs.iseq != NULL) {
       VALUE filename = ddtrace_iseq_path(refs.iseq);
-      emit_string_table_entry(&stream, RSTRING_PTR(filename), RSTRING_LEN(filename));
+      RETURN_IF_ERROR(emit_string_table_entry(&stream, RSTRING_PTR(filename), RSTRING_LEN(filename)));
     } else {
       const char *filename = "(TODO: resolve filename for cfuncs)";
-      emit_string_table_entry(&stream, filename, strlen(filename));
+      RETURN_IF_ERROR(emit_string_table_entry(&stream, filename, strlen(filename)));
     }
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
   }
 
   // 4. Emit FragmentLocation: Fixed placeholders (Does not require GVL)
   for (size_t i = 1; i < sizeof(fixed_location_values) / sizeof(fixed_location_values[0]); i++) {
     const miteruby_pprof_fragment_location_location_t *location = &fixed_location_values[i];
-    emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line);
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(emit_location_fragment(&stream, location->id, location->line.function_id, location->line.line));
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
   }
 
   // 5. Emit FragmentLocation: From profile data (Requires GVL)
@@ -524,19 +559,19 @@ void miteruby_streaming_serializer_prepare_serialize(
     const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
     // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
     int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
-    emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line);
-    flush_if_needed(state, &stream);
+    RETURN_IF_ERROR(emit_location_fragment(&stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line));
+    RETURN_IF_ERROR(flush_if_needed(state, &stream));
   }
 
   // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
   // have been serialized.
-  miteruby_streaming_serializer_prepare_serialize_no_gvl(
+  return miteruby_streaming_serializer_prepare_serialize_no_gvl(
     state, &stream, interned_events_queue, interned_events_pos,
     cme_iseq_array->count, verstable_mark_threads_set_size(threads_set), finish_time_ns
   );
 }
 
-static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
+static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
   streaming_serializer_state *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
   size_t function_count, size_t thread_count, long finish_time_ns
 ) {
@@ -546,16 +581,16 @@ static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
   for (size_t i = 0; i < sizeof(sample_types) / sizeof(sample_types[0]); i++) {
     miteruby_pprof_fragment_sample_type_t fragment = {.has_sample_type = true, .sample_type = sample_types[i]};
     if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_SAMPLE_TYPE_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming sample type: %s", PB_GET_ERROR(stream));
-    flush_if_needed(state, stream);
+      return MITERUBY_SERIALIZER_SAMPLE_TYPE_ENCODING_ERROR;
+    RETURN_IF_ERROR(flush_if_needed(state, stream));
   }
 
   // 7. Emit FragmentFunction: Fixed placeholders (Does not require GVL)
   for (size_t i = 1; i < sizeof(fixed_function_values) / sizeof(fixed_function_values[0]); i++) {
     miteruby_pprof_fragment_function_t fragment = {.has_function = true, .function = fixed_function_values[i]};
     if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(stream));
-    flush_if_needed(state, stream);
+      return MITERUBY_SERIALIZER_FUNCTION_ENCODING_ERROR;
+    RETURN_IF_ERROR(flush_if_needed(state, stream));
   }
 
   // 8. Emit FragmentFunction: From profile data (Does not require GVL)
@@ -566,8 +601,8 @@ static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
       .function = {.id = function_id_for(i), .name = name_id, .filename = name_id + 1},
     };
     if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_FUNCTION_FIELDS, &fragment))
-      rb_raise(rb_eRuntimeError, "Failed to encode streaming function: %s", PB_GET_ERROR(stream));
-    flush_if_needed(state, stream);
+      return MITERUBY_SERIALIZER_FUNCTION_ENCODING_ERROR;
+    RETURN_IF_ERROR(flush_if_needed(state, stream));
   }
 
   // 9. Emit FragmentProfile (Does not require GVL)
@@ -577,8 +612,8 @@ static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
     .duration_nanos = duration_ns > 0 ? duration_ns : 0,
   };
   if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, &profile))
-    rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata: %s", PB_GET_ERROR(stream));
-  flush_if_needed(state, stream);
+    return MITERUBY_SERIALIZER_PROFILE_ENCODING_ERROR;
+  RETURN_IF_ERROR(flush_if_needed(state, stream));
 
   // 10. Emit FragmentSample (Does not require GVL, depends: 2)
   for (size_t pos = 0; pos < interned_events_pos;) {
@@ -594,21 +629,22 @@ static void miteruby_streaming_serializer_prepare_serialize_no_gvl(
     if (unavailable) {
       location_ids[frame_offset] = PPROF_LOCATION_NATIVE;
     } else {
-      read_location_ids(stack, location_ids + frame_offset);
+      RETURN_IF_ERROR(read_location_ids(stack, location_ids + frame_offset));
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
-    miteruby_sample_values values = sample_values_for(&state->thread_contexts, event->thread.value, event);
+    streaming_thread_context *context;
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, &context));
+    miteruby_sample_values values = sample_values_for(context, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
-    emit_sample_fragment(
-      stream, location_ids, location_count, values, thread_context_for(&state->thread_contexts, event->thread.value), end_timestamp_ns
-    );
-    flush_if_needed(state, stream);
+    RETURN_IF_ERROR(emit_sample_fragment(stream, location_ids, location_count, values, context, end_timestamp_ns));
+    RETURN_IF_ERROR(flush_if_needed(state, stream));
     pos += event->header.size_bytes;
   }
   state->uncompressed_serialization_size = stream->bytes_written;
-  compress_buffer(state, ZSTD_e_end);
+  RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_end));
   state->compression_finished = true;
   state->finish_time_ns = finish_time_ns;
+  return MITERUBY_SERIALIZER_OK;
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
@@ -629,7 +665,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   streaming_serializer_state *state = get_state(serializer);
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
-  reset_compression(state);
+  miteruby_streaming_serializer_raise_if_failed(reset_compression(state));
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
