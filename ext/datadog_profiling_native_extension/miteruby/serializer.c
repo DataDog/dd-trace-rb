@@ -737,8 +737,6 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
-  if (state->status == SERIALIZER_WORKING)
-    rb_raise(rb_eRuntimeError, "Cannot reset a streaming profile while preparation is in progress");
   state->compressed_serialization_size = 0;
   state->status = SERIALIZER_EMPTY;
   state->start_time_ns = system_epoch_time_now_ns();
