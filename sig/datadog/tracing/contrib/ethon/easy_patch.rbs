@@ -7,7 +7,7 @@ module Datadog
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
-            def http_request: (untyped url, untyped action_name, ?::Hash[untyped, untyped] options) -> untyped
+            def http_request: (untyped url, untyped action_name, ?Hash[untyped, untyped] options) -> untyped
 
             def headers=: (untyped headers) -> untyped
 
@@ -29,7 +29,7 @@ module Datadog
             def set_span_error_message: (untyped message) -> untyped
             def try_parse_uri: () -> untyped
 
-            def load_datadog_configuration_for: (?::Symbol host) -> untyped
+            def load_datadog_configuration_for: (?Symbol host) -> untyped
 
             def analytics_enabled?: () -> untyped
 

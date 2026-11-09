@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           settings,
           capabilities,
           agent_settings,
-          logger: logger
+          logger: logger,
         ).and_return(component)
 
         is_expected.to eq(component)

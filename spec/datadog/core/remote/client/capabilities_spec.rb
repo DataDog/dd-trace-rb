@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/ASM/_/_")
-          }
+          },
         )
       end
 
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -201,7 +201,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING/_/_")
-          }
+          },
         )
       end
 
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
@@ -330,7 +330,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_")
-          }
+          },
         )
       end
     end
@@ -343,7 +343,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).to include(
         lambda { |r|
           r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/APM_TRACING/_/lib_config")
-        }
+        },
       )
     end
   end
@@ -362,7 +362,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).not_to include(
         lambda { |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/1/FFE_FLAGS/_/_")
-        }
+        },
       )
     end
   end
@@ -483,6 +483,23 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.capabilities.count(runtime_capability)).to eq(1)
       expect(capabilities.products.count("FFE_FLAGS")).to eq(1)
       expect(capabilities.receivers.count(receiver)).to eq(1)
+    end
+  end
+
+  context "Profiling" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it "registers the APM_PROFILING product and a receiver for it, without a capability" do
+      expect(capabilities.products).to include("APM_PROFILING")
+      expect(capabilities.products).to_not include("DEBUG")
+      expect(capabilities.receivers).to include(
+        lambda { |r|
+          r.match? Datadog::Core::Remote::Configuration::Path.parse("datadog/2/APM_PROFILING/preset-default/config")
+        },
+      )
+      # Same bits as "tracing and DI capabilities": the backend defines no capability for profiling, so
+      # profiling only subscribes to its products.
+      expect(capabilities.base64_capabilities).to eq("IEAgAHAA")
     end
   end
 end

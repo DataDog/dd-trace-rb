@@ -1,7 +1,7 @@
 - name: simple reference - local
   ast:
     ref: var
-  compiled: ref('var')
+  compiled: ref(context, 'var')
   eval:
     - locals:
         var: 42
@@ -16,7 +16,7 @@
 - name: simple reference - instance
   ast:
     ref: '@var'
-  compiled: iref('@var')
+  compiled: iref(context, '@var')
   eval:
     - instance:
         '@var': 42
@@ -37,4 +37,4 @@
   ast:
     ref: '123'
   # We currently do not validate variable name legality.
-  compiled: ref('123')
+  compiled: ref(context, '123')

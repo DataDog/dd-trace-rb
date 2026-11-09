@@ -27,7 +27,7 @@ module Datadog
               telemetry: telemetry,
               experimental_propagate_process_tags_enabled: options.fetch(:propagate_process_tags_enabled) do
                 options.fetch(:experimental_propagate_process_tags_enabled)
-              end
+              end,
             )
           end
 
@@ -60,7 +60,7 @@ module Datadog
         # dependencies.
         def stop(*args, close_metrics: true)
           self.enabled = false
-          result = super(*args)
+          result = super(*args) # steep:ignore UnexpectedPositionalArgument
           @metrics.close if close_metrics
           result
         end

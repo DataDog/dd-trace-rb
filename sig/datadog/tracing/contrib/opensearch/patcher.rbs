@@ -5,7 +5,7 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          def self?.patch: () -> untyped
+          def self.patch: () -> untyped
           module Client
             def perform_request: (*untyped args) -> untyped
 

@@ -27,6 +27,12 @@ module Datadog
       end
       class ExpressionEvaluationError < Error
       end
+
+      class EvaluationTimeout < ExpressionEvaluationError
+        DEFAULT_MESSAGE: String
+
+        def initialize: (?message: String) -> void
+      end
     end
   end
 end

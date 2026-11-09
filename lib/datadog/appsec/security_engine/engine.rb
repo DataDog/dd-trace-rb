@@ -32,7 +32,7 @@ module Datadog
             obfuscator: {
               key_regex: appsec_settings.obfuscator_key_regex,
               value_regex: appsec_settings.obfuscator_value_regex,
-            }
+            },
           )
 
           diagnostics = load_default_config(telemetry: telemetry)
@@ -132,7 +132,7 @@ module Datadog
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: ruleset_version.to_s,
               success: success.to_s,
-            }
+            },
           )
         end
 
@@ -142,7 +142,7 @@ module Datadog
           # deprecated - ip and user id denylists should be configured via RC
           config["rules_data"] ||= AppSec::Processor::RuleLoader.load_data(
             ip_denylist: @default_ip_denylist,
-            user_id_denylist: @default_user_id_denylist
+            user_id_denylist: @default_user_id_denylist,
           )
 
           # deprecated - ip passlist should be configured via RC
@@ -163,7 +163,7 @@ module Datadog
           if diagnostics["error"]
             telemetry.inc(
               Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
-              tags: common_tags.merge(scope: "top-level")
+              tags: common_tags.merge(scope: "top-level"),
             )
 
             telemetry.error(diagnostics["error"])
@@ -178,7 +178,7 @@ module Datadog
 
               telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", 1,
-                tags: common_tags.merge(config_key: config_key, scope: "top-level")
+                tags: common_tags.merge(config_key: config_key, scope: "top-level"),
               )
             elsif config_diagnostics["errors"]
               config_diagnostics["errors"].each do |error, config_ids|
@@ -187,7 +187,7 @@ module Datadog
 
               telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, "waf.config_errors", config_diagnostics["errors"].count,
-                tags: common_tags.merge(config_key: config_key, scope: "item")
+                tags: common_tags.merge(config_key: config_key, scope: "item"),
               )
             end
           end

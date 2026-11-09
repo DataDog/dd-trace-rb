@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Distributed::Propagation do
       propagation_style_inject: Datadog.configuration.tracing.propagation_style_inject,
       propagation_style_extract: Datadog.configuration.tracing.propagation_style_extract,
       propagation_extract_first: Datadog.configuration.tracing.propagation_extract_first,
-      propagation_behavior_extract: Datadog.configuration.tracing.propagation_behavior_extract
+      propagation_behavior_extract: Datadog.configuration.tracing.propagation_behavior_extract,
     )
   end
 

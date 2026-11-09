@@ -144,7 +144,7 @@ RSpec.describe "Datadog integration" do
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
               "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}\n" \
               "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}"
-            }
+            },
           )
       end
     end

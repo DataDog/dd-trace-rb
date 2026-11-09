@@ -21,21 +21,21 @@ RSpec.shared_context "AMS serializer" do
         "Model",
         Class.new(ActiveModelSerializers::Model) do
           attr_writer :id
-        end
+        end,
       )
 
       stub_const(
         "TestModel",
         Class.new(Model) do
           attributes :name
-        end
+        end,
       )
 
       stub_const(
         "TestModelSerializer",
         Class.new(ActiveModel::Serializer) do
           attributes :name
-        end
+        end,
       )
     end
   else
@@ -58,7 +58,7 @@ RSpec.shared_context "AMS serializer" do
               @attributes[name]
             end
           end
-        end
+        end,
       )
 
       stub_const("TestModel", Class.new(Model))
@@ -67,7 +67,7 @@ RSpec.shared_context "AMS serializer" do
         "TestModelSerializer",
         Class.new(ActiveModel::Serializer) do
           attributes :name
-        end
+        end,
       )
     end
   end

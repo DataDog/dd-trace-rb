@@ -4,7 +4,7 @@ module Datadog
       module Rack
         module Configuration
           class Settings < Contrib::Configuration::Settings
-            DEFAULT_HEADERS: { response: ::Array["Content-Type" | "X-Request-ID"] }
+            DEFAULT_HEADERS: { response: Array["Content-Type" | "X-Request-ID"] }
           end
         end
       end

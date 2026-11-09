@@ -83,7 +83,7 @@ RSpec.describe Datadog::AppSec::Component do
       it "returns nil" do
         component = described_class.build_appsec_component(
           double(Datadog::Core::Configuration::Settings),
-          telemetry: telemetry
+          telemetry: telemetry,
         )
         expect(component).to be_nil
       end

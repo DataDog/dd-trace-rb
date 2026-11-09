@@ -151,7 +151,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect_lazy_log(logger, :debug,
             "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "queueFull", event_type: "snapshot"},)
+            tags: {reason: "queueFull", event_type: "snapshot"})
 
           worker.add_snapshot(snapshot, probe: probe)
 
@@ -160,12 +160,12 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         it "drops a log probe event and tags the queueFull drop metric log" do
           log_probe = Datadog::DI::Probe.new(id: "p2", type: :log, type_name: "C",
-            method_name: "m", capture_snapshot: false,)
+            method_name: "m", capture_snapshot: false)
 
           expect_lazy_log(logger, :debug,
             "di: Datadog::DI::ProbeNotifierWorker: dropping snapshot event because queue is full (queueFull)")
           expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
-            tags: {reason: "queueFull", event_type: "log"},)
+            tags: {reason: "queueFull", event_type: "log"})
 
           worker.add_snapshot(snapshot, probe: log_probe)
 
@@ -576,6 +576,53 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.add_snapshot(bad_snapshot, probe: probe)
         worker.flush
       end
+    end
+  end
+
+  describe "#initialize" do
+    let(:worker_settings) do
+      Datadog::Core::Configuration::Settings.new
+    end
+
+    let(:resolved_worker) do
+      described_class.new(
+        worker_settings, logger,
+        agent_settings: agent_settings,
+        telemetry: telemetry,
+        guardrails_telemetry: Datadog::DI::GuardrailsTelemetry.new(
+          settings: worker_settings, logger: logger, telemetry: telemetry,
+        ),
+        probe_repository: default_probe_repository,
+        probe_notification_builder: default_probe_notification_builder,
+      )
+    end
+
+    it "resolves the internal options the worker thread reads before the thread starts" do
+      internal = worker_settings.dynamic_instrumentation.internal
+
+      resolved_worker
+
+      # Seed two options so the suspended iteration is held mid-hash and the
+      # enqueue path's own option read stays pure: the first lazy resolution
+      # left is then the worker thread's min_send_interval read.
+      internal.development
+      internal.snapshot_queue_capacity
+
+      # An Enumerator suspended inside each_value keeps the options hash
+      # under iteration, so any lazy option resolution performed past this
+      # point, on any thread, raises "can't add a new key into hash during
+      # iteration" the same way a concurrent Datadog configuration reset
+      # does.
+      options_iteration = internal.options.each_value
+      options_iteration.next
+
+      allow(diagnostics_transport).to receive(:send_diagnostics)
+
+      resolved_worker.add_status({})
+      resolved_worker.flush
+
+      expect { resolved_worker.stop }.not_to raise_error
+      expect { options_iteration.next }.not_to raise_error
     end
   end
 end

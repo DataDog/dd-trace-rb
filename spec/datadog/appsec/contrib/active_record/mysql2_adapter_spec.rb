@@ -43,9 +43,8 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
         t.timestamps
       end
 
-      # prevent internal sql requests from showing up
-      klass.count
-      klass.first
+      # trigger schema queries before the AppSec context is activated.
+      klass.columns_hash
     end
   end
 
@@ -108,8 +107,8 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
             "server.db.statement" => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
             "server.db.system" => "mysql2",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.where(name: "Bob").to_a
@@ -124,11 +123,50 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
             "server.db.statement" => "SELECT * FROM users WHERE name = 'Bob'",
             "server.db.system" => "mysql2",
           },
-          Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+          Datadog.configuration.appsec.waf_timeout,
+        ).and_call_original,
       )
 
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
+    end
+
+    context "when AppSec is configured again" do
+      before do
+        Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
+
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+          c.appsec.instrument :active_record
+        end
+      end
+
+      it "calls waf once per query" do
+        expect(Datadog::AppSec.active_context).to receive(:run_rasp).once.and_call_original
+
+        User.where(name: "Bob").to_a
+      end
+    end
+
+    context "when adapter is loaded after AppSec is configured", execute_in_fork: true do
+      before do
+        ActiveRecord::ConnectionAdapters.send(:remove_const, :Mysql2Adapter)
+        $LOADED_FEATURES.delete_if { |path| path.end_with?("active_record/connection_adapters/mysql2_adapter.rb") }
+        Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
+
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+          c.appsec.instrument :active_record
+        end
+
+        User.establish_connection(db_config)
+        User.count
+      end
+
+      it "calls waf when querying using .where" do
+        expect(Datadog::AppSec.active_context).to receive(:run_rasp).and_call_original
+
+        User.where(name: "Bob").to_a
+      end
     end
 
     context "when waf result is a match" do
@@ -141,7 +179,7 @@ RSpec.describe "AppSec ActiveRecord integration for Mysql2 adapter" do
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
-          input_truncated: false
+          input_truncated: false,
         )
       end
 

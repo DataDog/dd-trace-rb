@@ -46,7 +46,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
           "DD-Internal-Untraced-Request" => "1",
           "If-None-Match" => "previous",
         },
-      )
+      ),
     ).to have_been_made.once
   end
 
@@ -59,7 +59,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
       expect(
         a_request(:get, "https://example.test/config?dd_env=test").with do |request|
           !request.headers.key?("Dd-Api-Key")
-        end
+        end,
       ).to have_been_made.once
     end
 
@@ -81,7 +81,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
         expect(response.status).to eq(200)
         expect(
           a_request(:get, "https://example.test/custom/path")
-            .with(basic_auth: ["user", "password"])
+            .with(basic_auth: ["user", "password"]),
         ).to have_been_made.once
       end
     end

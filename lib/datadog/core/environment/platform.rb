@@ -9,36 +9,34 @@ module Datadog
     module Environment
       # For gathering information about the platform
       module Platform
-        module_function
-
         # @return [String] ISA of host; `uname -m`
-        def architecture
-          (Identity.lang_version >= "2.2") ? Etc.uname[:machine] : Gem::Platform.local.cpu
+        def self.architecture
+          Etc.uname[:machine]
         end
 
         # @return [String] name of host; `uname -n`
-        def hostname
-          (Identity.lang_version >= "2.2") ? Etc.uname[:nodename] : nil
+        def self.hostname
+          Etc.uname[:nodename]
         end
 
         # System name, normally `Linux` or `Darwin` (but 'Mac OS X' on JRuby);
         # @return [String] name of kernel; `uname -s`.
-        def kernel_name
-          (Identity.lang_version >= "2.2") ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
+        def self.kernel_name
+          Etc.uname[:sysname]
         end
 
         # @return [String] kernel release; `uname -r`
-        def kernel_release
+        def self.kernel_release
           if Identity.lang_engine == "jruby"
             Etc.uname[:version] # Java's `os.version` maps to `uname -r`
-          elsif Identity.lang_version >= "2.2"
+          else
             Etc.uname[:release]
           end
         end
 
         # @return [String] kernel version; `uname -v`
-        def kernel_version
-          Etc.uname[:version] if Identity.lang_engine != "jruby" && Identity.lang_version >= "2.2"
+        def self.kernel_version
+          Etc.uname[:version] if Identity.lang_engine != "jruby"
         end
       end
     end

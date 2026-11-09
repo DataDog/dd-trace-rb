@@ -4,6 +4,7 @@
 
 require_relative "evaluation_failure"
 require_relative "fatal_exceptions"
+require_relative "guardrails_telemetry"
 
 module Datadog
   module DI
@@ -17,12 +18,17 @@ module Datadog
       # @param serializer [Serializer] serializer for captured values
       # @param logger [DI::Logger] logger for builder diagnostics
       # @param capture_expression_evaluator [CaptureExpressionEvaluator] evaluator for the probe's capture expressions
+      # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical evaluation-timeout skip metric
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component evaluation timeouts are counted through
       # @return [void]
-      def initialize(settings, serializer, logger, capture_expression_evaluator:)
+      def initialize(settings, serializer, logger, capture_expression_evaluator:, guardrails_telemetry:,
+        telemetry:)
         @settings = settings
         @serializer = serializer
         @logger = logger
         @capture_expression_evaluator = capture_expression_evaluator
+        @guardrails_telemetry = guardrails_telemetry
+        @telemetry = telemetry
       end
 
       attr_reader :settings
@@ -33,35 +39,43 @@ module Datadog
 
       attr_reader :capture_expression_evaluator
 
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+
+      # The telemetry component evaluation timeouts are counted through.
+      # @return [Datadog::Core::Telemetry::Component, nil]
+      attr_reader :telemetry
+
       def build_received(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been received correctly",
-          status: "RECEIVED",)
+          status: "RECEIVED")
       end
 
       def build_installed(probe)
         build_status(probe,
           message: "Probe #{probe.id} has been instrumented correctly",
-          status: "INSTALLED",)
+          status: "INSTALLED")
       end
 
       def build_emitting(probe)
         build_status(probe,
           message: "Probe #{probe.id} is emitting",
-          status: "EMITTING",)
+          status: "EMITTING")
       end
 
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
           status: "ERROR",
-          exception: exc,)
+          exception: exc)
       end
 
       def build_disabled(probe, duration)
         build_status(probe,
           message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
-          status: "ERROR",)
+          status: "ERROR")
       end
 
       # Duration is in seconds.
@@ -144,12 +158,13 @@ module Datadog
         message = nil
         evaluation_errors = []
         if segments = probe.template_segments
-          message, evaluation_errors = evaluate_template(segments, context)
+          message, evaluation_errors = evaluate_template(segments, context,
+            evaluation_deadline: serializer.evaluation_deadline)
         end
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
-          captures: captures,)
+          captures: captures)
       end
 
       def build_condition_evaluation_failed(context, expression, exception)
@@ -372,19 +387,21 @@ module Datadog
           host: nil,
           logger: {
             name: probe.file,
-            method: probe.method_name,
+            # Logs standard attribute that populates the Logger Method facet:
+            # https://docs.datadoghq.com/standard-attributes/?search=logger&product=log+management
+            method_name: probe.method_name,
             thread_name: Thread.current.name,
             # Dynamic instrumentation currently does not need thread_id for
             # anything. It can be sent if a customer requests it at which point
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
-            version: 2,
           },
+          # Per-process identity, distinguishing snapshots before and after a
+          # restart inside the same container.
           runtime_id: Core::Environment::Identity.id,
-          # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": active_trace&.id&.to_s,
-          "dd.span_id": active_span&.id&.to_s,
+          "dd.trace_id": envelope_trace(context)&.id&.to_s,
+          "dd.span_id": envelope_span(context)&.id&.to_s,
           ddsource: "dd_debugger",
           message: message,
           timestamp: timestamp,
@@ -401,23 +418,56 @@ module Datadog
         end
       end
 
-      def evaluate_template(template_segments, context)
+      # Renders the probe's message template against +context+.
+      #
+      # @param template_segments [Array<String, EL::Expression>] compiled
+      #   template segments to render.
+      # @param context [Context] evaluation context for expression segments.
+      # @param evaluation_deadline [Float] cooperative evaluation deadline, as
+      #   CLOCK_THREAD_CPUTIME_ID float seconds.
+      # @return [Array(String, Array<EvaluationFailure>)] the rendered message
+      #   and the evaluation errors.
+      def evaluate_template(template_segments, context, evaluation_deadline:)
         evaluation_errors = []
+        timed_out = false
         message = template_segments.map do |segment|
+          if segment.is_a?(EL::Expression) && !timed_out &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            raise DI::Error::EvaluationTimeout
+          end
           case segment
           when String
             segment
           when EL::Expression
-            serializer.serialize_value_for_message(segment.evaluate(context), name: segment.redaction_identifier)
+            if timed_out
+              # The shared deadline already crossed and reported its
+              # timeout, so the remaining segments render as the
+              # placeholder rather than raising and re-reporting per
+              # segment.
+              "[evaluation error]"
+            else
+              serializer.serialize_value_for_message(segment.evaluate(context, evaluation_deadline: evaluation_deadline), name: segment.redaction_identifier)
+            end
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
         rescue Exception => exc # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
+          DI.report_evaluation_timeout(
+            telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,
+            probe: context.probe, kind: "template", exc: exc,
+          )
           evaluation_errors << EvaluationFailure.new(
             expr: segment.dsl_expr, # steep:ignore NoMethod
             message: "#{exc.class}: #{exc.message}",
           )
+          # The matches wall-time bound also raises EvaluationTimeout
+          # without crossing the shared deadline, and it stops only one
+          # segment, so it must not suppress the remaining ones.
+          if exc.is_a?(DI::Error::EvaluationTimeout) &&
+              EL::Evaluator.evaluation_deadline_exceeded?(evaluation_deadline)
+            timed_out = true
+          end
           "[evaluation error]"
         end.join
         [message, evaluation_errors]
@@ -436,16 +486,45 @@ module Datadog
         (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
       end
 
-      def active_trace
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_trace
-        end
+      # Returns the trace the envelope's correlation fields report: the
+      # trace captured when the gate admitted the hit, when the context
+      # carries one (method probes), otherwise the trace active when the
+      # snapshot is built (line probes, condition failures).
+      #
+      # @param context [Context] the context of the probe hit
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def envelope_trace(context)
+        context.admission_trace || active_trace
       end
 
+      # Returns the span the envelope's correlation fields report: the span
+      # captured when the gate admitted the hit, when the context carries
+      # one (method probes), otherwise the span active when the snapshot is
+      # built (line probes, condition failures).
+      #
+      # @param context [Context] the context of the probe hit
+      # @return [Datadog::Tracing::SpanOperation, nil]
+      def envelope_span(context)
+        context.admission_span || active_span
+      end
+
+      # Returns the active APM trace supplying the snapshot's trace id,
+      # or nil when no trace is active.
+      #
+      # @return [Datadog::Tracing::TraceOperation, nil]
+      def active_trace
+        Datadog::DI.active_trace
+      end
+
+      # Returns the active APM span, or nil when no span is active. The
+      # lookup passes +allow_initialization: false+ and reads existing
+      # components; it runs on the application thread inside the probe
+      # wrapper and the line-probe TracePoint callback, for the same
+      # reason as {active_trace}.
+      #
+      # @return [Datadog::Tracing::SpanOperation, nil]
       def active_span
-        if defined?(Datadog::Tracing)
-          Datadog::Tracing.active_span
-        end
+        Datadog::DI.active_span
       end
     end
   end

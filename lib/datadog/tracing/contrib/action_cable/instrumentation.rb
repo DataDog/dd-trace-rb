@@ -39,14 +39,14 @@ module Datadog
                   :subscribe,
                   :around,
                   ->(channel, block) { Tracer.trace(channel, :subscribe, &block) },
-                  prepend: true
+                  prepend: true,
                 )
 
                 set_callback(
                   :unsubscribe,
                   :around,
                   ->(channel, block) { Tracer.trace(channel, :unsubscribe, &block) },
-                  prepend: true
+                  prepend: true,
                 )
               end
             end

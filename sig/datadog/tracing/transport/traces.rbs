@@ -64,7 +64,7 @@ module Datadog
           def encode_one: (untyped trace) -> (nil | untyped)
         end
         module Encoder
-          def self?.encode_trace: (untyped encoder, untyped trace, logger: untyped, native_events_supported: untyped) -> untyped
+          def self.encode_trace: (untyped encoder, untyped trace, logger: untyped, native_events_supported: untyped) -> untyped
         end
         class Transport < Core::Transport::Transport
           include SpanEventsNegotiation

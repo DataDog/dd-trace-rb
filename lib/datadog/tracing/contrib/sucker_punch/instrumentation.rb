@@ -12,11 +12,9 @@ module Datadog
       module SuckerPunch
         # Defines instrumentation patches for the `sucker_punch` gem
         module Instrumentation
-          module_function
-
           # rubocop:disable Metrics/MethodLength
           # rubocop:disable Metrics/AbcSize
-          def patch!
+          def self.patch!
             # rubocop:disable Metrics/BlockLength
             ::SuckerPunch::Job::ClassMethods.class_eval do
               alias_method :__run_perform_without_datadog, :__run_perform
@@ -32,7 +30,7 @@ module Datadog
                   if Datadog::Tracing::Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                     Datadog::Tracing::Contrib::Analytics.set_sample_rate(
                       span,
-                      datadog_configuration[:analytics_sample_rate]
+                      datadog_configuration[:analytics_sample_rate],
                     )
                   end
 

@@ -22,7 +22,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           span_id: 0xabc,
-          trace_id: 0xdef
+          trace_id: 0xdef,
         )
       end
 
@@ -44,7 +44,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
             Datadog::Tracing::TraceDigest.new(
               span_id: 0xabc,
               trace_id: 0xdef,
-              trace_sampling_priority: value
+              trace_sampling_priority: value,
             )
           end
 
@@ -52,7 +52,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
             expect(data).to eq(
               "x-b3-spanid" => "0000000000000abc",
               "x-b3-traceid" => "00000000000000000000000000000def",
-              "x-b3-sampled" => expected.to_s
+              "x-b3-sampled" => expected.to_s,
             )
           end
         end
@@ -63,7 +63,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
           Datadog::Tracing::TraceDigest.new(
             span_id: 0xabc,
             trace_id: 0xdef,
-            trace_origin: "synthetics"
+            trace_origin: "synthetics",
           )
         end
 
@@ -80,7 +80,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-          span_id: 0xbbbbbbbbbbbbbbbb
+          span_id: 0xbbbbbbbbbbbbbbbb,
         )
       end
 

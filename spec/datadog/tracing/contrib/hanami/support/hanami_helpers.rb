@@ -39,7 +39,7 @@ RSpec.shared_context "Hanami test application" do
 
     # Hanami assumes file structure, stubbing for test
     allow_any_instance_of(::Hanami::Environment).to receive(:root).and_return(
-      Pathname.new("#{__dir__}/dummy")
+      Pathname.new("#{__dir__}/dummy"),
     )
     test_app = build_test_app
 

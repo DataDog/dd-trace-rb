@@ -123,6 +123,12 @@ appraise 'sneakers' do
   gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
 end
 
+build_coverage_matrix('active-record', [7], gem: 'activerecord', meta: {
+  'mysql2' => '>= 0.5.3',
+  'pg' => nil,
+  'sqlite3' => '>= 1.4.2',
+})
+
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
   gem 'delayed_job'

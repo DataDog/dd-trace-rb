@@ -28,8 +28,6 @@ module Datadog
         "LOG_PROBE" => :log,
       }.freeze
 
-      module_function
-
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
       EVALUATE_AT_STRINGS = {
@@ -45,7 +43,7 @@ module Datadog
       #   unexpected type
       # @raise [ArgumentError] if the specification is malformed or describes
       #   a probe type that is not supported
-      def build_from_remote_config(config, logger:)
+      def self.build_from_remote_config(config, logger:)
         probe_id = fetch_probe_id(config)
         # The validations here are not yet comprehensive.
         type = config.fetch("type")
@@ -97,7 +95,7 @@ module Datadog
       # @raise [KeyError] if the specification has no id
       # @raise [Datadog::Core::Remote::Configuration::Error] if the id is not
       #   a String
-      def fetch_probe_id(probe_spec)
+      def self.fetch_probe_id(probe_spec)
         probe_id = probe_spec.fetch("id")
         unless probe_id.is_a?(String)
           raise Core::Remote::Configuration::Error.invalid_data_type(probe_id, field: "id", expected_type: String)
@@ -106,7 +104,7 @@ module Datadog
         probe_id
       end
 
-      def build_capture_expressions(raw)
+      def self.build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
           raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "captureExpressions", expected_type: Array)
@@ -131,7 +129,7 @@ module Datadog
         end
       end
 
-      def dedup_capture_expressions(capture_expressions, probe_id, logger)
+      def self.dedup_capture_expressions(capture_expressions, probe_id, logger)
         return capture_expressions if capture_expressions.size < 2
         by_name = {}
         capture_expressions.each do |capture_expression|
@@ -144,7 +142,7 @@ module Datadog
         by_name.values
       end
 
-      def build_capture_limits(raw)
+      def self.build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
           raise Core::Remote::Configuration::Error.invalid_data_type(raw, field: "capture", expected_type: Hash)
@@ -157,7 +155,7 @@ module Datadog
         )
       end
 
-      def parse_evaluate_at(raw, probe_id, logger)
+      def self.parse_evaluate_at(raw, probe_id, logger)
         return :exit if raw.nil?
         EVALUATE_AT_STRINGS[raw] || begin
           logger.debug do
@@ -167,7 +165,7 @@ module Datadog
         end
       end
 
-      def build_template_segments(segments)
+      def self.build_template_segments(segments)
         segments&.map do |segment|
           if Hash === segment
             if str = segment["str"]

@@ -21,7 +21,7 @@ RSpec.describe "Trlogy::Client patcher" do
       port: port,
       database: database,
       username: username,
-      password: password
+      password: password,
     )
   end
 

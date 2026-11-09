@@ -84,6 +84,12 @@ module Datadog
         def managed?
           @managed
         end
+
+        # Excludes userinfo, path, and query, which may carry credentials.
+        def origin
+          origin = "#{uri.scheme}://#{uri.host}"
+          (uri.port == uri.default_port) ? origin : "#{origin}:#{uri.port}"
+        end
       end
     end
   end

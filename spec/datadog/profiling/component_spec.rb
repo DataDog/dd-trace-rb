@@ -28,15 +28,33 @@ RSpec.describe Datadog::Profiling::Component do
       )
     end
 
-    context "when profiling is not supported" do
-      before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
+    context "when profiling is enabled but not supported" do
+      before do
+        described_class::UNSUPPORTED_WARNING_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+        settings.profiling.enabled = true
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return("test reason")
+      end
 
-      it { is_expected.to eq [nil, {profiling_enabled: false}] }
+      it "warns and returns the reason" do
+        expect(logger).to receive(:warn).with("Profiling was requested but is not supported, profiling disabled: test reason")
+
+        is_expected.to eq [nil, {profiling_enabled: false}, "Profiling was requested but is not supported, profiling disabled: test reason"]
+      end
+
+      it "warns only once, as remote configuration can rebuild the profiler many times" do
+        expect(logger).to receive(:warn).once
+
+        2.times do
+          described_class.build_profiler_component(
+            settings: settings, agent_settings: agent_settings, optional_tracer: tracer, logger: logger,
+          )
+        end
+      end
     end
 
     context "by default" do
       it "does not build a profiler" do
-        is_expected.to eq [nil, {profiling_enabled: false}]
+        is_expected.to eq [nil, {profiling_enabled: false}, nil]
       end
     end
 
@@ -46,7 +64,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it "does not build a profiler" do
-        is_expected.to eq [nil, {profiling_enabled: false}]
+        is_expected.to eq [nil, {profiling_enabled: false}, nil]
       end
     end
 
@@ -67,18 +85,22 @@ RSpec.describe Datadog::Profiling::Component do
       context "when an exception is raised during initialization" do
         before do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
-            ArgumentError.new("Failed to initialize transport: something went wrong")
+            ArgumentError.new("Failed to initialize transport: something went wrong"),
           )
         end
 
-        it "logs a warning, reports via telemetry, and returns nil" do
+        it "logs a warning, reports via telemetry, and returns nil with the error message" do
           expect(logger).to receive(:warn) do |&block|
             expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
           end
           expect(Datadog::Core::Telemetry::Logger).to receive(:report)
             .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
 
-          is_expected.to eq [nil, {profiling_enabled: false}]
+          is_expected.to eq [
+            nil,
+            {profiling_enabled: false},
+            "Failed to initialize profiling: ArgumentError: Failed to initialize transport: something went wrong",
+          ]
         end
       end
 
@@ -89,7 +111,7 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
           expect(settings.profiling.advanced)
-            .to receive(:max_frames).and_return(:max_frames_config)
+            .to receive(:max_frames).and_return(500)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
@@ -99,13 +121,22 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
-            max_frames: :max_frames_config,
+            max_frames: 500,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
             show_classes: :experimental_show_classes_enabled_config,
           )
+
+          build_profiler_component
+        end
+
+        it "clamps max_frames to the supported range" do
+          settings.profiling.advanced.max_frames = 100
+          allow(logger).to receive(:warn)
+
+          expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(hash_including(max_frames: 400))
 
           build_profiler_component
         end
@@ -507,7 +538,7 @@ RSpec.describe Datadog::Profiling::Component do
         it "sets up the Profiler with the CpuAndWallTimeWorker collector" do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
-            scheduler: anything
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -525,8 +556,8 @@ RSpec.describe Datadog::Profiling::Component do
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 heap_sample_every: 456,
-              }
-            )
+              },
+            ),
           )
 
           build_profiler_component
@@ -560,7 +591,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "passes the setting value to HttpTransport" do
           expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
-            hash_including(use_system_dns: :experimental_use_system_dns_setting_value)
+            hash_including(use_system_dns: :experimental_use_system_dns_setting_value),
           )
 
           build_profiler_component
@@ -780,7 +811,7 @@ RSpec.describe Datadog::Profiling::Component do
       context "when overhead_target_percentage is invalid value (#{invalid_value})" do
         it "logs an error" do
           expect(logger).to receive(:warn).with(
-            /Ignoring invalid value for profiling overhead_target_percentage/
+            /Ignoring invalid value for profiling overhead_target_percentage/,
           )
 
           valid_overhead_target
@@ -803,6 +834,42 @@ RSpec.describe Datadog::Profiling::Component do
     end
   end
 
+  describe ".valid_max_frames" do
+    subject(:valid_max_frames) { described_class.send(:valid_max_frames, max_frames, logger) }
+
+    {399 => 400, 601 => 600}.each do |invalid_value, clamped_value|
+      context "when max_frames is outside of the supported range (#{invalid_value})" do
+        let(:max_frames) { invalid_value }
+
+        it "logs a warning" do
+          expect(logger).to receive(:warn).with(
+            /max_frames is set to #{invalid_value}, but only values between 400 and 600 are supported. Using #{clamped_value}/,
+          )
+
+          valid_max_frames
+        end
+
+        it "clamps the value to the supported range" do
+          allow(logger).to receive(:warn)
+
+          expect(valid_max_frames).to eq clamped_value
+        end
+      end
+    end
+
+    [400, 600].each do |valid_value|
+      context "when max_frames is within the supported range (#{valid_value})" do
+        let(:max_frames) { valid_value }
+
+        it "returns the value without logging" do
+          expect(logger).to_not receive(:warn)
+
+          expect(valid_max_frames).to eq valid_value
+        end
+      end
+    end
+  end
+
   describe ".valid_cpu_sampling_interval" do
     subject(:valid_cpu_sampling_interval) do
       described_class.send(:valid_cpu_sampling_interval, cpu_sampling_interval_ms, logger)
@@ -813,7 +880,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "logs a warning" do
         expect(logger).to receive(:warn).with(
-          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/
+          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/,
         )
 
         valid_cpu_sampling_interval
@@ -871,7 +938,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it "logs a warning message mentioning that this is is not recommended" do
           expect(logger).to receive(:warn).with(
-            /workaround has been disabled via configuration.*This is not recommended/
+            /workaround has been disabled via configuration.*This is not recommended/,
           )
 
           no_signals_workaround_enabled?

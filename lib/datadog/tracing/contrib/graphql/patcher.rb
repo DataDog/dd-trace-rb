@@ -14,13 +14,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             # DEV-3.0: We should remove as many patching options as possible, given the alternatives do not
             # DEV-3.0: provide any benefit to the recommended `with_unified_tracer` patching method.
             # DEV-3.0: `with_deprecated_tracer` is likely safe to remove.
@@ -38,17 +36,17 @@ module Datadog
               Datadog.logger.warn(
                 "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace" \
                 "or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace." \
-                "Falling back to GraphQL::Tracing::DataDogTracing."
+                "Falling back to GraphQL::Tracing::DataDogTracing.",
               )
               TracingPatcher.patch!(schemas)
             end
           end
 
-          def configuration
+          def self.configuration
             Datadog.configuration.tracing[:graphql]
           end
 
-          def schemas
+          def self.schemas
             configuration[:schemas]
           end
         end

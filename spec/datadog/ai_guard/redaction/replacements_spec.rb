@@ -51,7 +51,7 @@ RSpec.describe Datadog::AIGuard::Redaction::Replacements do
       subject(:replacements) do
         described_class.new(
           "path" => "messages[0].content",
-          "replacement" => "<REDACTED>"
+          "replacement" => "<REDACTED>",
         )
       end
 

@@ -114,7 +114,7 @@ module Datadog
                 instances[key] = API::Instance.new(
                   spec,
                   adapter,
-                  api_options
+                  api_options,
                 )
 
                 # Configure fallback, if provided.

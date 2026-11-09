@@ -3,7 +3,7 @@ module Datadog
     module Remote
       class Configuration
         class DigestList < Array[Digest]
-          def self.parse: (::Hash[::String, Datadog::Helpers::json] hash) -> DigestList
+          def self.parse: (Hash[String, Datadog::Helpers::json] hash) -> DigestList
 
           def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
         end
@@ -12,13 +12,13 @@ module Datadog
           class InvalidHashTypeError < StandardError
           end
 
-          attr_reader type: ::Symbol
+          attr_reader type: Symbol
 
           attr_reader hexdigest: Datadog::Helpers::json
 
           def self.hexdigest: (Symbol type, String data) -> String
 
-          def initialize: (::String type, Datadog::Helpers::json hexdigest) -> void
+          def initialize: (String type, Datadog::Helpers::json hexdigest) -> void
 
           def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
         end

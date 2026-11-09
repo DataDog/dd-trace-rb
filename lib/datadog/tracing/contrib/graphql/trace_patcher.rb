@@ -6,9 +6,7 @@ module Datadog
       module GraphQL
         # Provides instrumentation for `graphql` through with GraphQL's trace
         module TracePatcher
-          module_function
-
-          def patch!(schemas)
+          def self.patch!(schemas)
             if schemas.empty?
               ::GraphQL::Schema.trace_with(::GraphQL::Tracing::DataDogTrace)
             else

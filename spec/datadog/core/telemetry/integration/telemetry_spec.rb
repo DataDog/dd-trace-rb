@@ -127,7 +127,7 @@ RSpec.describe "Telemetry integration tests" do
             "tracer_time" => Integer,
           )
           expect(payload.fetch(:headers)).to include(
-            expected_headers.merge("dd-telemetry-request-type" => %w[app-started])
+            expected_headers.merge("dd-telemetry-request-type" => %w[app-started]),
           )
         end
       end
@@ -154,7 +154,7 @@ RSpec.describe "Telemetry integration tests" do
             "tracer_time" => Integer,
           )
           expect(payload.fetch(:headers)).to include(
-            expected_headers.merge("dd-telemetry-request-type" => %w[app-client-configuration-change])
+            expected_headers.merge("dd-telemetry-request-type" => %w[app-client-configuration-change]),
           )
         end
       end
@@ -194,7 +194,7 @@ RSpec.describe "Telemetry integration tests" do
             "tracer_time" => Integer,
           )
           expect(payload.fetch(:headers)).to include(
-            expected_headers.merge("dd-telemetry-request-type" => %w[app-dependencies-loaded])
+            expected_headers.merge("dd-telemetry-request-type" => %w[app-dependencies-loaded]),
           )
         end
       end
@@ -235,7 +235,7 @@ RSpec.describe "Telemetry integration tests" do
           "tracer_time" => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge("dd-telemetry-request-type" => %w[message-batch])
+          expected_headers.merge("dd-telemetry-request-type" => %w[message-batch]),
         )
       end
     end
@@ -264,7 +264,7 @@ RSpec.describe "Telemetry integration tests" do
           "tracer_time" => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat])
+          expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat]),
         )
       end
     end
@@ -295,7 +295,7 @@ RSpec.describe "Telemetry integration tests" do
           "tracer_time" => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat])
+          expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat]),
         )
       end
     end
@@ -500,20 +500,20 @@ RSpec.describe "Telemetry integration tests" do
       expect(component.worker.buffer.length).to eq 1
 
       allow(component.worker).to receive(:send_event).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)
+        an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat),
       ).and_return(ok_response)
 
       expect(component.worker).to receive(:send_event).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)
+        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted),
       ).ordered.and_return(failed_response)
       expect(component.worker).to receive(:send_event).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)
+        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted),
       ).ordered.and_return(ok_response)
       expect(component.worker).to receive(:send_event).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
+        an_instance_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded),
       ).ordered.and_return(ok_response)
       expect(component.worker).to receive(:send_event).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch),
       ).ordered.and_return(ok_response)
 
       component.start(false, components: Datadog.send(:components))

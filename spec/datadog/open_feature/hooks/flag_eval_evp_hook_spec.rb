@@ -137,7 +137,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
           allocation_key: nil,
           error_message: "TYPE_MISMATCH",
           runtime_default: true,
-        )
+        ),
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
@@ -167,8 +167,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       expect(writer).to receive(:enqueue).with(
         hash_including(
           observe_full_evaluation_data: true,
-          attrs: {"targeting_key" => "user-7", "env" => "prod"}
-        )
+          attrs: {"targeting_key" => "user-7", "env" => "prod"},
+        ),
       )
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
@@ -183,7 +183,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
 
       details.each do |evaluation_details|
         expect(writer).to receive(:enqueue).with(
-          hash_including(observe_full_evaluation_data: false, attrs: nil)
+          hash_including(observe_full_evaluation_data: false, attrs: nil),
         )
         hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
       end
@@ -199,7 +199,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
           flag_metadata: {
             "dd.eval.timestamp_ms" => 1,
             Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => observe_full_evaluation_data,
-          }
+          },
         )
         expect(writer).to receive(:enqueue).with(hash_including(error_message: "FLAG_NOT_FOUND"))
         hook.finally(hook_context: hook_context, evaluation_details: details)
@@ -215,7 +215,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         flag_metadata: {
           "dd.eval.timestamp_ms" => 1,
           Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-        }
+        },
       )
       expect(writer).to receive(:enqueue).with(hash_including(error_message: "GENERAL"))
       hook.finally(hook_context: hook_context, evaluation_details: details)
@@ -229,7 +229,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         flag_metadata: {
           "dd.eval.timestamp_ms" => 1,
           Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-        }
+        },
       )
       expect(writer).to receive(:enqueue).with(hash_including(error_message: nil))
       hook.finally(hook_context: hook_context, evaluation_details: details)
