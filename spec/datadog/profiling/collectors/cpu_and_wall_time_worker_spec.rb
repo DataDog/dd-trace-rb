@@ -862,48 +862,26 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           eval("proc { def self.foo; rand; end; foo }.call", binding, __FILE__, __LINE__)
         end
 
-        context "on Ruby 2.x" do
-          before { skip "Behavior only applies on Ruby 2.x" unless RubyVersion.is?("< 3") }
+        it "records internal VM objects, including their specific kind" do
+          start
 
-          it "records internal VM objects, not including their specific kind" do
-            start
+          something_that_triggers_creation_of_imemo_objects
 
-            something_that_triggers_creation_of_imemo_objects
+          cpu_and_wall_time_worker.stop
 
-            cpu_and_wall_time_worker.stop
+          imemo_samples =
+            samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+              .select { |s| s.labels.fetch(:"allocation class", "").start_with?("(VM Internal, T_IMEMO") }
 
-            imemo_samples =
-              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:"allocation class", "") == "(VM Internal, T_IMEMO)" }
+          expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
 
-            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
-          end
-        end
-
-        context "on Ruby 3+" do
-          before { skip "Behavior only applies on Ruby 3+" if RubyVersion.is?("< 3") }
-
-          it "records internal VM objects, including their specific kind" do
-            start
-
-            something_that_triggers_creation_of_imemo_objects
-
-            cpu_and_wall_time_worker.stop
-
-            imemo_samples =
-              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:"allocation class", "").start_with?("(VM Internal, T_IMEMO") }
-
-            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
-
-            # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
-            # a known member of the imemo_type enum (even if we don't exactly match on which one)
-            expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
-              match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/,
-              ),
-            )
-          end
+          # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
+          # a known member of the imemo_type enum (even if we don't exactly match on which one)
+          expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
+            match(
+              /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/,
+            ),
+          )
         end
       end
     end
@@ -1365,10 +1343,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   describe "Ractor safety" do
     before do
-      skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3")
-
       # See native_extension_spec.rb for more details on the issues we saw on 3.0
-      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
+      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?("< 3.1")
     end
 
     shared_examples_for "does not trigger a sample" do |run_ractor|

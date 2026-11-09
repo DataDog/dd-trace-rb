@@ -650,14 +650,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context "when sampling a thread blocked on Monitor#synchronize" do
-        let(:expected_method_name) do
-          # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RubyVersion.is?("< 2.7")
-            "lock"
-          else
-            "synchronize"
-          end
-        end
+        let(:expected_method_name) { "synchronize" }
         let(:locked_monitor) { Monitor.new.tap(&:enter) }
         let(:background_thread) { Thread.new(ready_queue, locked_monitor, &do_in_background_thread) }
         let(:do_in_background_thread) do

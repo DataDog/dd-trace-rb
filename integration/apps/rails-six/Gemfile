@@ -30,13 +30,8 @@ gem 'oj', platform: :ruby
 
 # Need to add these because ActionMailer is broken in 6.1.6
 # https://github.com/rails/rails/pull/44697
-if RUBY_VERSION < '2.6.0'
-  gem 'net-smtp', '0.3.0'
-  gem 'net-imap', '0.2.2'
-else
-  gem 'net-smtp'
-  gem 'net-imap'
-end
+gem 'net-smtp'
+gem 'net-imap'
 gem 'net-pop'
 
 gem 'active_model_serializers'
@@ -78,11 +73,7 @@ group :test do
   gem 'rspec-collection_matchers'
   gem 'rspec-rails'
 
-  if RUBY_VERSION < '2.6.0'
-    gem 'shoulda-matchers', '~> 4.5'
-  else
-    gem 'shoulda-matchers'
-  end
+  gem 'shoulda-matchers'
 
   gem 'timecop'
   gem 'webmock'
@@ -96,12 +87,7 @@ group :test, :development do
   end
   # mock_redis 0.47.0+ requires redis 5 or higher
   # mock_redis 0.42.0+ requires Ruby 3.0 or higher
-  # mock_redis 0.37.0+ requires Ruby 2.7 or higher
-  if RUBY_VERSION >= '2.7'
-    gem 'mock_redis', '~> 0.37.0'
-  else
-    gem 'mock_redis', '< 0.37.0'
-  end
+  gem 'mock_redis', '~> 0.37.0'
   gem 'parallel_tests'
 
   gem 'listen'

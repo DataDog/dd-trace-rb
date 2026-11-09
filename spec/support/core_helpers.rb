@@ -60,7 +60,7 @@ module CoreHelpers
         @recorded_customizations << ::RSpec::Mocks::Matchers::ExpectationCustomization.new(method, args, block)
         self
       end
-      ruby2_keywords(method) if respond_to?(:ruby2_keywords, true)
+      ruby2_keywords(method)
     end
   end
 
@@ -101,9 +101,8 @@ module CoreHelpers
       end
     end
 
-    # Positional and keyword arguments are both accepted to make the method
-    # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
-    # should be used in any given call.
+    # Positional and keyword arguments are both accepted. In practice only one
+    # type of arguments should be used in any given call.
     def with_env(*args, **opts)
       if args.any? && opts.any? # rubocop:disable Style/IfUnlessModifier
         raise ArgumentError, "Do not pass both args and opts"

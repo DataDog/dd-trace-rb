@@ -4,22 +4,13 @@ source "https://rubygems.org"
 
 gem 'puma'
 gem 'unicorn'
-if RUBY_VERSION < '2.6.0'
-  gem 'passenger', '< 6.0.23'
-else
-  gem 'passenger'
-end
+gem 'passenger'
 gem 'rack'
 gem 'rackup'
 
 # Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
 gem 'redis', '< 5'
-# Sidekiq 7 requires Ruby 2.7+
-if RUBY_VERSION >= '2.7.0'
-  gem 'sidekiq', '~> 7'
-else
-  gem 'sidekiq', '~> 6.5'
-end
+gem 'sidekiq', '~> 7'
 gem 'resque'
 gem 'rake'
 

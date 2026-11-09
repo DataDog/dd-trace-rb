@@ -239,8 +239,6 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     end
 
     describe "#each_child" do
-      before { skip("API not available on Ruby 2.5") if RubyVersion.is?("< 2.6") }
-
       let(:expected_hold_resume_calls_count) { 1 + temporary_files_count }
 
       context "with a block" do
@@ -278,8 +276,6 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     end
 
     describe "#children" do
-      before { skip("API not available on Ruby 2.5") if RubyVersion.is?("< 2.6") }
-
       it "matches the ruby behavior without monkey patching" do
         test_with_and_without_monkey_patch do
           expect(dir.children).to contain_exactly("file1", "file2", "file3")

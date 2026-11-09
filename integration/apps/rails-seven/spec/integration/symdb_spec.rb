@@ -7,9 +7,9 @@ require 'json'
 # Exercises the real Rails environment — Zeitwerk autoloading, ActiveRecord method
 # generation, gem path filtering — without needing a running web server or mock agent.
 #
-# Skipped on JRuby and Ruby < 2.7, where the Symbol Database is unsupported.
+# Skipped on JRuby, where the Symbol Database is unsupported.
 RSpec.describe 'Symbol database extraction' do
-  symdb_test # JRuby and Ruby < 2.7 unsupported
+  symdb_test # JRuby unsupported
 
   # Script executed inside the Rails process via `bin/rails runner`.
   # Force-loads all classes so ObjectSpace is fully populated before extraction.

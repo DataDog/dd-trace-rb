@@ -152,7 +152,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         let(:script) do
           <<-RUBY
             require 'cucumber'
-            require 'logger' if RUBY_VERSION >= '3.0'
+            require 'logger'
 
             load Gem.bin_path('cucumber', 'cucumber')
           RUBY

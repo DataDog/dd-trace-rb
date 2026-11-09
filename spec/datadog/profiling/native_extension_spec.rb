@@ -181,7 +181,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
         # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
         # coverage on 3.1+ anyway.
-        skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
+        skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?("< 3.1")
       end
 
       subject(:ddtrace_rb_ractor_main_p) do
