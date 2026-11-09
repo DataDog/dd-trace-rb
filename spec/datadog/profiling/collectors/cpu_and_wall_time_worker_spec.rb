@@ -99,7 +99,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start, finish, encoded, stats = miteruby_recorder.serialize
         expect(start).to be <= finish
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
-        expect(stats).to include(recorded_samples: 0)
+        expect(stats).to eq({})
         expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
       end
 
@@ -2354,7 +2354,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consume_miteruby
 
       expect(recorded_miteruby_samples.size).to eq(3)
-      expect(streaming_serializer.stats).to eq(recorded_samples: 3)
+      expect(streaming_serializer.stats).to eq({})
       profile = decode_profile(streaming_serializer.serialize!)
       expect(profile.sample.size).to eq(3)
       expect(profile.sample_type.size).to eq(6)
@@ -2364,11 +2364,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       next_profile = decode_profile(streaming_serializer.serialize!)
       expect(next_profile.function).to eq(profile.function)
       expect(next_profile.sample).to be_empty
-      expect(streaming_serializer.stats).to eq(recorded_samples: 3)
+      expect(streaming_serializer.stats).to eq({})
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
 
       streaming_serializer.reset_after_fork
-      expect(streaming_serializer.stats).to eq(recorded_samples: 0)
+      expect(streaming_serializer.stats).to eq({})
     end
 
     it "preserves buffered samples and releases the consumer lock when given the wrong serializer" do
