@@ -133,7 +133,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
         expect(profile.sample).to be_empty
-        expect(profile.function.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
+        expect(profile.function.size).to eq(4)
         expect(profile.location.first(4).map { |location| decode_frame_from_pprof(profile, location.id) }).to eq([
           ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0),
           ProfileHelpers::Frame.new("(sampled in sighandler)", "", 0),
@@ -2316,6 +2316,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       capture_miteruby { MiterubyStringEmission.new.capture { publish_miteruby_sample } }
       consume_miteruby
+      location_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries)
       described_class._native_miteruby_consumer_prepare_serialize(serializer)
       profile = decode_profile(serializer.serialize!)
       functions = profile.function.map do |function|
@@ -2328,7 +2329,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         "(TODO: resolve filename for cfuncs)",
       ])
       expect(profile.function.map(&:id)).to eq((1..profile.function.size).to_a)
-      expect(profile.location.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
+      expect(profile.location.size).to eq(4 + location_count)
       expect(profile.location.map(&:id)).to eq((1..profile.location.size).to_a)
       frames = profile.location.map { |location| decode_frame_from_pprof(profile, location.id) }
       source_file, source_line = MiterubyStringEmission.instance_method(:capture).source_location
@@ -2358,7 +2359,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
-    it "reports compressed buffer exhaustion without discarding buffered events and can recover" do
+    it "discards the batch on compressed buffer exhaustion and can collect a new profile" do
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
       frames = Class.new
@@ -2378,17 +2379,22 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         consume_miteruby
       end
 
-      buffered_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)
+      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to be > 0
       expect { described_class._native_miteruby_consumer_prepare_serialize(serializer) }
         .to raise_error(RuntimeError, "Compressed streaming profile buffer is full")
       expect { serializer.serialize! }
         .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
 
-      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(buffered_bytes)
-
-      capture_miteruby {}
-      described_class::Testing._native_miteruby_read_sample_headers
-      expect(recorded_miteruby_samples).to be_empty
+      expect(cpu_and_wall_time_worker.stats).to include(
+        miteruby_interned_events_queue_used_size_bytes: 0,
+        miteruby_mark_threads_entries: 0,
+        miteruby_mark_cme_iseq_array_entries: 0,
+        miteruby_location_array_entries: 0,
+        miteruby_unique_stacks_map_entries: 0,
+      )
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
+      consume_miteruby
+      expect(recorded_miteruby_samples.size).to eq(1)
     end
 
     it "streams profiles larger than the uncompressed buffer across repeated preparations" do
@@ -2433,12 +2439,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(instance.public_send("frame_#{index}")).to be true
       end
       consume_miteruby
+      location_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries)
       described_class._native_miteruby_consumer_prepare_serialize(serializer)
       profile = decode_profile(serializer.serialize!)
 
       expect(profile.string_table.to_a).to include(*filenames)
       expect(profile.sample.size).to eq(400)
-      expect(profile.location.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_location_array_entries))
+      expect(profile.location.size).to eq(4 + location_count)
     end
 
     it "serializes every buffered event before clearing the queue" do
@@ -2451,16 +2458,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
       consume_miteruby
 
+      function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries)
+      expect(function_count).to be > 1
       expect(recorded_miteruby_samples.size).to eq(3)
       expect(serializer.stats).to eq({})
       profile = decode_profile(serializer.serialize!)
       expect(profile.sample.size).to eq(3)
       expect(profile.sample_type.size).to eq(6)
-      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_entries)).to be > 1
-      expect(profile.function.size).to eq(4 + cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_cme_iseq_array_entries))
+      expect(profile.function.size).to eq(4 + function_count)
       expect(recorded_miteruby_samples).to be_empty
       next_profile = decode_profile(serializer.serialize!)
-      expect(next_profile.function).to eq(profile.function)
+      expect(next_profile.function.size).to eq(4)
       expect(next_profile.sample).to be_empty
       expect(serializer.stats).to eq({})
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
@@ -2469,7 +2477,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(serializer.stats).to eq({})
     end
 
-    it "preserves buffered samples and releases the consumer lock when given the wrong serializer" do
+    it "discards buffered samples and releases the consumer lock when given the wrong serializer" do
       capture_miteruby { publish_miteruby_sample }
       consume_miteruby
       buffered_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)
@@ -2479,9 +2487,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         described_class._native_miteruby_consumer_prepare_serialize(Datadog::Profiling::StackRecorder.for_testing)
       end.to raise_error(TypeError)
 
-      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(buffered_bytes)
-      samples = Thread.new { recorded_miteruby_samples }.value
-      expect(samples).to_not be_empty
+      expect(cpu_and_wall_time_worker.stats).to include(
+        miteruby_interned_events_queue_used_size_bytes: 0,
+        miteruby_mark_threads_entries: 0,
+        miteruby_mark_cme_iseq_array_entries: 0,
+        miteruby_location_array_entries: 0,
+        miteruby_unique_stacks_map_entries: 0,
+      )
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
+      Thread.new { consume_miteruby }.value
+      expect(recorded_miteruby_samples.size).to eq(1)
       expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(0)
     end
 
@@ -2521,9 +2536,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(cpu_and_wall_time_worker.stats).to include(consumed_stats)
 
       recorded_miteruby_samples
-      expect(cpu_and_wall_time_worker.stats).to include(
-        consumed_stats.merge(miteruby_interned_events_queue_used_size_bytes: 0, miteruby_unique_stacks_map_entries: 0),
-      )
+      expect(cpu_and_wall_time_worker.stats).to include(consumed_stats.merge(empty_usage))
 
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
@@ -2854,9 +2867,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
       consume_miteruby
+      thread_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_threads_entries)
       samples = recorded_miteruby_samples
       profile = decode_profile(serializer.serialize!)
-      thread_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_threads_entries)
       pairs = profile.string_table.to_a.slice(22, thread_count * 2).each_slice(2).to_a
 
       expect(pairs).to include(*samples.map { |sample| sample.labels.values_at(:"thread name", :"thread id") }.uniq)
