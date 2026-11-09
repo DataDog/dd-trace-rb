@@ -427,14 +427,14 @@ RSpec.describe Datadog::AppSec::Context do
   describe "#catch_interrupt" do
     before { allow(Datadog.logger).to receive(:warn) }
 
-    let(:steps) { [] }
-
     context "when work completes" do
       it { expect(context.catch_interrupt { :value }).to be(false) }
     end
 
     context "when work is interrupted" do
       it "returns true and skips the rest of the work" do
+        steps = []
+
         result = context.catch_interrupt do
           steps << :before
           context.interrupt!({"status_code" => "403"})
@@ -448,6 +448,8 @@ RSpec.describe Datadog::AppSec::Context do
 
     context "when catches are nested" do
       it "ends only the inner work" do
+        steps = []
+
         result = context.catch_interrupt do
           context.catch_interrupt do
             context.interrupt!({"status_code" => "403"})
@@ -463,6 +465,8 @@ RSpec.describe Datadog::AppSec::Context do
 
     context "when work is interrupted from another thread" do
       it "does not end the work and warns in the other thread" do
+        steps = []
+
         result = context.catch_interrupt do
           Thread.new do
             context.interrupt!({"status_code" => "403"})
@@ -487,6 +491,8 @@ RSpec.describe Datadog::AppSec::Context do
       it { expect(context.interrupted?).to be(false) }
 
       it "ends the next interrupted work" do
+        steps = []
+
         result = context.catch_interrupt do
           context.interrupt!({"status_code" => "403"})
           steps << :after
@@ -500,8 +506,6 @@ RSpec.describe Datadog::AppSec::Context do
 
   describe "#interrupt!" do
     before { allow(Datadog.logger).to receive(:warn) }
-
-    let(:steps) { [] }
 
     context "when interrupt is caught" do
       it "stores the decision" do
@@ -562,6 +566,8 @@ RSpec.describe Datadog::AppSec::Context do
 
     context "when there is no catch" do
       it "stores the decision and continues the work" do
+        steps = []
+
         context.interrupt!({"status_code" => "403"})
         steps << :after
 

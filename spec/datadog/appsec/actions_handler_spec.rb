@@ -5,7 +5,6 @@ require "datadog/appsec/spec_helper"
 RSpec.describe Datadog::AppSec::ActionsHandler do
   describe ".handle" do
     before { Datadog::AppSec::Context.activate(context) }
-
     after { Datadog::AppSec::Context.deactivate }
 
     let(:context) { Datadog::AppSec::Context.new(nil, nil, waf_runner) }

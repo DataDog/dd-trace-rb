@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
   let(:waf_runner) { instance_double(Datadog::AppSec::SecurityEngine::Runner, finalize!: nil) }
 
   context "when there is no active context" do
-    let(:context) { nil }
+    before { allow(Datadog::AppSec::Context).to receive(:active).and_return(nil) }
 
     it "runs the block" do
       expect { |block| controller.spawn(&block) }.to yield_control

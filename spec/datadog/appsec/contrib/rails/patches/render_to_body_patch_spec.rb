@@ -175,15 +175,16 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::RenderToBodyPatch, exec
           Datadog::AppSec::Contrib::Rails::Gateway::Watcher.watch_response_body_json(gateway)
         end
 
-        after { context.detach }
+        after { waf_runner.finalize! }
 
         let(:context) do
           Datadog::AppSec::Context.new(
             Datadog::Tracing::TraceOperation.new,
             Datadog::Tracing::SpanOperation.new("root"),
-            security_engine.new_runner,
+            waf_runner,
           )
         end
+        let(:waf_runner) { security_engine.new_runner }
         let(:security_engine) do
           Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
         end
