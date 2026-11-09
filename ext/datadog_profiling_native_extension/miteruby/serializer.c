@@ -202,7 +202,7 @@ static const rb_data_type_t serializer_type = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
-static miteruby_serializer_persistent_state_t *get_state(VALUE serializer) {
+static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer) {
   miteruby_serializer_persistent_state_t *state;
   TypedData_Get_Struct(serializer, miteruby_serializer_persistent_state_t, &serializer_type, state);
   return state;
