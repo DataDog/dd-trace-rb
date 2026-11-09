@@ -596,7 +596,8 @@ static VALUE resolution_details_get_flag_metadata(VALUE self) {
 static VALUE feature_value_to_ruby(const struct ddog_ffe_FeatureValue *value) {
   switch (value->tag) {
     case DDOG_FFE_FEATURE_VALUE_STRING:
-      return rb_utf8_str_new((const char *)value->string.ptr, value->string.len);
+      // Frozen because flag metadata reaches customer code while queued telemetry still holds the value.
+      return rb_obj_freeze(rb_utf8_str_new((const char *)value->string.ptr, value->string.len));
     case DDOG_FFE_FEATURE_VALUE_FLOAT:
       return rb_float_new(value->float_);
     case DDOG_FFE_FEATURE_VALUE_BOOLEAN:

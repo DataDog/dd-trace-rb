@@ -218,6 +218,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
             ],
           )
           expect(features.first.first.encoding).to eq(Encoding::UTF_8)
+          expect(features.first[1]).to be_frozen
         end
       end
 
