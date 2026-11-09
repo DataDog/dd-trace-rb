@@ -25,7 +25,7 @@ void collectors_heap_recorder_init(void);
 void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
-void miteruby_streaming_serializer_init(VALUE profiling_module);
+void miteruby_serializer_init(VALUE profiling_module);
 void crashtracking_runtime_stacks_init(void);
 void setup_signal_handler_init(VALUE profiling_module);
 
@@ -81,7 +81,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   encoded_profile_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
-  miteruby_streaming_serializer_init(profiling_module);
+  miteruby_serializer_init(profiling_module);
   crashtracking_runtime_stacks_init();
   unsafe_api_calls_check_init();
 

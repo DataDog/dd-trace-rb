@@ -41,4 +41,4 @@ void miteruby_consumer_stats(VALUE stats_as_hash);
 void miteruby_consumer_consume_loop(miteruby_raw_events_queue_t *raw_events_queue);
 
 // Requires the main ractor's GVL throughout; may allocate and raise while holding the consumer mutex.
-void miteruby_consumer_prepare_serialize(VALUE streaming_serializer_instance);
+void miteruby_consumer_prepare_serialize(VALUE serializer_instance);
