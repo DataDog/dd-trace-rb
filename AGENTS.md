@@ -2,7 +2,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 
 # Setup & Quick Commands
 
-**Ruby version compatibility:** Ruby 2.5+ (including 3.x+ and 4.x+)
+**Ruby version compatibility:** Ruby 3.0+ (including 4.x+)
 
 - Launch MRI container: `docker compose run --rm tracer-4.0 /bin/bash`. Matches CI defaults. Other Ruby versions and variants are in `docker-compose.yml`.
 - Install dependencies: `bundle install`. Run once per container/session.

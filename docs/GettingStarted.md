@@ -1615,8 +1615,6 @@ end
 
 | MRI Versions | Rails Versions |
 | ------------ | -------------- |
-| 2.5          | 4.2 - 6.1      |
-| 2.6 - 2.7    | 5.0 - 6.1      |
 | 3.0 - 3.1    | 6.1 - 7.1      |
 | 3.2 - 4.0    | 6.1 - 8.1      |
 
@@ -2964,7 +2962,7 @@ Without this flag, profiles for short-lived Resque jobs will not be available as
 
 #### Requirements
 
-- Ruby 2.7+. JRuby and TruffleRuby are not supported.
+- JRuby and TruffleRuby are not supported.
 - Datadog Ruby gem (`datadog`) v2.16.0+.
 
 #### Configuration
@@ -3031,7 +3029,7 @@ When Dynamic Instrumentation is enabled, the tracer can extract and upload symbo
 |---|---|---|---|
 | `c.symbol_database.enabled` | `Boolean, nil` | Enable or disable symbol database upload; `nil` (unset) follows Dynamic Instrumentation. | Unset (`nil`): uploads only when Dynamic Instrumentation is actually enabled |
 
-Symbol Database requires MRI Ruby 2.7+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
+Symbol Database requires MRI (CRuby) and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
 
 ## Known issues and suggested configurations
 

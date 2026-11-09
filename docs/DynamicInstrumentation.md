@@ -19,7 +19,7 @@ practices for using Dynamic Instrumentation.
 ## Platform Requirements
 
 - Datadog Agent 7.49.0 or higher
-- Ruby 2.6 or higher
+- Ruby 3.0 or higher
   - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not supported
   - The `libdatadog_api` C extension must be compiled; DI will not
     activate without it

@@ -15,9 +15,9 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 3.2       | [latest](#support-latest) | Latest              |
 |       |                            | 3.1       | [latest](#support-latest) | Latest              |
 |       |                            | 3.0       | [latest](#support-latest) | Latest              |
-|       |                            | 2.7       | [latest](#support-latest) | Latest              |
-|       |                            | 2.6       | [latest](#support-latest) | Latest              |
-|       |                            | 2.5       | [latest](#support-latest) | Latest              |
+|       |                            | 2.7       | [EOL](#support-eol)       | < 2.49.0            |
+|       |                            | 2.6       | [EOL](#support-eol)       | < 2.49.0            |
+|       |                            | 2.5       | [EOL](#support-eol)       | < 2.49.0            |
 |       |                            | 2.4       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.3       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.2       | [EOL](#support-eol)       | < 2.0.0             |

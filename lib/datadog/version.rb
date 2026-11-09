@@ -11,7 +11,7 @@ module Datadog
 
     STRING = [MAJOR, MINOR, PATCH, PRE, BUILD].compact.join(".")
 
-    MINIMUM_RUBY_VERSION = "2.5.0"
+    MINIMUM_RUBY_VERSION = "3.0.0"
 
     # Restrict the installation of this gem with untested future versions of Ruby.
     #
