@@ -2358,6 +2358,39 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
+    it "reports compressed buffer exhaustion without discarding buffered events and can recover" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      frames = Class.new
+      instance = frames.new
+      random = Random.new(123)
+      160.times do |batch|
+        100.times do |index|
+          method_name = "frame_#{batch}_#{index}"
+          filename = [random.bytes(750)].pack("m0")
+          frames.class_eval(
+            "def #{method_name}; Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100); end",
+            filename, # rubocop:disable Style/EvalWithLocation
+            1, # rubocop:disable Style/EvalWithLocation
+          )
+          expect(instance.public_send(method_name)).to be true
+        end
+        consume_miteruby
+      end
+
+      buffered_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)
+      expect { described_class._native_miteruby_consumer_prepare_serialize(streaming_serializer) }
+        .to raise_error(RuntimeError, "Compressed streaming profile buffer is full")
+      expect { streaming_serializer.serialize! }
+        .to raise_error(RuntimeError, "Streaming profile must be prepared before serialization")
+
+      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(buffered_bytes)
+
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      expect(recorded_miteruby_samples).to be_empty
+    end
+
     it "streams profiles larger than the uncompressed buffer and reuses the compression context" do
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
