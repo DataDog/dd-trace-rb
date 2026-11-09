@@ -510,8 +510,12 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   const verstable_mark_threads_set *threads_set
 ) {
   miteruby_serializer_persistent_state_t *persistent_state = get_state(serializer);
+
   if (persistent_state->status == SERIALIZER_WORKING) return MITERUBY_SERIALIZER_ALREADY_WORKING;
+
   persistent_state->compressed_serialization_size = 0;
+  verstable_serializer_thread_contexts_map_clear(&persistent_state->thread_contexts);
+
   miteruby_serializer_prepare_serialization_state_t state = {
     .persistent_state = persistent_state,
     .stream = pb_ostream_from_buffer(
@@ -527,15 +531,17 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
     .location_array = location_array,
     .threads_set = threads_set,
   };
-  verstable_serializer_thread_contexts_map_clear(&persistent_state->thread_contexts);
+
   persistent_state->status = SERIALIZER_WORKING;
+
   rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)&state);
+
   if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
     persistent_state->compressed_serialization_size = state.compressed_buffer.pos;
     persistent_state->finish_time_ns = state.finish_time_ns;
     persistent_state->status = SERIALIZER_FINISHED;
   }
-  RB_GC_GUARD(serializer);
+
   return state.exit_reason;
 }
 
