@@ -28,6 +28,8 @@ module Datadog
 
       @exposure_logging_hook: Hooks::ExposureLoggingHook?
 
+      @exposure_logging_hook_mutex: Thread::Mutex
+
       @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
@@ -51,8 +53,6 @@ module Datadog
       @on_configuration_change: (^(configuration_event) -> void)?
 
       attr_reader engine: EvaluationEngine
-
-      attr_reader exposure_logging_hook: Hooks::ExposureLoggingHook?
 
       attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
@@ -80,6 +80,8 @@ module Datadog
       def shutdown!: () -> void
 
       def reconfigure!: (String? configuration) -> void
+
+      def exposure_logging_hook: () -> Hooks::ExposureLoggingHook?
 
       def debug_logging_hook: () -> Hooks::DebugLoggingHook?
 

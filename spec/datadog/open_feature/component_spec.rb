@@ -170,6 +170,24 @@ RSpec.describe Datadog::OpenFeature::Component do
         end
       end
     end
+
+    it "returns the same hook, and so the same exposure cache, on every call" do
+      expect(component.exposure_logging_hook).to be(component.exposure_logging_hook)
+      expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new).once
+    end
+
+    it "is built once the OpenFeature SDK loads after the component" do
+      allow(Datadog::OpenFeature::Hooks::ExposureLoggingHook).to receive(:available?).and_return(false)
+      component
+
+      expect(component.exposure_logging_hook).to be_nil
+
+      allow(Datadog::OpenFeature::Hooks::ExposureLoggingHook).to receive(:available?).and_return(true)
+
+      expect(component.exposure_logging_hook).to be_a(Datadog::OpenFeature::Hooks::ExposureLoggingHook)
+      expect(component.exposure_logging_hook).to be(component.exposure_logging_hook)
+      expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new).once
+    end
   end
 
   describe "#debug_logging_hook", skip: !Datadog::OpenFeature::Hooks::DebugLoggingHook.available? do
