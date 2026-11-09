@@ -160,7 +160,7 @@ typedef struct {
   verstable_streaming_thread_contexts_map thread_contexts;
   long start_time_ns;
   long finish_time_ns;
-} streaming_serializer_state;
+} miteruby_serializer_state_t;
 
 #define RETURN_IF_ERROR(expression) do { \
   miteruby_serializer_exit_reason_t exit_reason_ = (expression); \
@@ -168,7 +168,7 @@ typedef struct {
 } while (0)
 
 static void serializer_free(void *data) {
-  streaming_serializer_state *state = data;
+  miteruby_serializer_state_t *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
   miteruby_allocator_free(state->compressed_serialization_buffer);
   miteruby_allocator_free(state->compression_context);
@@ -177,7 +177,7 @@ static void serializer_free(void *data) {
 }
 
 static size_t serializer_size(const void *data) {
-  const streaming_serializer_state *state = data;
+  const miteruby_serializer_state_t *state = data;
   return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compression_context) + miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
@@ -189,9 +189,9 @@ static const rb_data_type_t serializer_type = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
-static streaming_serializer_state *get_state(VALUE serializer) {
-  streaming_serializer_state *state;
-  TypedData_Get_Struct(serializer, streaming_serializer_state, &serializer_type, state);
+static miteruby_serializer_state_t *get_state(VALUE serializer) {
+  miteruby_serializer_state_t *state;
+  TypedData_Get_Struct(serializer, miteruby_serializer_state_t, &serializer_type, state);
   return state;
 }
 
@@ -214,7 +214,7 @@ void miteruby_streaming_serializer_raise_if_failed(miteruby_serializer_exit_reas
   rb_raise(rb_eRuntimeError, "Unknown miteruby serializer exit reason: %d", reason);
 }
 
-static miteruby_serializer_exit_reason_t reset_compression(streaming_serializer_state *state) {
+static miteruby_serializer_exit_reason_t reset_compression(miteruby_serializer_state_t *state) {
   size_t result = ZSTD_initCStream(state->compression_context, COMPRESSION_LEVEL);
   if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR;
   state->uncompressed_serialization_size = 0;
@@ -223,7 +223,7 @@ static miteruby_serializer_exit_reason_t reset_compression(streaming_serializer_
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t compress_buffer(streaming_serializer_state *state, ZSTD_EndDirective end_op) {
+static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_state_t *state, ZSTD_EndDirective end_op) {
   ZSTD_inBuffer input = {.src = state->uncompressed_serialization_buffer, .size = state->uncompressed_serialization_size};
   ZSTD_outBuffer output = {
     .dst = state->compressed_serialization_buffer,
@@ -241,7 +241,7 @@ static miteruby_serializer_exit_reason_t compress_buffer(streaming_serializer_st
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t flush_if_needed(streaming_serializer_state *state, pb_ostream_t *stream) {
+static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_state_t *state, pb_ostream_t *stream) {
   if (RB_LIKELY(stream->bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
   state->uncompressed_serialization_size = stream->bytes_written;
   RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_continue));
@@ -252,8 +252,8 @@ static miteruby_serializer_exit_reason_t flush_if_needed(streaming_serializer_st
 }
 
 static VALUE serializer_new(VALUE klass) {
-  streaming_serializer_state *state;
-  VALUE serializer = TypedData_Make_Struct(klass, streaming_serializer_state, &serializer_type, state);
+  miteruby_serializer_state_t *state;
+  VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_state_t, &serializer_type, state);
   verstable_streaming_thread_contexts_map_init(&state->thread_contexts);
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL)
@@ -458,7 +458,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
 }
 
 static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
-  streaming_serializer_state *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
+  miteruby_serializer_state_t *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
   size_t function_count, size_t thread_count, long finish_time_ns
 );
 
@@ -467,7 +467,7 @@ miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serializ
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
 ) {
-  streaming_serializer_state *state = get_state(serializer);
+  miteruby_serializer_state_t *state = get_state(serializer);
   // TODO: Keep thread context data from serialization to serialization
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
   RETURN_IF_ERROR(reset_compression(state));
@@ -572,7 +572,7 @@ miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serializ
 }
 
 static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_serialize_no_gvl(
-  streaming_serializer_state *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
+  miteruby_serializer_state_t *state, pb_ostream_t *stream, uint8_t *interned_events_queue, size_t interned_events_pos,
   size_t function_count, size_t thread_count, long finish_time_ns
 ) {
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
@@ -648,7 +648,7 @@ static miteruby_serializer_exit_reason_t miteruby_streaming_serializer_prepare_s
 }
 
 static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  streaming_serializer_state *state = get_state(serializer);
+  miteruby_serializer_state_t *state = get_state(serializer);
   long finish_time_ns = state->finish_time_ns;
   if (!state->compression_finished) rb_raise(rb_eRuntimeError, "Streaming profile must be prepared before serialization");
   VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
@@ -663,7 +663,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 }
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
-  streaming_serializer_state *state = get_state(serializer);
+  miteruby_serializer_state_t *state = get_state(serializer);
   verstable_streaming_thread_contexts_map_clear(&state->thread_contexts);
   miteruby_streaming_serializer_raise_if_failed(reset_compression(state));
   state->start_time_ns = system_epoch_time_now_ns();
