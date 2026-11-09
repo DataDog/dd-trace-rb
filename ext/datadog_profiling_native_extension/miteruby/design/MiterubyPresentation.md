@@ -6,7 +6,7 @@
 - Move stack deduplication to a background consumer.
 - Defer names, files, and line numbers until export.
 
-Branch snapshot: October 2026, including the uncommitted custom serializer experiment.
+Branch snapshot: November 2026, using streaming serialization.
 
 ---
 
@@ -28,8 +28,8 @@ Profiling costs more than walking a stack: scheduling Ruby work, resolving frame
 | --- | --- | --- |
 | Capture | Signal handler may prepare a stack; schedules a postponed job | Signal handler publishes raw stack + clocks into a ring |
 | Process | Postponed job collects thread samples, resolves frames, records them | Background consumer deduplicates raw stacks without the GVL |
-| Prepare export | Samples already recorded in libdatadog | Resolve frames and record buffered samples under the GVL |
-| Encode | Two profile slots allow libdatadog serialization without the GVL | Dedicated recorder; current experiment compares two encoders under the GVL |
+| Prepare export | Samples already recorded in libdatadog | Resolve frames and emit pprof fragments under the GVL |
+| Encode | Two profile slots allow libdatadog serialization without the GVL | Compress emitted pprof bytes with zstd under the GVL |
 | Deliver | Existing exporter and transport | Reuses existing exporter and transport |
 
 **The shift:** less work per sampling interruption, more deferred work and retained state.
@@ -103,7 +103,7 @@ Together, these rules prevent compaction crashes from touching Ruby objects at t
 - Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. Event counts and the stack write offset track occupied bytes separately.
 - Native hash-table backing storage uses the same allocator. Linux mapping names help identify these allocations in process memory tools.
 
-**Trade-off:** reserved headroom, alignment padding, and temporary overlap during replacement still cost memory. Accounting covers requested payload bytes, not RSS, page rounding, or allocator headers; libdatadog, custom serialization, and pinned Ruby objects are additional costs.
+**Trade-off:** reserved headroom, alignment padding, and temporary overlap during replacement still cost memory. Accounting covers requested payload bytes, not RSS, page rounding, or allocator headers; Ruby output strings, the profile wrapper, and pinned Ruby objects are additional costs.
 
 ---
 
@@ -123,17 +123,16 @@ Do compression in the consumer, keeping signal capture simple. Periodic full sta
 
 ---
 
-## 9. Latest experiment: own the encoding too
+## 9. Own the encoding too
 
-The committed branch introduced a direct libdatadog recorder, nanopb, bundled zstd, and a bridge for custom encoded profiles.
+The streaming serializer emits pprof fragments directly from interned events, frame references, and locations using nanopb.
 
-**Current working-tree addition:** feed the same samples into libdatadog and custom C tables, then encode both.
+- Resolve function names, filenames, line numbers, and thread labels at export.
+- Compute CPU and wall-time deltas per thread while emitting samples.
+- Compress the emitted bytes with bundled zstd and return them through the existing profile wrapper.
+- Serialization tests check decoded profiles, including timing, labels, GC retention, and truncated stacks.
 
-- Custom path: pprof tables → nanopb → zstd → existing profile wrapper.
-- Equivalence specs compare decoded outputs; Ruby callers still receive libdatadog's result.
-- Dual recording, linear searches, full intermediate buffers, and holding the GVL favor an inspectable first implementation over efficiency.
-
-**Decision:** establish output equivalence before optimizing or switching the exported result.
+**Still a prototype:** encoding holds the GVL and uses a full uncompressed buffer; thread timing baselines reset at each export.
 
 ---
 
@@ -160,10 +159,10 @@ The committed branch introduced a direct libdatadog recorder, nanopb, bundled zs
 
 ## 11. What we have, and what comes next
 
-**Built:** an end-to-end experimental stack-sampling pipeline, GC-safe retention, stack deduplication, bounded core storage, diagnostic stats, and serializer comparison specs.
+**Built:** an end-to-end experimental stack-sampling pipeline, GC-safe retention, stack deduplication, bounded core storage, diagnostic stats, and streaming pprof serialization.
 
 **Still a prototype:** signal capture requires the main-ractor GVL owner and skips GC; real thread-state classification, capture-time trace IDs, full allocation/heap/GVL feature parity, and lifecycle/overflow recovery remain work.
 
 **Next:** measure application overhead, YJIT effects, export pauses, memory retention, and sample loss against the existing profiler. The branch includes a side-exit experiment and Fibonacci demo; no speedup is claimed here.
 
-Source notes: [raw events queue design](RawEventsQueueDesign.md), [event format](EventDesign.md), [serializer experiment](CustomSerializerPresentation.md), [optimization ideas](OptimizationIdeas.md).
+Source notes: [raw events queue design](RawEventsQueueDesign.md), [event format](EventDesign.md), [streaming serializer](../streaming_serializer.c), [optimization ideas](OptimizationIdeas.md).
