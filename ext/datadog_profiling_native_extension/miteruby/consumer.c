@@ -106,7 +106,8 @@ static void *consume_without_gvl(void *args);
 static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_consume_loop_args *args);
 static void consume_unblock(void *args);
 static VALUE prepare_serialize_locked(VALUE args);
-static VALUE prepare_serialize_unlock_ensure(VALUE unused);
+static VALUE prepare_serialize_ensure(VALUE unused);
+static void reset_serialization_metadata(void);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
 static void *mark_threads_calloc(size_t size) {
@@ -399,26 +400,41 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
   mutex_lock(&consumer_state.mutex);
-  rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_unlock_ensure, Qnil);
+  rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
   RB_GC_GUARD(serializer_instance);
 }
 
 static VALUE prepare_serialize_locked(VALUE serializer_instance) {
+  size_t interned_events_pos = consumer_state.interned_events_pos;
+
+  // Reset all of these, they're only used to quick lookup during consumption data that lives in the arrays we use below
+  //
+  // This does mean that any failure during serialization means this data is discarded. That's OK because we don't
+  // expect failures during serialization - they're errors we can't recover from.
+  consumer_state.interned_events_pos = 0;
+  miteruby_stack_dedup_reset();
+  verstable_mark_cme_iseq_set_clear(&consumer_state.mark_cme_iseq_set);
+  verstable_location_set_clear(&consumer_state.location_set);
+
   miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
-    serializer_instance, consumer_state.interned_events_queue, consumer_state.interned_events_pos,
+    serializer_instance, consumer_state.interned_events_queue, interned_events_pos,
     &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
   miteruby_serializer_raise_if_failed(reason);
 
-  consumer_state.interned_events_pos = 0;
-  miteruby_stack_dedup_reset();
-
   return Qnil;
 }
 
-static VALUE prepare_serialize_unlock_ensure(DDTRACE_UNUSED VALUE unused) {
+static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
+  reset_serialization_metadata();
   mutex_unlock(&consumer_state.mutex);
   return Qnil;
+}
+
+static void reset_serialization_metadata(void) {
+  verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
+  consumer_state.mark_cme_iseq_array.count = 0;
+  consumer_state.location_array.count = 0;
 }
 
 static bool retain_thread(VALUE thread) {
