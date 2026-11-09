@@ -160,10 +160,6 @@ static VALUE serialize_working_profile(VALUE serializer) {
   return native_serialize(Qnil, serializer);
 }
 
-static VALUE reset_working_profile(VALUE serializer) {
-  return native_reset_after_fork(Qnil, serializer);
-}
-
 static void test_working_status(void) {
   VALUE serializer = serializer_new(rb_cObject);
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -175,15 +171,21 @@ static void test_working_status(void) {
   state->status = SERIALIZER_WORKING;
   assert(miteruby_serializer_is_working(serializer));
   assert(miteruby_serializer_prepare_serialize(serializer, NULL, 0, NULL, NULL, NULL) == MITERUBY_SERIALIZER_ALREADY_WORKING);
-  VALUE (*operations[])(VALUE) = {serialize_working_profile, reset_working_profile};
-  for (size_t i = 0; i < sizeof(operations) / sizeof(operations[0]); i++) {
-    int error = 0;
-    rb_protect(operations[i], serializer, &error);
-    assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
-    assert(state->status == SERIALIZER_WORKING);
-    rb_set_errinfo(Qnil);
-  }
-  state->status = SERIALIZER_EMPTY;
+  int error = 0;
+  rb_protect(serialize_working_profile, serializer, &error);
+  assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
+  assert(state->status == SERIALIZER_WORKING);
+  rb_set_errinfo(Qnil);
+
+  state->compressed_serialization_size = 123;
+  state->start_time_ns = 0;
+  state->finish_time_ns = 0;
+  assert(native_reset_after_fork(Qnil, serializer) == Qtrue);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(!miteruby_serializer_is_working(serializer));
+  assert(state->compressed_serialization_size == 0);
+  assert(state->start_time_ns > 0);
+  assert(state->finish_time_ns == state->start_time_ns);
   RB_GC_GUARD(serializer);
 }
 
