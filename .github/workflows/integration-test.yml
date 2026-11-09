@@ -66,8 +66,6 @@ jobs:
             ruby: "3.4"
           - app: sinatra2-modular
             ruby: "3.4"
-          - app: hanami
-            ruby: "2.7"
           - app: opentelemetry
             ruby: "3.4"
     steps:

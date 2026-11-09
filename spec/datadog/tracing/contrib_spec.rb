@@ -24,7 +24,6 @@ RSpec.describe Datadog::Tracing::Contrib do
     "grape" => "Grape",
     "graphql" => "GraphQL", # exception
     "grpc" => "GRPC", # exception
-    "hanami" => "Hanami",
     "http" => "HTTP", # exception
     "httpclient" => "Httpclient",
     "httprb" => "Httprb",

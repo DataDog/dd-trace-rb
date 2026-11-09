@@ -1534,13 +1534,6 @@
         "default": "grpc"
       }
     ],
-    "DD_TRACE_HANAMI_ENABLED": [
-      {
-        "version": "A",
-        "type": "boolean",
-        "default": "true"
-      }
-    ],
     "DD_TRACE_HEADER_TAGS": [
       {
         "version": "A",

@@ -81,7 +81,7 @@ OR
 
 ### Instrument your application
 
-#### Rails or Hanami applications
+#### Rails applications
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -108,7 +108,7 @@ OR
 
 #### Other Ruby applications
 
-If your application does not use the above mentioned gems (Rails or Hanami), you can set it up as follows:
+If your application does not use Rails, you can set it up as follows:
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -885,7 +885,7 @@ end
 The GraphQL integration activates instrumentation for GraphQL queries.
 
 <div class="alert alert-warning">
-When onboarding an [auto instrumented GraphQL application](#rails-or-hanami-applications), you **MUST** set the environment variable `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER=1`.
+When onboarding an [auto instrumented GraphQL application](#rails-applications), you **MUST** set the environment variable `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER=1`.
 
 This enables support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/).
 
@@ -1021,30 +1021,6 @@ alternate_client = Demo::Echo::Service.rpc_stub_class.new(
 ```
 
 The integration will ensure that the `configured_interceptor` establishes a unique tracing setup for that client instance.
-
-### hanami
-
-The `hanami` integration will instrument routing, action and render for your hanami application. To enable the `hanami` instrumentation, it is recommended to auto instrument with
-
-```
-gem 'datadog', require: 'datadog/auto_instrument'
-```
-
-and create an initializer file in your `config/initializers` folder:
-
-```ruby
-# config/initializers/datadog.rb
-Datadog.configure do |c|
-  c.tracing.instrument :hanami, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key            | Env Var | Type     | Description                                | Default |
-| -------------- | - | ------- | ------------------------------------------ | ------- |
-| `enabled` | `DD_TRACE_HANAMI_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | | `String` | Service name for `hanami` instrumentation. | `nil`   |
 
 ### http.rb
 
@@ -1584,7 +1560,7 @@ end
 
 The Rails integration will trace requests, database calls, templates rendering, and cache read/write/delete operations. The integration makes use of the Active Support Instrumentation, listening to the Notification API so that any operation instrumented by the API is traced.
 
-To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
+To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-applications).
 
 **Note on auto-instrumentation timing:** When using `require 'datadog/auto_instrument'` in your Gemfile, instrumentation is applied before `config/initializers/*.rb` files load. Some configuration options (like `tracing.contrib.global_default_service_name.enabled`) must be set via environment variables rather than in your initializer. See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.
 
