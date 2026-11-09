@@ -98,7 +98,7 @@ namespace :spec do
   task all: [:main, :benchmark, :custom_cop, :tasks,
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-    :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
+    :elasticsearch, :http, :redis, :sidekiq, :sinatra,
     :profiling, :core_with_libdatadog_api, :native_transport, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc "" # "Explicitly hiding from `rake -T`"
@@ -225,20 +225,6 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:rails_old_redis) do |t, args|
     t.pattern = "spec/datadog/tracing/contrib/rails/cache_spec.rb"
     t.rspec_opts = args.to_a.join(" ")
-  end
-
-  desc "" # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:hanami) do |t, args|
-    t.pattern = "spec/datadog/tracing/contrib/hanami/**/*_spec.rb"
-    t.rspec_opts = args.to_a.join(" ")
-  end
-
-  desc "" # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
-    t.pattern = "spec/datadog/tracing/contrib/hanami/**/*_spec.rb"
-    t.rspec_opts = args.to_a.join(" ")
-
-    ENV["TEST_AUTO_INSTRUMENT"] = "true"
   end
 
   desc "" # "Explicitly hiding from `rake -T`"

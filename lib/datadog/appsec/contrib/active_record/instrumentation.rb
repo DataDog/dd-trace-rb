@@ -53,7 +53,7 @@ module Datadog
 
           # patch for mysql2, sqlite3, and postgres+jdbc adapters in ActiveRecord >= 7.1
           module InternalExecQueryAdapterPatch
-            def internal_exec_query(sql, *args, **rest)
+            def internal_exec_query(sql, ...)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
@@ -62,7 +62,7 @@ module Datadog
 
           # patch for mysql2, sqlite3, and postgres+jdbc adapters in ActiveRecord < 7.1
           module ExecQueryAdapterPatch
-            def exec_query(sql, *args, **rest)
+            def exec_query(sql, ...)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
@@ -71,7 +71,7 @@ module Datadog
 
           # patch for mysql2, sqlite3, and postgres+jdbc db adapters in ActiveRecord 4
           module Rails4ExecQueryAdapterPatch
-            def exec_query(sql, *args)
+            def exec_query(sql, ...)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
@@ -80,7 +80,7 @@ module Datadog
 
           # patch for non-jdbc postgres adapter in ActiveRecord > 4
           module ExecuteAndClearAdapterPatch
-            def execute_and_clear(sql, *args, **rest)
+            def execute_and_clear(sql, ...)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super

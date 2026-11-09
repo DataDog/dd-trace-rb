@@ -20,7 +20,7 @@ module Datadog
         # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
         # registered only with the gated DI block in Capabilities#register:
         # when DI is explicitly disabled, or the runtime cannot run DI
-        # (JRuby, Ruby 2.5), that block — including this bit — is skipped.
+        # (JRuby), that block — including this bit — is skipped.
         # The enable signal itself is delivered in APM_TRACING payloads and
         # routed here by Tracing::Remote.merge_and_apply_configs.
         CAPABILITIES = [
@@ -60,7 +60,7 @@ module Datadog
           unless component
             # The component is nil because Component.build returned nil at
             # startup — a runtime precondition is not met (RC disabled, MRI
-            # required, Ruby 2.6+ required, Rails dev env, C extension absent).
+            # required, Rails dev env, C extension absent).
             # On disable, silently no-op: RC asking us to turn off something we
             # don't have is fine. On enable, warn with the reason: this is the
             # implicit-enablement counterpart to the warn-on-explicit message

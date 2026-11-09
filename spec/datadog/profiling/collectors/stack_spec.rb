@@ -84,13 +84,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
       # will necessarily be different
       expect(super().first.label).to eq "backtrace_locations"
-      super()[1..-1]
+      super()[1..]
     end
 
     let(:reference_stack_with_module_names) do
       # Same as above
       expect(super().first.label).to eq "Thread#backtrace_locations"
-      super()[1..-1]
+      super()[1..]
     end
 
     let(:gathered_stack) do
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           have_attributes(label: end_with("sample_and_decode")),
         ],
       )
-      super()[3..-1]
+      super()[3..]
     end
 
     before do
@@ -650,14 +650,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context "when sampling a thread blocked on Monitor#synchronize" do
-        let(:expected_method_name) do
-          # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RubyVersion.is?("< 2.7")
-            "lock"
-          else
-            "synchronize"
-          end
-        end
+        let(:expected_method_name) { "synchronize" }
         let(:locked_monitor) { Monitor.new.tap(&:enter) }
         let(:background_thread) { Thread.new(ready_queue, locked_monitor, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -1129,7 +1122,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     context "when adjusted for missing frames" do
-      let(:reference_stack) { super()[-(max_frames - 1)..-1] }
+      let(:reference_stack) { super()[-(max_frames - 1)..] }
       include_examples "matches the Ruby backtrace API in range", (-399..-1)
     end
 

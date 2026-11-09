@@ -3,7 +3,7 @@ require "bundler"
 # Single source of truth for which Ruby runtimes support which supply-chain
 # security features.
 #
-# Loaded by rake on every Ruby (2.5-4.0), so it must stay 2.5-compatible.
+# Loaded by rake on every Ruby (3.0-4.0), so it must stay 3.0-compatible.
 # Tier boundaries mirror the supply-chain security design:
 #   - audit    : Ruby 3.1+  (noise decision; legacy compat gems carry historical CVEs)
 #   - checksum : Ruby 3.1+

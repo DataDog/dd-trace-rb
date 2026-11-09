@@ -24,17 +24,7 @@ done
 
 # Validate options
 if [ -z ${APP_RUBY_VERSION+x} ]; then
-  echo "You must specify a Ruby version with -v. (e.g. 2.7)" >&2
-  exit 1
-fi
-
-if [[ "$APP_RUBY_VERSION" == "2.5" ]]; then
-  echo "Ruby 2.5 is not supported by Rails 7"
-  exit 1
-fi
-
-if [[ "$APP_RUBY_VERSION" == "2.6" ]]; then
-  echo "Ruby 2.6 is not supported by Rails 7"
+  echo "You must specify a Ruby version with -v. (e.g. 3.4)" >&2
   exit 1
 fi
 

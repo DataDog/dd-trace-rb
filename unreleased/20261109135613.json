@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/NNNN",
+  "message": "Remove the Hanami integration: it only supported Hanami 1.x, which does not run on Ruby 3.0 or newer. Remove `c.tracing.instrument :hanami` from your `Datadog.configure` block, as it now raises an error."
+}

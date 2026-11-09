@@ -8,9 +8,6 @@ module Datadog
       # The signatures below are somehow inspired on
       # https://github.com/ruby/rbs/blob/28849d4522ba18f45d4f6edfca89a515a4816373/core/dir.rbs
 
-      # NOTE: Because we have variants for Ruby 2.x and 3.x of the code, we have to make the parameters untyped using ?,
-      # or there will be a bunch of warnings from steep about that ("Unknown variable: (kwrestarg :kwargs)").
-
       module DirClassMonkeyPatches
         def []: (?) -> Array[String]
         def children: (?) -> Array[String]

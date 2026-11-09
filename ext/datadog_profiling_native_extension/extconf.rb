@@ -142,19 +142,16 @@ $defs << "-DHAVE_ZJIT_FRAME" if RUBY_VERSION >= "4.1"
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
-# This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
+# This symbol is exclusively visible on certain Ruby versions: 3.0 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
 # actually required for correct behavior of the profiler.
-$defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("2.5", "3.3", "4.")
+$defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("3.3", "4.")
 
 # On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
 $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
 
 # On older Rubies, M:N threads were not available
 $defs << "-DNO_MN_THREADS_AVAILABLE" if RUBY_VERSION < "3.3"
-
-# On Rubies before 3.0, there were no Ractors, so there's no need to include the ractor header at all
-$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
@@ -164,9 +161,6 @@ $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
 # On older Rubies, rb_class_attached_object is not available
 $defs << "-DNO_CLASS_ATTACHED_OBJECT" if RUBY_VERSION < "3.2"
-
-# On older Rubies, rb_mod_name allocates (rb_str_dup); use rb_attr_get(__classpath__) instead
-$defs << "-DNO_ALLOC_FREE_MOD_NAME" if RUBY_VERSION < "2.7"
 
 # rb_internal_thread_specific_*()
 $defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
@@ -195,24 +189,6 @@ $defs << "-DNO_THREAD_TID" if RUBY_VERSION < "3.1"
 
 # On older Rubies, there was no jit_return member on the rb_control_frame_t struct
 $defs << "-DNO_JIT_RETURN" if RUBY_VERSION < "3.1"
-
-# internal/class.h is available since 3.0
-$defs << "-DNO_INTERNAL_CLASS_HEADER_INCLUDE" if RUBY_VERSION < "3"
-
-# On older Rubies, there are no Ractors
-$defs << "-DNO_RACTORS" if RUBY_VERSION < "3"
-
-# On older Rubies, rb_imemo_name did not exist
-$defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
-
-# On older Rubies, objects would not move
-$defs << "-DNO_T_MOVED" if RUBY_VERSION < "2.7"
-
-# On older Rubies, rb_global_vm_lock_struct did not include the owner field
-$defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
-
-# On older Rubies, there was no thread->invoke_arg
-$defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 
 # If we got here, libdatadog is available and loaded
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
@@ -267,8 +243,8 @@ Datadog::RubyCoreSource
       headers_available =
         have_header("vm_core.h") &&
         have_header("iseq.h", "vm_core.h") &&
-        # These are only used on Ruby 3+
-        (RUBY_VERSION < "3" || have_header("ractor_core.h") && have_header("internal/class.h", "vm_core.h"))
+        have_header("ractor_core.h") &&
+        have_header("internal/class.h", "vm_core.h")
 
       if headers_available
         # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.

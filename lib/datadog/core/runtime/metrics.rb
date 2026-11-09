@@ -70,12 +70,6 @@ module Datadog
                 Core::Environment::VMCache.global_constant_state,
               )
 
-              # Only on Ruby 2.x
-              gauge_if_not_nil(
-                Core::Runtime::Ext::Metrics::METRIC_GLOBAL_METHOD_STATE,
-                Core::Environment::VMCache.global_method_state,
-              )
-
               # Only on Ruby >= 3.2
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_INVALIDATIONS,

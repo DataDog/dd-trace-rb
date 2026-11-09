@@ -13,7 +13,7 @@ module Datadog
       module Faraday
         # AppSec SSRF detection Middleware for Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          REDIRECT_STATUS_CODES = (300..399).freeze
+          REDIRECT_STATUS_CODES = (300..399)
           SAMPLE_BODY_KEY = :__datadog_appsec_sample_downstream_body
 
           def call(env)

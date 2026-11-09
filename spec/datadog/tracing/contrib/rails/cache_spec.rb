@@ -156,7 +156,7 @@ RSpec.describe "Rails cache", execute_in_fork: Rails.version.to_i >= 8 do
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq("cache")
 
-      spans[1..-1].each do |set|
+      spans[1..].each do |set|
         expect(set.name).to eq("rails.cache")
         expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq("active_support")

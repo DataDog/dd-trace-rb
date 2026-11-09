@@ -33,7 +33,7 @@ module Datadog
 
           def delete(trace_op)
             # `ObjectSpace::WeakMap#delete` was only added in Ruby 3.3; this gem
-            # supports Ruby 2.5+, so overwrite the slot with nil instead so a stale
+            # supports Ruby 3.0+, so overwrite the slot with nil instead so a stale
             # entry is never re-read after the root finishes. The slot itself is
             # reclaimed when the trace operation is collected.
             @states[trace_op] = nil

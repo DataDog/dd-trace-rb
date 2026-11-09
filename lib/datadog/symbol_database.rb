@@ -59,13 +59,11 @@ module Datadog
     end
 
     # Whether the current Ruby runtime can run symbol database extraction:
-    # MRI (CRuby) on Ruby 2.7 or later. Used by the remote-config layer to avoid
-    # advertising the product on runtimes where Component.build would return nil
-    # (e.g. Ruby 2.6, which Dynamic Instrumentation supports but Symbol Database
-    # does not).
+    # MRI (CRuby). Used by the remote-config layer to avoid advertising the
+    # product on runtimes where Component.build would return nil.
     # @return [Boolean]
     def self.supported_runtime?
-      RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 2.7")
+      RUBY_ENGINE == "ruby"
     end
   end
 end

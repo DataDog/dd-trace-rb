@@ -73,10 +73,10 @@ module Datadog
       def self.build(settings, agent_settings, logger, telemetry: nil, di_active: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
 
-        # Symbol database requires MRI Ruby 2.7+.
+        # Symbol database requires MRI.
         # Configuration accessors (settings.symbol_database.*) remain available on all
-        # platforms — only the component (upload) is disabled on unsupported engines/versions.
-        # environment_supported? logs the specific reason (engine or version) internally.
+        # platforms — only the component (upload) is disabled on unsupported engines.
+        # environment_supported? logs the reason internally.
         return nil unless environment_supported?(symdb_logger)
 
         # Requires remote config (unless force mode)
@@ -498,11 +498,7 @@ module Datadog
       def self.environment_supported?(logger)
         return true if SymbolDatabase.supported_runtime?
 
-        if RUBY_ENGINE != "ruby"
-          logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
-        else
-          logger.debug { "symdb: requires Ruby 2.7+, running #{RUBY_VERSION}, skipping" }
-        end
+        logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
         false
       end
       private_class_method :environment_supported?
@@ -670,7 +666,7 @@ module Datadog
           # backtraces through `<class:CustomerClass>` in Ruby 3.x.
 
           mod = tp.self
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+          next if MODULE_SINGLETON_CLASS_PRED.bind_call(mod)
           component.send(:enqueue_hot_load, mod)
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)

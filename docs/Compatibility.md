@@ -15,9 +15,9 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 3.2       | [latest](#support-latest) | Latest              |
 |       |                            | 3.1       | [latest](#support-latest) | Latest              |
 |       |                            | 3.0       | [latest](#support-latest) | Latest              |
-|       |                            | 2.7       | [latest](#support-latest) | Latest              |
-|       |                            | 2.6       | [latest](#support-latest) | Latest              |
-|       |                            | 2.5       | [latest](#support-latest) | Latest              |
+|       |                            | 2.7       | [EOL](#support-eol)       | < 2.49.0            |
+|       |                            | 2.6       | [EOL](#support-eol)       | < 2.49.0            |
+|       |                            | 2.5       | [EOL](#support-eol)       | < 2.49.0            |
 |       |                            | 2.4       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.3       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.2       | [EOL](#support-eol)       | < 2.0.0             |
@@ -87,7 +87,6 @@ For a list of available integrations, and their configuration options, refer to 
 | Grape                      | `grape`                    | `>= 1.0`                                    | `>= 1.0`                                    | [Link][18]       | [Link](https://github.com/ruby-grape/grape)                                  |
 | GraphQL                    | `graphql`                  | `>= 2.2.6`, `2.1.11+`,`2.0.28+`, `1.13.21+` | `>= 2.2.6`, `2.1.11+`,`2.0.28+`, `1.13.21+` | [Link][19]       | [Link](https://github.com/rmosolgo/graphql-ruby)                             |
 | gRPC                       | `grpc`                     | `>= 1.7`                                    | *gem not available*                         | [Link][20]       | [Link](https://github.com/grpc/grpc/tree/master/src/rubyc)                   |
-| hanami                     | `hanami`                   | `>= 1`, `< 2`                               | `>= 1`, `< 2`                               | [Link][21]       | [Link](https://github.com/hanami/hanami)                                     |
 | http.rb                    | `httprb`                   | `>= 2.0`                                    | `>= 2.0`                                    | [Link][22]       | [Link](https://github.com/httprb/http)                                       |
 | httpclient                 | `httpclient`               | `>= 2.2`                                    | `>= 2.2`                                    | [Link][23]       | [Link](https://github.com/nahi/httpclient)                                   |
 | httpx                      | `httpx`                    | `>= 0.11`                                   | `>= 0.11`                                   | [Link][24]       | [Link](https://gitlab.com/honeyryderchuck/httpx)                             |
@@ -208,7 +207,6 @@ new release of 1.21.0 (or 1.20.1). Those bugfixes will not be backported as patc
 
 [20]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#grpc
 
-[21]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#hanami
 
 [22]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#httprb
 

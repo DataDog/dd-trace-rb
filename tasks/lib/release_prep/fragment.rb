@@ -35,12 +35,12 @@ module ReleasePrep
     # The renderer appends "(#NNNN)" from the pull_request field, so a PR
     # reference inside the message is either a duplicate of that tail or an
     # internal pointer customers have no use for.
-    PR_REFERENCES = /#\d+|\b(?:PR|pull request)\b/i.freeze
+    PR_REFERENCES = /#\d+|\b(?:PR|pull request)\b/i
 
     # A GitHub handle, stored with the leading @ (e.g. "@octocat") so the credit
     # line in `to_s` is the value verbatim: one to thirty-nine characters of
     # alphanumerics or single hyphens, never starting or ending with a hyphen.
-    AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/.freeze
+    AUTHOR_HANDLE = /\A@[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\z/
 
     MESSAGE_SENTENCE_CAP = 3
 

@@ -23,7 +23,7 @@ module Datadog
               /
               (?<name>[^/]+)
               $
-            }mx.freeze
+            }mx
 
             def parse(path)
               m = RE.match(path)

@@ -494,7 +494,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
         # const_source_location propagates the source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
-        extracted = Datadog::Core::Utils::EnumerableCompat.filter_map(mods) { |mod| extractor.extract(mod) }
+        extracted = mods.filter_map { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         expect(extracted.size).to eq(3)

@@ -9,6 +9,16 @@ RSpec.describe Datadog::Core::Logger do
     it { is_expected.to be_a_kind_of(::Logger) }
     it { expect(logger.level).to be ::Logger::INFO }
     it { expect(logger.progname).to eq(Datadog::Core::Logger::PREFIX) }
+
+    context "with keyword arguments" do
+      subject(:logger) { described_class.new($stdout, formatter: formatter) }
+
+      let(:formatter) { proc { |*| "formatted\n" } }
+
+      it "passes them to ::Logger" do
+        expect(logger.formatter).to be formatter
+      end
+    end
   end
 
   describe "output" do

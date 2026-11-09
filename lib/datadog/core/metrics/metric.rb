@@ -6,7 +6,7 @@ module Datadog
       Metric = Struct.new(:type, :name, :value, :options)
 
       class Metric
-        def initialize(*args)
+        def initialize(...)
           super
           self.options = options || {}
         end

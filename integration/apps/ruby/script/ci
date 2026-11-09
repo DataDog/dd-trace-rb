@@ -27,7 +27,7 @@ done
 
 # Validate options
 if [ -z ${APP_RUBY_VERSION+x} ]; then
-  echo "You must specify a Ruby version with -v. (e.g. 2.7)" >&2
+  echo "You must specify a Ruby version with -v. (e.g. 3.4)" >&2
   exit 1
 fi
 

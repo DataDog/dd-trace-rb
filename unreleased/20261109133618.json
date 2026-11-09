@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/NNNN",
+  "message": "Require Ruby 3.0 or newer; Ruby 2.5, 2.6, and 2.7 are no longer supported. Applications on these Ruby versions can keep using the previous release by pinning `gem 'datadog', '< 2.49'`."
+}

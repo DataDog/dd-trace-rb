@@ -7,7 +7,6 @@ module Datadog
     module Environment
       module VMCache
         def self.global_constant_state: () -> untyped
-        def self.global_method_state: () -> untyped
         def self.constant_cache_invalidations: () -> untyped
         def self.constant_cache_misses: () -> untyped
 

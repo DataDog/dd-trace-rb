@@ -102,7 +102,7 @@ module Datadog
               # Partial overflow
               underflow_end_index = items.length - overflow_size - 1
               underflow = items[0..underflow_end_index]
-              overflow = items[(underflow_end_index + 1)..-1]
+              overflow = items[(underflow_end_index + 1)..]
             else
               # Total overflow
               overflow = items

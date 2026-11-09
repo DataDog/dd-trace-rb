@@ -45,7 +45,7 @@ Within the container, run `bin/run <process>` where `<process>` is one of the fo
 
  #### Running a specific version of Ruby
 
-By default it runs Ruby 2.7. You must reconfigure the application env variable `RUBY_VERSION`to use a different Ruby base image.
+By default it runs Ruby 3.4. You must reconfigure the application env variable `RUBY_VERSION`to use a different Ruby base image.
 
 Setting the `RUBY_VERSION` variable to 3.2 on your .envrc file would use the `datadog/dd-apm-demo:rb-3.2` image.
 
@@ -99,7 +99,7 @@ You can also define your own custom scenario by creating a LUA file, mounting it
 
 ### Running integration tests
 
-You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`). If you are running on ARM architecture (e.g. mac), include `DOCKER_DEFAULT_PLATFORM=linux/arm64` as a prefix for the build script and `DOCKER_BUILDKIT=0` as a prefix for the ci script.
+You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `3.4`). If you are running on ARM architecture (e.g. mac), include `DOCKER_DEFAULT_PLATFORM=linux/arm64` as a prefix for the build script and `DOCKER_BUILDKIT=0` as a prefix for the ci script.
 
 ```sh
 ./script/build-images -v <RUBY_VERSION>

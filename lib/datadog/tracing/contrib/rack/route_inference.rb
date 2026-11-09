@@ -11,11 +11,11 @@ module Datadog
         module RouteInference
           MAX_NUMBER_OF_SEGMENTS = 8
 
-          INT_PARAM_REGEX = /\A[0-9]+\z/.freeze
-          INT_ID_PARAM_REGEX = /\A(?=.*\d)[\d._-]{3,}\z/.freeze
-          HEX_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9]{6,}\z/.freeze
-          HEX_ID_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9._-]{6,}\z/.freeze
-          STRING_PARAM_REGEX = /\A.{20,}|.*[%&'()*+,:=@].*\z/.freeze
+          INT_PARAM_REGEX = /\A[0-9]+\z/
+          INT_ID_PARAM_REGEX = /\A(?=.*\d)[\d._-]{3,}\z/
+          HEX_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9]{6,}\z/
+          HEX_ID_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9._-]{6,}\z/
+          STRING_PARAM_REGEX = /\A.{20,}|.*[%&'()*+,:=@].*\z/
 
           DATADOG_INFERRED_ROUTE_ENV_KEY = "datadog.inferred_route"
 
@@ -48,15 +48,8 @@ module Datadog
             nil
           end
 
-          if RubyVersion.is?(">= 2.6")
-            def self.split(path, pattern = nil, &block)
-              path.split(pattern, &block)
-            end
-          else
-            def self.split(path, pattern = nil, &block)
-              path.split(pattern).each(&block)
-              path
-            end
+          def self.split(path, pattern = nil, &block)
+            path.split(pattern, &block)
           end
         end
       end

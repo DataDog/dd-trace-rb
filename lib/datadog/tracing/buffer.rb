@@ -9,7 +9,7 @@ module Datadog
   module Tracing
     # Health metrics for trace buffers.
     module MeasuredBuffer
-      def initialize(*_)
+      def initialize(...)
         super
 
         @buffer_accepted = 0

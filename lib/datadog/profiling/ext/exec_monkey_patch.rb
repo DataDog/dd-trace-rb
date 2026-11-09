@@ -9,7 +9,6 @@ module Datadog
       # the new process is running, causing it to fail with the `Profiling timer expired` error message.
       # To avoid this, the profiler installs a monkey patch on `Kernel#exec` to stop profiling before actually
       # calling `exec`.
-      # This monkey patch is available for Ruby 2.7+; let us know if you need it on earlier Rubies.
       # For more details see https://github.com/DataDog/dd-trace-rb/issues/5101 .
       module ExecMonkeyPatch
         def self.apply!

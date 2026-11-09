@@ -123,7 +123,7 @@ module Datadog
           # value: any of their paths can still supply the signal after a later
           # replacement, so the DI component records them all.
           # @type var enable_signal_paths: Array[Datadog::Core::Remote::Configuration::Path]
-          enable_signal_paths = Core::Utils::EnumerableCompat.filter_map(ordered) do |pair|
+          enable_signal_paths = ordered.filter_map do |pair|
             content, config = pair
             lib_config = config["lib_config"]
             if lib_config.is_a?(Hash) && !lib_config["dynamic_instrumentation_enabled"].nil?

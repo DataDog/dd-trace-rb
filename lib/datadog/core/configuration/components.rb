@@ -307,9 +307,9 @@ module Datadog
 
           # Start DI component if enabled by env var or if it was implicitly enabled
           # (via RC) in the previous Components instance. dynamic_instrumentation is
-          # non-nil only when Component.build's preconditions passed (Ruby 2.6+ MRI,
-          # etc.), which is exactly the condition under which di/base.rb is loaded
-          # and DI.activate_tracking is defined.
+          # non-nil only when Component.build's preconditions passed (MRI, etc.),
+          # which is exactly the condition under which di/base.rb is loaded and
+          # DI.activate_tracking is defined.
           if dynamic_instrumentation
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
               DI.activate_tracking

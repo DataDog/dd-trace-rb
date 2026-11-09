@@ -7,7 +7,7 @@ module Datadog
         module Patches
           # Hook into ActionController::Instrumentation#process_action, which encompasses action filters
           module ProcessActionPatch
-            def process_action(*args)
+            def process_action(...)
               context = request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
               return super unless context
 

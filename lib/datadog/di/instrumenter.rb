@@ -24,7 +24,7 @@ module Datadog
     # methods defined via method_missing.
     #
     # Line instrumentation is normally accomplished with a targeted line
-    # trace point. This requires MRI and at least Ruby 2.6.
+    # trace point. This requires MRI.
     # For testing purposes, it is also possible to use untargeted trace
     # points, but they have a huge performance penalty and should generally
     # not be used in production.
@@ -281,13 +281,8 @@ module Datadog
         instrumenter = self
 
         mod = Module.new do
-          # Argument delegation follows docs/Delegation.md: on Ruby 3+
-          # positional and keyword arguments are captured and forwarded
-          # separately; on Ruby < 3 everything is captured into a single
-          # splat that ruby2_keywords flags, which is the only way to forward
-          # a trailing hash while preserving its positional-vs-keyword
-          # identity. The pre-3 branch is what lets an empty trailing hash
-          # (e.g. foo('x', {})) reach the original method intact.
+          # Argument delegation follows docs/Delegation.md: positional and
+          # keyword arguments are captured and forwarded separately.
           #
           # Re-entrancy guard: if we are already inside a DI method-probe
           # callback, skip DI processing and call the original method
@@ -310,45 +305,22 @@ module Datadog
           # invokes it with yield, which does not dispatch Proc#call, so a
           # user probe on Proc#call cannot intercept the trampoline, and no
           # Proc is allocated for the block.
-          if RubyVersion.is?(">= 3")
-            define_method(method_name) do |*args, **kwargs, &target_block|
-              # steep:ignore FallbackAny below: Steep cannot narrow the
-              # **kwargs parameter inside this define_method block, so it
-              # falls back to untyped at the super and run_method_probe sites.
-              if DI.in_probe?
-                return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-              end
-
-              instrumenter.run_method_probe(
-                args, kwargs, target_block, # steep:ignore FallbackAny
-                self,
-                probe, responder,
-                loc, method_name,
-              ) do
-                super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-              end
+          define_method(method_name) do |*args, **kwargs, &target_block|
+            # steep:ignore FallbackAny below: Steep cannot narrow the
+            # **kwargs parameter inside this define_method block, so it
+            # falls back to untyped at the super and run_method_probe sites.
+            if DI.in_probe?
+              return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
             end
-          else
-            define_method(method_name) do |*args, &target_block|
-              if DI.in_probe?
-                return super(*args, &target_block)
-              end
 
-              # The super block replays the original *args (closed over here)
-              # so the ruby2_keywords-flagged trailing hash keeps its
-              # identity. run_method_probe receives the serialization-split
-              # arguments separately; forwarding does not use them.
-              pos_args, kwargs = instrumenter.kwargs_from_splat(args)
-              instrumenter.run_method_probe(
-                pos_args, kwargs, target_block,
-                self,
-                probe, responder,
-                loc, method_name,
-              ) do
-                super(*args, &target_block)
-              end
+            instrumenter.run_method_probe(
+              args, kwargs, target_block, # steep:ignore FallbackAny
+              self,
+              probe, responder,
+              loc, method_name,
+            ) do
+              super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
             end
-            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -934,42 +906,6 @@ module Datadog
       # set the re-entrancy guard, causing infinite recursion. Calling the
       # method directly avoids `Object#send` dispatch entirely.
       public :run_method_probe
-
-      # Splits a Ruby < 3 splat-captured argument list into positional
-      # arguments and the trailing keyword-argument hash, for argument
-      # serialization only. Returns `[positional_args, kwargs]`. Forwarding
-      # does not use this — the wrapper's do_super replays the original
-      # splat so the trailing hash keeps its keyword identity.
-      #
-      # A trailing hash is treated as keyword arguments regardless of how it
-      # was passed at the call site, matching the previous `**kwargs`
-      # capture (which, on Ruby 2.x, absorbed a trailing hash into kwargs).
-      # The ruby2_keywords flag is intentionally not consulted here: callers
-      # that pass a hash positionally (e.g. `m(opts)`) still expect it shown
-      # as a keyword argument, consistent with Ruby 2.x serialization.
-      #
-      # The trailing-element test goes through DI.hash? (a C type check)
-      # rather than `last.is_a?(Hash)`: kwargs_from_splat runs before the
-      # re-entrancy guard is set, so a customer method probe on Kernel#is_a?
-      # would otherwise re-enter the wrapper and recurse. DI.hash? is a
-      # singleton method and cannot be targeted by a method probe.
-      #
-      # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
-      # arguments directly and never calls this.
-      if RubyVersion.is?("< 3")
-        def kwargs_from_splat(args)
-          last = args.last
-          if DI.hash?(last)
-            [args[0...-1] || [], last]
-          else
-            [args, {}]
-          end
-        end
-        # Lexically public for the same reason as #run_method_probe: the
-        # prepended wrapper must call it without `.send`, which a customer
-        # probe on Object#send could intercept.
-        public :kwargs_from_splat
-      end
 
       # Trace point callback for a line probe hit. Evaluates the probe's
       # condition, applies the emission admission gate, then invokes the

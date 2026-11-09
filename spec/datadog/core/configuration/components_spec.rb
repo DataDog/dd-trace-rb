@@ -147,10 +147,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context "DI is enabled" do
-        before(:all) do
-          skip "DI is disabled due to Ruby version < 2.6" if RubyVersion.is?("< 2.6")
-        end
-
         before do
           settings.dynamic_instrumentation.enabled = true
         end
@@ -225,7 +221,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context "when symbol_database is enabled with remote config" do
         before(:all) do
-          skip "Symbol database requires MRI Ruby 2.7+" if PlatformHelpers.jruby? || RubyVersion.is?("< 2.7")
+          skip "Symbol database requires MRI" if PlatformHelpers.jruby?
         end
 
         before do
@@ -1092,13 +1088,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # new tree even when settings.dynamic_instrumentation.enabled is false
     # (no env var). The env-var-only path and the no-carry path are also
     # covered to make the precedence explicit.
-
-    # Ruby 2.5 does not load di/base.rb, so Datadog::DI.activate_tracking is
-    # not defined. These tests stub Component.build to return a non-nil double,
-    # which makes startup! reach the DI.activate_tracking call that's normally
-    # unreachable on 2.5 (Component.build returns nil there). The semantic being
-    # tested (state carry-over across Components rebuild) is platform-agnostic.
-    before(:all) { skip "requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)" if RUBY_VERSION < "2.6" }
 
     subject(:startup!) { components.startup!(settings, old_state: old_state) }
 

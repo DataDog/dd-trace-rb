@@ -37,7 +37,7 @@ module Datadog
             backtrace.map do |line|
               if !vendored_deps && line.start_with?(GEM_ROOT) ||
                   vendored_deps && line.start_with?(GEM_ROOT) && Gem.path.none? { |p| line.start_with?(p) }
-                line[GEM_ROOT.length..-1] || ""
+                line[GEM_ROOT.length..] || ""
               else
                 "REDACTED"
               end

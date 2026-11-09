@@ -25,7 +25,6 @@ echo "== Building Rails 7 images... =="
 if [ -v APP_RUBY_VERSION ]; then
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-rails-seven .
 else
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-rails-seven .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.0 -t datadog/dd-apm-demo:rb-3.0-rails-seven .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.1 -t datadog/dd-apm-demo:rb-3.1-rails-seven .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.2 -t datadog/dd-apm-demo:rb-3.2-rails-seven .

@@ -45,7 +45,7 @@ module Datadog
             # opted in via DD_DYNAMIC_INSTRUMENTATION_ENABLED, warn. Otherwise
             # debug — with always-build, this path runs on every tracer boot
             # for every customer, including those who never wanted DI. Spamming
-            # warnings to silent users (especially on JRuby or Ruby 2.5) would
+            # warnings to silent users (especially on JRuby) would
             # be noise. Customers who later trigger implicit enablement via the
             # Datadog UI get a symmetric warn from Remote.handle_rc_enablement
             # when the RC enable signal finds no component to start.

@@ -13,7 +13,7 @@ module Datadog
       module RestClient
         # Module that adds SSRF detection to RestClient::Request#execute
         module RequestSSRFDetectionPatch
-          REDIRECT_STATUS_CODES = (300..399).freeze
+          REDIRECT_STATUS_CODES = (300..399)
 
           def execute(&block)
             context = AppSec.active_context

@@ -113,7 +113,7 @@ module Datadog
       end
 
       # Whether the current Ruby runtime can run dynamic instrumentation:
-      # MRI (CRuby) on Ruby 2.6 or later.
+      # MRI (CRuby).
       #
       # @return [Boolean]
       def supported_runtime?
@@ -129,8 +129,6 @@ module Datadog
       private def unsupported_platform_reason
         if RUBY_ENGINE != "ruby"
           "MRI is required, but running on #{RUBY_ENGINE}"
-        elsif Datadog::RubyVersion.is?("< 2.6")
-          "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
         end
       end
 

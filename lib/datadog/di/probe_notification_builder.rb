@@ -267,11 +267,11 @@ module Datadog
         # return nil, and stacktrace is [].
         # This is unrecoverable without calling customer code.
         # See DI::EXCEPTION_BACKTRACE comment for details.
-        locations = DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call
+        locations = DI::EXCEPTION_BACKTRACE_LOCATIONS.bind_call(exception)
         stacktrace = if locations
           format_backtrace_locations(locations)
         else
-          format_backtrace_strings(DI::EXCEPTION_BACKTRACE.bind(exception).call)
+          format_backtrace_strings(DI::EXCEPTION_BACKTRACE.bind_call(exception))
         end
         {
           type: exception.class.name,

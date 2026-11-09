@@ -11,10 +11,10 @@ module Datadog
         UUID_PATTERN = "[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}"
         CONTAINER_PATTERN = "[0-9a-f]{64}"
 
-        PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
-        POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze
-        CONTAINER_REGEX = /(?<container>#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
-        FARGATE_14_CONTAINER_REGEX = /(?<container>[0-9a-f]{32}-[0-9]{1,10})/.freeze
+        PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/
+        POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/
+        CONTAINER_REGEX = /(?<container>#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/
+        FARGATE_14_CONTAINER_REGEX = /(?<container>[0-9a-f]{32}-[0-9]{1,10})/
 
         # From https://github.com/torvalds/linux/blob/5859a2b1991101d6b978f3feb5325dad39421f29/include/linux/proc_ns.h#L41-L49
         # Currently, the host namespace inode number is hardcoded.

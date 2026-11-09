@@ -19,7 +19,7 @@ module Datadog
           # Class methods for Racecar events.
           # Note, they share the same process method and before_trace method.
           module ClassMethods
-            def subscription(*args, **kwargs)
+            def subscription(...)
               super.tap do |subscription|
                 subscription.before_trace { ensure_clean_context! }
               end

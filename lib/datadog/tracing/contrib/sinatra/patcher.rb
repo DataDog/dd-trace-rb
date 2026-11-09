@@ -13,7 +13,7 @@ module Datadog
         module TracerSetupPatch
           ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
 
-          def setup_middleware(*args, &block)
+          def setup_middleware(...)
             super.tap do
               ONLY_ONCE_PER_APP[self].run do
                 Contrib::Sinatra::Framework.setup

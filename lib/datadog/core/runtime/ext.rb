@@ -18,7 +18,6 @@ module Datadog
           METRIC_GC_PREFIX = "runtime.ruby.gc"
           METRIC_THREAD_COUNT = "runtime.ruby.thread_count"
           METRIC_GLOBAL_CONSTANT_STATE = "runtime.ruby.global_constant_state"
-          METRIC_GLOBAL_METHOD_STATE = "runtime.ruby.global_method_state"
           METRIC_CONSTANT_CACHE_INVALIDATIONS = "runtime.ruby.constant_cache_invalidations"
           METRIC_CONSTANT_CACHE_MISSES = "runtime.ruby.constant_cache_misses"
           METRIC_YJIT_CODE_GC_COUNT = "runtime.ruby.yjit.code_gc_count"

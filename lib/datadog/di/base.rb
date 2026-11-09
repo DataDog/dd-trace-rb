@@ -21,8 +21,7 @@ module Datadog
   module DI
     LOCK = Mutex.new
 
-    # Initialized eagerly to avoid "instance variable not initialized"
-    # warning on Ruby 2.6/2.7 and to simplify the type to non-nullable.
+    # Initialized eagerly to simplify the type to non-nullable.
     @current_components = []
 
     class << self
@@ -43,27 +42,21 @@ module Datadog
       # Activates code tracking if possible.
       #
       # This method does nothing if invoked in an environment that does not
-      # implement required trace points for code tracking (MRI Ruby < 2.6,
-      # JRuby) and rescues any exceptions that may be raised by downstream
-      # DI code.
+      # implement required trace points for code tracking (JRuby) and rescues
+      # any exceptions that may be raised by downstream DI code.
       def activate_tracking
-        # :script_compiled trace point was added in Ruby 2.6.
-        return unless RubyVersion.is?(">= 2.6")
-
-        begin
-          # Activate code tracking by default because line trace points will not work
-          # without it.
-          Datadog::DI.activate_tracking!
-        rescue Exception => exc # standard:disable Lint/RescueException
-          Datadog::DI.reraise_if_fatal(exc)
-          if defined?(Datadog.logger)
-            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }
-          else
-            # We do not have Datadog logger potentially because DI code tracker is
-            # being loaded early in application boot process and the rest of datadog
-            # wasn't loaded yet. Output to standard error.
-            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}")
-          end
+        # Activate code tracking by default because line trace points will not work
+        # without it.
+        Datadog::DI.activate_tracking!
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
+        if defined?(Datadog.logger)
+          Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }
+        else
+          # We do not have Datadog logger potentially because DI code tracker is
+          # being loaded early in application boot process and the rest of datadog
+          # wasn't loaded yet. Output to standard error.
+          warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}")
         end
       end
 

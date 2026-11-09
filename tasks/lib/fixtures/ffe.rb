@@ -17,10 +17,10 @@ class FfeFixtures
   raise "ffe/version must contain one full commit SHA" unless COMMIT_SHA.match?(/\A[0-9a-f]{40}\z/)
 
   CACHE = File.join("tmp", "ffe-system-test-data")
-  CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
+  CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}
   HTTP_ATTEMPTS = 3
   HTTP_TIMEOUT_SECONDS = 15
-  RETRYABLE_STATUS = /\A(429|5\d\d)\z/.freeze
+  RETRYABLE_STATUS = /\A(429|5\d\d)\z/
   HTTP_TRANSIENT_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, EOFError, SocketError, SystemCallError].freeze
 
   class TransientHTTPError < StandardError

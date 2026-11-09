@@ -25,9 +25,7 @@ module Datadog
           def self.route_params(request)
             excluded = [:controller, :action]
 
-            request.env["action_dispatch.request.path_parameters"].reject do |k, _v|
-              excluded.include?(k)
-            end
+            request.env["action_dispatch.request.path_parameters"].except(*excluded)
           end
         end
       end

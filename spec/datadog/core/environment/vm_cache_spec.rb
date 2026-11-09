@@ -33,24 +33,6 @@ RSpec.describe Datadog::Core::Environment::VMCache do
       end
     end
 
-    describe ".global_method_state" do
-      subject(:global_method_state) { described_class.global_method_state }
-
-      context "on Ruby 2" do
-        before { skip("Test only runs on Ruby 2") unless RubyVersion.is?("< 3") }
-
-        it { is_expected.to be_a_kind_of(Integer) }
-      end
-
-      context "on Ruby 3+" do
-        before { skip("Test only runs on Ruby 3+") unless RubyVersion.is?(">= 3") }
-
-        it "has moved to a per-class method cache" do
-          is_expected.to be_nil
-        end
-      end
-    end
-
     describe ".constant_cache_invalidations" do
       subject(:constant_cache_invalidations) { described_class.constant_cache_invalidations }
 

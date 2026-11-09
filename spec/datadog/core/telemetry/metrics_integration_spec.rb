@@ -3,17 +3,6 @@ require "spec_helper"
 RSpec.describe Datadog::Core::Telemetry::Component do
   reset_at_fork_monkey_patch_for_components!
 
-  before(:all) do
-    if RubyVersion.is?("< 2.6")
-      # The tests here are flaking in CI on Ruby 2.5.
-      # Once I add diagnostics to investigate why they are failing, they
-      # stop failing.
-      # After 3 weeks of trying to figure this out I am skipping
-      # the failing runtimes.
-      skip "flaky in CI"
-    end
-  end
-
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.telemetry.enabled = true

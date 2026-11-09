@@ -15,7 +15,7 @@ module Datadog
           WILDCARD_RE = ::Regexp.escape(WILDCARD)
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
-          TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
+          TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1.1
           PARAMETER_RE = %r{ # rubocop:disable Style/RegexpLiteral
@@ -28,7 +28,7 @@ module Datadog
                 "(?<parameter_value>[^"]+)"
               )
             )
-          }ix.freeze
+          }ix
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
           ACCEPT_EXT_RE = %r{ # rubocop:disable Style/RegexpLiteral
@@ -41,14 +41,14 @@ module Datadog
                 "(?<ext_value>[^"]+)"
               )
             )
-          }ix.freeze
+          }ix
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
           QVALUE_RE = %r{ # rubocop:disable Style/RegexpLiteral
             0(?:\.\d{1,3})?
             |
             1(?:\.0{1,3})?
-          }ix.freeze
+          }ix
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
           MEDIA_RANGE_RE = %r{
@@ -87,7 +87,7 @@ module Datadog
               )
             )?
             \Z
-          }ix.freeze
+          }ix
 
           attr_reader :type, :subtype, :quality, :parameters, :accept_ext
 
@@ -187,7 +187,7 @@ module Datadog
           end
 
           def to_s
-            s = +"#{@type}/#{@subtype}"
+            s = "#{@type}/#{@subtype}"
 
             s << ";" << @parameters.map { |k, v| "#{k}=#{v}" }.join(";") if @parameters.count > 0
             s << ";q=#{@quality}" if @quality < 1.0

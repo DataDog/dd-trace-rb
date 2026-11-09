@@ -20,7 +20,7 @@ module Datadog
 
         # Methods that must be prepended
         module PrependedMethods
-          def perform(*args)
+          def perform(...)
             super if enabled?
           end
         end

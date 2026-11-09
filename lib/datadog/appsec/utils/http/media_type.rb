@@ -13,7 +13,7 @@ module Datadog
           WILDCARD = "*"
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
-          TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
+          TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1.1
           PARAMETER_RE = %r{
@@ -26,7 +26,7 @@ module Datadog
                 "(?<parameter_value>[^"]+)"
               )
             )
-          }ix.freeze
+          }ix
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1.1
           MEDIA_TYPE_RE = %r{
@@ -39,7 +39,7 @@ module Datadog
               )*
             )
             \Z
-          }ix.freeze
+          }ix
 
           attr_reader :type, :subtype, :parameters
 

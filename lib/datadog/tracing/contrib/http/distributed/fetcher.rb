@@ -21,7 +21,7 @@ module Datadog
               return value if value && !value.empty?
 
               # If not found, try the Rack-formatted key
-              rack_header = +"HTTP-#{name}"
+              rack_header = "HTTP-#{name}"
               rack_header.upcase!
               rack_header.tr!("-", "_")
 

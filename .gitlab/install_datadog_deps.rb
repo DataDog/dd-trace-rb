@@ -41,9 +41,6 @@ File.open(gemfile_file_path, 'w') do |file|
   file.write("gem 'libdatadog', force_ruby_platform: true\n")
   file.write("gem 'libddwaf', force_ruby_platform: true\n")
 
-  # workaround for https://github.com/ruby/ruby/blob/ruby_2_6/gem_prelude.rb#L3-L7
-  file.write("gem 'did_you_mean', '1.3.0'\n") if RUBY_VERSION.start_with?('2.6.')
-
   # Mimick outdated `msgpack` version, uncomment below line to test
   # file.write("gem 'msgpack', '1.6.0'\n")
 end

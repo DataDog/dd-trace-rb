@@ -25,20 +25,6 @@ module Datadog
           ::RubyVM.stat[:global_constant_state]
         end
 
-        # Global method cache "generation" counter.
-        #
-        # Whenever a method creation busts the global method cache
-        # this value is incremented. This has a measurable performance impact
-        # and thus show be avoided after application warm up.
-        #
-        # Since Ruby 3.0, the method class is kept on a per-class basis,
-        # largely mitigating global method cache busting. `global_method_state`
-        # is thus not available since Ruby 3.0.
-        # @see https://bugs.ruby-lang.org/issues/16614
-        def self.global_method_state
-          ::RubyVM.stat[:global_method_state]
-        end
-
         # Introduced in Ruby 3.2 to match an improved cache implementation.
         #
         # @see https://bugs.ruby-lang.org/issues/18589

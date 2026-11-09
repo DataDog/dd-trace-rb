@@ -20,7 +20,7 @@ namespace :spec do
     matchers = runtime_lines.map { |l| l.split("\t") }.to_h
 
     # Find all matchers that are not loaded by default, normally because
-    # their are associated with specific gemsets (e.g. `be_hanami_rack_span`).
+    # their are associated with specific gemsets (e.g. `be_a_redis_span`).
     # This list is more fuzzy, as it can't find dynamic matchers, or finds them
     # uninterpolated (e.g. `be_#{gem}_span`). The above runtime list is more accurate.
     grep = `grep -ERn 'RSpec::Matchers.(define|alias_matcher)' spec`.lines.map { |line|

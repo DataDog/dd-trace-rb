@@ -2,7 +2,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 
 # Setup & Quick Commands
 
-**Ruby version compatibility:** Ruby 2.5+ (including 3.x+ and 4.x+)
+**Ruby version compatibility:** Ruby 3.0+ (including 4.x+)
 
 - Launch MRI container: `docker compose run --rm tracer-4.0 /bin/bash`. Matches CI defaults. Other Ruby versions and variants are in `docker-compose.yml`.
 - Install dependencies: `bundle install`. Run once per container/session.
@@ -116,7 +116,6 @@ no external grant needed. No local trigger otherwise.
 ## Code changes
 
 - Follow the `write-comment` skill (`.agents/skills/write-comment/SKILL.md`) for when a comment earns its place; default to no comment otherwise.
-- Use `Core::Utils::EnumerableCompat.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+).
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere. The time provider is configurable (for example, for Timecop support), and tests can override it via `Core::Utils::Time.now_provider=`.
 
 ## Documentation
@@ -156,14 +155,14 @@ Canonical FFE fixtures for OpenFeature are not checked in. `bundle exec rake fix
 Before marking a task complete, run the relevant test task on the earliest and latest Ruby versions supported by its `Matrixfile` entry. Skip unsupported versions.
 
 ```bash
-# If mise is available (use 2.6 if 2.5 is unavailable; 2.5 no longer builds on macOS):
-mise exec ruby@2.6 -- bundle exec rake test:TASK_KEY
+# If mise is available:
+mise exec ruby@3.0 -- bundle exec rake test:TASK_KEY
 mise exec ruby@4.0 -- bundle exec rake test:TASK_KEY
 ```
 
 ```bash
 # Otherwise, use Docker:
-docker compose run --rm tracer-2.5 bundle exec rake test:TASK_KEY
+docker compose run --rm tracer-3.0 bundle exec rake test:TASK_KEY
 docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 ```
 

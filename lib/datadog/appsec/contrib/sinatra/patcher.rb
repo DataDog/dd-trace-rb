@@ -17,7 +17,7 @@ module Datadog
       module Sinatra
         # Set tracer configuration at a late enough time
         module AppSecSetupPatch
-          def setup_middleware(*args, &block)
+          def setup_middleware(...)
             super.tap do
               Datadog::AppSec::Contrib::Sinatra::Framework.setup
             end
@@ -71,7 +71,7 @@ module Datadog
         # path params are returned by pattern.params in process_route, then
         # merged with normal params, so we get both
         module RoutePatch
-          def process_route(*args)
+          def process_route(...)
             env = @request.env
 
             context = env[Datadog::AppSec::Ext::CONTEXT_KEY]

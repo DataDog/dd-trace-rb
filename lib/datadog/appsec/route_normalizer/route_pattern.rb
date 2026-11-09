@@ -100,7 +100,7 @@ module Datadog
 
             names = tokens.map do |token|
               if token.length > 1
-                token[1..-1]
+                token[1..]
               else
                 "param#{nameless_counter += 1}"
               end

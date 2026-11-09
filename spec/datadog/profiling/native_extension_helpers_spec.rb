@@ -76,7 +76,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         end
 
         shared_examples "supported ruby validation" do
-          before { stub_const("RUBY_VERSION", "2.5.0") }
+          before { stub_const("RUBY_VERSION", "3.0.0") }
 
           shared_examples "libdatadog available" do
             context "when libdatadog fails to activate" do

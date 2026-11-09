@@ -8,7 +8,7 @@ module Datadog
         module Instrumentation
           # GenerateApiMethodPatch - class method instrumentation for endpoint render (Grape < 3.0.0)
           module GenerateApiMethodPatch
-            def generate_api_method(*params, &block)
+            def generate_api_method(...)
               method_api = super
 
               proc do |*args|
@@ -20,7 +20,7 @@ module Datadog
 
           # ExecutePatch - instance method instrumentation for endpoint render (Grape >= 3.0.0)
           module ExecutePatch
-            def execute(*args)
+            def execute(...)
               return unless @source
 
               ::ActiveSupport::Notifications.instrument("endpoint_render.grape.start_render")
@@ -30,7 +30,7 @@ module Datadog
 
           # InstanceMethods - instance method instrumentation for endpoint run
           module InstanceMethods
-            def run(*args)
+            def run(...)
               ::ActiveSupport::Notifications.instrument("endpoint_run.grape.start_process", endpoint: self, env: env)
               super
             end

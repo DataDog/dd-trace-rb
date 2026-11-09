@@ -62,10 +62,6 @@ class HookTestClass
     infinitely_recursive(depth + 1)
   end
 
-  def squashed(options)
-    options
-  end
-
   def positional_and_squashed(arg, options)
     [arg, options]
   end

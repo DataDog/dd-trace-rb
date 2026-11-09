@@ -14,7 +14,7 @@ module Datadog
       LIB_DATADOG_DIR = File.dirname(File.dirname(__FILE__)) + "/"
       private_constant :LIB_DATADOG_DIR
 
-      def initialize(*args, &block)
+      def initialize(...)
         super
         self.progname = PREFIX
         self.level = ::Logger::INFO

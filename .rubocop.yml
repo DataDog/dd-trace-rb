@@ -11,13 +11,12 @@ inherit_gem:
   standard-performance: config/base.yml
 
 AllCops:
-  TargetRubyVersion: 2.5
+  TargetRubyVersion: 3.0
   Exclude:
     - appraisal/**/**
     - gemfiles/**/**
     - integration/**/**
     - lib/datadog/**/vendor/**/*
-    - lib/datadog/profiling/ext/exec_monkey_patch.rb
     - vendor/bundle/**/*
     - "*.rb" # test files at the root
   NewCops: disable

@@ -25,7 +25,7 @@ module Datadog
         include Base
 
         # @!visibility private
-        def initialize(*_)
+        def initialize(...)
           super
 
           # WORKAROUND: The values for services, version, and env can get set either directly OR as a side effect of
@@ -460,7 +460,6 @@ module Datadog
             # the new process is running, causing it to fail with the `Profiling timer expired` error message.
             # To avoid this, the profiler installs a monkey patch on `Kernel#exec` to stop profiling before actually
             # calling `exec`.
-            # This monkey patch is available for Ruby 2.7+; let us know if you need it on earlier Rubies.
             # For more details see https://github.com/DataDog/dd-trace-rb/issues/5101 .
             #
             # @default `DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED` environment variable as a boolean,
@@ -610,8 +609,6 @@ module Datadog
             # as they include additional safety measures added in https://github.com/ruby/ruby/pull/11036.
             # We have not validated it thoroughly with earlier versions, but in practice it should work on Ruby 3.0+
             # (the key change was https://github.com/ruby/ruby/pull/3296).
-            #
-            # Enabling this on Ruby 2 is not recommended as it may cause VM crashes and/or incorrect data.
             #
             # @default true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies
             option :sighandler_sampling_enabled do |o|
