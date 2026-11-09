@@ -418,8 +418,15 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   verstable_mark_cme_iseq_set_clear(&consumer_state.mark_cme_iseq_set);
   verstable_location_set_clear(&consumer_state.location_set);
 
+  miteruby_serializer_check_available(serializer_instance);
+  uint8_t *new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
+  if (new_queue == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
+  uint8_t *interned_events_queue = consumer_state.interned_events_queue;
+  consumer_state.interned_events_queue = new_queue;
+  consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
+
   miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
-    serializer_instance, consumer_state.interned_events_queue, interned_events_pos,
+    serializer_instance, interned_events_queue, interned_events_pos,
     &consumer_state.mark_cme_iseq_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
   miteruby_serializer_raise_if_failed(reason);
