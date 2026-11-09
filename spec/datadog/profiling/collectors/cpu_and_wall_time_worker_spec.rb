@@ -2391,7 +2391,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(recorded_miteruby_samples).to be_empty
     end
 
-    it "streams profiles larger than the uncompressed buffer and reuses the compression context" do
+    it "streams profiles larger than the uncompressed buffer across repeated preparations" do
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
 
