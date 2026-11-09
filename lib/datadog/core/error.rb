@@ -29,11 +29,6 @@ module Datadog
 
         # Returns a stack trace with nested error causes and details.
         #
-        # This manually implements Ruby >= 2.6 error output for two reasons:
-        #
-        # 1. It is not available in Ruby < 2.6.
-        # 2. It's measurably faster to manually implement it in Ruby.
-        #
         # This method mimics the exact output of
         # `ex.full_message(highlight: false, order: :top)`
         # but it's around 3x faster in our benchmark test

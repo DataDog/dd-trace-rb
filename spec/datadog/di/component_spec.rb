@@ -107,34 +107,6 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context "when the runtime is unsupported (Ruby 2.6+ required, mocked)" do
-      # Stub both RUBY_VERSION (used in the error message interpolation)
-      # and Datadog::RubyVersion::CURRENT_RUBY_VERSION (the cached value
-      # RubyVersion.is? compares against, captured at module load time).
-      before do
-        settings.remote.enabled = true
-        stub_const("RUBY_VERSION", "2.5.0")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.0"))
-      end
-
-      context "with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true" do
-        before { settings.dynamic_instrumentation.enabled = true }
-
-        it "returns nil and warns naming the version" do
-          expect(logger).to receive(:warn).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
-        end
-      end
-
-      context "without DD_DYNAMIC_INSTRUMENTATION_ENABLED set" do
-        it "returns nil and logs the Ruby-version reason at debug" do
-          expect(logger).to receive(:debug).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
-          expect(logger).not_to receive(:warn)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
-        end
-      end
-    end
-
     context "when C extension is not available" do
       before do
         settings.remote.enabled = true

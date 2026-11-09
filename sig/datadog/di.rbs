@@ -24,9 +24,6 @@ module Datadog
     def self.in_probe?: () -> bool
     def self.enter_probe: () -> nil
     def self.leave_probe: () -> nil
-    # accepts any object: this is a type predicate that tests whether the
-    # argument is a Hash, so the parameter is intentionally untyped.
-    def self.hash?: (untyped) -> bool
     # args and return are untyped: variadic forwarding to a customer-supplied
     # Proc whose signature and return value are unknown to this primitive.
 

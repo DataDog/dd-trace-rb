@@ -93,8 +93,7 @@ module Datadog
             end
 
             # Skip symbol database registration on runtimes that cannot run it
-            # (JRuby, Ruby < 2.7): DI supports Ruby 2.6 but Symbol Database does
-            # not, so advertising LIVE_DEBUGGING_SYMBOL_DB there would invite
+            # (JRuby): advertising LIVE_DEBUGGING_SYMBOL_DB there would invite
             # symbol-upload configs the component can never serve.
             if settings.respond_to?(:symbol_database) && Datadog::SymbolDatabase.supported_runtime?
               # Symbol database follows DI: when unset it advertises whenever DI

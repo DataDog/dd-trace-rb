@@ -47,24 +47,14 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   before { stub_const("Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL", 0.05) }
 
   describe ".environment_supported?", :symdb_supported_platforms do
-    it "returns true on MRI Ruby 2.7+" do
+    it "returns true on MRI" do
       stub_const("RUBY_ENGINE", "ruby")
-      stub_const("RUBY_VERSION", "3.2.0")
-      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       expect(described_class.send(:environment_supported?, logger)).to be true
     end
 
     it "returns false and logs on JRuby" do
       stub_const("RUBY_ENGINE", "jruby")
       expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/not supported on jruby/) }
-      expect(described_class.send(:environment_supported?, logger)).to be false
-    end
-
-    it "returns false and logs on Ruby < 2.7" do
-      stub_const("RUBY_ENGINE", "ruby")
-      stub_const("RUBY_VERSION", "2.6.0")
-      stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
-      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.7\+/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
   end

@@ -148,24 +148,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           allow(runtime_metrics).to receive(:gauge)
         end
 
-        context "with Ruby 2.x" do
-          before { skip("Test only runs on Ruby 2.x") if RubyVersion.is?(">= 3") }
-
-          it "records the global_constant_state and global_method_state metrics" do
-            flush
-
-            expect(runtime_metrics).to have_received(:gauge)
-              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
-              .once
-
-            expect(runtime_metrics).to have_received(:gauge)
-              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_GLOBAL_METHOD_STATE, kind_of(Numeric))
-              .once
-          end
-        end
-
         context "with Ruby 3.0 and 3.1" do
-          before { skip("Test only runs on Ruby 3.0 and 3.1") unless RubyVersion.is?(">= 3", "< 3.2") }
+          before { skip("Test only runs on Ruby 3.0 and 3.1") unless RubyVersion.is?("< 3.2") }
 
           it "records only the constant_global_state metric" do
             flush

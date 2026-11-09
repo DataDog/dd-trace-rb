@@ -151,23 +151,6 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
   return Qnil;
 }
 
-/*
- * call-seq:
- *   DI.hash?(obj) -> true | false
- *
- * Returns whether the given object is a Hash via a direct type check
- * (RB_TYPE_P), bypassing Kernel#is_a? method dispatch. Used in the method
- * probe wrapper (the Ruby < 3 argument-serialization split) to test whether
- * the trailing argument is a hash without giving a user-installed method
- * probe on Kernel#is_a? a chance to recurse. Matches Hash and its
- * subclasses, like is_a?(Hash), since their instances are still T_HASH.
- *
- * @api private
- */
-static VALUE is_hash(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  return RB_TYPE_P(obj, T_HASH) ? Qtrue : Qfalse;
-}
-
 // rb_iseq_type was added in Ruby 3.1 (commit 89a02d89 by Koichi Sasada,
 // 2021-12-19). It returns the iseq type as a Symbol. On Ruby < 3.1 this
 // function does not exist, so have_func('rb_iseq_type') in extconf.rb
@@ -231,7 +214,6 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "in_probe?", in_probe_p, 0);
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
-  rb_define_singleton_method(di_module, "hash?", is_hash, 1);
   #ifdef HAVE_RB_ISEQ_TYPE
     rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
   #endif

@@ -48,15 +48,8 @@ module Datadog
             nil
           end
 
-          if RubyVersion.is?(">= 2.6")
-            def self.split(path, pattern = nil, &block)
-              path.split(pattern, &block)
-            end
-          else
-            def self.split(path, pattern = nil, &block)
-              path.split(pattern).each(&block)
-              path
-            end
+          def self.split(path, pattern = nil, &block)
+            path.split(pattern, &block)
           end
         end
       end

@@ -274,15 +274,8 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     it "delegates perfectly to the original method" do
       expect_in_fork do
         checker = double
-        if RubyVersion.is?("< 2.7")
-          # 2.6 splits Symbol & non-Symbol kwargs so we have to test just *args
-          checker.define_singleton_method :spawn do |*args|
-            checker.check(*args)
-          end
-        else
-          checker.define_singleton_method :spawn do |*args, **kwargs|
-            checker.check(*args, **kwargs)
-          end
+        checker.define_singleton_method :spawn do |*args, **kwargs|
+          checker.check(*args, **kwargs)
         end
         Datadog::Core::Utils::SpawnMonkeyPatch.instance_variable_set(:@env_provider, -> { {lineage_var => lineage_val} })
         checker.singleton_class.prepend(Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch)

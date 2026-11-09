@@ -75,8 +75,6 @@ module Datadog
               raise ArgumentError, "span name is not a String"
             end
 
-            args = RubyVersion.is?(">= 2.7") ? "..." : "*args, &block"
-
             hook_module = Module.new do
               define_singleton_method(:inspect) do
                 suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ""
@@ -89,14 +87,13 @@ module Datadog
               end
 
               # this `eval` is safe:
-              # - `args` is static
               # - `method_name` is validated by the `method_defined?` check
               # - `span_name` is validated to be a String and inspected to be quoted
               eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # standard:disable Security/Eval
-              def #{method_name}(#{args})
-                return super(#{args}) unless ::Datadog::Tracing.active_trace
+              def #{method_name}(...)
+                return super(...) unless ::Datadog::Tracing.active_trace
 
-                ::Datadog::Tracing.trace(#{span_name.inspect}) { super(#{args}) }
+                ::Datadog::Tracing.trace(#{span_name.inspect}) { super(...) }
               end
               RUBY
 

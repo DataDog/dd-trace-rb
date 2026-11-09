@@ -252,10 +252,10 @@ module Datadog
       #    subclass with its own binding resolves through the binding, an
       #    inherited autoload triggers nothing.
       #
-      # Uses `current.autoload?(sym, false)` (the inherit=false form, added
-      # in Ruby 2.7) so the question is strictly "is there an autoload
-      # registered directly on this namespace?" and ancestors' pending
-      # autoloads at the same name do not affect the result.
+      # Uses `current.autoload?(sym, false)` (the inherit=false form) so the
+      # question is strictly "is there an autoload registered directly on this
+      # namespace?" and ancestors' pending autoloads at the same name do not
+      # affect the result.
       # @param mod_name [String]
       # @param mod [Module]
       # @return [Boolean]
@@ -929,12 +929,7 @@ module Datadog
         current = Object
         fqn.split("::").each do |seg|
           sym = seg.to_sym
-          pending_autoload = if RubyVersion.is?(">= 2.7")
-            MODULE_AUTOLOAD_P.bind_call(current, sym, false)
-          else
-            MODULE_AUTOLOAD_P.bind_call(current, sym)
-          end
-          return "MODULE" if pending_autoload
+          return "MODULE" if MODULE_AUTOLOAD_P.bind_call(current, sym, false)
           return "MODULE" unless MODULE_CONST_DEFINED.bind_call(current, sym, false)
           current = MODULE_CONST_GET.bind_call(current, sym, false)
         end

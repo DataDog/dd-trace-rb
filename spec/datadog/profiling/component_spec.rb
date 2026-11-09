@@ -199,7 +199,7 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context "when gc_enabled is true", ruby: ">= 2.7" do
+        context "when gc_enabled is true" do
           before do
             settings.profiling.advanced.gc_enabled = true
 
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Profiling::Component do
             stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
-          ["2.7.0", "3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
+          ["3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
             context "on a Ruby version not affected by https://bugs.ruby-lang.org/issues/18464 (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
 
@@ -268,32 +268,8 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.allocation_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
 
-            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
-            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            if RubyVersion.is?("< 2.7") && RubyVersion.is?(">= 3", ruby_version: Gem::Version.new(testing_version))
-              skip "Behavior does not apply to current Ruby version"
-            end
-
             stub_const("RUBY_VERSION", testing_version)
             stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
-          end
-
-          context "on Ruby 2.x" do
-            let(:testing_version) { "2.5.0" }
-
-            it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support" do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                allocation_profiling_enabled: true,
-              )
-              expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(alloc_samples_enabled: true))
-                .and_call_original
-
-              expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
-              expect(logger).to_not receive(:warn)
-
-              build_profiler_component
-            end
           end
 
           ["3.2.0", "3.2.1", "3.2.2"].each do |broken_ruby|
@@ -373,7 +349,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when heap profiling is enabled", ruby: ">= 2.7" do
+        context "when heap profiling is enabled" do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
 
@@ -734,7 +710,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when can_apply_exec_monkey_patch? is true", ruby: ">= 2.7" do
+        context "when can_apply_exec_monkey_patch? is true" do
           let(:exec_monkey_patch) { class_double(exec_monkey_patch_name, apply!: true) }
 
           before do
@@ -933,26 +909,10 @@ RSpec.describe Datadog::Profiling::Component do
 
       it { is_expected.to be false }
 
-      context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
+      it "logs a warning message mentioning that the no signals mode has been disabled" do
+        expect(logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
 
-        it "logs a warning message mentioning that this is is not recommended" do
-          expect(logger).to receive(:warn).with(
-            /workaround has been disabled via configuration.*This is not recommended/,
-          )
-
-          no_signals_workaround_enabled?
-        end
-      end
-
-      context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
-
-        it "logs a warning message mentioning that the no signals mode has been disabled" do
-          expect(logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
-
-          no_signals_workaround_enabled?
-        end
+        no_signals_workaround_enabled?
       end
     end
 
@@ -972,129 +932,80 @@ RSpec.describe Datadog::Profiling::Component do
     end
 
     shared_examples "no_signals_workaround_enabled :auto behavior" do
-      context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
+      context "when mysql2 gem is available" do
+        include_context("loaded gems", mysql2: Gem::Version.new("0.5.5"), rugged: nil)
 
-        it { is_expected.to be true }
-      end
+        before do
+          allow(logger).to receive(:warn)
+          allow(logger).to receive(:debug)
+        end
 
-      context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
+        context "when skip_mysql2_check is enabled" do
+          before { settings.profiling.advanced.skip_mysql2_check = true }
 
-        context "when mysql2 gem is available" do
-          include_context("loaded gems", mysql2: Gem::Version.new("0.5.5"), rugged: nil)
+          it { is_expected.to be true }
 
-          before do
-            allow(logger).to receive(:warn)
-            allow(logger).to receive(:debug)
+          it "logs a warning message mentioning that the no signals workaround is going to be used" do
+            expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+            no_signals_workaround_enabled?
+          end
+        end
+
+        context "when there is an issue requiring mysql2" do
+          before { allow(described_class).to receive(:require).and_raise(LoadError.new("Simulated require failure")) }
+
+          it { is_expected.to be true }
+
+          it "logs that probing mysql2 failed" do
+            expect(logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+
+            no_signals_workaround_enabled?
+          end
+        end
+
+        context "when mysql2 is required successfully" do
+          before { allow(described_class).to receive(:require).with("mysql2") }
+
+          it "logs a debug message stating mysql2 will be required" do
+            expect(logger).to receive(:debug).with(/Requiring `mysql2` to check/)
+
+            no_signals_workaround_enabled?
           end
 
-          context "when skip_mysql2_check is enabled" do
-            before { settings.profiling.advanced.skip_mysql2_check = true }
-
-            it { is_expected.to be true }
-
-            it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
-
-              no_signals_workaround_enabled?
+          context "when mysql2 gem does not provide the info method" do
+            before do
+              stub_const("Mysql2::Client", double("Fake Mysql2::Client"))
             end
+
+            it { is_expected.to be true }
           end
 
-          context "when there is an issue requiring mysql2" do
-            before { allow(described_class).to receive(:require).and_raise(LoadError.new("Simulated require failure")) }
+          context "when an error is raised while probing the mysql2 gem" do
+            before do
+              fake_client = double("Fake Mysql2::Client")
+              stub_const("Mysql2::Client", fake_client)
+              expect(fake_client).to receive(:info).and_raise(ArgumentError.new("Simulated call failure"))
+            end
 
             it { is_expected.to be true }
 
-            it "logs that probing mysql2 failed" do
+            it "logs a warning including the error details" do
               expect(logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
 
               no_signals_workaround_enabled?
             end
           end
 
-          context "when mysql2 is required successfully" do
-            before { allow(described_class).to receive(:require).with("mysql2") }
-
-            it "logs a debug message stating mysql2 will be required" do
-              expect(logger).to receive(:debug).with(/Requiring `mysql2` to check/)
-
-              no_signals_workaround_enabled?
-            end
-
-            context "when mysql2 gem does not provide the info method" do
-              before do
-                stub_const("Mysql2::Client", double("Fake Mysql2::Client"))
-              end
-
-              it { is_expected.to be true }
-            end
-
-            context "when an error is raised while probing the mysql2 gem" do
+          [
+            {version: "4.9.99", header_version: "10.0.0"},
+            {version: "3.0.0", header_version: "3.0.0"},
+          ].each do |info|
+            context "when mysql2 gem is linked to MariaDB with client info #{info}" do
               before do
                 fake_client = double("Fake Mysql2::Client")
                 stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_raise(ArgumentError.new("Simulated call failure"))
-              end
-
-              it { is_expected.to be true }
-
-              it "logs a warning including the error details" do
-                expect(logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
-
-                no_signals_workaround_enabled?
-              end
-            end
-
-            [
-              {version: "4.9.99", header_version: "10.0.0"},
-              {version: "3.0.0", header_version: "3.0.0"},
-            ].each do |info|
-              context "when mysql2 gem is linked to MariaDB with client info #{info}" do
-                before do
-                  fake_client = double("Fake Mysql2::Client")
-                  stub_const("Mysql2::Client", fake_client)
-                  expect(fake_client).to receive(:info).and_return(info)
-                end
-
-                it { is_expected.to be false }
-
-                it "does not log any warning message" do
-                  expect(logger).to_not receive(:warn)
-
-                  no_signals_workaround_enabled?
-                end
-              end
-            end
-
-            [
-              {version: "7.9.9"},
-              {version: "4.0.0", header_version: "4.0.0"},
-              {version: "3.0.0", header_version: "4.0.0"},
-              {version: "4.0.0", header_version: "3.0.0"},
-            ].each do |info|
-              context "when mysql2 gem uses incompatible or unrecognized client info #{info}" do
-                before do
-                  fake_client = double("Fake Mysql2::Client")
-                  stub_const("Mysql2::Client", fake_client)
-                  expect(fake_client).to receive(:info).and_return(info)
-                end
-
-                it { is_expected.to be true }
-
-                it "logs a warning message mentioning that the no signals workaround is going to be used" do
-                  expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
-
-                  no_signals_workaround_enabled?
-                end
-              end
-            end
-
-            context "when mysql2 gem is using a version of libmysqlclient >= 8.0.0" do
-              before do
-                fake_client = double("Fake Mysql2::Client")
-                stub_const("Mysql2::Client", fake_client)
-                expect(fake_client).to receive(:info).and_return({version: "8.0.0"})
+                expect(fake_client).to receive(:info).and_return(info)
               end
 
               it { is_expected.to be false }
@@ -1105,37 +1016,115 @@ RSpec.describe Datadog::Profiling::Component do
                 no_signals_workaround_enabled?
               end
             end
+          end
 
-            context "when mysql2-aurora gem is loaded and libmysqlclient < 8.0.0" do
+          [
+            {version: "7.9.9"},
+            {version: "4.0.0", header_version: "4.0.0"},
+            {version: "3.0.0", header_version: "4.0.0"},
+            {version: "4.0.0", header_version: "3.0.0"},
+          ].each do |info|
+            context "when mysql2 gem uses incompatible or unrecognized client info #{info}" do
               before do
-                fake_original_client = double("Fake original Mysql2::Client")
-                stub_const("Mysql2::Aurora::ORIGINAL_CLIENT_CLASS", fake_original_client)
-                expect(fake_original_client).to receive(:info).and_return({version: "7.9.9"})
-
-                client_replaced_by_aurora = double("Fake Aurora Mysql2::Client")
-                stub_const("Mysql2::Client", client_replaced_by_aurora)
+                fake_client = double("Fake Mysql2::Client")
+                stub_const("Mysql2::Client", fake_client)
+                expect(fake_client).to receive(:info).and_return(info)
               end
 
               it { is_expected.to be true }
-            end
 
-            context "when mysql2-aurora gem is loaded and libmysqlclient >= 8.0.0" do
-              before do
-                fake_original_client = double("Fake original Mysql2::Client")
-                stub_const("Mysql2::Aurora::ORIGINAL_CLIENT_CLASS", fake_original_client)
-                expect(fake_original_client).to receive(:info).and_return({version: "8.0.0"})
+              it "logs a warning message mentioning that the no signals workaround is going to be used" do
+                expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-                client_replaced_by_aurora = double("Fake Aurora Mysql2::Client")
-                stub_const("Mysql2::Client", client_replaced_by_aurora)
+                no_signals_workaround_enabled?
               end
-
-              it { is_expected.to be false }
             end
           end
+
+          context "when mysql2 gem is using a version of libmysqlclient >= 8.0.0" do
+            before do
+              fake_client = double("Fake Mysql2::Client")
+              stub_const("Mysql2::Client", fake_client)
+              expect(fake_client).to receive(:info).and_return({version: "8.0.0"})
+            end
+
+            it { is_expected.to be false }
+
+            it "does not log any warning message" do
+              expect(logger).to_not receive(:warn)
+
+              no_signals_workaround_enabled?
+            end
+          end
+
+          context "when mysql2-aurora gem is loaded and libmysqlclient < 8.0.0" do
+            before do
+              fake_original_client = double("Fake original Mysql2::Client")
+              stub_const("Mysql2::Aurora::ORIGINAL_CLIENT_CLASS", fake_original_client)
+              expect(fake_original_client).to receive(:info).and_return({version: "7.9.9"})
+
+              client_replaced_by_aurora = double("Fake Aurora Mysql2::Client")
+              stub_const("Mysql2::Client", client_replaced_by_aurora)
+            end
+
+            it { is_expected.to be true }
+          end
+
+          context "when mysql2-aurora gem is loaded and libmysqlclient >= 8.0.0" do
+            before do
+              fake_original_client = double("Fake original Mysql2::Client")
+              stub_const("Mysql2::Aurora::ORIGINAL_CLIENT_CLASS", fake_original_client)
+              expect(fake_original_client).to receive(:info).and_return({version: "8.0.0"})
+
+              client_replaced_by_aurora = double("Fake Aurora Mysql2::Client")
+              stub_const("Mysql2::Client", client_replaced_by_aurora)
+            end
+
+            it { is_expected.to be false }
+          end
+        end
+      end
+
+      context "when rugged gem is available" do
+        include_context("loaded gems", rugged: Gem::Version.new("1.6.3"), mysql2: nil)
+
+        before { allow(logger).to receive(:warn) }
+
+        it { is_expected.to be true }
+
+        it "logs a warning message mentioning that the no signals workaround is going to be used" do
+          expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+          no_signals_workaround_enabled?
+        end
+      end
+
+      context "when running inside the passenger web server, even when gem is not available" do
+        include_context("loaded gems", passenger: nil, rugged: nil, mysql2: nil)
+
+        before do
+          stub_const("::PhusionPassenger", Module.new)
+          allow(logger).to receive(:warn)
         end
 
-        context "when rugged gem is available" do
-          include_context("loaded gems", rugged: Gem::Version.new("1.6.3"), mysql2: nil)
+        it { is_expected.to be true }
+
+        it "logs a warning message mentioning that the no signals workaround is going to be used" do
+          expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+          no_signals_workaround_enabled?
+        end
+      end
+
+      context "when passenger gem is available" do
+        context "on passenger >= 6.0.19" do
+          include_context("loaded gems", passenger: Gem::Version.new("6.0.19"), rugged: nil, mysql2: nil)
+
+          it { is_expected.to be false }
+        end
+
+        context "on passenger < 6.0.19" do
+          include_context("loaded gems", passenger: Gem::Version.new("6.0.18"), rugged: nil, mysql2: nil)
 
           before { allow(logger).to receive(:warn) }
 
@@ -1147,12 +1136,18 @@ RSpec.describe Datadog::Profiling::Component do
             no_signals_workaround_enabled?
           end
         end
+      end
 
-        context "when running inside the passenger web server, even when gem is not available" do
-          include_context("loaded gems", passenger: nil, rugged: nil, mysql2: nil)
+      context "when passenger gem is not available, but PhusionPassenger::VERSION_STRING is available" do
+        context "on passenger >= 6.0.19" do
+          before { stub_const("PhusionPassenger::VERSION_STRING", "6.0.19") }
 
+          it { is_expected.to be false }
+        end
+
+        context "on passenger < 6.0.19" do
           before do
-            stub_const("::PhusionPassenger", Module.new)
+            stub_const("PhusionPassenger::VERSION_STRING", "6.0.18")
             allow(logger).to receive(:warn)
           end
 
@@ -1164,57 +1159,12 @@ RSpec.describe Datadog::Profiling::Component do
             no_signals_workaround_enabled?
           end
         end
+      end
 
-        context "when passenger gem is available" do
-          context "on passenger >= 6.0.19" do
-            include_context("loaded gems", passenger: Gem::Version.new("6.0.19"), rugged: nil, mysql2: nil)
+      context "when mysql2 / rugged gems + passenger are not available" do
+        include_context("loaded gems", passenger: nil, mysql2: nil, rugged: nil)
 
-            it { is_expected.to be false }
-          end
-
-          context "on passenger < 6.0.19" do
-            include_context("loaded gems", passenger: Gem::Version.new("6.0.18"), rugged: nil, mysql2: nil)
-
-            before { allow(logger).to receive(:warn) }
-
-            it { is_expected.to be true }
-
-            it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
-
-              no_signals_workaround_enabled?
-            end
-          end
-        end
-
-        context "when passenger gem is not available, but PhusionPassenger::VERSION_STRING is available" do
-          context "on passenger >= 6.0.19" do
-            before { stub_const("PhusionPassenger::VERSION_STRING", "6.0.19") }
-
-            it { is_expected.to be false }
-          end
-
-          context "on passenger < 6.0.19" do
-            before do
-              stub_const("PhusionPassenger::VERSION_STRING", "6.0.18")
-              allow(logger).to receive(:warn)
-            end
-
-            it { is_expected.to be true }
-
-            it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
-
-              no_signals_workaround_enabled?
-            end
-          end
-        end
-
-        context "when mysql2 / rugged gems + passenger are not available" do
-          include_context("loaded gems", passenger: nil, mysql2: nil, rugged: nil)
-
-          it { is_expected.to be false }
-        end
+        it { is_expected.to be false }
       end
     end
 
@@ -1238,43 +1188,23 @@ RSpec.describe Datadog::Profiling::Component do
   describe ".can_apply_exec_monkey_patch?" do
     subject(:can_apply_exec_monkey_patch?) { described_class.send(:can_apply_exec_monkey_patch?, settings) }
 
-    context "on Ruby < 2.7" do
-      before do
-        stub_const("RUBY_VERSION", "2.6.9")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
-      end
+    context "when exec workaround is disabled" do
+      before { settings.profiling.advanced.shutdown_on_exec_enabled = false }
 
-      it "returns false and does not require the monkey patch" do
-        expect(described_class).to_not receive(:require)
+      it "returns false but still requires the monkey patch" do
+        expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
 
         expect(can_apply_exec_monkey_patch?).to be false
       end
     end
 
-    context "on Ruby >= 2.7" do
-      before do
-        stub_const("RUBY_VERSION", "2.7.0")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
-      end
+    context "when exec workaround is enabled" do
+      before { settings.profiling.advanced.shutdown_on_exec_enabled = true }
 
-      context "when exec workaround is disabled" do
-        before { settings.profiling.advanced.shutdown_on_exec_enabled = false }
+      it "returns true and requires the monkey patch" do
+        expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
 
-        it "returns false but still requires the monkey patch" do
-          expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
-
-          expect(can_apply_exec_monkey_patch?).to be false
-        end
-      end
-
-      context "when exec workaround is enabled" do
-        before { settings.profiling.advanced.shutdown_on_exec_enabled = true }
-
-        it "returns true and requires the monkey patch" do
-          expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
-
-          expect(can_apply_exec_monkey_patch?).to be true
-        end
+        expect(can_apply_exec_monkey_patch?).to be true
       end
     end
   end

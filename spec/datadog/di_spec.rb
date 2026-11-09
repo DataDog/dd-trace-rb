@@ -145,18 +145,9 @@ RSpec.describe(Datadog::DI) do
     context "when all preconditions are met" do
       # Stub respond_to?(:exception_message) so this test exercises the
       # all-preconditions-met branch on builds without the DI C extension
-      # compiled (e.g. spec:main). RUBY_VERSION is stubbed because the
-      # version check fires before the C-extension check; without the
-      # stub this test would fail on Ruby 2.5 (which is otherwise
-      # supported by spec:main). The test's subject is the precondition
+      # compiled (e.g. spec:main). The test's subject is the precondition
       # logic itself, not the actual platform.
-      #
-      # Stub both RUBY_VERSION (used in the error message interpolation)
-      # AND Datadog::RubyVersion::CURRENT_RUBY_VERSION (the cached value
-      # RubyVersion.is? compares against, captured at module load time).
       before do
-        stub_const("RUBY_VERSION", "3.0.0")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.0.0"))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(true)
       end
@@ -202,26 +193,8 @@ RSpec.describe(Datadog::DI) do
       end
     end
 
-    context "when running on Ruby older than 2.6" do
-      before do
-        stub_const("RUBY_VERSION", "2.5.9")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.9"))
-      end
-
-      it "names the version" do
-        expect(described_class.unsupported_reason(settings))
-          .to match(/Ruby 2\.6\+ is required.*2\.5\.9/)
-      end
-    end
-
     context "when the C extension is not loaded" do
       before do
-        # Neutralize the earlier Ruby-version check so this context
-        # reaches the C-extension branch when the spec runs on Ruby 2.5.
-        # Same pattern as the non-MRI context's stub_const('RUBY_ENGINE', ...).
-        # Stub both RUBY_VERSION (message) and CURRENT_RUBY_VERSION (gate).
-        stub_const("RUBY_VERSION", "3.0.0")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.0.0"))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
@@ -242,11 +215,9 @@ RSpec.describe(Datadog::DI) do
   end
 
   describe ".supported_runtime?" do
-    context "on MRI 2.6+" do
+    context "on MRI" do
       before do
         stub_const("RUBY_ENGINE", "ruby")
-        stub_const("RUBY_VERSION", "2.6.0")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.6.0"))
       end
 
       it "returns true" do
@@ -256,18 +227,6 @@ RSpec.describe(Datadog::DI) do
 
     context "on JRuby" do
       before { stub_const("RUBY_ENGINE", "jruby") }
-
-      it "returns false" do
-        expect(described_class.supported_runtime?).to be false
-      end
-    end
-
-    context "on MRI older than 2.6" do
-      before do
-        stub_const("RUBY_ENGINE", "ruby")
-        stub_const("RUBY_VERSION", "2.5.9")
-        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.9"))
-      end
 
       it "returns false" do
         expect(described_class.supported_runtime?).to be false
