@@ -532,13 +532,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns();
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding the GVL.
   // NOTE: While rare, it's possible for the GVL to be released inside this function (see comments on `heap_recorder_update`)
   // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
-  long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
+  long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns() - heap_iteration_prep_start_time_ns;
 
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
   // Need to do this while still holding the Global VM Lock; see comments on method for why
@@ -800,7 +800,7 @@ static void build_heap_profile_without_gvl(stack_recorder_state *state, profile_
 static void *call_serialize_without_gvl(void *call_args) {
   call_serialize_without_gvl_arguments *args = (call_serialize_without_gvl_arguments *) call_args;
 
-  long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns();
 
   profile_slot *slot_now_inactive = serializer_flip_active_and_inactive_slots(args->state);
   args->slot = slot_now_inactive;
@@ -808,13 +808,13 @@ static void *call_serialize_without_gvl(void *call_args) {
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
   build_heap_profile_without_gvl(args->state, args->slot);
-  args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
+  args->heap_profile_build_time_ns = monotonic_wall_time_now_ns() - serialize_no_gvl_start_time_ns;
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
   args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
-  args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
+  args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns() - serialize_no_gvl_start_time_ns);
 
   return NULL; // Unused
 }
@@ -914,7 +914,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
 }
 
 static ddog_Timespec system_epoch_now_timespec(void) {
-  long now_ns = system_epoch_time_now_ns(RAISE_ON_FAILURE);
+  long now_ns = system_epoch_time_now_ns();
   return (ddog_Timespec) {.seconds = now_ns / SECONDS_AS_NS(1), .nanoseconds = now_ns % SECONDS_AS_NS(1)};
 }
 

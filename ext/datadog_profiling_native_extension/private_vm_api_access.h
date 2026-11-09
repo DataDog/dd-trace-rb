@@ -34,18 +34,25 @@ typedef struct {
       int line;
     } ruby_frame;
   } as;
+  // Length of the frame name cached for this slot in `sampling_buffer`, or 0 when there's none.
+  // ddtrace_rb_profile_frames() clears it when it replaces this frame, so a non-zero length always describes the
+  // cme and iseq currently here.
+  uint8_t cached_name_len;
   bool is_ruby_frame : 1;
   bool same_frame : 1;
 } frame_info;
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
-bool is_current_thread_holding_the_gvl(void);
-current_gvl_owner gvl_owner(void);
+// Must be called from the main ractor while holding the GVL
+void private_vm_api_access_init(void);
+void private_vm_api_access_self_test(void);
+current_gvl_owner main_ractor_gvl_owner(void);
+bool is_current_thread_in_main_ractor_and_holding_the_gvl(void);
 uint64_t native_thread_id_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
-void self_test_thread_name_for(void);
+void self_test_thread_struct(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 
@@ -72,6 +79,8 @@ void self_test_mn_enabled(void);
 // Provides more specific information on what kind an imemo is
 const char *imemo_kind(VALUE imemo);
 
+int imemo_mask(void);
+
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void);
 #endif
@@ -96,6 +105,9 @@ VALUE ddtrace_alloc_free_rb_mod_name(VALUE mod);
 // Same as `ddtrace_alloc_free_rb_mod_name` but additionally returns nil (filters out)
 // if the module does not have a permanent name (e.g. `#<Module:0x0123>::Foo`).
 VALUE ddtrace_permanent_mod_name(VALUE mod);
+
+// Suffix ddtrace_location_label() adds to blocks, e.g. "Foo#bar (block)"
+#define DDTRACE_BLOCK_SUFFIX " (block)"
 
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size);
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq);

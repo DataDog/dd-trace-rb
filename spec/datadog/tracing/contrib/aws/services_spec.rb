@@ -36,13 +36,13 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
         "kinesis",
         "eventbridge",
         "states",
-        "s3"
+        "s3",
       )
     end
 
     it do
       expect(handlers.values).to all(
-        be_a Datadog::Tracing::Contrib::Aws::Service::Base
+        be_a(Datadog::Tracing::Contrib::Aws::Service::Base),
       )
     end
   end

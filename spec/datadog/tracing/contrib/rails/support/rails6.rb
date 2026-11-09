@@ -46,7 +46,7 @@ RSpec.shared_context "Rails 6 test application" do
           # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
             chain.add(
-              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
             )
           end
         end
@@ -211,7 +211,7 @@ RSpec.shared_context "Rails 6 test application" do
   def reset_class_variable(clazz, variable)
     value = Datadog::Tracing::Contrib::Rails::Test::Configuration.fetch(
       "#{clazz}.#{variable}",
-      clazz.class_variable_get(variable)
+      clazz.class_variable_get(variable),
     )
 
     clazz.class_variable_set(variable, value.deep_dup)

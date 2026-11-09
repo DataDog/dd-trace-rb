@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 require_relative "ext"
+require_relative "../open_feature"
 require_relative "../core/utils/time"
+require_relative "hooks/evaluation_telemetry_opt_out_hook"
 require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
-    # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
+    # OpenFeature feature flagging provider backed by Datadog configuration delivery.
     #
     # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
     #
@@ -24,13 +26,14 @@ module Datadog
     #
     # Example:
     #
-    #   Make sure to enable Remote Configuration and OpenFeature in the Datadog configuration.
+    #   Feature Flags use agentless configuration delivery by default. To use
+    #   Remote Configuration delivery instead, configure the source explicitly.
     #
     #   ```ruby
     #   # FILE: initializers/datadog.rb
     #   Datadog.configure do |config|
     #     config.remote.enabled = true
-    #     config.open_feature.enabled = true
+    #     config.feature_flags.configuration_source = "remote_config"
     #   end
     #   ```
     #
@@ -58,28 +61,134 @@ module Datadog
     #   # => 'Welcome back!'
     #   ```
     class Provider
+      include ::OpenFeature::SDK::Provider::EventEmitter
+
       NAME = "Datadog Feature Flagging Provider"
+      INITIALIZATION_CANCELLED_MESSAGE = "Feature Flags provider initialization was cancelled by shutdown"
 
       attr_reader :metadata
 
-      def initialize
+      def initialize(enable_evaluation_telemetry_opt_out_parameter: nil)
+        @enable_evaluation_telemetry_opt_out_parameter = case enable_evaluation_telemetry_opt_out_parameter
+        when nil
+          Datadog.configuration.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled
+        when true, false
+          enable_evaluation_telemetry_opt_out_parameter
+        else
+          raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
+        end
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
+        @initialization_mutex = Mutex.new
+        @initializing = false
+        @initialization_thread = nil
+        @awaiting_ready_after_fork = false
+        @initialization_failed = false
+        @provider_error_observed = false
+        @ready_pending = false
+        @ready_dispatch_claimed = false
+        @stale_emitted = false
+        @stale_pending = false
+        @error_handler = nil
+        @initialization_ready_handler = nil
+        @waiting_component = nil
+        @shutdown = false
       end
 
       def init
-        # no-op
+        @initialization_mutex.synchronize do
+          raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
+
+          @initializing = true
+          @initialization_thread = Thread.current
+          @awaiting_ready_after_fork = false
+          @initialization_failed = false
+          @provider_error_observed = false
+          @ready_pending = false
+          @ready_dispatch_claimed = false
+          @stale_emitted = false
+          @stale_pending = false
+        end
+        Datadog.logger.debug { "Feature Flags: provider initialization started" }
+        ready_handler_installed = install_initialization_ready_handler
+
+        component, failure = OpenFeature.activate_provider(self)
+        cancel_initialization_if_shutdown!
+        fail_initialization(component, failure || "Feature Flags component could not be activated") unless component
+
+        @initialization_mutex.synchronize do
+          raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
+
+          @waiting_component = component
+        end
+        # Shutdown publishes this flag through the component lock; taking our mutex here would invert lock order.
+        wait_result = component.wait_for_configuration { @shutdown }
+        cancel_initialization_if_shutdown!
+
+        case wait_result
+        when Component::CONFIGURATION_READY
+          @initialization_mutex.synchronize { @initializing = false } unless ready_handler_installed
+          Datadog.logger.debug { "Feature Flags: provider initialized successfully" }
+        when Component::CONFIGURATION_TIMEOUT
+          message = "Feature Flags provider initialization timed out while waiting for configuration"
+          Datadog.logger.error(message)
+          fail_initialization(component, message)
+        else
+          fail_initialization(component, "Feature Flags provider initialization stopped before configuration arrived")
+        end
+      rescue
+        prepare_initialization_failure(component) if @initialization_mutex.synchronize { @initializing }
+        raise
+      ensure
+        @initialization_mutex.synchronize do
+          @waiting_component = nil
+          # The SDK still owes READY after init returns; the initializing thread owns that dispatch.
+          @initialization_thread = nil unless @initializing
+        end
       end
 
       def shutdown
-        # no-op
+        configuration = @configuration
+        # @type var error_handler: Provider::provider_event_handler?
+        error_handler = nil
+        # @type var initialization_ready_handler: Provider::provider_event_handler?
+        initialization_ready_handler = nil
+        waiting_component = nil #: Component?
+        @initialization_mutex.synchronize do
+          return if @shutdown
+
+          @shutdown = true
+          @initializing = false
+          @initialization_thread = nil
+          error_handler = @error_handler
+          initialization_ready_handler = @initialization_ready_handler
+          waiting_component = @waiting_component
+          @error_handler = nil
+          @initialization_ready_handler = nil
+        end
+
+        waiting_component&.wake_configuration_waiters
+        configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, error_handler) if error_handler
+        if initialization_ready_handler
+          configuration&.remove_handler(
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY,
+            initialization_ready_handler,
+          )
+        end
+        OpenFeature.deactivate_provider(self)
+        Datadog.logger.debug { "Feature Flags: provider shut down" }
       end
 
       def hooks
         component = Datadog.send(:components).open_feature
-        [
+        telemetry_hooks = [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
         ].compact
+        if @enable_evaluation_telemetry_opt_out_parameter
+          telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
+        end
+
+        [*telemetry_hooks, component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -108,6 +217,211 @@ module Datadog
 
       private
 
+      def after_fork(component)
+        handler = @initialization_mutex.synchronize do
+          return if @shutdown || !@initializing || @initialization_thread&.alive?
+
+          @initializing = false
+          @initialization_thread = nil
+          @waiting_component = nil
+          @awaiting_ready_after_fork = true
+          @stale_pending = false
+          previous_handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          previous_handler
+        end
+        if handler
+          @configuration&.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler)
+        end
+        configuration_changed(Component::CONFIGURATION_READY) if component&.configuration_received?
+      end
+
+      def fail_initialization(component, message)
+        prepare_initialization_failure(component)
+        cancel_initialization_if_shutdown!
+        # Non-blocking set_provider surfaces this only as a PROVIDER_ERROR event.
+        Datadog.logger.debug { "Feature Flags: provider failed to initialize: #{message}" }
+        raise message.to_s
+      end
+
+      def prepare_initialization_failure(component)
+        cancelled, initialization_ready_handler = @initialization_mutex.synchronize do
+          handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          @stale_pending = false
+          @initializing = false
+          @initialization_thread = nil
+          if @shutdown
+            [true, handler]
+          else
+            @initialization_failed = true
+            @ready_pending ||= !!component&.configuration_received?
+            [false, handler]
+          end
+        end
+        if initialization_ready_handler
+          @configuration&.remove_handler(
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY,
+            initialization_ready_handler,
+          )
+        end
+        return if cancelled
+
+        install_error_handler
+      end
+
+      def cancel_initialization_if_shutdown!
+        cancelled = @initialization_mutex.synchronize do
+          @initializing = false if @shutdown
+          @shutdown
+        end
+        raise INITIALIZATION_CANCELLED_MESSAGE if cancelled
+      end
+
+      def shutdown?
+        @initialization_mutex.synchronize { @shutdown }
+      end
+
+      def install_initialization_ready_handler
+        configuration = @configuration
+        return false unless configuration
+
+        handler = @initialization_mutex.synchronize do
+          return false if @shutdown
+          return true if @initialization_ready_handler
+
+          @initialization_ready_handler = ->(details) { provider_ready(details) }
+        end
+        configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler)
+
+        cancelled = @initialization_mutex.synchronize { @shutdown }
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler) if cancelled
+        return false if cancelled
+
+        true
+      end
+
+      def install_error_handler
+        configuration = @configuration
+        return unless configuration
+
+        handler = @initialization_mutex.synchronize do
+          return if @shutdown
+
+          @error_handler ||= ->(details) { provider_error(details) }
+        end
+        configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, handler)
+
+        cancelled = @initialization_mutex.synchronize { @shutdown }
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, handler) if cancelled
+      end
+
+      def provider_error(_details)
+        configuration = @configuration
+        return unless configuration
+        return unless configuration.send(:provider_state, self) == ::OpenFeature::SDK::ProviderState::ERROR
+
+        emit_ready = @initialization_mutex.synchronize do
+          if @shutdown
+            false
+          else
+            @provider_error_observed = true
+            if @ready_pending && !@ready_dispatch_claimed
+              @ready_dispatch_claimed = true
+            else
+              false
+            end
+          end
+        end
+        emit_state_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY) if emit_ready
+      end
+
+      def provider_ready(_details)
+        configuration = @configuration
+        return unless configuration
+        return unless configuration.send(:provider_state, self) == ::OpenFeature::SDK::ProviderState::READY
+
+        handler, emit_stale = @initialization_mutex.synchronize do
+          handler = @initialization_ready_handler
+          @initialization_ready_handler = nil
+          @initializing = false
+          @initialization_thread = nil
+          if @stale_pending && !@shutdown
+            @stale_pending = false
+            @stale_emitted = true
+            [handler, true]
+          else
+            [handler, false]
+          end
+        end
+        configuration.remove_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, handler) if handler
+        emit_state_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE) if emit_stale
+      end
+
+      def configuration_changed(event)
+        event_type = @initialization_mutex.synchronize do
+          if @shutdown
+            nil
+          elsif event == Component::CONFIGURATION_READY
+            if @initializing
+              @ready_pending = true
+              @stale_pending = false
+              nil
+            elsif @awaiting_ready_after_fork
+              @awaiting_ready_after_fork = false
+              @stale_emitted = false
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            elsif @initialization_failed && !@provider_error_observed
+              @stale_emitted = false
+              @ready_pending = true
+              nil
+            elsif @stale_emitted
+              @stale_emitted = false
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            elsif @initialization_failed
+              if @provider_error_observed && !@ready_dispatch_claimed
+                @ready_dispatch_claimed = true
+                ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+              else
+                @ready_pending = true
+                nil
+              end
+            end
+          elsif event == Component::CONFIGURATION_CHANGED && !@initializing
+            ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED
+          elsif event == Component::CONFIGURATION_LOST
+            @ready_pending = false
+            if @initializing
+              @stale_pending = true
+              nil
+            else
+              @stale_emitted = true
+              ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+            end
+          end
+        end
+
+        emit_state_event(event_type) if event_type
+      end
+
+      def emit_state_event(event_type)
+        log_state_event(event_type)
+        emit_event(event_type)
+      end
+
+      def log_state_event(event_type)
+        logger = Datadog.logger
+        logger.debug do
+          availability = case event_type
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_READY
+            "; configuration is available"
+          when ::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE
+            "; configuration is no longer available"
+          end
+          "Feature Flags: provider emitted #{event_type}#{availability}"
+        end
+      end
+
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
@@ -115,7 +429,10 @@ module Datadog
         flag_meta = nil
 
         engine = OpenFeature.engine
-        return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
+        if engine.nil?
+          log_component_not_configured(flag_key, expected_type)
+          return component_not_configured_default(default_value, eval_time_ms)
+        end
 
         result = fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
 
@@ -129,7 +446,9 @@ module Datadog
         # Drive APM span enrichment directly from the evaluation path. This is the only reliable
         # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
         # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
-        enrich_span(flag_key, result, evaluation_context)
+        unless evaluation_telemetry_opted_out?(evaluation_context)
+          enrich_span(flag_key, result, evaluation_context)
+        end
 
         sdk_success_details(result, flag_meta)
       rescue => e
@@ -137,11 +456,11 @@ module Datadog
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: error_message
+          error_message: error_message,
         )
         error_flag_meta = flag_meta
         error_flag_meta ||= build_flag_metadata(
-          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i
+          error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i,
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
@@ -152,7 +471,7 @@ module Datadog
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context
+          evaluation_context: evaluation_context,
         )
       end
 
@@ -171,7 +490,7 @@ module Datadog
           error_code: error_code,
           error_message: error_message,
           reason: reason,
-          flag_metadata: flag_meta
+          flag_metadata: flag_meta,
         )
       end
 
@@ -218,6 +537,21 @@ module Datadog
         Datadog.send(:components).open_feature&.span_enrichment_hook
       end
 
+      # No component means no DebugLoggingHook and no raw-data warning, so only non-raw fields are logged.
+      def log_component_not_configured(flag_key, expected_type)
+        logger = Datadog.logger
+        logger.debug do
+          "Feature Flags: provider returned the default value for #{flag_key.inspect} (type=#{expected_type}): " \
+            "the Feature Flags component is not active; see the provider initialization logs " \
+            "(error_code=#{Ext::PROVIDER_FATAL})"
+        end
+      end
+
+      def evaluation_telemetry_opted_out?(evaluation_context)
+        @enable_evaluation_telemetry_opt_out_parameter &&
+          Hooks::EvaluationTelemetryOptOutHook.opted_out?(evaluation_context)
+      end
+
       def component_not_configured_default(value, eval_time_ms)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
@@ -227,7 +561,7 @@ module Datadog
           flag_metadata: {
             "dd.eval.timestamp_ms" => eval_time_ms,
             Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => false,
-          }
+          },
         )
       end
     end

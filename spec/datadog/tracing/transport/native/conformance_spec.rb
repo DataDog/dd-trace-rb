@@ -56,10 +56,13 @@ RSpec.describe "Native transport wire-level conformance" do
 
             # Read headers
             content_length = 0
+            headers = {}
             path = request_line.split(" ")[1]
             while (line = c.gets) && line != "\r\n"
-              content_length = line.split(": ", 2).last.to_i if line.downcase.start_with?("content-length")
+              key, value = line.split(":", 2)
+              headers[key.downcase] = value.strip
             end
+            content_length = headers.fetch("content-length", "0").to_i
 
             # Read body
             request_body = (content_length > 0) ? c.read(content_length) : ""
@@ -67,7 +70,7 @@ RSpec.describe "Native transport wire-level conformance" do
 
             # Write captured trace payloads (skip /info requests)
             if path&.include?("/traces") && !request_body.empty?
-              payload = Marshal.dump(request_body)
+              payload = Marshal.dump(body: request_body, headers: headers)
               pipe_mutex.synchronize do
                 @write_io.write([payload.bytesize].pack("N"))
                 @write_io.write(payload)
@@ -89,9 +92,7 @@ RSpec.describe "Native transport wire-level conformance" do
       @write_io.close
     end
 
-    # Read one captured trace payload (blocking, with timeout).
-    # Returns the raw msgpack bytes.
-    def read_payload(timeout: 5)
+    def read_request(timeout: 5)
       ready = IO.select([@read_io], nil, nil, timeout)
       raise "Timeout waiting for agent to receive a trace payload" unless ready
 
@@ -100,6 +101,10 @@ RSpec.describe "Native transport wire-level conformance" do
 
       len = len_bytes.unpack1("N")
       Marshal.load(@read_io.read(len)) # rubocop:disable Security/MarshalLoad
+    end
+
+    def read_payload(timeout: 5)
+      read_request(timeout: timeout).fetch(:body)
     end
 
     def stop
@@ -118,11 +123,12 @@ RSpec.describe "Native transport wire-level conformance" do
   # ---------------------------------------------------------------------------
 
   around do |example|
+    Datadog.configuration.apm.tracing.enabled = apm_tracing_enabled
     @mock_agent = CapturingMockAgent.new
-    agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+    agent_settings = Struct.new(:url, :timeout_seconds).new("http://127.0.0.1:#{@mock_agent.port}", 30)
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
-      logger: Logger.new(File::NULL)
+      logger: Logger.new(File::NULL),
     )
 
     example.run
@@ -146,6 +152,26 @@ RSpec.describe "Native transport wire-level conformance" do
   let(:mock_agent) { @mock_agent }
   let(:native_module) { Datadog::Tracing::Transport::Native }
   let(:transport) { @transport }
+  let(:apm_tracing_enabled) { true }
+
+  describe "client-computed stats header" do
+    [true, false].each do |enabled|
+      context "with APM tracing #{enabled ? "enabled" : "disabled"}" do
+        let(:apm_tracing_enabled) { enabled }
+
+        it "disables Agent stats only when APM tracing is disabled" do
+          expect(transport.send_traces([make_trace([{name: "request"}])])).to all(be_ok)
+          headers = mock_agent.read_request.fetch(:headers)
+
+          if enabled
+            expect(headers).not_to have_key("datadog-client-computed-stats")
+          else
+            expect(headers.fetch("datadog-client-computed-stats")).to match(/\A(?:true|yes)\z/)
+          end
+        end
+      end
+    end
+  end
 
   def make_trace(spans_attrs)
     trace_id = rand(1 << 62)
@@ -376,16 +402,16 @@ RSpec.describe "Native transport wire-level conformance" do
           trace_id: (0x1234 << 64) | 0x5678,
           span_id: 0x9abc,
           trace_sampling_priority: 1,
-          trace_state: "vendor=value"
+          trace_state: "vendor=value",
         ),
-        attributes: {"operation" => "receive", "batch" => [1, true]}
+        attributes: {"operation" => "receive", "batch" => [1, true]},
       )
       second = Datadog::Tracing::SpanLink.new(
         Datadog::Tracing::TraceDigest.new(
           trace_id: 22,
           span_id: 33,
-          trace_sampling_priority: 0
-        )
+          trace_sampling_priority: 0,
+        ),
       )
       trace = make_trace([{name: "consumer", links: [first, second]}])
 
@@ -411,7 +437,7 @@ RSpec.describe "Native transport wire-level conformance" do
             "span_id" => 33,
             "flags" => 0x8000_0000,
           },
-        ]
+        ],
       )
     end
 
@@ -452,7 +478,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "span_id" => 2,
         "attributes" => {"operation" => "receive"},
         "tracestate" => "vendor=value",
-        "flags" => 0x8000_0001
+        "flags" => 0x8000_0001,
       )
     end
 
@@ -481,7 +507,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "name" => "n" * 512,
         "service" => "s" * 512,
         "resource" => "r" * 512,
-        "type" => "t" * 512
+        "type" => "t" * 512,
       )
     end
 
@@ -490,9 +516,9 @@ RSpec.describe "Native transport wire-level conformance" do
         Datadog::Tracing::TraceDigest.new(
           trace_id: 5,
           span_id: 6,
-          trace_sampling_priority: 0
+          trace_sampling_priority: 0,
         ),
-        attributes: {"empty" => ""}
+        attributes: {"empty" => ""},
       )
       trace = make_trace([{name: "consumer", links: [link]}])
 
@@ -503,7 +529,7 @@ RSpec.describe "Native transport wire-level conformance" do
         "trace_id_high" => 0,
         "span_id" => 6,
         "attributes" => {"empty" => ""},
-        "flags" => 0x8000_0000
+        "flags" => 0x8000_0000,
       )
     end
   end

@@ -249,8 +249,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             before do
               tracer.continue_trace!(
                 Datadog::Tracing::TraceDigest.new(
-                  trace_sampling_priority: sampling_priority
-                )
+                  trace_sampling_priority: sampling_priority,
+                ),
               )
             end
 
@@ -266,8 +266,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           before do
             tracer.continue_trace!(
               Datadog::Tracing::TraceDigest.new(
-                trace_sampling_priority: sampling_priority
-              )
+                trace_sampling_priority: sampling_priority,
+              ),
             )
           end
 
@@ -319,6 +319,19 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
     end
 
     it_behaves_like "instrumented request"
+
+    context "when HTTP client resource-name quantization is enabled" do
+      let(:path) { "/users/123" }
+
+      before do
+        Datadog.configuration.tracing.http_client_resource_name_quantize = true
+        response
+      end
+
+      it "includes the quantized path in the resource" do
+        expect(span.resource).to eq("POST /users/*")
+      end
+    end
 
     context "when basic auth in url" do
       let(:host) { "username:password@localhost" }

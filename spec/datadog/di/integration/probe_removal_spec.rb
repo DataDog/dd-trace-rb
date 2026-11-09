@@ -56,7 +56,7 @@ RSpec.describe "DI probe removal via remote config" do
   end
 
   let(:transport) { instance_double(Datadog::Core::Remote::Transport::Config::Transport) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry: telemetry) }
   let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
 
   let(:probe_spec) do

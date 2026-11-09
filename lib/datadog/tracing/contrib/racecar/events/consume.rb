@@ -14,17 +14,15 @@ module Datadog
 
             EVENT_NAME = "main_loop.racecar"
 
-            module_function
-
-            def event_name
+            def self.event_name
               self::EVENT_NAME
             end
 
-            def span_name
+            def self.span_name
               Ext::SPAN_CONSUME
             end
 
-            def span_options
+            def self.span_options
               super.merge(tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUME})
             end
           end

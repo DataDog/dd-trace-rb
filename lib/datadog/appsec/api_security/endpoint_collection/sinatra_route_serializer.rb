@@ -6,9 +6,7 @@ module Datadog
       module EndpointCollection
         # This module serializes Sinatra routes.
         module SinatraRouteSerializer
-          module_function
-
-          def serialize(route, method:, path_prefix: "")
+          def self.serialize(route, method:, path_prefix: "")
             path = path_prefix + route.safe_string
 
             {

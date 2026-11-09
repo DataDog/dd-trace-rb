@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           agent_base_url: agent_base_url,
           ld_library_path: ld_library_path,
           path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-          logger: logger
+          logger: logger,
         ).and_return(component)
 
         expect(component).to receive(:start)
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
         # Verify exception message
         expect(crash_report[:error][:message]).to eq(
-          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace"
+          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace",
         )
 
         # Verify stack trace is present and complete
@@ -275,7 +275,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
       it "updates the crash tracker" do
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
-          hash_including(action: :update_on_fork)
+          hash_including(action: :update_on_fork),
         )
 
         crashtracker = build_crashtracker(logger: logger)
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         allow(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(:latest_settings).and_return([:latest_tags])
 
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
-          hash_including(tags_as_array: [:latest_tags])
+          hash_including(tags_as_array: [:latest_tags]),
         )
 
         crashtracker = build_crashtracker(logger: logger)
@@ -382,8 +382,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             raise StandardError, "Test Ruby unhandled exception"
           end
 
-          # Errors intake sends 2 messages, telemetry sends 2 messages
-          expect(messages.length).to eq(4)
+          paths = messages.select { |message| message.request_method == "POST" }.map(&:path)
+          expect(paths.count("/evp_proxy/v4/api/v2/errorsintake")).to eq(2)
+          expect(paths.count("/telemetry/proxy/api/v2/apmtelemetry")).to eq(2)
         end
       end
 
@@ -398,7 +399,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crash_tracker = build_crashtracker(
             agent_base_url: agent_base_url,
             tags: {"latest_settings" => "included"},
-            logger: logger
+            logger: logger,
           )
           crash_tracker.start
 
@@ -468,7 +469,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
               hash_including(
                 action: :update_on_fork,
                 agent_base_url: "http://google.com:12345/",
-              )
+              ),
             )
           end
         end
@@ -513,33 +514,33 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           # Check that the crashing function is captured
           expect(frames).to include(
             hash_including(
-              function: "free"
-            )
+              function: "free",
+            ),
           )
 
           # Sanity check some frames
           expect(frames).to include(
             hash_including(
-              function: "ruby_method_with_c_calls"
-            )
+              function: "ruby_method_with_c_calls",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "top_level_ruby_method"
-            )
+              function: "top_level_ruby_method",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "each"
-            )
+              function: "each",
+            ),
           )
 
           expect(frames).to include(
             hash_including(
-              function: "gsub"
-            )
+              function: "gsub",
+            ),
           )
         end
       end

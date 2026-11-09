@@ -2,6 +2,7 @@
 
 require_relative "../../tracing/configuration/ext"
 require_relative "../../core/environment/variable_helpers"
+require_relative "../../ruby_version"
 require_relative "../contrib/status_range_matcher"
 require_relative "../contrib/status_range_env_parser"
 require_relative "http"
@@ -56,7 +57,7 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
-                  ]
+                  ],
                 )
                 o.after_set do |styles|
                   # Make values case-insensitive
@@ -257,7 +258,9 @@ module Datadog
 
               option :otel_thread_context_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_OTEL_CONTEXT_ENABLED
-                o.default true
+                o.default do
+                  RUBY_ENGINE == "ruby" && RUBY_PLATFORM.include?("linux")
+                end
                 o.type :bool
               end
 
@@ -443,7 +446,7 @@ module Datadog
                           "Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only " \
                             "DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when " \
                             "also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. " \
-                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
+                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}",
                         )
                       end
                       rules
@@ -454,7 +457,7 @@ module Datadog
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
                           "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
-                          "No span sampling rules will be applied."
+                          "No span sampling rules will be applied.",
                         )
                         nil
                       end
@@ -496,11 +499,11 @@ module Datadog
               #
               # This option is recommended for internal use only.
               #
-              # @default `false`
+              # @default `true` on CRuby 4.0.0 and later, otherwise `false`
               # @return [Boolean]
               option :native_transport do |o|
                 o.env Configuration::Ext::ENV_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED
-                o.default false
+                o.default { RUBY_ENGINE == "ruby" && RubyVersion.is?(">= 4.0.0") }
                 o.type :bool
               end
 
@@ -563,6 +566,17 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
+              end
+
+              # Whether outbound HTTP client resource names include a quantized request path.
+              # URL tags and outgoing requests are unchanged.
+              #
+              # @default `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :http_client_resource_name_quantize do |o|
+                o.env Tracing::Configuration::Ext::ENV_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE
+                o.default false
+                o.type :bool
               end
 
               # HTTP error statuses configuration

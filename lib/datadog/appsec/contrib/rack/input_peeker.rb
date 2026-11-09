@@ -12,8 +12,6 @@ module Datadog
         #
         # @api private
         module InputPeeker
-          module_function
-
           # Peeks at `env['rack.input']` and returns the body bytesize when it
           # can be measured within the given limit
           #
@@ -29,7 +27,7 @@ module Datadog
           # @return [Integer, nil] `Integer` bytesize when measured within
           #   `limit`, including `0`; `nil` when input is missing, over the
           #   limit, or cannot be preserved for downstream reads
-          def peek_bytesize(env, limit:)
+          def self.peek_bytesize(env, limit:)
             rack_input = env["rack.input"]
             return unless rack_input
 
@@ -59,13 +57,13 @@ module Datadog
             over_limit ? nil : buffer.bytesize
           end
 
-          private_class_method def rewind?
+          private_class_method def self.rewind?
             return @rewind if defined?(@rewind)
 
             @rewind = ::Gem::Version.new(::Rack.release) < ::Gem::Version.new("3")
           end
 
-          private_class_method def rewind(io)
+          private_class_method def self.rewind(io)
             io.rewind
             true
           rescue => e

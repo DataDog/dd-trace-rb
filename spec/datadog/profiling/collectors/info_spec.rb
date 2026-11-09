@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
           profiler: hash_including(
             version: Datadog::Core::Environment::Identity.gem_datadog_version,
           ),
-        }
+        },
       )
     end
 
@@ -45,12 +45,24 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
         a_hash_including(
           max_frames: 600,
           experimental_heap_enabled: true,
-        )
+        ),
       )
     end
 
-    it "caches data" do
-      expect(info_collector.info).to be(info_collector.info)
+    it "reports whether YJIT and ZJIT are enabled" do
+      hide_const("RubyVM::YJIT")
+      stub_const("RubyVM::ZJIT", double("RubyVM::ZJIT", enabled?: true))
+
+      expect(info.fetch(:runtime)).to include(yjit_enabled: false, zjit_enabled: true)
+    end
+
+    context "when the Ruby VM has no JIT" do
+      it "reports both JITs as disabled" do
+        hide_const("RubyVM::YJIT")
+        hide_const("RubyVM::ZJIT")
+
+        expect(info.fetch(:runtime)).to include(yjit_enabled: false, zjit_enabled: false)
+      end
     end
 
     context "with exotic-typed profile settings" do
@@ -84,7 +96,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
               proc_opt: a_string_including("#<Proc:"),
               complex_obj_opt: a_string_including("#<ComplexObject:"),
             },
-          }
+          },
         )
       end
     end
@@ -121,6 +133,35 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
             RUBY_GC_HEAP_FREE_SLOTS: "12345",
           })
         end
+      end
+    end
+  end
+
+  describe "#info_json" do
+    it "serializes the info" do
+      expect(info_collector.info_json).to eq(JSON.generate(info_collector.info))
+    end
+
+    it "caches the serialized info" do
+      expect(info_collector.info_json).to be(info_collector.info_json)
+    end
+
+    context "when a JIT gets enabled at runtime" do
+      before do
+        yjit = double("RubyVM::YJIT")
+        allow(yjit).to receive(:enabled?).and_return(false, true, true)
+        stub_const("RubyVM::YJIT", yjit)
+        hide_const("RubyVM::ZJIT")
+      end
+
+      it "serializes the info again, and caches the new result" do
+        yjit_disabled = info_collector.info_json
+        yjit_enabled = info_collector.info_json
+
+        expect(JSON.parse(yjit_disabled, symbolize_names: true).fetch(:runtime)).to include(yjit_enabled: false)
+        expect(JSON.parse(yjit_enabled, symbolize_names: true).fetch(:runtime)).to include(yjit_enabled: true)
+
+        expect(info_collector.info_json).to be(yjit_enabled)
       end
     end
   end
@@ -193,7 +234,7 @@ class TestSettings
             g: {"a" => "a", "b" => "b"},
             h: :a_symbol,
             i: ComplexObject.new,
-          }
+          },
         )
       end
 

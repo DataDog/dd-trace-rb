@@ -10,8 +10,6 @@ module Datadog
       # Useful for ensuring that tag keys and values are normalized consistently
       # An use case for now is Process Tags which need to be sent across various intakes (profiling, tracing, etc.) consistently
 
-      module_function
-
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./]++}

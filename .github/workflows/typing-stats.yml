@@ -44,13 +44,13 @@ jobs:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073 # v1.324.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: "4.0"
 
       - name: Install steep
         # zizmor: ignore[adhoc-packages] pinned tool install for computing typing stats, not an app dependency
-        run: gem install steep -v 2.0
+        run: gem install steep -v 2.0 # MANUAL-PIN: steep
 
       - name: Copy scripts to directory outside of workspace
         run: |

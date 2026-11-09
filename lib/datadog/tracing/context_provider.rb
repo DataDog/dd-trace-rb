@@ -21,6 +21,14 @@ module Datadog
       def context=(ctx)
         ctx.otel_thread_context = @otel_thread_context if ctx.respond_to?(:otel_thread_context=)
 
+        if (otel_thread_context = @otel_thread_context)
+          if (trace = ctx&.active_trace)
+            otel_thread_context.update_from_trace_op(trace)
+          else
+            otel_thread_context.clear
+          end
+        end
+
         @context.local = ctx
       end
 

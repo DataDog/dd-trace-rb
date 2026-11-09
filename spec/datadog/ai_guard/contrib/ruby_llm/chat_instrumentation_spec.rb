@@ -31,8 +31,26 @@ RSpec.describe "RubyLLM chat instrumentation" do
       }
     end
 
-    allow_any_instance_of(RubyLLM::Protocols::Responses).to receive(:complete)
-      .and_return(RubyLLM::Message.new(role: "assistant", content: "I see an image"))
+    stub_request(:post, "https://api.openai.com/v1/responses")
+      .to_return(
+        status: 200,
+        headers: {
+          "Content-Type" => "application/json",
+        },
+        body: {
+          id: "test_respons",
+          model: "gpt-4.1-mini",
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              role: "assistant",
+              content: [{type: "output_text", text: "I see an image"}],
+            },
+          ],
+          usage: {input_tokens: 10, output_tokens: 1},
+        }.to_json,
+      )
   end
 
   after do
@@ -42,7 +60,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
     WebMock.disable!
   end
 
-  let(:chat) { RubyLLM.chat }
+  let(:chat) { RubyLLM.chat(model: "gpt-4.1-mini", provider: :openai) }
   let(:ai_guard_span) { spans.find { |span| span.name == "ai_guard" } }
   let(:telemetry) { spy(Datadog::Core::Telemetry::Component) }
   let(:raw_response) do
@@ -152,9 +170,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Describe this",
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
-        ]
+        ],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -177,7 +195,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :user,
         content: "Summarize this file",
-        attachments: [RubyLLM::Attachment.new(StringIO.new("some notes"), filename: "notes.txt")]
+        attachments: [RubyLLM::Attachment.new(StringIO.new("some notes"), filename: "notes.txt")],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -191,23 +209,10 @@ RSpec.describe "RubyLLM chat instrumentation" do
   end
 
   context "when redacting a text attachment" do
-    before do
-      allow(chat).to receive(:messages).and_return([user_message])
-      allow(chat.provider).to receive(:preprocess_message) do |message, **_options|
-        preprocessed_messages << message
-        message
-      end
-      chat.complete
+    let(:attachment) do
+      RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt")
     end
 
-    let(:preprocessed_messages) { [] }
-    let(:user_message) do
-      RubyLLM::Message.new(
-        role: :user,
-        content: "Summarize this file",
-        attachments: [RubyLLM::Attachment.new(StringIO.new("Account 123"), filename: "notes.txt")]
-      )
-    end
     let(:raw_response) do
       {
         "data" => {
@@ -228,28 +233,52 @@ RSpec.describe "RubyLLM chat instrumentation" do
       }
     end
 
-    it "passes the redacted attachment to provider preprocessing without changing the original" do
-      expect(preprocessed_messages[0].attachments[0].content).to eq("Account <REDACTED>")
-      expect(user_message.attachments[0].content).to eq("Account 123")
+    it "sends the redacted attachment to the provider without changing the original" do
+      chat.ask("Summarize this file", with: attachment)
+
+      expected_input = [
+        {
+          "role" => "user",
+          "content" => [
+            {"type" => "input_text", "text" => "Summarize this file"},
+            {
+              "type" => "input_text",
+              "text" => "<file name='notes.txt' mime_type='text/plain'>Account <REDACTED></file>",
+            },
+          ],
+        },
+      ]
+
+      aggregate_failures do
+        expect(WebMock).to have_requested(:post, "https://api.openai.com/v1/responses")
+          .with(body: hash_including("input" => expected_input))
+          .once
+
+        expect(attachment.content).to eq("Account 123")
+        expect(chat.messages[0].attachments[0].content).to eq("Account 123")
+      end
     end
   end
 
   context "when a message has an unsupported attachment" do
     before do
       allow(chat).to receive(:messages).and_return([user_message])
-      chat.complete
     end
 
     let(:user_message) do
       RubyLLM::Message.new(
         role: :user,
         content: "Transcribe this",
-        attachments: [RubyLLM::Attachment.new(StringIO.new("\xFF\xFB".b), filename: "audio.mp3")]
+        attachments: [RubyLLM::Attachment.new(StringIO.new("\xFF\xFB".b), filename: "audio.mp3")],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
 
-    it { expect(parts).to eq([{type: "text", text: "Transcribe this"}]) }
+    it "evaluates the text before the provider rejects the attachment" do
+      expect { chat.complete }.to raise_error(RubyLLM::UnsupportedAttachmentError)
+
+      expect(parts).to eq([{type: "text", text: "Transcribe this"}])
+    end
   end
 
   context "when a message has an attachment and no text" do
@@ -264,9 +293,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: nil,
         attachments: [
           RubyLLM::Attachment.new(
-            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png"
+            StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png",
           ),
-        ]
+        ],
       )
     end
     let(:parts) { ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)[0][:content] }
@@ -389,7 +418,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
           raise Datadog::AIGuard::AIGuardAbortError.new(
             action: "DENY",
             reason: "Dangerous tool call",
-            tags: ["shell-injection"]
+            tags: ["shell-injection"],
           )
         end
 
@@ -418,9 +447,9 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Here is how to list files under root directory:",
         tool_calls: {
           "tool_call_1" => RubyLLM::ToolCall.new(
-            id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"}
+            id: "tool_call_1", name: "shell", arguments: {"command" => "ls /"},
           ),
-        }
+        },
       )
     end
 
@@ -434,7 +463,8 @@ RSpec.describe "RubyLLM chat instrumentation" do
   context "when message conversion fails" do
     before do
       allow(chat).to receive(:messages).and_return([tool_call_message])
-      allow(JSON).to receive(:generate).and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
+      allow(Datadog::AIGuard::Evaluation::ToolCall).to receive(:new)
+        .and_raise(JSON::GeneratorError.new("Failed to generate JSON"))
       allow(Datadog::AIGuard::Metrics::Telemetry).to receive(:report_error)
     end
 
@@ -446,14 +476,15 @@ RSpec.describe "RubyLLM chat instrumentation" do
           "tool_call_1" => RubyLLM::ToolCall.new(
             id: "tool_call_1",
             name: "shell",
-            arguments: {"command" => "ls /"}
+            arguments: {"command" => "ls /"},
           ),
-        }
+        },
       )
     end
 
     it "counts the error and continues without evaluation" do
       expect { chat.generate }.not_to raise_error
+      expect(WebMock).to have_requested(:post, "https://api.openai.com/v1/responses").once
       expect(a_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")).not_to have_been_made
       expect(Datadog::AIGuard::Metrics::Telemetry).to have_received(:report_error)
     end
@@ -471,7 +502,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
         content: "Running the command",
         tool_calls: {
           "tool_call_1" => RubyLLM::ToolCall.new(id: "tool_call_1", name: "shell", arguments: []),
-        }
+        },
       )
     end
 
@@ -499,7 +530,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do
@@ -555,7 +586,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do
@@ -591,7 +622,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
       RubyLLM::Message.new(
         role: :assistant,
         content: "Running the command",
-        tool_calls: {"tool_call_1" => tool_call}
+        tool_calls: {"tool_call_1" => tool_call},
       )
     end
     let(:tool_call) do

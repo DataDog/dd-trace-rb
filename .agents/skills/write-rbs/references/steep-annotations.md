@@ -1,25 +1,24 @@
 # Steep annotations
 
-Reach for these when the Ruby is correct but Steep cannot infer a type – never to
-reshape working code or loosen a signature. There are two forms plus a last
-resort: a trailing **assertion**, an above-the-line **annotation**, and
-`steep:ignore`
+Use these when the Ruby code is correct but Steep cannot infer a type. There
+are two forms, a trailing **assertion** and an **annotation** on the line
+above, plus `steep:ignore` as a last resort.
 
 ## Rules
 
-- SHOULD reach for one only when the code is correct and uninferrable – NEVER
-  reshape working Ruby or loosen a signature to satisfy the checker
-- A **type assertion** trails an expression as `#: Type` – it narrows a value
+- SHOULD use one only when the code is correct and Steep cannot infer the
+  type. NEVER change working Ruby or loosen a signature to satisfy the checker.
+- A **type assertion** trails an expression as `#: Type`. It narrows a value
   Steep infers too widely, most often an empty literal that has no element type
-  to infer; NEVER assert to `untyped`
-- An **annotation** sits on its own `# @type` line above the code it governs:
-  `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block Steep
-  cannot follow, and `# @type var x: Type` / `# @type ivar @x: Type` for a local,
-  block parameter, or instance variable Steep infers wrong; pin the real type,
-  NEVER `untyped`
-- `steep:ignore` is the last resort – SHOULD scope it to the specific diagnostic
-  (`steep:ignore NoMethod`), NEVER bare, and bracket a run with
-  `steep:ignore:start` / `steep:ignore:end`
+  to infer. NEVER assert to `untyped`.
+- An **annotation** sits on its own `# @type` line above the code it governs.
+  Use `# @type self: Type` for a `class_eval` / `instance_eval` / DSL block
+  Steep cannot follow. Use `# @type var x: Type` / `# @type ivar @x: Type`
+  when Steep infers a local, block parameter, or instance variable wrong. Pin
+  the real type, NEVER `untyped`.
+- `steep:ignore` is the last resort. SHOULD scope it to the specific diagnostic
+  (`steep:ignore NoMethod`), NEVER bare. To ignore several consecutive lines,
+  put `# steep:ignore:start` before them and `# steep:ignore:end` after them.
 
 ## Examples
 

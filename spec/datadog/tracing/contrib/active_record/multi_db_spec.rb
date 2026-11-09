@@ -20,7 +20,7 @@ RSpec.describe "ActiveRecord multi-database implementation" do
       "ApplicationRecord",
       Class.new(ActiveRecord::Base) do
         self.abstract_class = true
-      end
+      end,
     )
   end
   let!(:gadget_class) do

@@ -8,6 +8,39 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:working?) { described_class.send(:working?) }
 
     it { is_expected.to be true }
+
+    describe "self_test_thread_struct" do
+      it "passes when Thread name method is overridden as in semantic_logger" do
+        expect_in_fork do
+          # Mirrors semantic_logger 5.1.0: https://github.com/DataDog/dd-trace-rb/issues/6582
+          Thread.class_eval do
+            undef :name if method_defined? :name
+            undef :name= if method_defined? :name=
+
+            def name
+              @name ||= object_id.to_s
+            end
+
+            def name=(name)
+              @name = name.to_s
+            end
+          end
+
+          is_expected.to be true
+        end
+      end
+
+      it "fails if the thread name we tried to set doesn't match thread_struct->name" do
+        expect_in_fork do
+          Thread.class_eval do
+            def name=(_name)
+            end
+          end
+
+          expect { working? }.to raise_error(RuntimeError, "rb_thread_t self-test failed: name does not match the assigned name")
+        end
+      end
+    end
   end
 
   describe "grab_gvl_and_raise" do
@@ -171,9 +204,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
-  describe "is_current_thread_holding_the_gvl" do
-    subject(:is_current_thread_holding_the_gvl) do
-      Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_holding_the_gvl
+  describe "is_current_thread_in_main_ractor_and_holding_the_gvl" do
+    subject(:is_current_thread_in_main_ractor_and_holding_the_gvl) do
+      Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_in_main_ractor_and_holding_the_gvl
     end
 
     context "when current thread is holding the global VM lock" do
@@ -181,8 +214,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when current thread is not holding the global VM lock" do
-      subject(:is_current_thread_holding_the_gvl) do
-        Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_holding_the_gvl
+      subject(:is_current_thread_in_main_ractor_and_holding_the_gvl) do
+        Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_in_main_ractor_and_holding_the_gvl
       end
 
       it { is_expected.to be false }
@@ -205,12 +238,12 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       # ruby_thread_has_gvl_p() can return true even when the thread is not holding the global VM lock. See the comments
-      # on is_current_thread_holding_the_gvl() for more details. Here we test that our function is accurate in the same
+      # on is_current_thread_in_main_ractor_and_holding_the_gvl() for more details. Here we test that our function is accurate in the same
       # situation.
       #
       # Here's how this works:
       # * background_thread installs a signal handler that will call both ruby_thread_has_gvl_p() and
-      #   is_current_thread_holding_the_gvl() and return their results
+      #   is_current_thread_in_main_ractor_and_holding_the_gvl() and return their results
       # * the main testing thread waits until the background thread is executing the dummy infinite loop and then
       #   triggers the signal. Because the main testing thread keeps holding the GVL while it sends the signal to
       #   the background thread, we are guaranteed that the background thread does not have the GVL.
@@ -222,7 +255,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
         result = Datadog::Profiling::NativeExtension::Testing
           ._native_trigger_holding_the_gvl_signal_handler_on(background_thread)
-        expect(result).to eq(ruby_thread_has_gvl_p: true, is_current_thread_holding_the_gvl: false)
+        expect(result).to eq(ruby_thread_has_gvl_p: true, is_current_thread_in_main_ractor_and_holding_the_gvl: false)
       end
     end
   end

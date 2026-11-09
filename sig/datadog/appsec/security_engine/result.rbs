@@ -15,9 +15,9 @@ module Datadog
 
           @input_truncated: bool
 
-          @duration_ns: ::Integer
+          @duration_ns: Integer
 
-          @duration_ext_ns: ::Integer
+          @duration_ext_ns: Integer
 
           attr_reader events: WAF::events
 
@@ -25,16 +25,16 @@ module Datadog
 
           attr_reader attributes: WAF::attributes
 
-          attr_reader duration_ns: ::Integer
+          attr_reader duration_ns: Integer
 
-          attr_reader duration_ext_ns: ::Integer
+          attr_reader duration_ext_ns: Integer
 
           def initialize: (
             events: WAF::events,
             actions: WAF::actions,
             attributes: WAF::attributes,
-            duration_ns: ::Integer,
-            duration_ext_ns: ::Integer,
+            duration_ns: Integer,
+            duration_ext_ns: Integer,
             timeout: bool,
             keep: bool,
             input_truncated: bool
@@ -73,9 +73,9 @@ module Datadog
 
           @attributes: WAF::attributes
 
-          @duration_ns: ::Integer
+          @duration_ns: Integer
 
-          @duration_ext_ns: ::Integer
+          @duration_ext_ns: Integer
 
           @input_truncated: bool
 
@@ -85,11 +85,11 @@ module Datadog
 
           attr_reader attributes: WAF::attributes
 
-          attr_reader duration_ns: ::Integer
+          attr_reader duration_ns: Integer
 
-          attr_reader duration_ext_ns: ::Integer
+          attr_reader duration_ext_ns: Integer
 
-          def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
+          def initialize: (duration_ext_ns: Integer, input_truncated: bool) -> void
 
           def keep?: () -> bool
 

@@ -9,6 +9,8 @@ module Datadog
             def self.watch_request_action: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
 
             def self.watch_response_body_json: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
+
+            private def self.extract_json: (String body) -> String?
           end
         end
       end

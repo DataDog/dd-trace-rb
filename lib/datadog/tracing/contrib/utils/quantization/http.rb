@@ -18,9 +18,97 @@ module Datadog
             # and fragment components
             RFC3986_URL_BASE = /\A(?<URI>(?<scheme>[A-Za-z][+\-.0-9A-Za-z]*+):(?<hier-part>\/\/(?<authority>(?:(?<userinfo>(?:%\h\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\[(?:(?<IPv6address>(?:\h{1,4}:){6}(?<ls32>\h{1,4}:\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]|\d)\.\g<dec-octet>\.\g<dec-octet>\.\g<dec-octet>))|::(?:\h{1,4}:){5}\g<ls32>|\h{1,4}?::(?:\h{1,4}:){4}\g<ls32>|(?:(?:\h{1,4}:)?\h{1,4})?::(?:\h{1,4}:){3}\g<ls32>|(?:(?:\h{1,4}:){,2}\h{1,4})?::(?:\h{1,4}:){2}\g<ls32>|(?:(?:\h{1,4}:){,3}\h{1,4})?::\h{1,4}:\g<ls32>|(?:(?:\h{1,4}:){,4}\h{1,4})?::\g<ls32>|(?:(?:\h{1,4}:){,5}\h{1,4})?::\h{1,4}|(?:(?:\h{1,4}:){,6}\h{1,4})?::)|(?<IPvFuture>v\h++\.[!$&-.0-;=A-Z_a-z~]++))\])|\g<IPv4address>|(?<reg-name>(?:%\h\h|[!$&-.0-9;=A-Z_a-z~])*+))(?::(?<port>\d*+))?)))(?:\/|\z)/.freeze # rubocop:disable Layout/LineLength
 
-            module_function
+            def self.client_resource(method, path, enabled:)
+              return method unless enabled && path
 
-            def url(url, options = {})
+              resource = method.dup
+              resource << (+" ").force_encoding(resource.encoding)
+              quantized_path = quantize_path(decode_path(path))
+              resource << quantized_path.force_encoding(resource.encoding)
+            end
+
+            def self.decode_path(path)
+              decoded = String.new(encoding: Encoding::BINARY)
+              index = 0
+
+              while index < path.bytesize
+                byte = path.getbyte(index)
+                break unless byte
+
+                if byte == 37 && index + 2 < path.bytesize
+                  high_byte = path.getbyte(index + 1)
+                  low_byte = path.getbyte(index + 2)
+                  if high_byte && low_byte
+                    high = decode_hex_byte(high_byte)
+                    low = decode_hex_byte(low_byte)
+                    if high && low
+                      decoded << high * 16 + low
+                      index += 3
+                      next
+                    end
+                  end
+                end
+
+                decoded << byte
+                index += 1
+              end
+
+              decoded.force_encoding(path.encoding)
+            end
+
+            def self.quantize_path(path)
+              slash = (+"/").force_encoding(path.encoding)
+              normalized = if path.getbyte(0) == 47
+                path
+              else
+                String.new(encoding: path.encoding) << slash << path
+              end
+
+              output = String.new(encoding: path.encoding)
+              index = 1
+              replacements = 0
+
+              while index < normalized.bytesize
+                segment_end = index
+                allowed = 0
+                digits = 0
+                specials = 0
+
+                while segment_end < normalized.bytesize && normalized.getbyte(segment_end) != 47
+                  byte = normalized.getbyte(segment_end)
+                  break unless byte
+
+                  if byte.between?(48, 57)
+                    digits += 1
+                  elsif byte.between?(65, 90) || byte.between?(97, 122) || byte == 45 || byte == 95
+                    allowed += 1
+                  else
+                    specials += 1
+                  end
+                  segment_end += 1
+                end
+
+                output << slash
+                segment = normalized.byteslice(index, segment_end - index) || String.new(encoding: path.encoding)
+                if normalized.getbyte(index) == 118 && allowed == 1 && digits > 0 && specials.zero?
+                  output << segment
+                elsif specials > 0 || digits > 0
+                  output << (+"*").force_encoding(path.encoding)
+                  replacements += 1
+                else
+                  output << segment
+                end
+
+                index = segment_end + 1
+              end
+
+              return normalized.dup if replacements.zero?
+
+              output << slash if normalized.getbyte(normalized.bytesize - 1) == 47
+              output
+            end
+
+            def self.url(url, options = {})
               url!(url, options)
             rescue
               placeholder = options[:placeholder] || PLACEHOLDER
@@ -28,7 +116,7 @@ module Datadog
               (options[:base] == :exclude) ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
-            def base_url(url, options = {})
+            def self.base_url(url, options = {})
               if (m = RFC3986_URL_BASE.match(url))
                 m[1]
               else
@@ -36,7 +124,7 @@ module Datadog
               end
             end
 
-            def url!(url, options = {})
+            def self.url!(url, options = {})
               options ||= {}
 
               URI.parse(url).tap do |uri|
@@ -57,13 +145,15 @@ module Datadog
               end.to_s
             end
 
-            def query(query, options = {})
+            def self.query(query, options = {})
               query!(query, options)
             rescue
+              return "" if options && options[:obfuscate]
+
               options[:placeholder] || PLACEHOLDER
             end
 
-            def query!(query, options = {})
+            def self.query!(query, options = {})
               options ||= {}
               options[:obfuscate] = {} if options[:obfuscate] == :internal
               options[:show] = options[:show] || (options[:obfuscate] ? :all : [])
@@ -90,7 +180,7 @@ module Datadog
             # Iterate over each key value pair, yielding to the block given.
             # Accepts :uniq option, which keeps uniq copies of keys without values.
             # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
-            def collect_query(query, options = {})
+            def self.collect_query(query, options = {})
               return query unless block_given?
 
               uniq = options[:uniq].nil? ? false : options[:uniq]
@@ -116,9 +206,21 @@ module Datadog
 
             private_class_method :collect_query
 
+            def self.decode_hex_byte(byte)
+              if byte.between?(48, 57)
+                byte - 48
+              elsif byte.between?(65, 70)
+                byte - 55
+              elsif byte.between?(97, 102)
+                byte - 87
+              end
+            end
+
+            private_class_method :decode_hex_byte
+
             # Scans over the query string and obfuscates sensitive data by
             # replacing matches with an opaque value
-            def obfuscate_query(query, options = {})
+            def self.obfuscate_query(query, options = {})
               options[:regex] = nil if options[:regex] == :internal
               re = options[:regex] || OBFUSCATOR_REGEX
               with = options[:with] || OBFUSCATOR_WITH
@@ -136,7 +238,7 @@ module Datadog
                  (?:"|%22)?
               )
               (?: # common keys
-                 (?:old[-_]?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
+                 (?:old[-_]?|new[-_]?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
                 |pass(?:[-_]?phrase)?  # pass, passphrase variants
                 |secret
                 |(?: # key, key_id variants
@@ -145,6 +247,7 @@ module Datadog
                     |public[-_]?
                     |access[-_]?
                     |secret[-_]?
+                    |app(?:lication)?[-_]?
                  )key(?:[-_]?id)?
                 |token
                 |consumer[-_]?(?:id|key|secret)
@@ -165,9 +268,9 @@ module Datadog
                  bearer(?:\s|%20)+[a-z0-9._-]+
                 |token(?::|%3A)[a-z0-9]{13}
                 |gh[opsu]_[0-9a-zA-Z]{36}
-                |ey[I-L](?:[\w=-]|%3D)+\.ey[I-L](?:[\w=-]|%3D)+(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
+                |(?:^|[^\w%-]|%[0-9a-f]{2})ey[I-L][\w-]+(?:=|%3D)*\.ey[I-L][\w-]+(?:=|%3D)*(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
                 |-{5}BEGIN(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY-{5}[^-]+-{5}END(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY(?:-{5})?(?:\n|%0A)?
-                |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20)*(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s+)[a-z0-9._-]+)?
+                |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20|%09)+(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s|%20|%09)+[a-z0-9._-]+)?
               )
             }ix.freeze
             # rubocop:enable Layout/LineLength

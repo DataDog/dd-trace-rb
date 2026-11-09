@@ -14,9 +14,11 @@ module Datadog
 
       def self.build(tracing_settings)
         return unless tracing_settings.otel_thread_context_enabled
+        return unless Datadog::Core::LIBDATADOG_API_FAILURE.nil?
 
         instance = new
-        instance if instance.supported? && instance._native_enable
+        instance._native_enable
+        instance
       end
 
       def initialize
@@ -24,7 +26,7 @@ module Datadog
           set(
             trace_id: event_trace_op.id,
             span_id: event_span_op.id,
-            local_root_span_id: event_trace_op.send(:root_span).id
+            local_root_span_id: event_trace_op.send(:root_span).id,
           )
         end
 
@@ -65,10 +67,6 @@ module Datadog
         false
       end
 
-      def supported?
-        Datadog::Core::LIBDATADOG_API_FAILURE.nil? && _native_supported?
-      end
-
       def update_from_trace_op(trace_op)
         active_span = trace_op.active_span
 
@@ -77,14 +75,14 @@ module Datadog
           set(
             trace_id: trace_op.id,
             span_id: active_span.id,
-            local_root_span_id: trace_op.send(:root_span).id
+            local_root_span_id: trace_op.send(:root_span).id,
           )
         elsif trace_op.parent_span_id && trace_op.parent_span_id != 0
           # Active distributed trace context, before first local trace is created
           set(
             trace_id: trace_op.id,
             span_id: trace_op.parent_span_id,
-            local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID
+            local_root_span_id: UNKNOWN_LOCAL_ROOT_SPAN_ID,
           )
         else
           clear

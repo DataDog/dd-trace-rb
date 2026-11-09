@@ -109,6 +109,8 @@ RSpec.describe "Instrumentation integration" do
 
   let(:logger) { logger_allowing_debug }
 
+  let(:telemetry) { nil }
+
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
     # the code tracker in that case.
@@ -116,7 +118,7 @@ RSpec.describe "Instrumentation integration" do
     # Call start! so probe installation actually proceeds — the
     # definition trace point is disabled until start!, and the probe
     # notifier worker isn't running until start!.
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
@@ -170,7 +172,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "invokes probe" do
@@ -211,7 +213,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "installs probe which then is invoked and creates expected snapshot" do
@@ -260,7 +262,7 @@ RSpec.describe "Instrumentation integration" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
                 type_name: "InstrumentationDelayedDerivedTestClass", method_name: "test_method",
-                capture_snapshot: false,)
+                capture_snapshot: false)
             end
 
             it "invokes probe and creates expected snapshot" do
@@ -305,7 +307,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedPartialTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -352,7 +354,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationVirtualTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -396,7 +398,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -458,7 +460,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -500,7 +502,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "exception_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           it "populates throwable in captures" do
@@ -531,7 +533,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "ivar_mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -749,7 +751,7 @@ RSpec.describe "Instrumentation integration" do
 
       context "with capture expressions and an exhausted per-fire time budget" do
         before do
-          settings.dynamic_instrumentation.max_time_to_serialize_ms = 0
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
         end
 
         let(:probe) do
@@ -783,6 +785,86 @@ RSpec.describe "Instrumentation integration" do
             "arg1" => {notCapturedReason: "timeout"},
           )
           expect(captures).not_to have_key(:entry)
+        end
+      end
+
+      context "with capture expressions whose evaluation outlasts the per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(5)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureExpressions: [
+              {name: "count", expr: {dsl: "len(arg1)", json: {len: {ref: "arg1"}}}},
+              {name: "filtered", expr: {dsl: "arg1.filter(@it >= 0)",
+                                        json: {filter: [{ref: "arg1"}, {ge: [{ref: "@it"}, 0]}]}}},
+            ],
+          }
+        end
+
+        it "captures the expression evaluated within the budget and stops the one evaluating when it runs out" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(Array.new(2_000_000) { |i| i })).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "count" => {type: "Integer", value: "2000000"},
+            "filtered" => {notCapturedReason: "timeout"},
+          )
+        end
+      end
+
+      context "with snapshot capture and an exhausted per-fire time budget" do
+        before do
+          allow(settings.dynamic_instrumentation).to receive(:max_time_to_serialize_ms).and_return(0)
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
+        end
+
+        let(:probe_spec) do
+          {
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
+            captureSnapshot: true,
+          }
+        end
+
+        it "emits notCapturedReason:timeout stubs for @return and self in the return block" do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          return_arguments = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures).fetch(:return).fetch(:arguments)
+          expect(return_arguments[:@return]).to eq(
+            type: "Integer", notCapturedReason: "timeout",
+          )
+          expect(return_arguments[:self]).to eq(
+            type: "InstrumentationSpecTestClass", notCapturedReason: "timeout",
+          )
         end
       end
 
@@ -830,7 +912,7 @@ RSpec.describe "Instrumentation integration" do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
             capture_snapshot: true,
-            max_capture_string_length: 4,)
+            max_capture_string_length: 4)
         end
 
         it "truncates strings in entry args, return value, and self to the probe-level limit" do
@@ -861,7 +943,7 @@ RSpec.describe "Instrumentation integration" do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "collection_method",
             capture_snapshot: true,
-            max_capture_collection_size: 2,)
+            max_capture_collection_size: 2)
         end
 
         it "truncates arrays in entry args, return value, and self ivar to the probe-level limit" do
@@ -1161,7 +1243,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         before do
@@ -1261,7 +1343,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 42,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           include_examples "simple log probe"
@@ -1271,7 +1353,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe" do
@@ -1341,7 +1423,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 64,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -1355,7 +1437,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 66,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -1369,7 +1451,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 70,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           # We currently are not told that the line is not executable.
@@ -1383,7 +1465,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           before do
@@ -1417,7 +1499,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -1481,7 +1563,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 27,
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -1509,7 +1591,7 @@ RSpec.describe "Instrumentation integration" do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 40,
               capture_snapshot: true,
-              max_capture_collection_size: 1,)
+              max_capture_collection_size: 1)
           end
 
           it "truncates the redacted hash local to the probe-level limit" do
@@ -1540,7 +1622,7 @@ RSpec.describe "Instrumentation integration" do
 
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: "instrumentation_integration_test_class_2.rb", line_no: 10,)
+              file: "instrumentation_integration_test_class_2.rb", line_no: 10)
           end
 
           it "instruments file when it is loaded" do
@@ -1572,7 +1654,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points enabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_3.rb", line_no: 10,)
+                file: "instrumentation_integration_test_class_3.rb", line_no: 10)
             end
 
             before do
@@ -1609,7 +1691,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points disabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_4.rb", line_no: 20,)
+                file: "instrumentation_integration_test_class_4.rb", line_no: 20)
             end
 
             before do
@@ -1646,7 +1728,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "notifies agent that probe is emitting" do
@@ -1790,7 +1872,7 @@ RSpec.describe "Instrumentation integration" do
           type: :log,
           type_name: "InstrumentationSpecTestClass",
           method_name: "binary_data_param_method",
-          capture_snapshot: true
+          capture_snapshot: true,
         )
       end
 
@@ -1803,9 +1885,9 @@ RSpec.describe "Instrumentation integration" do
         captured_snapshot = nil
         json_encoded = nil
 
-        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args|
+        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args, **kwargs|
           captured_snapshot = args[0]
-          m.call(*args)
+          m.call(*args, **kwargs)
         end
 
         allow(input_transport).to receive(:send_input) do |snapshots, tags|
@@ -1879,7 +1961,7 @@ RSpec.describe "Instrumentation integration" do
           type: :log,
           type_name: "InstrumentationSpecTestClass",
           method_name: "binary_data_method",
-          capture_snapshot: true
+          capture_snapshot: true,
         )
       end
 
@@ -1923,6 +2005,160 @@ RSpec.describe "Instrumentation integration" do
         expect {
           JSON.dump(captured_snapshot)
         }.not_to raise_error
+      end
+    end
+  end
+
+  describe "guardrails emission through the full probe lifecycle" do
+    before do
+      allow(Datadog::DI).to receive(:current_component).and_return(component)
+    end
+
+    context "when the snapshot queue is full" do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:snapshot_queue_capacity).and_return(0)
+        # Quiesce the worker thread and keep it stopped, so the background
+        # drain cannot race the enqueue assertions; the start stub keeps
+        # add_snapshot's auto-restart inert.
+        component.probe_notifier_worker.stop
+        allow(component.probe_notifier_worker).to receive(:start)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "queue-full-test",
+          type: :log,
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "test_method",
+          capture_snapshot: true,
+          # The default per-probe rate limit for capturing probes is one
+          # snapshot per second; the test fires twice in quick succession.
+          rate_limit: 5000,
+        )
+      end
+
+      it "drops the overflowing snapshot and emits the canonical queueFull drop metric" do
+        expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
+          tags: {reason: "queueFull", event_type: "snapshot"})
+        expect(input_transport).not_to receive(:send_input)
+
+        probe_manager.add_probe(probe)
+
+        InstrumentationSpecTestClass.new.test_method
+        InstrumentationSpecTestClass.new.test_method
+
+        # With capacity 0 the first snapshot is enqueued and the second
+        # overflows the queue.
+        expect(component.probe_notifier_worker.send(:snapshot_queue).length).to eq 1
+        expect(probe.enabled?).to be true
+      end
+    end
+
+    context "when a serialized snapshot exceeds the payload size limit" do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+      let(:input_requests) { [] }
+
+      before do
+        allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
+        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        settings.dynamic_instrumentation.max_capture_string_length = 10_000
+      end
+
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Core::Configuration::AgentSettings,
+          hostname: "localhost", port: http_server_port, timeout_seconds: 1, ssl: false,
+        )
+      end
+
+      http_server do |http_server|
+        http_server.mount_proc("/debugger/v2/input") do |req, res|
+          expect(req.content_type).to eq("application/json")
+          input_requests << req.body
+        end
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "payload-too-large-test",
+          type: :log,
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "test_method",
+          capture_snapshot: true,
+        )
+      end
+
+      shared_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics" do
+        it "drops the snapshot, keeps the probe enabled and emits the canonical drop metrics" do
+          expect(telemetry).to receive(:inc).with("debugger", "events.dropped", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(telemetry).to receive(:inc).with("debugger", "guardrails.queue.dropped_bytes",
+            be > 2_000, tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+
+          probe_manager.add_probe(probe)
+
+          InstrumentationSpecTestClass.new.test_method(captured_value)
+          component.probe_notifier_worker.flush
+
+          expect(input_requests).to be_empty
+          expect(probe.enabled?).to be true
+        end
+      end
+
+      context "with a single-byte snapshot over the byte limit" do
+        let(:captured_value) { "A" * 3_000 }
+
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+      end
+
+      context "with a multibyte snapshot within the character limit but over the byte limit" do
+        let(:captured_value) { "あ" * 700 }
+
+        include_examples "drops the snapshot at the transport and emits the payloadTooLarge metrics"
+      end
+
+      context "when pruning the captured argument fits the snapshot within the limit" do
+        let(:payload_limit) { 40_000 }
+
+        let(:settings) do
+          super().tap do |settings|
+            settings.agent.host = "localhost"
+            settings.agent.port = http_server_port
+            settings.agent.use_ssl = false
+            settings.agent.timeout_seconds = 1
+          end
+        end
+
+        let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+        before do
+          stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", payload_limit)
+          settings.dynamic_instrumentation.max_capture_string_length = 50_000
+        end
+
+        it "sends the snapshot with the argument pruned and emits the payloadTooLarge capture.incomplete metric" do
+          expect(telemetry).to receive(:inc).with("debugger", "capture.incomplete", 1,
+            tags: {reason: "payloadTooLarge", event_type: "snapshot"})
+          expect(telemetry).not_to receive(:inc).with("debugger", "events.dropped", any_args)
+
+          probe_manager.add_probe(probe)
+
+          InstrumentationSpecTestClass.new.test_method("A" * 50_000)
+          component.probe_notifier_worker.flush
+
+          expect(input_requests.size).to eq 1
+          snapshots = JSON.parse(input_requests.first)
+          expect(snapshots.size).to eq 1
+          snapshot = snapshots.first
+          expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "arg1")).to eq("pruned" => true)
+          expect(snapshot.dig("debugger", "snapshot", "probe", "id")).to eq "payload-too-large-test"
+          expect(JSON.dump(snapshot).bytesize).to be <= payload_limit -
+            Datadog::DI::Transport::Input::Transport::BACKEND_ENRICHMENT_HEADROOM
+          expect(probe.enabled?).to be true
+        end
       end
     end
   end

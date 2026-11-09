@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "correlation_sampler"
 require_relative "fatal_exceptions"
 
 module Datadog
@@ -16,6 +17,16 @@ module Datadog
     # resources and installed tracepoints upon shutdown.
     class Component
       class << self
+        # Builds and registers the DI component, or returns nil without
+        # building one when the settings have no dynamic_instrumentation
+        # section, DI is explicitly disabled, the runtime is unsupported,
+        # or Remote Configuration is disabled.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @param agent_settings [Datadog::Core::Configuration::AgentSettings]
+        # @param logger [Core::Logger]
+        # @param telemetry [Core::Telemetry::Component, nil]
+        # @return [Component, nil] the built component, or nil when no component was built
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
@@ -65,24 +76,45 @@ module Datadog
         end
       end
 
+      # Initializes the DI component.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      # @param agent_settings [Datadog::Core::Configuration::AgentSettings] agent connection settings for the transports
+      # @param logger [Datadog::Core::Logger] diagnostics logger, wrapped in the DI logger facade
+      # @param code_tracker [CodeTracker, nil] code tracker for line probe installation
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] component DI errors and guardrails metrics are emitted through
+      # @return [void]
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
+        @guardrails_telemetry = GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
-        @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
-        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+        @serializer = Serializer.new(settings, redactor, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry)
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger,
+          guardrails_telemetry: guardrails_telemetry, telemetry: telemetry,
+        )
+        @correlation_sampler = CorrelationSampler.new
+        @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker,
+          correlation_sampler: correlation_sampler, telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
+          capture_expression_evaluator: capture_expression_evaluator)
         @probe_repository = ProbeRepository.new
-        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger, telemetry: telemetry)
+        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, logger,
+          capture_expression_evaluator: capture_expression_evaluator, guardrails_telemetry: guardrails_telemetry,
+          telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
           telemetry: telemetry,
+          guardrails_telemetry: guardrails_telemetry,
         )
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
@@ -93,13 +125,22 @@ module Datadog
         # cannot race a foreground start! with a background stop!.
         @lifecycle_mutex = Mutex.new
         @started = false
+        @rc_enablement_signal_paths = []
       end
 
       attr_reader :settings
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      # The guardrails metric emitter.
+      # @return [GuardrailsTelemetry]
+      attr_reader :guardrails_telemetry
+      # The capture expression evaluator.
+      # @return [CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
       attr_reader :code_tracker
+      # @return [Datadog::DI::CorrelationSampler]
+      attr_reader :correlation_sampler
       attr_reader :instrumenter
       attr_reader :probe_repository
       attr_reader :probe_notifier_worker
@@ -164,6 +205,83 @@ module Datadog
       # @return [Boolean] true if start! has been called and stop! has not
       def started?
         @started
+      end
+
+      # Rebuilds the process-scoped coordinated-sampling state after the
+      # process forks, so the child starts with fresh budgets.
+      #
+      # @return [void]
+      def after_fork
+        correlation_sampler.after_fork!
+      end
+
+      # Whether the component is started while the customer left
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED at its default, the state produced
+      # by remote-configuration enablement.
+      #
+      # An explicit `enabled = false` takes precedence over a prior RC
+      # enablement: once the customer sets the option, this returns false
+      # even while the component is still started.
+      #
+      # @return [Boolean]
+      def implicitly_enabled?
+        started? && settings.dynamic_instrumentation.using_default?(:enabled)
+      end
+
+      # Whether an APM_TRACING merge that omitted dynamic_instrumentation_enabled
+      # withdraws this component's RC enable signal, so the component must stop.
+      #
+      # Returns true when the component is implicitly enabled and no unparseable
+      # content can be the signal carrier. A content at a recorded signal path can be
+      # the carrier. When no paths are recorded, every unparseable content can be the
+      # carrier.
+      #
+      # @param unparseable_contents [Array<Core::Remote::Configuration::Content>] the APM_TRACING contents that failed to parse at this merge
+      # @return [Boolean]
+      def rc_enablement_signal_withdrawn?(unparseable_contents)
+        return false unless implicitly_enabled?
+
+        recorded_signal_paths = rc_enablement_signal_paths
+        signal_source_unparseable =
+          if recorded_signal_paths.empty?
+            unparseable_contents.any?
+          else
+            unparseable_contents.any? { |content| recorded_signal_paths.include?(content.path) }
+          end
+        if signal_source_unparseable
+          if recorded_signal_paths.empty?
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while an APM_TRACING config " \
+              "failed to parse; the enable signal carrier is unknown (no signal paths recorded), " \
+              "keeping the DI state"
+            end
+          else
+            logger.trace do
+              "APM_TRACING RC: dynamic_instrumentation_enabled absent while the config that carried " \
+              "the enable signal failed to parse; keeping the DI state"
+            end
+          end
+          false
+        else
+          logger.trace { "APM_TRACING RC: dynamic_instrumentation_enabled withdrawn; treating as false" }
+          true
+        end
+      end
+
+      # The repository paths of the APM_TRACING contents that supplied the
+      # dynamic_instrumentation_enabled value at the last merge where the field was
+      # present. The component holds the paths so that they outlive the RC client.
+      #
+      # @return [Array<Core::Remote::Configuration::Path>]
+      attr_reader :rc_enablement_signal_paths
+
+      # Replaces the recorded enable-signal carrier paths.
+      #
+      # @param paths [Array<Core::Remote::Configuration::Path>] the carrier paths, empty when the merged field was absent
+      # @return [void]
+      def record_rc_enablement_signal_paths(paths)
+        @rc_enablement_signal_paths = paths.dup
+        nil
       end
 
       # Shuts down dynamic instrumentation permanently.

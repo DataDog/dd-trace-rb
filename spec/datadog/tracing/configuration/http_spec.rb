@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         it "captures all headers" do
           is_expected.to contain_exactly(
             ["http.#{direction}.headers.my-header", "MY-VALUE"],
-            ["http.#{direction}.headers.another-header", "another-value"]
+            ["http.#{direction}.headers.another-header", "another-value"],
           )
         end
       end

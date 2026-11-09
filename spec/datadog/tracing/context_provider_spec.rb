@@ -24,13 +24,54 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
     context "with an OTel thread context" do
       let(:provider) { described_class.new(otel_thread_context: otel_thread_context) }
       let(:otel_thread_context) { instance_double(Datadog::Tracing::OTelThreadContext) }
-      let(:ctx) { instance_spy(Datadog::Tracing::Context) }
 
-      it "passes the OTel thread context to the replacement context" do
+      before do
         allow(local_context).to receive(:local=)
+        allow(otel_thread_context).to receive(:clear)
+        allow(otel_thread_context).to receive(:update_from_trace_op)
+      end
 
-        expect(ctx).to receive(:otel_thread_context=).with(otel_thread_context)
-        set_context
+      context "when replacement context has no active trace" do
+        let(:ctx) { instance_spy(Datadog::Tracing::Context, active_trace: nil) }
+
+        it "passes the OTel thread context to the replacement context" do
+          expect(ctx).to receive(:otel_thread_context=).with(otel_thread_context)
+
+          set_context
+        end
+
+        it "clears the thread context record" do
+          expect(otel_thread_context).to receive(:clear)
+
+          set_context
+        end
+      end
+
+      context "when replacement context has an active trace" do
+        let(:active_trace) { Datadog::Tracing::TraceOperation.new }
+        let(:ctx) { instance_spy(Datadog::Tracing::Context, active_trace: active_trace) }
+
+        it "passes the OTel thread context" do
+          expect(ctx).to receive(:otel_thread_context=).with(otel_thread_context)
+
+          set_context
+        end
+
+        it "updates the thread context record" do
+          expect(otel_thread_context).to receive(:update_from_trace_op).with(active_trace)
+
+          set_context
+        end
+      end
+
+      context "when replacement context is nil" do
+        let(:ctx) { nil }
+
+        it "clears the thread context record" do
+          expect(otel_thread_context).to receive(:clear)
+
+          set_context
+        end
       end
     end
 

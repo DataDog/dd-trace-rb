@@ -11,15 +11,9 @@ RSpec.describe Datadog::Core::Environment::Platform do
   describe "::hostname" do
     subject(:hostname) { described_class.hostname }
 
-    context "when Ruby version < 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION < "2.2" do
-      it { is_expected.to be_nil }
-    end
-
-    context "when Ruby version >= 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION >= "2.2" do
-      it { is_expected.to be_a_kind_of(String) }
-      it "returns the system hostname" do
-        is_expected.to eql(`uname -n`.strip)
-      end
+    it { is_expected.to be_a_kind_of(String) }
+    it "returns the system hostname" do
+      is_expected.to eql(`uname -n`.strip)
     end
   end
 
@@ -34,15 +28,9 @@ RSpec.describe Datadog::Core::Environment::Platform do
   describe "::kernel_release" do
     subject(:kernel_release) { described_class.kernel_release }
 
-    context "when Ruby version < 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION < "2.2" do
-      it { is_expected.to be_nil }
-    end
-
-    context "when Ruby version >= 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION >= "2.2" do
-      it { is_expected.to be_a_kind_of(String) }
-      it "returns the system kernel release" do
-        is_expected.to eql(`uname -r`.strip)
-      end
+    it { is_expected.to be_a_kind_of(String) }
+    it "returns the system kernel release" do
+      is_expected.to eql(`uname -r`.strip)
     end
   end
 
@@ -54,15 +42,9 @@ RSpec.describe Datadog::Core::Environment::Platform do
     end
 
     context "when not using JRuby", unless: Datadog::Core::Environment::Ext::RUBY_ENGINE == "jruby" do
-      context "when Ruby version < 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION < "2.2" do
-        it { is_expected.to be_nil }
-      end
-
-      context "when Ruby version >= 2.2", if: Datadog::Core::Environment::Ext::LANG_VERSION >= "2.2" do
-        it { is_expected.to be_a_kind_of(String) }
-        it "returns the system kernel version" do
-          is_expected.to eql(`uname -v`.strip)
-        end
+      it { is_expected.to be_a_kind_of(String) }
+      it "returns the system kernel version" do
+        is_expected.to eql(`uname -v`.strip)
       end
     end
   end

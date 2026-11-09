@@ -4,10 +4,19 @@ require "timeout"
 RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   before { skip "Forking not supported" unless Datadog::Core::Utils::AtForkMonkeyPatch.supported? } # rubocop:disable RSpec/DescribedClass
 
+  around(:example, :isolated_fork_registry) do |example|
+    registry = Datadog::Core::Utils::AtForkMonkeyPatch
+    saved = registry.snapshot_at_fork_blocks
+    clear_at_fork_blocks
+    example.run
+  ensure
+    registry.send(:replace_at_fork_blocks, saved)
+  end
+
   def clear_at_fork_blocks
     Datadog::Core::Utils::AtForkMonkeyPatch.send(
       :replace_at_fork_blocks,
-      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+      {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze,
     )
   end
 
@@ -85,7 +94,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch, :isolated_fork_registry do
     shared_context "fork class" do
       def new_fork_class
         Class.new.tap do |c|
@@ -214,7 +223,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch, :isolated_fork_registry do
     let(:_fork_result) { nil }
     let(:process_module) do
       result = _fork_result
@@ -308,7 +317,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             at_fork.at_fork_blocks(
               before: proc { calls << :late_before },
               parent: proc { calls << :late_parent },
-              child: proc { calls << :late_child }
+              child: proc { calls << :late_child },
             )
           end
 
@@ -387,12 +396,12 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
               raise error
             end,
             parent: proc { calls << :started_parent },
-            child: proc { calls << :started_child }
+            child: proc { calls << :started_child },
           )
           at_fork.at_fork_blocks(
             before: proc { calls << :skipped_before },
             parent: proc { calls << :skipped_parent },
-            child: proc { calls << :skipped_child }
+            child: proc { calls << :skipped_child },
           )
 
           expect { process_module._fork }.to raise_error(error)
@@ -402,7 +411,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe "::at_fork and ::run_at_fork_blocks" do
+  describe "::at_fork and ::run_at_fork_blocks", :isolated_fork_registry do
     after do
       clear_at_fork_blocks
     end
@@ -553,7 +562,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe "::remove_at_fork" do
+  describe "::remove_at_fork", :isolated_fork_registry do
     after do
       clear_at_fork_blocks
     end

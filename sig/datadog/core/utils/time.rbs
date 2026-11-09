@@ -2,12 +2,22 @@ module Datadog
   module Core
     module Utils
       module Time
-        def self.get_time: () -> ::Float
-                           | (:float_second | :float_millisecond | :float_microsecond unit) -> ::Float
+        MONOTONIC_CLOCK_ID: Integer
+
+        def self.original_clock_gettime: (Integer clock_id) -> Float
+                                       | (Integer clock_id, :float_second | :float_millisecond | :float_microsecond unit) -> Float
+                                       | (Integer clock_id, :second | :millisecond | :microsecond | :nanosecond unit) -> Integer
+                                       | (Integer clock_id, Symbol? unit) -> (Float | Integer)
+
+        def self.get_time: () -> Float
+                           | (:float_second | :float_millisecond | :float_microsecond unit) -> Float
                            | (:second | :millisecond | :microsecond | :nanosecond unit) -> Integer
+
         def self.now: () -> ::Time
-        def self.measure: (?::Symbol unit) { () -> void } -> ::Numeric
-        def self.as_utc_epoch_ns: (::Time time) -> ::Integer
+
+        def self.measure: (?:float_second | :float_millisecond | :float_microsecond unit) { () -> void } -> Float
+
+        def self.as_utc_epoch_ns: (::Time time) -> Integer
       end
     end
   end

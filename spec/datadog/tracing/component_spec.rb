@@ -22,6 +22,14 @@ RSpec.describe Datadog::Tracing::Component do
     end
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+    let(:native_transport) { double("native transport") }
+    let(:default_writer_options) { settings.tracing.native_transport ? {transport: native_transport} : {} }
+
+    before do
+      allow(described_class).to receive(:build_native_transport)
+        .with(agent_settings)
+        .and_return(native_transport)
+    end
 
     context "given an instance" do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
@@ -92,7 +100,7 @@ RSpec.describe Datadog::Tracing::Component do
             .and_return(tracer)
 
           allow(Datadog::Tracing::Writer).to receive(:new)
-            .with(agent_settings: agent_settings, **writer_options)
+            .with(agent_settings: agent_settings, **default_writer_options.merge(writer_options))
             .and_return(writer)
         end
 
@@ -108,7 +116,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -130,7 +138,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -259,9 +267,9 @@ RSpec.describe Datadog::Tracing::Component do
                 span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
                   rules: [
                     Datadog::Tracing::Sampling::Span::Rule.new(
-                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo")
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo"),
                     ),
-                  ]
+                  ],
                 ),
               }
             end
@@ -381,7 +389,7 @@ RSpec.describe Datadog::Tracing::Component do
 
                   expect(Datadog::Tracing::Writer)
                     .to receive(:new)
-                    .with(agent_settings: agent_settings, **writer_options_test_mode)
+                    .with(agent_settings: agent_settings, **default_writer_options.merge(writer_options_test_mode))
                     .and_return(writer)
                 end
 
@@ -531,6 +539,80 @@ RSpec.describe Datadog::Tracing::Component do
           end
         end
       end
+    end
+  end
+
+  describe "::build_sampler" do
+    subject(:build_sampler) { described_class.build_sampler(settings) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    context "with test mode enabled" do
+      before do
+        settings.tracing.test_mode.enabled = true
+        settings.tracing.sampling.default_rate = 0.0
+      end
+
+      it "builds the sampler that keeps every trace, ignoring the configured rate" do
+        expect(build_sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+
+      it "ignores a custom sampler" do
+        settings.tracing.sampler = double("custom sampler", sample!: true)
+
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+      end
+    end
+
+    context "with test mode disabled" do
+      before do
+        settings.tracing.sampling.default_rate = 0.5
+      end
+
+      it "builds the rate-driven sampler honoring the default rate" do
+        expect(build_sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+        expect(build_sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+        expect(build_sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::RuleSampler)
+        expect(build_sampler.priority_sampler.rules.first.sampler.sample_rate).to eq(0.5)
+      end
+    end
+  end
+
+  describe "custom writer transports" do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:transport) { double("custom transport") }
+    let(:options) { {transport: transport} }
+
+    before do
+      settings.tracing.native_transport = true
+      expect(described_class).not_to receive(:build_native_transport)
+    end
+
+    after { @writer&.stop }
+
+    it "preserves the transport configured through writer_options" do
+      settings.tracing.writer_options = options
+      @writer = described_class.build_writer(settings, test_agent_settings)
+
+      expect(@writer.transport).to be(transport)
+      expect(options).to eq(transport: transport)
+    end
+
+    it "preserves a transport passed directly to build_writer" do
+      @writer = described_class.build_writer(settings, test_agent_settings, options)
+
+      expect(@writer.transport).to be(transport)
+    end
+
+    it "preserves the asynchronous test-mode transport" do
+      settings.tracing.test_mode.async = true
+      settings.tracing.test_mode.writer_options = options
+      @writer = described_class.build_test_mode_writer(settings, test_agent_settings)
+
+      expect(@writer.transport).to be(transport)
     end
   end
 

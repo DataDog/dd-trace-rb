@@ -4,6 +4,7 @@ require_relative "../../metadata/ext"
 require_relative "../http"
 require_relative "../analytics"
 require_relative "../http_annotation_helper"
+require_relative "../utils/quantization/http"
 require_relative "../../../core/telemetry/logger"
 
 module Datadog
@@ -34,7 +35,7 @@ module Datadog
                   if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httpclient],
-                    trace: trace
+                    trace: trace,
                   )
                     Contrib::HTTP.inject(trace, req.header)
                   end
@@ -43,7 +44,7 @@ module Datadog
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
                   Datadog.logger.error(
-                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}"
+                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}",
                   )
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
@@ -65,7 +66,7 @@ module Datadog
               if req_options[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                  req_options[:peer_service]
+                  req_options[:peer_service],
                 )
               end
 
@@ -74,10 +75,15 @@ module Datadog
 
               http_method = req.header.request_method.upcase
               uri = req.header.request_uri
+              path = uri.path
 
-              span.resource = http_method
+              span.resource = Contrib::Utils::Quantization::HTTP.client_resource(
+                http_method,
+                path,
+                enabled: Datadog.configuration.tracing.http_client_resource_name_quantize,
+              )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
@@ -86,7 +92,7 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.request_tags(req.http_header)
+                Datadog.configuration.tracing.header_tags.request_tags(req.http_header),
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
@@ -102,11 +108,11 @@ module Datadog
               end
 
               span.set_tags(
-                Datadog.configuration.tracing.header_tags.response_tags(response.header)
+                Datadog.configuration.tracing.header_tags.response_tags(response.header),
               )
             rescue => e
               Datadog.logger.error(
-                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}"
+                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}",
               )
               Datadog::Core::Telemetry::Logger.report(e)
             end

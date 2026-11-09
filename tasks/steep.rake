@@ -34,9 +34,10 @@ namespace :steep do
 
   task :stats do |_task, args|
     format = args.to_a.first || "table"
+    extra_args = args.to_a.drop(1).map { |a| "'#{a}'" }.join(" ")
 
     if format == "md"
-      data = `steep stats --format=csv`
+      data = `steep stats --format=csv #{extra_args}`
 
       require "csv"
 
@@ -77,7 +78,7 @@ namespace :steep do
           end
         end
     else
-      sh "steep stats --format=#{format}"
+      sh "steep stats --format=#{format} #{extra_args}"
     end
   end
 end

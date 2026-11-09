@@ -301,11 +301,26 @@
         "default": null
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS": [
+      {
+        "version": "C",
+        "type": "int",
+        "default": "150",
+        "aliases": ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT"]
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "50"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
@@ -400,6 +415,14 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.evaluation_telemetry_per_subject_opt_out_enabled"],
+        "default": "false"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -437,6 +460,7 @@
     ],
     "DD_EXPERIMENTAL_NATIVE_TRANSPORT_ENABLED": [
       {
+        "__comment": "Default is true on CRuby 4.0.0 and later",
         "version": "A",
         "type": "boolean",
         "default": "false"
@@ -649,9 +673,9 @@
     ],
     "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
@@ -1641,6 +1665,14 @@
         "version": "A",
         "type": "string",
         "default": "400-499"
+      }
+    ],
+    "DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["tracing.http_client_resource_name_quantize"],
+        "default": "false"
       }
     ],
     "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [

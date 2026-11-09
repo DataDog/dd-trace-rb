@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
       name: trace_name,
       service: trace_service,
       resource: trace_resource,
-      tags: trace_tags
+      tags: trace_tags,
     )
   end
   let(:trace_name) { "operation.name" }

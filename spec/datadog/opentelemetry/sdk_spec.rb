@@ -23,7 +23,7 @@ RSpec.describe Datadog::OpenTelemetry::SDK do
           "tracers",
           "otel.export_attempts",
           1,
-          tags: {"protocol" => "http", "encoding" => "protobuf"}
+          tags: {"protocol" => "http", "encoding" => "protobuf"},
         )
 
         telemetry_inc

@@ -12,18 +12,16 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             # Add instrumentation patch to Rake task
             ::Rake::Task.include(Instrumentation)
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:rake].get_option(option)
           end
         end

@@ -7,7 +7,7 @@ require_relative "benchmarks_helper"
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
-VARYING_DEPTH_DEFAULT = 2900
+VARYING_DEPTH_DEFAULT = 500
 
 class ProfilerSampleLoopBenchmark
   def create_profiler
@@ -76,11 +76,10 @@ class ProfilerSampleLoopBenchmark
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
-      Datadog::Profiling::Collectors::ThreadContext.for_testing(
+      collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
-        native_filenames_enabled: false
+        native_filenames_enabled: false,
       )
-      collector_without_native_filenames = collector
     end
 
     Benchmark.ips do |x|
@@ -106,7 +105,7 @@ class ProfilerSampleLoopBenchmark
   end
 
   def run_varying_depth_benchmark
-    collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, max_frames: 3000)
+    collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, max_frames: 600)
 
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
@@ -130,7 +129,7 @@ class ProfilerSampleLoopBenchmark
   def sample(collector)
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(
       collector,
-      false
+      false,
     )
   end
 

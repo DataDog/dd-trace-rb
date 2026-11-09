@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "timeout"
 require "open_feature/sdk"
 require "datadog/open_feature/provider"
 require "datadog/open_feature/evaluation_engine"
@@ -8,20 +9,523 @@ require "datadog/open_feature/hooks/flag_eval_metrics_hook"
 require "datadog/open_feature/hooks/flag_eval_evp_hook"
 require "datadog/open_feature/flag_evaluation/writer"
 require "datadog/open_feature/hooks/span_enrichment_hook"
+require "datadog/open_feature/hooks/debug_logging_hook"
+
+RSpec.describe Datadog::OpenFeature, ".activate_provider" do
+  subject(:activate_provider) { described_class.activate_provider(provider) }
+
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: provider_shutdown) }
+  let(:second_provider) { instance_double(Datadog::OpenFeature::Provider, shutdown?: false) }
+  let(:provider_shutdown) { false }
+  let(:component) { instance_double(Datadog::OpenFeature::Component) }
+  let(:activation) do
+    instance_double(
+      Datadog::OpenFeature::Activation,
+      activate: component,
+      deactivate: nil,
+      failure: activation_failure,
+    )
+  end
+  let(:activation_failure) { nil }
+  let(:replacement_activation) do
+    instance_double(Datadog::OpenFeature::Activation, activate: component)
+  end
+  let(:components) do
+    instance_double(
+      Datadog::Core::Configuration::Components,
+      open_feature_activation: activation,
+    )
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+  end
+
+  after do
+    described_class.deactivate_provider(provider)
+    described_class.deactivate_provider(second_provider)
+  end
+
+  it "adopts the provider through the active component tree" do
+    expect(activate_provider).to eq([component, nil])
+    expect(activation).to have_received(:activate).with(provider)
+  end
+
+  it "reattaches the adopted provider to a replacement component tree" do
+    activate_provider
+
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).to have_received(:activate).with(provider)
+  end
+
+  it "does not detach the adopted provider for a different instance" do
+    other_provider = instance_double(Datadog::OpenFeature::Provider)
+    activate_provider
+
+    described_class.deactivate_provider(other_provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).to have_received(:activate).with(provider)
+  end
+
+  it "does not reattach a provider after it is deactivated" do
+    activate_provider
+
+    described_class.deactivate_provider(provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).not_to have_received(:activate)
+  end
+
+  it "reattaches every provider except the deactivated instance" do
+    activate_provider
+    described_class.activate_provider(second_provider)
+
+    described_class.deactivate_provider(provider)
+    described_class.reattach(replacement_activation)
+
+    expect(replacement_activation).not_to have_received(:activate).with(provider)
+    expect(replacement_activation).to have_received(:activate).with(second_provider)
+  end
+
+  context "when delivery cannot be activated" do
+    let(:component) { nil }
+    let(:activation_failure) { "Feature Flags Remote Configuration is unavailable" }
+
+    it do
+      expect(activate_provider).to eq([nil, "Feature Flags Remote Configuration is unavailable"])
+    end
+
+    it "retains the provider for a later activation attempt" do
+      activate_provider
+
+      described_class.reattach(replacement_activation)
+
+      expect(replacement_activation).to have_received(:activate).with(provider)
+    end
+  end
+
+  context "when the provider is shut down" do
+    let(:provider_shutdown) { true }
+
+    it "does not adopt the provider" do
+      expect(activate_provider).to eq([nil, nil])
+      expect(activation).not_to have_received(:activate)
+    end
+  end
+end
+
+RSpec.describe Datadog::OpenFeature, ".deactivate_provider" do
+  subject(:deactivate_provider) { described_class.deactivate_provider(provider) }
+
+  let(:provider) { instance_double(Datadog::OpenFeature::Provider) }
+  let(:activation) { instance_double(Datadog::OpenFeature::Activation, deactivate: nil) }
+  let(:components) do
+    instance_double(
+      Datadog::Core::Configuration::Components,
+      open_feature_activation: activation,
+    )
+  end
+
+  before do
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+    allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+  end
+
+  it "detaches the provider through the active component tree" do
+    deactivate_provider
+
+    expect(activation).to have_received(:deactivate).with(provider)
+  end
+end
 
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
     allow(telemetry).to receive(:report)
     allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
+    allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(provider)
   end
 
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, debug: nil, debug?: false) }
 
   subject(:provider) { described_class.new }
+
+  describe "initialization" do
+    let(:component) do
+      instance_double(
+        Datadog::OpenFeature::Component,
+        wait_for_configuration: wait_result,
+        configuration_received?: false,
+        wake_configuration_waiters: nil,
+      )
+    end
+    let(:activation) do
+      instance_double(Datadog::OpenFeature::Activation, activate: component, failure: activation_failure)
+    end
+    let(:activation_failure) { nil }
+    let(:components) do
+      instance_double(
+        Datadog::Core::Configuration::Components,
+        open_feature_activation: activation,
+      )
+    end
+    let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_READY }
+
+    before do
+      allow(Datadog).to receive(:logger).and_return(logger)
+      allow(Datadog::OpenFeature).to receive(:activate_provider)
+        .with(provider)
+        .and_return([component, activation_failure])
+    end
+
+    it "activates delivery and waits for configuration" do
+      expect { provider.init }.not_to raise_error
+
+      expect(Datadog::OpenFeature).to have_received(:activate_provider).with(provider)
+      expect(component).to have_received(:wait_for_configuration)
+    end
+
+    it "installs the initialization ready handler once" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      provider.send(:attach, configuration)
+      allow(configuration).to receive(:add_handler).and_call_original
+
+      2.times { provider.init }
+
+      expect(configuration).to have_received(:add_handler)
+        .with(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, anything)
+        .once
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
+    it "deactivates delivery on shutdown" do
+      provider.init
+
+      provider.shutdown
+
+      expect(Datadog::OpenFeature).to have_received(:deactivate_provider).with(provider).once
+    end
+
+    it "does not activate after shutdown begins" do
+      initialization_started = SizedQueue.new(1)
+      continue_initialization = SizedQueue.new(1)
+      allow(Datadog::OpenFeature).to receive(:activate_provider).and_call_original
+      allow(Datadog).to receive(:send).and_call_original
+      allow(Datadog).to receive(:send).with(:components) do
+        initialization_started.push(true)
+        continue_initialization.pop
+        components
+      end
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
+      allow(Datadog).to receive(:send).with(:safely_synchronize).and_yield
+
+      initialization = Thread.new do
+        provider.init
+      rescue => error
+        error
+      end
+      initialization_started.pop
+
+      provider.shutdown
+      continue_initialization.push(true)
+
+      expect(initialization.value.message).to eq(described_class::INITIALIZATION_CANCELLED_MESSAGE)
+      expect(activation).not_to have_received(:activate)
+    ensure
+      continue_initialization&.push(true, true)
+      initialization&.join(1)
+    end
+
+    it "does not complete initialization after shutdown while waiting" do
+      wait_started = SizedQueue.new(1)
+      continue_wait = SizedQueue.new(1)
+      allow(component).to receive(:wait_for_configuration) do
+        wait_started.push(true)
+        continue_wait.pop
+        Datadog::OpenFeature::Component::CONFIGURATION_READY
+      end
+
+      initialization = Thread.new do
+        provider.init
+      rescue => error
+        error
+      end
+      wait_started.pop
+
+      provider.shutdown
+      continue_wait.push(true)
+
+      expect(initialization.value.message).to eq(described_class::INITIALIZATION_CANCELLED_MESSAGE)
+      expect(Datadog::OpenFeature).to have_received(:deactivate_provider).with(provider).once
+    ensure
+      continue_wait&.push(true, true)
+      initialization&.join(1)
+    end
+
+    context "with shared configuration delivery" do
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |config|
+          config.feature_flags.initialization_timeout_ms = 30_000
+          config.open_feature.evaluation_counts_enabled = false
+        end
+      end
+      let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
+      let(:component) do
+        Datadog::OpenFeature::Component.new(settings, agent_settings, logger: logger, telemetry: telemetry)
+      end
+      let(:second_provider) { described_class.new }
+
+      before do
+        allow(component.engine).to receive(:reconfigure!)
+        allow(Datadog::OpenFeature).to receive(:activate_provider).with(second_provider).and_return([component, nil])
+        allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(second_provider)
+      end
+
+      after do
+        provider.shutdown
+        second_provider.shutdown
+        component.shutdown!
+      end
+
+      it "cancels only the departing provider while another provider waits" do
+        wait_started = SizedQueue.new(4)
+        allow_any_instance_of(ConditionVariable).to receive(:wait).and_wrap_original do |method, *arguments|
+          wait_started.push(Thread.current, true)
+          method.call(*arguments)
+        end
+        component
+        initializations = [provider, second_provider].map do |waiting_provider|
+          Thread.new do
+            waiting_provider.init
+          rescue => error
+            error
+          end
+        end
+        Timeout.timeout(1) { 2.times { wait_started.pop } }
+
+        provider.shutdown
+
+        expect(initializations.first.join(1)).to eq(initializations.first)
+        expect(initializations.first.value.message).to eq(described_class::INITIALIZATION_CANCELLED_MESSAGE)
+        expect(initializations.last).to be_alive
+
+        component.reconfigure!("configuration")
+        expect(initializations.last.join(1)).to eq(initializations.last)
+        expect(initializations.last.value).not_to be_a(Exception)
+        expect(component.wait_for_configuration).to eq(:ready)
+      ensure
+        initializations&.each do |initialization|
+          initialization.kill
+          initialization.join(1)
+        end
+      end
+
+      it "cancels shutdown between waiter registration and entering the wait" do
+        allow(component).to receive(:wait_for_configuration).and_wrap_original do |method, &cancelled|
+          provider.shutdown
+          method.call(&cancelled)
+        end
+
+        expect { Timeout.timeout(1) { provider.init } }
+          .to raise_error(RuntimeError, described_class::INITIALIZATION_CANCELLED_MESSAGE)
+      end
+    end
+
+    context "when no delivery source can start" do
+      let(:component) { nil }
+      let(:activation_failure) { "Feature Flags Remote Configuration is unavailable" }
+
+      it "fails without waiting for the initialization timeout" do
+        expect { provider.init }
+          .to raise_error(RuntimeError, "Feature Flags Remote Configuration is unavailable")
+      end
+    end
+
+    context "when initialization times out" do
+      let(:wait_result) { Datadog::OpenFeature::Component::CONFIGURATION_TIMEOUT }
+
+      it "raises and logs an error" do
+        expect { provider.init }.to raise_error(RuntimeError, /initialization timed out/)
+
+        expect(logger).to have_received(:error).with(/initialization timed out/)
+      end
+
+      describe "OpenFeature SDK events" do
+        let(:configuration) { ::OpenFeature::SDK::Configuration.new }
+        let(:events) { [] }
+
+        before do
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR, ->(_) { events << :error })
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+        end
+
+        after do
+          provider.shutdown
+          configuration.send(:reset)
+        end
+
+        it "reports ERROR on timeout and READY when configuration arrives later" do
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+          expect(events).to eq([:error])
+
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+          expect(events).to eq([:error, :ready])
+        end
+
+        it "preserves ERROR then READY ordering when configuration races the SDK error" do
+          allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+            method.call
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+          end
+
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+
+          expect(events).to eq([:error, :ready])
+        end
+
+        it "does not report READY when raced configuration is withdrawn before the SDK error" do
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+          allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+            method.call
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+          end
+
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+
+          expect(events).to eq([:stale, :error])
+        end
+
+        it "recovers after configuration is lost and restored before the SDK error" do
+          configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+          allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+            method.call
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+            provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+          end
+
+          expect { configuration.set_provider_and_wait(provider) }
+            .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+
+          expect(events).to eq([:stale, :error, :ready])
+          expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::READY)
+
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+          provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+          expect(events).to eq([:stale, :error, :ready, :stale, :ready])
+        end
+
+        [:before_registration, :during_registration].each do |shutdown_timing|
+          it "removes the error callback when shutdown occurs #{shutdown_timing}" do
+            if shutdown_timing == :before_registration
+              allow(provider).to receive(:install_error_handler).and_wrap_original do |method|
+                provider.shutdown
+                method.call
+              end
+            else
+              allow(configuration).to receive(:add_handler).and_wrap_original do |method, event, handler|
+                provider.shutdown if event == ::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR
+                method.call(event, handler)
+              end
+            end
+            expect(provider).not_to receive(:provider_error)
+
+            expect { configuration.set_provider_and_wait(provider) }
+              .to raise_error(::OpenFeature::SDK::ProviderInitializationError)
+            provider.emit_event(::OpenFeature::SDK::ProviderEvent::PROVIDER_ERROR)
+          end
+        end
+      end
+    end
+
+    it "emits configuration-changed after successful initialization" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(
+        ::OpenFeature::SDK::ProviderEvent::PROVIDER_CONFIGURATION_CHANGED,
+        ->(_) { events << :changed },
+      )
+      configuration.set_provider_and_wait(provider)
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_CHANGED)
+
+      expect(events).to eq([:changed])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
+    it "emits STALE when configuration is lost and READY when it returns" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+      configuration.set_provider_and_wait(provider)
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+      expect(events).to eq([:ready, :stale, :ready])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
+    it "logs the STALE and READY transitions" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      messages = []
+      allow(logger).to receive(:debug?).and_return(true)
+      configuration.set_provider_and_wait(provider)
+      allow(logger).to receive(:debug) { |message, &block| messages << (block ? block.call : message) }
+
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+      provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+
+      expect(messages).to eq([
+        "Feature Flags: provider emitted PROVIDER_STALE; configuration is no longer available",
+        "Feature Flags: provider emitted PROVIDER_READY; configuration is available",
+      ])
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+
+    it "emits STALE after SDK readiness when configuration is lost during initialization" do
+      configuration = ::OpenFeature::SDK::Configuration.new
+      events = []
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_READY, ->(_) { events << :ready })
+      configuration.add_handler(::OpenFeature::SDK::ProviderEvent::PROVIDER_STALE, ->(_) { events << :stale })
+      allow(component).to receive(:wait_for_configuration) do
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_READY)
+        provider.send(:configuration_changed, Datadog::OpenFeature::Component::CONFIGURATION_LOST)
+        Datadog::OpenFeature::Component::CONFIGURATION_READY
+      end
+
+      configuration.set_provider_and_wait(provider)
+
+      expect(events).to eq([:ready, :stale])
+      expect(configuration.send(:provider_state, provider)).to eq(::OpenFeature::SDK::ProviderState::STALE)
+    ensure
+      provider.shutdown
+      configuration&.send(:reset)
+    end
+  end
 
   describe "#fetch_boolean_value" do
     context "when engine is not configured" do
@@ -32,6 +536,19 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq(false)
         expect(result.error_message).to match(/OpenFeature component must be configured/)
+      end
+
+      it "logs why the default was returned without logging the default value" do
+        allow(Datadog).to receive(:logger).and_return(logger)
+        allow(logger).to receive(:debug?).and_return(true)
+
+        provider.fetch_boolean_value(flag_key: "flag", default_value: false)
+
+        expect(logger).to have_lazy_debug_logged(
+          'Feature Flags: provider returned the default value for "flag" (type=boolean): ' \
+            "the Feature Flags component is not active; see the provider initialization logs " \
+            "(error_code=PROVIDER_FATAL)",
+        )
       end
     end
   end
@@ -110,7 +627,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         Datadog::OpenFeature::ResolutionDetails.new(
           value: "{}", reason: "MATCH", variant: "blue",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "joe", extra_logging: {}, log?: true, error?: false
+          allocation_key: "joe", extra_logging: {}, log?: true, error?: false,
         )
       end
 
@@ -120,7 +637,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.value).to eq("default" => true)
         expect(result.reason).to eq("ERROR")
         expect(result.flag_metadata).to include(
-          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true
+          Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
         )
       end
     end
@@ -142,10 +659,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
+        allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
         expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
+      end
+
+      context "when debug logging is enabled" do
+        let(:debug_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::DebugLoggingHook) }
+
+        before { allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_logging_hook) }
+
+        it "also returns the debug logging hook" do
+          expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
+        end
       end
 
       context "when EVP hook is disabled (killswitch)" do
@@ -188,17 +716,18 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
+      allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
     end
 
     it "passes provider success details to the EVP hook after SDK finalization" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "my-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("variant-a")
@@ -214,12 +743,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final type mismatch details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
       details = client.fetch_string_details(
-        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context
+        flag_key: "type-mismatch-flag", default_value: "default", evaluation_context: evaluation_context,
       )
 
       expect(details.value).to eq("default")
@@ -236,7 +765,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     it "passes SDK-final after-hook failure details to the EVP hook" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
-        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false,
       )
       failing_after_hook = double("FailingAfterHook", before: nil, error: nil, finally: nil)
       allow(failing_after_hook).to receive(:after).and_raise(RuntimeError, "after boom")
@@ -246,7 +775,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         flag_key: "after-hook-flag",
         default_value: "default",
         evaluation_context: evaluation_context,
-        hooks: [failing_after_hook]
+        hooks: [failing_after_hook],
       )
 
       expect(details.value).to eq("default")
@@ -265,7 +794,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "nope", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -277,6 +806,82 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(evaluation_details.variant).to be_nil
         expect(evaluation_details.error_message).to eq("nope")
         expect(evaluation_details.flag_metadata).to include("dd.eval.timestamp_ms")
+      end
+    end
+
+    context "with rendered debug diagnostics" do
+      let(:output) { StringIO.new }
+      let(:logger) { Datadog::Core::Logger.new(output).tap { |log| log.level = Logger::DEBUG } }
+      let(:debug_hook) { Datadog::OpenFeature::Hooks::DebugLoggingHook.new(logger) }
+      let(:expected_attributes) { {"global" => "global", "client" => "client", "shared" => "invocation", "from_hook" => true} }
+      let(:client) do
+        ::OpenFeature::SDK::Client.new(provider: provider, evaluation_context: OpenFeature::SDK::EvaluationContext.new(client: "client", shared: "client"))
+      end
+
+      before do
+        allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_hook)
+        allow(OpenFeature::SDK).to receive(:evaluation_context)
+          .and_return(OpenFeature::SDK::EvaluationContext.new(global: "global", shared: "global"))
+      end
+
+      it "does not inspect values or emit diagnostics for success and fallback with debug off" do
+        logger.level = Logger::INFO
+        value = +"uninspected"
+        inspections = 0
+        value.define_singleton_method(:inspect) do
+          inspections += 1
+          super()
+        end
+        client.fetch_string_details(flag_key: "unready", default_value: value)
+        allow(engine).to receive(:fetch_value).and_return(Datadog::OpenFeature::ResolutionDetails.new(value: value, flag_metadata: {}))
+        client.fetch_string_details(flag_key: "success", default_value: value)
+        expect(output.string).to eq("")
+        expect(inspections).to eq(0)
+      end
+
+      [
+        [:boolean, true, false, nil], [:string, "targeted", "default", nil],
+        [:integer, 42, 0, nil], [:float, 1.25, 0.0, nil], [:number, 2.5, 0, nil],
+        [:object, {"nested" => Array.new(100) { {"text" => "x" * 100} }}, {}, nil],
+        [:string, 123, "default", "TYPE_MISMATCH"],
+        [:string, "default", "default", "FLAG_NOT_FOUND"],
+        [:string, "default", "default", "PROVIDER_NOT_READY"],
+        [:string, "targeted", "default", "GENERAL"],
+      ].each do |type, value, default, error|
+        it "logs caller-visible #{type} details for #{error || "success"} and the effective context" do
+          result = Datadog::OpenFeature::ResolutionDetails.new(
+            value: value, reason: "TARGETING_MATCH", variant: "treatment", flag_metadata: {}, log?: false,
+          )
+          result = Datadog::OpenFeature::ResolutionDetails.build_error(value: default, error_code: error, error_message: "missing flag") if error == "FLAG_NOT_FOUND"
+          allow(engine).to receive(:fetch_value).and_return(result) unless error == "PROVIDER_NOT_READY"
+          application_hook = instance_double(OpenFeature::SDK::Hooks::Hook)
+          allow(application_hook).to receive(:before).and_return(OpenFeature::SDK::EvaluationContext.new(from_hook: true))
+          allow(application_hook).to receive(:after) { raise "after boom" if error == "GENERAL" }
+          allow(application_hook).to receive(:error)
+          allow(application_hook).to receive(:finally)
+          allow(debug_hook).to receive(:finally).and_call_original
+          details = client.public_send(
+            "fetch_#{type}_details", flag_key: "diagnostic", default_value: default,
+            evaluation_context: OpenFeature::SDK::EvaluationContext.new(targeting_key: "subject", shared: "invocation"), hooks: [application_hook],
+          )
+          expect(details.value).to eq(error ? default : value)
+          expect(details.error_code).to eq(error)
+          expect(debug_hook).to have_received(:finally) do |evaluation_details:, hook_context:, **|
+            expect(evaluation_details).to equal(details)
+            expect(hook_context.evaluation_context.fields).to eq(expected_attributes.merge("targeting_key" => "subject"))
+          end
+          hook_lines = output.string.lines.grep(/Feature Flags: evaluated "diagnostic" /)
+          expect(hook_lines.size).to eq(1)
+          hook_line = hook_lines.first
+          expect(hook_line).to include(
+            "value=#{details.value.inspect}", "default=#{default.inspect}",
+            "variant=#{details.variant.inspect}", "reason=#{details.reason.inspect}", "error_code=#{error.inspect}",
+            "error_message=#{details.error_message.inspect}", 'targeting_key="subject"',
+          )
+          expected_attributes.each do |key, attribute_value|
+            expect(hook_line).to include({key => attribute_value}.inspect[1...-1])
+          end
+        end
       end
     end
 
@@ -314,7 +919,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         ))
 
         result = client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         expect(result).to eq("enabled")
@@ -335,12 +940,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "real-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -361,12 +966,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
           result = Datadog::OpenFeature::ResolutionDetails.new(
             value: "variant-a", reason: "TARGETING_MATCH", variant: "variant-a",
             flag_metadata: {},
-            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false
+            allocation_key: "alloc-9", extra_logging: {}, log?: do_log, error?: false,
           )
           allow(engine).to receive(:fetch_value).and_return(result)
 
           client.fetch_string_value(
-            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context
+            flag_key: "protected-flag", default_value: "default", evaluation_context: evaluation_context,
           )
 
           writer.send(:drain_and_flush)
@@ -374,7 +979,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             expect(payload["flagEvaluations"].size).to eq(1)
             row = payload["flagEvaluations"].first
             expect(row["targeting_key"]).to eq(
-              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b"
+              "sha256_c6c289e49e9c05b2145860387b73bcb18df43fb09a1e4a4a9713c76c88bb541b",
             )
             expect(row).not_to have_key("context")
             expect(Datadog::Core::Encoding::JSONEncoder.encode(payload)).not_to include("user-1")
@@ -388,12 +993,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 123, reason: "TARGETING_MATCH", variant: "variant-a",
           flag_metadata: {Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true},
-          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false
+          allocation_key: "alloc-9", extra_logging: {}, log?: false, error?: false,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "typed-default-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -414,12 +1019,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
           value: "default", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
           error_message: "flag user-1 was not found", flag_metadata: {
             Datadog::OpenFeature::Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA => true,
-          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true
+          }, allocation_key: nil, extra_logging: {}, log?: false, error?: true,
         )
         allow(engine).to receive(:fetch_value).and_return(result)
 
         client.fetch_string_value(
-          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context
+          flag_key: "missing-flag", default_value: "default", evaluation_context: evaluation_context,
         )
 
         writer.send(:drain_and_flush)
@@ -446,7 +1051,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: {"existing" => "kept"}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -462,7 +1067,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "v", reason: "STATIC", variant: "v",
         flag_metadata: metadata, allocation_key: "alloc-9", extra_logging: {},
-        log?: false, error?: false
+        log?: false, error?: false,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 
@@ -470,7 +1075,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(res.flag_metadata).to include(
         "dd.eval.timestamp_ms" => 1_700_000_000_000,
-        "__dd_allocation_key" => "alloc-9"
+        "__dd_allocation_key" => "alloc-9",
       )
       expect(res.flag_metadata).not_to equal(metadata)
       expect(metadata).to eq("existing" => "kept")
@@ -480,7 +1085,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: "d", reason: "ERROR", variant: nil, error_code: "FLAG_NOT_FOUND",
         error_message: "missing", flag_metadata: {}, allocation_key: nil, extra_logging: {},
-        log?: false, error?: true
+        log?: false, error?: true,
       )
       allow(engine).to receive(:fetch_value).and_return(result)
 

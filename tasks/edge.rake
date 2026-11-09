@@ -26,7 +26,7 @@ namespace :edge do
       Bundler.with_unbundled_env do
         output, = Open3.capture2e(
           {"BUNDLE_GEMFILE" => gemfile.to_s},
-          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(" ")}"
+          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(" ")}",
         )
 
         puts output
@@ -43,6 +43,7 @@ namespace :edge do
     # the integration owns (e.g. ethon + typhoeus, or the aws-sdk family)
     allowlist = {
       "ai_guard:ruby_llm" => "ruby_llm",
+      "appsec:active_record" => "activerecord",
       "appsec:devise" => "devise",
       "aws" => ["aws-sdk", "aws-sdk-core"],
       "dalli" => "dalli",

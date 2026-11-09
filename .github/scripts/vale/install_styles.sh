@@ -4,12 +4,12 @@ set -euo pipefail
 # Installs into vale/styles/, the layout .vale.ini's StylePath expects.
 
 if [[ -z "${WRITE_GOOD_VERSION:-}" || -z "${WRITE_GOOD_SHA256:-}" \
-    || -z "${PROSELINT_VERSION:-}" || -z "${PROSELINT_SHA256:-}" \
-    || -z "${HARPER_VERSION:-}" || -z "${HARPER_SHA256:-}" ]]; then
-    echo "Error: WRITE_GOOD_VERSION, WRITE_GOOD_SHA256, PROSELINT_VERSION," \
-        "PROSELINT_SHA256, HARPER_VERSION, and HARPER_SHA256 environment" \
-        "variables must all be set"
-    exit 1
+  || -z "${PROSELINT_VERSION:-}" || -z "${PROSELINT_SHA256:-}" \
+  || -z "${HARPER_VERSION:-}" || -z "${HARPER_SHA256:-}" ]]; then
+  echo "Error: WRITE_GOOD_VERSION, WRITE_GOOD_SHA256, PROSELINT_VERSION," \
+    "PROSELINT_SHA256, HARPER_VERSION, and HARPER_SHA256 environment" \
+    "variables must all be set"
+  exit 1
 fi
 
 styles_dir="vale/styles"
@@ -19,14 +19,14 @@ mkdir -p "${styles_dir}"
 # named after the package, so extracting into styles_dir lands them at
 # vale/styles/<package>/.
 install_package() {
-    local package="$1" version="$2" sha256="$3"
-    local archive="/tmp/${package}.zip"
+  local package="$1" version="$2" sha256="$3"
+  local archive="/tmp/${package}.zip"
 
-    curl -sSL -o "${archive}" \
-        "https://github.com/errata-ai/${package}/releases/download/v${version}/${package}.zip"
-    echo "${sha256}  ${archive}" | sha256sum -c -
-    rm -rf "${styles_dir:?}/${package}"
-    unzip -q -o "${archive}" -d "${styles_dir}"
+  curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o "${archive}" \
+    "https://github.com/errata-ai/${package}/releases/download/v${version}/${package}.zip"
+  echo "${sha256}  ${archive}" | sha256sum -c -
+  rm -rf "${styles_dir:?}/${package}"
+  unzip -q -o "${archive}" -d "${styles_dir}"
 }
 
 install_package write-good "${WRITE_GOOD_VERSION}" "${WRITE_GOOD_SHA256}"
@@ -37,8 +37,8 @@ install_package proselint "${PROSELINT_VERSION}" "${PROSELINT_SHA256}"
 # rules need; the dictionaries must sit at vale/styles/config/ next to
 # the rules, or those rules silently match nothing.
 harper_dir="$(mktemp -d)"
-curl -sSL -o /tmp/Harper.zip \
-    "https://github.com/vale-cli/Harper/releases/download/v${HARPER_VERSION}/Harper.zip"
+curl -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o /tmp/Harper.zip \
+  "https://github.com/vale-cli/Harper/releases/download/v${HARPER_VERSION}/Harper.zip"
 echo "${HARPER_SHA256}  /tmp/Harper.zip" | sha256sum -c -
 unzip -q /tmp/Harper.zip -d "${harper_dir}"
 rm -rf "${styles_dir:?}/Harper" "${styles_dir:?}/config"

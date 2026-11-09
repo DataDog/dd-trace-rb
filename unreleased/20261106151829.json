@@ -1,0 +1,6 @@
+{
+  "type": "Changed",
+  "product": "Core",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6650",
+  "message": "Shorten the path in debug and error log lines from the default logger."
+}

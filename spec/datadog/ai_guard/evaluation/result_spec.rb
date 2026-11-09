@@ -11,7 +11,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
       tags: ["some", "tags"],
       sds_findings: [{"rule_tag" => "credit_card"}],
       redaction_replacements: [{"path" => "messages[0].content", "replacement" => "Hello <REDACTED>"}],
-      tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+      tag_probabilities: {"some" => 0.95, "tags" => 0.1},
     )
   end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
         tags: ["some", "tags"],
         sds_findings: [{"rule_tag" => "credit_card"}],
         redaction_replacements: [],
-        tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
       )
     end
 
@@ -100,7 +100,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
         tags: ["some", "tags"],
         sds_findings: [{"rule_tag" => "credit_card"}],
         redaction_replacements: [],
-        tag_probabilities: {"some" => 0.95, "tags" => 0.1}
+        tag_probabilities: {"some" => 0.95, "tags" => 0.1},
       )
     end
 

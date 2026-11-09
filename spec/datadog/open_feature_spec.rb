@@ -5,6 +5,41 @@ require "datadog/open_feature"
 
 RSpec.describe Datadog::OpenFeature do
   describe ".enabled?" do
+    context "with Feature Flags source selection" do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      before { allow(Datadog).to receive(:configuration).and_return(settings) }
+
+      it "enables the default agentless source" do
+        expect(described_class.enabled?).to be(true)
+      end
+
+      ["agentless", "remote_config"].each do |source|
+        it "lets explicit #{source} override the legacy disabled setting" do
+          settings.open_feature.enabled = false
+          settings.feature_flags.configuration_source = source
+
+          expect(described_class.enabled?).to be(true)
+        end
+      end
+
+      it "honors the Feature Flags kill switch over legacy enablement" do
+        settings.open_feature.enabled = true
+        settings.feature_flags.enabled = false
+
+        expect(described_class.enabled?).to be(false)
+      end
+
+      ["offline", "unsupported"].each do |source|
+        it "disables the #{source} source even with legacy enablement" do
+          settings.open_feature.enabled = true
+          settings.feature_flags.configuration_source = source
+
+          expect(described_class.enabled?).to be(false)
+        end
+      end
+    end
+
     context "when OpenFeature is disabled" do
       around do |example|
         Datadog.configure { |c| c.open_feature.enabled = false }
@@ -40,7 +75,7 @@ RSpec.describe Datadog::OpenFeature do
       it { expect(described_class.engine).to be_nil }
     end
 
-    context "when component and remote configuration are available" do
+    context "when OpenFeature and remote configuration are enabled" do
       before do
         # NOTE: To avoid the use of doubles or partial doubles outside of the per-test lifecycle
         #       we have to split around hook into before/after.
@@ -54,7 +89,9 @@ RSpec.describe Datadog::OpenFeature do
 
       after { Datadog.configuration.reset! }
 
-      it { expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine) }
+      it "builds the engine before provider adoption" do
+        expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
+      end
     end
 
     context "when component is available and remote configuration is not available" do

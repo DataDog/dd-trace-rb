@@ -22,14 +22,25 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
-  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil, debug?: false, warn: nil) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
+  let(:resolution) do
+    Datadog::OpenFeature::Configuration::Source::Resolution.new("agentless", enabled: true)
+  end
+  let(:on_configuration_change) { instance_double(Proc, call: nil) }
 
   describe ".build" do
     subject(:component) do
-      described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry)
+      described_class.build(
+        settings,
+        agent_settings,
+        resolution: resolution,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
     end
 
     context "when open_feature is enabled" do
@@ -93,20 +104,12 @@ RSpec.describe Datadog::OpenFeature::Component do
           end
         end
       end
-
-      context "when remote configuration is disabled" do
-        before { settings.remote.enabled = false }
-
-        it "logs warning and returns nil" do
-          expect(logger).to receive(:warn).with(/Remote Configuration is currently disabled/)
-
-          expect(component).to be_nil
-        end
-      end
     end
 
     context "when open_feature is not enabled" do
-      before { settings.open_feature.enabled = false }
+      let(:resolution) do
+        Datadog::OpenFeature::Configuration::Source::Resolution.new("offline", enabled: false)
+      end
 
       it { expect(component).to be_nil }
     end
@@ -148,6 +151,102 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect(component.flag_eval_evp_hook).to be_nil
         expect(component.flag_eval_metrics_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook)
       end
+    end
+  end
+
+  describe "#debug_logging_hook", skip: !Datadog::OpenFeature::Hooks::DebugLoggingHook.available? do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    it "is returned while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+
+    it "is withheld while debug logging is disabled" do
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+    end
+
+    it "reuses one hook across evaluations" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      expect(component.debug_logging_hook).to be(component.debug_logging_hook)
+    end
+
+    it "withholds an existing hook when debug logging is disabled later" do
+      allow(logger).to receive(:debug?).and_return(true)
+      hook = component.debug_logging_hook
+      allow(logger).to receive(:debug?).and_return(false)
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(logger).to receive(:debug?).and_return(true)
+      expect(component.debug_logging_hook).to be(hook)
+    end
+
+    it "is built once the OpenFeature SDK loads after the component" do
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(false)
+      component
+
+      expect(component.debug_logging_hook).to be_nil
+
+      allow(Datadog::OpenFeature::Hooks::DebugLoggingHook).to receive(:available?).and_return(true)
+
+      expect(component.debug_logging_hook).to be_a(Datadog::OpenFeature::Hooks::DebugLoggingHook)
+    end
+  end
+
+  describe "raw evaluation data warning" do
+    before do
+      settings.open_feature.evaluation_counts_enabled = false
+      stub_const("Datadog::Core::LIBDATADOG_API_FAILURE", nil)
+    end
+
+    subject(:component) do
+      described_class.build(
+        settings,
+        agent_settings,
+        resolution: resolution,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
+    end
+
+    let(:raw_data_warning) { Datadog::OpenFeature::EvaluationEngine::RAW_DATA_WARNING }
+
+    it "warns once when built while debug logging is enabled" do
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+
+      component.debug_logging_hook
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
+    end
+
+    it "does not warn while debug logging is disabled" do
+      component.debug_logging_hook
+
+      expect(logger).not_to have_received(:warn)
+    end
+
+    it "warns once before handing out the debug logging hook when debug logging is enabled later" do
+      component
+      allow(logger).to receive(:debug?).and_return(true)
+
+      component.debug_logging_hook
+      component.debug_logging_hook
+
+      expect(logger).to have_received(:warn).with(raw_data_warning).once
     end
   end
 
@@ -203,7 +302,15 @@ RSpec.describe Datadog::OpenFeature::Component do
       allow(worker).to receive(:graceful_shutdown)
     end
 
-    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+    subject(:component) do
+      described_class.new(
+        settings,
+        agent_settings,
+        on_configuration_change: on_configuration_change,
+        logger: logger,
+        telemetry: telemetry,
+      )
+    end
 
     describe "#reconfigure!" do
       it "marks an accepted configuration as received" do
@@ -211,6 +318,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!("configuration") }
           .to change(component, :configuration_received?).from(false).to(true)
+        expect(on_configuration_change).to have_received(:call).with(:ready)
       end
 
       it "does not mark a rejected configuration as received" do
@@ -220,6 +328,16 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect { component.reconfigure!("invalid") }
           .to raise_error(Datadog::OpenFeature::EvaluationEngine::ReconfigurationError)
         expect(component.configuration_received?).to be(false)
+        expect(on_configuration_change).not_to have_received(:call)
+      end
+
+      it "reports subsequent accepted configurations as changed" do
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("first")
+
+        component.reconfigure!("second")
+
+        expect(on_configuration_change).to have_received(:call).with(:changed).once
       end
 
       it "clears readiness when configuration is deleted" do
@@ -228,6 +346,20 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         expect { component.reconfigure!(nil) }
           .to change(component, :configuration_received?).from(true).to(false)
+        expect(on_configuration_change).to have_received(:call).with(:ready).once
+        expect(on_configuration_change).to have_received(:call).with(:lost).once
+      end
+
+      it "reports configuration recovery as ready" do
+        events = []
+        allow(on_configuration_change).to receive(:call) { |event| events << event }
+        allow(component.engine).to receive(:reconfigure!)
+        component.reconfigure!("first")
+        component.reconfigure!(nil)
+
+        component.reconfigure!("second")
+
+        expect(events).to eq([:ready, :lost, :ready])
       end
     end
 

@@ -1,0 +1,29 @@
+module Datadog
+  module DI
+    class SnapshotPruner
+      class Parser
+        STRUCTURAL_BYTE: Regexp
+
+        STRING_REMAINDER: Regexp
+
+        NOT_CAPTURED_REASON: String
+
+        NOT_CAPTURED_REASON_REMAINDER_SIZE: Integer
+
+        MEMBER_SEPARATOR: Regexp
+
+        DEPTH_VALUE: Regexp
+
+        OPEN_BRACE: Integer
+
+        CLOSE_BRACE: Integer
+
+        def parse: (String json) -> Node
+
+        private
+
+        def skip_string: (StringScanner scanner, Node? enclosing_node) -> bool
+      end
+    end
+  end
+end

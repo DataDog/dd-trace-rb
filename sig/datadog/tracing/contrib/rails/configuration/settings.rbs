@@ -4,7 +4,7 @@ module Datadog
       module Rails
         module Configuration
           class Settings < Contrib::Configuration::Settings
-            def initialize: (?::Hash[untyped, untyped] options) -> void
+            def initialize: (?Hash[untyped, untyped] options) -> void
           end
         end
       end

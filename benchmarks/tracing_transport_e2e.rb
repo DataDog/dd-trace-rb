@@ -100,7 +100,7 @@ class TracingTransportE2EBenchmark
       )
     when :native
       require "datadog/tracing/transport/native"
-      agent_settings = Struct.new(:url).new(agent_url)
+      agent_settings = Struct.new(:url, :timeout_seconds).new(agent_url, 30)
       Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
         logger: Logger.new(File::NULL),
