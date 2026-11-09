@@ -116,15 +116,13 @@ module Datadog
           # This is the same approach that the AWS SDK takes to prevent
           # some of its plugins form interfering with the presigning process:
           # https://github.com/aws/aws-sdk-ruby/blob/a82c8981c95a8296ffb6269c3c06a4f551d87f7d/gems/aws-sdk-s3/lib/aws-sdk-s3/presigner.rb#L194-L196
-          def sign_but_dont_send(*args, &block)
+          def sign_but_dont_send(*args, **kwargs, &block) # steep:ignore DifferentMethodParameterKind
             if (request = args[0]).is_a?(::Seahorse::Client::Request)
               request.handlers.remove(Handler)
             end
 
             super
           end
-
-          ruby2_keywords :sign_but_dont_send if respond_to?(:ruby2_keywords, true)
         end
       end
     end

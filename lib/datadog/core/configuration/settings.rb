@@ -25,7 +25,7 @@ module Datadog
         include Base
 
         # @!visibility private
-        def initialize(*_)
+        def initialize(...)
           super
 
           # WORKAROUND: The values for services, version, and env can get set either directly OR as a side effect of

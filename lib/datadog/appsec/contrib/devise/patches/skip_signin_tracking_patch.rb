@@ -8,7 +8,7 @@ module Datadog
           # To avoid tracking new sessions that are created by
           # Rememberable strategy as Login Success events.
           module SkipSigninTrackingPatch
-            def validate(*args)
+            def validate(...)
               @_datadog_appsec_skip_track_login_event = true
 
               super

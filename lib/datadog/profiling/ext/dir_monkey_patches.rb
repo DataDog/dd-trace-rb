@@ -35,14 +35,14 @@ module Datadog
         # @type var kwargs: ::Hash[::Symbol, any]
         # @type var block: ^(?) -> any | nil
 
-        def [](*args, **kwargs, &block)
+        def [](...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
 
-        def children(*args, **kwargs, &block)
+        def children(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
@@ -73,14 +73,14 @@ module Datadog
           end
         end
 
-        def empty?(*args, **kwargs, &block)
+        def empty?(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
 
-        def entries(*args, **kwargs, &block)
+        def entries(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
@@ -138,7 +138,7 @@ module Datadog
           end
         end
 
-        def home(*args, **kwargs, &block)
+        def home(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
@@ -200,21 +200,21 @@ module Datadog
           end
         end
 
-        def children(*args, **kwargs, &block)
+        def children(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
 
-        def tell(*args, **kwargs, &block)
+        def tell(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
 
-        def pos(*args, **kwargs, &block)
+        def pos(...)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure

@@ -10,7 +10,7 @@ module Datadog
         # RackBuilder class was introduced in faraday 0.9.0:
         # https://github.com/lostisland/faraday/commit/77d7546d6d626b91086f427c56bc2cdd951353b3
         module RackBuilder
-          def adapter(*args)
+          def adapter(...)
             use(:datadog_tracing) unless @handlers.any? { |h| h.klass == Middleware }
 
             super

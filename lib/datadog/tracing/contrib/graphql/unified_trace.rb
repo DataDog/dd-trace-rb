@@ -13,7 +13,7 @@ module Datadog
         module UnifiedTrace
           include ::GraphQL::Tracing::PlatformTrace
 
-          def initialize(*args, **kwargs)
+          def initialize(...)
             @has_prepare_span = respond_to?(:prepare_span)
 
             # Cache configuration values to avoid repeated lookups

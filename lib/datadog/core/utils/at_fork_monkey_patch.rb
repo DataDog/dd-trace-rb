@@ -228,7 +228,7 @@ module Datadog
           # A call to Process.daemon ( https://rubyapi.org/3.1/o/process#method-c-daemon ) forks the current process and
           # keeps executing code in the child process, killing off the parent, thus effectively replacing it.
           # This is not covered by `_fork` and thus we have some extra code for it.
-          def daemon(*args)
+          def daemon(...)
             snapshot = AtForkMonkeyPatch.snapshot_at_fork_blocks
             started = {}
             begin

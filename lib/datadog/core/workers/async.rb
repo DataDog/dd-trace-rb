@@ -28,10 +28,10 @@ module Datadog
 
           # Methods that must be prepended
           module PrependedMethods
-            def perform(*args)
+            def perform(...)
               unless started?
                 start_async do
-                  self.result = super(*args)
+                  self.result = super(...)
                 end
               end
             end
