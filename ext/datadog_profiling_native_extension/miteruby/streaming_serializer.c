@@ -17,6 +17,10 @@ RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
 
 enum { COMPRESSION_LEVEL = 1 };
 
+// This limit is arbitrary, yet set to large enough that even when representing paths
+// with lots of complex unicode characters it should be ample space.
+#define MAX_STRING_TABLE_ENTRY_BYTES 1000
+
 typedef struct {
   int64_t cpu_time_ns;
   uint32_t cpu_or_wall_samples;
@@ -258,6 +262,7 @@ static void read_location_ids(miteruby_stack_t stack, uint64_t *location_ids) {
 }
 
 static void emit_string_table_entry(pb_ostream_t *stream, const char *string, size_t length) {
+  if (length > MAX_STRING_TABLE_ENTRY_BYTES) length = MAX_STRING_TABLE_ENTRY_BYTES;
   if (!pb_encode_tag(stream, PB_WT_STRING, MITERUBY_PPROF_FRAGMENT_STRING_TABLE_STRING_TABLE_TAG) ||
       !pb_encode_string(stream, (const pb_byte_t *) string, length))
     rb_raise(rb_eRuntimeError, "Failed to encode streaming string table: %s", PB_GET_ERROR(stream));
