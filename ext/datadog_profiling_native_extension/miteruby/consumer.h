@@ -11,14 +11,14 @@
 #include "hashtable/verstable.h"
 
 typedef struct {
-  miteruby_event_frame_refs_t *entries;
+  miteruby_frame_t *entries;
   size_t count;
   size_t capacity;
-} miteruby_mark_cme_iseq_array_t;
+} miteruby_mark_frame_array_t;
 
 typedef struct {
-  miteruby_cme_iseq_id_t cme_iseq_id;
-  miteruby_event_frame_position_t position;
+  miteruby_frame_id_t frame_id;
+  miteruby_frame_position_t position;
 } miteruby_location_t;
 
 typedef struct {

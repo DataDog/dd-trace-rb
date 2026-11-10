@@ -28,7 +28,7 @@ void miteruby_serializer_init(VALUE profiling_module);
 void miteruby_serializer_check_available(VALUE serializer);
 miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
+  const miteruby_mark_frame_array_t *frame_array, const miteruby_location_array_t *location_array,
   // TODO: Figure out better way to avoid passing in set
   const verstable_mark_threads_set *threads_set
 );
