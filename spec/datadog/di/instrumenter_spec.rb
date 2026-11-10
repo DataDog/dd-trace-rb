@@ -3038,9 +3038,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           capturing_line_probe = Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
             id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000)
-          hook_line(capturing_line_probe) do |payload|
-            observed_calls << payload
-          end
 
           # The gate of a second hit in the same trace reads the stored
           # budget through WeakRef#weakref_alive?, a stdlib method the
@@ -3050,11 +3047,15 @@ RSpec.describe Datadog::DI::Instrumenter do
             method_name: "weakref_alive?", id: "p-weakref", type: :log,
             capture_snapshot: true, rate_limit: 5000)
           weakref_probe_calls = []
-          hook_method(weakref_probe) do |payload|
-            weakref_probe_calls << payload
-          end
 
           begin
+            hook_line(capturing_line_probe) do |payload|
+              observed_calls << payload
+            end
+            hook_method(weakref_probe) do |payload|
+              weakref_probe_calls << payload
+            end
+
             HookLineTestClass.new.test_method
             HookLineTestClass.new.test_method
             expect(weakref_probe_calls).to be_empty
