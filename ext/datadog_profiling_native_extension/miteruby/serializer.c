@@ -157,37 +157,40 @@ typedef enum {
 } serializer_status;
 
 typedef struct {
-  uint8_t *uncompressed_serialization_buffer;
-  uint8_t *compressed_serialization_buffer;
-  uint8_t *interned_events_queue;
-  void *compression_workspace;
-  verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
-  size_t compressed_serialization_size;
+  // Storage and bookkeeping retained across serialization cycles.
+  uint8_t *uncompressed_serialization_buffer; // Up to 256 KiB
+  uint8_t *compressed_serialization_buffer; // Up to 10 MiB
+  void *compression_workspace; // From zstd setup, ~1.3 MiB
+
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
+
+  // Per-profile working state carried from prepare_serialize into prepare_serialize_no_gvl.
+  uint8_t *interned_events_queue;
+  size_t interned_events_pos;
+  size_t function_count;
+  ZSTD_CCtx *compression_context; // Backed by compression_workspace
+  verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
+  pb_ostream_t stream; // Backed by uncompressed_serialization_buffer
+
+  // Result metadata retained after prepare_serialize_no_gvl until native_serialize consumes it.
+  size_t compressed_serialization_size;
   long finish_time_ns;
 } miteruby_serializer_persistent_state_t;
 
 typedef struct {
   // Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
   miteruby_serializer_persistent_state_t *persistent_state;
-  pb_ostream_t stream;
-  ZSTD_outBuffer compressed_buffer;
-  size_t interned_events_pos;
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array;
   const miteruby_location_array_t *location_array;
   const verstable_mark_threads_set *threads_set;
-  size_t function_count;
-  size_t thread_count;
-  long finish_time_ns;
-  ZSTD_CCtx *compression_context;
   miteruby_serializer_exit_reason_t exit_reason;
 } miteruby_serializer_prepare_serialization_state_t;
 
 static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
-  miteruby_serializer_prepare_serialization_state_t *state
+  miteruby_serializer_persistent_state_t *state
 );
-static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *state);
+static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state);
 
 #define RETURN_IF_ERROR(expression) do { \
   miteruby_serializer_exit_reason_t exit_reason_ = (expression); \
@@ -255,10 +258,10 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
   rb_raise(rb_eRuntimeError, "Unknown miteruby serializer exit reason: %d", reason);
 }
 
-static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_prepare_serialization_state_t *state) {
-  miteruby_serializer_persistent_state_t *persistent_state = state->persistent_state;
+static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
+  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
   state->compression_context = ZSTD_initStaticCCtx(
-    persistent_state->compression_workspace, miteruby_allocator_alloc_size(persistent_state->compression_workspace)
+    state->compression_workspace, miteruby_allocator_alloc_size(state->compression_workspace)
   );
   if (state->compression_context == NULL) return MITERUBY_SERIALIZER_COMPRESSION_CONTEXT_INIT_ERROR;
   size_t result = ZSTD_initCStream(state->compression_context, COMPRESSION_LEVEL);
@@ -266,22 +269,28 @@ static miteruby_serializer_exit_reason_t initialize_compression(miteruby_seriali
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_prepare_serialization_state_t *state, ZSTD_EndDirective end_op) {
-  ZSTD_inBuffer input = {.src = state->persistent_state->uncompressed_serialization_buffer, .size = state->stream.bytes_written};
+static miteruby_serializer_exit_reason_t compress_buffer(miteruby_serializer_persistent_state_t *state, ZSTD_EndDirective end_op) {
+  ZSTD_inBuffer input = {.src = state->uncompressed_serialization_buffer, .size = state->stream.bytes_written};
+  ZSTD_outBuffer output = {
+    .dst = state->compressed_serialization_buffer,
+    .size = miteruby_allocator_alloc_size(state->compressed_serialization_buffer),
+    .pos = state->compressed_serialization_size,
+  };
   size_t result;
   do {
-    if (state->compressed_buffer.pos == state->compressed_buffer.size) return MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL;
-    result = ZSTD_compressStream2(state->compression_context, &state->compressed_buffer, &input, end_op);
+    if (output.pos == output.size) return MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL;
+    result = ZSTD_compressStream2(state->compression_context, &output, &input, end_op);
+    state->compressed_serialization_size = output.pos;
     if (ZSTD_isError(result)) return MITERUBY_SERIALIZER_COMPRESSION_ERROR;
   } while (input.pos < input.size || (end_op == ZSTD_e_end && result != 0));
   return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_prepare_serialization_state_t *state) {
+static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_persistent_state_t *state) {
   if (RB_LIKELY(state->stream.bytes_written <= UNCOMPRESSED_BUFFER_FLUSH_AFTER_BYTES)) return MITERUBY_SERIALIZER_OK;
 
   RETURN_IF_ERROR(compress_buffer(state, ZSTD_e_continue));
-  uint8_t *buffer = state->persistent_state->uncompressed_serialization_buffer;
+  uint8_t *buffer = state->uncompressed_serialization_buffer;
   state->stream = pb_ostream_from_buffer(buffer, miteruby_allocator_alloc_size(buffer));
   return MITERUBY_SERIALIZER_OK;
 }
@@ -498,10 +507,11 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-static VALUE prepare_serialize_body(VALUE state_value) {
-  miteruby_serializer_prepare_serialization_state_t *state = (miteruby_serializer_prepare_serialization_state_t *)state_value;
+static VALUE prepare_serialize_body(VALUE prepare_state_value) {
+  miteruby_serializer_prepare_serialization_state_t *prepare_state = (miteruby_serializer_prepare_serialization_state_t *)prepare_state_value;
+  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
   state->finish_time_ns = system_epoch_time_now_ns();
-  state->exit_reason = prepare_serialize(state);
+  prepare_state->exit_reason = prepare_serialize(prepare_state);
   return Qnil;
 }
 
@@ -518,48 +528,43 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
 ) {
-  miteruby_serializer_persistent_state_t *persistent_state = get_state(serializer);
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
 
-  if (persistent_state->status == SERIALIZER_WORKING) return MITERUBY_SERIALIZER_ALREADY_WORKING;
+  if (state->status == SERIALIZER_WORKING) return MITERUBY_SERIALIZER_ALREADY_WORKING;
 
-  persistent_state->compressed_serialization_size = 0;
-  verstable_serializer_thread_contexts_map_clear(&persistent_state->thread_contexts);
+  state->compressed_serialization_size = 0;
+  state->stream = pb_ostream_from_buffer(
+    state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
+  );
+  verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
 
-  miteruby_serializer_prepare_serialization_state_t state = {
-    .persistent_state = persistent_state,
-    .stream = pb_ostream_from_buffer(
-      persistent_state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(persistent_state->uncompressed_serialization_buffer)
-    ),
-    .compressed_buffer = {
-      .dst = persistent_state->compressed_serialization_buffer,
-      .size = miteruby_allocator_alloc_size(persistent_state->compressed_serialization_buffer),
-    },
-    .interned_events_pos = interned_events_pos,
+  miteruby_serializer_prepare_serialization_state_t prepare_state = {
+    .persistent_state = state,
     .cme_iseq_array = cme_iseq_array,
     .location_array = location_array,
     .threads_set = threads_set,
   };
 
-  persistent_state->interned_events_queue = interned_events_queue;
-  persistent_state->status = SERIALIZER_WORKING;
+  state->interned_events_queue = interned_events_queue;
+  state->interned_events_pos = interned_events_pos;
+  state->status = SERIALIZER_WORKING;
 
-  rb_ensure(prepare_serialize_body, (VALUE)&state, prepare_serialize_cleanup, (VALUE)persistent_state);
+  rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state);
 
-  if (state.exit_reason == MITERUBY_SERIALIZER_OK) {
-    persistent_state->compressed_serialization_size = state.compressed_buffer.pos;
-    persistent_state->finish_time_ns = state.finish_time_ns;
-    persistent_state->status = SERIALIZER_FINISHED;
+  if (prepare_state.exit_reason == MITERUBY_SERIALIZER_OK) {
+    state->status = SERIALIZER_FINISHED;
   }
 
-  return state.exit_reason;
+  return prepare_state.exit_reason;
 }
 
-static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *state) {
-  RETURN_IF_ERROR(initialize_compression(state));
+static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
+  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
+  RETURN_IF_ERROR(initialize_compression(prepare_state));
   pb_ostream_t *stream = &state->stream;
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array = state->cme_iseq_array;
-  const miteruby_location_array_t *location_array = state->location_array;
-  const verstable_mark_threads_set *threads_set = state->threads_set;
+  const miteruby_mark_cme_iseq_array_t *cme_iseq_array = prepare_state->cme_iseq_array;
+  const miteruby_location_array_t *location_array = prepare_state->location_array;
+  const verstable_mark_threads_set *threads_set = prepare_state->threads_set;
 
   // Design note - Currently we need the GVL to:
   //
@@ -594,7 +599,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   ) {
     VALUE thread = entry.data->key;
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->persistent_state->thread_contexts, thread, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, &context));
     context->thread_name_string_id = thread_string_id++;
     context->thread_id_string_id = thread_string_id++;
     // Upcall into Ruby: Thread metadata (name, id, etc)
@@ -648,7 +653,6 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   }
 
   state->function_count = cme_iseq_array->count;
-  state->thread_count = verstable_mark_threads_set_size(threads_set);
 
   // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
   // have been serialized.
@@ -656,13 +660,13 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
 }
 
 static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
-  miteruby_serializer_prepare_serialization_state_t *state
+  miteruby_serializer_persistent_state_t *state
 ) {
   pb_ostream_t *stream = &state->stream;
-  uint8_t *interned_events_queue = state->persistent_state->interned_events_queue;
+  uint8_t *interned_events_queue = state->interned_events_queue;
   size_t interned_events_pos = state->interned_events_pos;
   size_t function_count = state->function_count;
-  size_t thread_count = state->thread_count;
+  size_t thread_count = verstable_serializer_thread_contexts_map_size(&state->thread_contexts);
   long finish_time_ns = state->finish_time_ns;
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
@@ -695,9 +699,9 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
   }
 
   // 9. Emit FragmentProfile (Does not require GVL)
-  int64_t duration_ns = finish_time_ns - state->persistent_state->start_time_ns;
+  int64_t duration_ns = finish_time_ns - state->start_time_ns;
   miteruby_pprof_fragment_profile_t profile = {
-    .time_nanos = state->persistent_state->start_time_ns,
+    .time_nanos = state->start_time_ns,
     .duration_nanos = duration_ns > 0 ? duration_ns : 0,
   };
   if (!pb_encode(stream, MITERUBY_PPROF_FRAGMENT_PROFILE_FIELDS, &profile))
@@ -722,7 +726,7 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->persistent_state->thread_contexts, event->thread.value, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, &context));
     miteruby_sample_values values = sample_values_for(context, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
     RETURN_IF_ERROR(emit_sample_fragment(stream, location_ids, location_count, values, context, end_timestamp_ns));
