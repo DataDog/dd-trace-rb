@@ -280,7 +280,6 @@ RSpec.describe Datadog::OpenFeature::ExposureHook do
         .with(/ExposureHook callback failed for "flag": ArgumentError; later failures are logged at debug level/).once
       expect(debug_messages).to include('Feature Flags: ExposureHook callback failed for "flag": ArgumentError: callback failure')
     end
-
   end
 
   context "when the callback raises an exception whose #message raises" do
