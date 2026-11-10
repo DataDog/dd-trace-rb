@@ -58,6 +58,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
   end
 
+  # DI::Component.build registers the component it builds in the
+  # process-wide Datadog::DI current components, which outlive the example.
+  let(:built_di_components) { [] }
+
+  before do
+    allow(Datadog::DI::Component).to receive(:build).and_wrap_original do |build, *args, **options|
+      build.call(*args, **options).tap do |component|
+        built_di_components << component if component
+      end
+    end
+  end
+
+  after do
+    built_di_components.each do |component|
+      Datadog::DI.remove_current_component(component)
+    end
+  end
+
   with_env "DD_REMOTE_CONFIGURATION_ENABLED" => nil
 
   describe "::new" do
