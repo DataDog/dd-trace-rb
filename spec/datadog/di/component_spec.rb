@@ -327,34 +327,23 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be true
     end
 
-    context "when code tracking is activated after the component is built (in-product enablement)" do
-      before do
-        # Simulate DI disabled at boot: no global code tracker exists when the
-        # component (and its instrumenter) are built. Stop any tracker a prior
-        # example left active before dropping the global reference: nilling
-        # @code_tracker while its process-global :script_compiled TracePoint is
-        # still enabled orphans the TracePoint (deactivate_tracking! can no longer
-        # reach it), leaking it into later specs and double-firing
-        # code_tracker_spec's line-probe-installation examples.
-        Datadog::DI.deactivate_tracking!
-        Datadog::DI.instance_variable_set(:@code_tracker, nil)
-      end
+    context "when the global code tracker is created after the component is built (in-product enablement)" do
+      let(:code_tracker) { instance_double(Datadog::DI::CodeTracker) }
 
-      after do
-        Datadog::DI.deactivate_tracking!
-        Datadog::DI.instance_variable_set(:@code_tracker, nil)
+      # Stubbed because the real global code tracker is process-wide state
+      # shared with every other example.
+      before do
+        allow(Datadog::DI).to receive(:code_tracker).and_return(nil)
       end
 
       it "adopts the global code tracker on start!" do
         expect(component.instrumenter.code_tracker).to be_nil
 
-        Datadog::DI.activate_tracking!
-        expect(Datadog::DI.code_tracker).not_to be_nil
-
+        allow(Datadog::DI).to receive(:code_tracker).and_return(code_tracker)
         component.start!
 
-        expect(component.instrumenter.code_tracker).to be(Datadog::DI.code_tracker)
-        expect(component.code_tracker).to be(Datadog::DI.code_tracker)
+        expect(component.instrumenter.code_tracker).to be(code_tracker)
+        expect(component.code_tracker).to be(code_tracker)
       end
     end
 
