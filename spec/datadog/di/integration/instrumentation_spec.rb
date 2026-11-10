@@ -1469,12 +1469,11 @@ RSpec.describe "Instrumentation integration" do
           end
 
           before do
-            Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
             # Files loaded via 'load' do not get added to $LOADED_FEATURES,
             # use 'require'.
             # Note that the other tests use 'load' because they want the
             # code to always be loaded.
-            require_relative "instrumentation_integration_test_class"
+            require_again(File.expand_path("instrumentation_integration_test_class.rb", __dir__))
             expect($LOADED_FEATURES.detect do |path|
               File.basename(path) == "instrumentation_integration_test_class.rb"
             end).to be_truthy

@@ -203,6 +203,18 @@ module DIHelpers
       end
     end
 
+    # Requires the file at the absolute path, loading it again when an
+    # earlier require already recorded it in $LOADED_FEATURES, so that specs
+    # asserting on what a require does see the file load every time.
+    #
+    # @param path [String] absolute path of the file to require
+    # @return [Boolean] the result of the require
+    def require_again(path)
+      real_path = File.realpath(path)
+      $LOADED_FEATURES.delete_if { |feature| feature == path || feature == real_path }
+      require path
+    end
+
     # Helper method to generate a deeply nested hash for circuit breaker tests
     def generate_deep_hash(keys_per_level, depth)
       return "leaf_value" if depth == 0
