@@ -219,16 +219,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
         expect(ai_guard_span.tags).to include(
           "ai_guard.evaluate_id" => "evaluation-123",
-          "custom_context.note" => ""
+          "custom_context.note" => "",
         )
         expect(ai_guard_span.tags).not_to include(
           "ai_guard.ai_guard.evaluate_id", "ai_guard.custom_context.note",
-          "policy_match", "flag", "empty"
+          "policy_match", "flag", "empty",
         )
         expect(metastruct).to include(
           "policy_match" => {"rule" => "example", "matches" => []},
           "flag" => false,
-          "empty" => []
+          "empty" => [],
         )
         expect(metastruct).not_to include("ai_guard.evaluate_id", "custom_context.note")
       end
@@ -267,7 +267,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
             },
             "policy_match" => {"rule" => "example", "matches" => []},
             "flag" => false,
-            "empty" => []
+            "empty" => [],
           )
         end
       end
@@ -301,10 +301,10 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           expect(ai_guard_span).not_to have_error
           expect(ai_guard_span.tags).to include(
             "ai_guard.evaluate_id" => "evaluation-123",
-            "custom_context.after_invalid" => "kept"
+            "custom_context.after_invalid" => "kept",
           )
           expect(ai_guard_span.tags).not_to include(
-            "", "1", "bad.number", "bad.object", "bad.boolean", "bad.nil"
+            "", "1", "bad.number", "bad.object", "bad.boolean", "bad.nil",
           )
           expect(metastruct).to include("flag" => false, "after_invalid" => true)
           expect(metastruct).not_to include("bad.number", "bad.object", "bad.boolean", "bad.nil")
@@ -359,10 +359,10 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
           expect(ai_guard_span.tags).to include(
             "ai_guard.action" => "ALLOW",
-            "ai_guard.evaluate_id" => "evaluation-123"
+            "ai_guard.evaluate_id" => "evaluation-123",
           )
           expect(ai_guard_span.tags).not_to include(
-            "ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr"
+            "ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr",
           )
           expect(metastruct).not_to include("messages", "attack_categories", "sds", "tag_probs")
           expect(metastruct.fetch(:messages)).to eq([{role: :user, content: "Hello"}])
@@ -379,10 +379,10 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
           expect(ai_guard_span.tags).to include(
             "ai_guard.evaluate_id" => "evaluation-123",
-            "ai_guard.blocked" => "true"
+            "ai_guard.blocked" => "true",
           )
           expect(metastruct).to include(
-            "policy_match" => {"rule" => "example", "matches" => []}
+            "policy_match" => {"rule" => "example", "matches" => []},
           )
         end
       end
