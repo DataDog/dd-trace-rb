@@ -39,11 +39,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       settings.dynamic_instrumentation.enabled = true
       settings.dynamic_instrumentation.internal.development = true
       settings.dynamic_instrumentation.internal.propagate_all_exceptions = true
-    end
-  end
-
-  let(:settings) do
-    Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.agent.host = "localhost"
       settings.agent.port = http_server_port
       settings.agent.use_ssl = false
@@ -69,9 +64,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   def define_input_endpoint(http_server, path)
-    @received_snapshot_count = 0
-    @received_snapshot_bytes = 0
-
     http_server.mount_proc(path) do |req, res|
       expect(req.content_type).to eq("application/json")
       payload = JSON.parse(req.body)
@@ -122,6 +114,8 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   context "probe status" do
     http_server do |http_server|
       define_diagnostics_endpoint(http_server)
+      define_unused_endpoint(http_server, "/debugger/v1/input")
+      define_unused_endpoint(http_server, "/debugger/v2/input")
     end
 
     after do
