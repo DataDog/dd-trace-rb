@@ -188,7 +188,6 @@ typedef struct {
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array;
   const miteruby_location_array_t *location_array;
   const verstable_mark_threads_set *threads_set;
-  miteruby_serializer_exit_reason_t exit_reason;
 } miteruby_serializer_prepare_serialization_state_t;
 
 static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
@@ -518,11 +517,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
 
 static VALUE prepare_serialize_body(VALUE prepare_state_value) {
   miteruby_serializer_prepare_serialization_state_t *prepare_state = (miteruby_serializer_prepare_serialization_state_t *)prepare_state_value;
-  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
-  state->finish_time_ns = system_epoch_time_now_ns();
-  prepare_state->exit_reason = prepare_serialize(prepare_state);
-  if (prepare_state->exit_reason == MITERUBY_SERIALIZER_OK) state->status = SERIALIZER_FINISHED;
-  return Qnil;
+  return INT2FIX(prepare_serialize(prepare_state));
 }
 
 static VALUE prepare_serialize_cleanup(VALUE state_value) {
@@ -558,15 +553,19 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   state->interned_events_pos = interned_events_pos;
   state->status = SERIALIZER_WORKING;
 
-  rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state);
+  miteruby_serializer_exit_reason_t exit_reason = FIX2INT(
+    rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state)
+  );
 
   miteruby_allocator_free(state->interned_events_queue);
   state->interned_events_queue = NULL;
-  return prepare_state.exit_reason;
+  if (exit_reason == MITERUBY_SERIALIZER_OK) state->status = SERIALIZER_FINISHED;
+  return exit_reason;
 }
 
 static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
   miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
+  state->finish_time_ns = system_epoch_time_now_ns();
   RETURN_IF_ERROR(initialize_compression(prepare_state));
   pb_ostream_t *stream = &state->stream;
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array = prepare_state->cme_iseq_array;
