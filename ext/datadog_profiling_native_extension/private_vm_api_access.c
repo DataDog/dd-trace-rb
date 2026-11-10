@@ -820,7 +820,7 @@ uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_
 
     if (stack_buffer->frame_count == limit) return MITERUBY_EVENT_STACK_TRUNCATED;
     uint16_t i = stack_buffer->frame_count++;
-    stack_buffer->refs[i] = (miteruby_event_frame_refs_t) {.cme = cme, .iseq = iseq};
+    stack_buffer->frames[i] = (miteruby_frame_t) {.cme = cme, .iseq = iseq};
     stack_buffer->positions[i].value = position;
   }
 

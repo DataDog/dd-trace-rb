@@ -60,8 +60,8 @@ typedef struct {
 static miteruby_stack_dedup_state_t stack_dedup_state = {0};
 
 miteruby_stack_hash_t miteruby_stack_hash(const miteruby_event_stack_sample_t *event) {
-  size_t size = event->header.frame_count * (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t));
-  return (miteruby_stack_hash_t) {.hash = rapidhash(event->refs, size)};
+  size_t size = event->header.frame_count * (sizeof(miteruby_frame_t) + sizeof(miteruby_frame_position_t));
+  return (miteruby_stack_hash_t) {.hash = rapidhash(event->frames, size)};
 }
 
 static uint64_t stack_hash_value(miteruby_stack_hash_t key) {

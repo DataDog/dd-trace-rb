@@ -49,11 +49,11 @@ typedef struct {
 typedef struct {
   const rb_callable_method_entry_t *cme;
   const rb_iseq_t *iseq;
-} miteruby_event_frame_refs_t;
+} miteruby_frame_t;
 
 typedef struct {
   uint16_t value;
-} miteruby_cme_iseq_id_t;
+} miteruby_frame_id_t;
 
 typedef struct {
   uint20_t value;
@@ -61,18 +61,18 @@ typedef struct {
 
 typedef struct {
   uint16_t value;
-} miteruby_event_frame_position_t;
+} miteruby_frame_position_t;
 
 typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
-  miteruby_event_frame_refs_t refs[];
+  miteruby_frame_t frames[];
 } miteruby_event_stack_sample_t;
 
 #define MITERUBY_MAX_FRAMES 400
 #define MITERUBY_MAX_SIZE_BYTES \
   ((sizeof(miteruby_event_stack_sample_t) + MITERUBY_MAX_FRAMES * \
-    (sizeof(miteruby_event_frame_refs_t) + sizeof(miteruby_event_frame_position_t)) + 7) & ~(size_t) 7)
+    (sizeof(miteruby_frame_t) + sizeof(miteruby_frame_position_t)) + 7) & ~(size_t) 7)
 
 typedef struct {
   // Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
@@ -93,8 +93,8 @@ typedef struct {
 } miteruby_event_deduped_sample_t;
 
 typedef struct {
-  miteruby_event_frame_refs_t *refs;
-  miteruby_event_frame_position_t *positions;
+  miteruby_frame_t *frames;
+  miteruby_frame_position_t *positions;
   uint16_t frame_count;
 } miteruby_event_stack_sample_view_t;
 
@@ -109,15 +109,15 @@ _Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_
 _Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(
-  offsetof(miteruby_event_frame_refs_t, cme) == 0 &&
-    offsetof(miteruby_event_frame_refs_t, iseq) == sizeof(VALUE) &&
-    sizeof(miteruby_event_frame_refs_t) == 2 * sizeof(VALUE),
+  offsetof(miteruby_frame_t, cme) == 0 &&
+    offsetof(miteruby_frame_t, iseq) == sizeof(VALUE) &&
+    sizeof(miteruby_frame_t) == 2 * sizeof(VALUE),
   "Bulk marking requires contiguous VALUE-sized frame references without padding"
 );
-_Static_assert(sizeof(miteruby_cme_iseq_id_t) == 2, "miteruby_cme_iseq_id_t must be 2 bytes");
+_Static_assert(sizeof(miteruby_frame_id_t) == 2, "miteruby_frame_id_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_location_id_t) == 4, "miteruby_location_id_t must be 4 bytes");
-_Static_assert(sizeof(miteruby_event_frame_position_t) == 2, "miteruby_event_frame_position_t must be 2 bytes");
-_Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, refs) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
+_Static_assert(sizeof(miteruby_frame_position_t) == 2, "miteruby_frame_position_t must be 2 bytes");
+_Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, frames) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
 _Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
 _Static_assert(offsetof(miteruby_event_deduped_sample_t, stack.ids) == 44, "miteruby_event_deduped_sample_t IDs must start after a 44-byte prefix");
