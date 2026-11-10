@@ -6,40 +6,40 @@ module Datadog
           class Multiplex < Instrumentation::Gateway::Argument
             @multiplex: ::GraphQL::Execution::Multiplex
 
-            @arguments: ::Hash[::String, ::Array[::Hash[::String, any]]]
+            @arguments: Hash[String, Array[Hash[String, any]]]
 
             attr_reader multiplex: ::GraphQL::Execution::Multiplex
 
             def initialize: (::GraphQL::Execution::Multiplex multiplex) -> void
 
-            def arguments: () -> ::Hash[::String, ::Array[::Hash[::String, any]]]
+            def arguments: () -> Hash[String, Array[Hash[String, any]]]
 
-            def queries: () -> ::Array[::GraphQL::Query]
+            def queries: () -> Array[::GraphQL::Query]
 
             private
 
-            def build_arguments_hash: () -> ::Hash[::String, ::Array[::Hash[::String, any]]]
+            def build_arguments_hash: () -> Hash[String, Array[Hash[String, any]]]
 
             def arguments_from_selections: (
-              ::Array[::GraphQL::Language::Nodes::AbstractNode] selections,
+              Array[::GraphQL::Language::Nodes::AbstractNode] selections,
               any query_variables,
-              ::Hash[::String, ::Array[::Hash[::String, any]]] args_hash,
-              ::Hash[::String, ::GraphQL::Language::Nodes::FragmentDefinition] fragments,
-              ?::Hash[::String, bool] visited_fragments
+              Hash[String, Array[Hash[String, any]]] args_hash,
+              Hash[String, ::GraphQL::Language::Nodes::FragmentDefinition] fragments,
+              ?Hash[String, bool] visited_fragments
             ) -> void
 
             def append_arguments: (
-              ::Hash[::String, ::Array[::Hash[::String, any]]] args_hash,
-              ::String selection_name,
-              ::Hash[::String, any]? arguments,
-              ::Hash[::String, any]? directive_arguments
+              Hash[String, Array[Hash[String, any]]] args_hash,
+              String selection_name,
+              Hash[String, any]? arguments,
+              Hash[String, any]? directive_arguments
             ) -> void
 
-            def arguments_from_directives: (::Array[::GraphQL::Language::Nodes::Directive] directives, any query_variables) -> ::Hash[::String, ::Hash[::String, any]]?
+            def arguments_from_directives: (Array[::GraphQL::Language::Nodes::Directive] directives, any query_variables) -> Hash[String, Hash[String, any]]?
 
-            def arguments_hash_unless_empty: (::Array[::GraphQL::Language::Nodes::Argument] arguments, any query_variables) -> ::Hash[::String, any]?
+            def arguments_hash_unless_empty: (Array[::GraphQL::Language::Nodes::Argument] arguments, any query_variables) -> Hash[String, any]?
 
-            def arguments_hash: (::Array[::GraphQL::Language::Nodes::Argument] arguments, any query_variables) -> ::Hash[::String, any]
+            def arguments_hash: (Array[::GraphQL::Language::Nodes::Argument] arguments, any query_variables) -> Hash[String, any]
 
             def argument_value: (::GraphQL::Language::Nodes::Argument argument, any query_variables) -> any
           end

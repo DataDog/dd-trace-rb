@@ -100,6 +100,7 @@ module Datadog
           return unless @providers.empty?
           if @delivery_source == Configuration::Source::REMOTE_CONFIG && @delivery_started
             # Remote Configuration is process-scoped and may already hold configuration needed by the next provider.
+            @logger.debug { "Feature Flags: provider detached; process-scoped Remote Configuration remains active" }
             [nil, nil]
           else
             previous_source = @configuration_source
@@ -149,9 +150,14 @@ module Datadog
         @activated = true
         unless resolution.enabled?
           @failure = "Feature Flags are disabled"
+          @logger.debug do
+            reason = @settings.feature_flags.enabled ? "the resolved configuration source is offline" : "feature_flags.enabled is false"
+            "Feature Flags: disabled because #{reason}"
+          end
           return
         end
 
+        @logger.debug { "Feature Flags: configuration source is #{resolution.source}" }
         component = Component.build(
           @settings,
           @agent_settings,
@@ -230,6 +236,20 @@ module Datadog
         end
 
         @configuration_source = configuration_source
+
+        @logger.debug do
+          agentless = @settings.feature_flags.agentless
+          sdk_env = @settings.env ? "sdk_env=#{@settings.env.inspect}" : "sdk_env is unset"
+          requested_env = if endpoint.managed?
+            @settings.env ? "requested_env=#{@settings.env.inspect}" : "requested_env is unset"
+          else
+            "requested_env is not sent (custom endpoint)"
+          end
+          "Feature Flags: starting agentless configuration source at #{endpoint.origin} " \
+            "(#{sdk_env}, #{requested_env}, " \
+            "poll interval #{agentless.poll_interval_seconds}s, request timeout #{agentless.request_timeout_seconds}s)"
+        end
+
         started = configuration_source.start
         @failure = "Feature Flags agentless delivery could not start" unless started
         started
@@ -241,7 +261,7 @@ module Datadog
           @failure = "Feature Flags Remote Configuration is unavailable"
           @logger.warn(
             "#{@failure}. To enable Remote Configuration, " \
-              "see https://docs.datadoghq.com/remote_configuration/."
+              "see https://docs.datadoghq.com/remote_configuration/.",
           )
           return false
         end
@@ -249,6 +269,7 @@ module Datadog
         receivers = @remote_receivers ||= Remote.receivers(
           @telemetry,
           component_provider: -> { @mutex.synchronize { @component } },
+          logger: @logger,
         )
         remote.register(
           capabilities: Remote.capabilities,
@@ -256,6 +277,10 @@ module Datadog
           receivers: receivers,
         )
         remote.start
+        @logger.debug do
+          sdk_env = @settings.env ? "sdk_env=#{@settings.env.inspect}" : "sdk_env is unset"
+          "Feature Flags: started Remote Configuration source (#{sdk_env}) using Datadog Agent"
+        end
         true
       end
 

@@ -220,7 +220,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
       snapshot = registry.snapshot_at_fork_blocks
       registry.send(
         :replace_at_fork_blocks,
-        {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze
+        {before: [].freeze, parent: [].freeze, child: [].freeze}.freeze,
       )
       snapshot
     end
@@ -415,7 +415,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         define_singleton_method(:_fork) { raise Errno::EAGAIN }
       end
       failing_process.singleton_class.prepend(
-        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
       )
 
       expect { failing_process._fork }.to raise_error(Errno::EAGAIN)
@@ -451,7 +451,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
 
       [before_fork, child_report, send_report.call].each do |report|
         expect(report).to include(requests_count: 1, responses_count: 1, status_code: 200,
-          chunks_sent: 1, spans_enqueued_for_serialization: 1,)
+          chunks_sent: 1, spans_enqueued_for_serialization: 1)
         expect(report.fetch(:bytes_sent)).to be > 0
       end
     ensure
@@ -475,7 +475,7 @@ RSpec.describe "Native transport fork safety and cancellation" do
         end
       end
       process_module.singleton_class.prepend(
-        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
       )
 
       expect { process_module._fork }.to raise_error(error)

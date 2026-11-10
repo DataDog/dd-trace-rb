@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppDependenciesLoaded do
 
     it "has a known gem with expected version" do
       is_expected.to match(
-        dependencies: include(name: "datadog", version: Datadog::Core::Environment::Identity.gem_datadog_version)
+        dependencies: include(name: "datadog", version: Datadog::Core::Environment::Identity.gem_datadog_version),
       )
     end
   end

@@ -17,17 +17,15 @@ module Datadog
             hash[key] = Datadog::Core::Utils::OnlyOnce.new
           end
 
-          module_function
-
-          def patched?
+          def self.patched?
             !!Patcher.instance_variable_get(:@patched)
           end
 
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             ::ActiveSupport.on_load(:before_initialize) do |app|
               GUARD_ONCE_PER_APP[app].run do
                 app.middleware.insert_after(Warden::Manager, TrackingMiddleware)

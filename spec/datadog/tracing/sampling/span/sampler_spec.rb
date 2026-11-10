@@ -22,9 +22,9 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
         expect { sample! }.to_not(
           change do
             trace_op.get_tag(
-              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
             )
-          end
+          end,
         )
       end
     end

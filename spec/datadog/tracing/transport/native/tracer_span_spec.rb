@@ -45,7 +45,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         "name" => "event",
         "time_unix_nano" => 123,
         "attributes" => attributes,
-      }
+      },
     )
 
     expect { tracer_span_class._native_from_span(make_ruby_span(events: [event])) }
@@ -115,9 +115,9 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
             trace_id: (0x1234 << 64) | 0x5678,
             span_id: 0x9abc,
             trace_sampling_priority: 1,
-            trace_state: "vendor=value"
+            trace_state: "vendor=value",
           ),
-          attributes: {"operation" => "receive", "batch" => [1, true]}
+          attributes: {"operation" => "receive", "batch" => [1, true]},
         )
       end
 
@@ -143,7 +143,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
       it "rejects invalid UTF-8" do
         invalid_link = Datadog::Tracing::SpanLink.new(
           Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
-          attributes: {"valid" => "value", "invalid" => "\xff".b}
+          attributes: {"valid" => "value", "invalid" => "\xff".b},
         )
         span = make_ruby_span
         span.links.concat([link, invalid_link])
@@ -177,7 +177,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect(calls).to eq([:tracestate] * 20)
 
         span.links.replace([Datadog::Tracing::SpanLink.new(
-          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2)
+          Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
         )])
         expect(tracer_span_class._native_from_span(span)).to be_a(tracer_span_class)
         GC.start
@@ -318,7 +318,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect_native_event_rejection(
           {"invalid" => {type: 99}},
           ArgumentError,
-          /unsupported span event attribute type/
+          /unsupported span event attribute type/,
         )
       end
 
@@ -326,7 +326,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect_native_event_rejection(
           {"flag" => {type: 1, bool_value: "yes"}},
           TypeError,
-          /span event attribute 'flag' must be true or false, got String/
+          /span event attribute 'flag' must be true or false, got String/,
         )
       end
 
@@ -334,7 +334,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect_native_event_rejection(
           {"nested" => {type: 4, array_value: {values: [{type: 4, array_value: {values: []}}]}}},
           ArgumentError,
-          /nested span event arrays are not supported/
+          /nested span event arrays are not supported/,
         )
       end
 
@@ -342,7 +342,7 @@ RSpec.describe "Datadog::Tracing::Transport::Native::TracerSpan" do
         expect_native_event_rejection(
           {"mixed" => {type: 4, array_value: {values: [{type: 0, string_value: "a"}, {type: 2, int_value: 1}]}}},
           ArgumentError,
-          /span event arrays must be homogeneous/
+          /span event arrays must be homogeneous/,
         )
       end
     end

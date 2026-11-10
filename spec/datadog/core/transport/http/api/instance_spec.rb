@@ -15,7 +15,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
       is_expected.to have_attributes(
         endpoint: endpoint,
         adapter: adapter,
-        headers: {}
+        headers: {},
       )
     end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
           it do
             expect(adapter).to have_received(:call) do |env|
               expect(env.headers).to eq(
-                "X-Test-Header" => "true"
+                "X-Test-Header" => "true",
               )
             end
           end
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
             expect(adapter).to have_received(:call) do |env|
               expect(env.headers).to eq(
                 "X-Test-Header" => "true",
-                "X-Other-Test-Header" => "false"
+                "X-Other-Test-Header" => "false",
               )
             end
           end

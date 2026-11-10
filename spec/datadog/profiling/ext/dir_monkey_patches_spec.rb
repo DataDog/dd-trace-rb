@@ -338,7 +338,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     raise ArgumentError unless [:blocked, :unblocked].include?(state)
 
     expect(
-      Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_is_sigprof_blocked_in_current_thread
+      Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_is_sigprof_blocked_in_current_thread,
     ).to be(state == :blocked), "Sigprof was expected to be #{state}, but it's actually not"
   end
 end

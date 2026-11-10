@@ -21,6 +21,7 @@
 /.rubocop.yml @DataDog/ruby-guild
 /.semgrepignore @DataDog/ruby-guild
 /.simplecov @DataDog/ruby-guild
+/.simple-english.yml @DataDog/ruby-guild
 /.standard.yml @DataDog/ruby-guild
 /.standard_todo.yml @DataDog/ruby-guild
 /.yamllint.yml @DataDog/ruby-guild

@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Integration do
       before do
         integration.resolver
         expect(integration.instance_variable_get(:@resolver)).to be_a(
-          Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver
+          Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver,
         )
       end
 

@@ -1,6 +1,0 @@
-{
-  "type": "Added",
-  "product": "Tracing",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6298",
-  "message": "Add quantized request paths to outbound HTTP client resource names, such as `GET /users/*`; enable with `DD_TRACE_HTTP_CLIENT_RESOURCE_NAME_QUANTIZE=true`."
-}

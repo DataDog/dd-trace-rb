@@ -316,6 +316,13 @@
         "default": "false"
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "50"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
       {
         "version": "A",
@@ -674,9 +681,9 @@
     ],
     "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [

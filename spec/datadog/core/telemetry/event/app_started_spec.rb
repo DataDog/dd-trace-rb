@@ -182,7 +182,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", origin: "default", seq_id: 1, value: 10000},
           {name: "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", origin: "default", seq_id: 1, value: "delta"},
           {name: "OTEL_METRIC_EXPORT_INTERVAL", origin: "default", seq_id: 1, value: 10000},
-          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "default", seq_id: 1, value: 7500}
+          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "default", seq_id: 1, value: 7500},
         )
       end
     end
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it "does not report logs headers to telemetry" do
         expect(event.payload[:configuration]).to_not include(
-          include(name: "OTEL_EXPORTER_OTLP_LOGS_HEADERS")
+          include(name: "OTEL_EXPORTER_OTLP_LOGS_HEADERS"),
         )
       end
     end
@@ -328,7 +328,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             {
               fleet: {id: "12345", config: {"DD_APPSEC_ENABLED" => "true"}},
               local: {id: "56789", config: {"DD_LOGS_INJECTION" => "false"}},
-            }
+            },
           )
         end
 
@@ -345,7 +345,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
               {
                 fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
                 local: {config: {"DD_LOGS_INJECTION" => "false"}},
-              }
+              },
             )
           end
 
@@ -369,8 +369,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it "removes empty configurations from payload" do
         is_expected.to_not match(
           configuration: include(
-            {name: "logger.instance", origin: anything, seq_id: anything, value: anything}
-          )
+            {name: "logger.instance", origin: anything, seq_id: anything, value: anything},
+          ),
         )
       end
     end

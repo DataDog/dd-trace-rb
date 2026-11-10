@@ -142,6 +142,7 @@ module Datadog
       require_relative "profiling/ext/dir_monkey_patches"
       require_relative "profiling/collectors/info"
       require_relative "profiling/collectors/code_provenance"
+      require_relative "profiling/worker_state"
       require_relative "profiling/collectors/cpu_and_wall_time_worker"
       require_relative "profiling/collectors/dynamic_sampling_rate"
       require_relative "profiling/collectors/idle_sampling_helper"

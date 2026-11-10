@@ -34,7 +34,7 @@ module Datadog
               version: RUBY_VERSION,
               path: standard_library_path,
               extra_paths: [ruby_native_filename],
-            )
+            ),
           )
         end
 
@@ -104,7 +104,7 @@ module Datadog
                 version: spec.version,
                 path: spec.gem_dir,
                 extra_paths: extra_paths,
-              )
+              ),
             )
             recorded_library = true
           end
@@ -146,7 +146,7 @@ module Datadog
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.debug(
             "CodeProvenance#bundler_bin_path failed. " \
-            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}",
           )
           nil
         end

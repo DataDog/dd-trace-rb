@@ -12,14 +12,12 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
           # patch applies our patch
-          def patch
+          def self.patch
             ::SemanticLogger::Logger.include(Instrumentation)
           end
         end

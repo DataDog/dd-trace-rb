@@ -2,6 +2,7 @@
 
 require "datadog/di/spec_helper"
 require "datadog/di/instrumenter"
+require "datadog/di/correlation_sampler"
 require_relative "hook_method"
 require_relative "hook_line_basic"
 
@@ -15,7 +16,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
     stub_di_settings(settings.dynamic_instrumentation,
       max_capture_depth: 10,
       max_capture_attribute_count: 20,
-      max_capture_collection_size: 20,)
+      max_capture_collection_size: 20)
     allow(settings.dynamic_instrumentation.internal).to receive_messages(
       untargeted_trace_points: false,
       propagate_all_exceptions: true,
@@ -38,13 +39,14 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
 
   let(:capture_expression_evaluator) do
     Datadog::DI::CaptureExpressionEvaluator.new(settings: settings, serializer: serializer, logger: logger,
-      guardrails_telemetry: guardrails_telemetry, telemetry: nil,)
+      guardrails_telemetry: guardrails_telemetry, telemetry: nil)
   end
 
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil,
       guardrails_telemetry: guardrails_telemetry,
-      capture_expression_evaluator: capture_expression_evaluator)
+      capture_expression_evaluator: capture_expression_evaluator,
+      correlation_sampler: Datadog::DI::CorrelationSampler.new)
   end
 
   let(:responder) do
@@ -369,6 +371,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
       Datadog::DI::ProbeNotificationBuilder.new(
         settings, serializer, logger,
         capture_expression_evaluator: capture_expression_evaluator,
+        guardrails_telemetry: guardrails_telemetry, telemetry: nil,
       )
     end
 
@@ -401,7 +404,6 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         probe_notifier_worker,
         logger,
         probe_repository,
-        guardrails_telemetry: guardrails_telemetry,
       )
     end
 

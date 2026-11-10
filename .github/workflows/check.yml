@@ -18,7 +18,7 @@ jobs:
     name: build
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -132,7 +132,7 @@ jobs:
         (github.event_name == 'pull_request' && startsWith(github.head_ref, 'bump_to_version_'))
       )
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -140,17 +140,22 @@ jobs:
       - name: Install and run dependency audit
         run: .github/scripts/check/dependency_audit.sh
 
-  document-lint:
-    name: document-lint
+  simple-english:
+    name: simple-english
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install and run document lint
-        run: .github/scripts/check/document_lint.sh
+      - name: Lint docs and agent skills
+        uses: TonyCTHsu/simple-english@1f6e849a0d88acf66a6bf60a814d8968c15ef2c1 # v0.13.0
+        with:
+          files: |
+            docs/DependencyAudit.md
+            .agents/skills
+          version: 0.13.0
 
   # Excluded from Green CI metrics: this workflow is static linting, and
   # bundler-audit is a guard against newly published CVEs, not a test.
@@ -184,7 +189,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
         with:
           ruby-version: "4.0.1"
           bundler-cache: true
@@ -227,7 +232,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g77e33a123652958f60eee85c431b66ca946bd666
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc-g4d1aa4be57cceb734c020c31e51dd04007c13d9e
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
@@ -275,7 +280,7 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           version: 1.31.1 # MANUAL-PIN: zizmor (needs a zizmor-action release that knows this version)
           min-severity: low
@@ -323,7 +328,7 @@ jobs:
       - 'yaml-lint'
       - 'checksum-coverage'
       - 'bundler-audit'
-      - 'document-lint'
+      - 'simple-english'
       - 'green-ci-exclude-metrics'
       - 'changelog'
     runs-on: ubuntu-24.04

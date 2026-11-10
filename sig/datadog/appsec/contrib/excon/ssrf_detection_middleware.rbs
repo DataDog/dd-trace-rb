@@ -25,7 +25,7 @@ module Datadog
 
           def request_url: (::Excon::Middleware::Base::datum data) -> String
 
-          def normalize_headers: (::Hash[String, String | Array[String]]? headers) -> Hash[String, String]
+          def normalize_headers: (Hash[String, String | Array[String]]? headers) -> Hash[String, String]
 
           def handle: (SecurityEngine::result result, context: Context) -> void
         end

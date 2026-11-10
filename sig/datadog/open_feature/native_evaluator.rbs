@@ -1,7 +1,7 @@
 module Datadog
   module OpenFeature
     class NativeEvaluator
-      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE: ::String
+      INVALID_FLAG_CONFIGURATION_ERROR_MESSAGE: String
 
       @configuration: Core::FeatureFlags::Configuration
 
@@ -9,13 +9,13 @@ module Datadog
 
       attr_reader observe_full_evaluation_data: bool
 
-      def initialize: (::String configuration) -> void
+      def initialize: (String configuration) -> void
 
       def get_assignment: (
-        ::String flag_key,
+        String flag_key,
         default_value: untyped,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
-        expected_type: ::Symbol,
+        expected_type: Symbol,
         ?experimentation_opt_out_mode: Provider::experimentation_opt_out_mode
       ) -> ResolutionDetails
 

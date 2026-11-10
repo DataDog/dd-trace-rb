@@ -11,17 +11,15 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             patch_pg_connection
           end
 
-          def patch_pg_connection
+          def self.patch_pg_connection
             ::PG::Connection.include(Instrumentation)
           end
         end

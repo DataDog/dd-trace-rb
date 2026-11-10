@@ -3,9 +3,9 @@ module Datadog
     class Provider
       include ::OpenFeature::SDK::Provider::EventEmitter
 
-      NAME: ::String
+      NAME: String
 
-      INITIALIZATION_CANCELLED_MESSAGE: ::String
+      INITIALIZATION_CANCELLED_MESSAGE: String
 
       type provider_event_handler = ^(Hash[Symbol, untyped]) -> void
 
@@ -54,41 +54,41 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook]
+      def hooks: () -> Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook]
 
       def fetch_boolean_value: (
-        flag_key: ::String,
+        flag_key: String,
         default_value: bool,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_string_value: (
-        flag_key: ::String,
-        default_value: ::String,
+        flag_key: String,
+        default_value: String,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_number_value: (
-        flag_key: ::String,
-        default_value: ::Numeric,
+        flag_key: String,
+        default_value: Numeric,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_integer_value: (
-        flag_key: ::String,
-        default_value: ::Integer,
+        flag_key: String,
+        default_value: Integer,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_float_value: (
-        flag_key: ::String,
-        default_value: ::Float,
+        flag_key: String,
+        default_value: Float,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_object_value: (
-        flag_key: ::String,
-        default_value: ::Array[untyped] | ::Hash[untyped, untyped],
+        flag_key: String,
+        default_value: Array[untyped] | Hash[untyped, untyped],
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
@@ -118,46 +118,52 @@ module Datadog
 
       def configuration_changed: (Component::configuration_event event) -> void
 
+      def emit_state_event: (String event_type) -> void
+
+      def log_state_event: (String event_type) -> void
+
       def evaluate: (
-        ::String flag_key,
+        String flag_key,
         default_value: ::OpenFeature::SDK::Provider::ResolutionDetails::value_t,
-        expected_type: ::Symbol,
+        expected_type: Symbol,
         evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
+      def log_component_not_configured: (String flag_key, Symbol expected_type) -> void
+
       def component_not_configured_default: (
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value,
-        ::Integer eval_time_ms
+        Integer eval_time_ms
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_engine_value: (
         EvaluationEngine engine,
-        ::String flag_key,
+        String flag_key,
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
-        ::Symbol expected_type,
+        Symbol expected_type,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context
       ) -> ResolutionDetails
 
       def sdk_success_details: (
         ResolutionDetails result,
-        ::Hash[::String, untyped] flag_meta
+        Hash[String, untyped] flag_meta
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def sdk_error_details: (
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
-        ::String? error_code,
-        ::String? error_message,
-        ::String? reason,
-        ?::Hash[::String, untyped] flag_meta
+        String? error_code,
+        String? error_message,
+        String? reason,
+        ?Hash[String, untyped] flag_meta
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
         ResolutionDetails result,
-        ::Integer eval_time_ms
-      ) -> ::Hash[::String, untyped]
+        Integer eval_time_ms
+      ) -> Hash[String, untyped]
 
       def enrich_span: (
-        ::String flag_key,
+        String flag_key,
         ResolutionDetails result,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context
       ) -> void

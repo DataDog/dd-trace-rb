@@ -27,8 +27,18 @@ module Datadog
           cls = Class.new(Evaluator)
           cls.class_exec do
             eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
-              def evaluate(context)
-                @context = context
+              # Evaluates the compiled expression against +context+ within
+              # the cooperative evaluation +evaluation_deadline+.
+              #
+              # @param context [Context] evaluation context (locals, instance
+              #   variables, and per-invocation special variables).
+              # @param evaluation_deadline [Float] invocation-local evaluation
+              #   deadline, as CLOCK_THREAD_CPUTIME_ID float seconds.
+              # @return [Object] the value the expression evaluates to.
+              # @raise [DI::Error::ExpressionEvaluationError] the expression
+              #   failed to evaluate, including the EvaluationTimeout
+              #   subclass raised when the deadline is exceeded.
+              def evaluate(context, evaluation_deadline)
                 #{compiled_expr}
               end
             RUBY
@@ -40,12 +50,32 @@ module Datadog
         attr_reader :evaluator
         attr_reader :redaction_identifier
 
-        def evaluate(context)
-          @evaluator.evaluate(context)
+        # Evaluates the expression against +context+.
+        #
+        # @param context [Context] evaluation context (locals, instance
+        #   variables, and per-invocation special variables).
+        # @param evaluation_deadline [Float] cooperative evaluation deadline, as
+        #   CLOCK_THREAD_CPUTIME_ID float seconds.
+        # @return [Object] the value the expression evaluates to.
+        # @raise [DI::Error::ExpressionEvaluationError] the expression failed
+        #   to evaluate; DI::Error::EvaluationTimeout, raised when the
+        #   evaluation deadline is exceeded, is a subclass.
+        def evaluate(context, evaluation_deadline:)
+          evaluator.evaluate(context, evaluation_deadline)
         end
 
-        def satisfied?(context)
-          !!evaluate(context)
+        # Returns whether the expression evaluates to a truthy value
+        # against +context+.
+        #
+        # @param context [Context] evaluation context.
+        # @param evaluation_deadline [Float] cooperative evaluation deadline, as
+        #   CLOCK_THREAD_CPUTIME_ID float seconds.
+        # @return [Boolean] whether the expression is satisfied.
+        # @raise [DI::Error::ExpressionEvaluationError] the expression failed
+        #   to evaluate; DI::Error::EvaluationTimeout, raised when the
+        #   evaluation deadline is exceeded, is a subclass.
+        def satisfied?(context, evaluation_deadline:)
+          !!evaluate(context, evaluation_deadline: evaluation_deadline)
         end
       end
     end

@@ -2,17 +2,17 @@ module Datadog
   module Tracing
     module Contrib
       module MongoDB
-        EXCLUDE_KEYS: ::Array[:_id]
+        EXCLUDE_KEYS: Array[:_id]
 
-        SHOW_KEYS: ::Array[untyped]
+        SHOW_KEYS: Array[untyped]
 
         DEFAULT_OPTIONS: { exclude: untyped, show: untyped }
         PLACEHOLDER: "?"
-        def self?.query_builder: (untyped command_name, untyped database_name, untyped command) -> Hash[untyped, untyped]
+        def self.query_builder: (untyped command_name, untyped database_name, untyped command) -> Hash[untyped, untyped]
 
-        def self?.quantization_options: () -> untyped
+        def self.quantization_options: () -> untyped
 
-        def self?.configuration: () -> untyped
+        def self.configuration: () -> untyped
       end
     end
   end

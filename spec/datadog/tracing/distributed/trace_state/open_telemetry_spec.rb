@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       Datadog::Tracing::TraceDigest.new(
         trace_otel_random_value: "ef284ace7a91e1",
         trace_otel_threshold: "8",
-        trace_otel_unknown_fields: "future:value;"
+        trace_otel_unknown_fields: "future:value;",
       )
     end
     let(:propagate_sampling) { true }
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       is_expected.to have_attributes(
         random_value: "ef284ace7a91e1",
         threshold: "8",
-        unknown_fields: "future:value;"
+        unknown_fields: "future:value;",
       )
     end
 
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
         is_expected.to have_attributes(
           random_value: nil,
           threshold: nil,
-          unknown_fields: "future:value;"
+          unknown_fields: "future:value;",
         )
       end
     end
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       it "moves the random value to the threshold" do
         is_expected.to have_attributes(
           random_value: "e6666666666668",
-          threshold: "e6666666666668"
+          threshold: "e6666666666668",
         )
       end
     end
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       it "moves the random value below the threshold" do
         is_expected.to have_attributes(
           random_value: "f333333333332f",
-          threshold: "f333333333333"
+          threshold: "f333333333333",
         )
       end
     end
@@ -210,7 +210,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
       is_expected.to have_attributes(
         random_value: "f972474538efff",
         threshold: "8",
-        unknown_fields: nil
+        unknown_fields: nil,
       )
     end
 
@@ -221,7 +221,7 @@ RSpec.describe Datadog::Tracing::Distributed::TraceState::OpenTelemetry do
         is_expected.to have_attributes(
           random_value: nil,
           threshold: "8",
-          unknown_fields: "future:x;more:y;"
+          unknown_fields: "future:x;more:y;",
         )
       end
     end

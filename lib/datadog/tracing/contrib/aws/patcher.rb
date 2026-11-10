@@ -11,13 +11,11 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          module_function
-
-          def target_version
+          def self.target_version
             Integration.version
           end
 
-          def patch
+          def self.patch
             require_relative "parsed_context"
             require_relative "instrumentation"
             require_relative "services"
@@ -29,11 +27,11 @@ module Datadog
             ::Aws::S3::Presigner.prepend(S3Presigner) if defined?(::Aws::S3::Presigner)
           end
 
-          def add_plugin(*targets)
+          def self.add_plugin(*targets)
             targets.each { |klass| klass.add_plugin(Instrumentation) }
           end
 
-          def loaded_constants
+          def self.loaded_constants
             # Cross-check services against loaded AWS constants
             # Module#const_get can return a constant from ancestors when there's a miss.
             # If this conincidentally matches another constant, it will attempt to patch
@@ -51,7 +49,7 @@ module Datadog
             end
           end
 
-          def get_option(option)
+          def self.get_option(option)
             Datadog.configuration.tracing[:aws].get_option(option)
           end
         end

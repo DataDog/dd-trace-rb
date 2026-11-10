@@ -489,7 +489,7 @@ module Datadog
             {
               "context" => @service_context,
               "flagEvaluations" => events,
-            }
+            },
           )
           if response.respond_to?(:ok?) && !response.ok?
             @logger.debug { "OpenFeature EVP: transport response was not OK: #{response.inspect}" }

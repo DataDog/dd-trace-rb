@@ -40,8 +40,8 @@ module Datadog
           version = dogstatsd_version
 
           !version.nil? && version >= Gem::Version.new("3.3.0") &&
-            # dogstatsd-ruby >= 5.0 & < 5.2.0 has known issues with process forks
-            # and do not support the single thread mode we use to avoid this problem.
+            # dogstatsd-ruby >= 5.0 & < 5.2.0 broke process forks and
+            # does not support the single thread mode we use to avoid this problem.
             !(version >= Gem::Version.new("5.0") && version < Gem::Version.new("5.3"))
         end
 
@@ -67,14 +67,15 @@ module Datadog
           # Create a StatsD client that points to the agent.
           #
           # We use `single_thread: true`, as dogstatsd-ruby >= 5.0 creates a background thread
-          # by default, but does not handle forks correctly, causing resource leaks.
+          # by default but does not handle forks correctly, so it leaks resources.
           #
           # Using dogstatsd-ruby >= 5.0 is still valuable, as it supports
           # transparent batch metric submission, which reduces submission
           # overhead.
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-          options = if dogstatsd_version >= Gem::Version.new("5.2")
+          version = dogstatsd_version
+          options = if version && version >= Gem::Version.new("5.2")
             {single_thread: true}
           else
             {}
@@ -101,7 +102,7 @@ module Datadog
           statsd.count(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send count stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send count stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send count stat")
         end
@@ -115,7 +116,7 @@ module Datadog
           statsd.distribution(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send distribution stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send distribution stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send distribution stat")
         end
@@ -128,7 +129,7 @@ module Datadog
           statsd.increment(stat, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send increment stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send increment stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send increment stat")
         end
@@ -142,7 +143,7 @@ module Datadog
           statsd.gauge(stat, value, metric_options(options))
         rescue => e
           logger.error(
-            "Failed to send gauge stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
+            "Failed to send gauge stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}",
           )
           telemetry.report(e, description: "Failed to send gauge stat")
         end
@@ -152,19 +153,10 @@ module Datadog
 
           # Calculate time, send it as a distribution.
           start = Utils::Time.get_time
-          yield
-        ensure
           begin
-            if send_stats? && !start.nil?
-              finished = Utils::Time.get_time
-              distribution(stat, (finished - start) * 1000, options)
-            end
-          rescue => e
-            # TODO: Likely to be redundant, since `distribution` handles its own errors.
-            logger.error(
-              "Failed to send time stat. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
-            )
-            telemetry.report(e, description: "Failed to send time stat")
+            yield
+          ensure
+            distribution(stat, (Utils::Time.get_time - start) * 1000, options) if send_stats?
           end
         end
 
@@ -196,7 +188,7 @@ module Datadog
           IGNORED_STATSD_ONLY_ONCE.run do
             logger.warn(
               "Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. " \
-              "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file."
+              "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file.",
             )
           end
         end

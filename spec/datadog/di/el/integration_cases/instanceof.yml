@@ -4,7 +4,7 @@
       - ref: bar
       - Integer
 
-  compiled: "instanceof(ref('bar'), (\"Integer\"))"
+  compiled: "instanceof(ref(context, 'bar'), (\"Integer\"))"
 
   eval:
     - locals:
@@ -21,7 +21,7 @@
       - ref: bar
       - ELTestIvarClass
 
-  compiled: "instanceof(ref('bar'), (\"ELTestIvarClass\"))"
+  compiled: "instanceof(ref(context, 'bar'), (\"ELTestIvarClass\"))"
 
   eval:
     - locals:

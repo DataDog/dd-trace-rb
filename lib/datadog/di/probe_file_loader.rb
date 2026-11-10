@@ -7,7 +7,7 @@ require_relative "fatal_exceptions"
 module Datadog
   module DI
     module ProbeFileLoader
-      module_function def load_now_or_later
+      def self.load_now_or_later
         if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
           Datadog.logger.debug("di: loading probe_file_loader/railtie")
           require_relative "probe_file_loader/railtie"
@@ -19,7 +19,7 @@ module Datadog
       # This method can be called more than once, to attempt to load
       # DI components that depend on third-party libraries after additional
       # dependencies are loaded (or potentially loaded).
-      module_function def load_now
+      def self.load_now
         should_propagate = false
 
         probe_file_path = DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE"]

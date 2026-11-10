@@ -44,7 +44,7 @@ module Datadog
 
                 if result.match? || result.attributes.any?
                   context.events.push(
-                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                   )
                 end
 
@@ -71,7 +71,7 @@ module Datadog
 
                 if result.match? || result.attributes.any?
                   context.events.push(
-                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span),
                   )
                 end
 

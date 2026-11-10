@@ -2,11 +2,11 @@ module Datadog
   module Core
     module Remote
       module Ext
-        ENV_ENABLED: ::String
+        ENV_ENABLED: String
 
-        ENV_POLL_INTERVAL_SECONDS: ::String
+        ENV_POLL_INTERVAL_SECONDS: String
 
-        ENV_BOOT_TIMEOUT_SECONDS: ::String
+        ENV_BOOT_TIMEOUT_SECONDS: String
       end
     end
   end

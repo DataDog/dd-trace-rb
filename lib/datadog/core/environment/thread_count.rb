@@ -5,13 +5,11 @@ module Datadog
     module Environment
       # Retrieves number of threads from runtime
       module ThreadCount
-        module_function
-
-        def value
+        def self.value
           Thread.list.count
         end
 
-        def available?
+        def self.available?
           Thread.respond_to?(:list)
         end
       end

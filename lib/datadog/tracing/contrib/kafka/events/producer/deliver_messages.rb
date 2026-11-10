@@ -15,15 +15,13 @@ module Datadog
 
               EVENT_NAME = "deliver_messages.producer.kafka"
 
-              module_function
-
-              def on_start(span, _event, _id, _payload)
+              def self.on_start(span, _event, _id, _payload)
                 super
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               end
 
-              def on_finish(span, _event, _id, payload)
+              def self.on_finish(span, _event, _id, payload)
                 super
 
                 span.set_tag(Ext::TAG_ATTEMPTS, payload[:attempts]) if payload.key?(:attempts)
@@ -33,11 +31,11 @@ module Datadog
                 end
               end
 
-              def span_name
+              def self.span_name
                 Ext::SPAN_DELIVER_MESSAGES
               end
 
-              def span_options
+              def self.span_options
                 super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_DELIVER_MESSAGES}})
               end
             end

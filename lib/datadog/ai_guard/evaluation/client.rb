@@ -18,7 +18,7 @@ module Datadog
           raise "AI Guard HTTP client not initialized" unless http_client
 
           response = Response.new(
-            http_client.post(Request::REQUEST_PATH, body: request.body)
+            http_client.post(Request::REQUEST_PATH, body: request.body),
           )
 
           redaction =
@@ -35,13 +35,13 @@ module Datadog
             tags: response.tags,
             sds_findings: response.sds_findings,
             tag_probabilities: response.tag_probabilities,
-            redaction_replacements: response.redaction_replacements
+            redaction_replacements: response.redaction_replacements,
           )
 
           Outcome.new(
             result: result,
             redaction: redaction,
-            blocking_enabled: response.blocking_enabled?
+            blocking_enabled: response.blocking_enabled?,
           )
         end
       end

@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Context do
     context "with defaults" do
       it do
         is_expected.to have_attributes(
-          active_trace: nil
+          active_trace: nil,
         )
       end
     end
@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Context do
           instance_double(
             Datadog::Tracing::TraceOperation,
             events: Datadog::Tracing::TraceOperation::Events.new,
-            finished?: finished?
+            finished?: finished?,
           )
         end
 
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Context do
 
           it do
             is_expected.to have_attributes(
-              active_trace: nil
+              active_trace: nil,
             )
           end
         end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Tracing::Context do
 
           it do
             is_expected.to have_attributes(
-              active_trace: trace
+              active_trace: trace,
             )
           end
         end
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Context do
         instance_double(
           Datadog::Tracing::TraceOperation,
           events: Datadog::Tracing::TraceOperation::Events.new,
-          finished?: finished?
+          finished?: finished?,
         )
       end
 
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Tracing::Context do
               instance_double(
                 Datadog::Tracing::TraceOperation,
                 events: Datadog::Tracing::TraceOperation::Events.new,
-                finished?: false
+                finished?: false,
               )
             end
 
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Tracing::Context do
               instance_double(
                 Datadog::Tracing::TraceOperation,
                 events: Datadog::Tracing::TraceOperation::Events.new,
-                finished?: false
+                finished?: false,
               )
             end
 
@@ -274,7 +274,7 @@ RSpec.describe Datadog::Tracing::Context do
         instance_double(
           Datadog::Tracing::TraceOperation,
           events: Datadog::Tracing::TraceOperation::Events.new,
-          finished?: false
+          finished?: false,
         )
       end
 
@@ -282,7 +282,7 @@ RSpec.describe Datadog::Tracing::Context do
         instance_double(
           Datadog::Tracing::TraceOperation,
           events: Datadog::Tracing::TraceOperation::Events.new,
-          finished?: false
+          finished?: false,
         )
       end
 

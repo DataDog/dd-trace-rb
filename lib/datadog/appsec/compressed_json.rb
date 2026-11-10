@@ -28,7 +28,7 @@ module Datadog
 
       private_class_method def self.compress_and_encode(payload)
         Core::Utils::Base64Codec.strict_encode64(
-          Zlib.gzip(payload, level: Zlib::BEST_SPEED, strategy: Zlib::DEFAULT_STRATEGY)
+          Zlib.gzip(payload, level: Zlib::BEST_SPEED, strategy: Zlib::DEFAULT_STRATEGY),
         )
       rescue Zlib::Error, TypeError => e
         AppSec.telemetry.report(e, description: "AppSec: Failed to compress and encode value")

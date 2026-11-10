@@ -112,7 +112,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         otel_thread_context.set(trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id)
 
         expect(decode_context(described_class::Testing._native_read)).to include(
-          trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id
+          trace_id: trace_id, span_id: span_id, local_root_span_id: local_root_span_id,
         )
       end
 
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Tracing::OTelThreadContext, if: PlatformHelpers.linux? &
         otel_thread_context.set(trace_id: 11, span_id: 12, local_root_span_id: 13)
 
         expect(decode_context(described_class::Testing._native_read)).to include(
-          trace_id: 11, span_id: 12, local_root_span_id: 13, valid: true
+          trace_id: 11, span_id: 12, local_root_span_id: 13, valid: true,
         )
       end
 
