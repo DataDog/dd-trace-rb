@@ -420,10 +420,16 @@ RSpec.describe Datadog::DI::CorrelationSampler do
           held << true
           release.pop
         end
+      ensure
+        # Unblocks the held.pop below when the holder fails before it
+        # acquires the lock.
+        held << false
       end
-      held.pop
 
       begin
+        # Joining a failed holder raises its error.
+        holder.join unless held.pop
+
         expect_in_fork(timeout_seconds: 10) do
           correlation.after_fork!
           expect(correlation.emit?(probe("a"), Object.new)).to be(true)
