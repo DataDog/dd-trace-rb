@@ -257,8 +257,7 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
   rb_raise(rb_eRuntimeError, "Unknown miteruby serializer exit reason: %d", reason);
 }
 
-static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
-  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
+static miteruby_serializer_exit_reason_t initialize_compression(miteruby_serializer_persistent_state_t *state) {
   state->compression_context = ZSTD_initStaticCCtx(
     state->compression_workspace, miteruby_allocator_alloc_size(state->compression_workspace)
   );
@@ -518,7 +517,7 @@ static VALUE prepare_serialize_body(VALUE prepare_state_value) {
 
 static VALUE prepare_serialize_cleanup(VALUE state_value) {
   miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
-  if (state->status != SERIALIZER_FINISHED) state->status = SERIALIZER_EMPTY;
+  state->status = SERIALIZER_EMPTY;
   return Qnil;
 }
 
@@ -562,7 +561,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
 static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
   miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
   state->finish_time_ns = system_epoch_time_now_ns();
-  RETURN_IF_ERROR(initialize_compression(prepare_state));
+  RETURN_IF_ERROR(initialize_compression(state));
   pb_ostream_t *stream = &state->stream;
   const miteruby_mark_cme_iseq_array_t *cme_iseq_array = prepare_state->cme_iseq_array;
   const miteruby_location_array_t *location_array = prepare_state->location_array;
