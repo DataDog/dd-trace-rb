@@ -26,6 +26,8 @@ module SynchronizationHelpers
 
     fork_stdout = Tempfile.new("datadog-rspec-expect-in-fork-stdout")
     fork_stderr = Tempfile.new("datadog-rspec-expect-in-fork-stderr")
+    pid = nil
+    reaped = false
     begin
       # Start in fork
       pid = fork do
@@ -43,6 +45,7 @@ module SynchronizationHelpers
       # Wait for fork to finish, retrieve its status.
       # Enforce timeout to ensure test fork doesn't hang the test suite.
       _, status = try_wait_until(seconds: timeout_seconds) { Process.wait2(pid, Process::WNOHANG) }
+      reaped = true
 
       stdout = File.read(fork_stdout.path)
       stderr = File.read(fork_stderr.path)
@@ -57,15 +60,12 @@ module SynchronizationHelpers
     rescue => e
       crash_note = nil
 
-      if trigger_stacktrace_on_kill
+      if trigger_stacktrace_on_kill && pid && !reaped
         crash_note = " (Crashing Ruby to get stacktrace as requested by `trigger_stacktrace_on_kill`)"
-        begin
-          Process.kill("SEGV", pid)
-          warn "Waiting for child process to exit after SEGV signal... #{crash_note}"
-          Process.wait(pid)
-        rescue
-          nil
-        end
+        Process.kill("SEGV", pid)
+        warn "Waiting for child process to exit after SEGV signal... #{crash_note}"
+        Process.wait(pid)
+        reaped = true
       end
 
       stdout = File.read(fork_stdout.path)
@@ -73,11 +73,12 @@ module SynchronizationHelpers
 
       raise "Failure or timeout in `expect_in_fork`#{crash_note}, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
-      begin
+      # A child that was not reaped is still running or exited unreaped;
+      # signalling a reaped pid could hit an unrelated process.
+      if pid && !reaped
         Process.kill("KILL", pid)
-      rescue
-        nil
-      end # Prevent zombie processes on failure
+        Process.wait(pid)
+      end
 
       fork_stderr.close
       fork_stdout.close
