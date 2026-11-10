@@ -1,6 +1,0 @@
-{
-  "type": "Added",
-  "product": "Open Feature",
-  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6609",
-  "message": "Add the selected split's features, such as `holdout.key` and `holdout.assignment_group`, to flag evaluation metadata as `__dd_feature.<key>` entries, so OpenFeature hooks can read a subject's holdout assignment."
-}
