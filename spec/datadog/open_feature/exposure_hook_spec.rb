@@ -281,10 +281,27 @@ RSpec.describe Datadog::OpenFeature::ExposureHook do
       expect(debug_messages).to include('Feature Flags: ExposureHook callback failed for "flag": ArgumentError: callback failure')
     end
 
-    it "contains a failure raised while logging the failure" do
-      allow(logger).to receive(:warn).and_raise("logger failure")
+  end
 
-      expect(evaluate.value).to eq("enabled")
+  context "when the callback raises an exception whose #message raises" do
+    subject(:hook) { described_class.new { raise broken_message_error } }
+
+    let(:broken_message_error) do
+      Class.new(StandardError) do
+        def message
+          raise "broken message"
+        end
+      end
+    end
+
+    it "logs a placeholder for the message and keeps the evaluation" do
+      debug_messages = []
+      allow(logger).to receive(:debug) { |&block| debug_messages << block.call }
+
+      2.times { expect(evaluate.value).to eq("enabled") }
+
+      expect(debug_messages.grep(/ExposureHook callback failed/).last)
+        .to end_with("RuntimeError raised while reading the exception message")
     end
   end
 
@@ -333,15 +350,26 @@ RSpec.describe Datadog::OpenFeature::ExposureHook do
       expect(evaluation.should_send?).to be(false)
     end
 
-    context "when the callback and the logger both raise" do
-      subject(:hook) { described_class.new { raise "callback failure" } }
+    context "when the callback raises an exception whose #message raises" do
+      subject(:hook) { described_class.new { raise broken_message_error } }
 
-      before { allow(logger).to receive(:warn).and_raise("logger failure") }
+      let(:broken_message_error) do
+        Class.new(StandardError) do
+          def message
+            raise "broken message"
+          end
+        end
+      end
 
-      it "does not raise from the hook" do
-        expect do
-          hook.finally(hook_context: hook_context, evaluation_details: details(error_code: nil, reason: "STATIC"))
-        end.not_to raise_error
+      before { allow(logger).to receive(:debug) { |&block| block.call } }
+
+      it "returns from the hook on the first and later failures" do
+        evaluation_details = details(error_code: nil, reason: "STATIC")
+
+        2.times do
+          expect { hook.finally(hook_context: hook_context, evaluation_details: evaluation_details) }
+            .not_to raise_error
+        end
       end
     end
   end

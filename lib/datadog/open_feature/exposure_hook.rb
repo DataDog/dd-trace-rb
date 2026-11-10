@@ -132,10 +132,14 @@ module Datadog
           warned = true
           Datadog.logger.warn("#{message}; later failures are logged at debug level")
         end
-        Datadog.logger.debug { "#{message}: #{error.message}" } unless warned
-      rescue StandardError, ScriptError
-        # The logger or the error's own message raised; the evaluation must still complete.
-        nil
+        Datadog.logger.debug { "#{message}: #{exception_message(error)}" } unless warned
+      end
+
+      # Customer exceptions can override #message with code that raises.
+      def exception_message(error)
+        error.message
+      rescue StandardError, ScriptError => e
+        "#{e.class} raised while reading the exception message"
       end
     end
   end

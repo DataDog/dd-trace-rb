@@ -65,6 +65,8 @@ module Datadog
       def datadog_provider?: (::OpenFeature::SDK::Hooks::HookContext hook_context) -> bool
 
       def log_callback_failure: (::OpenFeature::SDK::Hooks::HookContext hook_context, Exception error) -> void
+
+      def exception_message: (Exception error) -> String
     end
   end
 end
