@@ -20,34 +20,32 @@ RSpec.describe Datadog::DI::Component do
     end
 
     context "when remote config is enabled" do
+      let(:component) { described_class.build(settings, agent_settings, logger) }
+
       before do
         settings.remote.enabled = true
       end
 
+      after { component&.shutdown! }
+
       it "returns a Component in stopped state" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component).to be_a(described_class)
         expect(component.started?).to be false
-        component.shutdown!
       end
 
       it "wires the guardrails telemetry emitter into every consumer" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
           .to equal(component.guardrails_telemetry)
         expect(component.probe_notification_builder.guardrails_telemetry).to equal(component.guardrails_telemetry)
-        component.shutdown!
       end
 
       it "builds one capture expression evaluator shared by its consumers" do
-        component = described_class.build(settings, agent_settings, logger)
         expect(component.capture_expression_evaluator)
           .to be_a(Datadog::DI::CaptureExpressionEvaluator)
         expect(component.instrumenter.capture_expression_evaluator)
           .to equal(component.probe_notification_builder.capture_expression_evaluator)
-        component.shutdown!
       end
     end
 
@@ -222,16 +220,16 @@ RSpec.describe Datadog::DI::Component do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    after { component&.shutdown! }
 
     it "registers the built component in DI.current_component" do
-      component = described_class.build(settings, agent_settings, logger)
       expect(component).not_to be_nil
       expect(Datadog::DI.current_component).to be component
-      component.shutdown!
     end
 
     it "removes the component from DI.current_component on shutdown!" do
-      component = described_class.build(settings, agent_settings, logger)
       component.shutdown!
       expect(Datadog::DI.current_component).not_to be component
     end
@@ -259,18 +257,19 @@ RSpec.describe Datadog::DI::Component do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+
+    after { component&.shutdown! }
 
     it "completes synchronously without I/O" do
       baseline = Thread.list.size
       started = Datadog::Core::Utils::Time.get_time
-      component = described_class.build(settings, agent_settings, logger)
-      elapsed = Datadog::Core::Utils::Time.get_time - started
       expect(component).not_to be_nil
+      elapsed = Datadog::Core::Utils::Time.get_time - started
       expect(elapsed).to be < 1.0
       # build must not have spawned the probe notifier worker thread or
       # any other background thread — those start in #start!.
       expect(Thread.list.size).to eq baseline
-      component.shutdown!
     end
   end
 
