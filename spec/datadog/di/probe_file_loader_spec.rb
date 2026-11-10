@@ -9,12 +9,28 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
   let(:loader) { described_class }
 
   describe ".load_now" do
+    # The development environment check is stubbed out below, which enables
+    # telemetry. Disable telemetry and stub the DI transports so that the
+    # component tree these examples build sends nothing to the agent.
+    with_env DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
+
+    let(:diagnostics_transport) do
+      instance_double(Datadog::DI::Transport::Diagnostics::Transport, send_diagnostics: nil)
+    end
+
+    let(:input_transport) do
+      instance_double(Datadog::DI::Transport::Input::Transport, send_input: nil)
+    end
+
     before do
       expect(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false).at_least(:once)
       Datadog.send(:reset!)
 
       # Stop environment logger from printing configuration to standard output
       allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log_configuration!)
+
+      allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
+      allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
     end
 
     after do
