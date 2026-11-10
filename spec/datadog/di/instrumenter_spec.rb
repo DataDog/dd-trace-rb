@@ -3000,6 +3000,10 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context "re-entrancy guard" do
+        after do
+          Datadog::DI.leave_probe
+        end
+
         it "holds the guard while processing a hit" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
@@ -3020,12 +3024,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           Datadog::DI.enter_probe
-          begin
-            HookLineTestClass.new.test_method
-          ensure
-            expect(Datadog::DI.in_probe?).to be(true)
-            Datadog::DI.leave_probe
-          end
+          HookLineTestClass.new.test_method
+          expect(Datadog::DI.in_probe?).to be(true)
+          Datadog::DI.leave_probe
 
           expect(observed_calls.length).to eq 1
           expect(Datadog::DI.in_probe?).to be(false)
