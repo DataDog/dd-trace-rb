@@ -1,15 +1,25 @@
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
 #include <stdbool.h>
+#include <ruby.h>
 
 static bool fail_allocations;
+static bool fail_string_allocation;
 
 static void *test_allocator_alloc(size_t size, const char *name) {
   return fail_allocations ? NULL : miteruby_allocator_alloc(size, name);
 }
 
+static VALUE test_str_new(const char *bytes, long size) {
+  if (fail_string_allocation) rb_raise(rb_eRuntimeError, "String allocation failed");
+  return rb_str_new(bytes, size);
+}
+
+#undef rb_str_new
+#define rb_str_new test_str_new
 #define miteruby_allocator_alloc test_allocator_alloc
 #include "../../../ext/datadog_profiling_native_extension/miteruby/serializer.c"
 #undef miteruby_allocator_alloc
+#undef rb_str_new
 
 #undef NDEBUG
 #include <assert.h>
@@ -108,18 +118,19 @@ static VALUE prepare_with_exception_and_cleanup(VALUE prepare_state_value) {
 static void test_preparation_cleanup(void) {
   enum { SUCCESS, BUFFER_FULL, RUBY_EXCEPTION, REUSE_AFTER_EXCEPTION };
   uint8_t *input = miteruby_allocator_alloc(1024, "test_input");
-  uint8_t *output = miteruby_allocator_alloc(1024, "test_output");
-  assert(input != NULL && output != NULL);
+  assert(input != NULL);
   size_t persistent_bytes = miteruby_allocator_requested_bytes();
   miteruby_serializer_persistent_state_t *state = ruby_xcalloc(1, sizeof(*state));
   state->uncompressed_serialization_buffer = input;
-  state->compressed_serialization_buffer = output;
   verstable_serializer_thread_contexts_map_init(&state->thread_contexts);
   state->compression_workspace = miteruby_allocator_alloc(ZSTD_estimateCStreamSize(COMPRESSION_LEVEL), "serializer_zstd");
   void *workspace = state->compression_workspace;
   assert(workspace != NULL);
 
   for (int scenario = SUCCESS; scenario <= REUSE_AFTER_EXCEPTION; scenario++) {
+    miteruby_allocator_free(state->compressed_serialization_buffer);
+    state->compressed_serialization_buffer = miteruby_allocator_alloc(1024, "test_output");
+    assert(state->compressed_serialization_buffer != NULL);
     state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
     assert(state->interned_events_queue != NULL);
     assert(serializer_size(state) == sizeof(*state) + miteruby_allocator_requested_bytes());
@@ -159,7 +170,8 @@ static void test_preparation_cleanup(void) {
     assert(state->status == SERIALIZER_EMPTY);
     assert(state->interned_events_queue == NULL);
     assert(miteruby_allocator_alloc_size(input) == 1024);
-    assert(miteruby_allocator_alloc_size(output) == 1024);
+    assert(state->compressed_serialization_buffer != NULL);
+    assert(state->compressed_serialization_size == 0);
   }
   state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(state->interned_events_queue != NULL);
@@ -177,6 +189,7 @@ static void test_working_status(void) {
   assert(state->compression_workspace != NULL);
   assert(miteruby_allocator_alloc_size(state->compression_workspace) == ZSTD_estimateCStreamSize(COMPRESSION_LEVEL));
   assert(state->status == SERIALIZER_EMPTY);
+  assert(state->compressed_serialization_buffer != NULL);
   assert(!miteruby_serializer_is_working(serializer));
   assert(!miteruby_serializer_is_working(Qnil));
   state->status = SERIALIZER_WORKING;
@@ -195,9 +208,11 @@ static void test_working_status(void) {
   state->start_time_ns = 0;
   state->finish_time_ns = 0;
   state->interned_events_queue = queue;
+  assert(state->compressed_serialization_buffer != NULL);
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
   assert(native_reset_after_fork(Qnil, serializer) == Qtrue);
   assert(state->interned_events_queue == NULL);
+  assert(state->compressed_serialization_buffer != NULL);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes - 1024);
   assert(state->status == SERIALIZER_EMPTY);
   assert(!miteruby_serializer_is_working(serializer));
@@ -214,8 +229,84 @@ static void test_working_status(void) {
   assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == NULL);
   assert(state->status == SERIALIZER_FINISHED);
+  assert(miteruby_allocator_alloc_size(state->compressed_serialization_buffer) == MAX_COMPRESSED_BUFFER_BYTES);
+  assert(miteruby_allocator_requested_bytes() == allocated_bytes - 1024);
+  assert(native_reset_after_fork(Qnil, serializer) == Qtrue);
+  assert(state->compressed_serialization_buffer != NULL);
+  assert(state->status == SERIALIZER_EMPTY);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes - 1024);
   verstable_mark_threads_set_cleanup(&threads);
+  RB_GC_GUARD(serializer);
+}
+
+static VALUE prepare_empty_profile(VALUE serializer) {
+  miteruby_mark_cme_iseq_array_t frames = {0};
+  miteruby_location_array_t locations = {0};
+  verstable_mark_threads_set threads;
+  verstable_mark_threads_set_init(&threads);
+  uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
+  assert(queue != NULL);
+  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  verstable_mark_threads_set_cleanup(&threads);
+  return Qnil;
+}
+
+static VALUE profile_from_custom(VALUE klass, VALUE start, VALUE finish, VALUE bytes) {
+  return bytes;
+}
+
+static void test_compressed_buffer_lifecycle(void) {
+  VALUE serializer = serializer_new(rb_cObject);
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  size_t idle_bytes = miteruby_allocator_requested_bytes();
+  assert(state->compressed_serialization_buffer != NULL);
+
+  for (int cycle = 0; cycle < 2; cycle++) {
+    prepare_empty_profile(serializer);
+    assert(miteruby_allocator_requested_bytes() == idle_bytes);
+    prepare_empty_profile(serializer);
+    assert(miteruby_allocator_requested_bytes() == idle_bytes);
+    uint8_t *previous_buffer = state->compressed_serialization_buffer;
+    VALUE result = native_serialize(Qnil, serializer);
+    assert(state->compressed_serialization_buffer != previous_buffer);
+    assert(state->compressed_serialization_buffer[0] == 0);
+    assert(RSTRING_LEN(rb_ary_entry(result, 2)) > 0);
+    assert(state->status == SERIALIZER_EMPTY);
+    assert(state->compressed_serialization_buffer != NULL);
+    assert(state->compressed_serialization_size == 0);
+    assert(miteruby_allocator_requested_bytes() == idle_bytes);
+  }
+
+  prepare_empty_profile(serializer);
+  uint8_t *previous_buffer = state->compressed_serialization_buffer;
+  size_t previous_size = state->compressed_serialization_size;
+  fail_string_allocation = true;
+  int error = 0;
+  rb_protect(serialize_working_profile, serializer, &error);
+  fail_string_allocation = false;
+  assert(error != 0);
+  rb_set_errinfo(Qnil);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(state->compressed_serialization_buffer == previous_buffer);
+  assert(state->compressed_serialization_size == previous_size);
+  assert(miteruby_allocator_requested_bytes() == idle_bytes);
+
+  prepare_empty_profile(serializer);
+  previous_buffer = state->compressed_serialization_buffer;
+  fail_allocations = true;
+  rb_protect(serialize_working_profile, serializer, &error);
+  fail_allocations = false;
+  assert(state->compressed_serialization_buffer == previous_buffer);
+  assert(state->compressed_serialization_size == 0);
+  assert(error != 0);
+  rb_set_errinfo(Qnil);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(state->interned_events_queue == NULL);
+  assert(state->compressed_serialization_buffer != NULL);
+  assert(miteruby_allocator_requested_bytes() == idle_bytes);
+  prepare_empty_profile(serializer);
+  native_serialize(Qnil, serializer);
+  assert(miteruby_allocator_requested_bytes() == idle_bytes);
   RB_GC_GUARD(serializer);
 }
 
@@ -223,10 +314,15 @@ int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
+  VALUE datadog = rb_define_module("Datadog");
+  VALUE profiling = rb_define_module_under(datadog, "Profiling");
+  VALUE encoded_profile = rb_define_class_under(profiling, "EncodedProfile", rb_cObject);
+  rb_define_singleton_method(encoded_profile, "from_custom", profile_from_custom, 3);
   test_sample_values();
   test_reuse_after_error();
   test_preparation_cleanup();
   test_working_status();
+  test_compressed_buffer_lifecycle();
   puts("Miteruby serializer tests passed");
   return ruby_cleanup(0);
 }
