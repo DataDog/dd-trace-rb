@@ -3032,7 +3032,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(Datadog::DI.in_probe?).to be(false)
         end
 
-        it "short-circuits a method probe nested in the callback's dispatches" do
+        # Forked: hooking WeakRef#weakref_alive? prepends a module onto the
+        # stdlib WeakRef class, and Ruby cannot remove a prepended module.
+        it "short-circuits a method probe nested in the callback's dispatches", execute_in_fork: true do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
           stub_active_trace(123)
 
