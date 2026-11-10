@@ -147,15 +147,14 @@ end
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
     allow(telemetry).to receive(:report)
-    allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
     allow(Datadog::OpenFeature).to receive(:deactivate_provider).with(provider)
   end
 
-  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
-  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, debug: nil, debug?: false) }
+  # Allows warn so a logging regression in init fails an example instead of blocking the queue-driven ones.
+  let(:logger) { instance_double(Datadog::Core::Logger, error: nil, debug: nil, debug?: false, warn: nil) }
 
   subject(:provider) { described_class.new }
 
@@ -227,6 +226,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             Datadog::OpenFeature::Component,
             flag_eval_metrics_hook: flag_eval_metrics_hook,
             flag_eval_evp_hook: nil,
+            exposure_logging_hook: nil,
             debug_logging_hook: nil,
           )
         end
@@ -372,7 +372,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             expect(result.error_code).to eq("GENERAL")
             expect(result.error_message).to include("Experimentation opt-out mode must be")
             expect(engine).not_to have_received(:fetch_value)
-            expect(reporter).not_to have_received(:report)
+            expect(result.flag_metadata).not_to include(Datadog::OpenFeature::Ext::METADATA_DO_LOG)
           end
         end
 
@@ -537,7 +537,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         end
 
         it "preserves the requested policy through activation and configuration arrival" do
-          waiting_engine = Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+          waiting_engine = Datadog::OpenFeature::EvaluationEngine.new(telemetry: telemetry, logger: logger)
           allow(Datadog::OpenFeature).to receive(:engine).and_return(waiting_engine)
           provider
           setting.replace("disabled")
@@ -557,7 +557,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
           expect(result.value).to eq("ordinary")
           expect(result.error_code).to be_nil
-          expect(reporter).to have_received(:report).with(have_attributes(log?: false), flag_key: "feature", context: context).twice
+          expect(result.flag_metadata).not_to include(Datadog::OpenFeature::Ext::METADATA_DO_LOG)
         end
       end
     end
@@ -596,6 +596,28 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(Datadog::OpenFeature).to have_received(:activate_provider).with(provider)
       expect(component).to have_received(:wait_for_configuration)
+    end
+
+    describe "openfeature-sdk hook support" do
+      before { described_class::HOOKS_UNSUPPORTED_WARNING.send(:reset_ran_once_state_for_tests) }
+      after { described_class::HOOKS_UNSUPPORTED_WARNING.send(:reset_ran_once_state_for_tests) }
+
+      it "does not warn when the SDK runs provider hooks" do
+        provider.init
+
+        expect(logger).not_to have_received(:warn)
+      end
+
+      context "when the SDK runs no provider hooks" do
+        before { hide_const("OpenFeature::SDK::Hooks::HookExecutor") }
+
+        it "warns once and still initializes" do
+          2.times { expect { provider.init }.not_to raise_error }
+
+          expect(logger).to have_received(:warn).with(described_class::HOOKS_UNSUPPORTED_MESSAGE).once
+          expect(component).to have_received(:wait_for_configuration).twice
+        end
+      end
     end
 
     it "installs the initialization ready handler once" do
@@ -1064,6 +1086,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
         allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
+        allow(open_feature_component).to receive(:exposure_logging_hook).and_return(nil)
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
@@ -1077,6 +1100,16 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         it "also returns the debug logging hook" do
           expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
+        end
+      end
+
+      context "when the exposure logging hook is available" do
+        let(:exposure_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::ExposureLoggingHook) }
+
+        before { allow(open_feature_component).to receive(:exposure_logging_hook).and_return(exposure_logging_hook) }
+
+        it "returns it with the telemetry hooks" do
+          expect(provider.hooks).to eq([exposure_logging_hook, flag_eval_metrics_hook, flag_eval_evp_hook])
         end
       end
 
@@ -1121,6 +1154,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
       allow(open_feature_component).to receive(:debug_logging_hook).and_return(nil)
+      allow(open_feature_component).to receive(:exposure_logging_hook).and_return(nil)
     end
 
     it "passes provider success details to the EVP hook after SDK finalization" do

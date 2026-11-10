@@ -23,6 +23,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
         :flag_metadata,
         :allocation_key,
         :serial_id,
+        :features,
       )
 
       def log?
@@ -51,6 +52,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       flag_metadata: flag_metadata,
       allocation_key: allocation_key,
       serial_id: serial_id,
+      features: features,
       log?: log,
       error?: error,
     )
@@ -63,6 +65,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
   let(:flag_metadata) { {"native" => "kept"} }
   let(:allocation_key) { "allocation-1" }
   let(:serial_id) { 123 }
+  let(:features) { [["holdout.key", "h-1", ["HOOK"]]] }
   let(:log) { true }
   let(:error) { false }
 
@@ -81,6 +84,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
       expect(result.flag_metadata).to eq("native" => "kept")
       expect(result.allocation_key).to eq("allocation-1")
       expect(result.serial_id).to eq(123)
+      expect(result.features).to eq([["holdout.key", "h-1", ["HOOK"]]])
       expect(result.log?).to be(true)
       expect(result.error?).to be(false)
     end

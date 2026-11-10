@@ -1,0 +1,32 @@
+module Datadog
+  module OpenFeature
+    module SplitFeatures
+      type value_t = String | Float | bool
+
+      type features_t = Hash[String, value_t]
+
+      DESTINATION_PREFIXES: Hash[String, String]
+
+      MAX_WARNED_DESTINATIONS: Integer
+
+      EMPTY: features_t
+
+      self.@warned_destinations: Set[String]
+
+      self.@warned_destinations_mutex: Thread::Mutex
+
+      def self.write: (
+        Hash[String, untyped] metadata,
+        Array[Core::FeatureFlags::ResolutionDetails::feature_t] features
+      ) -> Hash[String, untyped]
+
+      def self.read: (Hash[String, untyped]? metadata, String prefix) -> features_t
+
+      private
+
+      def self.reset_warned_destinations_for_tests: () -> void
+
+      def self.warn_unknown_destination: (String destination) -> void
+    end
+  end
+end

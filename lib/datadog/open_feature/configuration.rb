@@ -90,6 +90,13 @@ module Datadog
                 o.default false
               end
 
+              # Sends exposure events to Datadog.
+              option :exposures_datadog_logging_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED"
+                o.default true
+              end
+
               option :configuration_source do |o|
                 o.type :string
                 o.env "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE"

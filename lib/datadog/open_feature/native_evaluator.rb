@@ -78,6 +78,7 @@ module Datadog
           flag_metadata: result.flag_metadata,
           allocation_key: result.allocation_key,
           serial_id: result.serial_id,
+          features: result.features,
           log?: result.log?,
           error?: result.error?,
         )
