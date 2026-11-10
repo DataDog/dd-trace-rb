@@ -10,6 +10,7 @@ require_relative "gateway/watcher"
 require_relative "gateway/request"
 require_relative "patches/render_to_body_patch"
 require_relative "patches/process_action_patch"
+require_relative "patches/live_thread_patch"
 require_relative "../../api_security/endpoint_collection/rails_collector"
 
 require_relative "../../../tracing/contrib/rack/middlewares"
@@ -128,6 +129,10 @@ module Datadog
             ::ActiveSupport.on_load(:action_controller) do
               GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
                 ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
+
+                if Datadog::AppSec::Contrib::Rails::Patcher.target_version >= Gem::Version.new("5.0")
+                  ::ActionController::Live.prepend(Patches::LiveThreadPatch)
+                end
               end
 
               # Rails 7.1 adds `after_routes_loaded` hook

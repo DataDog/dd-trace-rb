@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Patches
+          module LiveThreadPatch
+            private
+
+            def new_controller_thread: () { () -> void } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

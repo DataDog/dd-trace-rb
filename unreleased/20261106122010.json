@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "AppSec",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6648",
+  "message": "Fix `WAF::InstanceFinalizedError` from `ActiveRecord` queries that run in `ActionController::Live` threads with RASP enabled."
+}
