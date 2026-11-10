@@ -84,11 +84,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       end
 
       # Install Bootsnap's iseq cache with a fresh temp directory.
-      # install! sets cache_dir to "#{cache_dir}-iseq" internally but does
-      # not create the directory. Without it the native fetch silently skips
-      # writing cache files to disk.
       Bootsnap::CompileCache::ISeq.install!(cache_dir)
-      FileUtils.mkdir_p(Bootsnap::CompileCache::ISeq.cache_dir)
 
       # Prime the Bootsnap cache by loading the test file once.
       # This compiles the source and writes the binary cache to disk.

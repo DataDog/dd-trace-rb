@@ -1,16 +1,13 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 
-# The line-probe pre-load case is the one that historically did not
-# work in Ruby DI: a customer who created a line probe in the Datadog
-# UI for a file already loaded into the process (typically the
-# customer's own application code, loaded before the tracer enabled
-# DI) would see the probe silently never fire. The fix is two parts
-# already on the enablement branch: (a) backfill_registry runs at
-# code-tracking activation so pre-loaded iseqs are registered, and
-# (b) DI.activate_tracking is invoked by handle_rc_enablement on the
-# RC enable signal — so a customer's late-loaded code path is also
-# covered.
+# The line-probe pre-load case covers a line probe created for a file
+# already loaded into the process (typically the customer's own
+# application code, loaded before the tracer enabled DI). Two parts make
+# it work: (a) backfill_registry runs at code-tracking activation so
+# pre-loaded iseqs are registered, and (b) handle_rc_enablement invokes
+# DI.activate_tracking on the RC enable signal, so a customer's
+# late-loaded code path is also covered.
 #
 # Method probes use Module#prepend, which is unaffected by code-
 # tracking timing. They serve as regression coverage: both rows of

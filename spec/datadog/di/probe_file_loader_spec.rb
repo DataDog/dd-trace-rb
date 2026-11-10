@@ -91,7 +91,7 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
 
   describe ".load_now_or_later" do
     # The case of being in a rails app is handled by
-    # spec/datadog/di/contrib/probe_file_loader_spec.rb.
+    # spec/datadog/di/contrib/rails/probe_file_loader_spec.rb.
     context "not in rails app" do
       before do
         expect(Datadog::Core::Contrib::Rails::Utils.railtie_supported?).to be false
