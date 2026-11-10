@@ -418,7 +418,9 @@ RSpec.describe "Tracer integration tests" do
         end
 
         context "rate limited" do
-          let(:rule_sampler_opt) { {rate_limit: Float::MIN} }
+          # The token bucket starts with one token, so every nonzero rate admits
+          # the first trace. A zero rate rejects every trace deterministically.
+          let(:rule_sampler_opt) { {rate_limit: 0} }
 
           it_behaves_like "flushed trace"
           it_behaves_like "priority sampled", Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
