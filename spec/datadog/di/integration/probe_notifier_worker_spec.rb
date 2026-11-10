@@ -209,10 +209,15 @@ Content-Transfer-Encoding: binary
         with_env "DD_GIT_REPOSITORY_URL" => "http://foo",
           "DD_GIT_COMMIT_SHA" => "1234hash"
 
-        before do
+        def reset_git_metadata_caches
           Datadog::Core::Environment::Git.reset_for_tests
           Datadog::Core::TagBuilder.reset_for_tests
         end
+
+        before { reset_git_metadata_caches }
+
+        # The memoized git metadata outlives the ENV restore done by with_env.
+        after { reset_git_metadata_caches }
 
         it "includes SCM tags in payload" do
           worker.add_snapshot(snapshot_payload, probe: probe)
