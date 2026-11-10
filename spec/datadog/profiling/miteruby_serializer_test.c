@@ -226,7 +226,7 @@ static void test_working_status(void) {
   assert(state->start_time_ns > 0);
   assert(state->finish_time_ns == state->start_time_ns);
 
-  miteruby_mark_cme_iseq_array_t frames = {0};
+  miteruby_mark_frame_array_t frames = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
   verstable_mark_threads_set_init(&threads);
@@ -246,7 +246,7 @@ static void test_working_status(void) {
 }
 
 static VALUE prepare_empty_profile(VALUE serializer) {
-  miteruby_mark_cme_iseq_array_t frames = {0};
+  miteruby_mark_frame_array_t frames = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
   verstable_mark_threads_set_init(&threads);
