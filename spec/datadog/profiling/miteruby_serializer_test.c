@@ -103,9 +103,9 @@ static void test_reuse_after_error(void) {
 
 static VALUE prepare_with_exception(VALUE prepare_state_value) {
   miteruby_serializer_prepare_serialization_state_t *prepare_state = (miteruby_serializer_prepare_serialization_state_t *)prepare_state_value;
-  assert(initialize_compression(prepare_state) == MITERUBY_SERIALIZER_OK);
-  serializer_thread_context *context;
   miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
+  assert(initialize_compression(state) == MITERUBY_SERIALIZER_OK);
+  serializer_thread_context *context;
   assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
   rb_raise(rb_eRuntimeError, "Interrupted preparation");
 }
@@ -149,7 +149,7 @@ static void test_preparation_cleanup(void) {
       rb_set_errinfo(Qnil);
     } else {
       fail_allocations = scenario == REUSE_AFTER_EXCEPTION;
-      miteruby_serializer_exit_reason_t reason = initialize_compression(&prepare_state);
+      miteruby_serializer_exit_reason_t reason = initialize_compression(state);
       assert(reason == MITERUBY_SERIALIZER_OK);
       serializer_thread_context *context;
       assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
