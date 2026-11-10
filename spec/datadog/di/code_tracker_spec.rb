@@ -133,11 +133,6 @@ RSpec.describe Datadog::DI::CodeTracker do
           expect(File.basename(path)).to eq("code_tracker_test_class_5.rb")
         end
 
-        begin
-          Process.waitpid
-        rescue Errno::ECHILD
-        end
-
         # Verify parent did not change
         expect(tracker.send(:registry).length).to eq(1)
         path = tracker.send(:registry).to_a.dig(0, 0)
