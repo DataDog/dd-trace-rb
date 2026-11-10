@@ -23,5 +23,5 @@ class HookLineRecursiveTestClass
 end
 
 unless (actual = File.read(__FILE__).count("\n")) == 27
-  raise "Wrong number of lines in hook_line_recursive.rb: actual #{actual}, expected 17"
+  raise "Wrong number of lines in hook_line_recursive.rb: actual #{actual}, expected 27"
 end

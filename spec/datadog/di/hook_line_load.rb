@@ -1,11 +1,11 @@
 # This file is loaded repeatedly in the test suite due to the way DI performs
 # code tracking. Remove the constants if they have already been defined
 # to avoid Ruby warnings.
-begin
-  Object.send(:remove_const, :HookLineLoadTestClass)
-  Object.send(:remove_const, :HookLineIvarLoadTestClass)
-rescue NameError
-end
+Object.send(:remove_const, :HookLineLoadTestClass) if Object.const_defined?(:HookLineLoadTestClass, false)
+Object.send(:remove_const, :HookLineIvarLoadTestClass) if Object.const_defined?(:HookLineIvarLoadTestClass, false)
+# padding
+# padding
+# padding
 
 # padding
 # padding
