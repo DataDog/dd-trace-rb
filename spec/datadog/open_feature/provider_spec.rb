@@ -227,6 +227,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
             Datadog::OpenFeature::Component,
             flag_eval_metrics_hook: flag_eval_metrics_hook,
             flag_eval_evp_hook: nil,
+            debug_logging_hook: nil,
           )
         end
         let(:components) { instance_double(Datadog::Core::Configuration::Components, open_feature: component) }
