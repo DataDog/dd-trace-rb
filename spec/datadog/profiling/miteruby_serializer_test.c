@@ -182,6 +182,11 @@ static VALUE serialize_working_profile(VALUE serializer) {
   return native_serialize(Qnil, serializer);
 }
 
+static VALUE check_available(VALUE serializer) {
+  miteruby_serializer_check_available(serializer);
+  return Qnil;
+}
+
 static void test_working_status(void) {
   VALUE serializer = serializer_new(rb_cObject);
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -189,15 +194,17 @@ static void test_working_status(void) {
   assert(miteruby_allocator_alloc_size(state->compression_workspace) == ZSTD_estimateCStreamSize(COMPRESSION_LEVEL));
   assert(state->status == SERIALIZER_EMPTY);
   assert(state->compressed_serialization_buffer != NULL);
-  assert(!miteruby_serializer_is_working(serializer));
-  assert(!miteruby_serializer_is_working(Qnil));
+  miteruby_serializer_check_available(serializer);
   state->status = SERIALIZER_WORKING;
-  assert(miteruby_serializer_is_working(serializer));
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
   assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, NULL, NULL, NULL) == MITERUBY_SERIALIZER_ALREADY_WORKING);
   assert(queue != NULL && state->interned_events_queue == NULL);
   int error = 0;
+  rb_protect(check_available, serializer, &error);
+  assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
+  assert(state->status == SERIALIZER_WORKING);
+  rb_set_errinfo(Qnil);
   rb_protect(serialize_working_profile, serializer, &error);
   assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
   assert(state->status == SERIALIZER_WORKING);
@@ -214,7 +221,7 @@ static void test_working_status(void) {
   assert(state->compressed_serialization_buffer != NULL);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes - 1024);
   assert(state->status == SERIALIZER_EMPTY);
-  assert(!miteruby_serializer_is_working(serializer));
+  miteruby_serializer_check_available(serializer);
   assert(state->compressed_serialization_size == 0);
   assert(state->start_time_ns > 0);
   assert(state->finish_time_ns == state->start_time_ns);
