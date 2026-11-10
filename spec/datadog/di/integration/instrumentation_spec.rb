@@ -12,6 +12,8 @@ class InstrumentationSpecTestClass
   class TestException < StandardError
   end
 
+  attr_writer :ivar
+
   def initialize
     @ivar = "start value"
   end
@@ -955,7 +957,7 @@ RSpec.describe "Instrumentation integration" do
           end
 
           instance = InstrumentationSpecTestClass.new
-          instance.instance_variable_set(:@ivar, [10, 20, 30, 40, 50])
+          instance.ivar = [10, 20, 30, 40, 50]
           expect(instance.collection_method([1, 2, 3, 4, 5])).to eq([1, 2, 3, 4, 5])
           component.probe_notifier_worker.flush
 
@@ -1660,10 +1662,6 @@ RSpec.describe "Instrumentation integration" do
               settings.dynamic_instrumentation.internal.untargeted_trace_points = true
             end
 
-            after do
-              settings.dynamic_instrumentation.internal.untargeted_trace_points = false
-            end
-
             it "instruments file immediately" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               expect(input_transport).to receive(:send_input)
@@ -1690,7 +1688,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points disabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_4.rb", line_no: 20)
+                file: "instrumentation_integration_test_class_4.rb", line_no: 10)
             end
 
             before do
@@ -1828,7 +1826,7 @@ RSpec.describe "Instrumentation integration" do
           # Execute the instrumented method with deep hash as param
           # Use the param so it's captured in the snapshot
           instance = InstrumentationIntegrationTestClass.new
-          instance.instance_variable_set(:@deep_data, deep_hash)
+          instance.deep_data = deep_hash
           instance.test_method_with_conditional(false)
           component.probe_notifier_worker.flush
 
