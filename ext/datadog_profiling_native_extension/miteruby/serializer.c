@@ -231,10 +231,6 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
   return state;
 }
 
-bool miteruby_serializer_is_working(VALUE serializer) {
-  return rb_typeddata_is_kind_of(serializer, &serializer_type) && get_state(serializer)->status == SERIALIZER_WORKING;
-}
-
 void miteruby_serializer_check_available(VALUE serializer) {
   if (get_state(serializer)->status == SERIALIZER_WORKING)
     miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
