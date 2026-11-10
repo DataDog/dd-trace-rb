@@ -12,7 +12,6 @@ RSpec.describe "DI integration from remote config" do
   skip_unless_integration_testing_enabled
 
   let(:remote) { Datadog::DI::Remote }
-  let(:path) { "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash" }
 
   before(:all) do
     # if code tracking is active, it invokes methods on mock objects
@@ -61,10 +60,6 @@ RSpec.describe "DI integration from remote config" do
     end
   end
 
-  let(:serializer) do
-    component.serializer
-  end
-
   let(:instrumenter) do
     component.instrumenter
   end
@@ -81,18 +76,8 @@ RSpec.describe "DI integration from remote config" do
     instance_double_agent_settings_with_stubs
   end
 
-  let(:stringified_probe_spec) do
-    JSON.parse(probe_spec.to_json)
-  end
-
   before do
     expect(Datadog::DI).to receive(:component).at_least(:once).and_return(component)
-  end
-
-  let(:mock_response) do
-    instance_double(Datadog::Core::Transport::HTTP::Response).tap do |response|
-      expect(response).to receive(:ok?).at_least(:once).and_return(true)
-    end
   end
 
   let(:expected_received_payload) do
@@ -596,8 +581,6 @@ RSpec.describe "DI integration from remote config" do
     end
 
     context "when condition evaluation fails at runtime" do
-      with_code_tracking
-
       let(:propagate_all_exceptions) { true }
 
       let(:probe_spec) do
