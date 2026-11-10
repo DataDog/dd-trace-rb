@@ -109,7 +109,11 @@ module Datadog
             @lock.synchronize do
               @wake_scheduled = more
             end
-            wake.wait(more ? min_send_interval : nil)
+            # Bounded even when idle: add_status and add_snapshot skip the
+            # signal while @wake_scheduled is set, and a signal sent before
+            # this thread starts waiting is lost. An unbounded wait would
+            # leave events queued in either window unsent.
+            wake.wait(min_send_interval)
           end
         end
         @pid = Process.pid

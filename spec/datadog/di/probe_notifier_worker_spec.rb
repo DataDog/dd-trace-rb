@@ -256,6 +256,43 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
   end
 
+  describe "worker thread" do
+    context "when an event is queued while the thread finishes a cycle that sent nothing" do
+      let(:status) { {status: "received"}.freeze }
+      let(:sent_batches) { Queue.new }
+      let(:first_cycle_gate) { Queue.new }
+
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(0.01)
+        allow(diagnostics_transport).to receive(:send_diagnostics) { |batch| sent_batches << batch }
+
+        injected = false
+        allow(worker).to receive(:maybe_send).and_wrap_original do |original|
+          # Hold the first cycle until #start has recorded the thread, so
+          # that add_status below does not start a second thread.
+          first_cycle_gate.pop unless injected
+          sent = original.call
+          if !sent && !injected
+            injected = true
+            # Runs on the worker thread after the queues were drained and
+            # before the thread waits, so the wake-up signal is lost.
+            worker.add_status(status)
+          end
+          sent
+        end
+      end
+
+      it "sends the event within the minimum send interval" do
+        worker.start
+        first_cycle_gate << true
+
+        try_wait_until(seconds: 5) { !sent_batches.empty? }
+
+        expect(sent_batches.pop).to eq([status])
+      end
+    end
+  end
+
   context "started" do
     before do
       worker.start
