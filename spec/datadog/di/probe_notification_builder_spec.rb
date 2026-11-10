@@ -10,7 +10,7 @@ require "datadog/di/el"
 # dynamic instrumentation overall, since the generated payloads depend
 # heavily on probe attributes and parameters.
 #
-# The unit tests here are only meant to catch grave errors in the implementaton,
+# The unit tests here are only meant to catch grave errors in the implementation,
 # not comprehensively verify correctness.
 
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
@@ -919,6 +919,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       # aborts segment evaluation in mid-iteration.
       before do
         reads = 0
+        allow(Process).to receive(:clock_gettime).and_call_original
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) do
           reads += 1
           (reads <= 1) ? 1.0 : 1.001

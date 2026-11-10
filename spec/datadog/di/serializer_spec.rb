@@ -952,8 +952,8 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       it "skips the custom serializer when the condition raises a non-StandardError" do
-        # NotImplementedError inherits from ScriptError, not StandardError, so the
-        # previous `rescue => e` would have let it escape the whole serialization.
+        # NotImplementedError inherits from ScriptError, not StandardError, so a
+        # bare `rescue` would let it escape the whole serialization.
         condition = lambda do |value|
           raise NotImplementedError, "boom" if value == "trigger non-standard"
           false
@@ -1530,8 +1530,8 @@ RSpec.describe Datadog::DI::Serializer do
     # or has circular references, causing stack overflow during serialization.
     #
     # SystemStackError inherits from Exception, NOT StandardError.
-    # The serializer's rescue clause at line 316 now catches Exception to handle
-    # these cases gracefully by returning a structure with notSerializedReason.
+    # The serializer's rescue clause catches Exception to handle these cases
+    # gracefully by returning a structure with notSerializedReason.
     #
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
@@ -1632,8 +1632,8 @@ RSpec.describe Datadog::DI::Serializer do
     # structures (e.g., huge strings or arrays) that exceed available memory.
     #
     # NoMemoryError inherits from Exception, NOT StandardError.
-    # The serializer's rescue clause at line 316 now catches Exception to handle
-    # these cases gracefully by returning a structure with notSerializedReason.
+    # The serializer's rescue clause catches Exception to handle these cases
+    # gracefully by returning a structure with notSerializedReason.
     #
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
