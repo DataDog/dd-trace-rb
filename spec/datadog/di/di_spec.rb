@@ -40,7 +40,9 @@ RSpec.describe Datadog::DI do
 
     context "with a built component tree" do
       before do
-        Datadog.configure {}
+        Datadog.configure do |c|
+          c.tracing.writer = FauxWriter.new
+        end
       end
 
       after do
