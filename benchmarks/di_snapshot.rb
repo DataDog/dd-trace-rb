@@ -44,7 +44,13 @@ class DISnapshotBenchmark
   def initialize
     Datadog::DI.activate_tracking!
 
+    # The fake agent listens on a free port so that the benchmark works
+    # next to a real agent and reports the snapshots it receives.
+    server = build_server
+
     Datadog.configure do |c|
+      c.agent.host = "127.0.0.1"
+      c.agent.port = server.config[:Port]
       c.remote.enabled = true
       c.dynamic_instrumentation.enabled = true
       c.dynamic_instrumentation.internal.development = true
@@ -58,14 +64,6 @@ class DISnapshotBenchmark
     end
 
     Thread.new do
-      # If there is an actual Datadog agent running locally, the server
-      # used in this benchmark will fail to start.
-      # Using an actual Datadog agent instead of the fake server should not
-      # affect the indication of whether the rate limit is reachable
-      # since the agent shouldn't take longer to process than the fake
-      # web server (and the agent should also run on another core),
-      # however using a real agent would forego reports of the number of
-      # snapshots submitted and their size.
       server.start
     end
 
@@ -223,9 +221,10 @@ class DISnapshotBenchmark
     Datadog::DI.component.probe_manager
   end
 
-  def server
+  def build_server
     WEBrick::HTTPServer.new(
-      Port: 8126,
+      BindAddress: "127.0.0.1",
+      Port: 0,
     ).tap do |server|
       @received_snapshot_count = 0
       @received_snapshot_bytes = 0
