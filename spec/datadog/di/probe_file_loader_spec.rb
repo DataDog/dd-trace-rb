@@ -11,7 +11,7 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
   describe ".load_now" do
     # The development environment check is stubbed out below, which enables
     # telemetry. Disable telemetry and stub the DI transports so that the
-    # component tree these examples build sends nothing to the agent.
+    # component tree these examples build stays within the test process.
     with_env DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
 
     let(:diagnostics_transport) do

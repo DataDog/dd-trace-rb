@@ -22,7 +22,7 @@ begin
   # registry (the only reference), and GC can collect the iseq before
   # the next test's backfill_registry walks object space.
   # Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
-  # for profiler frames during require. Filter them out — only the real
+  # for profiler frames during require. Filter them out; only the real
   # top-level iseq has trace events and can target child iseq lines.
   BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
     i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&

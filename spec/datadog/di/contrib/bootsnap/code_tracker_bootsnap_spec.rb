@@ -22,7 +22,7 @@ require "bootsnap/compile_cache/iseq"
 #
 # Bootsnap::CompileCache::ISeq.install! prepends Bootsnap's load_iseq to
 # RubyVM::InstructionSequence for the life of the process. The examples run
-# in forked processes so that the rspec process never installs it.
+# in forked processes so that only the forked children install it.
 RSpec.describe "DI CodeTracker with Bootsnap", execute_in_fork: true do
   di_test
 
