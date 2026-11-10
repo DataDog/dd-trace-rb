@@ -74,24 +74,6 @@ RSpec.describe "backfill_registry with compile_file iseqs" do
       expect(result).to be_nil,
         "backfill_registry should not register compile_file iseqs, " \
         "but registered iseq for: #{result&.first}"
-
-      if result
-        _path, registered_iseq = result
-
-        # Verify: does a trace point on the registered iseq actually fire?
-        fired = false
-        tp = TracePoint.new(:line) { fired = true }
-        tp.enable(target: registered_iseq)
-
-        BackfillCompileTestClass.new.test_method
-
-        tp.disable
-
-        expect(fired).to be(true),
-          "backfill_registry registered an iseq that does not fire when " \
-          "the actual code executes. This is likely a compile_file iseq " \
-          "rather than the require-produced iseq."
-      end
     ensure
       Object.send(:remove_const, :BackfillCompileTestClass) if defined?(BackfillCompileTestClass)
       tempfile&.close
