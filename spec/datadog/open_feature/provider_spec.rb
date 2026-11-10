@@ -174,8 +174,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
         .with(:get_assignment_with_opt_out_mode).and_return(native_supported)
       allow(engine).to receive(:fetch_value).and_return(
         Datadog::OpenFeature::ResolutionDetails.build_error(
-          value: false, error_code: "PROVIDER_NOT_READY", error_message: "Waiting for configuration"
-        )
+          value: false, error_code: "PROVIDER_NOT_READY", error_message: "Waiting for configuration",
+        ),
       )
     end
 
@@ -204,7 +204,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           configured_provider.fetch_boolean_value(flag_key: "flag", default_value: false)
           expect(engine).to have_received(:fetch_value).with(
             "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
-            experimentation_opt_out_mode: expected_mode
+            experimentation_opt_out_mode: expected_mode,
           )
         end
       end
@@ -312,7 +312,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       expect(engine).to have_received(:fetch_value).with(
         "flag", default_value: false, expected_type: :boolean, evaluation_context: nil,
-        experimentation_opt_out_mode: :disabled
+        experimentation_opt_out_mode: :disabled,
       )
     end
 
@@ -435,7 +435,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     [[], {"timestamp" => "2026-10-19T12:00:00Z"}].each do |value|
       it "rejects #{value.class} before conversion to native attributes" do
         context = ::OpenFeature::SDK::EvaluationContext.new(
-          targeting_key: "subject", dd_experimentation_opt_out_at: value
+          targeting_key: "subject", dd_experimentation_opt_out_at: value,
         )
         expect(configuration).not_to receive(:get_assignment)
 

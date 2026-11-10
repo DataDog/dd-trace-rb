@@ -120,7 +120,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       it "treats omitted doLog as an experiment allocation" do
         config["flags"]["test-flag"]["allocations"].first.delete("doLog")
         result = configuration.get_assignment_with_options(
-          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true
+          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true,
         )
         expect(result.variant).to eq("ordinary")
         expect(result.log?).to be(false)
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
       it "returns the default state when no ordinary allocation matches" do
         config["flags"]["test-flag"]["allocations"].pop
         result = configuration.get_assignment_with_options(
-          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true
+          "test-flag", :object, context.merge("dd_experimentation_opt_out_at" => "2026-10-01T00:00:00Z"), true,
         )
         expect(result.variant).to be_nil
         expect(result.reason).to eq("DEFAULT")
