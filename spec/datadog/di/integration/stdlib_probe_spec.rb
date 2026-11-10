@@ -66,7 +66,9 @@ class StdlibProbeTestClass
   end
 end
 
-RSpec.describe "Stdlib probe integration: probes on methods invoked by DI processing" do
+# Method probes prepend hook modules to process-wide stdlib classes, and Ruby
+# cannot remove a prepended module, so each example runs in a forked process.
+RSpec.describe "Stdlib probe integration: probes on methods invoked by DI processing", execute_in_fork: true do
   di_test
 
   let(:diagnostics_transport) do
