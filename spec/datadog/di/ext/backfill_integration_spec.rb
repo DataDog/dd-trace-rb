@@ -13,22 +13,25 @@ require "datadog/di"
 # survives long enough to be captured below. The top-level iseq is not
 # referenced by any constant or method after loading completes — only
 # class/method child iseqs survive via BackfillIntegrationTestClass.
-GC.disable
-require_relative "backfill_integration_test_class"
+gc_was_disabled = GC.disable
+begin
+  require_relative "backfill_integration_test_class"
 
-# Keep the top-level iseq alive across tests by holding a reference.
-# Without this, deactivate_tracking! in the after block clears the
-# registry (the only reference), and GC can collect the iseq before
-# the next test's backfill_registry walks object space.
-# Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
-# for profiler frames during require. Filter them out — only the real
-# top-level iseq has trace events and can target child iseq lines.
-BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
-  i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
-    !i.trace_points.empty? &&
-    (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
-}
-GC.enable
+  # Keep the top-level iseq alive across tests by holding a reference.
+  # Without this, deactivate_tracking! in the after block clears the
+  # registry (the only reference), and GC can collect the iseq before
+  # the next test's backfill_registry walks object space.
+  # Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
+  # for profiler frames during require. Filter them out — only the real
+  # top-level iseq has trace events and can target child iseq lines.
+  BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
+    i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
+      !i.trace_points.empty? &&
+      (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
+  }
+ensure
+  GC.enable unless gc_was_disabled
+end
 
 RSpec.describe "CodeTracker backfill integration" do
   di_test
