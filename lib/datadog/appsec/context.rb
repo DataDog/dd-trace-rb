@@ -37,8 +37,8 @@ module Datadog
           raise ArgumentError, "not a Datadog::AppSec::Context" unless context.instance_of?(Context)
           raise ActiveContextError, "another context is active, nested contexts are not supported" if active
 
-          # NOTE: Activation makes the caller a member. Callers like datadog-lambda-rb
-          #       rely on it, they only activate and deactivate and never call `attach`
+          # NOTE: Activation makes the caller a member, so a caller that only
+          #       activates and deactivates never has to call `attach`
           context.attach
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
@@ -51,7 +51,7 @@ module Datadog
 
         def active
           context = Thread.current[Ext::ACTIVE_CONTEXT_KEY]
-          context if context&.alive?
+          context if context && !context.finalized?
         end
       end
 
@@ -61,7 +61,7 @@ module Datadog
         @waf_runner = waf_runner
         @mutex = Mutex.new
         @attached_count = 0
-        @alive = true
+        @finalized = false
         @metrics = Metrics::Collector.new
         @downstream_body_sampler = CounterSampler.new(
           Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate,
@@ -157,7 +157,7 @@ module Datadog
 
       def attach
         @mutex.synchronize do
-          return false unless @alive
+          return false if @finalized
 
           @attached_count += 1
         end
@@ -172,7 +172,7 @@ module Datadog
           @attached_count -= 1
           return unless @attached_count.zero?
 
-          @alive = false
+          @finalized = true
         end
 
         @waf_runner.finalize!
@@ -180,8 +180,8 @@ module Datadog
         AppSec.telemetry.report(e, description: "AppSec: Failed to finalize context")
       end
 
-      def alive?
-        @mutex.synchronize { @alive }
+      def finalized?
+        @mutex.synchronize { @finalized }
       end
 
       def shared?

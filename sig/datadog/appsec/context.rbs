@@ -19,7 +19,7 @@ module Datadog
 
       @attached_count: Integer
 
-      @alive: bool
+      @finalized: bool
 
       ActiveContextError: StandardError
 
@@ -69,7 +69,7 @@ module Datadog
 
       def detach: () -> void
 
-      def alive?: () -> bool
+      def finalized?: () -> bool
 
       def shared?: () -> bool
     end

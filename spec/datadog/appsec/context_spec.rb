@@ -194,9 +194,9 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe "#alive?" do
+  describe "#finalized?" do
     context "when context was created" do
-      it { expect(context.alive?).to be(true) }
+      it { expect(context.finalized?).to be(false) }
     end
 
     context "when the last thread detached" do
@@ -205,7 +205,7 @@ RSpec.describe Datadog::AppSec::Context do
         described_class.deactivate
       end
 
-      it { expect(context.alive?).to be(false) }
+      it { expect(context.finalized?).to be(true) }
     end
 
     context "when another thread is still attached" do
@@ -217,7 +217,7 @@ RSpec.describe Datadog::AppSec::Context do
 
       after { context.detach }
 
-      it { expect(context.alive?).to be(true) }
+      it { expect(context.finalized?).to be(false) }
     end
   end
 
