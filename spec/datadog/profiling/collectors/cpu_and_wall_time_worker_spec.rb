@@ -2502,26 +2502,28 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(serializer.stats).to eq({})
     end
 
-    it "discards buffered samples and releases the consumer lock when given the wrong serializer" do
-      capture_miteruby { publish_miteruby_sample }
+    it "preserves buffered samples when rejecting the wrong serializer" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
       consume_miteruby
-      buffered_bytes = cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)
-      expect(buffered_bytes).to be > 0
+      buffered_state = cpu_and_wall_time_worker.stats.slice(
+        :miteruby_interned_events_queue_used_size_bytes,
+        :miteruby_mark_threads_entries,
+        :miteruby_mark_cme_iseq_array_entries,
+        :miteruby_location_array_entries,
+        :miteruby_unique_stacks_map_entries,
+      )
+      expect(buffered_state.fetch(:miteruby_interned_events_queue_used_size_bytes)).to be > 0
 
       expect do
         described_class._native_miteruby_consumer_prepare_serialize(Datadog::Profiling::StackRecorder.for_testing)
       end.to raise_error(TypeError)
 
-      expect(cpu_and_wall_time_worker.stats).to include(
-        miteruby_interned_events_queue_used_size_bytes: 0,
-        miteruby_mark_threads_entries: 0,
-        miteruby_mark_cme_iseq_array_entries: 0,
-        miteruby_location_array_entries: 0,
-        miteruby_unique_stacks_map_entries: 0,
-      )
+      expect(cpu_and_wall_time_worker.stats).to include(buffered_state)
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
       Thread.new { consume_miteruby }.value
-      expect(recorded_miteruby_samples.size).to eq(1)
+      expect(recorded_miteruby_samples.size).to eq(2)
       expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(0)
     end
 
