@@ -156,10 +156,14 @@ typedef enum {
   SERIALIZER_FINISHED,
 } serializer_status;
 
+// Serialization failures are show-stoppers; we do not need to recover the failed serialization.
+// Leftover state is acceptable as long as it is reset for the next serialization and remains owned
+// by the serializer so Ruby GC can clean it up when the instance is discarded. Failures must not leak memory.
+
 typedef struct {
   // Storage and bookkeeping retained across serialization cycles.
   uint8_t *uncompressed_serialization_buffer; // Up to 256 KiB
-  uint8_t *compressed_serialization_buffer; // Up to 10 MiB
+  uint8_t *compressed_serialization_buffer; // Up to 10 MiB; replaced with an empty buffer after serialization
   void *compression_workspace; // From zstd setup, ~1.3 MiB
 
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
@@ -295,6 +299,14 @@ static miteruby_serializer_exit_reason_t flush_if_needed(miteruby_serializer_per
   return MITERUBY_SERIALIZER_OK;
 }
 
+static void reset_compressed_buffer(miteruby_serializer_persistent_state_t *state) {
+  state->compressed_serialization_size = 0;
+  uint8_t *buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
+  if (buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
+  miteruby_allocator_free(state->compressed_serialization_buffer);
+  state->compressed_serialization_buffer = buffer;
+}
+
 static VALUE serializer_new(VALUE klass) {
   miteruby_serializer_persistent_state_t *state;
   VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_persistent_state_t, &serializer_type, state);
@@ -305,10 +317,7 @@ static VALUE serializer_new(VALUE klass) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.uncompressed_serialization_buffer");
   }
 
-  state->compressed_serialization_buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
-  if (state->compressed_serialization_buffer == NULL) {
-    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
-  }
+  reset_compressed_buffer(state);
 
   size_t workspace_size = ZSTD_estimateCStreamSize(COMPRESSION_LEVEL);
   if (ZSTD_isError(workspace_size)) rb_raise(rb_eRuntimeError, "Failed to size zstd workspace");
@@ -512,6 +521,7 @@ static VALUE prepare_serialize_body(VALUE prepare_state_value) {
   miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
   state->finish_time_ns = system_epoch_time_now_ns();
   prepare_state->exit_reason = prepare_serialize(prepare_state);
+  if (prepare_state->exit_reason == MITERUBY_SERIALIZER_OK) state->status = SERIALIZER_FINISHED;
   return Qnil;
 }
 
@@ -519,7 +529,10 @@ static VALUE prepare_serialize_cleanup(VALUE state_value) {
   miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
   miteruby_allocator_free(state->interned_events_queue);
   state->interned_events_queue = NULL;
-  state->status = SERIALIZER_EMPTY;
+  if (state->status != SERIALIZER_FINISHED) {
+    state->status = SERIALIZER_EMPTY;
+    reset_compressed_buffer(state);
+  }
   return Qnil;
 }
 
@@ -550,10 +563,6 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   state->status = SERIALIZER_WORKING;
 
   rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state);
-
-  if (prepare_state.exit_reason == MITERUBY_SERIALIZER_OK) {
-    state->status = SERIALIZER_FINISHED;
-  }
 
   return prepare_state.exit_reason;
 }
@@ -744,6 +753,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   long finish_time_ns = state->finish_time_ns;
   state->start_time_ns = finish_time_ns;
   VALUE bytes_string = rb_str_new((const char *)state->compressed_serialization_buffer, state->compressed_serialization_size);
+  reset_compressed_buffer(state);
 
   VALUE start = rb_time_nano_new(start_time_ns / SECONDS_AS_NS(1), start_time_ns % SECONDS_AS_NS(1));
   VALUE finish = rb_time_nano_new(finish_time_ns / SECONDS_AS_NS(1), finish_time_ns % SECONDS_AS_NS(1));
@@ -756,8 +766,8 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  state->status = SERIALIZER_EMPTY;
   prepare_serialize_cleanup((VALUE)state);
-  state->compressed_serialization_size = 0;
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
