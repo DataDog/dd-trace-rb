@@ -25,7 +25,6 @@ typedef enum {
 } miteruby_serializer_exit_reason_t;
 
 void miteruby_serializer_init(VALUE profiling_module);
-bool miteruby_serializer_is_working(VALUE serializer);
 void miteruby_serializer_check_available(VALUE serializer);
 miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
