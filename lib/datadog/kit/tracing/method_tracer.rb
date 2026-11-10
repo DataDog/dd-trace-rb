@@ -92,7 +92,7 @@ module Datadog
               # - `args` is static
               # - `method_name` is validated by the `method_defined?` check
               # - `span_name` is validated to be a String and inspected to be quoted
-              eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # standard:disable Security/Eval
+              eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # rubocop:disable Security/Eval
               def #{method_name}(#{args})
                 return super(#{args}) unless ::Datadog::Tracing.active_trace
 

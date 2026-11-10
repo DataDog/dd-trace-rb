@@ -1,6 +1,6 @@
 # Dynamic instrumentation target files must not be modified by
 # formatting tools.
-# standard:disable all
+# rubocop:disable all
 
 # padding
 # padding

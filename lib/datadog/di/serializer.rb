@@ -259,7 +259,7 @@ module Datadog
             if condition
               begin
                 condition_result = condition.call(value)
-              rescue Exception => e # standard:disable Lint/RescueException
+              rescue Exception => e # rubocop:disable Lint/RescueException
                 raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
 
                 # If a custom serializer condition raises an exception (e.g., regex match
@@ -435,7 +435,7 @@ module Datadog
             end
           end
           serialized
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
           # Catch all remaining exceptions: SystemStackError and NoMemoryError can
@@ -554,7 +554,7 @@ module Datadog
           end
           "#<#{class_name(value.class)}#{serialized}>"
         end
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
         telemetry&.report(exc, description: "Error serializing for message")

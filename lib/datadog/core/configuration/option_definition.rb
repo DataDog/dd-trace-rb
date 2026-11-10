@@ -80,7 +80,7 @@ module Datadog
             validate_options!
           end
 
-          def env(value) # standard:disable Style/TrivialAccessors
+          def env(value) # rubocop:disable Style/TrivialAccessors
             @env = value
           end
 
@@ -112,7 +112,7 @@ module Datadog
           # we send two separate entries for the buffer_size and flush_interval values.
           # Standard: We want to keep this method as skip_telemetry(value),
           # not skip_telemetry = value, so attr_writer is not used.
-          def skip_telemetry(value) # standard:disable Style/TrivialAccessors
+          def skip_telemetry(value) # rubocop:disable Style/TrivialAccessors
             @skip_telemetry = value
           end
 

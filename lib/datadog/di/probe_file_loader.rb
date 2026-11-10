@@ -35,7 +35,7 @@ module Datadog
         begin
           probe_specs = File.open(probe_file_path) do |f|
             # The probe file should contain an array, JSON.parse does not work
-            JSON.load(f) # standard:disable Security/JSONLoad
+            JSON.load(f) # rubocop:disable Security/JSONLoad
           end
 
           probe_specs.each do |probe_spec|
@@ -49,7 +49,7 @@ module Datadog
 
               payload = component.probe_notification_builder.build_errored(probe, exc)
               component.probe_notifier_worker.add_status(payload, probe: probe)
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -61,7 +61,7 @@ module Datadog
               component.probe_notifier_worker.add_status(payload, probe: probe)
             end
           end
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
             should_propagate = true
@@ -71,7 +71,7 @@ module Datadog
           component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI probe file loader")
         end
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         # We should generally never get here, but if component tree
         # initialization fails for some unexpected reason, don't nuke

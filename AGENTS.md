@@ -9,7 +9,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Discover gemfiles: `bundle exec rake dependency:list`. Shows values for `BUNDLE_GEMFILE`.
 - Use an alternate gemfile for matrix-specific jobs: `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile`.
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
-- Lint and type check: `bundle exec rake rubocop typecheck`. Prefer RuboCop because it checks a strict superset of the Standard rules; CI requires both, which can be run with `bundle exec rake standard rubocop typecheck`.
+- Lint and type check: `bundle exec rake rubocop typecheck`. RuboCop checks the vendored Standard ruleset with project overrides and custom cops.
 - Type check specific sources: `bundle exec steep check [sources]`.
 - Discover tasks: `bundle exec rake -T`.
 - Run targeted specs: `bundle exec rspec spec/path/to/file_spec.rb[:line]`. Only use this for specs covered by `test:main` or under `spec/datadog/profiling`; use the relevant rake task for other specs.
@@ -22,7 +22,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - `sig/` - RBS signatures maintained with Steep
 - `spec/` - RSpec suites mirroring `lib/`
 - `Matrixfile`, `appraisal/` - Test matrix gemset specification
-- `gemfiles/` - Generated gemfiles from the matrix (no direct editing)
+- `gemfiles/` - Hand-maintained runtime base gemfiles and generated appraisal gemfiles
 - `.github`, `tasks/github.rake`, `.gitlab-ci.yml`, `.gitlab` - CI
 - `lib/datadog/appsec` - app & api protection implementation (formerly known as appsec)
 - `lib/datadog/appsec/contrib` - app & api protection integrations with third-party libraries
@@ -107,7 +107,7 @@ no external grant needed. No local trigger otherwise.
 - Use `git commit --amend` unless the user explicitly and clearly requests it; create a new commit by default
 - Push commits to a remote unless the user explicitly requests it
 - Commit secrets, tokens, or credentials
-- Edit files under `gemfiles/`; regenerate them with `bundle exec rake dependency:generate`
+- Edit generated appraisal gemfiles under `gemfiles/`; regenerate them with `bundle exec rake dependency:generate`. Runtime base gemfiles such as `gemfiles/ruby-4.0.gemfile` are maintained by hand.
 - Change versioning (`lib/datadog/version.rb`, `CHANGELOG.md`)
 - Leave resources open; terminate threads and close files
 - Make breaking public API changes
@@ -218,7 +218,7 @@ actionlint .github/workflows/your-workflow.yml
 
 # Style
 
-StandardRB enforces style: `bundle exec rake standard:fix`.
+RuboCop enforces style: `bundle exec rake rubocop:fix`.
 
 Additional team preferences:
 - Use trailing commas in multi-line arrays, hashes, and arguments.

@@ -10,7 +10,7 @@
 # (the same CRuby behavior that PR #5872 addresses for SymDB).
 class ProbeCoverageLinePreTargetClass
   def target_method
-    answer = 42 # line 13 — line-probe target # standard:disable Style/RedundantAssignment
+    answer = 42 # line 13 — line-probe target # rubocop:disable Style/RedundantAssignment
     answer
   end
 end

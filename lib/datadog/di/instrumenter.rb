@@ -159,7 +159,7 @@ module Datadog
             admitted = correlation_sampler.admit_process_wide_snapshot?
             drop_reason = :global_budget
           end
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           reraise_per_policy(exc)
 
           logger.debug { "[di-correlation] gate error, failing open to the probe's condition-error limiter: #{exc.class}: #{exc.message}" }
@@ -577,7 +577,7 @@ module Datadog
           begin
             trace = current_trace
             admitted, drop_reason = correlation_sampler.emit_with_reason?(probe, trace)
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             reraise_per_policy(exc)
 
             logger.debug { "[di-correlation] gate error, failing open to per-probe rate limit: #{exc.class}: #{exc.message}" }
@@ -626,7 +626,7 @@ module Datadog
       # @return [Datadog::Tracing::TraceOperation, nil]
       def active_trace_at_admission
         current_trace
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         reraise_per_policy(exc)
 
         logger.debug { "[di-correlation] admission trace capture failed: #{exc.class}: #{exc.message}" }
@@ -639,7 +639,7 @@ module Datadog
       # @return [Datadog::Tracing::SpanOperation, nil]
       def active_span_at_admission
         Datadog::DI.active_span
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         reraise_per_policy(exc)
 
         logger.debug { "[di-correlation] admission span capture failed: #{exc.class}: #{exc.message}" }
@@ -740,7 +740,7 @@ module Datadog
               )
               continue = condition.satisfied?(context,
                 evaluation_deadline: serializer.evaluation_deadline)
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
               # errors, we probably need another setting to control whether
@@ -759,7 +759,7 @@ module Datadog
                 # the probe notifier builder requires a context.
                 begin
                   responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                rescue Exception => nested_exc # rubocop:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -801,7 +801,7 @@ module Datadog
                 entry_capture_result = capture_expression_evaluator.evaluate(probe, entry_context)
                 entry_capture_expressions = entry_capture_result.serialized_values
                 entry_capture_evaluation_errors = entry_capture_result.errors
-              rescue Exception => exc # standard:disable Lint/RescueException
+              rescue Exception => exc # rubocop:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -830,7 +830,7 @@ module Datadog
               # remain bypassed regardless, because the disabled-probe early
               # return at the top of this method also invokes the block.
               rv = yield
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # We will raise the (non-fatal) exception captured here later,
               # after the instrumentation callback runs.
@@ -887,7 +887,7 @@ module Datadog
               responder.probe_executed_callback(context)
 
               check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
-            rescue Exception => di_exc # standard:disable Lint/RescueException
+            rescue Exception => di_exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(di_exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -994,7 +994,7 @@ module Datadog
         # TODO find out exactly when the path in trace point is relative.
         # Looks like this is the case when line trace point is not targeted?
         unless iseq
-          return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
+          return unless tp.lineno == probe.line_no && ( # rubocop:disable Style/UnlessLogicalOperators
             probe.file == tp.path || probe.file_matches?(tp.path)
           )
         end
@@ -1035,7 +1035,7 @@ module Datadog
               context = build_trace_point_context(probe, tp)
               return unless condition.satisfied?(context,
                 evaluation_deadline: serializer.evaluation_deadline)
-            rescue Exception => exc # standard:disable Lint/RescueException
+            rescue Exception => exc # rubocop:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
               # errors, we probably need another setting to control whether
@@ -1054,7 +1054,7 @@ module Datadog
                 # the probe notifier builder requires a context.
                 begin
                   responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                rescue Exception => nested_exc # rubocop:disable Lint/RescueException
                   Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -1090,7 +1090,7 @@ module Datadog
         ensure
           DI.leave_probe unless was_in_probe
         end
-      rescue Exception => exc # standard:disable Lint/RescueException
+      rescue Exception => exc # rubocop:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }

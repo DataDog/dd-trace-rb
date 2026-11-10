@@ -208,7 +208,7 @@ module Datadog
             # message.
             # TODO assert content state (errored for this example)
             content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -234,7 +234,7 @@ module Datadog
           # try to remove instrumentation that is still supposed to be
           # active.
           # current_probe_ids[probe_spec.fetch('id')] = true
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -301,7 +301,7 @@ module Datadog
           (tracked_probe_ids - present_probe_ids).each do |probe_id|
             component.logger.trace { "di: removing probe #{probe_id} withdrawn from remote configuration" }
             component.probe_manager.remove_probe(probe_id)
-          rescue Exception => exc # standard:disable Lint/RescueException
+          rescue Exception => exc # rubocop:disable Lint/RescueException
             Datadog::DI.reraise_if_fatal(exc)
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -337,7 +337,7 @@ module Datadog
           probe_spec = parse_content(previous_content)
           probe_id = probe_spec.fetch("id")
           component.probe_manager.remove_probe(probe_id)
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 

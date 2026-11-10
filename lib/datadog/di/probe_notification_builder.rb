@@ -451,7 +451,7 @@ module Datadog
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
-        rescue Exception => exc # standard:disable Lint/RescueException
+        rescue Exception => exc # rubocop:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(exc)
           DI.report_evaluation_timeout(
             telemetry: telemetry, guardrails_telemetry: guardrails_telemetry, logger: logger,

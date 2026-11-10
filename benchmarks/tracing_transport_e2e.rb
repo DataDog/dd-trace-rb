@@ -36,13 +36,13 @@ class TracingTransportE2EBenchmark
 
       configure_tracer(:http)
       x.report("#{@depth} span trace - HTTP transport") do
-        eval(@trace_code) # standard:disable Security/Eval
+        eval(@trace_code) # rubocop:disable Security/Eval
       end
 
       if native_supported?
         configure_tracer(:native)
         x.report("#{@depth} span trace - Native transport") do
-          eval(@trace_code) # standard:disable Security/Eval
+          eval(@trace_code) # rubocop:disable Security/Eval
         end
       end
 

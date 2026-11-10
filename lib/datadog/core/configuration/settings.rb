@@ -20,7 +20,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the Datadog library.
       # @public_api
-      # standard:disable Metrics/BlockLength
+      # rubocop:disable Metrics/BlockLength
       class Settings
         include Base
 
@@ -140,7 +140,7 @@ module Datadog
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
-              require "pp" if enabled # standard:disable Lint/RedundantRequireStatement
+              require "pp" if enabled # rubocop:disable Lint/RedundantRequireStatement
             end
           end
 
@@ -1129,7 +1129,7 @@ module Datadog
 
         extend Datadog::OpenTelemetry::Configuration::Settings
       end
-      # standard:enable Metrics/BlockLength
+      # rubocop:enable Metrics/BlockLength
     end
   end
 end

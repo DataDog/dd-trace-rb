@@ -87,7 +87,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         tracker.start
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
-        eval "1 + 2" # standard:disable Style/EvalWithLocation
+        eval "1 + 2" # rubocop:disable Style/EvalWithLocation
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
       end
