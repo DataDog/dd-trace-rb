@@ -241,6 +241,19 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.stop
         expect(worker.send(:thread)).to be nil
       end
+
+      context "when the thread does not stop within the timeout" do
+        it "kills the thread and waits for it to finish" do
+          thread = worker.send(:thread)
+          expect(thread).to receive(:join).with(0.5).ordered.and_return(nil)
+          expect(thread).to receive(:kill).ordered.and_call_original
+          expect(thread).to receive(:join).with(0.5).ordered.and_call_original
+
+          worker.stop(0.5)
+
+          expect(thread.alive?).to be false
+        end
+      end
     end
 
     context "worker is not running" do

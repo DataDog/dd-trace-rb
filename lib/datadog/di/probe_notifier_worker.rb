@@ -122,7 +122,8 @@ module Datadog
       # Stops the background thread.
       #
       # Attempts a graceful stop with the specified timeout, then falls back
-      # to killing the thread using Thread#kill.
+      # to killing the thread using Thread#kill and waits up to the same
+      # timeout for the killed thread to finish.
       def stop(timeout = 1)
         @stop_requested = true
         logger.trace { "di: stopping probe notifier: pid #{$$}" }
@@ -130,6 +131,7 @@ module Datadog
         if thread
           unless thread.join(timeout)
             thread.kill
+            thread.join(timeout)
           end
           @thread = nil
         end
