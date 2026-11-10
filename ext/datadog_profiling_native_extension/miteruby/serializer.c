@@ -662,6 +662,10 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
 
   // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
   // have been serialized.
+  //
+  // TODO: We're not actually releasing the GVL yet. The plan is to, in the future, return early from this function, and have the
+  // caller in comsumer actually call `miteruby_serializer_prepare_serialize_no_gvl` directly. Hence why that function is wired to
+  // receive what it needs from the state of the serializer.
   return miteruby_serializer_prepare_serialize_no_gvl(state);
 }
 
