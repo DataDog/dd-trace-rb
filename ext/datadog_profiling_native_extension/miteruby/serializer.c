@@ -185,7 +185,7 @@ typedef struct {
 typedef struct {
   // Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
   miteruby_serializer_persistent_state_t *persistent_state;
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array;
+  const miteruby_mark_frame_array_t *frame_array;
   const miteruby_location_array_t *location_array;
   const verstable_mark_threads_set *threads_set;
 } miteruby_serializer_prepare_serialization_state_t;
@@ -363,8 +363,8 @@ static int64_t string_table_id_for(uint64_t function_id, size_t thread_count) {
   return PPROF_STRING_FIRST_DYNAMIC + thread_count * 2 + function_id * 2;
 }
 
-static uint64_t function_id_for(uint64_t cme_iseq_index) {
-  return PPROF_FUNCTION_FIRST_DYNAMIC + cme_iseq_index;
+static uint64_t function_id_for(uint64_t frame_index) {
+  return PPROF_FUNCTION_FIRST_DYNAMIC + frame_index;
 }
 
 static uint64_t location_id_for(uint64_t location_index) {
@@ -523,7 +523,7 @@ static VALUE prepare_serialize_cleanup(VALUE state_value) {
 
 miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array, const miteruby_location_array_t *location_array,
+  const miteruby_mark_frame_array_t *frame_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
 ) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -538,7 +538,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
 
   miteruby_serializer_prepare_serialization_state_t prepare_state = {
     .persistent_state = state,
-    .cme_iseq_array = cme_iseq_array,
+    .frame_array = frame_array,
     .location_array = location_array,
     .threads_set = threads_set,
   };
@@ -563,7 +563,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   state->finish_time_ns = system_epoch_time_now_ns();
   RETURN_IF_ERROR(initialize_compression(state));
   pb_ostream_t *stream = &state->stream;
-  const miteruby_mark_cme_iseq_array_t *cme_iseq_array = prepare_state->cme_iseq_array;
+  const miteruby_mark_frame_array_t *frame_array = prepare_state->frame_array;
   const miteruby_location_array_t *location_array = prepare_state->location_array;
   const verstable_mark_threads_set *threads_set = prepare_state->threads_set;
 
@@ -611,14 +611,14 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
 
   // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
   char qualified_name[4096];
-  for (size_t i = 0; i < cme_iseq_array->count; i++) {
-    miteruby_event_frame_refs_t refs = cme_iseq_array->entries[i];
+  for (size_t i = 0; i < frame_array->count; i++) {
+    miteruby_frame_t frame = frame_array->entries[i];
     // Upcall into Ruby: Class names, method names, method metadata
-    ssize_t written = ddtrace_location_label(refs.cme, refs.iseq, qualified_name, sizeof(qualified_name));
+    ssize_t written = ddtrace_location_label(frame.cme, frame.iseq, qualified_name, sizeof(qualified_name));
     if (written > 0) {
       RETURN_IF_ERROR(emit_string_table_entry(stream, qualified_name, written));
     } else {
-      VALUE name = ddtrace_location_base_label(refs.cme, refs.iseq);
+      VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
       RETURN_IF_ERROR(emit_string_table_entry(
         stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name)
       ));
@@ -626,8 +626,8 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
     RETURN_IF_ERROR(flush_if_needed(state));
 
     // Upcall into Ruby: Method metadata, filenames
-    if (refs.iseq != NULL) {
-      VALUE filename = ddtrace_iseq_path(refs.iseq);
+    if (frame.iseq != NULL) {
+      VALUE filename = ddtrace_iseq_path(frame.iseq);
       RETURN_IF_ERROR(emit_string_table_entry(stream, RSTRING_PTR(filename), RSTRING_LEN(filename)));
     } else {
       const char *filename = "(TODO: resolve filename for cfuncs)";
@@ -646,14 +646,14 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   // 5. Emit FragmentLocation: From profile data (Requires GVL)
   for (size_t i = 0; i < location_array->count; i++) {
     miteruby_location_t location = location_array->entries[i];
-    const rb_iseq_t *iseq = cme_iseq_array->entries[location.cme_iseq_id.value].iseq;
+    const rb_iseq_t *iseq = frame_array->entries[location.frame_id.value].iseq;
     // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
     int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
-    RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.cme_iseq_id.value), line));
+    RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.frame_id.value), line));
     RETURN_IF_ERROR(flush_if_needed(state));
   }
 
-  state->function_count = cme_iseq_array->count;
+  state->function_count = frame_array->count;
 
   // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
   // have been serialized.
