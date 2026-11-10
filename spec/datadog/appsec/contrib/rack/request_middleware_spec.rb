@@ -33,12 +33,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
   end
 
   let(:app) do
-    endpoint = rack_endpoint
+    rack_endpoint = endpoint
     Rack::Builder.new do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      run(endpoint)
+      run(rack_endpoint)
     end.to_app
   end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context "when the app is interrupted" do
       before { get("/") }
 
-      let(:rack_endpoint) do
+      let(:endpoint) do
         proc do
           Datadog::AppSec::ActionsHandler.interrupt_execution({"status_code" => "401", "type" => "json"})
           [200, {"content-type" => "text/plain"}, ["OK"]]
@@ -60,7 +60,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context "when another thread interrupts the request and the app completes" do
       before { get("/") }
 
-      let(:rack_endpoint) do
+      let(:endpoint) do
         proc do |env|
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
@@ -75,17 +75,16 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
 
     context "when the app is interrupted while another thread is attached" do
       before { get("/") }
+      after { contexts.each(&:detach) }
 
-      after { attached_contexts.each(&:detach) }
-
-      let(:attached_contexts) { [] }
-      let(:rack_endpoint) do
-        contexts = attached_contexts
+      let(:contexts) { [] }
+      let(:endpoint) do
+        attached_contexts = contexts
 
         proc do |env|
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
           context.attach
-          contexts << context
+          attached_contexts << context
 
           Datadog::AppSec::ActionsHandler.interrupt_execution({"status_code" => "401"})
           [200, {"content-type" => "text/plain"}, ["OK"]]
@@ -106,7 +105,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
         get("/")
       end
 
-      let(:rack_endpoint) { proc { [200, {"content-type" => "text/plain"}, ["OK"]] } }
+      let(:endpoint) { proc { [200, {"content-type" => "text/plain"}, ["OK"]] } }
 
       it { expect(last_response.status).to eq(401) }
     end
@@ -122,16 +121,16 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
         get("/")
       end
 
-      after { attached_contexts.each(&:detach) }
+      after { contexts.each(&:detach) }
 
-      let(:attached_contexts) { [] }
-      let(:rack_endpoint) do
-        contexts = attached_contexts
+      let(:contexts) { [] }
+      let(:endpoint) do
+        attached_contexts = contexts
 
         proc do |env|
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
           context.attach
-          contexts << context
+          attached_contexts << context
 
           [200, {"content-type" => "text/plain"}, ["OK"]]
         end
@@ -146,7 +145,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context "when another thread made the first decision and the app is interrupted" do
       before { get("/") }
 
-      let(:rack_endpoint) do
+      let(:endpoint) do
         proc do |env|
           context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 

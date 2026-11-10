@@ -5,6 +5,8 @@ module Datadog
     module Contrib
       module Rails
         module Patches
+          # A patch for `ActionController::Live#new_controller_thread` that keeps
+          # the AppSec context usable in the Live thread until that thread is done
           module LiveThreadPatch
             private
 

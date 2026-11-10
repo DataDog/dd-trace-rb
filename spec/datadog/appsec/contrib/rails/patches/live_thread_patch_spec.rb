@@ -33,12 +33,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
       end
     end.new
   end
+
   let(:response) do
     ActionController::Live::Response.new.tap do |response|
       response.request = ActionDispatch::Request.new(Rack::MockRequest.env_for("/"))
     end
   end
-  # NOTE: Emulates the request thread that activated the context
+
   let(:context) { Datadog::AppSec::Context.new(nil, nil, waf_runner).tap(&:attach) }
   let(:waf_runner) { instance_double(Datadog::AppSec::SecurityEngine::Runner, finalize!: nil) }
 
@@ -67,11 +68,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patches::LiveThreadPatch do
       expect(attached_threads).to eq([controller_thread])
     end
 
-    it "keeps the context alive while the controller thread runs" do
+    it "does not finalize the context while the controller thread runs" do
       controller.spawn do
         context.detach
 
-        expect(context).to be_alive
+        expect(context).not_to be_finalized
       end
     end
 
