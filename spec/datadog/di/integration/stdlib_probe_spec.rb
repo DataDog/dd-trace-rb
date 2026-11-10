@@ -378,13 +378,9 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
 
     context "without snapshot capture" do
       # Line probes use TracePoint, which Ruby self-disables during its
-      # callback — the same trace point will NOT fire while already
-      # inside its own callback. This is fundamentally different from
-      # method probes (module prepending), which have no such protection.
-      #
-      # Therefore, non-capture line probes on stdlib methods should NOT
-      # cause SystemStackError, unlike the equivalent method probe test
-      # (String#length without capture).
+      # callback: the same trace point does not fire while its own callback
+      # runs, so a non-capture line probe on a stdlib method completes
+      # without recursion.
 
       let(:probe) do
         Datadog::DI::Probe.new(
@@ -402,9 +398,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           SecureRandom.uuid
         end
 
-        # Unlike the method probe on String#length (no capture) which
-        # causes SystemStackError, this line probe completes normally
-        # because Ruby's TracePoint prevents re-entrant callback firing.
         expect(payloads.length).to be >= 1
       end
     end
@@ -415,10 +408,9 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   # ----------------------------------------------------------------
 
   context "method probe on Set#include?" do
-    # Set#include? is called by DI's redactor during serialization.
-    # Unlike the line probe test above (which uses TracePoint and is
-    # self-disabling), this method probe uses module prepending and
-    # has no re-entrancy protection.
+    # Set#include? is called by DI's redactor during serialization. This
+    # method probe uses module prepending, so the split re-entrancy guard
+    # keeps DI's own calls from re-entering the probe.
 
     context "with snapshot capture" do
       include_context "permissive settings"
@@ -462,14 +454,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         # the serializer or redactor. Set#include? is only called by
         # the redactor during capture serialization, so there is no
         # re-entrant invocation in the non-capture path.
-        #
-        # This contrasts with String#length (no capture) which DOES
-        # cause SystemStackError because SecureRandom.uuid (called in
-        # every snapshot) invokes String#length via gen_random_urandom.
-        #
-        # Vulnerability requires the probed method to be called in the
-        # always-executed snapshot building path, not just in the
-        # capture-only serialization path.
         payloads = run_stdlib_probe_test(probe) do
           s = Set.new([:a, :b, :c])
           expect(s.include?(:b)).to be true
@@ -705,18 +689,12 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   context "method probe on Proc#call" do
-    # The wrapper used to invoke `do_super` via `do_super.call(args, kwargs, blk)`.
-    # `do_super` is a lambda (Proc), so `.call` dispatches through Proc#call.
-    # With Proc#call probed, that dispatch is intercepted by the wrapper.
-    # The early-return at the top of the wrapper would itself call
-    # `do_super.call`, so even with the guard set, recursion through Proc#call
-    # could not terminate — every wrapper invocation creates a fresh do_super
-    # lambda and re-enters Proc#call until SystemStackError.
-    #
-    # Fix: DI.invoke_proc(proc, *args), implemented in C via
-    # rb_proc_call_with_block, invokes the Proc directly without going through
-    # Proc#call dispatch. All do_super.call sites and user_caller_locations.call
-    # in the wrapper / run_method_probe use DI.invoke_proc.
+    # The wrapper and run_method_probe invoke do_super and
+    # user_caller_locations, both Procs, through DI.invoke_proc, which calls
+    # rb_proc_call_with_block in C. Invoking them with Proc#call would
+    # dispatch through the probed Proc#call; every wrapper invocation creates
+    # a fresh do_super lambda, so the recursion would continue until
+    # SystemStackError even with the guard set.
 
     include_context "permissive settings"
 
@@ -741,15 +719,10 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   context "method probe on Object#send" do
-    # The wrapper used to call `instrumenter.send(:run_method_probe, ...)`
-    # because run_method_probe was private. With Object#send probed, that .send
-    # would be intercepted by the wrapper before DI.enter_probe ran (the guard
-    # was set inside run_method_probe), so DI.in_probe? was false on the
-    # recursive entry and the wrapper recursed indefinitely.
-    #
-    # Fix: run_method_probe is now public; the wrapper calls it directly. No
-    # `.send` on the hot path means an Object#send / Kernel#send probe cannot
-    # intercept the call into run_method_probe.
+    # The wrapper calls the public run_method_probe directly. Calling it
+    # through Object#send would let a probe on Object#send intercept the call
+    # before run_method_probe sets the re-entrancy guard, and the wrapper
+    # would recurse indefinitely.
 
     include_context "permissive settings"
 
