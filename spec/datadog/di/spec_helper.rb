@@ -170,6 +170,7 @@ module DIHelpers
       around do |example|
         Datadog::DI.activate_tracking!
         example.run
+      ensure
         Datadog::DI.deactivate_tracking!
       end
     end
