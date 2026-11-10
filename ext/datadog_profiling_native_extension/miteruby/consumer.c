@@ -399,8 +399,7 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
-  if (miteruby_serializer_is_working(serializer_instance))
-    miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
+  miteruby_serializer_check_available(serializer_instance);
   mutex_lock(&consumer_state.mutex);
   rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
   RB_GC_GUARD(serializer_instance);
@@ -408,8 +407,6 @@ void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
 
 static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   size_t interned_events_pos = consumer_state.interned_events_pos;
-
-  miteruby_serializer_check_available(serializer_instance);
 
   // Reset all of these, they're only used to quick lookup during consumption data that lives in the arrays we use below
   //
