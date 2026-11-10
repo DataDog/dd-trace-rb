@@ -2,6 +2,6 @@
   "type": "Fixed",
   "product": "Tracing",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6424",
-  "message": "Fix the `trilogy` integration ignoring the `on_error` option.",
+  "message": "Add support for the `on_error` option to the `trilogy` integration.",
   "author": "@ctotheameron"
 }
