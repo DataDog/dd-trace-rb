@@ -168,7 +168,7 @@ module Datadog
         Hooks::FlagEvalMetricsHook.new(metrics)
       end
 
-      # Killswitch: DD_FLAGGING_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
+      # Killswitch: DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
       # Read through the datadog config registry, not raw ENV.
       def create_flag_eval_evp_hook
         return unless @settings.open_feature.evaluation_counts_enabled

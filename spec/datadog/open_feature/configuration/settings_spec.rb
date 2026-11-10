@@ -13,6 +13,8 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS" => nil,
     "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS" => nil,
     "DD_FEATURE_FLAGS_ENABLED" => nil,
+    "DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED" => nil,
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => nil,
     "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED" => nil
 
   describe "open_feature" do
@@ -279,34 +281,40 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
     end
 
-    # The EVP killswitch is read through the config registry (DD_FLAGGING_EVALUATION_COUNTS_ENABLED),
-    # not raw ENV. Default on; settable in code.
     describe "#evaluation_counts_enabled" do
       subject(:evaluation_counts_enabled) { settings.open_feature.evaluation_counts_enabled }
 
-      context "when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is not defined" do
-        with_env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => nil
+      [
+        [nil, nil, true],
+        ["true", nil, true],
+        ["false", nil, false],
+        [nil, "true", true],
+        [nil, "false", false],
+        ["true", "false", true],
+        ["false", "true", false],
+        ["", "true", false],
+        ["invalid", "true", false],
+        [nil, "", false],
+        [nil, "invalid", false],
+      ].each do |canonical, legacy, expected|
+        context "when the canonical value is #{canonical.inspect} and the alias is #{legacy.inspect}" do
+          with_env "DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED" => canonical,
+            "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => legacy
 
-        it { expect(evaluation_counts_enabled).to be(true) }
+          it { is_expected.to be(expected) }
+        end
       end
 
-      context "when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is defined as false" do
-        with_env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => "false"
+      [true, false].each do |value|
+        context "when explicit configuration is #{value}" do
+          with_env "DD_FEATURE_FLAGS_EVALUATION_COUNTS_ENABLED" => (!value).to_s,
+            "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => (!value).to_s
 
-        it { expect(evaluation_counts_enabled).to be(false) }
+          before { settings.open_feature.evaluation_counts_enabled = value }
+
+          it { is_expected.to be(value) }
+        end
       end
-
-      context "when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is defined as true" do
-        with_env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED" => "true"
-
-        it { expect(evaluation_counts_enabled).to be(true) }
-      end
-    end
-
-    describe "#evaluation_counts_enabled=" do
-      before { settings.open_feature.evaluation_counts_enabled = false }
-
-      it { expect(settings.open_feature.evaluation_counts_enabled).to be(false) }
     end
   end
 end
