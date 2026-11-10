@@ -92,14 +92,19 @@ module Datadog
         end
         inherited_providers.each { |provider| provider.send(:after_fork, component) }
 
-        configuration_source = @mutex.synchronize do
+        configuration_source, dropped_flag_selection = @mutex.synchronize do
           if @shutdown || !@delivery_started
-            nil
+            [nil, nil]
+          elsif @delivery_source == Configuration::Source::REMOTE_CONFIG
+            [@remote, nil]
           else
-            (@delivery_source == Configuration::Source::REMOTE_CONFIG) ? @remote : @configuration_source
+            [@configuration_source, (@claimed_flag_selection if @flag_selection_dropped)]
           end
         end
 
+        # The child keeps loading the full configuration, so it counts the inherited drop for its own process.
+        # It logs nothing: "not sent" is logged once per provider init, and no provider initializes here.
+        @flag_selection_reporter.count_dropped(dropped_reason(dropped_flag_selection)) if dropped_flag_selection
         configuration_source&.start
         nil
       rescue => e
@@ -303,6 +308,10 @@ module Datadog
         else
           @flag_selection_reporter.report_url_too_long
         end
+      end
+
+      def dropped_reason(flag_selection)
+        flag_selection.drop_reason || Configuration::FlagSelection::TOO_MANY_VALUES
       end
 
       def start_remote_configuration

@@ -738,6 +738,16 @@ RSpec.describe Datadog::OpenFeature::Activation do
         expect(logger).to have_received(:error).with(not_sent_error).once
         expect(logger).to have_received(:warn).with(differs_warning).once
       end
+
+      it "counts the inherited drop again in a forked child without logging it" do
+        activation.activate(provider)
+
+        activation.after_fork
+
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "invalid_tag"}).twice
+        expect(logger).to have_received(:error).with(not_sent_error).once
+      end
     end
 
     context "when agentless delivery does not start" do
@@ -784,6 +794,15 @@ RSpec.describe Datadog::OpenFeature::Activation do
         ).twice
         expect(telemetry).to have_received(:inc)
           .with("tracers", "flag_selection.dropped", 1, tags: {reason: "too_many_values"}).once
+      end
+
+      it "counts the inherited URL-limit drop again in a forked child" do
+        activation.activate(provider)
+
+        activation.after_fork
+
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "too_many_values"}).twice
       end
     end
 
@@ -883,6 +902,14 @@ RSpec.describe Datadog::OpenFeature::Activation do
       activation.activate(third_provider)
 
       expect(logger).to have_received(:warn).with(differs_warning).twice
+    end
+
+    it "counts nothing in a forked child when the claimed selection was sent" do
+      activation.activate(provider)
+
+      activation.after_fork
+
+      expect(telemetry).not_to have_received(:inc)
     end
   end
 end

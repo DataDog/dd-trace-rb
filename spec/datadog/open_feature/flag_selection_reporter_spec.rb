@@ -42,6 +42,17 @@ RSpec.describe Datadog::OpenFeature::FlagSelectionReporter do
     end
   end
 
+  describe "#count_dropped" do
+    it "counts once per process per reason without logging, sharing the count with #report_dropped" do
+      2.times { reporter.count_dropped("invalid_tag") }
+      reporter.report_dropped("invalid_tag")
+
+      expect(logger).to have_received(:error).once
+      expect(telemetry).to have_received(:inc)
+        .with("tracers", "flag_selection.dropped", 1, tags: {reason: "invalid_tag"}).once
+    end
+  end
+
   describe "#report_url_too_long" do
     it "logs too_many_values with the URL limit and shares its count" do
       reporter.report_url_too_long

@@ -22,7 +22,7 @@ module Datadog
 
         RESERVED_BYTE: Regexp
 
-        def self.canonicalize: (untyped option) -> FlagSelection?
+        def self.canonicalize: (Object option) -> FlagSelection?
 
         @tags: Array[String]
 
@@ -42,13 +42,13 @@ module Datadog
 
         def query: () -> String
 
-        def ==: (untyped other) -> bool
+        def ==: (Object other) -> bool
 
         private
 
-        def self.utf8_lists: (untyped option) -> [Array[String], Array[String]]?
+        def self.utf8_lists: (Object option) -> [Array[String], Array[String]]?
 
-        def self.utf8_list: (untyped value) -> Array[String]?
+        def self.utf8_list: (Object value) -> Array[String]?
 
         def self.canonical_list: (Array[String] values) -> Array[String]
 

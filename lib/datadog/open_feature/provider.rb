@@ -227,7 +227,6 @@ module Datadog
 
       private
 
-      # Activation reads it through #send.
       attr_reader :flag_selection
 
       def warn_if_hooks_unsupported

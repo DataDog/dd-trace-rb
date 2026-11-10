@@ -68,6 +68,10 @@ module Datadog
 
       def report_dropped(reason, limit = LIMITS.fetch(reason))
         @logger.error("flag_selection was not sent (#{reason}: #{limit}). Loading the full flag configuration.")
+        count_dropped(reason)
+      end
+
+      def count_dropped(reason)
         self.class.run_once("#{DROPPED_METRIC}:#{reason}") { count(DROPPED_METRIC, reason) }
       end
 

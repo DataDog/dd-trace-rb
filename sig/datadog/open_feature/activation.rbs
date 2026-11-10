@@ -83,6 +83,8 @@ module Datadog
 
       def report_flag_selection_not_sent: (Configuration::FlagSelection flag_selection) -> void
 
+      def dropped_reason: (Configuration::FlagSelection flag_selection) -> String
+
       def start_remote_configuration: () -> bool
 
       def configuration_changed: (Component::configuration_event event) -> void

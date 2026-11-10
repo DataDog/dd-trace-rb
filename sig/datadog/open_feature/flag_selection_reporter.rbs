@@ -37,6 +37,8 @@ module Datadog
 
       def report_dropped: (String reason, ?String limit) -> void
 
+      def count_dropped: (String reason) -> void
+
       def report_url_too_long: () -> void
 
       def report_ignored: (String? header_value) -> void
