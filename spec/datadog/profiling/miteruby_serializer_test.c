@@ -131,6 +131,7 @@ static void test_preparation_cleanup(void) {
     miteruby_allocator_free(state->compressed_serialization_buffer);
     state->compressed_serialization_buffer = miteruby_allocator_alloc(1024, "test_output");
     assert(state->compressed_serialization_buffer != NULL);
+    miteruby_allocator_free(state->interned_events_queue);
     state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
     assert(state->interned_events_queue != NULL);
     assert(serializer_size(state) == sizeof(*state) + miteruby_allocator_requested_bytes());
@@ -168,12 +169,10 @@ static void test_preparation_cleanup(void) {
     assert(miteruby_allocator_requested_bytes() == persistent_bytes);
     assert(serializer_size(state) == sizeof(*state) + persistent_bytes);
     assert(state->status == SERIALIZER_EMPTY);
-    assert(state->interned_events_queue == NULL);
+    assert(state->interned_events_queue != NULL);
     assert(miteruby_allocator_alloc_size(input) == 1024);
-    assert(state->compressed_serialization_buffer != NULL);
-    assert(state->compressed_serialization_size == 0);
+    assert(miteruby_allocator_alloc_size(state->compressed_serialization_buffer) == 1024);
   }
-  state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(state->interned_events_queue != NULL);
   serializer_free(state);
   assert(miteruby_allocator_requested_bytes() == 0);
@@ -307,6 +306,21 @@ static void test_compressed_buffer_lifecycle(void) {
   prepare_empty_profile(serializer);
   native_serialize(Qnil, serializer);
   assert(miteruby_allocator_requested_bytes() == idle_bytes);
+
+  state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
+  assert(state->interned_events_queue != NULL);
+  state->status = SERIALIZER_WORKING;
+  miteruby_serializer_prepare_serialization_state_t prepare_state = {.persistent_state = state};
+  rb_protect(prepare_with_exception_and_cleanup, (VALUE)&prepare_state, &error);
+  assert(error != 0);
+  rb_set_errinfo(Qnil);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(state->interned_events_queue != NULL);
+  size_t bytes_with_leftover_queue = miteruby_allocator_requested_bytes();
+  prepare_empty_profile(serializer);
+  assert(state->interned_events_queue == NULL);
+  assert(miteruby_allocator_requested_bytes() == bytes_with_leftover_queue - 1024);
+  native_serialize(Qnil, serializer);
   RB_GC_GUARD(serializer);
 }
 
