@@ -3,7 +3,8 @@ require "datadog/di/spec_helper"
 require "datadog/di"
 require "datadog/di/probe_file_loader"
 
-RSpec.describe Datadog::DI::ProbeFileLoader do
+# Rails application initialization cannot be undone in the rspec process.
+RSpec.describe Datadog::DI::ProbeFileLoader, execute_in_fork: true do
   di_test
 
   let(:loader) { described_class }
@@ -22,6 +23,8 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
 
         app = Class.new(Rails::Application) do
           config.eager_load = false
+          # The default logger opens log/test.log under the repository root.
+          config.logger = Logger.new(StringIO.new)
           config.active_support.to_time_preserves_timezone = :zone
 
           # globalid requires this, is there a better way to have the
