@@ -2947,7 +2947,7 @@ end
 |---|---|
 | `exposure?` | `true` for a successful evaluation of an allocation that logs exposures, repeats included. |
 | `cache_hit?` | `true` when this subject was already exposed to the same allocation, variant, and split serial ID. |
-| `should_send?` | `true` for a new or changed exposure. With `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` on, these are exactly the exposures Datadog receives. |
+| `should_send?` | `true` for a new or changed exposure. With `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` on, these are the exposures selected for reporting to Datadog; this does not confirm delivery. |
 | `features` | Frozen hash of the selected split's features, such as `holdout.key`, `holdout.assignment_group`, and `holdout.should_include_in_holdout_analysis`. Values are `String`, `Float`, `true`, or `false`. Empty when the split has none. |
 | `flag_key`, `variant`, `allocation_key`, `split_serial_id`, `targeting_key` | The evaluated flag and the selected assignment. |
 | `evaluation_context`, `evaluation_details` | The OpenFeature evaluation context and evaluation details. |

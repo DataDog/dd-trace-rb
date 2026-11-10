@@ -77,8 +77,8 @@ module Datadog
           exposure? && @metadata[Ext::METADATA_EXPOSURE_CACHE_HIT] == true
         end
 
-        # True for a new or changed exposure: exactly what the provider sends to Datadog while
-        # DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED is on.
+        # True for a new or changed exposure: the exposures the provider selects for reporting to Datadog while
+        # DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED is on. This does not confirm delivery.
         def should_send?
           exposure? && @metadata[Ext::METADATA_EXPOSURE_CACHE_HIT] == false
         end
