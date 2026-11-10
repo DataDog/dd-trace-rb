@@ -113,9 +113,10 @@ module DIHelpers
         end
       end
 
-      around do |example|
-        check = true
-        if Datadog::DI.instrumented_count > 0
+      let(:di_instrumented_count_at_start) { Datadog::DI.instrumented_count }
+
+      prepend_before do
+        if di_instrumented_count_at_start > 0
           # Leaking instrumentations is a serious problem, but we want the
           # diagnostics to point to the root cause. If there are outstanding
           # instrumentations at the start of the test, the value at the end
@@ -124,12 +125,14 @@ module DIHelpers
           # that there are outstanding instrumentations here.
           # They just produce noise in logs but not meaningless test failures.
           warn "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected before test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
-          check = false
         end
+      end
 
-        example.run
-
-        if check && Datadog::DI.instrumented_count > 0
+      # Checked in an after hook: an exception raised by an around hook after
+      # example.run skips the rest of every enclosing around hook, including
+      # the global tracer_shutdown! hook.
+      append_after do
+        if di_instrumented_count_at_start == 0 && Datadog::DI.instrumented_count > 0
           raise "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected after test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
         end
       end
