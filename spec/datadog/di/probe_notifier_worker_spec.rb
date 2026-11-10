@@ -128,9 +128,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it "adds snapshot to queue" do
-        # Depending on scheduling, the worker thread may attempt to
-        # invoke the transport to send the snapshot.
-        allow(input_transport).to receive(:send_input)
+        allow(worker).to receive(:start)
 
         expect(worker.send(:snapshot_queue)).to be_empty
 
@@ -528,10 +526,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         it "queues the status for sending" do
           expect_lazy_log(logger, :debug, /disabling probe test-probe/)
           allow(probe).to receive(:disable!)
+          expect(worker).to receive(:add_status).with({status: "ERROR"}, probe: probe)
 
           worker.send(:handle_serialization_error, "test-probe", exception)
-
-          expect(worker.send(:status_queue)).not_to be_empty
         end
 
         it "logs the serialization error with probe ID and exception details" do
