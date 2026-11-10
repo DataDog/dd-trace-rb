@@ -233,45 +233,6 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         expect(metastruct).not_to include("ai_guard.evaluate_id", "custom_context.note")
       end
 
-      context "when extra_metastruct contains integers outside the MessagePack range" do
-        let(:extra_metastruct) do
-          super() + [
-            {"key" => "large_positive", "value" => 2**64},
-            {"key" => "large_negative", "value" => -(2**63) - 1},
-            {
-              "key" => "nested",
-              "value" => {
-                "values" => [2**64, {"minimum" => -(2**63) - 1}],
-                "bounds" => [-(2**63), (2**64) - 1],
-                "unchanged" => [42, 0.5, "text", true, false, nil],
-              },
-            },
-          ]
-        end
-
-        let(:unpacked_metastruct) do
-          packed_metastruct = MessagePack.pack(ai_guard_span.metastruct)
-          MessagePack.unpack(MessagePack.unpack(packed_metastruct).fetch("ai_guard"))
-        end
-
-        it "clamps out-of-range integers so the metadata can be serialized" do
-          expect(evaluate.action).to eq("ALLOW")
-
-          expect(unpacked_metastruct).to include(
-            "large_positive" => 18_446_744_073_709_551_615,
-            "large_negative" => -9_223_372_036_854_775_808,
-            "nested" => {
-              "values" => [18_446_744_073_709_551_615, {"minimum" => -9_223_372_036_854_775_808}],
-              "bounds" => [-9_223_372_036_854_775_808, 18_446_744_073_709_551_615],
-              "unchanged" => [42, 0.5, "text", true, false, nil],
-            },
-            "policy_match" => {"rule" => "example", "matches" => []},
-            "flag" => false,
-            "empty" => [],
-          )
-        end
-      end
-
       context "when entries are malformed" do
         let(:extra_tags) do
           super() + [

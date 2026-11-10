@@ -46,7 +46,7 @@ module Datadog
             key = entry["key"]
             next if Ext::RESERVED_EXTRA_METASTRUCT_KEYS.include?(key)
 
-            metastruct[key] = clamp_metastruct_integers(entry["value"])
+            metastruct[key] = entry["value"]
           end
 
           metastruct
@@ -61,20 +61,6 @@ module Datadog
             key = entry["key"]
             key.is_a?(String) && !key.empty? && !entry["value"].nil?
           end #: Array[{"key" => String, "value" => Helpers::json}]
-        end
-
-        def clamp_metastruct_integers(value)
-          case value
-          when Integer
-            # An out-of-range integer makes MessagePack encoding fail, dropping the entire trace batch.
-            value.clamp(-(1 << 63), (1 << 64) - 1)
-          when Array
-            value.map { |item| clamp_metastruct_integers(item) }
-          when Hash
-            value.transform_values { |item| clamp_metastruct_integers(item) }
-          else
-            value
-          end
         end
       end
     end

@@ -31,8 +31,6 @@ module Datadog
         def filter_extra_entries: (
           Helpers::json entries
         ) -> Array[{"key" => String, "value" => Helpers::json}]
-
-        def clamp_metastruct_integers: (Helpers::json value) -> Helpers::json
       end
     end
   end

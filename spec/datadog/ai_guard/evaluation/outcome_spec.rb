@@ -130,28 +130,5 @@ RSpec.describe Datadog::AIGuard::Evaluation::Outcome do
         )
       end
     end
-
-    context "when metadata contains integers outside the MessagePack range" do
-      let(:extra_tags) { nil }
-      let(:nested_value) do
-        {
-          "values" => [2**64, {"minimum" => -(2**63) - 1}],
-          "bounds" => [-(2**63), (2**64) - 1],
-          "unchanged" => [42, 0.5, "text", true, false, nil],
-        }
-      end
-      let(:extra_metastruct) { [{"key" => "nested", "value" => nested_value}] }
-
-      it "clamps integers recursively without modifying the input" do
-        expect(outcome.extra_metastruct).to eq(
-          "nested" => {
-            "values" => [(2**64) - 1, {"minimum" => -(2**63)}],
-            "bounds" => [-(2**63), (2**64) - 1],
-            "unchanged" => [42, 0.5, "text", true, false, nil],
-          },
-        )
-        expect(nested_value.fetch("values")).to eq([2**64, {"minimum" => -(2**63) - 1}])
-      end
-    end
   end
 end
