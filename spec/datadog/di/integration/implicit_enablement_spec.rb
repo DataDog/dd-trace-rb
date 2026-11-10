@@ -143,10 +143,6 @@ RSpec.describe "DI implicit enablement integration" do
   describe "RC enables DI → method probe installs and fires" do
     let(:rc_payload_enable) { {"lib_config" => {"dynamic_instrumentation_enabled" => true}} }
 
-    before do
-      allow(telemetry).to receive(:client_configuration_change!)
-    end
-
     it "starts the component when dynamic_instrumentation_enabled=true arrives" do
       expect(component).not_to be_nil
       expect(component.started?).to be false
@@ -235,7 +231,6 @@ RSpec.describe "DI implicit enablement integration" do
     let(:rc_payload_disable) { {"lib_config" => {"dynamic_instrumentation_enabled" => false}} }
 
     before do
-      allow(telemetry).to receive(:client_configuration_change!)
       allow(Datadog::DI).to receive(:activate_tracking)
     end
 
@@ -597,7 +592,6 @@ RSpec.describe "DI implicit enablement integration" do
     let(:rc_payload_without_di) { {"lib_config" => {"tracing_sampling_rate" => 0.5}} }
 
     before do
-      allow(telemetry).to receive(:client_configuration_change!)
       stub_di_rc_environment
     end
 
@@ -809,7 +803,6 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     before do
-      allow(telemetry).to receive(:client_configuration_change!)
       stub_di_rc_environment
     end
 
@@ -881,7 +874,6 @@ RSpec.describe "DI implicit enablement integration" do
     let(:malformed) { "{not json" }
 
     before do
-      allow(telemetry).to receive(:client_configuration_change!)
       allow(telemetry).to receive(:report)
       stub_di_rc_environment
     end
@@ -960,7 +952,6 @@ RSpec.describe "DI implicit enablement integration" do
     end
 
     before do
-      allow(telemetry).to receive(:client_configuration_change!)
       stub_di_rc_environment
     end
 
