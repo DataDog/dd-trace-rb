@@ -8,9 +8,9 @@ module Datadog
 
         attr_reader redaction: Redaction::Result
 
-        attr_reader extra_tags: Helpers::json
+        attr_reader extra_tags: Hash[String, String]
 
-        attr_reader extra_metastruct: Helpers::json
+        attr_reader extra_metastruct: Hash[String, Helpers::json]
 
         def initialize: (
           result: Result,
@@ -21,6 +21,18 @@ module Datadog
         ) -> void
 
         def block?: () -> bool
+
+        private
+
+        def normalize_extra_tags: (Helpers::json entries) -> Hash[String, String]
+
+        def normalize_extra_metastruct: (Helpers::json entries) -> Hash[String, Helpers::json]
+
+        def filter_extra_entries: (
+          Helpers::json entries
+        ) -> Array[{"key" => String, "value" => Helpers::json}]
+
+        def clamp_metastruct_integers: (Helpers::json value) -> Helpers::json
       end
     end
   end
