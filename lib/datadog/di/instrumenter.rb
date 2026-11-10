@@ -1212,8 +1212,7 @@ module Datadog
       end
 
       # Matches the Datadog module name and the names under it, in the form
-      # returned by Utils.normalize_type_name. Anchored at \A so the match
-      # decides in O(prefix length) without scanning.
+      # returned by Utils.normalize_type_name.
       DATADOG_NAMESPACE_TYPE_NAME = /\ADatadog(?:::|\z)/
       private_constant :DATADOG_NAMESPACE_TYPE_NAME
 
@@ -1223,11 +1222,7 @@ module Datadog
       # does not require the class to be loaded.
       #
       # Names written with a root namespace prefix, such as "::Datadog" or
-      # "Object::Datadog::DI::Instrumenter", match as well. Otherwise a probe
-      # could name a tracer-internal class through such an alias, bypass the
-      # rejection, and get prepended onto tracer internals. These prefixes
-      # are the only alias paths to the top-level Datadog: "Foo::Datadog"
-      # does not resolve through const_get for an arbitrary Foo.
+      # "Object::Datadog::DI::Instrumenter", match as well.
       def datadog_namespace_type_name?(cls_name)
         DATADOG_NAMESPACE_TYPE_NAME.match?(Utils.normalize_type_name(cls_name))
       end

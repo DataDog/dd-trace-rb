@@ -420,8 +420,7 @@ RSpec.describe Datadog::DI::ProbeManager do
   describe "#install_pending_method_probes" do
     # Stubbing a method on a double ends class bodies, including anonymous
     # singleton class bodies, and the definition trace point reports each
-    # of them once ProbeManager#reopen has enabled it. The stub is set up
-    # before the examples enable the trace point.
+    # of them once ProbeManager#reopen has enabled it.
     before do
       allow(instrumenter).to receive(:unhook)
     end

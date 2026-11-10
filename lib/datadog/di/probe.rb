@@ -125,9 +125,6 @@ module Datadog
       # or module, or nil when the probe has no type name. A leading "::"
       # and any leading "Object::" segments of +type_name+ are removed.
       #
-      # Computed once at construction because pending method probes are
-      # compared to it at the end of every class body in the application.
-      #
       # @return [String, nil]
       attr_reader :normalized_type_name
 
