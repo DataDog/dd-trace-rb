@@ -5,7 +5,7 @@ module Datadog
         module ExceptionHandler
           METHOD: untyped
 
-          def self?.patch!: () -> untyped
+          def self.patch!: () -> untyped
         end
       end
     end

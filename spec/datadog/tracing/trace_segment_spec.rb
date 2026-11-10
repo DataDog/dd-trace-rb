@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         trace_id: trace_id,
         resource: "generate_report",
         service: "jobs-worker",
-        type: "worker"
+        type: "worker",
       )
 
       span.set_tag("component", "sidekiq")

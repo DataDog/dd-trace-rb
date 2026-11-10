@@ -65,13 +65,35 @@ CustomCops/TimeNowUsageCop:
     # This file defines Utils::Time.now itself, by aliasing the original ::Time.now.
     - "lib/datadog/core/utils/time.rb"
 
+# module_function and extend self also define instance methods, unneeded in
+# modules that are never mixed in. Use def self.foo instead.
+Style/ModuleFunction:
+  Enabled: true
+  EnforcedStyle: forbidden
+  Include:
+    - "lib/**/*"
+
+# Prevent remove_instance_variable in library code; it is slow and changes the
+# object's shape, so assign nil instead.
+CustomCops/RemoveInstanceVariableCop:
+  Enabled: true
+  Description: 'Prevents usage of remove_instance_variable; assign nil instead'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+
 # The trailing-comma and leading-comment cops below should stay in sync with
 # .standard_todo.yml's "**/**" ignore list so it stays clear which tool is
 # enforcing each cop.
 
-# Keep method-call commas disabled while their style remains under discussion.
 Style/TrailingCommaInArguments:
   Enabled: false
+
+CustomCops/TrailingCommaInArgumentsCop:
+  Enabled: true
+  EnforcedStyleForMultiline: diff_comma
+  SupportedStylesForMultiline:
+    - diff_comma
 
 # Require a comma in array and hash literals when the closing delimiter is on
 # its own line.

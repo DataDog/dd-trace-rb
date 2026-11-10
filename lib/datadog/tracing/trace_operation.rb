@@ -30,6 +30,7 @@ module Datadog
       DEFAULT_MAX_LENGTH = 100_000
       AUTO_SAMPLING_PRIORITIES = [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT].freeze
       RECONSIDERABLE_DECISIONS = [Sampling::Ext::Decision::DEFAULT, Sampling::Ext::Decision::AGENT_RATE].freeze
+      DEFER_ASYNC_INTERRUPTS = {Exception => :never}.freeze
 
       attr_accessor \
         :agent_sample_rate,
@@ -266,7 +267,7 @@ module Datadog
           start_time: start_time,
           tags: tags,
           type: type,
-          id: id
+          id: id,
         )
 
         # Start span measurement
@@ -327,7 +328,7 @@ module Datadog
           tags: tags,
           trace_id: trace_id,
           type: type,
-          id: id
+          id: id,
         )
       rescue => e
         logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }
@@ -422,7 +423,7 @@ module Datadog
           trace_otel_threshold: open_telemetry.threshold,
           trace_otel_unknown_fields: open_telemetry.unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
-          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
+          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage,
         ).freeze
       end
 
@@ -433,7 +434,7 @@ module Datadog
 
         Correlation::Identifier.new(
           trace_id: @id,
-          span_id: span_id
+          span_id: span_id,
         )
       end
 
@@ -460,7 +461,7 @@ module Datadog
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent,
-          distributed_sampling_priority: @distributed_sampling_priority
+          distributed_sampling_priority: @distributed_sampling_priority,
         )
       end
 
@@ -565,10 +566,17 @@ module Datadog
       end
 
       def start_span(span_op)
-        activate_span!(span_op)
+        # A span interrupted mid-start is started again when it stops.
+        # Re-activating it would make it its own parent.
+        return if span_op.equal?(@active_span)
 
-        # Update active span count
-        @active_span_count += 1
+        # Defer asynchronous exceptions (`Thread#raise`, e.g. from Rack::Timeout) until the
+        # activation bookkeeping is complete, so the check above never sees a half-activated span.
+        Thread.handle_interrupt(DEFER_ASYNC_INTERRUPTS) do
+          activate_span!(span_op)
+
+          @active_span_count += 1
+        end
 
         # Publish :span_before_start event
         events.span_before_start.publish(span_op, self)
@@ -640,7 +648,7 @@ module Datadog
           metrics: metrics,
           root_span_id: (!partial) ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
-          apm_tracing_enabled: @apm_tracing_enabled
+          apm_tracing_enabled: @apm_tracing_enabled,
         )
       end
 

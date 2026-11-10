@@ -35,6 +35,8 @@ module Datadog
 
         @warned: Hash[Symbol, bool]
 
+        @failed_polls: Integer
+
         @lifecycle_mutex: Thread::Mutex
 
         @started: bool
@@ -64,7 +66,7 @@ module Datadog
 
         def start: () -> bool
 
-        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> bool
+        def stop: (?bool force_stop, ?Integer | Float timeout) -> bool
 
         def perform: () -> void
 
@@ -75,6 +77,10 @@ module Datadog
         private
 
         def stopped?: () -> bool
+
+        def log_poll_attempt: (Response response, Integer attempt) -> void
+
+        def http_failure_reason: (Integer status) -> String
 
         def retryable?: (Response response) -> bool
 
@@ -93,6 +99,12 @@ module Datadog
         def apply_configuration: (Response response) -> void
 
         def warn_failure: (Response response, Integer attempts) -> void
+
+        def report_poll_failure: (Symbol category, String message) -> void
+
+        def log_recovery: () -> void
+
+        def request_error_class: (Response response) -> singleton(Exception)
 
         def warn_once: (Symbol category) { () -> void } -> void
       end

@@ -57,16 +57,14 @@ module Datadog
             end
           end
 
-          module_function
-
-          def default_tags
+          def self.default_tags
             [].tap do |tags|
               tags << "target_redis_version:#{Integration.redis_version}" if Integration.redis_version
               tags << "target_redis_client_version:#{Integration.redis_client_version}" if Integration.redis_client_version
             end
           end
 
-          def patch
+          def self.patch
             # Redis 5+ extracts RedisClient to its own gem and provide instrumentation interface
             if Integration.redis_client_compatible?
               require_relative "trace_middleware"

@@ -68,7 +68,7 @@ module Datadog
               # full control over the sampling decision.
               trace.set_tag(
                 Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                Sampling::Ext::Decision::MANUAL
+                Sampling::Ext::Decision::MANUAL,
               )
             end
           else

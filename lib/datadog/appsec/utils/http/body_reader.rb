@@ -5,9 +5,7 @@ module Datadog
     module Utils
       module HTTP
         module BodyReader
-          module_function
-
-          def read(body, limit:, rewind_before_read: false)
+          def self.read(body, limit:, rewind_before_read: false)
             return body.byteslice(0, limit + 1) if body.is_a?(String)
             return if body.nil? || !body.respond_to?(:read)
             return if rewind_before_read && !body.respond_to?(:rewind)
@@ -15,7 +13,7 @@ module Datadog
             read_stream(body, limit: limit, rewind_before_read: rewind_before_read)
           end
 
-          def read_stream(body, limit:, rewind_before_read: false)
+          def self.read_stream(body, limit:, rewind_before_read: false)
             # @type var rewound: bool
             rewound = false
 
@@ -44,7 +42,7 @@ module Datadog
             rewind(body) if rewound
           end
 
-          private_class_method def rewind(body)
+          private_class_method def self.rewind(body)
             return false unless body.respond_to?(:rewind)
 
             # NOTE: Steep can't narrow interfaces via `respond_to?` guard-clause

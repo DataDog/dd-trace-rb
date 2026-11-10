@@ -86,6 +86,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       engine: engine,
       flag_eval_evp_hook: Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer),
       flag_eval_metrics_hook: Datadog::OpenFeature::Hooks::FlagEvalMetricsHook.new(metrics),
+      debug_logging_hook: nil,
       span_enrichment_hook: span_hook,
       wait_for_configuration: Datadog::OpenFeature::Component::CONFIGURATION_READY,
     )

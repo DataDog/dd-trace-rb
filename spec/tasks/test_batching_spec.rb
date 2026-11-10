@@ -15,7 +15,7 @@ RSpec.describe TestBatching do
   it "loads every pipeline object from the umbrella require" do
     expect(TestBatching.constants.map(&:to_s)).to include(
       "Task", "TaskMatrix", "RunTimings", "Weights", "Batch", "Plan",
-      "Static", "Weighted", "Runner"
+      "Static", "Weighted", "Runner",
     )
   end
 

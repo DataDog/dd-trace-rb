@@ -13,6 +13,8 @@ module Datadog
 
       @serializer: Serializer
 
+      @correlation_sampler: CorrelationSampler
+
       @instrumenter: Instrumenter
 
       @code_tracker: CodeTracker?
@@ -25,7 +27,7 @@ module Datadog
 
       @probe_manager: ProbeManager
 
-      @lifecycle_mutex: ::Thread::Mutex
+      @lifecycle_mutex: Thread::Mutex
 
       @started: bool
 
@@ -51,6 +53,8 @@ module Datadog
 
       attr_reader code_tracker: CodeTracker?
 
+      attr_reader correlation_sampler: CorrelationSampler
+
       attr_reader instrumenter: Instrumenter
 
       attr_reader probe_repository: ProbeRepository
@@ -70,6 +74,8 @@ module Datadog
       def stop!: () -> void
 
       def started?: () -> bool
+
+      def after_fork: () -> void
 
       def implicitly_enabled?: () -> bool
 

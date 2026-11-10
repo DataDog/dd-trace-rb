@@ -6,9 +6,7 @@ module Datadog
   module AppSec
     # this module encapsulates functions for handling actions that libddawf returns
     module ActionsHandler
-      module_function
-
-      def handle(actions_hash)
+      def self.handle(actions_hash)
         # handle actions according their precedence
         # stack and schema generation should be done before we throw an interrupt signal
         generate_stack(actions_hash["generate_stack"]) if actions_hash.key?("generate_stack")
@@ -17,11 +15,11 @@ module Datadog
         interrupt_execution(actions_hash["block_request"]) if actions_hash.key?("block_request")
       end
 
-      def interrupt_execution(action_params)
+      def self.interrupt_execution(action_params)
         throw(Datadog::AppSec::Ext::INTERRUPT, action_params)
       end
 
-      def generate_stack(action_params)
+      def self.generate_stack(action_params)
         return unless Datadog.configuration.appsec.stack_trace.enabled
 
         stack_id = action_params["stack_id"]
@@ -42,7 +40,7 @@ module Datadog
         active_span.set_metastruct_tag(tag_key, existing_stack_data)
       end
 
-      def generate_schema(_action_params)
+      def self.generate_schema(_action_params)
       end
     end
   end

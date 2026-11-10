@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
-        "example-state-machine"
+        "example-state-machine",
       )
     end
   end
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
-        "MyStateMachine"
+        "MyStateMachine",
       )
     end
 
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "123456789012")
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
-        "MyStateMachine"
+        "MyStateMachine",
       )
     end
 
@@ -62,7 +62,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, "987654321098")
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
-        "example-state-machine"
+        "example-state-machine",
       )
     end
   end

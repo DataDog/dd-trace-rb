@@ -1,17 +1,20 @@
 module Datadog
   module Profiling
     module Component
+      UNSUPPORTED_WARNING_ONLY_ONCE: Core::Utils::OnlyOnce
+
       def self.build_profiler_component: (
         settings: untyped,
         agent_settings: Datadog::Core::Configuration::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
         logger: Datadog::Core::Logger,
-      ) -> [Datadog::Profiling::Profiler?, {profiling_enabled: bool}]
+      ) -> ([Datadog::Profiling::Profiler, {profiling_enabled: true}] | [nil, {profiling_enabled: false}, String?])
 
       def self.build_thread_context_collector: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,
         Datadog::Tracing::Tracer? optional_tracer,
+        Integer max_frames,
       ) -> Datadog::Profiling::Collectors::ThreadContext
 
       def self.build_profiler_exporter: (
@@ -42,6 +45,7 @@ module Datadog
       def self.flush_interval: (untyped settings) -> ::Numeric
       def self.valid_overhead_target: (::Float overhead_target_percentage, Datadog::Core::Logger logger) -> ::Float
       def self.valid_cpu_sampling_interval: (::Integer cpu_sampling_interval_ms, Datadog::Core::Logger logger) -> ::Integer
+      def self.valid_max_frames: (Integer max_frames, Datadog::Core::Logger logger) -> Integer
       def self.looks_like_mariadb?: ({ header_version: ::String?, version: ::String }, ::Gem::Version) -> bool
       def self.dir_interruption_workaround_enabled?: (untyped settings, bool no_signals_workaround_enabled) -> bool
       def self.can_apply_exec_monkey_patch?: (untyped settings) -> bool

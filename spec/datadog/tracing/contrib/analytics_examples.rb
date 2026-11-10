@@ -78,7 +78,7 @@ RSpec.shared_examples_for "analytics for integration" do |options = {ignore_glob
         context "is explicitly enabled" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "true"
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "true",
             ) do
               example.run
             end
@@ -90,7 +90,7 @@ RSpec.shared_examples_for "analytics for integration" do |options = {ignore_glob
         context "is explicitly disabled" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "false"
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "false",
             ) do
               example.run
             end
@@ -134,7 +134,7 @@ RSpec.shared_examples_for "analytics for integration" do |options = {ignore_glob
         context "is explicitly enabled" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "true"
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "true",
             ) do
               example.run
             end
@@ -146,7 +146,7 @@ RSpec.shared_examples_for "analytics for integration" do |options = {ignore_glob
         context "is explicitly disabled" do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "false"
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => "false",
             ) do
               example.run
             end

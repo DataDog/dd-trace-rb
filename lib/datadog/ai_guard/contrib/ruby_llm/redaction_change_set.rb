@@ -35,7 +35,7 @@ module Datadog
               role: message.role, model: message.model, tool_call_id: message.tool_call_id,
               raw: message.raw, thinking: message.thinking, citations: message.citations,
               finish_reason: message.finish_reason, server_tool_calls: message.server_tool_calls,
-              raw_reasoning: message.raw_reasoning, cache_until_here: message.cache_until_here?
+              raw_reasoning: message.raw_reasoning, cache_until_here: message.cache_until_here?,
             )
             changed_message.conversation = message.conversation
             changed_message
@@ -105,7 +105,7 @@ module Datadog
 
               attachments ||= message.attachments.dup
               attachments[attachment_index] = ::RubyLLM::Attachment.new( # steep:ignore NoMethod
-                StringIO.new(replacement.text), filename: attachment.filename, config: attachment.config
+                StringIO.new(replacement.text), filename: attachment.filename, config: attachment.config,
               )
             end
 
@@ -122,7 +122,7 @@ module Datadog
               tool_calls[id] = ::RubyLLM::ToolCall.new(
                 id: tool_call.id, name: tool_call.name, remote: tool_call.remote?,
                 thought_signature: tool_call.thought_signature,
-                arguments: JSON.parse(replacement.arguments)
+                arguments: JSON.parse(replacement.arguments),
               )
             end
 

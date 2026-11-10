@@ -101,13 +101,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
       it "raises when a relative URI is provided" do
         expect { settings.ai_guard.endpoint = "/api/v2/ai-guard" }.to raise_error(
-          ArgumentError, "Please provide an absolute URI that includes a protocol"
+          ArgumentError, "Please provide an absolute URI that includes a protocol",
         )
       end
 
       it "raises when a URI without a protocol is provided" do
         expect { settings.ai_guard.endpoint = "app.datadog.com/api/v2/ai-guard" }.to raise_error(
-          ArgumentError, "Please provide an absolute URI that includes a protocol"
+          ArgumentError, "Please provide an absolute URI that includes a protocol",
         )
       end
     end

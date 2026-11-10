@@ -1,6 +1,9 @@
 require "English"
 
 module SynchronizationHelpers
+  # ReportCrash writes the report asynchronously, and does not always get around to it at all
+  MACOS_CRASH_REPORT_TIMEOUT_SECONDS = 10
+
   # Runs the given block in a fork, allowing you to perform RSpec assertions in a fork
   # and have them be reported in the parent process.
   #
@@ -8,8 +11,10 @@ module SynchronizationHelpers
   # if your whole example or example group should run in a forked process.
   def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false, debug: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
-      expect(status && status.success?).to be(true),
-        "Status:#{status.inspect} STDOUT:`#{stdout}` STDERR:`#{stderr}`"
+      # Lambda so we only go hunting for a crash report when the expectation actually fails
+      expect(status && status.success?).to be(true), lambda {
+        "Status:#{status.inspect} STDOUT:`#{stdout}` STDERR:`#{stderr}`#{macos_crash_report_for(status)}"
+      }
     }
 
     if debug
@@ -90,6 +95,16 @@ module SynchronizationHelpers
     end
     _, status = Process.wait2(pid)
     fork_expectations.call(status: status, stdout: "", stderr: "")
+  end
+
+  def macos_crash_report_for(status)
+    return "" unless PlatformHelpers.mac? && status&.signaled?
+
+    report = try_wait_until(seconds: MACOS_CRASH_REPORT_TIMEOUT_SECONDS) { MacosCrashReport.find(status.pid) }
+    "\n#{MacosCrashReport.describe(report)}"
+  rescue => e
+    "\nUnable to collect macOS crash report for pid #{status.pid} (#{e.class}: #{e.message})" \
+      "\n#{MacosCrashReport.newest_report_summary}"
   end
 
   # Waits for the condition provided by the block argument to return truthy.

@@ -23,7 +23,7 @@ module Datadog
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,
           error_message: "Waiting for flags configuration",
-          reason: Ext::ERROR
+          reason: Ext::ERROR,
         )
       end
     end

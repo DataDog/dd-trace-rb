@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Dalli
         module Quantize
-          def self?.format_command: (untyped operation, untyped args) -> untyped
+          def self.format_command: (untyped operation, untyped args) -> untyped
         end
       end
     end

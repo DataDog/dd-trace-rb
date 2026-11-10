@@ -26,7 +26,7 @@ module Datadog
             Tracing.trace(
               Ext::SPAN_REQUEST,
               service: configuration[:service_name],
-              type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+              type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
             ) do |span|
               span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)

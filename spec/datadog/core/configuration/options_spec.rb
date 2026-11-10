@@ -134,7 +134,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
         context "when given a block" do
           it "invokes it with a builder" do
             expect { |b| options_class.send(:option, name, meta, &b) }.to yield_with_args(
-              kind_of(Datadog::Core::Configuration::OptionDefinition::Builder)
+              kind_of(Datadog::Core::Configuration::OptionDefinition::Builder),
             )
           end
 
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
               options_object.set_option(
                 name,
                 :new_value,
-                precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+                precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               )
             end
 
@@ -255,13 +255,13 @@ RSpec.describe Datadog::Core::Configuration::Options do
                 options_object.set_option(
                   name,
                   :should_stay,
-                  precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+                  precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
                 )
 
                 options_object.set_option(
                   name,
                   :go_away,
-                  precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+                  precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
                 )
 
                 unset_option

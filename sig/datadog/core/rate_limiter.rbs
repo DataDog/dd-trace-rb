@@ -1,63 +1,47 @@
 module Datadog
   module Core
     class RateLimiter
-      def allow?: (?::Integer size) -> bool
+      def allow?: (?Integer size) -> bool
 
-      def effective_rate: () -> ::Float
+      def effective_rate: () -> Float
     end
 
     class TokenBucket < RateLimiter
-      @rate: ::Float | ::Integer
+      include RefillableBucket
 
-      @max_tokens: ::Numeric
+      @total_messages: Integer
 
-      @tokens: ::Numeric
+      @conforming_messages: Integer
 
-      @total_messages: ::Integer
+      @prev_conforming_messages: Integer?
 
-      @conforming_messages: ::Integer
+      @prev_total_messages: Integer?
 
-      @prev_conforming_messages: ::Integer?
+      @current_window: Float?
 
-      @prev_total_messages: ::Integer?
+      def initialize: (Float | Integer rate, ?Numeric max_tokens) -> void
 
-      @current_window: ::Float?
+      def allow?: (?Integer size) -> bool
 
-      @last_refill: ::Numeric
+      def effective_rate: () -> Float
 
-      attr_reader rate: ::Float | ::Integer
-
-      attr_reader max_tokens: ::Numeric
-
-      def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
-
-      def allow?: (?::Integer size) -> bool
-
-      def effective_rate: () -> ::Float
-
-      def current_window_rate: () -> ::Float
-
-      def available_tokens: () -> ::Numeric
+      def current_window_rate: () -> Float
 
       private
-
-      def refill_since_last_message: () -> void
-
-      def refill_tokens: (::Numeric size) -> void
 
       def increment_total_count: () -> void
 
       def increment_conforming_count: () -> void
 
-      def should_allow?: (?::Integer size) -> bool
+      def should_allow?: (?Integer size) -> bool
 
       def update_rate_counts: (bool allowed) -> void
     end
 
     class UnlimitedLimiter < RateLimiter
-      def allow?: (?::Integer _) -> true
+      def allow?: (?Integer _) -> true
 
-      def effective_rate: () -> ::Float
+      def effective_rate: () -> Float
     end
   end
 end

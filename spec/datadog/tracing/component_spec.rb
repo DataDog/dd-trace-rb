@@ -118,7 +118,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracing::Component do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
-                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                described_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK,
               )
           end
 
@@ -278,9 +278,9 @@ RSpec.describe Datadog::Tracing::Component do
                 span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
                   rules: [
                     Datadog::Tracing::Sampling::Span::Rule.new(
-                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo")
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: "foo"),
                     ),
-                  ]
+                  ],
                 ),
               }
             end

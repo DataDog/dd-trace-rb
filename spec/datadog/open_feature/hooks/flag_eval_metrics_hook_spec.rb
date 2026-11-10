@@ -21,7 +21,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "TARGETING_MATCH",
           error_code: nil,
-          flag_metadata: {"__dd_allocation_key" => "my-allocation"}
+          flag_metadata: {"__dd_allocation_key" => "my-allocation"},
         )
       end
 
@@ -31,7 +31,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "TARGETING_MATCH",
           error_code: nil,
-          allocation_key: "my-allocation"
+          allocation_key: "my-allocation",
         )
 
         hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -45,7 +45,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: nil,
           reason: "ERROR",
           error_code: "FLAG_NOT_FOUND",
-          flag_metadata: {}
+          flag_metadata: {},
         )
       end
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: nil,
           reason: "ERROR",
           error_code: "FLAG_NOT_FOUND",
-          allocation_key: nil
+          allocation_key: nil,
         )
 
         hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -69,7 +69,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "STATIC",
           error_code: nil,
-          flag_metadata: {}
+          flag_metadata: {},
         )
       end
 
@@ -79,7 +79,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "STATIC",
           error_code: nil,
-          allocation_key: nil
+          allocation_key: nil,
         )
 
         hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -93,7 +93,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "STATIC",
           error_code: nil,
-          flag_metadata: nil
+          flag_metadata: nil,
         )
       end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "STATIC",
           error_code: nil,
-          allocation_key: nil
+          allocation_key: nil,
         )
 
         hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -118,7 +118,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
           variant: "on",
           reason: "TARGETING_MATCH",
           error_code: nil,
-          flag_metadata: {}
+          flag_metadata: {},
         )
       end
 

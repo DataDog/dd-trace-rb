@@ -10,7 +10,7 @@ module Datadog
             private
             STATUS_CODE_200: "status_code:200"
 
-            def metrics_tag_value: (untyped status_code) -> (untyped | ::String)
+            def metrics_tag_value: (untyped status_code) -> (untyped | String)
           end
         end
       end

@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
           context "and default values" do
             it "delegates defaults to the rule and matcher" do
               is_expected.to contain_exactly(
-                Datadog::Tracing::Sampling::Span::Rule.new(Datadog::Tracing::Sampling::Span::Matcher.new)
+                Datadog::Tracing::Sampling::Span::Rule.new(Datadog::Tracing::Sampling::Span::Matcher.new),
               )
             end
           end
@@ -78,8 +78,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher name" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: name)
-                )
+                  Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: name),
+                ),
               )
             end
 
@@ -99,8 +99,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher service" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new(service_pattern: service)
-                )
+                  Datadog::Tracing::Sampling::Span::Matcher.new(service_pattern: service),
+                ),
               )
             end
 
@@ -120,8 +120,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher service" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new, sample_rate: sample_rate
-                )
+                  Datadog::Tracing::Sampling::Span::Matcher.new, sample_rate: sample_rate,
+                ),
               )
             end
 
@@ -141,8 +141,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             it "sets the rule matcher service" do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Sampling::Span::Rule.new(
-                  Datadog::Tracing::Sampling::Span::Matcher.new, rate_limit: max_per_second
-                )
+                  Datadog::Tracing::Sampling::Span::Matcher.new, rate_limit: max_per_second,
+                ),
               )
             end
 

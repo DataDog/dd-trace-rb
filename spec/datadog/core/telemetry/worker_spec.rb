@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     double(
       Datadog::Core::Transport::HTTP::Adapters::Net::Response,
       not_found?: !backend_supports_telemetry?,
-      ok?: backend_supports_telemetry?
+      ok?: backend_supports_telemetry?,
     )
   end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   let(:initial_event) do
     Datadog::Core::Telemetry::Event::AppStarted.new(
-      components: Datadog.send(:components)
+      components: Datadog.send(:components),
     )
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         loop_base_interval: metrics_aggregation_interval_seconds,
         run_async?: false,
         running?: false,
-        started?: false
+        started?: false,
       )
     end
   end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           try_wait_until { !worker.enabled? }
 
           expect(logger).to have_received(:debug).with(
-            "Agent does not support telemetry; disabling future telemetry events."
+            "Agent does not support telemetry; disabling future telemetry events.",
           )
           expect(@received_started).to be(true)
           expect(@received_heartbeat).to be(false)
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             loop_base_interval: metrics_aggregation_interval_seconds,
             run_async?: true,
             running?: true,
-            started?: true
+            started?: true,
           )
         end
 
@@ -146,8 +146,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
                 double(
                   Datadog::Core::Transport::HTTP::Adapters::Net::Response,
                   not_found?: false,
-                  ok?: false
-                )
+                  ok?: false,
+                ),
               ).once
 
             expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)) do
@@ -184,8 +184,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
                 double(
                   Datadog::Core::Transport::HTTP::Adapters::Net::Response,
                   not_found?: false,
-                  ok?: false
-                )
+                  ok?: false,
+                ),
               ).exactly(described_class::APP_STARTED_EVENT_RETRIES).times
 
             sent_hearbeat = false
@@ -233,7 +233,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         context "when metrics are flushed" do
           before do
             allow(metrics_manager).to receive(:flush!).and_return(
-              [Datadog::Core::Telemetry::Event::GenerateMetrics.new("namespace", [])]
+              [Datadog::Core::Telemetry::Event::GenerateMetrics.new("namespace", [])],
             )
           end
 
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             received_metrics = false
 
             allow(emitter).to receive(:request).with(
-              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch),
             ) do |event|
               event.events.each do |subevent|
                 received_metrics = true if subevent.is_a?(Datadog::Core::Telemetry::Event::GenerateMetrics)
@@ -262,7 +262,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           it "deduplicates repeated log entries" do
             events_received = []
             expect(emitter).to receive(:request).with(
-              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch),
             ) do |event|
               events_received += event.events
               response
@@ -284,7 +284,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               Datadog::Core::Telemetry::Event::AppHeartbeat.new,
               Datadog::Core::Telemetry::Event::Log.new(message: "test", level: :warn, count: 2),
               Datadog::Core::Telemetry::Event::Log.new(message: "test", level: :error),
-              Datadog::Core::Telemetry::Event::AppClosing.new
+              Datadog::Core::Telemetry::Event::AppClosing.new,
             )
           end
         end
@@ -326,7 +326,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       events_received = 0
       mutex = Mutex.new
       allow(emitter).to receive(:request).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch),
       ) do |event|
         event.events.each do |subevent|
           mutex.synchronize do
@@ -350,7 +350,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       double(
         Datadog::Core::Transport::HTTP::Adapters::Net::Response,
         not_found?: !backend_supports_telemetry?,
-        ok?: backend_supports_telemetry?
+        ok?: backend_supports_telemetry?,
       )
     end
 
@@ -360,7 +360,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       # request could be called with AppHeartheat event, therefore a
       # simple expect() assertion does not work here.
       allow(emitter).to receive(:request).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch),
       ) do |event|
         event.events.each do |subevent|
           mutex.synchronize do

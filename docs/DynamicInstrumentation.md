@@ -270,7 +270,12 @@ generated.
 ### Snapshot Size
 
 - Maximum snapshot size is **1 MB**
-- Snapshots exceeding this size will be dropped entirely
+- Snapshots exceeding this size are pruned: their largest, most deeply
+  nested captured values are replaced with a pruned-value marker, until
+  the snapshot fits below the limit, with headroom for the tags Datadog
+  adds to the event
+- Snapshots that pruning cannot fit below the limit are dropped
+  entirely
 - Consider reducing capture depth or collection sizes if you encounter
   this limit
 
@@ -371,6 +376,11 @@ To minimize performance impact, probes have default rate limits:
 
 - **Non-capturing probes**: 5,000 invocations per second
 - **Capturing probes** (with snapshots): 1 invocation per second
+- When a capturing probe fires inside an active APM trace, emission is
+  coordinated per trace: each probe emits at most one snapshot per trace,
+  all probes in one trace share a total of 20 snapshots, and at most 10
+  traces per second per process start emitting. Inside a trace, the
+  per-trace budgets bound emission.
 
 These limits can be configured per probe in the probe definition.
 
@@ -386,6 +396,26 @@ application performance:
 - The probe will need to be recreated in the UI if you want to re-enable
   it
 - This threshold can be configured globally
+
+### Evaluation Time Budget
+
+Evaluating a probe's condition (`when`), each of its capture expressions,
+and each message template is bounded by a thread CPU-time budget:
+
+- The budget applies per evaluation: each capture expression has its own
+  budget, and the segments of one message template share one budget
+- The default budget is **50 milliseconds**
+- A single `matches` operator (a regular expression match) is bounded at
+  **50 milliseconds of wall time**; a match that reaches the limit is
+  reported as an evaluation error
+- The capture expressions of one probe firing stay within the capture
+  budget `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS` (default **150
+  milliseconds**) in total; an expression the capture budget stops is
+  reported as not captured
+- An evaluation that exceeds the budget is aborted and reported as an
+  evaluation error in the probe snapshot
+- Configure it with `DD_DYNAMIC_INSTRUMENTATION_EVALUATION_TIMEOUT_MS` or
+  `c.dynamic_instrumentation.max_time_to_evaluate_ms`
 
 ## Getting Help
 

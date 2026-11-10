@@ -5,7 +5,7 @@ RSpec.shared_context "Rails models" do
         "ApplicationRecord",
         Class.new(ActiveRecord::Base) do
           self.abstract_class = true
-        end
+        end,
       )
     end
   end

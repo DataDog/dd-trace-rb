@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Rails
         module LogInjection
-          def self?.add_as_tagged_logging_logger: (untyped app) -> untyped
+          def self.add_as_tagged_logging_logger: (untyped app) -> untyped
         end
       end
     end

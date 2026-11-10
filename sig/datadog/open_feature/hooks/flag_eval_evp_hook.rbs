@@ -18,13 +18,13 @@ module Datadog
 
         private
 
-        def extract_targeting_key: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::String?
+        def extract_targeting_key: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> String?
 
-        def extract_attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> ::Hash[::String, any]
+        def extract_attributes: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> Hash[String, any]
 
-        def extract_allocation_key: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> ::String?
+        def extract_allocation_key: (::OpenFeature::SDK::EvaluationDetails evaluation_details) -> String?
 
-        def runtime_default_reason?: (::String reason) -> bool
+        def runtime_default_reason?: (String reason) -> bool
       end
     end
   end

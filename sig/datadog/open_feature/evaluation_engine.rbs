@@ -4,11 +4,14 @@ module Datadog
       class ReconfigurationError < StandardError
       end
 
-      ALLOWED_TYPES: ::Array[::Symbol]
+      ALLOWED_TYPES: Array[Symbol]
+
+      RAW_DATA_WARNING: String
 
       @reporter: Exposures::Reporter
       @telemetry: Core::Telemetry::Component
       @logger: Core::Logger
+      @raw_data_warning: Core::Utils::OnlyOnce
       @evaluator: NoopEvaluator | NativeEvaluator
 
       def initialize: (
@@ -18,15 +21,23 @@ module Datadog
       ) -> void
 
       def fetch_value: (
-        ::String flag_key,
+        String flag_key,
         default_value: untyped,
-        expected_type: ::Symbol,
+        expected_type: Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ResolutionDetails
 
-      def reconfigure!: (::String? configuration) -> void
+      def reconfigure!: (String? configuration) -> void
+
+      def warn_raw_data_logging: () -> void
 
       private
+
+      def log_resolution: (String flag_key, Symbol expected_type, ResolutionDetails result) -> void
+
+      def log_resolution_failure: (String flag_key, StandardError error) -> void
+
+      def configuration_summary: (String configuration) -> String
 
       def with_observe_full_evaluation_data: (
         ResolutionDetails result,

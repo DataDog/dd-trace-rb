@@ -1,8 +1,8 @@
 module Datadog
   module SymbolDatabase
     class Component
-      EXTRACT_DEBOUNCE_INTERVAL: ::Numeric
-      MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
+      EXTRACT_DEBOUNCE_INTERVAL: Numeric
+      MODULE_SINGLETON_CLASS_PRED: UnboundMethod
 
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
@@ -11,22 +11,22 @@ module Datadog
       @extractor: Extractor
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
-      @last_upload_time: ::Time?
-      @last_upload_scope_count: ::Integer?
-      @last_upload_time_cv: ::Thread::ConditionVariable
-      @mutex: ::Thread::Mutex
+      @last_upload_time: Time?
+      @last_upload_scope_count: Integer?
+      @last_upload_time_cv: Thread::ConditionVariable
+      @mutex: Thread::Mutex
       @upload_in_progress: bool
-      @upload_in_progress_cv: ::Thread::ConditionVariable
+      @upload_in_progress_cv: Thread::ConditionVariable
       @shutdown: bool
-      @scheduler_mutex: ::Thread::Mutex
-      @scheduler_cv: ::Thread::ConditionVariable
-      @scheduled_at: ::Float?
+      @scheduler_mutex: Thread::Mutex
+      @scheduler_cv: Thread::ConditionVariable
+      @scheduled_at: Float?
       @scheduler_signaled: bool
-      @scheduler_thread: ::Thread?
-      @owner_pid: ::Integer
-      @hot_load_buffer: ::Array[::Module]
-      @hot_load_buffer_mutex: ::Thread::Mutex
-      @hot_load_tracepoint: ::TracePoint?
+      @scheduler_thread: Thread?
+      @owner_pid: Integer
+      @hot_load_buffer: Array[Module]
+      @hot_load_buffer_mutex: Thread::Mutex
+      @hot_load_tracepoint: TracePoint?
       @initial_extraction_done: bool
       @di_active: (^() -> bool)?
       @upload_requested: bool
@@ -37,8 +37,8 @@ module Datadog
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader logger: SymbolDatabase::Logger
-      attr_reader last_upload_time: ::Time?
-      attr_reader last_upload_scope_count: ::Integer?
+      attr_reader last_upload_time: Time?
+      attr_reader last_upload_scope_count: Integer?
       attr_reader upload_in_progress: bool
 
       def schedule_deferred_upload: () -> void
@@ -53,7 +53,7 @@ module Datadog
 
       def stop_for_di_disable: () -> void
 
-      def wait_for_idle: (?timeout: ::Numeric) -> bool
+      def wait_for_idle: (?timeout: Numeric) -> bool
 
       def shutdown!: () -> void
 
@@ -75,15 +75,15 @@ module Datadog
 
       def extract_and_upload: () -> void
 
-      def extract_hot_load_buffer: () -> ::Array[Scope]
+      def extract_hot_load_buffer: () -> Array[Scope]
 
       def install_hot_load_hook: () -> void
 
-      def enqueue_hot_load: (::Module mod) -> void
+      def enqueue_hot_load: (Module mod) -> void
 
-      def log_scope_tree: (Scope scope, ::Integer depth) -> void
+      def log_scope_tree: (Scope scope, Integer depth) -> void
 
-      def count_targetable_methods_in_scope: (Scope file_scope) -> ::Integer
+      def count_targetable_methods_in_scope: (Scope file_scope) -> Integer
     end
   end
 end

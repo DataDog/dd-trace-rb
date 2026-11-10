@@ -44,7 +44,7 @@ module Datadog
                                 || Datadog.configuration.tracing[:sequel][:service_name] \
                                 || Contrib::SpanAttributeSchema.fetch_service_name(
                                   "",
-                                  adapter_name
+                                  adapter_name,
                                 )
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = opts[:query]

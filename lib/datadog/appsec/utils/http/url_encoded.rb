@@ -8,8 +8,6 @@ module Datadog
       module HTTP
         # Module for parsing URL encoded payloads
         module URLEncoded
-          module_function
-
           # Matches Rack's default query bytesize limit, so parsing our own
           # payloads keeps the same guard against CPU/memory exhaustion.
           DEFAULT_BYTESIZE_LIMIT = 4 * 1024 * 1024
@@ -27,7 +25,7 @@ module Datadog
           # Parsing stops once +limit+ bytes have been read, and the pair being
           # read at that point is discarded. This returns the pairs decoded so
           # far rather than raising or discarding the whole payload.
-          def parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
+          def self.parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
             raise ArgumentError, "limit must not be negative" if limit < 0
 
             return {} if payload.nil? || payload.empty? || limit.zero?
@@ -93,7 +91,7 @@ module Datadog
             result
           end
 
-          private_class_method def add_param(params, key, value)
+          private_class_method def self.add_param(params, key, value)
             case existing = params[key]
             when ::Array then existing.push(value)
             when nil then params[key] = value

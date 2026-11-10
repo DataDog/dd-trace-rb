@@ -5,8 +5,8 @@ require "forwardable"
 module Datadog
   module Core
     module Utils
-      # An LRU (Least Recently Used) cache implementation that relies on the
-      # Ruby 1.9+ `Hash` implementation that guarantees insertion order.
+      # An LRU (Least Recently Used) cache implementation that relies on
+      # `Hash` guaranteeing insertion order.
       #
       # WARNING: This implementation is NOT thread-safe and should be used
       #          in a single-threaded context or guarded by Mutex.

@@ -12,8 +12,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
     [logging_test_controller]
   end
 
-  # RailsSemanticLogger `4.2.1` is the last version available for Ruby 2.2,
-  # starting from `4.3.0`, uses `swap_subscriber` strategy.
+  # RailsSemanticLogger, starting from `4.3.0`, uses `swap_subscriber` strategy.
   #
   # Replacing the default ones with its own.
   #   ::ActionView::LogSubscriber => ::RailsSemanticLogger::ActionView::LogSubscriber
@@ -45,7 +44,7 @@ RSpec.describe "Rails Log Auto Injection", execute_in_fork: Rails.version.to_i >
 
           render plain: "OK"
         end
-      end
+      end,
     )
   end
 

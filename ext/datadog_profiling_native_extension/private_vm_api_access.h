@@ -34,6 +34,10 @@ typedef struct {
       int line;
     } ruby_frame;
   } as;
+  // Length of the frame name cached for this slot in `sampling_buffer`, or 0 when there's none.
+  // ddtrace_rb_profile_frames() clears it when it replaces this frame, so a non-zero length always describes the
+  // cme and iseq currently here.
+  uint8_t cached_name_len;
   bool is_ruby_frame : 1;
   bool same_frame : 1;
 } frame_info;
@@ -48,7 +52,7 @@ uint64_t native_thread_id_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
-void self_test_thread_name_for(void);
+void self_test_thread_struct(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 

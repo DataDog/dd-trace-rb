@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
   context "when using the managed endpoint" do
     it "builds the default endpoint" do
       expect(endpoint.uri.to_s).to eq(
-        "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server"
+        "https://ufc-server.ff-cdn.datadoghq.com/api/v2/feature-flagging/config/rules-based/server",
       )
       expect(endpoint).to be_managed
     end
@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
       it "normalizes the site and URL-encodes the raw environment" do
         expect(endpoint.uri.to_s).to eq(
-          "https://ufc-server.ff-cdn.us3.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=staging%2Feast"
+          "https://ufc-server.ff-cdn.us3.datadoghq.com/api/v2/feature-flagging/config/rules-based/server?dd_env=staging%2Feast",
         )
       end
     end
@@ -60,7 +60,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
     it "appends the standard path to an origin URL" do
       expect(endpoint.uri.to_s).to eq(
-        "http://localhost:8126/api/v2/feature-flagging/config/rules-based/server"
+        "http://localhost:8126/api/v2/feature-flagging/config/rules-based/server",
       )
       expect(endpoint).not_to be_managed
     end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
 
       it "appends the standard path and preserves the query" do
         expect(endpoint.uri.to_s).to eq(
-          "https://example.test/api/v2/feature-flagging/config/rules-based/server?tenant=one"
+          "https://example.test/api/v2/feature-flagging/config/rules-based/server?tenant=one",
         )
       end
     end
@@ -100,6 +100,32 @@ RSpec.describe Datadog::OpenFeature::Configuration::AgentlessEndpoint do
           expect(endpoint).to be_nil
           expect(logger).to have_received(:warn).with(expected_warning)
         end
+      end
+    end
+  end
+
+  describe "#origin" do
+    context "with the managed endpoint" do
+      let(:environment) { "prod" }
+
+      it "drops the path and environment query" do
+        expect(endpoint.origin).to eq("https://ufc-server.ff-cdn.datadoghq.com")
+      end
+    end
+
+    context "with a custom endpoint carrying credentials, a path, and a query" do
+      let(:base_url) { "http://user:token@flags.example.test:8080/signed-path/ufc?sig=secret" }
+
+      it "keeps only the scheme, host, and non-default port" do
+        expect(endpoint.origin).to eq("http://flags.example.test:8080")
+      end
+    end
+
+    context "with a custom endpoint on the default port" do
+      let(:base_url) { "https://flags.example.test:443/ufc" }
+
+      it "omits the port" do
+        expect(endpoint.origin).to eq("https://flags.example.test")
       end
     end
   end
