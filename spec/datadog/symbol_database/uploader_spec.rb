@@ -102,7 +102,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     context "with oversized payload" do
       it "logs warning and skips upload" do
         # Stub to return huge payload
-        allow(Zlib).to receive(:gzip).and_return("x" * (described_class::MAX_PAYLOAD_SIZE + 1))
+        allow(Zlib).to receive(:gzip).and_return("x" * (described_class::MAX_PAYLOAD_SIZE_BYTES + 1))
 
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/payload too large/i) }
         expect(mock_transport).not_to receive(:send_symbols)
@@ -131,7 +131,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it "emits payload_size distribution on the oversized-skip path" do
-        oversized = "x" * (described_class::MAX_PAYLOAD_SIZE + 1)
+        oversized = "x" * (described_class::MAX_PAYLOAD_SIZE_BYTES + 1)
         allow(Zlib).to receive(:gzip).and_return(oversized)
         expect(mock_transport).not_to receive(:send_symbols)
 

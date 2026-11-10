@@ -2063,7 +2063,7 @@ RSpec.describe "Instrumentation integration" do
 
       before do
         allow(Datadog::DI::Transport::HTTP).to receive(:input).and_call_original
-        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
+        stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES", 2_000)
         settings.dynamic_instrumentation.max_capture_string_length = 10_000
       end
 
@@ -2135,7 +2135,7 @@ RSpec.describe "Instrumentation integration" do
         let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
         before do
-          stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", payload_limit)
+          stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE_BYTES", payload_limit)
           settings.dynamic_instrumentation.max_capture_string_length = 50_000
         end
 
