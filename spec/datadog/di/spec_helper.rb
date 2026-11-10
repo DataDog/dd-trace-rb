@@ -95,9 +95,7 @@ module DIHelpers
   module ClassMethods
     def deactivate_code_tracking
       before(:all) do
-        if Datadog::DI.respond_to?(:deactivate_tracking!)
-          Datadog::DI.deactivate_tracking!
-        end
+        deactivate_code_tracking_if_supported
       end
     end
 
@@ -189,6 +187,15 @@ module DIHelpers
       end
     end
 
+    # Deactivates code tracking after each example, for examples whose
+    # Datadog.configure call starts DI, which activates code tracking for
+    # the rest of the process.
+    def deactivate_code_tracking_after_each
+      after do
+        deactivate_code_tracking_if_supported
+      end
+    end
+
     def load_yaml_file(path, **opts)
       if RubyVersion.is?("< 3.1")
         opts.delete(:permitted_classes)
@@ -198,6 +205,12 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Deactivates code tracking on runtimes that load DI code tracking
+    # (MRI 2.6+).
+    def deactivate_code_tracking_if_supported
+      Datadog::DI.deactivate_tracking! if Datadog::DI.respond_to?(:deactivate_tracking!)
+    end
+
     # Builds a telemetry component double whose metric increments raise the
     # given exception, for exercising emission containment paths.
     def telemetry_double_raising_on_inc(exception: StandardError.new("telemetry down"))
