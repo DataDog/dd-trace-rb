@@ -527,12 +527,7 @@ static VALUE prepare_serialize_body(VALUE prepare_state_value) {
 
 static VALUE prepare_serialize_cleanup(VALUE state_value) {
   miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
-  miteruby_allocator_free(state->interned_events_queue);
-  state->interned_events_queue = NULL;
-  if (state->status != SERIALIZER_FINISHED) {
-    state->status = SERIALIZER_EMPTY;
-    reset_compressed_buffer(state);
-  }
+  if (state->status != SERIALIZER_FINISHED) state->status = SERIALIZER_EMPTY;
   return Qnil;
 }
 
@@ -558,12 +553,15 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
     .threads_set = threads_set,
   };
 
+  miteruby_allocator_free(state->interned_events_queue); // Clear any leftover state, if any
   state->interned_events_queue = interned_events_queue;
   state->interned_events_pos = interned_events_pos;
   state->status = SERIALIZER_WORKING;
 
   rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state);
 
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
   return prepare_state.exit_reason;
 }
 
@@ -767,7 +765,9 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   state->status = SERIALIZER_EMPTY;
-  prepare_serialize_cleanup((VALUE)state);
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
+  reset_compressed_buffer(state);
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;
   return Qtrue;
