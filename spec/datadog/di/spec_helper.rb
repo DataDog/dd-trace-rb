@@ -297,9 +297,14 @@ module ProbeNotifierWorkerLeakDetector
     attr_accessor :installed
     attr_accessor :workers
 
+    # Warns about each worker that was started and not stopped, then stops
+    # tracking the reported workers so that each leak is reported once.
     def verify!
-      ProbeNotifierWorkerLeakDetector.workers.each do |(worker, example)|
-        warn "Leaked ProbeNotifierWorkerLeakDetector #{worker} from #{example.file_path}: #{example.full_description}"
+      leaked_workers = workers
+      self.workers = []
+      leaked_workers.each do |(worker, example)|
+        origin = example ? "in #{example.file_path}: #{example.full_description}" : "outside of an example"
+        warn "Leaked #{worker} started #{origin}"
       end
     end
   end
@@ -307,7 +312,9 @@ module ProbeNotifierWorkerLeakDetector
   ProbeNotifierWorkerLeakDetector.workers = []
 
   def start
-    ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
+    unless ProbeNotifierWorkerLeakDetector.workers.any? { |(worker, _example)| worker.equal?(self) }
+      ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
+    end
     super
   end
 
@@ -326,14 +333,19 @@ RSpec.configure do |config|
   # DI does not do anything on Ruby < 2.6 therefore there is no need
   # to install a leak detector on lower Ruby versions.
   if RubyVersion.is?(">= 2.6")
+    # Leaks are verified when the next example starts and when the suite
+    # finishes, because around hooks and the global tracer_shutdown! hook
+    # stop workers after every after hook has run.
     config.before do
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)
         ProbeNotifierWorkerLeakDetector.installed = true
       end
+
+      ProbeNotifierWorkerLeakDetector.verify!
     end
 
-    config.after do |example|
+    config.after(:suite) do
       ProbeNotifierWorkerLeakDetector.verify!
     end
   end
