@@ -16,7 +16,7 @@ module Datadog
       end
 
       def self.interrupt_execution(action_params)
-        throw(Datadog::AppSec::Ext::INTERRUPT, action_params)
+        AppSec.active_context&.interrupt!(action_params)
       end
 
       def self.generate_stack(action_params)

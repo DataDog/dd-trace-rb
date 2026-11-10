@@ -270,7 +270,10 @@ generated.
 ### Snapshot Size
 
 - Maximum snapshot size is **1 MB**
-- Snapshots exceeding this size will be dropped entirely
+- Snapshots exceeding this size are pruned: their largest, most deeply
+  nested captured values are replaced with a pruned-value marker, until
+  the snapshot fits
+- Snapshots that pruning cannot fit are dropped entirely
 - Consider reducing capture depth or collection sizes if you encounter
   this limit
 
@@ -371,6 +374,11 @@ To minimize performance impact, probes have default rate limits:
 
 - **Non-capturing probes**: 5,000 invocations per second
 - **Capturing probes** (with snapshots): 1 invocation per second
+- When a capturing probe fires inside an active APM trace, emission is
+  coordinated per trace: each probe emits at most one snapshot per trace,
+  all probes in one trace share a total of 20 snapshots, and at most 10
+  traces per second per process start emitting. Inside a trace, the
+  per-trace budgets bound emission.
 
 These limits can be configured per probe in the probe definition.
 
