@@ -269,8 +269,7 @@ generated.
 
 ### Snapshot Size
 
-- Maximum snapshot size is **1 MB less 4 KB**; the 4 KB are reserved
-  for the tags Datadog adds to the event
+- Maximum snapshot size is **1 MB**
 - Snapshots exceeding this size are pruned: their largest, most deeply
   nested captured values are replaced with a pruned-value marker, until
   the snapshot fits
