@@ -9,6 +9,7 @@
 #include "../helpers.h"
 #include "../time_helpers.h"
 
+#include <ruby/thread.h>
 #include <string.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -183,7 +184,15 @@ typedef struct {
   long finish_time_ns;
 } miteruby_serializer_persistent_state_t;
 
-static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
+typedef struct {
+  miteruby_serializer_persistent_state_t *state;
+  miteruby_serializer_exit_reason_t exit_reason;
+} serialize_no_gvl_args;
+
+static VALUE release_gvl_and_serialize(VALUE args);
+static VALUE serialize_no_gvl_ensure(VALUE args);
+static void *call_serialize_no_gvl(void *args);
+static miteruby_serializer_exit_reason_t serialize_no_gvl(
   miteruby_serializer_persistent_state_t *state
 );
 static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
@@ -235,6 +244,7 @@ void miteruby_serializer_check_available(VALUE serializer) {
 void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason) {
   switch (reason) {
     case MITERUBY_SERIALIZER_OK: return;
+    case MITERUBY_SERIALIZER_NOT_COMPLETED: rb_raise(rb_eRuntimeError, "Streaming profile serialization did not complete");
     case MITERUBY_SERIALIZER_ALREADY_WORKING: rb_raise(rb_eRuntimeError, "Streaming profile preparation is already in progress");
     case MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Compressed streaming profile buffer is full");
     case MITERUBY_SERIALIZER_COMPRESSION_ERROR: rb_raise(rb_eRuntimeError, "Failed to compress streaming profile");
@@ -537,11 +547,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   state->interned_events_pos = interned_events_pos;
   miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, frame_array, location_array, threads_set);
 
-  miteruby_allocator_free(state->interned_events_queue);
-  state->interned_events_queue = NULL;
-  // TODO: Change FINISHED to NO_GVL here once the consumer runs the no-GVL phase after this function returns.
-  // Set FINISHED after that phase completes and the GVL is reacquired.
-  state->status = exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_FINISHED : SERIALIZER_EMPTY;
+  state->status = exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_NO_GVL : SERIALIZER_EMPTY;
   return exit_reason;
 }
 
@@ -642,19 +648,44 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
 
   state->function_count = frame_array->count;
 
-  // From here, we can release the GVL, as all of the steps that needed GVL directly or indirectly (+ any of their dependencies)
-  // have been serialized.
-  //
-  // TODO: We're not actually releasing the GVL yet. The plan is to, in the future, return early from this function, and have the
-  // caller in comsumer actually call `miteruby_serializer_prepare_serialize_no_gvl` directly. Hence why that function is wired to
-  // receive what it needs from the state of the serializer.
-  state->status = SERIALIZER_NO_GVL;
-  return miteruby_serializer_prepare_serialize_no_gvl(state);
+  return MITERUBY_SERIALIZER_OK;
 }
 
-static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
-  miteruby_serializer_persistent_state_t *state
-) {
+miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE serializer) {
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  serialize_no_gvl_args args = {.state = state, .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
+
+  rb_ensure(release_gvl_and_serialize, (VALUE) &args, serialize_no_gvl_ensure, (VALUE) &args);
+
+  // Free and clear under the GVL so the size callback and fork cannot observe a dangling queue pointer.
+  miteruby_allocator_free(state->interned_events_queue);
+  state->interned_events_queue = NULL;
+
+  return args.exit_reason;
+}
+
+static VALUE serialize_no_gvl_ensure(VALUE args_pointer) {
+  serialize_no_gvl_args *args = (serialize_no_gvl_args *) args_pointer;
+  miteruby_serializer_persistent_state_t *state = args->state;
+
+  // A completed profile remains usable even if Ruby raises an interruption while reacquiring the GVL.
+  state->status = args->exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_FINISHED : SERIALIZER_EMPTY;
+
+  return Qnil;
+}
+
+static VALUE release_gvl_and_serialize(VALUE args) {
+  rb_thread_call_without_gvl(call_serialize_no_gvl, (void *) args, NULL, NULL);
+  return Qnil;
+}
+
+static void *call_serialize_no_gvl(void *args_pointer) {
+  serialize_no_gvl_args *args = args_pointer;
+  args->exit_reason = serialize_no_gvl(args->state);
+  return NULL;
+}
+
+static miteruby_serializer_exit_reason_t serialize_no_gvl(miteruby_serializer_persistent_state_t *state) {
   pb_ostream_t *stream = &state->stream;
   uint8_t *interned_events_queue = state->interned_events_queue;
   size_t interned_events_pos = state->interned_events_pos;

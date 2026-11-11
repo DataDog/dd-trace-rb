@@ -8,6 +8,7 @@
 
 typedef enum {
   MITERUBY_SERIALIZER_OK = 0,
+  MITERUBY_SERIALIZER_NOT_COMPLETED,
   MITERUBY_SERIALIZER_ALREADY_WORKING,
   MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL,
   MITERUBY_SERIALIZER_COMPRESSION_ERROR,
@@ -33,4 +34,6 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   // TODO: Figure out better way to avoid passing in set
   const verstable_mark_threads_set *threads_set
 );
+// Called with the GVL after successful preparation and after releasing the consumer mutex.
+miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE serializer);
 void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reason);
