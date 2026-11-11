@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct {
   miteruby_frame_id_t frame_id;
-  miteruby_frame_position_t position;
+  miteruby_bytecode_pos_t bytecode_pos;
 } miteruby_location_t;
 
 typedef struct {

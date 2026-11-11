@@ -101,12 +101,12 @@ the eval's line number. The [upstream commit introducing this representation](ht
 explicitly acknowledged the loss of block labels. These limitations remain in Ruby 4.0; storing both
 preserves the information needed for accurate locations and qualified block labels on modern Rubies too.
 
-### miteruby_frame_position_t
+### miteruby_bytecode_pos_t
 
 ```c
 typedef struct {
   uint16_t value;
-} miteruby_frame_position_t; // 2 bytes
+} miteruby_bytecode_pos_t; // 2 bytes
 ```
 
 - `value`: adjusted index into the ISEQ's encoded `VALUE` slots, including operands. Use
@@ -126,8 +126,8 @@ typedef struct {
 ```
 
 ```text
-header | thread | frames[N] | positions[N] | padding
-  24       8       16*N         2*N         0–6      bytes
+header | thread | frames[N] | bytecode_positions[N] | padding
+  24       8       16*N              2*N              0–6      bytes
 ```
 
 - `thread`: current Ruby thread; `thread.value` is the GC-visible `VALUE`.
@@ -144,13 +144,13 @@ header | thread | frames[N] | positions[N] | padding
 ```c
 typedef struct {
   miteruby_frame_t *frames;
-  miteruby_frame_position_t *positions;
+  miteruby_bytecode_pos_t *bytecode_positions;
   uint16_t frame_count;
 } miteruby_event_stack_sample_view_t; // 24 bytes; local only
 ```
 
-- Typed access: `view.frames[i].iseq`, `view.frames[i].cme`, and `view.positions[i].value`; require `i < frame_count`.
-- One helper constructs the view: `frames` points to `event->frames`; `positions` starts at byte offset
+- Typed access: `view.frames[i].iseq`, `view.frames[i].cme`, and `view.bytecode_positions[i].value`; require `i < frame_count`.
+- One helper constructs the view: `frames` points to `event->frames`; `bytecode_positions` starts at byte offset
   `offsetof(miteruby_event_stack_sample_t, frames) + frame_count * sizeof(miteruby_frame_t)` from the event.
   Producers supply the captured count; readers use `header.frame_count` after validating `size_bytes`.
 - Borrows the event storage; invalid after storage is reused. No allocation or extra buffer bytes.

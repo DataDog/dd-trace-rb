@@ -137,13 +137,13 @@ static void *location_calloc(size_t size) {
 
 static uint64_t location_hash(miteruby_location_id_t id, const miteruby_location_array_t *array) {
   miteruby_location_t key = array->entries[id.value.value];
-  return vt_hash_integer(((uint32_t) key.frame_id.value << 16) | key.position.value);
+  return vt_hash_integer(((uint32_t) key.frame_id.value << 16) | key.bytecode_pos.value);
 }
 
 static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t right, const miteruby_location_array_t *array) {
   miteruby_location_t left_location = array->entries[left.value.value];
   miteruby_location_t right_location = array->entries[right.value.value];
-  return left_location.frame_id.value == right_location.frame_id.value && left_location.position.value == right_location.position.value;
+  return left_location.frame_id.value == right_location.frame_id.value && left_location.bytecode_pos.value == right_location.bytecode_pos.value;
 }
 
 static void mutex_lock(mtx_t *mutex) {
@@ -525,17 +525,17 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     miteruby_stack_t stack = result.ok.stack;
     uint8_t *cursor = stack.ids;
     uint20_t previous_value = {0};
-    const miteruby_frame_position_t *positions = (const miteruby_frame_position_t *)&event->frames[header->frame_count];
+    const miteruby_bytecode_pos_t *bytecode_positions = (const miteruby_bytecode_pos_t *)&event->frames[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
       miteruby_frame_id_t frame_id;
       miteruby_consumer_exit_reason_t reason = retain_frame(event->frames[i], &frame_id);
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       miteruby_location_id_t location_id;
       reason = intern_location(
-        (miteruby_location_t) {.frame_id = frame_id, .position = positions[i]}, &location_id
+        (miteruby_location_t) {.frame_id = frame_id, .bytecode_pos = bytecode_positions[i]}, &location_id
       );
       if (reason != MITERUBY_CONSUMER_OK) return reason;
-      // As we turn the (frame_id, position), into an id, we write those ids into the deduped stack storage
+      // As we turn the (frame_id, bytecode_pos), into an id, we write those ids into the deduped stack storage
       if (!miteruby_compressed_deltas_write(previous_value, location_id.value, &cursor, stack.end)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
       previous_value = location_id.value;
     }
