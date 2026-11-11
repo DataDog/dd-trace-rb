@@ -14,6 +14,8 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
   before do
     stub_request(:post, %r{/v0.1/pipeline_stats}).to_return(status: 200, body: "")
     Datadog.configure do |c|
+      c.service = "web"
+      c.env = "prod"
       c.remote.enabled = false
       c.telemetry.enabled = false
       c.agent.host = "localhost"
@@ -27,13 +29,17 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
     Datadog.send(:components).data_streams
   end
 
-  # Delivers one APM_TRACING config; `lib_config: nil` delivers none (RC key removed).
+  # Delivers one APM_TRACING config; `lib_config: nil` delivers none (repository emptied).
   def apply_rc(lib_config)
-    contents = []
-    unless lib_config.nil?
-      contents << Datadog::Core::Remote::Configuration::Content.parse(
-        path: "datadog/1/APM_TRACING/anything/lib_config",
-        content: JSON.dump({"lib_config" => lib_config}),
+    apply_rc_configs(lib_config.nil? ? [] : [["anything", {"lib_config" => lib_config}]])
+  end
+
+  # Delivers several APM_TRACING configs, each a [config_id, payload] pair.
+  def apply_rc_configs(configs)
+    contents = configs.map do |config_id, payload|
+      Datadog::Core::Remote::Configuration::Content.parse(
+        path: "datadog/1/APM_TRACING/#{config_id}/lib_config",
+        content: JSON.dump(payload),
       )
     end
     remote.merge_and_apply_configs(instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents))
@@ -143,6 +149,55 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
 
           expect(Datadog::DataStreams.enabled?).to be expected
         end
+      end
+    end
+  end
+
+  describe "with several configs targeting this service" do
+    let(:org_config) { ["org", {"lib_config" => {"data_streams_enabled" => true}}] }
+    let(:service_env_config) do
+      [
+        "web-prod",
+        {"service_target" => {"service" => "web", "env" => "prod"}, "lib_config" => {"data_streams_enabled" => false}},
+      ]
+    end
+
+    it "lets the service+env config override the org-wide config, and the org config apply once it is removed" do
+      apply_rc_configs([org_config, service_env_config])
+      expect(Datadog::DataStreams.enabled?).to be false
+
+      apply_rc_configs([org_config])
+
+      expect(Datadog::DataStreams.enabled?).to be true
+    end
+
+    it "ignores a config targeting another service" do
+      other = ["other", {"service_target" => {"service" => "api", "env" => "prod"}, "lib_config" => {"data_streams_enabled" => true}}]
+
+      apply_rc_configs([other])
+
+      expect(Datadog::DataStreams.enabled?).to be false
+    end
+  end
+
+  describe "when the repository becomes empty" do
+    it "reverts to the default" do
+      enable_via_rc
+      apply_rc(nil)
+
+      expect(Datadog::DataStreams.enabled?).to be false
+    end
+
+    context "with DD_DATA_STREAMS_ENABLED=true" do
+      let(:env_value) { "true" }
+
+      it "reverts to the environment value" do
+        disable_via_rc
+        expect(Datadog::DataStreams.enabled?).to be false
+
+        apply_rc(nil)
+
+        expect(Datadog::DataStreams.enabled?).to be true
       end
     end
   end

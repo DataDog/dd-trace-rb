@@ -149,6 +149,9 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::DataStreamsEnabled do
     telemetry_value: true,
     config_object: Datadog.configuration.data_streams
 
+  # Keeps a leftover Components instance from starting a real processor.
+  before { allow(Datadog::Core::Configuration::Components).to receive(:reconfigure_data_streams) }
+
   it "reconfigures the live Data Streams processor" do
     expect(Datadog::Core::Configuration::Components).to receive(:reconfigure_data_streams)
     option.call(true)
