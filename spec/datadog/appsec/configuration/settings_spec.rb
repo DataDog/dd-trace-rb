@@ -99,6 +99,26 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
     end
 
+    describe "#rasp_enabled=" do
+      subject(:set_appsec_rasp_enabled) { settings.appsec.rasp_enabled = appsec_rasp_enabled }
+
+      [true, false].each do |value|
+        context "when given #{value}" do
+          let(:appsec_rasp_enabled) { value }
+
+          before { set_appsec_rasp_enabled }
+
+          it { expect(settings.appsec.rasp_enabled).to eq(value) }
+        end
+      end
+
+      context "when given nil" do
+        let(:appsec_rasp_enabled) { nil }
+
+        it { expect { set_appsec_rasp_enabled }.to raise_error(ArgumentError) }
+      end
+    end
+
     describe "#instrument" do
       let(:registry) { {} }
       let(:integration_name) { :fake }
