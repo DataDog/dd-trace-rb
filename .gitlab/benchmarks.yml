@@ -165,7 +165,7 @@ dsm-throughput:
   trigger:
     include: .gitlab/benchmarks/dsm-throughput.yml
   variables:
-    DD_DISABLE_VPA: true
+    DD_DISABLE_VPA: "true"
   allow_failure: true
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
