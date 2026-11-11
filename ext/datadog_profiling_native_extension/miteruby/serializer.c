@@ -171,7 +171,7 @@ typedef struct {
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
 
-  // Per-profile working state carried from prepare_serialize into prepare_serialize_no_gvl.
+  // Per-profile working state carried from prepare_serialize_with_gvl into serialize_no_gvl.
   uint8_t *interned_events_queue;
   size_t interned_events_pos;
   size_t function_count;
@@ -179,7 +179,7 @@ typedef struct {
   verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
   pb_ostream_t stream; // Backed by uncompressed_serialization_buffer
 
-  // Result metadata retained after prepare_serialize_no_gvl until native_serialize consumes it.
+  // Result metadata retained after serialize_no_gvl until native_serialize consumes it.
   size_t compressed_serialization_size;
   long finish_time_ns;
 } miteruby_serializer_persistent_state_t;
