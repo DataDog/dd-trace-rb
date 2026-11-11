@@ -273,6 +273,7 @@ static VALUE safely_call(
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_raw_events_queue_empty(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self);
+static VALUE _native_miteruby_reset_after_fork(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE serializer_instance);
 static VALUE _native_miteruby_sample_event_publish_mask(DDTRACE_UNUSED VALUE self);
 static VALUE _native_miteruby_sample_event_publish_thread(DDTRACE_UNUSED VALUE self, VALUE thread);
@@ -340,6 +341,7 @@ static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
 static miteruby_raw_events_queue_t *miteruby_raw_events_queue;
+static pid_t miteruby_process_id;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -365,6 +367,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     raise_syserr(error, "Failed to initialize miteruby raw events queue");
   }
   miteruby_consumer_init(miteruby_raw_events_queue);
+  miteruby_process_id = getpid();
 
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
@@ -406,6 +409,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_consumer_consume_loop", _native_miteruby_consumer_consume_loop, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_reset_after_fork", _native_miteruby_reset_after_fork, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_consumer_prepare_serialize", _native_miteruby_consumer_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -1246,6 +1250,29 @@ static VALUE _native_miteruby_raw_events_queue_empty(DDTRACE_UNUSED VALUE self) 
 static VALUE _native_miteruby_consumer_consume_loop(DDTRACE_UNUSED VALUE self) {
   miteruby_consumer_consume_loop(miteruby_raw_events_queue);
   return Qnil;
+}
+
+// Reset in the child before restarting consumption. The before-fork hook joined the consumer,
+// leaving its mutex unlocked, its tables consistent, and no semaphore waiters.
+static VALUE _native_miteruby_reset_after_fork(DDTRACE_UNUSED VALUE self) {
+  pid_t process_id = getpid();
+  if (miteruby_process_id == process_id) return Qfalse;
+
+  sigset_t previous_mask;
+  int error = pthread_sigmask(SIG_BLOCK, sigprof_signal_mask, &previous_mask);
+  if (error != 0) raise_syserr(error, "Failed to block SIGPROF for miteruby fork reset");
+
+  miteruby_raw_events_queue_destroy(miteruby_raw_events_queue);
+  int result = miteruby_raw_events_queue_init(miteruby_raw_events_queue);
+  int init_error = errno;
+
+  error = pthread_sigmask(SIG_SETMASK, &previous_mask, NULL);
+  if (error != 0) raise_syserr(error, "Failed to restore SIGPROF mask after miteruby fork reset");
+  if (result != 0) raise_syserr(init_error, "Failed to initialize miteruby queue after fork");
+
+  miteruby_consumer_reset();
+  miteruby_process_id = process_id;
+  return Qtrue;
 }
 
 static VALUE _native_miteruby_consumer_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE serializer_instance) {

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../core/utils/at_fork_monkey_patch"
+
 module Datadog
   module Profiling
     module Collectors
@@ -15,6 +17,10 @@ module Datadog
         # @rbs @worker_state: WorkerState
         # @rbs @miteruby_serializer: Miteruby::Serializer?
         # @rbs @miteruby_consumer_thread: Thread?
+        # @rbs @miteruby_consumer_enabled: bool
+        # @rbs @miteruby_fork_hooks: Hash[Symbol, Proc]?
+        # @rbs @miteruby_fork_depth: Integer
+        # @rbs @miteruby_pid: Integer
 
         # @rbs gc_profiling_enabled: bool
         # @rbs no_signals_workaround_enabled: bool
@@ -88,6 +94,10 @@ module Datadog
           @worker_state = WorkerState.new
           @miteruby_serializer = miteruby_enabled ? Miteruby::Serializer.new : nil
           @miteruby_consumer_thread = nil
+          @miteruby_consumer_enabled = false
+          @miteruby_fork_hooks = nil
+          @miteruby_fork_depth = 0
+          @miteruby_pid = Process.pid
         end
 
         # @rbs on_failure_proc: (^(?log_failure: bool) -> void)?
@@ -98,6 +108,9 @@ module Datadog
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
+            reset_miteruby_after_fork
+            register_miteruby_fork_hooks
+            @miteruby_consumer_enabled = true if @miteruby_serializer
             @idle_sampling_helper.start(self)
             @miteruby_consumer_thread = create_miteruby_consumer
 
@@ -137,9 +150,12 @@ module Datadog
             Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
             @idle_sampling_helper.stop
-            @miteruby_consumer_thread&.kill
-            @miteruby_consumer_thread&.join
-            @miteruby_consumer_thread = nil
+            @miteruby_consumer_enabled = false
+            stop_miteruby_consumer
+            if (hooks = @miteruby_fork_hooks)
+              hooks.each { |stage, callback| Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, callback) }
+              @miteruby_fork_hooks = nil
+            end
 
             return unless @worker_thread
 
@@ -165,8 +181,14 @@ module Datadog
 
         #: () -> true
         def reset_after_fork
-          @miteruby_serializer&.reset_after_fork
-          self.class._native_reset_after_fork(self)
+          @start_stop_mutex.synchronize do
+            if @miteruby_pid == Process.pid
+              @miteruby_serializer&.reset_after_fork
+            else
+              reset_miteruby_after_fork
+            end
+            self.class._native_reset_after_fork(self)
+          end
         end
 
         #: () -> ::Hash[::Symbol, untyped]
@@ -207,6 +229,56 @@ module Datadog
 
         private
 
+        # @rbs return: void
+        def register_miteruby_fork_hooks
+          return unless @miteruby_serializer
+          return if @miteruby_fork_hooks
+
+          Core::Utils::AtForkMonkeyPatch.apply!
+          @miteruby_fork_hooks = Core::Utils::AtForkMonkeyPatch.at_fork_blocks(
+            before: proc do
+              @start_stop_mutex.synchronize do
+                if @miteruby_fork_depth.zero?
+                  @miteruby_consumer_enabled = @miteruby_consumer_thread&.alive? || false
+                end
+                @miteruby_fork_depth += 1
+                stop_miteruby_consumer
+              end
+            end,
+            parent: proc do
+              @start_stop_mutex.synchronize do
+                @miteruby_fork_depth -= 1
+                @miteruby_consumer_thread = create_miteruby_consumer if @miteruby_consumer_enabled
+              end
+            end,
+            child: proc do
+              @start_stop_mutex.synchronize { reset_miteruby_after_fork }
+            end,
+          )
+        end
+
+        # @rbs return: void
+        def stop_miteruby_consumer
+          @miteruby_consumer_thread&.kill
+          @miteruby_consumer_thread&.join
+          @miteruby_consumer_thread = nil
+        end
+
+        # The profiler's child hook may restart us before our own child hook runs.
+        # @rbs return: void
+        def reset_miteruby_after_fork
+          serializer = @miteruby_serializer
+          return unless serializer
+
+          self.class._native_miteruby_reset_after_fork
+          return if @miteruby_pid == Process.pid
+
+          serializer.reset_after_fork
+          @miteruby_consumer_thread = nil
+          @miteruby_fork_depth = 0
+          @miteruby_pid = Process.pid
+        end
+
         #: () -> Exception?
         def failure_exception
           @worker_state.failure
@@ -215,6 +287,7 @@ module Datadog
         # @rbs return: Thread?
         def create_miteruby_consumer
           return unless @miteruby_serializer
+          return unless @miteruby_fork_depth.zero?
           return @miteruby_consumer_thread if @miteruby_consumer_thread&.alive?
 
           thread_name = "#{self.class.name}::MiterubyConsumer"
