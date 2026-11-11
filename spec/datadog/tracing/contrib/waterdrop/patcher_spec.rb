@@ -83,6 +83,21 @@ RSpec.describe "Waterdrop patcher" do
       end
     end
 
+    context "when DataStreams is disabled" do
+      it "does not track acknowledged messages" do
+        allow(Datadog::DataStreams).to receive(:enabled?).and_return(false)
+        producer = WaterDrop::Producer.new do |config|
+          config.client_class = WaterDrop::Clients::Buffered
+        end
+        expect(Datadog::DataStreams).not_to receive(:track_kafka_produce)
+
+        producer.monitor.instrument(
+          "message.acknowledged",
+          producer_id: producer.id, topic: "orders", partition: 1, offset: 7,
+        )
+      end
+    end
+
     context "when DataStreams is enabled after the producer was configured" do
       let(:producer) do
         WaterDrop::Producer.new do |config|
