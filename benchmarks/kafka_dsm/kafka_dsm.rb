@@ -35,11 +35,15 @@ DEFAULT_COMMIT_EVERY = 100
 # COMMIT_EVERY=1 is the old per-message sync commit, kept as an on-demand
 # diagnostic.
 def commit_every_from_env
-  raw = ENV.fetch("COMMIT_EVERY", DEFAULT_COMMIT_EVERY.to_s)
+  integer_from_env("COMMIT_EVERY", DEFAULT_COMMIT_EVERY, 1)
+end
+
+def integer_from_env(name, default, minimum)
+  raw = ENV.fetch(name, default.to_s)
   # Strict decimal digits: Integer() alone would accept "1_0", " 5" or "+5".
   value = raw.match?(/\A[0-9]+\z/) ? Integer(raw, 10) : nil
-  if value.nil? || value < 1
-    raise ArgumentError, "COMMIT_EVERY must be an integer >= 1, got #{raw.inspect}"
+  if value.nil? || value < minimum
+    raise ArgumentError, "#{name} must be an integer >= #{minimum}, got #{raw.inspect}"
   end
 
   value

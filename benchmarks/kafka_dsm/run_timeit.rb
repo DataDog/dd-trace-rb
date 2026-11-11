@@ -19,9 +19,28 @@
 #         "phase.produce_ms.median": <ms>,
 #         "phase.consume_ms.median": <ms>,
 #         "config.commit_every": <COMMIT_EVERY>
-#       }
+#       },
+#       "name": <EXPERIMENT_NAME>,
+#       "warmUpCount": <WARMUP>,
+#       "count": <COUNT>,
+#       "data": [
+#         {
+#           "status": "Passed",
+#           "metrics": {
+#             "process.internal_duration_ms": <ms>,
+#             "process.corrected_duration_ms": <ms, iteration wall time>,
+#             "runtime.dotnet.mem.committed": <bytes, process RSS>
+#           }
+#         },
+#         ... one per timed iteration
+#       ]
 #     }
 #   ]
+#
+# `data` is for the platform's steps/convert-to-common-format.sh: bp-analyzer's
+# TimeItSharp converter reads only per-iteration values from it, under
+# TimeItSharp's metric names (it maps runtime.dotnet.mem.committed to RSS,
+# whatever the runtime), and fails on a file without it.
 #
 # Duration is produce_ms + consume_ms per iteration (setup/teardown --
 # client construction, group join, close -- excluded); the whole-iteration
@@ -89,11 +108,11 @@ def std_err(values)
 end
 
 def main
-  warmup = Integer(ENV.fetch("WARMUP", "5"))
-  count = Integer(ENV.fetch("COUNT", "25"))
-  output_path = ENV.fetch("TIMEIT_OUTPUT", "results.json")
-  # Validated once up front so a bad value fails before any warmup run.
+  # Validated up front so a bad value fails before any warmup run.
+  warmup = integer_from_env("WARMUP", 5, 0)
+  count = integer_from_env("COUNT", 25, 1)
   commit_every = commit_every_from_env
+  output_path = ENV.fetch("TIMEIT_OUTPUT", "results.json")
 
   process_mem = GetProcessMem.new
   run_id = 0
@@ -140,6 +159,19 @@ def main
         "phase.consume_ms.median" => consume_median,
         "config.commit_every" => commit_every,
       },
+      "name" => ENV.fetch("EXPERIMENT_NAME", "kafka_dsm"),
+      "warmUpCount" => warmup,
+      "count" => count,
+      "data" => durations_ms.each_index.map do |i|
+        {
+          "status" => "Passed",
+          "metrics" => {
+            "process.internal_duration_ms" => durations_ms[i],
+            "process.corrected_duration_ms" => iteration_wall_ms[i],
+            "runtime.dotnet.mem.committed" => rss_bytes[i],
+          },
+        }
+      end,
     },
   ]
 

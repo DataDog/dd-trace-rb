@@ -1,0 +1,5 @@
+# Tracer scenarios: the workload bundle plus the datadog gem of the checkout containing this folder.
+# run.sh derives Gemfile.tracer.lock from Gemfile.lock, so the shared gems keep their locked versions.
+eval_gemfile "Gemfile"
+
+gem "datadog", path: "../.."

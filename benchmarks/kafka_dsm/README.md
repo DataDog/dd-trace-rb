@@ -36,13 +36,17 @@ ruby-kafka specifics:
 - `apm+dsm`: `require "datadog/auto_instrument"`, `DD_DATA_STREAMS_ENABLED=true`. File/topic slug:
   `apm-plus-dsm`.
 
-The `datadog` gem used is always the checkout containing this folder (`path: "../.."` in the
-`Gemfile`), so the script works from any worktree. Bundler doesn't build native extensions for path
-gems, so for the tracer scenarios `run.sh` compiles `ext/libdatadog_api` (DSM needs it) out of tree
-under `tmp/kafka_dsm/` and copies it to `lib/`, before anything is timed. It fails if the extension
-doesn't load, and `run_timeit.rb` fails after warmup if `Datadog::DataStreams.enabled?` doesn't match
-`DD_DATA_STREAMS_ENABLED`. `Gemfile.lock` is re-resolved on every run because the baseline bundle
-has no `datadog` gem.
+The workload gems are pinned in `Gemfile` and locked in `Gemfile.lock`, installed frozen. The tracer
+scenarios use `Gemfile.tracer`, which adds the `datadog` gem of the checkout containing this folder
+(`path: "../.."`), so the script works from any worktree. Its lockfile follows the checkout, so
+`run.sh` derives `Gemfile.tracer.lock` from `Gemfile.lock` on each run and fails if any shared gem
+version changed.
+
+Bundler doesn't build native extensions for path gems, so for the tracer scenarios `run.sh` compiles
+`ext/libdatadog_api` (DSM needs it) out of tree under `tmp/kafka_dsm/` and copies it to `lib/`,
+before anything is timed. It fails if `extconf.rb` skips the build or the extension doesn't load,
+and `run_timeit.rb` fails after warmup if `Datadog::DataStreams.enabled?` doesn't match
+`DD_DATA_STREAMS_ENABLED`.
 
 Requires Ruby with headers and a C toolchain, Kafka on `localhost:9092` and an endpoint that accepts
 the tracer's payloads, such as a Datadog Agent or a mock agent (`DD_TRACE_AGENT_URL`, default
@@ -54,10 +58,11 @@ the tracer's payloads, such as a Datadog Agent or a mock agent (`DD_TRACE_AGENT_
 |---|---|---|
 | `COMMIT_EVERY` | 100 | sync commit every N messages; integer >= 1 |
 | `NUM_THREADS` | 1 | 1 thread is the canonical setup |
-| `WARMUP` / `COUNT` | 5 / 25 | discarded / timed iterations |
+| `WARMUP` / `COUNT` | 5 / 25 | discarded / timed iterations (`WARMUP` >= 0, `COUNT` >= 1) |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | |
 | `KAFKA_TOPIC` | `benchmark-topic-ruby-<scenario-slug>-<slug>` | base name; run id and iteration are appended |
 | `OUT_DIR` | `out/` in this folder | default directory for the output below |
+| `EXPERIMENT_NAME` | `<scenario-slug>` | `name` in the result JSON |
 | `TIMEIT_OUTPUT` | `$OUT_DIR/ruby-<slug>.<scenario-slug>.json` | result JSON (see below) |
 
 CI: `.gitlab/benchmarks/dsm-throughput.yml` runs this on benchmarking-platform branch
@@ -73,7 +78,14 @@ elsewhere).
   "process.internal_duration_ms.median": <ms>, "process.internal_duration_ms.std_err": <ms>,
   "process.rss_bytes.median": <bytes>, "phase.produce_ms.median": <ms>,
   "phase.consume_ms.median": <ms>, "config.commit_every": <int>,
-  "process.iteration_wall_ms.median": <ms, whole iteration incl. setup/teardown, context only>}}]
+  "process.iteration_wall_ms.median": <ms, whole iteration incl. setup/teardown, context only>},
+  "name": <EXPERIMENT_NAME>, "warmUpCount": <WARMUP>, "count": <COUNT>,
+  "data": [{"status": "Passed", "metrics": {"process.internal_duration_ms": <ms>,
+    "process.corrected_duration_ms": <ms, iteration wall>, "runtime.dotnet.mem.committed": <RSS bytes>}},
+    ... one per timed iteration]}]
 ```
+
+`data` feeds the benchmarking-platform's TimeItSharp converter, which expects TimeItSharp's metric
+names (it maps `runtime.dotnet.mem.committed` to RSS for every runtime).
 
 RSS is the current RSS (`get_process_mem` gem).
