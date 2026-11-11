@@ -90,13 +90,13 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
     it "stops the processor, flushes it and releases its thread when remote config disables it" do
       enable_via_rc
       running = processor
-      running.set_produce_checkpoint(type: "kafka", destination: "orders")
+      expect(running).to receive(:stop).with(true).ordered.and_call_original
+      expect(running).to receive(:flush).ordered.and_call_original
 
       disable_via_rc
 
       expect(Datadog::DataStreams.enabled?).to be false
       expect(running.running?).to be false
-      expect(a_request(:post, %r{/v0.1/pipeline_stats})).to have_been_made
     end
 
     it "falls back to the environment value when the remote config key is removed" do
