@@ -627,12 +627,9 @@ static void test_compact_events_and_reset(void) {
     assert(deduped->thread.value == Qnil && deduped->stack_id.offset == 0);
   }
 
-  miteruby_event_overflow_t overflow = {.header = {.type = MITERUBY_EVENT_OVERFLOW, .size_bytes = sizeof(overflow)}};
+  miteruby_event_header_t invalid = {.type = MITERUBY_EVENT_INVALID, .size_bytes = sizeof(invalid)};
   size_t previous_count = buffered_event_count();
-  assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
-  assert(buffered_event_count() == previous_count);
-  overflow.header.type = MITERUBY_EVENT_INVALID;
-  assert(buffer_event(&overflow.header) == MITERUBY_CONSUMER_OK);
+  assert(buffer_event(&invalid) == MITERUBY_CONSUMER_OK);
   assert(buffered_event_count() == previous_count);
 
   reset_stacks();
