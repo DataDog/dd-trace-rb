@@ -400,8 +400,16 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
   mutex_lock(&consumer_state.mutex);
+
+  // This part of the work is done while holding the consumer lock so the consumer background thread is stopped...
   rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
-  RB_GC_GUARD(serializer_instance);
+
+  // ...`prepare_serialize_ensure` releases the lock as its last step so if we got here, the consumer background thread is free to continue.
+  // The current thread (handling the serialization) will now release the GVL and do the rest of the serialization work without GVL.
+  miteruby_serializer_exit_reason_t result = miteruby_serializer_serialize_no_gvl(serializer_instance);
+
+  // Once we get here, we've re-acquired the GVL and can check if everything is OK or there was a failure and we need to raise.
+  miteruby_serializer_raise_if_failed(result);
 }
 
 static VALUE prepare_serialize_locked(VALUE serializer_instance) {

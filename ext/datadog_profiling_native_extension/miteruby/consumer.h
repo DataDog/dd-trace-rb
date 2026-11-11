@@ -40,5 +40,5 @@ void miteruby_consumer_stats(VALUE stats_as_hash);
 // Storage exhaustion raises after reacquiring the GVL.
 void miteruby_consumer_consume_loop(miteruby_raw_events_queue_t *raw_events_queue);
 
-// Requires the main ractor's GVL throughout; may allocate and raise while holding the consumer mutex.
+// Requires the main ractor's GVL on entry; releases the consumer mutex before finishing serialization without the GVL.
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance);
