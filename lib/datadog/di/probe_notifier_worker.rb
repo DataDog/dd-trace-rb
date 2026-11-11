@@ -16,7 +16,8 @@ module Datadog
     # events to the agent.
     #
     # The worker groups the data to send into batches. The goal is to perform
-    # no more than one network operation per event type per second.
+    # no more than one network operation per event type per second, except
+    # on shutdown, when pending submissions are sent immediately.
     # There is also a limit on the length of the sending queue to prevent
     # it from growing without bounds if upstream code generates an enormous
     # number of events for some reason.
