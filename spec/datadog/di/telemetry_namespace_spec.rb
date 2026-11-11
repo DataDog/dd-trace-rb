@@ -10,7 +10,7 @@ RSpec.describe "DI telemetry namespace under direct requires" do
   # chains would stay hidden in this already-loaded process. Fails on a
   # non-zero exit status and returns the captured output.
   def run_direct_require_script(script)
-    out, status = Open3.capture2e("ruby", stdin_data: script)
+    out, status = Open3.capture2e(RbConfig.ruby, stdin_data: script)
     unless status.exitstatus == 0
       fail("Direct-require script failed with exit status #{status.exitstatus}:\n#{out}")
     end

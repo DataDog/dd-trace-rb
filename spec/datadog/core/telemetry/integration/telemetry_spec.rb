@@ -699,17 +699,20 @@ RSpec.describe "Telemetry integration tests" do
       # Components#startup! reaches Datadog::DI.activate_tracking — which
       # is loaded only from datadog/di/boot.rb under
       # RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' (see lib/datadog.rb).
-      # On Ruby 2.5 the method is undefined; "DI fully enabled" is itself
-      # a state that cannot exist on Ruby 2.5 in production (DI requires
-      # MRI 2.6+). Matches the existing pattern at
-      # spec/datadog/core/configuration/components_spec.rb:797.
+      # On Ruby 2.5 and on JRuby the method is undefined; "DI fully enabled"
+      # is itself a state that cannot exist there in production (DI
+      # requires MRI 2.6+).
       #
-      # before(:all), not before(:each): the outer `before do` block at
-      # line 570 runs Datadog.configure, which reaches DI.activate_tracking
-      # before any inner before(:each) hook fires. before(:all) runs ahead
-      # of all before(:each) hooks in the group, so the skip lands before
-      # the crash.
-      before(:all) { skip "requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)" if RUBY_VERSION < "2.6" }
+      # before(:all), not before(:each): the outer `before do` block that
+      # runs Datadog.configure reaches DI.activate_tracking before any
+      # inner before(:each) hook fires. before(:all) runs ahead of all
+      # before(:each) hooks in the group, so the skip lands before the
+      # crash.
+      before(:all) do
+        if RUBY_VERSION < "2.6" || PlatformHelpers.jruby?
+          skip "requires MRI Ruby >= 2.6 (DI.activate_tracking is loaded only there)"
+        end
+      end
 
       let(:product_mock_setup) do
         # DI requires a C extension and MRI Ruby 2.6+, which are not

@@ -53,7 +53,7 @@ class InstrumentationIntegrationTestClass
     end # line 53
   end
 
-  # padding
+  attr_writer :deep_data
   # padding
   # padding
   # padding

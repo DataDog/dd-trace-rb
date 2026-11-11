@@ -64,7 +64,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       tracker.start
       # Should still be empty here.
       expect(tracker.send(:registry)).to be_empty
-      require_relative "code_tracker_require_class"
+      require_again(File.expand_path("code_tracker_require_class.rb", __dir__))
       expect(tracker.send(:registry).length).to eq(1)
 
       path = tracker.send(:registry).to_a.dig(0, 0)
@@ -117,7 +117,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         expect(tracker.send(:registry)).to be_empty
         tracker.start
 
-        require_relative "code_tracker_test_class_4"
+        require_again(File.expand_path("code_tracker_test_class_4.rb", __dir__))
         expect(tracker.send(:registry).length).to eq(1)
         path = tracker.send(:registry).to_a.dig(0, 0)
         expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
@@ -131,11 +131,6 @@ RSpec.describe Datadog::DI::CodeTracker do
           expect(tracker.send(:registry).length).to eq(2)
           path = tracker.send(:registry).to_a.dig(1, 0)
           expect(File.basename(path)).to eq("code_tracker_test_class_5.rb")
-        end
-
-        begin
-          Process.waitpid
-        rescue Errno::ECHILD
         end
 
         # Verify parent did not change
@@ -189,7 +184,7 @@ RSpec.describe Datadog::DI::CodeTracker do
             expect(path).to start_with("/")
             expect(File.basename(path)).to eq("code_tracker_pending_require.rb")
           end
-          require_relative "code_tracker_pending_require"
+          require_again(File.expand_path("code_tracker_pending_require.rb", __dir__))
         end
       end
 

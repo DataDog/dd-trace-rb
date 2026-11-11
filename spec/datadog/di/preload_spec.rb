@@ -43,7 +43,7 @@ RSpec.describe "DI initializer" do
 
   context "when loaded initially into a clean process" do
     it "loads only DI code tracker" do
-      out, status = Open3.capture2e("ruby", stdin_data: BOOTSTRAP_SCRIPT)
+      out, status = Open3.capture2e(RbConfig.ruby, stdin_data: BOOTSTRAP_SCRIPT)
       unless status.exitstatus == 0
         fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
       end
@@ -66,7 +66,7 @@ RSpec.describe "DI initializer" do
           raise "Expected Datadog::Tracing to be defined after datadog was loaded"
         end
       SCRIPT
-      out, status = Open3.capture2e("ruby", stdin_data: script)
+      out, status = Open3.capture2e(RbConfig.ruby, stdin_data: script)
       unless status.exitstatus == 0
         fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
       end

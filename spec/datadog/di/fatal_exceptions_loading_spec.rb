@@ -24,7 +24,7 @@ RSpec.describe "DI fatal_exceptions availability when loaded standalone" do
           raise "reraise_if_fatal undefined after requiring #{file}"
         end
       SCRIPT
-      out, status = Open3.capture2e("ruby", stdin_data: script)
+      out, status = Open3.capture2e(RbConfig.ruby, stdin_data: script)
       expect(status.exitstatus).to eq(0), "subprocess failed for #{file}: #{out}"
     end
   end

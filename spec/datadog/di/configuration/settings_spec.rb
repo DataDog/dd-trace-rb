@@ -32,8 +32,6 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         value = value_.freeze
 
         context "when #{name} set to #{value}" do
-          let(:value) { _value }
-
           let(:scope) do
             if scope_name
               settings.dynamic_instrumentation.public_send(scope_name)
@@ -234,17 +232,19 @@ RSpec.describe Datadog::DI::Configuration::Settings do
 
     context "when the canonical name is set alongside an invalid legacy name" do
       ["abc", "-5"].each do |legacy_value|
-        around do |example|
-          ClimateControl.modify(
-            "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => legacy_value,
-            "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "300",
-          ) do
-            example.run
+        context "with legacy value #{legacy_value}" do
+          around do |example|
+            ClimateControl.modify(
+              "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE" => legacy_value,
+              "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS" => "300",
+            ) do
+              example.run
+            end
           end
-        end
 
-        it "resolves the canonical value without raising for the legacy value #{legacy_value}" do
-          expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+          it "resolves the canonical value without raising for the legacy value" do
+            expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
+          end
         end
       end
     end
@@ -303,6 +303,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         expect(settings.dynamic_instrumentation.max_time_to_serialize_ms).to eq 300
       end
     end
+
     context "max_time_to_evaluate_ms validation" do
       it "accepts zero as a valid exhausted-budget sentinel" do
         settings.dynamic_instrumentation.max_time_to_evaluate_ms = 0

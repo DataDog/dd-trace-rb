@@ -424,13 +424,12 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       it "is invoked" do
-        expect(manager).to receive(:install_pending_method_probes) do |cls|
-          expect(cls).to be_a(Class)
-          expect(cls.name).to eq "ProbeManagerSpecTestClass"
-        end
+        allow(manager).to receive(:install_pending_method_probes)
 
         manager.reopen
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+
+        expect(manager).to have_received(:install_pending_method_probes).with(ProbeManagerSpecTestClass)
       end
     end
   end

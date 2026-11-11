@@ -15,5 +15,5 @@ class HookLineTargetedTestClass
 end
 
 unless (actual = File.read(__FILE__).count("\n")) == 19
-  raise "Wrong number of lines in hook_line_targeted.rb: actual #{actual}, expected 9"
+  raise "Wrong number of lines in hook_line_targeted.rb: actual #{actual}, expected 19"
 end

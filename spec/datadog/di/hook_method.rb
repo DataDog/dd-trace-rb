@@ -77,7 +77,7 @@ end
 
 class YieldingMethodMissingHookTestClass
   # only here to stop standard complaints
-  def respond_to_missing?(name)
+  def respond_to_missing?(_name, _include_private = false)
     true
   end
 

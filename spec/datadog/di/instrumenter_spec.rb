@@ -844,12 +844,6 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context "when hooking two identical but different probes" do
-      include_context "with code tracking"
-
-      before do
-        load File.join(File.dirname(__FILE__), "hook_line_recursive.rb")
-      end
-
       let(:probe) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
           type_name: "HookTestClass", method_name: "hook_test_method",
@@ -1175,12 +1169,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     context "when method is infinitely recursive" do
       context "non-enriched probe" do
+        # The rate limit keeps the probe from building a snapshot on every
+        # recursion level before the stack is exhausted.
         let(:probe) do
-          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "recursive",
-            id: 1, type: :log)
+          Datadog::DI::Probe.new(type_name: "HookTestClass", method_name: "infinitely_recursive",
+            id: 1, type: :log, rate_limit: 1)
         end
 
-        it "does not invoke callback" do
+        it "invokes the callback once with the SystemStackError" do
           hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -1189,9 +1185,8 @@ RSpec.describe Datadog::DI::Instrumenter do
             HookTestClass.new.infinitely_recursive
           end.to raise_error(SystemStackError)
 
-          # TODO when method instrumentation is redone with trace points,
-          # the callback should be invoked.
-          expect(observed_calls).to eq []
+          expect(observed_calls.length).to eq 1
+          expect(observed_calls.first.exception).to be_a(SystemStackError)
         end
       end
     end
