@@ -15,6 +15,20 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+static int munmap_error;
+
+static int test_munmap(void *address, size_t length) {
+  if (munmap_error != 0) {
+    errno = munmap_error;
+    return -1;
+  }
+  return munmap(address, length);
+}
+
+#define munmap test_munmap
+#include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.c"
+#undef munmap
+
 #ifdef __linux__
 static void test_mapping_name(const char *name, const char *expected_name) {
   void *allocation = miteruby_allocator_alloc(32, name);
@@ -90,6 +104,27 @@ static void test_free_evaluates_storage_once(void) {
   assert(index == 2);
   assert(allocations[1] == NULL);
   assert(miteruby_allocator_requested_bytes() == 0);
+}
+
+static void test_free_with_enomem(void) {
+  size_t before = miteruby_allocator_requested_bytes();
+  unsigned char *allocation = miteruby_allocator_alloc(32, "test");
+  assert(allocation != NULL);
+  unsigned char *retained_allocation = allocation;
+
+  munmap_error = ENOMEM;
+  miteruby_allocator_free(&allocation);
+  munmap_error = 0;
+
+  assert(allocation == NULL);
+  assert(miteruby_allocator_requested_bytes() == before + 32);
+  assert(miteruby_allocator_alloc_size(retained_allocation) == 32);
+  miteruby_allocator_free(&allocation);
+  assert(miteruby_allocator_requested_bytes() == before + 32);
+
+  miteruby_allocator_free(&retained_allocation);
+  assert(retained_allocation == NULL);
+  assert(miteruby_allocator_requested_bytes() == before);
 }
 
 static void test_accounting(void) {
@@ -204,6 +239,7 @@ int main(int argc, char **argv) {
   assert(miteruby_allocator_alloc_size(NULL) == 0);
 
   test_free_evaluates_storage_once();
+  test_free_with_enomem();
   test_accounting();
   test_concurrent_accounting();
 
