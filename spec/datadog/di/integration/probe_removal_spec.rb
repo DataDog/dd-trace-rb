@@ -123,6 +123,15 @@ RSpec.describe "DI probe removal via remote config" do
     expect(input_transport).to have_received(:send_input).at_least(:once)
   end
 
+  it "delivers a snapshot queued when the component shuts down" do
+    install_probe
+
+    ProbeRemovalSpecTargetClass.new.target_method
+    component.shutdown!
+
+    expect(input_transport).to have_received(:send_input).at_least(:once)
+  end
+
   it "stops capturing snapshots after the probe is removed" do
     install_probe
     remove_probe
