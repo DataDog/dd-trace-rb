@@ -5,7 +5,7 @@ module Datadog
       class CpuAndWallTimeWorker
         def self._native_initialize: (
           self_instance: CpuAndWallTimeWorker,
-          thread_context_collector: ThreadContext,
+          thread_context_collector: ThreadContext?,
           gc_profiling_enabled: bool,
           idle_sampling_helper: IdleSamplingHelper,
           no_signals_workaround_enabled: bool,
