@@ -165,7 +165,7 @@ static void consumer_mark(void *data) {
   // (Holding the consumer mutex while blocking production is safe: publishers never acquire it, and queue marking
   // masks SIGPROF before taking the producer lock.)
   //
-  // Every VALUE held by miteruby is protected by the queue, thread set, or frame-reference array; other buffers hold copies.
+  // Every VALUE held by the consumer is protected by the queue, thread set, or frame-reference array; other buffers hold copies.
   miteruby_raw_events_queue_mark(state->raw_events_queue);
 
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
@@ -455,8 +455,7 @@ static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 static void reset_serialization_metadata(void) {
-  // Preparation has finished or failed; no later phase may dereference these Ruby objects (threads, frames)
-  // The serializer's remaining thread VALUEs are opaque lookup keys and need no GC protection.
+  // Frames are no longer dereferenced after preparation; retained threads are marked by the serializer.
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
   consumer_state.mark_frame_array.count = 0;
 
