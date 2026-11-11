@@ -33,7 +33,7 @@ static void test_mark_locations(const VALUE *start, const VALUE *end) {
 }
 
 void miteruby_raw_events_queue_mark(miteruby_raw_events_queue_t *raw_events_queue) {
-  assert(testing_consumer_mark && raw_events_queue == NULL);
+  assert(testing_consumer_mark && raw_events_queue == consumer_state.raw_events_queue);
 }
 
 typedef union {
@@ -115,6 +115,7 @@ static void assert_allocation_accounting(void) {
   assert(consumer_state.location_array.count == verstable_location_set_size(&consumer_state.location_set));
   assert(consumer_state.mark_frame_array.count == verstable_mark_frame_set_size(&consumer_state.mark_frame_set));
   assert(miteruby_allocator_requested_bytes() ==
+    miteruby_allocator_alloc_size(consumer_state.raw_events_queue) +
     miteruby_allocator_alloc_size(consumer_state.mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(consumer_state.mark_frame_set.buckets) +
     miteruby_allocator_alloc_size(consumer_state.mark_frame_array.entries) +
@@ -122,12 +123,12 @@ static void assert_allocation_accounting(void) {
     miteruby_allocator_alloc_size(consumer_state.location_array.entries) +
     miteruby_allocator_alloc_size(stack_dedup_state.unique_stacks.buckets) +
     miteruby_allocator_alloc_size(consumer_state.interned_events_queue));
-  assert(consumer_size(&consumer_state) == sizeof(consumer_state) + sizeof(*consumer_state.raw_events_queue) +
+  assert(consumer_size(&consumer_state) == sizeof(consumer_state) +
     sizeof(stack_dedup_state.unique_stacks) + miteruby_allocator_requested_bytes());
 }
 
 static VALUE initialize_consumer(DDTRACE_UNUSED VALUE unused) {
-  miteruby_consumer_init(NULL);
+  miteruby_consumer_init();
   return Qnil;
 }
 
@@ -1221,6 +1222,8 @@ int main(int argc, char **argv) {
   miteruby_allocator_free(consumer_state.interned_events_queue);
   miteruby_allocator_free(consumer_state.mark_frame_array.entries);
   miteruby_allocator_free(consumer_state.location_array.entries);
+  miteruby_raw_events_queue_destroy(consumer_state.raw_events_queue);
+  miteruby_allocator_free(consumer_state.raw_events_queue);
   assert(miteruby_allocator_requested_bytes() == 0);
   mtx_destroy(&consumer_state.mutex);
   puts("Miteruby consumer tests passed");
