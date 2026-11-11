@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6644",
+  "message": "Fix the Rails integration replacing `service_name`, `middleware_names`, `distributed_tracing` and `request_queuing` set on the Rack integration when they are not set on the Rails integration."
+}
