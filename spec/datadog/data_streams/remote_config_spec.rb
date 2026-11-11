@@ -224,14 +224,12 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
   end
 
   describe "forking" do
-    it "restarts the flush thread of a processor started by remote config" do
+    it "keeps the flush thread of a processor started by remote config running in the child" do
       skip "Fork not supported on current platform" unless Process.respond_to?(:fork)
 
       enable_via_rc
 
       expect_in_fork do
-        expect(processor.running?).to be false
-
         Datadog.send(:components).after_fork
 
         expect(processor.running?).to be true
