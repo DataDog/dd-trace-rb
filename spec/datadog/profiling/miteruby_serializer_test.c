@@ -1,11 +1,46 @@
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
+#include "../../../ext/datadog_profiling_native_extension/ruby_helpers.h"
 #include <stdbool.h>
 #include <ruby.h>
+#include <ruby/thread.h>
+#include <threads.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#undef NDEBUG
+#include <assert.h>
 
 static bool fail_allocations;
 static bool fail_string_allocation;
 static bool fail_preparation_encoding;
+static enum { NO_GATE, GATE_BEFORE, GATE_DURING } no_gvl_mode;
+static mtx_t gate_mutex;
+static cnd_t gate_condition;
+static bool gate_entered, gate_released;
+
+static void *pause_no_gvl(void *unused) {
+  assert(!ruby_thread_has_gvl_p());
+  assert(mtx_lock(&gate_mutex) == thrd_success);
+  gate_entered = true;
+  assert(cnd_broadcast(&gate_condition) == thrd_success);
+  while (!gate_released) assert(cnd_wait(&gate_condition, &gate_mutex) == thrd_success);
+  assert(mtx_unlock(&gate_mutex) == thrd_success);
+  return NULL;
+}
+
+static void *wait_for_no_gvl(void *unused) {
+  assert(mtx_lock(&gate_mutex) == thrd_success);
+  while (!gate_entered) assert(cnd_wait(&gate_condition, &gate_mutex) == thrd_success);
+  assert(mtx_unlock(&gate_mutex) == thrd_success);
+  return NULL;
+}
+
+static void *test_call_without_gvl(void *(*callback)(void *), void *args, rb_unblock_function_t *ubf, void *ubf_args) {
+  // Leave the interruption pending so the real call handles it before starting serialization.
+  if (no_gvl_mode == GATE_BEFORE) rb_thread_call_without_gvl2(pause_no_gvl, NULL, ubf, ubf_args);
+  return rb_thread_call_without_gvl(callback, args, ubf, ubf_args);
+}
 
 static void *test_allocator_alloc(size_t size, const char *name) {
   return fail_allocations ? NULL : miteruby_allocator_alloc(size, name);
@@ -18,6 +53,7 @@ static VALUE test_str_new(const char *bytes, long size) {
 
 static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct) {
   if (fail_preparation_encoding) rb_raise(rb_eRuntimeError, "Interrupted preparation");
+  if (no_gvl_mode == GATE_DURING && !ruby_thread_has_gvl_p()) pause_no_gvl(NULL);
   return pb_encode(stream, fields, src_struct);
 }
 
@@ -25,13 +61,12 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
 #define rb_str_new test_str_new
 #define miteruby_allocator_alloc test_allocator_alloc
 #define pb_encode test_pb_encode
+#define rb_thread_call_without_gvl test_call_without_gvl
 #include "../../../ext/datadog_profiling_native_extension/miteruby/serializer.c"
+#undef rb_thread_call_without_gvl
 #undef pb_encode
 #undef miteruby_allocator_alloc
 #undef rb_str_new
-
-#undef NDEBUG
-#include <assert.h>
 
 static void test_sample_values(void) {
   verstable_serializer_thread_contexts_map contexts;
@@ -240,6 +275,9 @@ static void test_working_status(void) {
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
   assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  assert(state->interned_events_queue == queue);
+  assert(state->status == SERIALIZER_NO_GVL);
+  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == NULL);
   assert(state->status == SERIALIZER_FINISHED);
   assert(miteruby_allocator_alloc_size(state->compressed_serialization_buffer) == MAX_COMPRESSED_BUFFER_BYTES);
@@ -268,7 +306,8 @@ static void test_missing_thread_context(void) {
   };
   assert(miteruby_serializer_prepare_serialize(
     serializer, (uint8_t *)event, sizeof(*event), &frames, &locations, &threads
-  ) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
+  ) == MITERUBY_SERIALIZER_OK);
+  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
   assert(verstable_serializer_thread_contexts_map_size(&state->thread_contexts) == 0);
   assert(state->thread_contexts.buckets == NULL);
   assert(state->status == SERIALIZER_EMPTY);
@@ -278,7 +317,7 @@ static void test_missing_thread_context(void) {
   RB_GC_GUARD(serializer);
 }
 
-static VALUE prepare_empty_profile(VALUE serializer) {
+static VALUE prepare_empty_profile_with_gvl(VALUE serializer) {
   miteruby_mark_frame_array_t frames = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
@@ -290,8 +329,109 @@ static VALUE prepare_empty_profile(VALUE serializer) {
   return Qnil;
 }
 
+static VALUE prepare_empty_profile(VALUE serializer) {
+  prepare_empty_profile_with_gvl(serializer);
+  assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
+  return Qnil;
+}
+
 static VALUE profile_from_custom(VALUE klass, VALUE start, VALUE finish, VALUE bytes) {
   return bytes;
+}
+
+static VALUE finish_profile_thread(void *serializer) {
+  miteruby_consumer_prepare_serialize((VALUE)serializer);
+  return INT2FIX(MITERUBY_SERIALIZER_OK);
+}
+
+static VALUE thread_value(VALUE thread) {
+  return rb_funcall(thread, rb_intern("value"), 0);
+}
+
+static void test_no_gvl_completion(void) {
+  enum { SUCCESS, RAISE_DURING, KILL_DURING, RAISE_BEFORE, KILL_BEFORE };
+  assert(mtx_init(&gate_mutex, mtx_plain) == thrd_success);
+  assert(cnd_init(&gate_condition) == thrd_success);
+  static miteruby_raw_events_queue_t raw_events_queue;
+  assert(miteruby_raw_events_queue_init(&raw_events_queue) == 0);
+  miteruby_consumer_init(&raw_events_queue);
+  miteruby_consumer_reset();
+  VALUE serializer = serializer_new(rb_cObject);
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  size_t idle_bytes = miteruby_allocator_requested_bytes();
+
+  for (int scenario = SUCCESS; scenario <= KILL_BEFORE; scenario++) {
+    no_gvl_mode = scenario >= RAISE_BEFORE ? GATE_BEFORE : GATE_DURING;
+    gate_entered = gate_released = false;
+    VALUE worker = rb_thread_create(finish_profile_thread, (void *)serializer);
+    rb_funcall(worker, rb_intern("report_on_exception="), 1, Qfalse);
+    rb_thread_call_without_gvl(wait_for_no_gvl, NULL, NULL, NULL);
+    assert(state->status == SERIALIZER_NO_GVL);
+    assert(state->interned_events_queue != NULL);
+    miteruby_consumer_reset();
+    VALUE stats = rb_hash_new();
+    miteruby_consumer_stats(stats);
+    assert(NUM2SIZET(rb_hash_aref(stats, ID2SYM(rb_intern("miteruby_interned_events_queue_used_size_bytes")))) == 0);
+    int error = 0;
+    rb_protect(check_available, serializer, &error);
+    assert(error != 0);
+    rb_set_errinfo(Qnil);
+    rb_protect(serialize_working_profile, serializer, &error);
+    assert(error != 0);
+    rb_set_errinfo(Qnil);
+
+    if (scenario == SUCCESS) {
+      rb_gc_start();
+      if (rb_respond_to(rb_mGC, rb_intern("verify_compaction_references")))
+        rb_funcall(rb_mGC, rb_intern("verify_compaction_references"), 0);
+      assert(serializer_size(state) > 0);
+      VALUE child = rb_funcall(rb_mProcess, rb_intern("fork"), 0);
+      if (NIL_P(child)) {
+        no_gvl_mode = NO_GATE;
+        native_reset_after_fork(Qnil, serializer);
+        prepare_empty_profile(serializer);
+        native_serialize(Qnil, serializer);
+        _exit(0);
+      }
+      int child_status;
+      assert(waitpid(NUM2INT(child), &child_status, 0) == NUM2INT(child));
+      assert(WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0);
+    } else if (scenario == RAISE_DURING || scenario == RAISE_BEFORE) {
+      rb_funcall(worker, rb_intern("raise"), 1, rb_str_new_cstr("Interrupted serialization"));
+    } else {
+      rb_funcall(worker, rb_intern("kill"), 0);
+    }
+
+    assert(mtx_lock(&gate_mutex) == thrd_success);
+    gate_released = true;
+    assert(cnd_broadcast(&gate_condition) == thrd_success);
+    assert(mtx_unlock(&gate_mutex) == thrd_success);
+    VALUE result = rb_protect(thread_value, worker, &error);
+    no_gvl_mode = NO_GATE;
+    if (scenario == RAISE_DURING || scenario == RAISE_BEFORE) {
+      assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
+      rb_set_errinfo(Qnil);
+    } else {
+      assert(error == 0);
+      assert(result == (scenario == SUCCESS ? INT2FIX(MITERUBY_SERIALIZER_OK) : Qnil));
+    }
+    assert(state->status == (scenario < RAISE_BEFORE ? SERIALIZER_FINISHED : SERIALIZER_EMPTY));
+    assert((state->interned_events_queue == NULL) == (scenario == SUCCESS));
+    miteruby_serializer_check_available(serializer);
+    // GC above can reclaim serializers from earlier tests, so compare allocation counts after it.
+    if (scenario == SUCCESS) idle_bytes = miteruby_allocator_requested_bytes();
+    assert(miteruby_allocator_requested_bytes() == idle_bytes + miteruby_allocator_alloc_size(state->interned_events_queue));
+    if (scenario < RAISE_BEFORE) native_serialize(Qnil, serializer);
+    prepare_empty_profile(serializer);
+    assert(state->interned_events_queue == NULL);
+    assert(miteruby_allocator_requested_bytes() == idle_bytes);
+    native_serialize(Qnil, serializer);
+    RB_GC_GUARD(worker);
+  }
+  cnd_destroy(&gate_condition);
+  mtx_destroy(&gate_mutex);
+  miteruby_raw_events_queue_destroy(&raw_events_queue);
+  RB_GC_GUARD(serializer);
 }
 
 static void test_compressed_buffer_lifecycle(void) {
@@ -372,6 +512,9 @@ int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
+  char program[] = "miteruby-serializer", disable[] = "--disable=gems,rubyopt", eval[] = "-e", script[] = "";
+  char *ruby_args[] = {program, disable, eval, script};
+  assert(ruby_exec_node(ruby_options(4, ruby_args)) == 0);
   VALUE datadog = rb_define_module("Datadog");
   VALUE profiling = rb_define_module_under(datadog, "Profiling");
   VALUE encoded_profile = rb_define_class_under(profiling, "EncodedProfile", rb_cObject);
@@ -382,6 +525,7 @@ int main(int argc, char **argv) {
   test_working_status();
   test_missing_thread_context();
   test_compressed_buffer_lifecycle();
+  test_no_gvl_completion();
   puts("Miteruby serializer tests passed");
   return ruby_cleanup(0);
 }
