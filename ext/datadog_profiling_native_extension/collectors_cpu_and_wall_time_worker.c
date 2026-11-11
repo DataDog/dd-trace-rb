@@ -17,7 +17,6 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
-#include "miteruby/allocator.h"
 #include "miteruby/raw_events_queue.h"
 #include "miteruby/consumer.h"
 #include "miteruby/sample_event.h"
@@ -359,15 +358,7 @@ __thread uint64_t allocation_count = 0;
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
-  miteruby_raw_events_queue = miteruby_allocator_alloc(sizeof(*miteruby_raw_events_queue), "raw_events_queue");
-  if (miteruby_raw_events_queue == NULL) raise_syserr(errno, "Failed to allocate miteruby raw events queue");
-  if (miteruby_raw_events_queue_init(miteruby_raw_events_queue) != 0) {
-    int error = errno;
-    miteruby_allocator_free(miteruby_raw_events_queue);
-    miteruby_raw_events_queue = NULL;
-    raise_syserr(error, "Failed to initialize miteruby raw events queue");
-  }
-  miteruby_consumer_init(miteruby_raw_events_queue);
+  miteruby_raw_events_queue = miteruby_consumer_init();
   miteruby_process_id = getpid();
 
   #ifndef NO_POSTPONED_TRIGGER
