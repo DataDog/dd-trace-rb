@@ -7,8 +7,10 @@
 
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
+#include "../ruby_helpers.h"
 #include "../setup_signal_handler.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -261,9 +263,20 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   for (size_t i = 0; i < sizeof(arguments) / sizeof(*arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
 }
 
-void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
-  if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success)
+miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
+  miteruby_raw_events_queue_t *raw_events_queue = miteruby_allocator_alloc(sizeof(*raw_events_queue), "raw_events_queue");
+  if (raw_events_queue == NULL) raise_syserr(errno, "Failed to allocate miteruby raw events queue");
+  if (miteruby_raw_events_queue_init(raw_events_queue) != 0) {
+    int error = errno;
+    miteruby_allocator_free(raw_events_queue);
+    raise_syserr(error, "Failed to initialize miteruby raw events queue");
+  }
+
+  if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success) {
+    miteruby_raw_events_queue_destroy(raw_events_queue);
+    miteruby_allocator_free(raw_events_queue);
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
+  }
 
   consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
@@ -276,6 +289,8 @@ void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue) {
 
   // TODO: Let all this actually be garbage collected if it's not needed, now it's pinned forever
   rb_gc_register_mark_object(wrapper);
+
+  return raw_events_queue;
 }
 
 void miteruby_consumer_reset(void) {
