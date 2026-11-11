@@ -29,7 +29,7 @@ Profiling costs more than walking a stack: scheduling Ruby work, resolving frame
 | Capture | Signal handler may prepare a stack; schedules a postponed job | Signal handler publishes raw stack + clocks into a ring |
 | Process | Postponed job collects thread samples, resolves frames, records them | Background consumer deduplicates raw stacks without the GVL |
 | Prepare export | Samples already recorded in libdatadog | Resolve frames and emit pprof fragments under the GVL |
-| Encode | Two profile slots allow libdatadog serialization without the GVL | Compress emitted pprof bytes with zstd under the GVL |
+| Encode | Two profile slots allow libdatadog serialization without the GVL | Finish fragment emission and zstd compression without the GVL; preparation also compresses chunks under the GVL |
 | Deliver | Existing exporter and transport | Reuses existing exporter and transport |
 
 **The shift:** less work per sampling interruption, more deferred work and retained state.
@@ -44,12 +44,14 @@ For periodic stack samples, miteruby concentrates VM interaction at capture, GC 
 | --- | --- | --- |
 | Signal arrives | Checks VM state, optionally captures frames, triggers Ruby's postponed-job API | Checks VM state and captures raw frames; publishes without scheduling a postponed job |
 | Between capture and export | Postponed jobs enumerate threads, inspect their state, resolve frames, and read labels under the GVL | Consumer hashes and copies native data; Ruby pointers are opaque IDs, with no Ruby object access |
-| GC runs | Marks references retained in sampling buffers and collector state | Marks and pins references in the ring and retained-object set |
+| GC runs | Marks references retained in sampling buffers and collector state | Marks and pins references in the ring, thread set, and frame array |
 | Export preparation | Frame names and thread labels were resolved during sampling | Reads names, files, lines, and thread labels under the GVL |
 
 **Benefit:** fewer execution contexts need to understand Ruby objects and VM rules.
 
-**Limit:** private VM access still powers stack capture. Symbolication is deferred, currently still per sample; this is not yet feature-equivalent to the existing profiler.
+Names and filenames are resolved once per unique frame, and line numbers once per unique location, within each profile.
+
+**Limit:** private VM access still powers stack capture; this is not yet feature-equivalent to the existing profiler.
 
 ---
 
@@ -70,9 +72,9 @@ CPU time is read at capture, so consumer scheduling delays do not become CPU mea
 ```text
 SIGPROF → raw event → 1 MiB ring → consumer without GVL
                                       ↓
-                              unique stacks + sample IDs
+                         samples with shared, compressed stacks
                                       ↓
-                           export: resolve → record → encode
+                           export: resolve → emit → compress
 ```
 
 - Go-inspired ring: variable-sized records, atomic publication, borrowed reads.
@@ -86,21 +88,28 @@ SIGPROF → raw event → 1 MiB ring → consumer without GVL
 ## 6. Stay safe around GC compaction
 
 - **Hold the GVL whenever accessing Ruby objects.** Signal capture also skips GC: even the GVL owner can be interrupted during compaction.
-- **Always mark and pin tracked objects**, including during transfer from ring to consumer, so they stay alive and cannot move.
+- **Mark and pin objects until export preparation ends**, including during transfer from ring to consumer, so they stay alive and cannot move while Ruby metadata is still needed.
 - **Outside the GVL, use Ruby object pointers only as opaque identifiers.** Native hash tables compare and hash them without dereferencing objects or calling Ruby APIs.
 
 Together, these rules prevent compaction crashes from touching Ruby objects at the wrong time, while keeping background deduplication independent of the GVL.
 
-**Trade-off:** pinning limits compaction, and retained stacks/references currently survive exports until reset. Full consumer storage raises an error; graceful recovery is unfinished.
+Export preparation transfers the interned queue to the serializer and gives the consumer a fresh queue. Once preparation
+finishes or fails, the consumer clears its retained references for that batch and releases its mutex. On success, the serializer then
+finishes without the GVL; its remaining thread values are opaque lookup keys and must never be dereferenced.
+
+**Trade-off:** pinning limits compaction until preparation ends. Failed preparation discards that batch rather than retrying it.
+Full consumer storage raises an error; graceful recovery is unfinished.
 
 ---
 
 ## 7. Memory footprint
 
-**Arena-style storage:** large, contiguous `mmap` regions hold interned events and unique stacks. Events occupy fixed-size slots; stacks append into a byte array, with offsets as IDs.
+**Arena-style storage:** a contiguous `mmap` region holds variable-size interned events. Each new stack's delta-encoded
+location IDs live inline in its first sample; later samples refer to that sample by byte offset and occupy 48 bytes each.
 
 - No individual `malloc`/`free` per event or stack: these regions avoid malloc heap fragmentation and per-record allocator metadata.
-- Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. Event counts and the stack write offset track occupied bytes separately.
+- Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. The interned queue's write offset tracks occupied bytes separately.
+- Frame and location arrays hold interned CME/ISEQ pairs and `(frame_id, bytecode_pos)` pairs; sets map those values to array indices.
 - Native hash-table backing storage uses the same allocator. Linux mapping names help identify these allocations in process memory tools.
 
 **Trade-off:** reserved headroom, alignment padding, and temporary overlap during replacement still cost memory. Accounting covers requested payload bytes, not RSS, page rounding, or allocator headers; Ruby output strings, the profile wrapper, and pinned Ruby objects are additional costs.
@@ -109,17 +118,17 @@ Together, these rules prevent compaction crashes from touching Ruby objects at t
 
 ## 8. Future memory footprint reduction
 
-**Consumed events — currently 40 bytes each:** encode thread IDs and stack IDs compactly, store timestamp/CPU-time deltas, and omit redundant fixed headers. Blocks with absolute starting values allow bounded decoding; unavailable CPU readings need an explicit marker.
+**Interned events — 48 bytes for a repeated stack:** encode thread IDs and stack IDs compactly, store timestamp/CPU-time deltas, and omit redundant fixed headers. Blocks with absolute starting values allow bounded decoding; unavailable CPU readings need an explicit marker.
 
-**Stacks array — currently 18 bytes per frame, plus header/padding:** combine delta compression with nibble packing (4-bit units).
+**Stacks — already stored as delta-encoded location IDs:** explore prefix reuse and alternative encodings.
 
-- Intern CME/ISEQ pairs as compact frame IDs; keep the actual pinned pointers in a separate table.
-- Encode a shared root prefix against a reference stack, followed by changed frames and position deltas.
-- Pack small integer deltas into nibbles, using an escape for larger values and unknown positions. For example, two small codes can share one byte.
+- Encode a shared root prefix against a reference stack, followed by the remaining location IDs.
+- Pack small location-ID deltas into nibbles, using an escape for larger values. For example, two small codes can share one byte.
 
 Do compression in the consumer, keeping signal capture simple. Periodic full stacks or independently decodable blocks limit dependency chains.
 
-**Trade-off:** extra tables and decoding work, more complex stack lookup, and less direct access. Measure net savings and CPU cost; all of these compression ideas remain unimplemented.
+**Trade-off:** prefix reuse and nibble packing would add decoding work and complicate stack lookup. Measure their net savings
+and CPU cost against the existing frame/location interning and ZigZag-varint delta encoding.
 
 ---
 
@@ -127,12 +136,12 @@ Do compression in the consumer, keeping signal capture simple. Periodic full sta
 
 The serializer emits pprof fragments directly from interned events, frame references, and locations using nanopb.
 
-- Resolve function names, filenames, line numbers, and thread labels at export.
-- Compute CPU and wall-time deltas per thread while emitting samples.
-- Compress the emitted bytes with bundled zstd and return them through the existing profile wrapper.
+- Resolve function names, filenames, line numbers, and thread labels under the GVL.
+- Release the consumer mutex and GVL before emitting functions, profile metadata, and samples, including per-thread CPU and wall-time deltas.
+- Batch emitted bytes in a 256 KiB buffer, feeding bundled zstd when more than 128 KiB is used. Finish compression without the GVL and return the result through the existing profile wrapper.
 - Serialization tests check decoded profiles, including timing, labels, GC retention, and truncated stacks.
 
-**Still a prototype:** encoding holds the GVL and uses a full uncompressed buffer; thread timing baselines reset at each export.
+**Still a prototype:** metadata preparation and its compression flushes hold the GVL; thread timing baselines reset at each export.
 
 ---
 

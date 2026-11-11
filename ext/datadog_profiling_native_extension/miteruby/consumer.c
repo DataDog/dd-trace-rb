@@ -382,6 +382,7 @@ static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_con
     if (record.internal_error) return MITERUBY_CONSUMER_RAW_EVENTS_QUEUE_INTERNAL_ERROR;
     if (record.interrupted) return MITERUBY_CONSUMER_INTERRUPTED;
     if (record.end_of_stream) return MITERUBY_CONSUMER_END_OF_STREAM;
+    // TODO: Report sample loss from record.rejected_count; the queue supplies no timestamp for rejected writes.
     if (record.data == NULL) continue;
 
     // The borrowed event stays in queue marking until the next read, after this transfer completes.
@@ -454,10 +455,9 @@ static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 static void reset_serialization_metadata(void) {
+  // Preparation has finished or failed; no later phase may dereference these Ruby objects (threads, frames)
+  // The serializer's remaining thread VALUEs are opaque lookup keys and need no GC protection.
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
-
-  // Important: We can only "wipe" the mark_frame_array once we no longer need to access from Ruby the VALUEs contained. From this moment on
-  // Ruby will be able to GC and move things that were referenced here.
   consumer_state.mark_frame_array.count = 0;
 
   consumer_state.location_array.count = 0;
@@ -504,7 +504,6 @@ static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t locat
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
-  // TODO: Handle overflow and other kinds of events
   if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return MITERUBY_CONSUMER_OK;
 
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
