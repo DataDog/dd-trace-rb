@@ -399,7 +399,6 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
-  miteruby_serializer_check_available(serializer_instance);
   mutex_lock(&consumer_state.mutex);
   rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
   RB_GC_GUARD(serializer_instance);
@@ -416,6 +415,13 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   miteruby_stack_dedup_reset();
   verstable_mark_frame_set_clear(&consumer_state.mark_frame_set);
   verstable_location_set_clear(&consumer_state.location_set);
+
+  // If the serializer is "not available", something went wrong. To avoid accumulating/leaking state, we'll still
+  // discard all of the state of the consumer (it's why we're checking here, after clearing the things above)
+  // + the `prepare_serialize_ensure` will discard the rest.
+  //
+  // Afterwards, the consumer will be able to keep going, as if it had successfully serialized.
+  miteruby_serializer_check_available(serializer_instance);
 
   // The existing interned_events_queue will become owned by the serializer, and the consumer gets a fresh new one
   uint8_t *new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
