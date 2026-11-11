@@ -11,7 +11,6 @@
 
 #include <ruby/thread.h>
 #include <string.h>
-#include <inttypes.h>
 #include <stdio.h>
 
 RUBY_EXTERN unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
@@ -155,6 +154,7 @@ typedef struct {
   uint8_t *uncompressed_serialization_buffer; // Up to 256 KiB
   uint8_t *compressed_serialization_buffer; // Up to 10 MiB; replaced with an empty buffer after serialization
   void *compression_workspace; // From zstd setup, ~1.3 MiB
+  verstable_serializer_thread_contexts_map thread_contexts;
 
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
@@ -163,8 +163,8 @@ typedef struct {
   uint8_t *interned_events_queue;
   size_t interned_events_pos;
   size_t function_count;
+  size_t thread_count;
   ZSTD_CCtx *compression_context; // Backed by compression_workspace
-  verstable_serializer_thread_contexts_map thread_contexts; // TODO: Currently thrown away on every serialization, rather than kept around
   pb_ostream_t stream; // Backed by uncompressed_serialization_buffer
 
   // Result metadata retained after serialize_no_gvl until native_serialize consumes it.
@@ -193,6 +193,19 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   if (exit_reason_ != MITERUBY_SERIALIZER_OK) return exit_reason_; \
 } while (0)
 
+static void serializer_mark(void *data) {
+  miteruby_serializer_persistent_state_t *state = data;
+  // Keep threads valid for is_thread_alive and prevent VALUE reuse from assigning old contexts to new threads.
+  // Non-movable marking also keeps the map's VALUE keys stable during compaction.
+  for (
+    verstable_serializer_thread_contexts_map_itr entry = verstable_serializer_thread_contexts_map_first(&state->thread_contexts);
+    !verstable_serializer_thread_contexts_map_is_end(entry);
+    entry = verstable_serializer_thread_contexts_map_next(entry)
+  ) {
+    rb_gc_mark(entry.data->key);
+  }
+}
+
 static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
   miteruby_allocator_free(state->uncompressed_serialization_buffer);
@@ -214,7 +227,7 @@ static size_t serializer_size(const void *data) {
 
 static const rb_data_type_t serializer_type = {
   .wrap_struct_name = "Datadog::Profiling::Miteruby::Serializer",
-  .function = {.dfree = serializer_free, .dsize = serializer_size},
+  .function = {.dmark = serializer_mark, .dfree = serializer_free, .dsize = serializer_size},
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
@@ -433,13 +446,9 @@ static miteruby_serializer_exit_reason_t emit_thread_name(pb_ostream_t *stream, 
 }
 
 static miteruby_serializer_exit_reason_t emit_thread_id(pb_ostream_t *stream, VALUE thread) {
-  VALUE object_id = rb_obj_id(thread);
-  uint64_t native_thread_id = is_thread_alive(thread) ? native_thread_id_for(thread) : 0;
-  char thread_id[44];
-  snprintf(
-    thread_id, sizeof(thread_id), "%"PRIu64" (%lu)",
-    native_thread_id, (unsigned long) (FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1)
-  );
+  // We don't use native thread ids since for M:N Ruby they will go away
+  char thread_id[21];
+  snprintf(thread_id, sizeof(thread_id), "%llu", NUM2ULL(rb_obj_id(thread)));
   return emit_string_table_entry(stream, thread_id, strlen(thread_id));
 }
 
@@ -528,7 +537,6 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   state->stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
-  verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
 
   miteruby_allocator_free(state->interned_events_queue); // Clear any leftover state, if any
   state->interned_events_queue = interned_events_queue;
@@ -588,6 +596,20 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
     RETURN_IF_ERROR(emit_thread_name(stream, thread));
     RETURN_IF_ERROR(emit_thread_id(stream, thread));
     RETURN_IF_ERROR(flush_if_needed(state));
+  }
+  state->thread_count = verstable_mark_threads_set_size(threads_set);
+
+  for (
+    verstable_serializer_thread_contexts_map_itr entry = verstable_serializer_thread_contexts_map_first(&state->thread_contexts);
+    !verstable_serializer_thread_contexts_map_is_end(entry);
+  ) {
+    VALUE thread = entry.data->key;
+    // Once a thread dies + we have no more samples for it, we can clear it up
+    if (verstable_mark_threads_set_is_end(verstable_mark_threads_set_get(threads_set, thread)) && !is_thread_alive(thread)) {
+      entry = verstable_serializer_thread_contexts_map_erase_itr(&state->thread_contexts, entry);
+    } else {
+      entry = verstable_serializer_thread_contexts_map_next(entry);
+    }
   }
 
   // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
@@ -680,7 +702,7 @@ static miteruby_serializer_exit_reason_t serialize_no_gvl(miteruby_serializer_pe
   uint8_t *interned_events_queue = state->interned_events_queue;
   size_t interned_events_pos = state->interned_events_pos;
   size_t function_count = state->function_count;
-  size_t thread_count = verstable_serializer_thread_contexts_map_size(&state->thread_contexts);
+  size_t thread_count = state->thread_count;
   long finish_time_ns = state->finish_time_ns;
   monotonic_to_system_epoch_state time_converter = MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
@@ -769,6 +791,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   state->status = SERIALIZER_EMPTY;
+  verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
   miteruby_allocator_free(state->interned_events_queue);
   state->interned_events_queue = NULL;
   reset_compressed_buffer(state);
