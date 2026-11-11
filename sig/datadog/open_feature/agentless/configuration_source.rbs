@@ -16,6 +16,12 @@ module Datadog
 
         USAGE_SERVICE_PATTERN: Regexp
 
+        USAGE_SERVICE_INVALID_CHARACTERS: Regexp
+
+        USAGE_SERVICE_INVALID_LEADING_CHARACTERS: Regexp
+
+        USAGE_SERVICE_MAX_LENGTH: 100
+
         include Core::Workers::Polling
         # NOTE: Steep does not infer modules included dynamically by Polling.
         include Core::Workers::Async::Thread
@@ -80,6 +86,10 @@ module Datadog
         private
 
         def self.usage_service: (String? service, Core::Logger logger) -> String?
+
+        def self.normalize_service: (String service) -> String
+
+        def self.valid_utf8: (String value) -> String
 
         def stopped?: () -> bool
 

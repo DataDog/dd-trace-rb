@@ -18,6 +18,9 @@ module Datadog
         RETRY_JITTER = 0.2
         # The only DD-Service format the CDN attributes usage to; it drops any other value.
         USAGE_SERVICE_PATTERN = %r{\A[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}\z}
+        USAGE_SERVICE_INVALID_CHARACTERS = %r{[^a-z0-9_:./-]}
+        USAGE_SERVICE_INVALID_LEADING_CHARACTERS = /\A[^a-z0-9]+/
+        USAGE_SERVICE_MAX_LENGTH = 100
 
         include Core::Workers::Polling
 
@@ -41,19 +44,46 @@ module Datadog
           )
         end
 
-        # The format check also keeps out CR/LF, on which Net::HTTP raises and fails every poll.
+        # Selects the service sent as DD-Service. The name is cleaned up close to how the Agent cleans up span service
+        # names, so `My Service` is attributed as `my_service`, as in APM, instead of being dropped by the CDN. Only this
+        # header value is cleaned up; the tracer's service stays as configured. A name with nothing left once cleaned up
+        # is not sent. Cleaning up also replaces CR/LF, on which Net::HTTP raises and would fail every poll.
         def self.usage_service(service, logger)
-          service = service.to_s
+          service = valid_utf8(service.to_s)
           return if service.strip.empty?
-          return service if USAGE_SERVICE_PATTERN.match?(service)
+
+          cleaned = normalize_service(service)
+          return cleaned if USAGE_SERVICE_PATTERN.match?(cleaned)
 
           logger.debug do
-            "Feature Flags: service #{service.inspect} does not match the format the CDN attributes usage to; " \
+            "Feature Flags: service #{service.inspect} has nothing left the CDN can attribute usage to once cleaned up; " \
               "DD-Service header not sent"
           end
           nil
         end
-        private_class_method :usage_service
+
+        # Lowercases, replaces each character outside [a-z0-9_:./-] (non-ASCII included) with `_`, removes leading
+        # characters outside [a-z0-9], and cuts to 100 characters.
+        def self.normalize_service(service)
+          cleaned = service.downcase
+            .gsub(USAGE_SERVICE_INVALID_CHARACTERS, "_")
+            .sub(USAGE_SERVICE_INVALID_LEADING_CHARACTERS, "")
+          cleaned[0, USAGE_SERVICE_MAX_LENGTH] || cleaned
+        end
+
+        # A UTF-8 copy with `_` for each invalid or unconvertible byte, so cleaning up cannot raise on the input's
+        # encoding.
+        def self.valid_utf8(value)
+          if value.encoding == Encoding::UTF_8
+            value.scrub("_")
+          else
+            value.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
+          end
+        # Raised for an encoding with no converter to UTF-8, such as UTF-7.
+        rescue EncodingError
+          value.b.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
+        end
+        private_class_method :usage_service, :normalize_service, :valid_utf8
 
         def initialize(
           endpoint:,

@@ -167,24 +167,85 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
       end
 
+      # The CDN drops any name outside its format, so the usage would bill without a service.
       [
-        ["101 characters", "a#{"b" * 100}", "\"a#{"b" * 100}\""],
-        ["a leading underscore", "_svc", '"_svc"'],
-        ["a space", "my service", '"my service"'],
-        ["non-ASCII characters", "\u652F\u4ED8", "\u652F\u4ED8".inspect],
-        ["a line feed", "bad\nvalue", '"bad\\nvalue"'],
-      ].each do |description, service, logged_service|
+        ["uppercase letters and a space", "My Service", "my_service"],
+        ["uppercase letters and a dash", "My-API", "my-api"],
+        ["a leading underscore", "_svc", "svc"],
+        ["a line feed", "bad\nvalue", "bad_value"],
+        ["101 characters", "a#{"b" * 100}", "a#{"b" * 99}"],
+        ["invalid UTF-8", "My caf\xFF", "my_caf_"],
+        ["a binary encoding", "My caf\xC3\xA9".b, "my_caf__"],
+        ["a UTF-16 encoding", "My Service".encode(Encoding::UTF_16LE), "my_service"],
+      ].each do |description, service, cleaned|
         context "when the service has #{description}" do
           before { settings.service = service }
 
-          it "does not send DD-Service and logs why once" do
-            message = "Feature Flags: service #{logged_service} does not match the format the CDN attributes usage to; " \
-              "DD-Service header not sent"
+          it "sends it cleaned up on every poll" do
+            2.times { source.poll }
+
+            expect(
+              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => cleaned}),
+            ).to have_been_made.twice
+            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
+          end
+        end
+      end
+
+      [
+        ["only non-ASCII characters", "\u652F\u4ED8"],
+        ["only underscores", "___"],
+      ].each do |description, service|
+        context "when the service has #{description}" do
+          before { settings.service = service }
+
+          it "does not send DD-Service, logs why once and keeps polling" do
+            message = "Feature Flags: service #{service.inspect} has nothing left the CDN can attribute usage to " \
+              "once cleaned up; DD-Service header not sent"
 
             2.times { source.poll }
 
             expect(request_without_service).to have_been_made.twice
             expect(debug_messages.count(message)).to eq(1)
+            expect(logger).not_to have_received(:warn)
+            expect(logger).not_to have_received(:error)
+          end
+        end
+      end
+
+      context "when the service is set with Datadog.configure" do
+        subject(:source) do
+          described_class.build(Datadog.configuration, endpoint: endpoint, apply: apply, logger: logger)
+        end
+
+        before do
+          Datadog.configure do |c|
+            c.api_key = "secret"
+            c.service = service
+          end
+        end
+
+        context "to a name the CDN would drop" do
+          let(:service) { "My Service" }
+
+          it "sends the cleaned-up name and leaves the configured service unchanged" do
+            source.poll
+
+            expect(
+              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => "my_service"}),
+            ).to have_been_made.once
+            expect(Datadog.configuration.service).to eq("My Service")
+          end
+        end
+
+        context "to a name with nothing left once cleaned up" do
+          let(:service) { "\u652F\u4ED8" }
+
+          it "sends the request without DD-Service" do
+            source.poll
+
+            expect(request_without_service).to have_been_made.once
+            expect(Datadog.configuration.service).to eq("\u652F\u4ED8")
           end
         end
       end
