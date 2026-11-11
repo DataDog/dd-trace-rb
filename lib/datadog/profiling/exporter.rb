@@ -93,16 +93,19 @@ module Datadog
         process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
           Core::Environment::Process.serialized : ""
 
+        tags = Datadog::Profiling::TagBuilder.call(
+          settings: Datadog.configuration,
+          profile_seq: sequence_tracker.get_next,
+        )
+        tags["miteruby"] = "true" if pprof_recorder.is_a?(Miteruby::Serializer)
+
         Flush.new(
           start: start,
           finish: finish,
           encoded_profile: encoded_profile,
           code_provenance_data: uncompressed_code_provenance,
           metrics: metrics,
-          tags_as_array: Datadog::Profiling::TagBuilder.call(
-            settings: Datadog.configuration,
-            profile_seq: sequence_tracker.get_next,
-          ).to_a,
+          tags_as_array: tags.to_a,
           process_tags: process_tags,
           internal_metadata: internal_metadata.merge(
             {
