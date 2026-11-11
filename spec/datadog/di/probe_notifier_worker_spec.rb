@@ -237,6 +237,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         worker.start
       end
 
+      let(:sending) { Queue.new }
+      let(:release_send) { Queue.new }
+      after { release_send << true }
+
       it "stops the thread" do
         worker.stop
         expect(worker.send(:thread)).to be nil
@@ -264,8 +268,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it "finishes an in-flight send and drains snapshots queued behind it" do
-        sending = Queue.new
-        release_send = Queue.new
         stopping = Queue.new
         batches = []
         allow(input_transport).to receive(:send_input) do |snapshots, *_args|
@@ -290,14 +292,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         expect(batches).to eq([[{first: true}], [{last: true}]])
         expect(worker.send(:thread)).to be nil
       ensure
-        release_send << true
         stop_thread&.kill
         stop_thread&.join
       end
 
       it "bounds shutdown when a send does not finish" do
-        sending = Queue.new
-        release_send = Queue.new
         allow(input_transport).to receive(:send_input) do
           sending << true
           release_send.pop
@@ -312,8 +311,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         expect(worker_thread.join(2)).to eq(worker_thread)
         expect(worker_thread).not_to be_alive
         expect(worker.send(:thread)).to be nil
-      ensure
-        release_send << true
       end
     end
 
