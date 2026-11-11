@@ -208,10 +208,10 @@ static void serializer_mark(void *data) {
 
 static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
-  miteruby_allocator_free(state->uncompressed_serialization_buffer);
-  miteruby_allocator_free(state->compressed_serialization_buffer);
-  miteruby_allocator_free(state->interned_events_queue);
-  miteruby_allocator_free(state->compression_workspace);
+  miteruby_allocator_free(&state->uncompressed_serialization_buffer);
+  miteruby_allocator_free(&state->compressed_serialization_buffer);
+  miteruby_allocator_free(&state->interned_events_queue);
+  miteruby_allocator_free(&state->compression_workspace);
   verstable_serializer_thread_contexts_map_cleanup(&state->thread_contexts);
   ruby_xfree(state);
 }
@@ -305,7 +305,7 @@ static void reset_compressed_buffer(miteruby_serializer_persistent_state_t *stat
   state->compressed_serialization_size = 0;
   uint8_t *buffer = miteruby_allocator_alloc(MAX_COMPRESSED_BUFFER_BYTES, "compressed_serialization_buffer");
   if (buffer == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.compressed_serialization_buffer");
-  miteruby_allocator_free(state->compressed_serialization_buffer);
+  miteruby_allocator_free(&state->compressed_serialization_buffer);
   state->compressed_serialization_buffer = buffer;
 }
 
@@ -538,7 +538,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
 
-  miteruby_allocator_free(state->interned_events_queue); // Clear any leftover state, if any
+  miteruby_allocator_free(&state->interned_events_queue); // Clear any leftover state, if any
   state->interned_events_queue = interned_events_queue;
   state->interned_events_pos = interned_events_pos;
   miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, frame_array, location_array, threads_set);
@@ -670,8 +670,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE ser
   rb_ensure(release_gvl_and_serialize, (VALUE) &args, serialize_no_gvl_ensure, (VALUE) &args);
 
   // Free and clear under the GVL so the size callback and fork cannot observe a dangling queue pointer.
-  miteruby_allocator_free(state->interned_events_queue);
-  state->interned_events_queue = NULL;
+  miteruby_allocator_free(&state->interned_events_queue);
 
   return args.exit_reason;
 }
@@ -792,8 +791,7 @@ static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serialize
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   state->status = SERIALIZER_EMPTY;
   verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
-  miteruby_allocator_free(state->interned_events_queue);
-  state->interned_events_queue = NULL;
+  miteruby_allocator_free(&state->interned_events_queue);
   reset_compressed_buffer(state);
   state->start_time_ns = system_epoch_time_now_ns();
   state->finish_time_ns = state->start_time_ns;

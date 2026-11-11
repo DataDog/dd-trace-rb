@@ -268,13 +268,13 @@ miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
   if (raw_events_queue == NULL) raise_syserr(errno, "Failed to allocate miteruby raw events queue");
   if (miteruby_raw_events_queue_init(raw_events_queue) != 0) {
     int error = errno;
-    miteruby_allocator_free(raw_events_queue);
+    miteruby_allocator_free(&raw_events_queue);
     raise_syserr(error, "Failed to initialize miteruby raw events queue");
   }
 
   if (mtx_init(&consumer_state.mutex, mtx_plain | mtx_recursive) != thrd_success) {
     miteruby_raw_events_queue_destroy(raw_events_queue);
-    miteruby_allocator_free(raw_events_queue);
+    miteruby_allocator_free(&raw_events_queue);
     rb_raise(rb_eRuntimeError, "Failed to initialize miteruby.mutex");
   }
 
@@ -310,7 +310,7 @@ void miteruby_consumer_reset(void) {
     MARK_FRAME_ARRAY_CAPACITY * sizeof(*new_entries), "mark_frame_array"
   );
   if (new_entries == NULL) {
-    miteruby_allocator_free(new_queue);
+    miteruby_allocator_free(&new_queue);
     mutex_unlock(&consumer_state.mutex);
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.mark_frame_array");
   }
@@ -319,13 +319,13 @@ void miteruby_consumer_reset(void) {
     LOCATION_ARRAY_CAPACITY * sizeof(miteruby_location_t), "location_array"
   );
   if (new_locations == NULL) {
-    miteruby_allocator_free(new_entries);
-    miteruby_allocator_free(new_queue);
+    miteruby_allocator_free(&new_entries);
+    miteruby_allocator_free(&new_queue);
     mutex_unlock(&consumer_state.mutex);
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.location_array");
   }
 
-  miteruby_allocator_free(consumer_state.interned_events_queue);
+  miteruby_allocator_free(&consumer_state.interned_events_queue);
   consumer_state.interned_events_queue = new_queue;
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
 
@@ -333,14 +333,14 @@ void miteruby_consumer_reset(void) {
   verstable_mark_frame_set_clear(&consumer_state.mark_frame_set);
   verstable_location_set_clear(&consumer_state.location_set);
 
-  miteruby_allocator_free(consumer_state.mark_frame_array.entries);
+  miteruby_allocator_free(&consumer_state.mark_frame_array.entries);
   consumer_state.mark_frame_array = (miteruby_mark_frame_array_t) {
     .entries = new_entries,
     .count = 0,
     .capacity = MARK_FRAME_ARRAY_CAPACITY,
   };
 
-  miteruby_allocator_free(consumer_state.location_array.entries);
+  miteruby_allocator_free(&consumer_state.location_array.entries);
   consumer_state.location_array = (miteruby_location_array_t) {
     .entries = new_locations,
     .count = 0,
