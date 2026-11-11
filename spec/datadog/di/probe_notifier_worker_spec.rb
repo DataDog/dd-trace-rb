@@ -242,7 +242,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         expect(worker.send(:thread)).to be nil
       end
 
-      it "sends queued snapshots and statuses without waiting for the cooldown" do
+      it "sends queued snapshots and statuses immediately when stopping" do
         allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(3600)
         allow(input_transport).to receive(:send_input)
         allow(diagnostics_transport).to receive(:send_diagnostics)
