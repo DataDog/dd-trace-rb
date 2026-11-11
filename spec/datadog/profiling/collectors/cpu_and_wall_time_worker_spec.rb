@@ -2502,29 +2502,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(serializer.stats).to eq({})
     end
 
-    it "preserves buffered samples when rejecting the wrong serializer" do
+    it "discards the batch when rejecting the wrong serializer and can collect a new profile" do
       capture_miteruby {}
       described_class::Testing._native_miteruby_read_sample_headers
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
       consume_miteruby
-      buffered_state = cpu_and_wall_time_worker.stats.slice(
-        :miteruby_interned_events_queue_used_size_bytes,
-        :miteruby_mark_threads_entries,
-        :miteruby_mark_frame_array_entries,
-        :miteruby_location_array_entries,
-        :miteruby_unique_stacks_map_entries,
-      )
-      expect(buffered_state.fetch(:miteruby_interned_events_queue_used_size_bytes)).to be > 0
+      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_frame_array_entries)).to be > 0
 
       expect do
         described_class._native_miteruby_consumer_prepare_serialize(Datadog::Profiling::StackRecorder.for_testing)
       end.to raise_error(TypeError)
 
-      expect(cpu_and_wall_time_worker.stats).to include(buffered_state)
+      expect(Thread.new { cpu_and_wall_time_worker.stats }.value).to include(
+        miteruby_interned_events_queue_used_size_bytes: 0,
+        miteruby_mark_threads_entries: 0,
+        miteruby_mark_frame_entries: 0,
+        miteruby_mark_frame_array_entries: 0,
+        miteruby_location_set_entries: 0,
+        miteruby_location_array_entries: 0,
+        miteruby_unique_stacks_map_entries: 0,
+      )
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
-      Thread.new { consume_miteruby }.value
-      expect(recorded_miteruby_samples.size).to eq(2)
-      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes)).to eq(0)
+      consume_miteruby
+      expect(recorded_miteruby_samples.size).to eq(1)
     end
 
     it "tracks storage usage through consumption, serialization, and reset" do
