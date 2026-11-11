@@ -313,11 +313,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: "test service",
           timestamp: Integer,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -392,11 +391,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: "test service",
           timestamp: Integer,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -469,11 +467,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: "test service",
           timestamp: Integer,
           logger: {
-            method: nil,
+            method_name: nil,
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
           },
           duration: 0,
           host: nil,
@@ -509,19 +506,28 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     let(:target_self) { Object.new }
 
+    let(:context) do
+      Datadog::DI::Context.new(
+        probe: probe,
+        settings: settings, serializer: serializer,
+        target_self: target_self,
+        serialized_entry_args: {},
+        return_value: 42, duration: 0.1,
+      )
+    end
+
+    let(:payload) { builder.build_executed(context) }
+
+    it "reports the probed method name under the Logs standard attribute logger.method_name" do
+      expect(payload[:logger]).to include(method_name: "test_method")
+      expect(payload[:logger]).not_to have_key(:method)
+    end
+
+    it "reports name, method_name, thread_name and thread_id in logger" do
+      expect(payload[:logger].keys).to contain_exactly(:name, :method_name, :thread_name, :thread_id)
+    end
+
     context "when the capture time budget is exhausted" do
-      let(:context) do
-        Datadog::DI::Context.new(
-          probe: probe,
-          settings: settings, serializer: serializer,
-          target_self: target_self,
-          serialized_entry_args: {},
-          return_value: 42, duration: 0.1,
-        )
-      end
-
-      let(:payload) { builder.build_executed(context) }
-
       before do
         allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
       end

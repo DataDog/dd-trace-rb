@@ -20,6 +20,6 @@ module Datadog
 
     def self.remove_current_component: (Component) -> void
 
-    LOCK: Mutex
+    LOCK: Thread::Mutex
   end
 end

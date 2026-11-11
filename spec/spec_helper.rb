@@ -44,6 +44,7 @@ require "support/network_helpers"
 require "support/object_space_helper"
 require "support/platform_helpers"
 require "support/process_helpers"
+require "support/refillable_bucket_shared_examples"
 require "support/span_helpers"
 require "support/spy_transport"
 require "support/synchronization_helpers"
@@ -324,17 +325,9 @@ end
 # To allow for leaky threads to be traced
 # back to their creation point.
 module DatadogThreadDebugger
-  # DEV: we have to use an explicit `block`, argument
-  # instead of the implicit `yield` call, as calling
-  # `yield` here crashes the Ruby VM in Ruby < 2.2.
-  def initialize(*args, &block)
+  def initialize(*args)
     @caller = caller
-    wrapped = lambda do |*thread_args|
-      block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
-    end
-    wrapped.send(:ruby2_keywords) if wrapped.respond_to?(:ruby2_keywords, true)
-
-    super(*args, &wrapped)
+    super
   end
 
   ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)

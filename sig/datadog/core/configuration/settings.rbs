@@ -357,9 +357,15 @@ module Datadog
         end
 
         interface _Profiling
-          include Options::_InstanceMethods
+          include Options::_Settings
 
           def enabled: () -> bool
+
+          def advanced: () -> _ProfilingAdvanced
+        end
+
+        interface _ProfilingAdvanced
+          include Options::_Settings
         end
 
         interface _OpenFeature
@@ -400,6 +406,10 @@ module Datadog
           def evaluation_telemetry_per_subject_opt_out_enabled: () -> bool
 
           def evaluation_telemetry_per_subject_opt_out_enabled=: (bool) -> void
+
+          def exposures_datadog_logging_enabled: () -> bool
+
+          def exposures_datadog_logging_enabled=: (bool) -> void
 
           def configuration_source: () -> String
 

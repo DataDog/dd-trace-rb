@@ -21,6 +21,7 @@ target :datadog do
   check "lib/datadog/profiling/profiler.rb", inline: true
   check "lib/datadog/profiling/collectors/code_provenance.rb", inline: true
   check "lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb", inline: true
+  check "lib/datadog/profiling/worker_state.rb", inline: true
   check "lib/datadog/profiling/collectors/dynamic_sampling_rate.rb", inline: true
   check "lib/datadog/profiling/collectors/idle_sampling_helper.rb", inline: true
   check "lib/datadog/profiling/collectors/info.rb", inline: true
@@ -531,6 +532,7 @@ target :datadog do
   library "time"
   library "pp"
   library "forwardable"
+  library "strscan"
   library "json"
 
   # Load all dependency signatures from the `vendor/rbs` directory

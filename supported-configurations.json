@@ -415,6 +415,14 @@
         "default": "true"
       }
     ],
+    "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["feature_flags.exposures_datadog_logging_enabled"],
+        "default": "true"
+      }
+    ],
     "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED": [
       {
         "version": "A",

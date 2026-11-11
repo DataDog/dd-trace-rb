@@ -681,7 +681,6 @@ RSpec.describe Datadog::Core::Remote::Client do
 
                 allow(Gem::Platform).to receive(:local).and_return(gem_platform_local)
                 allow(Datadog::Core::Environment::Identity).to receive(:gem_datadog_version).and_return(gem_datadog_version)
-                allow(client).to receive(:ruby_engine_version).and_return(ruby_engine_version)
                 allow(client).to receive(:native_platform).and_return(native_platform)
                 allow(client).to receive(:gem_spec).with("libddwaf").and_return(libddwaf_gem_spec)
                 allow(client).to receive(:gem_spec).with("libdatadog").and_return(libdatadog_gem_spec)

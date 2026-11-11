@@ -60,7 +60,7 @@ module Datadog
 
       def set_tags: (Hash[untyped, untyped] tags) -> void
 
-      def active_trace: (?untyped? key) -> untyped
+      def active_trace: (?untyped? key) -> Datadog::Tracing::TraceOperation?
 
       def active_span: (?untyped? key) -> Datadog::Tracing::SpanOperation
 
@@ -75,6 +75,8 @@ module Datadog
       def trace_completed: () -> TraceCompleted
 
       def after_fork: () -> void
+
+      def reset_profiling_enabled: () -> void
 
       def shutdown!: () -> void
 
