@@ -25,12 +25,11 @@ module Datadog
               producer = event[:producer]
               add_middleware(producer)
 
-              if Datadog.configuration.data_streams.enabled
-                producer.monitor.subscribe("message.acknowledged") do |ack_event|
-                  if Datadog::DataStreams.enabled?
-                    payload = ack_event.payload
-                    Datadog::DataStreams.track_kafka_produce(payload[:topic], payload[:partition], payload[:offset])
-                  end
+              # Always subscribed so DSM enabled at runtime (remote config) covers existing producers.
+              producer.monitor.subscribe("message.acknowledged") do |ack_event|
+                if Datadog::DataStreams.enabled?
+                  payload = ack_event.payload
+                  Datadog::DataStreams.track_kafka_produce(payload[:topic], payload[:partition], payload[:offset])
                 end
               end
             end

@@ -22,6 +22,8 @@ module Datadog
 
         def self.reconfigure_profiler: () -> void
 
+        def self.reconfigure_data_streams: () -> nil
+
         attr_reader settings: Settings
 
         attr_reader agent_settings: untyped
@@ -63,6 +65,8 @@ module Datadog
         def initialize: (Settings settings) -> void
 
         def after_fork: () -> void
+
+        def sync_data_streams: () -> void
 
         def rebuild_profiler: () -> void
 

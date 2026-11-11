@@ -136,6 +136,18 @@ module Datadog
             nil
           end
 
+          # Starts or stops Data Streams Monitoring on the current Components instance to match the
+          # `data_streams.enabled` setting. Used by remote configuration; never raises.
+          def reconfigure_data_streams
+            # allow_initialization: false to avoid building the component tree from the remote-config worker thread.
+            current = Datadog.send(:components, allow_initialization: false)
+            current&.sync_data_streams
+            nil
+          rescue => e
+            Datadog.logger.debug { "Failed to reconfigure Data Streams Monitoring: #{e.class}: #{e.message}" }
+            nil
+          end
+
           # Rebuilds the profiler of the current Components instance if it is outdated, under the Components lock.
           # We added this for profiling remote configuration: We don't want to use
           # `Datadog.configure` directly as that rebuilds every component, including
@@ -424,6 +436,25 @@ module Datadog
 
         def open_feature
           @open_feature_activation.component
+        end
+
+        # Starts or stops the Data Streams processor to match `settings.data_streams.enabled`.
+        # The swap runs under the Components lock; the final flush runs outside it.
+        def sync_data_streams
+          stopped = nil
+          Datadog.send(:safely_synchronize) do
+            if settings.data_streams.enabled
+              @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
+            else
+              stopped = @data_streams
+              @data_streams = nil
+            end
+          end
+
+          return unless stopped
+
+          stopped.stop(true)
+          stopped.flush
         end
 
         def rebuild_profiler
