@@ -50,6 +50,7 @@ static inline monotonic_time_t monotonic_time_now(void) {
 // TODO: Move away from hardcoded limit of 400 frames
 // TODO: Revisit upstream rb_profile_frames if we accept its block/eval fidelity trade-off (see design/EventDesign.md),
 // or an upstream API supplies the frame metadata and bytecode positions needed for deferred symbolication.
+// TODO: Emit correlation data from tracing (trace id, span id, endpoint)
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 ) {
