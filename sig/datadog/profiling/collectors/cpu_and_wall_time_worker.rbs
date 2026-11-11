@@ -38,6 +38,8 @@ module Datadog
 
         def self._native_miteruby_consumer_consume_loop: () -> void
 
+        def self._native_miteruby_reset_after_fork: () -> bool
+
         def self._native_miteruby_consumer_prepare_serialize: (Miteruby::Serializer serializer) -> void
       end
     end

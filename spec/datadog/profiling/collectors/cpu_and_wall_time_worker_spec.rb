@@ -2254,6 +2254,198 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "miteruby fork lifecycle" do
+    let(:options) { {miteruby_enabled: true} }
+    let(:no_signals_workaround_enabled) { true }
+    let(:consumer_threads) { Queue.new }
+    let(:fork_registry) { Datadog::Core::Utils::AtForkMonkeyPatch }
+
+    around do |example|
+      saved = fork_registry.snapshot_at_fork_blocks
+      fork_registry.send(:replace_at_fork_blocks, {before: [], parent: [], child: []}.freeze)
+      example.run
+    ensure
+      fork_registry.send(:replace_at_fork_blocks, saved)
+    end
+
+    before do
+      allow(described_class).to receive(:_native_miteruby_consumer_consume_loop).and_wrap_original do |original|
+        consumer_threads << Thread.current
+        original.call
+      end
+    end
+
+    after { cpu_and_wall_time_worker.stop }
+
+    def drain_miteruby_queue
+      described_class::Testing._native_miteruby_wake_reader
+      loop_until { described_class::Testing._native_miteruby_raw_events_queue_empty? }
+    end
+
+    def parent_fork_sample
+      described_class::Testing._native_miteruby_sample_event_publish_mask
+    end
+
+    it "preserves parent samples and gives the child a clean restart, including GC before reset" do
+      fork_registry.at_fork(:child) { GC.start }
+      consumer = start_miteruby_consumer_for_manual_samples
+      drain_miteruby_queue
+      cpu_and_wall_time_worker.prepare_serialize.serialize!
+      2.times { parent_fork_sample }
+      drain_miteruby_queue
+
+      fork_registry.at_fork(:before) do
+        expect(consumer).to_not be_alive
+        2.times { parent_fork_sample }
+      end
+
+      expect_in_fork do
+        expect(described_class::Testing._native_miteruby_raw_events_queue_empty?).to be true
+        expect(cpu_and_wall_time_worker.stats).to include(
+          miteruby_interned_events_queue_used_size_bytes: 0,
+          miteruby_mark_threads_entries: 0,
+          miteruby_mark_frame_array_entries: 0,
+        )
+        GC.start
+        GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+        child_consumer = start_miteruby_consumer_for_manual_samples
+        2.times { described_class::Testing._native_miteruby_sample_event_publish_mask }
+        drain_miteruby_queue
+        samples = samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)
+        expect(samples).to_not be_empty
+        expect(samples.flat_map(&:locations).map(&:label)).to_not include("#{self.class.name}#parent_fork_sample")
+        cpu_and_wall_time_worker.stop
+        expect(child_consumer).to_not be_alive
+      end
+
+      resumed_consumer = consumer_threads.pop
+      expect(resumed_consumer).to be_alive
+      drain_miteruby_queue
+      samples = samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)
+      expect(samples.count { |sample| sample.locations.any? { |frame| frame.label == "#{self.class.name}#parent_fork_sample" } }).to eq(4)
+    end
+
+    it "resets only once when the profiler's child callback restarts the worker first" do
+      resets = []
+      allow(described_class).to receive(:_native_miteruby_reset_after_fork).and_wrap_original do |original|
+        reset = original.call
+        resets << Process.pid if reset
+        reset
+      end
+      fork_registry.at_fork(:child) do
+        cpu_and_wall_time_worker.reset_after_fork
+        cpu_and_wall_time_worker.start
+      end
+      start_miteruby_consumer_for_manual_samples
+
+      expect_in_fork do
+        wait_until_running
+        consumer = consumer_threads.pop
+        expect(consumer).to be_alive
+        expect(resets).to eq([Process.pid])
+        GC.start
+        expect { cpu_and_wall_time_worker.prepare_serialize.serialize! }.to_not raise_error
+        cpu_and_wall_time_worker.stop
+        expect(consumer).to_not be_alive
+      end
+      expect(resets).to be_empty
+      expect(consumer_threads.pop).to be_alive
+    end
+
+    it "resumes the parent consumer if a later before-fork callback fails" do
+      consumer = start_miteruby_consumer_for_manual_samples
+      fork_registry.at_fork(:before) { raise "cancel fork" }
+
+      expect { fork { exit! } }.to raise_error("cancel fork")
+
+      expect(consumer).to_not be_alive
+      expect(consumer_threads.pop).to be_alive
+      parent_fork_sample
+      drain_miteruby_queue
+      expect(samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)).to_not be_empty
+    end
+
+    it "resets shared state before starting a replacement worker in the child" do
+      replacement = nil
+      fork_registry.at_fork(:child) do
+        replacement = build_another_instance
+        replacement.start
+      end
+      start_miteruby_consumer_for_manual_samples
+
+      expect_in_fork do
+        replacement.wait_until_running
+        consumer = consumer_threads.pop
+        expect(consumer).to be_alive
+        expect(described_class._native_miteruby_reset_after_fork).to be false
+        GC.start
+        expect { replacement.prepare_serialize.serialize! }.to_not raise_error
+        replacement.stop
+        expect(consumer).to_not be_alive
+      end
+
+      expect(consumer_threads.pop).to be_alive
+    end
+
+    it "resumes the parent consumer if fork itself fails" do
+      consumer = start_miteruby_consumer_for_manual_samples
+      forker = Class.new do
+        def self._fork
+          raise Errno::EAGAIN
+        end
+      end
+      forker.singleton_class.prepend(fork_registry::ProcessMonkeyPatch)
+
+      expect { forker._fork }.to raise_error(Errno::EAGAIN)
+
+      expect(consumer).to_not be_alive
+      expect(consumer_threads.pop).to be_alive
+      parent_fork_sample
+      drain_miteruby_queue
+      expect(samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)).to_not be_empty
+    end
+
+    it "keeps the consumer paused until all overlapping fork lifecycles finish" do
+      consumer = start_miteruby_consumer_for_manual_samples
+      snapshot = fork_registry.snapshot_at_fork_blocks
+
+      2.times { fork_registry.run_at_fork_blocks(:before, snapshot: snapshot) }
+      expect(consumer).to_not be_alive
+      fork_registry.run_at_fork_blocks(:parent, snapshot: snapshot)
+      expect(consumer_threads).to be_empty
+      parent_fork_sample
+      fork_registry.run_at_fork_blocks(:parent, snapshot: snapshot)
+
+      expect(consumer_threads.pop).to be_alive
+      drain_miteruby_queue
+      expect(samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)).to_not be_empty
+    end
+
+    it "does not restart a consumer stopped during the fork lifecycle" do
+      start_miteruby_consumer_for_manual_samples
+      snapshot = fork_registry.snapshot_at_fork_blocks
+      fork_registry.run_at_fork_blocks(:before, snapshot: snapshot)
+
+      cpu_and_wall_time_worker.stop
+      fork_registry.run_at_fork_blocks(:parent, snapshot: snapshot)
+
+      expect(consumer_threads).to be_empty
+      expect(fork_registry.snapshot_at_fork_blocks.values).to all(be_empty)
+    end
+
+    it "does not restart a consumer that had already exited before fork" do
+      consumer = start_miteruby_consumer_for_manual_samples
+      consumer.kill
+      expect(consumer.join(5)).to equal(consumer)
+      snapshot = fork_registry.snapshot_at_fork_blocks
+
+      fork_registry.run_at_fork_blocks(:before, snapshot: snapshot)
+      fork_registry.run_at_fork_blocks(:parent, snapshot: snapshot)
+
+      expect(consumer_threads).to be_empty
+    end
+  end
+
   describe "miteruby consumer" do
     let(:options) { {miteruby_enabled: true} }
     let(:no_signals_workaround_enabled) { true }
