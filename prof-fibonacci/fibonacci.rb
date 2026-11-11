@@ -18,7 +18,7 @@ module Fib
     count.times do |i|
       # Create various types of strings to simulate real-world string allocation
       garbage_string = "fibonacci_computation_iteration_#{i}"
-      
+
       # Add to bounded cache
       if @@string_cache.size < STRING_CACHE_SIZE
         @@string_cache << garbage_string
@@ -79,7 +79,7 @@ class FibClient
 
   def fib_request
     GC.start
-    URI.open("http://127.0.0.1:8080/fib/#{rand(26..36)}/#{ENDPOINTS.sample.to_s}/")
+    URI.open("http://127.0.0.1:#{ENV.fetch("PROF_FIBONACCI_PORT")}/fib/#{rand(26..36)}/#{ENDPOINTS.sample.to_s}/")
     sleep 0.1
   rescue => e
     puts "Request failed: #{e.message}"
