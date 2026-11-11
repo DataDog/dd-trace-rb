@@ -102,7 +102,7 @@ module Datadog
             # Ignore non-boolean values: a bad payload must not break the other options.
             data_streams_enabled = nil unless [true, false].include?(data_streams_enabled)
 
-            telemetry_value = super(data_streams_enabled)
+            telemetry_value = super
             Core::Configuration::Components.reconfigure_data_streams
             telemetry_value
           end

@@ -39,11 +39,17 @@ RSpec.describe "Data Streams Monitoring remote configuration" do
     remote.merge_and_apply_configs(instance_double(Datadog::Core::Remote::Configuration::Repository, contents: contents))
   end
 
-  def enable_via_rc = apply_rc({"data_streams_enabled" => true})
+  def enable_via_rc
+    apply_rc({"data_streams_enabled" => true})
+  end
 
-  def disable_via_rc = apply_rc({"data_streams_enabled" => false})
+  def disable_via_rc
+    apply_rc({"data_streams_enabled" => false})
+  end
 
-  def remove_rc_key = apply_rc({})
+  def remove_rc_key
+    apply_rc({})
+  end
 
   context "when DSM is off at startup" do
     it "starts the processor when remote config enables it" do
