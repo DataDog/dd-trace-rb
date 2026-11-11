@@ -77,8 +77,6 @@ enum fixed_strings {
   PPROF_STRING_HAD_CPU,
   PPROF_STRING_MITERUBY,
   PPROF_STRING_END_TIMESTAMP_NS,
-  PPROF_STRING_SAMPLED_BY_MITERUBY,
-  PPROF_STRING_SAMPLED_IN_SIGHANDLER,
   PPROF_STRING_IN_NATIVE_CODE,
   PPROF_STRING_TRUNCATED_FRAMES,
   PPROF_STRING_MAIN_THREAD,
@@ -103,8 +101,6 @@ static const char *const fixed_string_values[] = {
   [PPROF_STRING_HAD_CPU] = "had cpu",
   [PPROF_STRING_MITERUBY] = "miteruby",
   [PPROF_STRING_END_TIMESTAMP_NS] = "end_timestamp_ns",
-  [PPROF_STRING_SAMPLED_BY_MITERUBY] = "(sampled by miteruby)",
-  [PPROF_STRING_SAMPLED_IN_SIGHANDLER] = "(sampled in sighandler)",
   [PPROF_STRING_IN_NATIVE_CODE] = "In native code",
   [PPROF_STRING_TRUNCATED_FRAMES] = "Truncated Frames",
   [PPROF_STRING_MAIN_THREAD] = "main",
@@ -113,31 +109,23 @@ static const char *const fixed_string_values[] = {
 };
 
 enum fixed_functions {
-  PPROF_FUNCTION_ROOT = 1,
-  PPROF_FUNCTION_SIGHANDLER,
-  PPROF_FUNCTION_NATIVE,
+  PPROF_FUNCTION_NATIVE = 1,
   PPROF_FUNCTION_TRUNCATED,
   PPROF_FUNCTION_FIRST_DYNAMIC,
 };
 
 static const miteruby_pprof_fragment_function_function_t fixed_function_values[] = {
-  [PPROF_FUNCTION_ROOT] = {.id = PPROF_FUNCTION_ROOT, .name = PPROF_STRING_SAMPLED_BY_MITERUBY, .filename = PPROF_STRING_EMPTY},
-  [PPROF_FUNCTION_SIGHANDLER] = {.id = PPROF_FUNCTION_SIGHANDLER, .name = PPROF_STRING_SAMPLED_IN_SIGHANDLER, .filename = PPROF_STRING_EMPTY},
   [PPROF_FUNCTION_NATIVE] = {.id = PPROF_FUNCTION_NATIVE, .name = PPROF_STRING_EMPTY, .filename = PPROF_STRING_IN_NATIVE_CODE},
   [PPROF_FUNCTION_TRUNCATED] = {.id = PPROF_FUNCTION_TRUNCATED, .name = PPROF_STRING_TRUNCATED_FRAMES, .filename = PPROF_STRING_EMPTY},
 };
 
 enum fixed_locations {
-  PPROF_LOCATION_ROOT = 1,
-  PPROF_LOCATION_SIGHANDLER,
-  PPROF_LOCATION_NATIVE,
+  PPROF_LOCATION_NATIVE = 1,
   PPROF_LOCATION_TRUNCATED,
   PPROF_LOCATION_FIRST_DYNAMIC,
 };
 
 static const miteruby_pprof_fragment_location_location_t fixed_location_values[] = {
-  [PPROF_LOCATION_ROOT] = {.id = PPROF_LOCATION_ROOT, .has_line = true, .line = {.function_id = PPROF_FUNCTION_ROOT}},
-  [PPROF_LOCATION_SIGHANDLER] = {.id = PPROF_LOCATION_SIGHANDLER, .has_line = true, .line = {.function_id = PPROF_FUNCTION_SIGHANDLER}},
   [PPROF_LOCATION_NATIVE] = {.id = PPROF_LOCATION_NATIVE, .has_line = true, .line = {.function_id = PPROF_FUNCTION_NATIVE}},
   [PPROF_LOCATION_TRUNCATED] = {.id = PPROF_LOCATION_TRUNCATED, .has_line = true, .line = {.function_id = PPROF_FUNCTION_TRUNCATED}},
 };
@@ -603,6 +591,8 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   }
 
   // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
+  // TODO: Trim method name suffixes like stack collector
+  // TODO: Port get_or_compute_native_filename from stack collector
   char qualified_name[4096];
   for (size_t i = 0; i < frame_array->count; i++) {
     miteruby_frame_t frame = frame_array->entries[i];
@@ -738,16 +728,13 @@ static miteruby_serializer_exit_reason_t serialize_no_gvl(miteruby_serializer_pe
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
     uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
     bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || stack.frame_count == 0;
-    size_t frame_offset = (event->header.flags & MITERUBY_EVENT_FROM_SIGNAL_HANDLER) ? 1 : 0;
-    size_t location_count = (unavailable ? 1 : stack.frame_count) + frame_offset + 1;
+    size_t location_count = unavailable ? 1 : stack.frame_count;
     uint64_t location_ids[location_count];
-    location_ids[location_count - 1] = PPROF_LOCATION_ROOT;
-    if (frame_offset != 0) location_ids[0] = PPROF_LOCATION_SIGHANDLER;
     if (unavailable) {
-      location_ids[frame_offset] = PPROF_LOCATION_NATIVE;
+      location_ids[0] = PPROF_LOCATION_NATIVE;
     } else {
-      RETURN_IF_ERROR(read_location_ids(stack, location_ids + frame_offset));
-      if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
+      RETURN_IF_ERROR(read_location_ids(stack, location_ids));
+      if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[0] = PPROF_LOCATION_TRUNCATED;
     }
     serializer_thread_context *context;
     RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, false, &context));
