@@ -96,8 +96,12 @@ module Datadog
           loop do
             stopping = @stop_requested
 
-            # If a flush was requested, send immediately and do not
-            # wait for the cooldown period.
+            # Skip the cooldown wait when a flush was requested or the
+            # worker is stopping, so queued events are sent immediately.
+            # `stopping` is sampled at the top of the loop so a stop
+            # requested mid-send still finishes the send and drains
+            # below; `@stop_requested` is re-read right before the wait
+            # so a stop requested while awake skips the sleep entirely.
             if !stopping && @lock.synchronize { @flush } == 0
               sleep_remaining = @lock.synchronize do
                 if sleep_remaining && sleep_remaining > 0
