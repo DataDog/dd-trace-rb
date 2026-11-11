@@ -62,6 +62,8 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
+    return Integer(thread_id) if thread_id.match?(/\A\d+\z/)
+
     match = thread_id.match(/\d+ \((?<object_id>\d+)\)/)
     match ? Integer(match[:object_id]) : -1
   end

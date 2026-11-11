@@ -104,6 +104,23 @@ RSpec.describe Datadog::Profiling::Component do
         end
       end
 
+      context "when miteruby is enabled" do
+        before do
+          allow(Datadog::DATADOG_ENV).to receive(:[]).and_call_original
+          allow(Datadog::DATADOG_ENV).to receive(:[]).with("MITERUBY").and_return("true")
+        end
+
+        it "builds a worker without constructing a StackRecorder or ThreadContext" do
+          expect(Datadog::Profiling::StackRecorder).to_not receive(:new)
+          expect(Datadog::Profiling::Collectors::ThreadContext).to_not receive(:new)
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
+            hash_including(miteruby_enabled: true, thread_context_collector: nil),
+          ).and_call_original
+
+          expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), {profiling_enabled: true}])
+        end
+      end
+
       context "when using the new CPU Profiling 2.0 profiler" do
         it "initializes a ThreadContext collector" do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
@@ -187,6 +204,7 @@ RSpec.describe Datadog::Profiling::Component do
             gc_profiling_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
+            miteruby_enabled: false,
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_profiling_enabled: false,
             allocation_counting_enabled: :allocation_counting_enabled_config,

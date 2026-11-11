@@ -5,7 +5,7 @@ module Datadog
       class CpuAndWallTimeWorker
         def self._native_initialize: (
           self_instance: CpuAndWallTimeWorker,
-          thread_context_collector: ThreadContext,
+          thread_context_collector: ThreadContext?,
           gc_profiling_enabled: bool,
           idle_sampling_helper: IdleSamplingHelper,
           no_signals_workaround_enabled: bool,
@@ -31,6 +31,8 @@ module Datadog
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_hold_signals: () -> void
         def self._native_resume_signals: () -> void
+
+        def _native_profiler_internal_thread_started: () -> nil
 
         def _native_profiler_internal_thread_done: () -> nil
 
