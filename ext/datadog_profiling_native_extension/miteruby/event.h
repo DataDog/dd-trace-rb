@@ -61,7 +61,7 @@ typedef struct {
 
 typedef struct {
   uint16_t value;
-} miteruby_frame_position_t;
+} miteruby_bytecode_pos_t;
 
 typedef struct {
   miteruby_event_header_t header;
@@ -72,7 +72,7 @@ typedef struct {
 #define MITERUBY_MAX_FRAMES 400
 #define MITERUBY_MAX_SIZE_BYTES \
   ((sizeof(miteruby_event_stack_sample_t) + MITERUBY_MAX_FRAMES * \
-    (sizeof(miteruby_frame_t) + sizeof(miteruby_frame_position_t)) + 7) & ~(size_t) 7)
+    (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t)) + 7) & ~(size_t) 7)
 
 typedef struct {
   // Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
@@ -94,7 +94,7 @@ typedef struct {
 
 typedef struct {
   miteruby_frame_t *frames;
-  miteruby_frame_position_t *positions;
+  miteruby_bytecode_pos_t *bytecode_positions;
   uint16_t frame_count;
 } miteruby_event_stack_sample_view_t;
 
@@ -116,7 +116,7 @@ _Static_assert(
 );
 _Static_assert(sizeof(miteruby_frame_id_t) == 2, "miteruby_frame_id_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_location_id_t) == 4, "miteruby_location_id_t must be 4 bytes");
-_Static_assert(sizeof(miteruby_frame_position_t) == 2, "miteruby_frame_position_t must be 2 bytes");
+_Static_assert(sizeof(miteruby_bytecode_pos_t) == 2, "miteruby_bytecode_pos_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, frames) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
 _Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");

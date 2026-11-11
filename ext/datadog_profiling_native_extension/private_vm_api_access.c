@@ -734,22 +734,22 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   return i;
 }
 
-static uint16_t miteruby_frame_position(const rb_iseq_t *iseq, const VALUE *pc) {
+static uint16_t miteruby_bytecode_pos(const rb_iseq_t *iseq, const VALUE *pc) {
   if (iseq == NULL || pc == NULL) return UINT16_MAX;
 
   ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
   if (n < 0 || (size_t) n > ISEQ_BODY(iseq)->iseq_size) return UINT16_MAX;
 
-  size_t position = n > 0 ? n - 1 : 0;
-  return position < UINT16_MAX ? (uint16_t) position : UINT16_MAX;
+  size_t bytecode_pos = n > 0 ? n - 1 : 0;
+  return bytecode_pos < UINT16_MAX ? (uint16_t) bytecode_pos : UINT16_MAX;
 }
 
 // Same frame selection and oldest-first traversal as ddtrace_rb_profile_frames, with these differences:
 // - No start offset; always captures from the root, with a uint16_t frame limit.
-// - Writes CME/ISEQ pairs and positions into separate event arrays, without same_frame caching or a saved PC.
+// - Writes CME/ISEQ pairs and bytecode positions into separate event arrays, without same_frame caching or a saved PC.
 // - Stores adjusted bytecode positions instead of resolving source lines; UINT16_MAX denotes unknown,
 //   unreliable JIT, or unrepresentable positions.
-// - Identifies C frames by explicitly setting iseq to NULL, with position zero, instead of an is_ruby_frame flag.
+// - Identifies C frames by explicitly setting iseq to NULL, with bytecode position zero, instead of an is_ruby_frame flag.
 // - Writes the captured count to stack_buffer->frame_count and returns complete/truncated/unavailable flags.
 //   Truncation requires finding another eligible frame beyond the limit; the oldest frames are retained.
 // - Reports unavailable for both empty stacks and cases that previously returned PLACEHOLDER_STACK_IN_NATIVE_CODE.
@@ -802,26 +802,26 @@ uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_
     if ((iseq && !pc) || cfp->ep == NULL) continue;
 
     const rb_callable_method_entry_t *cme;
-    uint16_t position;
+    uint16_t bytecode_pos;
     if (VM_FRAME_RUBYFRAME_P(cfp)) {
       cme = safe_vm_frame_method_entry(cfp);
       #ifndef NO_JIT_RETURN
         // The JIT may not have updated the top frame's PC.
-        position = cfp == top && cfp->jit_return ? UINT16_MAX : miteruby_frame_position(iseq, pc);
+        bytecode_pos = cfp == top && cfp->jit_return ? UINT16_MAX : miteruby_bytecode_pos(iseq, pc);
       #else
-        position = miteruby_frame_position(iseq, pc);
+        bytecode_pos = miteruby_bytecode_pos(iseq, pc);
       #endif
     } else {
       cme = get_cfunc_method_entry(cfp);
       if (cme == NULL || cme->def->type != VM_METHOD_TYPE_CFUNC) continue;
       iseq = NULL;
-      position = 0;
+      bytecode_pos = 0;
     }
 
     if (stack_buffer->frame_count == limit) return MITERUBY_EVENT_STACK_TRUNCATED;
     uint16_t i = stack_buffer->frame_count++;
     stack_buffer->frames[i] = (miteruby_frame_t) {.cme = cme, .iseq = iseq};
-    stack_buffer->positions[i].value = position;
+    stack_buffer->bytecode_positions[i].value = bytecode_pos;
   }
 
   return stack_buffer->frame_count > 0 ? MITERUBY_EVENT_STACK_COMPLETE : MITERUBY_EVENT_STACK_UNAVAILABLE;
