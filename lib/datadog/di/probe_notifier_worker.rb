@@ -147,6 +147,7 @@ module Datadog
 
       # Stops the background thread.
       #
+      # Requests the worker to send pending submissions before the thread exits.
       # Attempts a graceful stop with the specified timeout, then falls back
       # to killing the thread using Thread#kill.
       def stop(timeout = 1)
