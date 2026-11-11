@@ -940,6 +940,86 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#sync_data_streams" do
+    subject(:sync_data_streams) { components.sync_data_streams }
+
+    let(:processor) { instance_double(Datadog::DataStreams::Processor, stop: true, flush: nil) }
+    let(:current_components) { components }
+
+    before do
+      components # built before Datadog.components is stubbed, as its construction reads the global logger
+      allow(described_class).to receive(:build_data_streams).and_return(processor)
+      allow(Datadog).to receive(:components).with(allow_initialization: false) { current_components }
+    end
+
+    context "when the setting is enabled" do
+      before { settings.data_streams.enabled = true }
+
+      it "builds the processor once" do
+        components.sync_data_streams
+        sync_data_streams
+
+        expect(described_class).to have_received(:build_data_streams).once
+        expect(components.data_streams).to be(processor)
+      end
+
+      context "when these components were replaced meanwhile" do
+        let(:current_components) { Object.new }
+
+        it "does not build an orphaned processor" do
+          sync_data_streams
+
+          expect(described_class).not_to have_received(:build_data_streams)
+          expect(components.data_streams).to be_nil
+        end
+      end
+    end
+
+    context "when the setting is disabled and a processor is running" do
+      before do
+        settings.data_streams.enabled = true
+        components.sync_data_streams
+        settings.data_streams.enabled = false
+      end
+
+      it "drops, stops and flushes the processor, in that order" do
+        sync_data_streams
+
+        expect(components.data_streams).to be_nil
+        expect(processor).to have_received(:stop).with(true).ordered
+        expect(processor).to have_received(:flush).ordered
+      end
+    end
+
+    context "when the setting is disabled and there is no processor" do
+      it { expect { sync_data_streams }.not_to raise_error }
+    end
+  end
+
+  describe ".reconfigure_data_streams" do
+    subject(:reconfigure_data_streams) { described_class.reconfigure_data_streams }
+
+    it "syncs the current components" do
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
+      expect(components).to receive(:sync_data_streams)
+
+      reconfigure_data_streams
+    end
+
+    it "does nothing when there are no components" do
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(nil)
+
+      expect(reconfigure_data_streams).to be_nil
+    end
+
+    it "does not raise when syncing fails" do
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
+      allow(components).to receive(:sync_data_streams).and_raise("boom")
+
+      expect { reconfigure_data_streams }.not_to raise_error
+    end
+  end
+
   describe "#after_fork" do
     subject(:after_fork) { components.after_fork }
 

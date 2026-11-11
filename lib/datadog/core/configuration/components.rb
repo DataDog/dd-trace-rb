@@ -440,9 +440,12 @@ module Datadog
 
         # Starts or stops the Data Streams processor to match `settings.data_streams.enabled`.
         # The swap runs under the Components lock; the final flush runs outside it.
+        # Does nothing when these components were replaced meanwhile, so no processor is orphaned.
         def sync_data_streams
           stopped = nil
           Datadog.send(:safely_synchronize) do
+            next unless Datadog.send(:components, allow_initialization: false).equal?(self)
+
             if settings.data_streams.enabled
               @data_streams ||= self.class.build_data_streams(settings, agent_settings, logger, agent_info)
             else
