@@ -151,6 +151,11 @@ module Datadog
         wake.signal
         if thread
           unless thread.join(timeout)
+            pending = @lock.synchronize { status_queue.length + snapshot_queue.length }
+            logger.debug do
+              "di: probe notifier worker did not stop within #{timeout}s; killing the thread " \
+                "and dropping #{pending} queued event(s)"
+            end
             thread.kill
           end
           @thread = nil

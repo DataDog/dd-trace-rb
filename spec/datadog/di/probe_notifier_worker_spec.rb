@@ -306,6 +306,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         Timeout.timeout(2) { sending.pop }
         worker_thread = worker.send(:thread)
 
+        expect_lazy_log(logger, :debug, /did not stop within/)
         Timeout.timeout(2) { worker.stop(0.01) }
 
         expect(worker_thread.join(2)).to eq(worker_thread)
