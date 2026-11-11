@@ -125,6 +125,11 @@ module Datadog
               logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
+            # A nil `more` marks an internal failure (a lock error inside
+            # maybe_send, or an exception in the loop-level rescue), not an
+            # empty queue: treat it as work remaining so a stopping worker
+            # keeps draining instead of breaking with queued events.
+            more = true if more.nil?
             break if stopping && !more
 
             @lock.synchronize do
