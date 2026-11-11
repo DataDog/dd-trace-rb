@@ -241,13 +241,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             {
               path: path.to_s,
               content: 42,
-            }
+            },
           )
         end
 
         it "raises Configuration::Error" do
           expect { content }.to raise_error(
-            Datadog::Core::Remote::Configuration::Error, "Invalid type for data: expected String: 42"
+            Datadog::Core::Remote::Configuration::Error, "Invalid type for data: expected String: 42",
           )
         end
       end

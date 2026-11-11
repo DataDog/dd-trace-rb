@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
     context "data that is not a String" do
       it "raises Configuration::Error" do
         expect { described_class.hexdigest(:sha256, 42) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, "Invalid type for data: expected String: 42"
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for data: expected String: 42",
         )
       end
     end

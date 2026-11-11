@@ -75,7 +75,7 @@ module Datadog
                 # would later make config_matches? raise outside this per-content
                 # rescue and abort the whole merge, erroring valid configs too.
                 raise Core::Remote::Configuration::Error.invalid_data_type(
-                  config, field: "APM_TRACING remote config", expected_type: Hash
+                  config, field: "APM_TRACING remote config", expected_type: Hash,
                 )
               end
               # A present but non-object lib_config (e.g. {"lib_config": []}) is a
@@ -87,7 +87,7 @@ module Datadog
               lib_config = config["lib_config"]
               if !lib_config.nil? && !lib_config.is_a?(Hash)
                 raise Core::Remote::Configuration::Error.invalid_data_type(
-                  lib_config, field: "APM_TRACING lib_config", expected_type: Hash
+                  lib_config, field: "APM_TRACING lib_config", expected_type: Hash,
                 )
               end
               parsed << [content, config]

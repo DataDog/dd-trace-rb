@@ -462,7 +462,7 @@ RSpec.describe Datadog::DI::Remote do
           expect(probe_manager).not_to receive(:remove_probe)
           expect_lazy_log_many(logger, :debug,
             /unhandled exception handling a probe.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/,
-            /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/,)
+            /unhandled exception removing probes.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
           expect(telemetry).to receive(:report).with(
             an_instance_of(Datadog::Core::Remote::Configuration::Error),
             description: "Unhandled exception handling probe in DI remote receiver",
@@ -474,7 +474,7 @@ RSpec.describe Datadog::DI::Remote do
 
           receiver.call(repository, transaction)
           expect(transaction.first.content.apply_state).to eq(
-            Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR
+            Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR,
           )
 
           receiver.call(repository, delete_transaction)
@@ -499,7 +499,7 @@ RSpec.describe Datadog::DI::Remote do
         {
           path: "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash",
           content: {"id" => 42}.to_json,
-        }
+        },
       )
     end
 
@@ -512,7 +512,7 @@ RSpec.describe Datadog::DI::Remote do
         expect do
           described_class.send(:remove_probe, content, component)
         end.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42"
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for id: expected String: 42",
         )
       end
     end

@@ -15,7 +15,7 @@ module Datadog
           def self.invalid_data_type(value, field:, expected_type:)
             new(
               "Invalid type for #{field}: expected #{expected_type}: " \
-                "#{Core::Utils::Truncation.truncate_in_middle(value.inspect, 100, 50)}"
+                "#{Core::Utils::Truncation.truncate_in_middle(value.inspect, 100, 50)}",
             )
           end
         end

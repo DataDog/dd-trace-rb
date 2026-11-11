@@ -171,7 +171,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         invalid_data = raw_target_map.merge("signed" => "not a hash")
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, 'Invalid type for signed: expected Hash: "not a hash"'
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for signed: expected Hash: "not a hash"',
         )
       end
     end
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         invalid_data = raw_target_map.merge("signed" => "x" * 1000)
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"x" * 99}...#{"x" * 49}\""
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"x" * 99}...#{"x" * 49}\"",
         )
       end
     end
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         invalid_data = raw_target_map.merge("signed" => "é" * 1000)
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"é" * 99}...#{"é" * 49}\""
+          Datadog::Core::Remote::Configuration::Error, "Invalid type for signed: expected Hash: \"#{"é" * 99}...#{"é" * 49}\"",
         )
       end
     end
@@ -199,11 +199,11 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     context "with targets that is not a Hash" do
       it "raises Configuration::Error" do
         invalid_data = raw_target_map.merge(
-          "signed" => raw_target_map["signed"].merge("targets" => "not a hash")
+          "signed" => raw_target_map["signed"].merge("targets" => "not a hash"),
         )
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets: expected Hash: "not a hash"'
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets: expected Hash: "not a hash"',
         )
       end
     end
@@ -211,7 +211,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     context "with custom that is not a Hash" do
       it "yields no opaque backend state" do
         invalid_data = raw_target_map.merge(
-          "signed" => raw_target_map["signed"].merge("custom" => "not a hash")
+          "signed" => raw_target_map["signed"].merge("custom" => "not a hash"),
         )
 
         expect(described_class.parse(invalid_data).opaque_backend_state).to be_nil
@@ -222,12 +222,12 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       it "raises Configuration::Error" do
         invalid_data = raw_target_map.merge(
           "signed" => raw_target_map["signed"].merge(
-            "targets" => {"datadog/603646/ASM/exclusion_filters/config" => "not a hash"}
-          )
+            "targets" => {"datadog/603646/ASM/exclusion_filters/config" => "not a hash"},
+          ),
         )
 
         expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets entry: expected Hash: "not a hash"'
+          Datadog::Core::Remote::Configuration::Error, 'Invalid type for targets entry: expected Hash: "not a hash"',
         )
       end
     end
@@ -235,7 +235,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     context "with version that is a base-10 integer String" do
       it "coerces the version to an Integer" do
         data = raw_target_map.merge(
-          "signed" => raw_target_map["signed"].merge("version" => "46761194")
+          "signed" => raw_target_map["signed"].merge("version" => "46761194"),
         )
 
         expect(described_class.parse(data).version).to eq(46761194)
@@ -245,7 +245,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     context "with version that is neither an Integer nor an integer String" do
       it "yields no version" do
         data = raw_target_map.merge(
-          "signed" => raw_target_map["signed"].merge("version" => "not a number")
+          "signed" => raw_target_map["signed"].merge("version" => "not a number"),
         )
 
         expect(described_class.parse(data).version).to be_nil
@@ -276,7 +276,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with hashes that is not a Hash" do
         it "raises Configuration::Error" do
           expect { described_class.parse(raw_target.merge("hashes" => "not a hash")) }.to raise_error(
-            Datadog::Core::Remote::Configuration::Error, 'Invalid type for hashes: expected Hash: "not a hash"'
+            Datadog::Core::Remote::Configuration::Error, 'Invalid type for hashes: expected Hash: "not a hash"',
           )
         end
       end
@@ -290,7 +290,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with length that is neither an Integer nor an integer String" do
         it "raises Configuration::Error" do
           expect { described_class.parse(raw_target.merge("length" => "not a number")) }.to raise_error(
-            Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "not a number"'
+            Datadog::Core::Remote::Configuration::Error, 'Invalid type for length: expected Integer: "not a number"',
           )
         end
       end
@@ -298,7 +298,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context "with custom that is not a Hash" do
         it "raises Configuration::Error" do
           expect { described_class.parse(raw_target.merge("custom" => "not a hash")) }.to raise_error(
-            Datadog::Core::Remote::Configuration::Error, "Invalid type for custom.v: expected Integer: nil"
+            Datadog::Core::Remote::Configuration::Error, "Invalid type for custom.v: expected Integer: nil",
           )
         end
       end
