@@ -152,7 +152,8 @@ static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
 
 typedef enum {
   SERIALIZER_EMPTY = 0,
-  SERIALIZER_WORKING,
+  SERIALIZER_PREPARE, // Retained after an exception; the next preparation discards the abandoned state.
+  SERIALIZER_NO_GVL,
   SERIALIZER_FINISHED,
 } serializer_status;
 
@@ -182,18 +183,13 @@ typedef struct {
   long finish_time_ns;
 } miteruby_serializer_persistent_state_t;
 
-typedef struct {
-  // Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
-  miteruby_serializer_persistent_state_t *persistent_state;
-  const miteruby_mark_frame_array_t *frame_array;
-  const miteruby_location_array_t *location_array;
-  const verstable_mark_threads_set *threads_set;
-} miteruby_serializer_prepare_serialization_state_t;
-
 static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_no_gvl(
   miteruby_serializer_persistent_state_t *state
 );
-static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state);
+static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
+  miteruby_serializer_persistent_state_t *state, const miteruby_mark_frame_array_t *frame_array,
+  const miteruby_location_array_t *location_array, const verstable_mark_threads_set *threads_set
+);
 
 #define RETURN_IF_ERROR(expression) do { \
   miteruby_serializer_exit_reason_t exit_reason_ = (expression); \
@@ -232,7 +228,7 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
 }
 
 void miteruby_serializer_check_available(VALUE serializer) {
-  if (get_state(serializer)->status == SERIALIZER_WORKING)
+  if (get_state(serializer)->status == SERIALIZER_NO_GVL)
     miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
 }
 
@@ -510,17 +506,6 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-static VALUE prepare_serialize_body(VALUE prepare_state_value) {
-  miteruby_serializer_prepare_serialization_state_t *prepare_state = (miteruby_serializer_prepare_serialization_state_t *)prepare_state_value;
-  return INT2FIX(prepare_serialize(prepare_state));
-}
-
-static VALUE prepare_serialize_cleanup(VALUE state_value) {
-  miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
-  state->status = SERIALIZER_EMPTY;
-  return Qnil;
-}
-
 miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
   const miteruby_mark_frame_array_t *frame_array, const miteruby_location_array_t *location_array,
@@ -528,44 +513,36 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
 ) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
 
-  if (state->status == SERIALIZER_WORKING) return MITERUBY_SERIALIZER_ALREADY_WORKING;
+  if (state->status == SERIALIZER_NO_GVL) return MITERUBY_SERIALIZER_ALREADY_WORKING;
 
+  state->status = SERIALIZER_PREPARE;
   state->compressed_serialization_size = 0;
   state->stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
   verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
 
-  miteruby_serializer_prepare_serialization_state_t prepare_state = {
-    .persistent_state = state,
-    .frame_array = frame_array,
-    .location_array = location_array,
-    .threads_set = threads_set,
-  };
-
   miteruby_allocator_free(state->interned_events_queue); // Clear any leftover state, if any
   state->interned_events_queue = interned_events_queue;
   state->interned_events_pos = interned_events_pos;
-  state->status = SERIALIZER_WORKING;
-
-  miteruby_serializer_exit_reason_t exit_reason = FIX2INT(
-    rb_ensure(prepare_serialize_body, (VALUE)&prepare_state, prepare_serialize_cleanup, (VALUE)state)
-  );
+  miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, frame_array, location_array, threads_set);
 
   miteruby_allocator_free(state->interned_events_queue);
   state->interned_events_queue = NULL;
-  if (exit_reason == MITERUBY_SERIALIZER_OK) state->status = SERIALIZER_FINISHED;
+  // TODO: Change FINISHED to NO_GVL here once the consumer runs the no-GVL phase after this function returns.
+  // Set FINISHED after that phase completes and the GVL is reacquired.
+  state->status = exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_FINISHED : SERIALIZER_EMPTY;
   return exit_reason;
 }
 
-static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_prepare_serialization_state_t *prepare_state) {
-  miteruby_serializer_persistent_state_t *state = prepare_state->persistent_state;
+// Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
+static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
+  miteruby_serializer_persistent_state_t *state, const miteruby_mark_frame_array_t *frame_array,
+  const miteruby_location_array_t *location_array, const verstable_mark_threads_set *threads_set
+) {
   state->finish_time_ns = system_epoch_time_now_ns();
   RETURN_IF_ERROR(initialize_compression(state));
   pb_ostream_t *stream = &state->stream;
-  const miteruby_mark_frame_array_t *frame_array = prepare_state->frame_array;
-  const miteruby_location_array_t *location_array = prepare_state->location_array;
-  const verstable_mark_threads_set *threads_set = prepare_state->threads_set;
 
   // Design note - Currently we need the GVL to:
   //
@@ -661,6 +638,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize(miteruby_serializer_p
   // TODO: We're not actually releasing the GVL yet. The plan is to, in the future, return early from this function, and have the
   // caller in comsumer actually call `miteruby_serializer_prepare_serialize_no_gvl` directly. Hence why that function is wired to
   // receive what it needs from the state of the serializer.
+  state->status = SERIALIZER_NO_GVL;
   return miteruby_serializer_prepare_serialize_no_gvl(state);
 }
 
