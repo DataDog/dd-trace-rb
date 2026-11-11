@@ -92,15 +92,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(stack_recorder).to receive(:serialize).twice.and_call_original
         expect(described_class).to receive(:_native_prepare_serialize).with(cpu_and_wall_time_worker).twice.and_call_original
 
-        miteruby_recorder = cpu_and_wall_time_worker.prepare_serialize
+        miteruby_serializer = cpu_and_wall_time_worker.prepare_serialize
 
-        expect(miteruby_recorder).to be_a(Datadog::Profiling::Miteruby::Serializer)
-        expect(miteruby_recorder).to_not equal(stack_recorder)
-        start, finish, encoded, stats = miteruby_recorder.serialize
+        expect(miteruby_serializer).to be_a(Datadog::Profiling::Miteruby::Serializer)
+        expect(miteruby_serializer).to_not equal(stack_recorder)
+        start, finish, encoded, stats = miteruby_serializer.serialize
         expect(start).to be <= finish
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
         expect(stats).to eq({})
-        expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_recorder)
+        expect(cpu_and_wall_time_worker.prepare_serialize).to equal(miteruby_serializer)
       end
 
       it "prepares streaming profiles with contiguous time intervals" do
