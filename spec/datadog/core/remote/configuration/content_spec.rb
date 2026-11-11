@@ -237,12 +237,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     describe ".parse" do
       context "with data that is not a String" do
         subject(:content) do
-          described_class.parse(
-            {
-              path: path.to_s,
-              content: 42,
-            }
-          )
+          described_class.parse({path: path.to_s, content: 42})
         end
 
         it "raises Configuration::Error" do
