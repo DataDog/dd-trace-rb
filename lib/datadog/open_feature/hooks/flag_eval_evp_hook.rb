@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../ext"
+require_relative "../split_features"
 
 module Datadog
   module OpenFeature
@@ -15,11 +16,11 @@ module Datadog
       # stay on the OTel path. This hook is registered as a provider hook so it receives
       # the SDK-final EvaluationDetails after hook failures and type validation.
       class FlagEvalEVPHook
-        # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
+        # Include the Hook module if available (SDK >= 0.5.1) for interface documentation
         # and default implementations of other hook methods (before, after, error)
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)
 
-        # Returns true if the OpenFeature SDK supports hooks (>= 0.5.0)
+        # Returns true if the OpenFeature SDK supports hooks (>= 0.5.1)
         def self.available?
           !!defined?(::OpenFeature::SDK::Hooks::Hook)
         end
@@ -65,6 +66,7 @@ module Datadog
             eval_time_ms: eval_time_ms,
             attrs: attrs,
             observe_full_evaluation_data: observe_full_evaluation_data,
+            features: SplitFeatures.read(metadata, Ext::METADATA_EVALUATION_FEATURE_PREFIX),
           )
         end
 

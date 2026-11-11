@@ -5,8 +5,8 @@ module Datadog
         type context_value = String | bool | Integer | Float
         type context = Hash[String, context_value]
         type raw_context = Hash[any, any]
-        type full_key = [String, String, String, bool, String, String?, String?, bool]
-        type degraded_key = [String, String, String, bool, String]
+        type full_key = [String, String, String, bool, String, String?, String?, bool, SplitFeatures::features_t]
+        type degraded_key = [String, String, String, bool, String, SplitFeatures::features_t]
         type entry = {
           count: Integer,
           first_evaluation: Integer,
@@ -22,6 +22,8 @@ module Datadog
           degraded: Hash[degraded_key, entry],
           dropped_degraded_overflow: Integer
         }
+
+        NO_FEATURES: SplitFeatures::features_t
 
         MAX_CONTEXT_FIELDS: Integer
 
@@ -120,7 +122,8 @@ module Datadog
           attrs: context?,
           ?error_message: String?,
           ?runtime_default: bool?,
-          ?observe_full_evaluation_data: bool
+          ?observe_full_evaluation_data: bool,
+          ?features: SplitFeatures::features_t
         ) -> void
 
         def flush_and_reset: () -> snapshot
@@ -168,7 +171,8 @@ module Datadog
           bool runtime_default,
           String error_message,
           Integer evaluation_time_ms,
-          bool observe_full_evaluation_data
+          bool observe_full_evaluation_data,
+          SplitFeatures::features_t features
         ) -> void
       end
     end

@@ -23,6 +23,8 @@ module OpenFeature
 
       class ProviderMetadata
         def initialize: (name: ::String) -> void
+
+        def name: () -> ::String
       end
 
       class ResolutionDetails < ::Struct[untyped]
@@ -74,6 +76,8 @@ module OpenFeature
     end
 
     class EvaluationDetails < ::Struct[untyped]
+      def flag_key: () -> ::String
+      def resolution_details: () -> Provider::ResolutionDetails
       def variant: () -> ::String?
       def reason: () -> ::String?
       def error_code: () -> ::String?
@@ -94,6 +98,8 @@ module OpenFeature
         def default_value: () -> untyped
 
         def evaluation_context: () -> EvaluationContext?
+
+        def provider_metadata: () -> Provider::ProviderMetadata?
       end
     end
   end

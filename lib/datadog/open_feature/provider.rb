@@ -3,14 +3,18 @@
 require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
+require_relative "../core/utils/only_once"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require_relative "split_features"
+require_relative "exposure_hook"
 require "open_feature/sdk"
 
 module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog configuration delivery.
     #
-    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
+    # Requires openfeature-sdk >= 0.5.1: exposures, evaluation counts and metrics are sent from provider
+    # hooks, and earlier releases run no hooks.
     #
     # Hook lifecycle note: FlagEvalEVPHook is returned from #hooks so EVP uses the SDK-final
     # EvaluationDetails. This matches FlagEvalMetricsHook and records defaults/errors produced
@@ -63,8 +67,11 @@ module Datadog
     class Provider
       include ::OpenFeature::SDK::Provider::EventEmitter
 
-      NAME = "Datadog Feature Flagging Provider"
+      NAME = Ext::PROVIDER_NAME
       INITIALIZATION_CANCELLED_MESSAGE = "Feature Flags provider initialization was cancelled by shutdown"
+      HOOKS_UNSUPPORTED_MESSAGE = "Feature Flags: the installed openfeature-sdk does not run provider hooks, " \
+        "so Datadog exposures and evaluation counts are not sent; upgrade openfeature-sdk to 0.5.1 or later"
+      HOOKS_UNSUPPORTED_WARNING = Core::Utils::OnlyOnce.new
 
       attr_reader :metadata
 
@@ -95,6 +102,7 @@ module Datadog
       end
 
       def init
+        warn_if_hooks_unsupported
         @initialization_mutex.synchronize do
           raise INITIALIZATION_CANCELLED_MESSAGE if @shutdown
 
@@ -188,7 +196,7 @@ module Datadog
           telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
         end
 
-        [*telemetry_hooks, component&.debug_logging_hook].compact
+        [component&.exposure_logging_hook, *telemetry_hooks, component&.debug_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -216,6 +224,12 @@ module Datadog
       end
 
       private
+
+      def warn_if_hooks_unsupported
+        return if defined?(::OpenFeature::SDK::Hooks::HookExecutor)
+
+        HOOKS_UNSUPPORTED_WARNING.run { Datadog.logger.warn(HOOKS_UNSUPPORTED_MESSAGE) }
+      end
 
       def after_fork(component)
         handler = @initialization_mutex.synchronize do
@@ -500,6 +514,13 @@ module Datadog
           metadata[Ext::METADATA_OBSERVE_FULL_EVALUATION_DATA] == true
         allocation_key = result.allocation_key
         metadata[Ext::METADATA_ALLOCATION_KEY] = allocation_key if allocation_key && !allocation_key.empty?
+        if result.log?
+          metadata[Ext::METADATA_DO_LOG] = true
+          serial_id = result.serial_id
+          metadata[Ext::METADATA_SPLIT_SERIAL_ID] = serial_id unless serial_id.nil?
+        end
+        features = result.features
+        SplitFeatures.write(metadata, features) if features && !features.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
