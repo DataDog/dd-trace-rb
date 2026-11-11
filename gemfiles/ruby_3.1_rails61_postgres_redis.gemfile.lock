@@ -5,7 +5,7 @@ PATH
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.6)
       libdatadog (~> 48.0.0.1.1)
-      libddwaf (~> 1.30.0.1.0)
+      libddwaf (~> 2.0.1.0.0)
       logger
       msgpack
 
@@ -125,13 +125,13 @@ GEM
     libdatadog (48.0.0.1.1-aarch64-linux)
     libdatadog (48.0.0.1.1-arm64-darwin)
     libdatadog (48.0.0.1.1-x86_64-linux)
-    libddwaf (1.30.0.1.0-aarch64-linux)
+    libddwaf (2.0.1.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.30.0.1.0-arm64-darwin)
+    libddwaf (2.0.1.0.0-arm64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.30.0.1.0-x86_64-darwin)
+    libddwaf (2.0.1.0.0-x86_64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.30.0.1.0-x86_64-linux)
+    libddwaf (2.0.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.12.0)
@@ -371,10 +371,10 @@ CHECKSUMS
   libdatadog (48.0.0.1.1-aarch64-linux) sha256=af90bef273927e274a341570550318ff4c11ce47d16f2aa53d971da6e6681ba1
   libdatadog (48.0.0.1.1-arm64-darwin) sha256=7855af75f918eb474ca96e52b4fd4ab2caccabc4e8f846c60b73e49ee482cf9f
   libdatadog (48.0.0.1.1-x86_64-linux) sha256=06a776ae896e148cf57fd8f4a1ae1db19f0769f85110b542e41a7ba5a9de9aa3
-  libddwaf (1.30.0.1.0-aarch64-linux) sha256=c36650249bbbcaf81f0a0715e021d3db37fb1df989390f2744f445d1032d4314
-  libddwaf (1.30.0.1.0-arm64-darwin) sha256=68a67d0daf6bcd8f621fb4a5390c1c2c241433fd3b8aa1516b4ef7518d316c2c
-  libddwaf (1.30.0.1.0-x86_64-darwin) sha256=722b93006eeeaee42a3a5149bd0ab14bca1246524b87a1f40fb7bdbdfc42a624
-  libddwaf (1.30.0.1.0-x86_64-linux) sha256=5cd88c67ed8703cdc9878e089e4eea679d3825cec18de2a9b6093e489fa900eb
+  libddwaf (2.0.1.0.0-aarch64-linux) sha256=e5149d4efac508dde20e7aa26d91da43aeae608344c9512f9ae7f98fae3c793a
+  libddwaf (2.0.1.0.0-arm64-darwin) sha256=e05a4e8ef481bde80020643aa041c00a38d3ee40a081161175197922823656a8
+  libddwaf (2.0.1.0.0-x86_64-darwin) sha256=498c0bb61e935e832716da9c71d40386096dffa38d8727a86372b0564bee8e5c
+  libddwaf (2.0.1.0.0-x86_64-linux) sha256=5729e698f4a26b2450f171fc38568d4b6a130d1af03896d73eae037421b60fa0
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   lograge (0.12.0) sha256=a36fc0af45194bd2d397c378f4b4fdca4b824dc8eeb9ddd35e75d4a26eaaf296
   loofah (2.25.2) sha256=2007f746959ac65552456e04b433e83deb22759ab38c838b4445c70e43425918
