@@ -112,6 +112,14 @@ append_cflags "-Werror-implicit-function-declaration"
 # For more details see https://gcc.gnu.org/wiki/Visibility
 append_cflags "-fvisibility=hidden"
 
+# Let the linker discard unused native code and data, including bundled zstd APIs.
+if RUBY_PLATFORM.include?("linux")
+  append_cflags ["-ffunction-sections", "-fdata-sections"]
+  append_ldflags "-Wl,--gc-sections"
+elsif RUBY_PLATFORM.include?("darwin")
+  append_ldflags "-Wl,-dead_strip"
+end
+
 # Avoid legacy C definitions
 append_cflags "-Wold-style-definition"
 
@@ -229,11 +237,20 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
+# Configure miteruby folders for building with Make.
+$srcs = Dir["#{$srcdir}/*.c"]
+["miteruby", "miteruby/pprof", "miteruby/hashtable"].each do |directory|
+  $srcs.concat(Dir["#{$srcdir}/#{directory}/*.c"])
+  $headers.concat(Dir["#{$srcdir}/#{directory}/*.h"])
+  $VPATH.concat(["$(srcdir)/#{directory}"])
+end
+
+create_header
+
 # We rely on the datadog-ruby_core_source gem to get access to private VM headers.
 # This gem ships source code copies of these VM headers for the different Ruby VM versions;
 # see https://github.com/DataDog/datadog-ruby_core_source for details
 
-create_header
 
 require "datadog/ruby_core_source"
 dir_config("ruby") # allow user to pass in non-standard core include directory
