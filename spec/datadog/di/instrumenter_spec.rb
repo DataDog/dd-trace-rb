@@ -3058,7 +3058,10 @@ RSpec.describe Datadog::DI::Instrumenter do
             HookLineTestClass.new.test_method
             expect(weakref_probe_calls).to be_empty
 
-            expect(WeakRef.new(Object.new).weakref_alive?).to be(true)
+            target = Object.new
+            ref = WeakRef.new(target)
+            expect(ref.weakref_alive?).to be(true)
+            expect(ref.__getobj__).to be(target)
           ensure
             instrumenter.unhook(capturing_line_probe)
             instrumenter.unhook(weakref_probe)
