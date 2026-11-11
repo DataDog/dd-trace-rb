@@ -29,7 +29,7 @@ typedef struct {
 
 _Static_assert(sizeof(miteruby_location_t) == 4, "miteruby_location_t must be 4 bytes");
 
-void miteruby_consumer_init(miteruby_raw_events_queue_t *raw_events_queue);
+miteruby_raw_events_queue_t *miteruby_consumer_init(void);
 void miteruby_consumer_reset(void);
 
 // Requires the main ractor's GVL; snapshots under the consumer mutex before allocating Ruby objects.
