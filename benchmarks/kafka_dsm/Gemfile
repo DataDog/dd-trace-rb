@@ -1,0 +1,21 @@
+# Workload dependencies for the Kafka DSM overhead benchmark (see README.md).
+source "https://rubygems.org"
+
+# Pure-Ruby Kafka client; this is the client dd-trace-rb's `kafka` contrib
+# integration instruments (gem_name "ruby-kafka", module ::Kafka) -- see
+# lib/datadog/tracing/contrib/kafka/integration.rb.
+gem "ruby-kafka", ">= 1.5.0"
+
+# Required for the kafka integration to load at all: Kafka::Integration.loaded?
+# gates on `defined?(::ActiveSupport::Notifications)` as well as ::Kafka, and
+# ruby-kafka only emits the notifications that integration subscribes to when
+# ActiveSupport is present. Without it the tracer loads but instruments
+# nothing, so all three scenarios come out identical.
+gem "activesupport"
+
+# Process RSS sampling, the Ruby analog of Python's psutil.Process().memory_info().rss.
+gem "get_process_mem"
+
+# The tracer under test is always the checkout containing this folder. The
+# baseline scenario (ENABLE_TRACER unset, see run.sh) leaves it out of the bundle.
+gem "datadog", path: "../.." if ENV["ENABLE_TRACER"] == "true"
