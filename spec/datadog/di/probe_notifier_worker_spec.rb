@@ -309,7 +309,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         Timeout.timeout(2) { worker.stop(0.01) }
 
         expect(worker_thread.join(2)).to eq(worker_thread)
-        expect(worker_thread).not_to be_alive
         expect(worker.send(:thread)).to be nil
       end
     end
