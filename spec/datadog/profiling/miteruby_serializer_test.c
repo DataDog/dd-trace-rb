@@ -55,7 +55,7 @@ static void test_sample_values(void) {
     if (serialization == 1) {
       for (int thread = 1; thread <= 2; thread++) {
         serializer_thread_context *context;
-        assert(thread_context_for(&contexts, INT2FIX(thread), &context) == MITERUBY_SERIALIZER_OK);
+        assert(thread_context_for(&contexts, INT2FIX(thread), true, &context) == MITERUBY_SERIALIZER_OK);
         context->thread_name_string_id = 22 + thread * 2;
         context->thread_id_string_id = context->thread_name_string_id + 1;
         assert(!context->has_previous_sample);
@@ -66,7 +66,7 @@ static void test_sample_values(void) {
         .header = {.cpu_time = {.ns = samples[i].cpu}, .timestamp = {.ns = samples[i].monotonic}},
       };
       serializer_thread_context *context;
-      assert(thread_context_for(&contexts, INT2FIX(samples[i].thread), &context) == MITERUBY_SERIALIZER_OK);
+      assert(thread_context_for(&contexts, INT2FIX(samples[i].thread), serialization == 0, &context) == MITERUBY_SERIALIZER_OK);
       miteruby_sample_values values = sample_values_for(context, &event);
       assert(values.cpu_time_ns == samples[i].expected_cpu);
       assert(values.wall_time_ns == samples[i].expected_wall);
@@ -90,18 +90,18 @@ static void test_reuse_after_error(void) {
   verstable_serializer_thread_contexts_map contexts;
   verstable_serializer_thread_contexts_map_init(&contexts);
   serializer_thread_context *context;
-  assert(thread_context_for(&contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+  assert(thread_context_for(&contexts, INT2FIX(0), true, &context) == MITERUBY_SERIALIZER_OK);
   fail_allocations = true;
   miteruby_serializer_exit_reason_t reason = MITERUBY_SERIALIZER_OK;
   for (int i = 1; i < 100 && reason == MITERUBY_SERIALIZER_OK; i++) {
-    reason = thread_context_for(&contexts, INT2FIX(i), &context);
+    reason = thread_context_for(&contexts, INT2FIX(i), true, &context);
   }
   assert(reason == MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL);
   assert(verstable_serializer_thread_contexts_map_size(&contexts) > 0);
   size_t allocated_bytes = miteruby_allocator_requested_bytes();
   verstable_serializer_thread_contexts_map_clear(&contexts);
   miteruby_event_deduped_sample_t event = {.header = {.cpu_time = {.ns = 100}, .timestamp = {.ns = 200}}};
-  assert(thread_context_for(&contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+  assert(thread_context_for(&contexts, INT2FIX(0), true, &context) == MITERUBY_SERIALIZER_OK);
   miteruby_sample_values values = sample_values_for(context, &event);
   assert(values.cpu_time_ns == 0 && values.wall_time_ns == 0);
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
@@ -114,7 +114,7 @@ static VALUE prepare_with_exception(VALUE state_value) {
   miteruby_serializer_persistent_state_t *state = (miteruby_serializer_persistent_state_t *)state_value;
   assert(initialize_compression(state) == MITERUBY_SERIALIZER_OK);
   serializer_thread_context *context;
-  assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+  assert(thread_context_for(&state->thread_contexts, INT2FIX(0), true, &context) == MITERUBY_SERIALIZER_OK);
   rb_raise(rb_eRuntimeError, "Interrupted preparation");
 }
 
@@ -152,7 +152,7 @@ static void test_retained_preparation_state(void) {
       miteruby_serializer_exit_reason_t reason = initialize_compression(state);
       assert(reason == MITERUBY_SERIALIZER_OK);
       serializer_thread_context *context;
-      assert(thread_context_for(&state->thread_contexts, INT2FIX(0), &context) == MITERUBY_SERIALIZER_OK);
+      assert(thread_context_for(&state->thread_contexts, INT2FIX(0), true, &context) == MITERUBY_SERIALIZER_OK);
       assert(pb_write(&state->stream, (const pb_byte_t *)"profile", 7));
       reason = compress_buffer(state, ZSTD_e_end);
       assert(reason == (scenario == BUFFER_FULL ? MITERUBY_SERIALIZER_COMPRESSED_BUFFER_FULL : MITERUBY_SERIALIZER_OK));
@@ -247,6 +247,32 @@ static void test_working_status(void) {
   assert(native_reset_after_fork(Qnil, serializer) == Qtrue);
   assert(state->compressed_serialization_buffer != NULL);
   assert(state->status == SERIALIZER_EMPTY);
+  assert(miteruby_allocator_requested_bytes() == idle_bytes);
+  verstable_mark_threads_set_cleanup(&threads);
+  RB_GC_GUARD(serializer);
+}
+
+static void test_missing_thread_context(void) {
+  VALUE serializer = serializer_new(rb_cObject);
+  miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  size_t idle_bytes = miteruby_allocator_requested_bytes();
+  miteruby_mark_frame_array_t frames = {0};
+  miteruby_location_array_t locations = {0};
+  verstable_mark_threads_set threads;
+  verstable_mark_threads_set_init(&threads);
+  miteruby_event_deduped_sample_t *event = miteruby_allocator_alloc(sizeof(*event), "test_queue");
+  assert(event != NULL);
+  *event = (miteruby_event_deduped_sample_t) {
+    .header = {.size_bytes = sizeof(*event), .flags = MITERUBY_EVENT_STACK_UNAVAILABLE},
+    .thread = {.value = rb_thread_current()},
+  };
+  assert(miteruby_serializer_prepare_serialize(
+    serializer, (uint8_t *)event, sizeof(*event), &frames, &locations, &threads
+  ) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
+  assert(verstable_serializer_thread_contexts_map_size(&state->thread_contexts) == 0);
+  assert(state->thread_contexts.buckets == NULL);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(state->interned_events_queue == NULL);
   assert(miteruby_allocator_requested_bytes() == idle_bytes);
   verstable_mark_threads_set_cleanup(&threads);
   RB_GC_GUARD(serializer);
@@ -354,6 +380,7 @@ int main(int argc, char **argv) {
   test_reuse_after_error();
   test_retained_preparation_state();
   test_working_status();
+  test_missing_thread_context();
   test_compressed_buffer_lifecycle();
   puts("Miteruby serializer tests passed");
   return ruby_cleanup(0);
