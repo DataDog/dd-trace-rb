@@ -641,7 +641,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
     miteruby_location_t location = location_array->entries[i];
     const rb_iseq_t *iseq = frame_array->entries[location.frame_id.value].iseq;
     // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
-    int64_t line = iseq != NULL && location.position.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.position.value) : 0;
+    int64_t line = iseq != NULL && location.bytecode_pos.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.bytecode_pos.value) : 0;
     RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.frame_id.value), line));
     RETURN_IF_ERROR(flush_if_needed(state));
   }

@@ -56,9 +56,9 @@ static bool miteruby_sample_event_publish_internal(
     miteruby_event_stack_sample_t event;
     uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
   } storage = {.words = {0}};
-  miteruby_frame_position_t positions[MITERUBY_MAX_FRAMES];
+  miteruby_bytecode_pos_t bytecode_positions[MITERUBY_MAX_FRAMES];
   miteruby_event_stack_sample_t *event = &storage.event;
-  miteruby_event_stack_sample_view_t view = {.frames = event->frames, .positions = positions};
+  miteruby_event_stack_sample_view_t view = {.frames = event->frames, .bytecode_positions = bytecode_positions};
 
   event->header.timestamp = monotonic_time_now();
   event->header.cpu_time = cpu_time;
@@ -68,9 +68,9 @@ static bool miteruby_sample_event_publish_internal(
   if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   event->header.frame_count = view.frame_count;
 
-  // Positions follow the captured frames, not the reserved capacity.
-  memcpy(&event->frames[view.frame_count], positions, view.frame_count * sizeof(positions[0]));
-  size_t size_bytes = sizeof(*event) + view.frame_count * (sizeof(event->frames[0]) + sizeof(positions[0]));
+  // Bytecode positions follow the captured frames, not the reserved capacity.
+  memcpy(&event->frames[view.frame_count], bytecode_positions, view.frame_count * sizeof(bytecode_positions[0]));
+  size_t size_bytes = sizeof(*event) + view.frame_count * (sizeof(event->frames[0]) + sizeof(bytecode_positions[0]));
   event->header.size_bytes = round_up_to_8_bytes(size_bytes);
 
   return miteruby_raw_events_queue_try_write(raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask);
