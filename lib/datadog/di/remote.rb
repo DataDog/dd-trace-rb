@@ -278,7 +278,7 @@ module Datadog
             next unless content.path.product == PRODUCT
 
             begin
-              present_probe_ids << parse_content(content)["id"]
+              present_probe_ids << ProbeBuilder.fetch_probe_id(parse_content(content))
             rescue => exc
               component.logger.debug do
                 "di: skipping withdrawn-probe reconcile, a LIVE_DEBUGGING content failed to parse: " \

@@ -542,4 +542,81 @@ RSpec.describe Datadog::DI::Remote do
       end
     end
   end
+
+  describe ".remove_withdrawn_probes" do
+    let(:logger) { instance_double(Datadog::DI::Logger) }
+
+    let(:component) do
+      instance_double(Datadog::DI::Component).tap do |component|
+        allow(component).to receive(:logger).and_return(logger)
+      end
+    end
+
+    let(:probe_repository) { Datadog::DI::ProbeRepository.new }
+
+    let(:probe_manager) do
+      instance_double(Datadog::DI::ProbeManager).tap do |probe_manager|
+        allow(probe_manager).to receive(:probe_repository).and_return(probe_repository)
+      end
+    end
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
+      )
+    end
+
+    let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+
+    let(:target) do
+      Datadog::Core::Remote::Configuration::Target.parse(
+        {
+          "custom" => {"v" => 1},
+          "hashes" => {"sha256" => Digest::SHA256.hexdigest(probe_content.to_json)},
+          "length" => probe_content.to_json.length,
+        },
+      )
+    end
+
+    let(:content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          path: "datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash",
+          content: probe_content.to_json,
+        },
+      )
+    end
+
+    before do
+      probe_repository.installed_probes[probe.id] = probe
+
+      repository.transaction do |_repository, repository_transaction|
+        repository_transaction.insert(content.path, target, content)
+      end
+    end
+
+    context "when a tracked probe is absent from repository contents" do
+      let(:probe_content) { {"id" => "11"} }
+
+      it "removes the absent probe" do
+        expect(component).to receive(:probe_manager).at_least(:once).and_return(probe_manager)
+        expect_lazy_log(logger, :trace, /removing probe #{probe.id} withdrawn from remote configuration/)
+        expect(probe_manager).to receive(:remove_probe).with(probe.id)
+
+        described_class.send(:remove_withdrawn_probes, repository, component)
+      end
+    end
+
+    context "when a content carries a non-String probe id" do
+      let(:probe_content) { {"id" => 42} }
+
+      it "skips removal" do
+        expect(component).not_to receive(:probe_manager)
+        expect_lazy_log(logger, :debug,
+          /skipping withdrawn-probe reconcile.*Datadog::Core::Remote::Configuration::Error: Invalid type for id: expected String: 42/)
+
+        described_class.send(:remove_withdrawn_probes, repository, component)
+      end
+    end
+  end
 end
