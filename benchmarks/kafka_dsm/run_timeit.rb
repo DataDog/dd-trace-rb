@@ -48,7 +48,7 @@
 # only. The memory metric is process RSS,
 # sampled via the get_process_mem gem (Ruby analog of Python's
 # psutil.Process().memory_info().rss). Medians are used for robustness
-# against outliers, matching the .NET and Python gates.
+# against outliers, matching the .NET and Python reports.
 
 require "json"
 require "get_process_mem"
@@ -70,7 +70,7 @@ require "kafka"
 if ENV["ENABLE_TRACER"] == "true"
   require "datadog/auto_instrument"
 
-  # Fail loudly rather than reporting a meaningless PASS if patching didn't take.
+  # Fail loudly rather than reporting meaningless numbers if patching didn't take.
   patched = ::Kafka::Producer.ancestors.any? { |m| m.name.to_s.start_with?("Datadog") }
   raise "kafka producer was not patched by datadog -- would measure nothing" unless patched
 end

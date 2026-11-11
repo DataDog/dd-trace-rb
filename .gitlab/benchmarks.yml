@@ -156,7 +156,7 @@ profiling-and-tracing-and-appsec:
     DD_PROFILING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
-# DSM overhead (baseline / apm-only / apm+dsm) on benchmarks/kafka_dsm. Not gating yet.
+# DSM overhead (baseline / apm-only / apm+dsm) on benchmarks/kafka_dsm. Report-only.
 dsm-throughput:
   stage: macrobenchmarks
   # install-dependencies (the only libdatadog_api build) is an SSI GEM_HOME skipped by SKIP_SHARED_PIPELINE,
