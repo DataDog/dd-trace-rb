@@ -13,7 +13,7 @@ module Datadog
         # @rbs @start_stop_mutex: ::Thread::Mutex
         # @rbs @idle_sampling_helper: IdleSamplingHelper
         # @rbs @worker_state: WorkerState
-        # @rbs @miteruby_recorder: Miteruby::Serializer?
+        # @rbs @miteruby_serializer: Miteruby::Serializer?
         # @rbs @miteruby_consumer_thread: Thread?
 
         # @rbs gc_profiling_enabled: bool
@@ -86,7 +86,7 @@ module Datadog
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
           @worker_state = WorkerState.new
-          @miteruby_recorder = miteruby_enabled ? Miteruby::Serializer.new : nil
+          @miteruby_serializer = miteruby_enabled ? Miteruby::Serializer.new : nil
           @miteruby_consumer_thread = nil
         end
 
@@ -154,18 +154,18 @@ module Datadog
         #: () -> (StackRecorder | Miteruby::Serializer)
         def prepare_serialize
           recorder = self.class._native_prepare_serialize(self)
-          miteruby_recorder = @miteruby_recorder
-          return recorder unless miteruby_recorder
+          miteruby_serializer = @miteruby_serializer
+          return recorder unless miteruby_serializer
 
           recorder.serialize
-          self.class._native_miteruby_consumer_prepare_serialize(miteruby_recorder)
+          self.class._native_miteruby_consumer_prepare_serialize(miteruby_serializer)
           Datadog.logger.info("Serializing with miteruby!")
-          miteruby_recorder
+          miteruby_serializer
         end
 
         #: () -> true
         def reset_after_fork
-          @miteruby_recorder&.reset_after_fork
+          @miteruby_serializer&.reset_after_fork
           self.class._native_reset_after_fork(self)
         end
 
@@ -214,7 +214,7 @@ module Datadog
 
         # @rbs return: Thread?
         def create_miteruby_consumer
-          return unless @miteruby_recorder
+          return unless @miteruby_serializer
           return @miteruby_consumer_thread if @miteruby_consumer_thread&.alive?
 
           thread_name = "#{self.class.name}::MiterubyConsumer"

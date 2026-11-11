@@ -83,7 +83,7 @@ VALUE enforce_encoded_profile_instance(VALUE object) {
   return object;
 }
 
-// Test-only workaround for libdatadog's lack of a constructor accepting arbitrary encoded bytes.
+// Temporary prototype bridge for miteruby exports: libdatadog lacks a constructor accepting arbitrary encoded bytes.
 // Serialize an empty profile so libdatadog initializes timestamps and endpoint statistics, then
 // replace its buffer while preserving normal export/drop ownership. This assumes Rust's private
 // Vec layout at the start of the object, checked against libdatadog's bytes API before mutation.
