@@ -48,6 +48,7 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
+        miteruby_enabled = DATADOG_ENV["MITERUBY"] == "true"
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings, logger)
         allocation_profiling_enabled = enable_allocation_profiling?(settings, logger)
         heap_sample_every = get_heap_sample_every(settings)
@@ -60,18 +61,21 @@ module Datadog
           valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
         max_frames = valid_max_frames(settings.profiling.advanced.max_frames, logger)
 
-        recorder = Datadog::Profiling::StackRecorder.new(
-          alloc_samples_enabled: allocation_profiling_enabled,
-          heap_samples_enabled: heap_profiling_enabled,
-          heap_size_enabled: heap_size_profiling_enabled,
-          heap_sample_every: heap_sample_every,
-          heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
-        )
-        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
+        thread_context_collector = unless miteruby_enabled
+          recorder = Datadog::Profiling::StackRecorder.new(
+            alloc_samples_enabled: allocation_profiling_enabled,
+            heap_samples_enabled: heap_profiling_enabled,
+            heap_size_enabled: heap_size_profiling_enabled,
+            heap_sample_every: heap_sample_every,
+            heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
+          )
+          build_thread_context_collector(settings, recorder, optional_tracer, max_frames)
+        end
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings, logger),
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
+          miteruby_enabled: miteruby_enabled,
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,

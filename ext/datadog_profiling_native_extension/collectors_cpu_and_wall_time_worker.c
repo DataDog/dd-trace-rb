@@ -240,6 +240,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
+static VALUE _native_profiler_internal_thread_started(VALUE self_instance);
 static VALUE _native_profiler_internal_thread_done(VALUE self_instance);
 static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
@@ -406,6 +407,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_started", _native_profiler_internal_thread_started, 0);
   rb_define_method(collectors_cpu_and_wall_time_worker_class, "_native_profiler_internal_thread_done", _native_profiler_internal_thread_done, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_prepare_serialize", _native_prepare_serialize, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_miteruby_consumer_consume_loop", _native_miteruby_consumer_consume_loop, 0);
@@ -550,6 +552,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->cpu_sampling_interval_ms = NUM2INT(cpu_sampling_interval_ms);
   state->waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
+  // These hooks record exclusively through ThreadContext and StackRecorder.
+  if (state->miteruby_enabled) {
+    state->gc_profiling_enabled = false;
+    state->allocation_profiling_enabled = false;
+    state->allocation_counting_enabled = false;
+    state->gvl_profiling_enabled = false;
+  }
+
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
   if (!state->allocation_profiling_enabled) {
     dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage);
@@ -562,7 +572,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     );
   }
 
-  state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
+  state->thread_context_collector_instance = state->miteruby_enabled ? Qnil :
+    enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->idle_sampling_helper_state = idle_sampling_helper_get_state(idle_sampling_helper_instance);
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
@@ -613,7 +624,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // situation we stop immediately and never even start the sampling trigger loop.
   if (state->stop_thread == rb_thread_current()) return Qnil;
 
-  thread_context_collector_profiler_internal_thread_started();
+  _native_profiler_internal_thread_started(instance);
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
@@ -624,8 +635,11 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   //
   // NOTE: This needs to be called before we enable any hooks or anything that could trigger samples (e.g.
   // reset cannot be concurrent with any sampling activity)
-  miteruby_consumer_reset();
-  thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
+  if (state->miteruby_enabled) {
+    miteruby_consumer_reset();
+  } else {
+    thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
+  }
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -700,9 +714,19 @@ static VALUE during_sample_exit_ensure(VALUE state_ptr) {
   return Qnil;
 }
 
+static VALUE _native_profiler_internal_thread_started(VALUE self_instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  if (!state->miteruby_enabled) thread_context_collector_profiler_internal_thread_started();
+  return Qnil;
+}
+
 static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  if (state->miteruby_enabled) return Qnil;
 
   during_sample_enter(state);
   return rb_ensure(
@@ -719,6 +743,8 @@ static VALUE _native_profiler_internal_thread_done(VALUE self_instance) {
 static VALUE _native_prepare_serialize(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  if (state->miteruby_enabled) rb_raise(rb_eArgError, "Miteruby uses its own serializer");
 
   during_sample_enter(state);
   return rb_ensure(
@@ -923,7 +949,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (state == NULL) return;
+  if (state == NULL || state->miteruby_enabled) return;
 
   // @ivoanjo: I'm not sure this can ever happen because `handle_sampling_signal` only enqueues this callback if
   // it's running on the main Ractor, but just in case...
@@ -1132,6 +1158,8 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
 }
 
 static void handle_gc_event(cpu_and_wall_time_worker_state *state, rb_event_flag_t event) {
+  if (state->miteruby_enabled) return;
+
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     // A signal can arrive after GC_EXIT while `rb_during_gc` is still true; discard requests from the previous GC step.
     state->prepare_sample_on_gc_finish = false;
@@ -1185,7 +1213,7 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (state == NULL) return;
+  if (state == NULL || state->miteruby_enabled) return;
 
   // @ivoanjo: I'm not sure this can ever happen because `on_gc_event` only enqueues this callback if
   // it's running on the main Ractor, but just in case...
@@ -1349,7 +1377,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   reset_stats_not_thread_safe(state);
 
   // Remove all state from the `Collectors::ThreadState` and connected downstream components
-  rb_funcall(state->thread_context_collector_instance, rb_intern("reset_after_fork"), 0);
+  if (!state->miteruby_enabled) rb_funcall(state->thread_context_collector_instance, rb_intern("reset_after_fork"), 0);
 
   return Qtrue;
 }
@@ -1413,8 +1441,11 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
 
-  thread_context_collector_stats(state->thread_context_collector_instance, stats_as_hash);
-  if (state->miteruby_enabled) miteruby_consumer_stats(stats_as_hash);
+  if (state->miteruby_enabled) {
+    miteruby_consumer_stats(stats_as_hash);
+  } else {
+    thread_context_collector_stats(state->thread_context_collector_instance, stats_as_hash);
+  }
 
   return stats_as_hash;
 }
@@ -1423,7 +1454,7 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
   reset_stats_not_thread_safe(state);
-  thread_context_collector_stats_reset_not_thread_safe(state->thread_context_collector_instance);
+  if (!state->miteruby_enabled) thread_context_collector_stats_reset_not_thread_safe(state->thread_context_collector_instance);
   return Qnil;
 }
 
@@ -1776,7 +1807,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
     // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-    if (state == NULL) return;
+    if (state == NULL || state->miteruby_enabled) return;
 
     during_sample_enter(state);
 
@@ -1872,7 +1903,7 @@ static VALUE rescued_commit_heap_recordings_may_lose_gvl(VALUE self_instance) {
 static void commit_heap_recordings_from_postponed_job_may_lose_gvl(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
-  if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
+  if (state == NULL || state->miteruby_enabled || !ddtrace_rb_ractor_main_p()) return;
 
   if (state->during_sample) {
     delayed_error(state, "commit_heap_recordings_from_postponed_job_may_lose_gvl called during_sample");
