@@ -16,11 +16,12 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
-        # The only DD-Service format the CDN attributes usage to; it drops any other value.
+        # The CDN attributes usage only to a DD-Service value in this format. It drops all other values.
         USAGE_SERVICE_PATTERN = %r{\A[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}\z}
-        USAGE_SERVICE_INVALID_CHARACTERS = %r{[^a-z0-9_:./-]}
-        USAGE_SERVICE_INVALID_LEADING_CHARACTERS = /\A[^a-z0-9]+/
-        USAGE_SERVICE_MAX_LENGTH = 100
+        # The Agent replaces each run of these characters in a service name with one `_`. It keeps letters, decimal
+        # digits and `:./-`.
+        USAGE_SERVICE_REPLACED_CHARACTERS = %r{[^\p{L}\p{Nd}:./-]+}
+        USAGE_SERVICE_MAX_BYTES = 100
 
         include Core::Workers::Polling
 
@@ -44,34 +45,37 @@ module Datadog
           )
         end
 
-        # Selects the service sent as DD-Service. The name is cleaned up close to how the Agent cleans up span service
-        # names, so `My Service` is attributed as `my_service`, as in APM, instead of being dropped by the CDN. Only this
-        # header value is cleaned up; the tracer's service stays as configured. A name with nothing left once cleaned up
-        # is not sent. Cleaning up also replaces CR/LF, on which Net::HTTP raises and would fail every poll.
+        # Returns the DD-Service value: the service name that APM shows, or nil. The Agent normalizes span services in
+        # the same way, so `My Service` becomes `my_service`. Only the header value changes. The tracer's service stays
+        # as configured. If the CDN drops the normalized name (for example `_svc` or `café-api`), the header is not
+        # sent. Thus usage never goes to a name that APM does not show. Normalization also replaces CR and LF, because
+        # Net::HTTP raises on them and every poll would fail.
         def self.usage_service(service, logger)
           service = valid_utf8(service.to_s)
           return if service.strip.empty?
 
-          cleaned = normalize_service(service)
-          return cleaned if USAGE_SERVICE_PATTERN.match?(cleaned)
+          normalized = normalize_service(service)
+          return normalized if USAGE_SERVICE_PATTERN.match?(normalized)
 
           logger.debug do
-            "Feature Flags: service #{service.inspect} has nothing left the CDN can attribute usage to once cleaned up; " \
-              "DD-Service header not sent"
+            "Feature Flags: service #{service.inspect} normalizes to #{normalized.inspect}, which the CDN does not " \
+              "attribute usage to; DD-Service header not sent"
           end
           nil
         end
 
-        # Lowercases, replaces each character outside [a-z0-9_:./-] (non-ASCII included) with `_`, removes leading
-        # characters outside [a-z0-9], and cuts to 100 characters.
+        # Ports NormalizeService from the Agent (pkg/trace/traceutil/normalize, v0.82.3). It cuts the name to 100 bytes
+        # and does not split a character. It lowercases ASCII letters. It replaces each run of characters other than
+        # letters, decimal digits and `:./-` with one `_`, and removes a run at the end. It removes nothing at the
+        # start, so ` svc` becomes `_svc`. The Agent also lowercases some non-ASCII letters. This method does not,
+        # because the CDN drops any name with a non-ASCII letter.
         def self.normalize_service(service)
-          cleaned = service.downcase
-            .gsub(USAGE_SERVICE_INVALID_CHARACTERS, "_")
-            .sub(USAGE_SERVICE_INVALID_LEADING_CHARACTERS, "")
-          cleaned[0, USAGE_SERVICE_MAX_LENGTH] || cleaned
+          (service.byteslice(0, USAGE_SERVICE_MAX_BYTES) || service).scrub("").downcase(:ascii)
+            .gsub(USAGE_SERVICE_REPLACED_CHARACTERS, "_")
+            .delete_suffix("_")
         end
 
-        # A UTF-8 copy with `_` for each invalid or unconvertible byte, so cleaning up cannot raise on the input's
+        # Returns a UTF-8 copy. Each invalid or unconvertible byte becomes `_`, so normalization cannot raise on the
         # encoding.
         def self.valid_utf8(value)
           if value.encoding == Encoding::UTF_8
@@ -79,7 +83,7 @@ module Datadog
           else
             value.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
           end
-        # Raised for an encoding with no converter to UTF-8, such as UTF-7.
+        # Ruby raises this for an encoding that has no converter to UTF-8, such as UTF-7.
         rescue EncodingError
           value.b.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
         end

@@ -16,11 +16,9 @@ module Datadog
 
         USAGE_SERVICE_PATTERN: Regexp
 
-        USAGE_SERVICE_INVALID_CHARACTERS: Regexp
+        USAGE_SERVICE_REPLACED_CHARACTERS: Regexp
 
-        USAGE_SERVICE_INVALID_LEADING_CHARACTERS: Regexp
-
-        USAGE_SERVICE_MAX_LENGTH: 100
+        USAGE_SERVICE_MAX_BYTES: 100
 
         include Core::Workers::Polling
         # NOTE: Steep does not infer modules included dynamically by Polling.

@@ -136,10 +136,10 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       end
 
       [nil, "", "   "].each do |service|
-        context "when the service is #{service.inspect}" do
+        context "with no service (#{service.inspect})" do
           before { settings.service = service }
 
-          it "does not send DD-Service" do
+          it "does not send DD-Service or log why" do
             source.poll
 
             expect(request_without_service).to have_been_made.once
@@ -148,67 +148,99 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
       end
 
-      {
-        "a single character" => "a",
-        "every allowed punctuation character" => "svc_name.v2:api/edge-1",
-        "100 characters" => "a#{"b" * 99}",
-      }.each do |description, service|
-        context "when the service has #{description}" do
+      # Each row is a service and the DD-Service value it sends, or nil for no header. The values are the output of
+      # NormalizeService in the Agent (datadog-agent pkg/trace/traceutil/normalize v0.82.3), then the CDN format check.
+      [
+        ["checkout", "checkout"],
+        ["My Service", "my_service"],
+        ["My-API", "my-api"],
+        ["UPPER", "upper"],
+        ["bad\nvalue", "bad_value"],
+        ["a\tb", "a_b"],
+        ["a  b!", "a_b"],
+        ["svc ", "svc"],
+        [" svc", nil],
+        ["a_", "a"],
+        ["svc-", "svc-"],
+        ["a..b", "a..b"],
+        ["2fa-service", "2fa-service"],
+        ["9lives", "9lives"],
+        ["unnamed-service", "unnamed-service"],
+        ["svc_name.v2:api/edge-1", "svc_name.v2:api/edge-1"],
+        ["my__service", "my_service"],
+        ["Default Web Site/Shop", "default_web_site/shop"],
+        ["a#{"b" * 99}", "a#{"b" * 99}"],
+        ["a#{"b" * 100}", "a#{"b" * 99}"],
+        ["#{"a" * 100} b", "a" * 100],
+        ["#{"a" * 99}é", "a" * 99],
+        ["_svc", nil],
+        ["-svc", nil],
+        [".svc", nil],
+        [":svc", nil],
+        ["café-api", nil],
+        ["Café", nil],
+        ["支付", nil],
+        ["a\u{1F436}b", "a_b"],
+        ["İstanbul", nil],
+        ["é" * 60, nil],
+        ["___", nil],
+        ["-", nil],
+        ["", nil],
+        ["   ", nil],
+      ].each do |service, header|
+        label = (service.length > 30) ? "#{service[0, 3].inspect}... (#{service.bytesize} bytes)" : service.inspect
+
+        context "when the service is #{label}" do
           before { settings.service = service }
 
-          it "sends it unchanged" do
-            source.poll
+          if header
+            it "sends DD-Service: #{(header.length > 30) ? "#{header.length} characters" : header} on every poll" do
+              2.times { source.poll }
 
-            expect(
-              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => service}),
-            ).to have_been_made.once
-            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
+              ).to have_been_made.twice
+            end
+          else
+            it "does not send DD-Service and keeps polling" do
+              2.times { source.poll }
+
+              expect(request_without_service).to have_been_made.twice
+            end
           end
         end
       end
 
-      # The CDN drops any name outside its format, so the usage would bill without a service.
+      context "when the normalized service does not match the CDN format" do
+        before { settings.service = "_svc" }
+
+        it "logs why once, without a warning" do
+          message = "Feature Flags: service \"_svc\" normalizes to \"_svc\", which the CDN does not attribute usage " \
+            "to; DD-Service header not sent"
+
+          2.times { source.poll }
+
+          expect(debug_messages.count(message)).to eq(1)
+          expect(logger).not_to have_received(:warn)
+          expect(logger).not_to have_received(:error)
+        end
+      end
+
+      # The service is converted to UTF-8 first, so its encoding cannot make the build raise.
       [
-        ["uppercase letters and a space", "My Service", "my_service"],
-        ["uppercase letters and a dash", "My-API", "my-api"],
-        ["a leading underscore", "_svc", "svc"],
-        ["a line feed", "bad\nvalue", "bad_value"],
-        ["101 characters", "a#{"b" * 100}", "a#{"b" * 99}"],
-        ["invalid UTF-8", "My caf\xFF", "my_caf_"],
-        ["a binary encoding", "My caf\xC3\xA9".b, "my_caf__"],
+        ["invalid UTF-8", "My caf\xFF", "my_caf"],
+        ["a binary encoding", "My caf\xC3\xA9".b, "my_caf"],
         ["a UTF-16 encoding", "My Service".encode(Encoding::UTF_16LE), "my_service"],
-      ].each do |description, service, cleaned|
+      ].each do |description, service, header|
         context "when the service has #{description}" do
           before { settings.service = service }
 
-          it "sends it cleaned up on every poll" do
+          it "sends DD-Service: #{header} on every poll" do
             2.times { source.poll }
 
             expect(
-              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => cleaned}),
+              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
             ).to have_been_made.twice
-            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
-          end
-        end
-      end
-
-      [
-        ["only non-ASCII characters", "\u652F\u4ED8"],
-        ["only underscores", "___"],
-      ].each do |description, service|
-        context "when the service has #{description}" do
-          before { settings.service = service }
-
-          it "does not send DD-Service, logs why once and keeps polling" do
-            message = "Feature Flags: service #{service.inspect} has nothing left the CDN can attribute usage to " \
-              "once cleaned up; DD-Service header not sent"
-
-            2.times { source.poll }
-
-            expect(request_without_service).to have_been_made.twice
-            expect(debug_messages.count(message)).to eq(1)
-            expect(logger).not_to have_received(:warn)
-            expect(logger).not_to have_received(:error)
           end
         end
       end
@@ -225,10 +257,10 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
           end
         end
 
-        context "to a name the CDN would drop" do
+        context "to a name that APM normalizes" do
           let(:service) { "My Service" }
 
-          it "sends the cleaned-up name and leaves the configured service unchanged" do
+          it "sends the normalized name and does not change the configured service" do
             source.poll
 
             expect(
@@ -238,14 +270,16 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
           end
         end
 
-        context "to a name with nothing left once cleaned up" do
-          let(:service) { "\u652F\u4ED8" }
+        ["_svc", "café-api"].each do |name|
+          context "to #{name.inspect}, which the CDN drops once normalized" do
+            let(:service) { name }
 
-          it "sends the request without DD-Service" do
-            source.poll
+            it "sends the request without DD-Service" do
+              source.poll
 
-            expect(request_without_service).to have_been_made.once
-            expect(Datadog.configuration.service).to eq("\u652F\u4ED8")
+              expect(request_without_service).to have_been_made.once
+              expect(Datadog.configuration.service).to eq(name)
+            end
           end
         end
       end
