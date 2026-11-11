@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "../../core/utils"
 require_relative "../../core/workers/polling"
 require_relative "../evaluation_engine"
 require_relative "parser"
@@ -45,16 +46,23 @@ module Datadog
           )
         end
 
-        # Returns the DD-Service value: the service name that APM shows, or nil. The Agent normalizes span services in
-        # the same way, so `My Service` becomes `my_service`. Only the header value changes. The tracer's service stays
-        # as configured. If the CDN drops the normalized name (for example `_svc` or `café-api`), the header is not
-        # sent. Thus usage never goes to a name that APM does not show. Normalization also replaces CR and LF, because
-        # Net::HTTP raises on them and every poll would fail.
+        # Returns the DD-Service value: the service name that APM shows, or nil. It converts the service as the tracer
+        # does for spans, then normalizes it as the Agent does. Thus `My Service` becomes `my_service`. If the CDN drops
+        # the result (for example `_svc` or `café-api`), the header is not sent. Thus usage never goes to a name that
+        # APM does not show. Only the header value changes. The tracer's service stays as configured. Normalization also
+        # replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
         def self.usage_service(service, logger)
-          service = valid_utf8(service.to_s)
-          return if service.strip.empty?
+          name = span_service(service.to_s)
+          unless name
+            logger.debug do
+              "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not use it; " \
+                "DD-Service header not sent"
+            end
+            return
+          end
+          return if name.strip.empty?
 
-          normalized = normalize_service(service)
+          normalized = normalize_service(name)
           return normalized if USAGE_SERVICE_PATTERN.match?(normalized)
 
           logger.debug do
@@ -75,19 +83,15 @@ module Datadog
             .delete_suffix("_")
         end
 
-        # Returns a UTF-8 copy. Each invalid or unconvertible byte becomes `_`, so normalization cannot raise on the
-        # encoding.
-        def self.valid_utf8(value)
-          if value.encoding == Encoding::UTF_8
-            value.scrub("_")
-          else
-            value.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
-          end
-        # Ruby raises this for an encoding that has no converter to UTF-8, such as UTF-7.
-        rescue EncodingError
-          value.b.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "_")
+        # Returns the service as the Agent reads it from a span, or nil if the tracer cannot convert it to UTF-8. The
+        # tracer converts a span service with Core::Utils.utf8_encode. If that fails, the span has no service. For
+        # example, without a locale Ruby reads a non-ASCII DD_SERVICE as ASCII-8BIT, and that conversion fails. The
+        # Agent replaces each invalid UTF-8 byte with U+FFFD, so this method does too. Thus the 100-byte cut falls at the
+        # same place.
+        def self.span_service(service)
+          Core::Utils.utf8_encode(service, placeholder: nil)&.scrub { |bytes| "\uFFFD" * bytes.bytesize }
         end
-        private_class_method :usage_service, :normalize_service, :valid_utf8
+        private_class_method :usage_service, :normalize_service, :span_service
 
         def initialize(
           endpoint:,

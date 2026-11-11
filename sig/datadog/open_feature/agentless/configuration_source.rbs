@@ -87,7 +87,7 @@ module Datadog
 
         def self.normalize_service: (String service) -> String
 
-        def self.valid_utf8: (String value) -> String
+        def self.span_service: (String service) -> String?
 
         def stopped?: () -> bool
 

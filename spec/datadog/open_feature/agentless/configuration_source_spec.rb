@@ -4,6 +4,7 @@ require "spec_helper"
 require "timeout"
 require "datadog/open_feature/configuration/agentless_endpoint"
 require "datadog/open_feature/agentless/configuration_source"
+require "datadog/tracing/span_operation"
 
 RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
   subject(:source) do
@@ -172,17 +173,17 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         ["a#{"b" * 99}", "a#{"b" * 99}"],
         ["a#{"b" * 100}", "a#{"b" * 99}"],
         ["#{"a" * 100} b", "a" * 100],
-        ["#{"a" * 99}é", "a" * 99],
+        ["#{"a" * 99}\u00E9", "a" * 99],
         ["_svc", nil],
         ["-svc", nil],
         [".svc", nil],
         [":svc", nil],
-        ["café-api", nil],
-        ["Café", nil],
-        ["支付", nil],
+        ["caf\u00E9-api", nil],
+        ["Caf\u00E9", nil],
+        ["\u652F\u4ED8", nil],
         ["a\u{1F436}b", "a_b"],
-        ["İstanbul", nil],
-        ["é" * 60, nil],
+        ["\u0130stanbul", nil],
+        ["\u00E9" * 60, nil],
         ["___", nil],
         ["-", nil],
         ["", nil],
@@ -226,22 +227,65 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
       end
 
-      # The service is converted to UTF-8 first, so its encoding cannot make the build raise.
+      # Each row is a service in another encoding or with invalid UTF-8, and the DD-Service value it sends, or nil for no
+      # header. The values come from the span path: the tracer sets the service on a span and packs it, the Agent
+      # (v0.82.3) decodes it, then NormalizeService and the CDN format check run.
       [
         ["invalid UTF-8", "My caf\xFF", "my_caf"],
-        ["a binary encoding", "My caf\xC3\xA9".b, "my_caf"],
+        ["invalid UTF-8 at the 100-byte cut", "#{"a" * 97}\xFFbc", "a" * 97],
+        ["a binary encoding and non-ASCII bytes", "My caf\xC3\xA9".b, nil],
+        ["a binary encoding and only ASCII bytes", "My Service".b, "my_service"],
         ["a UTF-16 encoding", "My Service".encode(Encoding::UTF_16LE), "my_service"],
       ].each do |description, service, header|
         context "when the service has #{description}" do
           before { settings.service = service }
 
-          it "sends DD-Service: #{header} on every poll" do
-            2.times { source.poll }
+          if header
+            it "sends DD-Service: #{(header.length > 30) ? "#{header.length} characters" : header} on every poll" do
+              2.times { source.poll }
 
-            expect(
-              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
-            ).to have_been_made.twice
+              expect(
+                a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => header}),
+              ).to have_been_made.twice
+            end
+          else
+            it "does not send DD-Service and keeps polling" do
+              2.times { source.poll }
+
+              expect(request_without_service).to have_been_made.twice
+            end
           end
+        end
+      end
+
+      # Without a locale, Ruby reads a non-ASCII environment variable as ASCII-8BIT.
+      context "when DD_SERVICE is a non-ASCII name that Ruby reads as ASCII-8BIT" do
+        let(:service) { "caf\u00E9-api".b }
+
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => "caf\u00E9-api") { example.run }
+        end
+
+        before do
+          allow(ENV).to receive(:[]).and_call_original
+          allow(ENV).to receive(:[]).with("DD_SERVICE").and_return(service)
+        end
+
+        it "does not send DD-Service, logs why once and keeps polling" do
+          message = "Feature Flags: the tracer cannot convert service #{service.inspect} to UTF-8, so spans do not " \
+            "use it; DD-Service header not sent"
+
+          2.times { source.poll }
+
+          expect(request_without_service).to have_been_made.twice
+          expect(debug_messages.count(message)).to eq(1)
+          expect(logger).not_to have_received(:warn)
+          expect(logger).not_to have_received(:error)
+        end
+
+        it "matches the tracer, which sets no service on a span" do
+          expect(settings.service).to eq(service)
+          expect(Datadog::Tracing::SpanOperation.new("op", service: settings.service).service).to eq("")
         end
       end
 
@@ -270,7 +314,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
           end
         end
 
-        ["_svc", "café-api"].each do |name|
+        ["_svc", "caf\u00E9-api"].each do |name|
           context "to #{name.inspect}, which the CDN drops once normalized" do
             let(:service) { name }
 
