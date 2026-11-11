@@ -156,7 +156,7 @@ end
 # iteration, so every warmup/timed run gets a fresh topic and group.
 def run_benchmark(run_id = 0, commit_every: commit_every_from_env)
   base_topic = ENV.fetch("KAFKA_TOPIC", "benchmark-topic")
-  thread_count = Integer(ENV.fetch("NUM_THREADS", "1"))
+  thread_count = integer_from_env("NUM_THREADS", 1, 1)
 
   topics = Array.new(thread_count) { |t| "#{base_topic}-#{RUN_NONCE}-#{run_id}-#{t}" }
 
