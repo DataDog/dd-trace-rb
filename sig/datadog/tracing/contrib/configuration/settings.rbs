@@ -10,6 +10,8 @@ module Datadog
           def []: (untyped name) -> untyped
 
           def []=: (untyped name, untyped value) -> untyped
+
+          def copy_configured_options: (Settings source_settings, Array[Symbol] option_names) -> void
         end
       end
     end

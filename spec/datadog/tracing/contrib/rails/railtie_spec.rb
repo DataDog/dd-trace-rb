@@ -64,6 +64,57 @@ RSpec.describe "Rails Railtie", execute_in_fork: true do
     end
   end
 
+  describe "Rack integration options" do
+    {
+      service_name: ["rack-service", "rails-service"],
+      middleware_names: [true, false],
+      distributed_tracing: [false, true],
+      request_queuing: [true, false],
+    }.each do |option_name, (rack_value, rails_value)|
+      context "when ##{option_name} is configured on the Rack integration" do
+        before do
+          Datadog.configure do |c|
+            c.tracing.instrument :rack, option_name => rack_value
+          end
+        end
+
+        context "and not on the Rails integration" do
+          it "keeps the Rack value" do
+            app
+
+            expect(Datadog.configuration.tracing[:rack][option_name]).to eq rack_value
+          end
+        end
+
+        context "and on the Rails integration" do
+          let(:rails_options) { super().merge(option_name => rails_value) }
+
+          it "applies the Rails value" do
+            app
+
+            expect(Datadog.configuration.tracing[:rack][option_name]).to eq rails_value
+          end
+        end
+      end
+    end
+
+    context "when #distributed_tracing is set in code on the Rack integration and by environment variable on the Rails integration" do
+      with_env "DD_TRACE_RAILS_DISTRIBUTED_TRACING" => "false"
+
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :rack, distributed_tracing: true
+        end
+      end
+
+      it "keeps the Rack value" do
+        app
+
+        expect(Datadog.configuration.tracing[:rack][:distributed_tracing]).to be true
+      end
+    end
+  end
+
   describe "when load hooks run twice" do
     subject! do
       # Set expectations
