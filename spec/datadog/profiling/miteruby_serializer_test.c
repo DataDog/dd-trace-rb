@@ -348,13 +348,11 @@ static VALUE thread_value(VALUE thread) {
   return rb_funcall(thread, rb_intern("value"), 0);
 }
 
-static void test_no_gvl_completion(void) {
+static miteruby_raw_events_queue_t *test_no_gvl_completion(void) {
   enum { SUCCESS, RAISE_DURING, KILL_DURING, RAISE_BEFORE, KILL_BEFORE };
   assert(mtx_init(&gate_mutex, mtx_plain) == thrd_success);
   assert(cnd_init(&gate_condition) == thrd_success);
-  static miteruby_raw_events_queue_t raw_events_queue;
-  assert(miteruby_raw_events_queue_init(&raw_events_queue) == 0);
-  miteruby_consumer_init(&raw_events_queue);
+  miteruby_raw_events_queue_t *raw_events_queue = miteruby_consumer_init();
   miteruby_consumer_reset();
   VALUE serializer = serializer_new(rb_cObject);
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -430,8 +428,8 @@ static void test_no_gvl_completion(void) {
   }
   cnd_destroy(&gate_condition);
   mtx_destroy(&gate_mutex);
-  miteruby_raw_events_queue_destroy(&raw_events_queue);
   RB_GC_GUARD(serializer);
+  return raw_events_queue;
 }
 
 static void test_compressed_buffer_lifecycle(void) {
@@ -525,7 +523,10 @@ int main(int argc, char **argv) {
   test_working_status();
   test_missing_thread_context();
   test_compressed_buffer_lifecycle();
-  test_no_gvl_completion();
+  miteruby_raw_events_queue_t *raw_events_queue = test_no_gvl_completion();
   puts("Miteruby serializer tests passed");
-  return ruby_cleanup(0);
+  int result = ruby_cleanup(0);
+  miteruby_raw_events_queue_destroy(raw_events_queue);
+  miteruby_allocator_free(raw_events_queue);
+  return result;
 }
