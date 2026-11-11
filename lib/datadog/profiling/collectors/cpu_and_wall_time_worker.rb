@@ -24,7 +24,7 @@ module Datadog
 
         # @rbs gc_profiling_enabled: bool
         # @rbs no_signals_workaround_enabled: bool
-        # @rbs thread_context_collector: Datadog::Profiling::Collectors::ThreadContext
+        # @rbs thread_context_collector: ThreadContext?
         # @rbs dynamic_sampling_rate_overhead_target_percentage: Float
         # @rbs cpu_sampling_interval_ms: ::Integer
         # @rbs idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper
@@ -48,7 +48,7 @@ module Datadog
           sighandler_sampling_enabled:,
           cpu_sampling_interval_ms:,
           waiting_for_gvl_threshold_ns:,
-          miteruby_enabled: ENV["MITERUBY"] == "true",
+          miteruby_enabled: false,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -169,11 +169,9 @@ module Datadog
 
         #: () -> (StackRecorder | Miteruby::Serializer)
         def prepare_serialize
-          recorder = self.class._native_prepare_serialize(self)
           miteruby_serializer = @miteruby_serializer
-          return recorder unless miteruby_serializer
+          return self.class._native_prepare_serialize(self) unless miteruby_serializer
 
-          recorder.serialize
           self.class._native_miteruby_consumer_prepare_serialize(miteruby_serializer)
           Datadog.logger.info("Serializing with miteruby!")
           miteruby_serializer
