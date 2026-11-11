@@ -17,6 +17,11 @@ Observation: Given that we could get "block" directly when collecting the stack 
 or more bits somewhere), giving up file name for `eval`/`instance_eval` (expected to be rare) vs reduced memory and cpu-overhead
 of tracking HALF the references to Ruby objects, that seems a nice gain.
 
+## Compress bytecode positions in miteruby_event_stack_sample_t
+
+Like we do delta-compression for deduped ids, we could explore the same idea for the bytecode positions. Yet it's unclear
+how much (if any) stacks would normally benefit from this.
+
 ## Consider generational GC write barriers in our buffers
 
 If we structure our buffers to separate "things that are changed all the time" from "things that stay over from profile
