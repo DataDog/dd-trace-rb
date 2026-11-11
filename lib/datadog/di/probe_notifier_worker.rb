@@ -105,7 +105,9 @@ module Datadog
             # so a stop requested while awake skips the sleep entirely.
             if !stopping && @lock.synchronize { @flush } == 0
               sleep_remaining = @lock.synchronize do
-                if sleep_remaining && sleep_remaining > 0
+                # Steep cannot detect the type of the local read inside the
+                # block that assigns it.
+                if sleep_remaining && sleep_remaining > 0 # steep:ignore FallbackAny
                   # Recalculate how much sleep time is remaining, then sleep that long.
                   set_sleep_remaining
                 else
@@ -185,7 +187,7 @@ module Datadog
         end
         begin
           loop do
-            if @thread.nil? || !@thread.alive?
+            unless @thread&.alive?
               return
             end
 
@@ -234,7 +236,9 @@ module Datadog
       #
       # @return [DI::Transport::Diagnostics::Transport]
       def status_transport
-        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
+        # The transport chain types its logger as Core::Logger but only
+        # calls debug on it, which the DI logger facade provides.
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger) # steep:ignore ArgumentTypeMismatch
       end
 
       def do_send_status(batch)
@@ -245,7 +249,9 @@ module Datadog
       #
       # @return [DI::Transport::Input::Transport]
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger,
+        # The transport chain types its logger as Core::Logger but only
+        # calls debug on it, which the DI logger facade provides.
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, # steep:ignore ArgumentTypeMismatch
           telemetry: telemetry, guardrails_telemetry: guardrails_telemetry)
       end
 
@@ -257,7 +263,10 @@ module Datadog
       #
       # @param batch [Array<SnapshotEvent>] the snapshot events queued for sending
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+        # Steep types method(:) as ::Method, which it cannot relate to the
+        # proc type the parameter declares, though the call works.
+        snapshot_transport.send_input(batch, tags,
+          on_serialization_error: method(:handle_serialization_error)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Handles serialization errors reported by the transport.
@@ -325,30 +334,37 @@ module Datadog
           # probe. Restore the prior state afterwards so a caller that already
           # holds the guard (e.g. run_method_probe post-processing calling
           # add_snapshot) is not cleared early.
+          #
+          # Steep cannot type the receiver inside this define_method block,
+          # so the attr_reader, private method, and instance variable reads
+          # below wrongly report NoMethod, UnknownInstanceVariable, and
+          # FallbackAny diagnostics; each occurrence is marked.
           was_in_probe = Datadog::DI.in_probe?
           Datadog::DI.enter_probe unless was_in_probe
           begin
-            @lock.synchronize do
-              queue = send("#{event_type}_queue")
+            @lock.synchronize do # steep:ignore FallbackAny
+              queue = send("#{event_type}_queue") # steep:ignore NoMethod
               guardrails_event_type = if event_type == :snapshot
-                probe ? GuardrailsTelemetry.probe_event_type_tag(probe) : GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT
+                probe ? GuardrailsTelemetry.probe_event_type_tag(probe) : GuardrailsTelemetry::EVENT_TYPE_SNAPSHOT # steep:ignore FallbackAny
               end
-              if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
+              if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity # steep:ignore NoMethod
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
-                  logger.debug do
+                  logger.debug do # steep:ignore NoMethod
                     "di: dropping status for #{probe.type} probe at #{probe.location}" \
                       " (#{probe.id}): #{status} because queue is full" \
                       " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
                   end
                 else
-                  logger.debug do
+                  logger.debug do # steep:ignore NoMethod
+                    # steep:ignore:start
                     "di: #{self.class.name}: dropping #{event_type} event because queue is full" \
                       " (#{GuardrailsTelemetry::Reason::QUEUE_FULL})"
+                    # steep:ignore:end
                   end
                 end
                 if event_type == :snapshot
-                  guardrails_telemetry.dropped(
+                  guardrails_telemetry.dropped( # steep:ignore NoMethod
                     reason: GuardrailsTelemetry::Reason::QUEUE_FULL,
                     event_type: guardrails_event_type,
                   )
@@ -356,12 +372,12 @@ module Datadog
               else
                 if event_type == :status && probe
                   status = event.dig(:debugger, :diagnostics, :status)
-                  logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
+                  logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" } # steep:ignore NoMethod
                 else
-                  logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+                  logger.trace { "di: #{self.class.name}: queueing #{event_type} event" } # steep:ignore NoMethod
                 end
                 queue << if event_type == :snapshot
-                  SnapshotEvent.new(payload: event, event_type: guardrails_event_type)
+                  SnapshotEvent.new(payload: event, event_type: guardrails_event_type) # steep:ignore ArgumentTypeMismatch
                 else
                   event
                 end
@@ -371,17 +387,17 @@ module Datadog
             # Figure out whether to wake up the worker thread.
             # If minimum send interval has elapsed since the last send,
             # wake up immediately.
-            @lock.synchronize do
-              unless @wake_scheduled
-                @wake_scheduled = true
-                set_sleep_remaining
-                wake.signal
+            @lock.synchronize do # steep:ignore FallbackAny
+              unless @wake_scheduled # steep:ignore FallbackAny
+                @wake_scheduled = true # steep:ignore UnknownInstanceVariable
+                set_sleep_remaining # steep:ignore NoMethod
+                wake.signal # steep:ignore NoMethod
               end
             end
 
             # Worker could be not running if the process forked - check and
             # start it again in this case.
-            start
+            start # steep:ignore NoMethod
             nil
           ensure
             Datadog::DI.leave_probe unless was_in_probe
@@ -398,38 +414,42 @@ module Datadog
         # types of events. Therefore on most wake-ups we expect to only
         # send one type of events.
         define_method("maybe_send_#{event_type}") do
+          # Steep cannot type the receiver inside this define_method block,
+          # so the logger, Kernel, local, and instance variable reads below
+          # wrongly report NoMethod, UnknownInstanceVariable, and FallbackAny
+          # diagnostics; each occurrence is marked.
           batch = nil
-          @lock.synchronize do
-            batch = instance_variable_get("@#{event_type}_queue")
-            instance_variable_set("@#{event_type}_queue", [])
-            @io_in_progress = batch.any?
+          @lock.synchronize do # steep:ignore FallbackAny
+            batch = instance_variable_get("@#{event_type}_queue") # steep:ignore NoMethod
+            instance_variable_set("@#{event_type}_queue", []) # steep:ignore NoMethod
+            @io_in_progress = batch.any? # steep:ignore NoMethod, UnknownInstanceVariable
           end
-          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
-          if batch.any?
+          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" } # steep:ignore NoMethod
+          if batch.any? # steep:ignore NoMethod
             begin
-              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
-              send("do_send_#{event_type}", batch)
+              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" } # steep:ignore NoMethod
+              send("do_send_#{event_type}", batch) # steep:ignore NoMethod
               time = Core::Utils::Time.get_time
-              @lock.synchronize do
-                @last_sent = time
+              @lock.synchronize do # steep:ignore FallbackAny
+                @last_sent = time # steep:ignore UnknownInstanceVariable
               end
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
-              telemetry&.report(exc, description: "Error sending #{event_type}")
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions # steep:ignore NoMethod
+              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" } # steep:ignore NoMethod
+              telemetry&.report(exc, description: "Error sending #{event_type}") # steep:ignore NoMethod
             end
           end
-          batch.any?
+          batch.any? # steep:ignore NoMethod
         rescue ThreadError => exc
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
           # while consuming it here. Rescue ThreadError and return.
-          logger.debug { "di: unexpected #{event_name} queue underflow - consumed elsewhere?" }
-          telemetry&.report(exc, description: "Unexpected #{event_name} queue underflow")
+          logger.debug { "di: unexpected #{event_name} queue underflow - consumed elsewhere?" } # steep:ignore NoMethod
+          telemetry&.report(exc, description: "Unexpected #{event_name} queue underflow") # steep:ignore NoMethod
         ensure
-          @lock.synchronize do
-            @io_in_progress = false
+          @lock.synchronize do # steep:ignore FallbackAny
+            @io_in_progress = false # steep:ignore UnknownInstanceVariable
           end
         end
       end
