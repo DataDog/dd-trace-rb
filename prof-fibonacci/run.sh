@@ -15,6 +15,9 @@ export DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true # show classes in pro
 export DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED=true
 export RUBY_YJIT_ENABLE=true
 
+# export PROF_FIBONACCI_PORT=8081
+#export WEB_CONCURRENCY=0
+
 ruby -v
 
-exec bundle exec ddprofrb exec rackup -p 8080 -q
+exec bundle exec ddprofrb exec rackup -p $PROF_FIBONACCI_PORT -q
