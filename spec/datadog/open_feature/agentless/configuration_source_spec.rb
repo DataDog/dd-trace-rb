@@ -10,6 +10,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
     described_class.new(
       endpoint: endpoint,
       api_key: "secret",
+      service: "checkout",
       poll_interval_seconds: 30,
       request_timeout_seconds: 5,
       apply: apply,
@@ -79,6 +80,113 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       it "does not require an API key" do
         expect(described_class.build(settings, endpoint: endpoint, apply: apply, logger: logger))
           .to be_a(described_class)
+      end
+    end
+
+    context "when polling the endpoint", webmock: true do
+      subject(:source) { described_class.build(settings, endpoint: endpoint, apply: apply, logger: logger) }
+
+      let(:debug_messages) { [] }
+      let(:request_without_service) do
+        a_request(:get, "https://example.test/config").with { |request| !request.headers.key?("Dd-Service") }
+      end
+
+      before do
+        settings.api_key = "secret"
+        allow(logger).to receive(:debug) { |message, &block| debug_messages << (block ? block.call : message) }
+        stub_request(:get, "https://example.test/config").to_return(status: 200, body: body)
+      end
+
+      context "with DD_SERVICE set" do
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => "checkout") { example.run }
+        end
+
+        it "sends the service in DD-Service on every poll" do
+          stub_request(:get, "https://example.test/config").to_return(
+            {status: 200, body: body, headers: {"ETag" => "v1"}},
+            {status: 304},
+          )
+
+          2.times { source.poll }
+
+          expect(
+            a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => "checkout"}),
+          ).to have_been_made.twice
+          expect(
+            a_request(:get, "https://example.test/config")
+              .with(headers: {"DD-Service" => "checkout", "If-None-Match" => "v1"}),
+          ).to have_been_made.once
+        end
+      end
+
+      context "without a configured service" do
+        around do |example|
+          ClimateControl.modify("DD_SERVICE" => nil, "OTEL_SERVICE_NAME" => nil) { example.run }
+        end
+
+        it "sends the inferred default service" do
+          source.poll
+
+          expect(
+            a_request(:get, "https://example.test/config")
+              .with(headers: {"DD-Service" => Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME}),
+          ).to have_been_made.once
+        end
+      end
+
+      [nil, "", "   "].each do |service|
+        context "when the service is #{service.inspect}" do
+          before { settings.service = service }
+
+          it "does not send DD-Service" do
+            source.poll
+
+            expect(request_without_service).to have_been_made.once
+            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
+          end
+        end
+      end
+
+      {
+        "a single character" => "a",
+        "every allowed punctuation character" => "svc_name.v2:api/edge-1",
+        "100 characters" => "a#{"b" * 99}",
+      }.each do |description, service|
+        context "when the service has #{description}" do
+          before { settings.service = service }
+
+          it "sends it unchanged" do
+            source.poll
+
+            expect(
+              a_request(:get, "https://example.test/config").with(headers: {"DD-Service" => service}),
+            ).to have_been_made.once
+            expect(debug_messages.grep(/DD-Service header not sent/)).to be_empty
+          end
+        end
+      end
+
+      [
+        ["101 characters", "a#{"b" * 100}", "\"a#{"b" * 100}\""],
+        ["a leading underscore", "_svc", '"_svc"'],
+        ["a space", "my service", '"my service"'],
+        ["non-ASCII characters", "\u652F\u4ED8", "\u652F\u4ED8".inspect],
+        ["a line feed", "bad\nvalue", '"bad\\nvalue"'],
+      ].each do |description, service, logged_service|
+        context "when the service has #{description}" do
+          before { settings.service = service }
+
+          it "does not send DD-Service and logs why once" do
+            message = "Feature Flags: service #{logged_service} does not match the format the CDN attributes usage to; " \
+              "DD-Service header not sent"
+
+            2.times { source.poll }
+
+            expect(request_without_service).to have_been_made.twice
+            expect(debug_messages.count(message)).to eq(1)
+          end
+        end
       end
     end
   end

@@ -16,6 +16,8 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
+        # The only DD-Service format the CDN attributes usage to; it drops any other value.
+        USAGE_SERVICE_PATTERN = %r{\A[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}\z}
 
         include Core::Workers::Polling
 
@@ -31,6 +33,7 @@ module Datadog
           new(
             endpoint: endpoint,
             api_key: api_key.empty? ? nil : api_key,
+            service: usage_service(settings.service, logger),
             poll_interval_seconds: settings.feature_flags.agentless.poll_interval_seconds,
             request_timeout_seconds: settings.feature_flags.agentless.request_timeout_seconds,
             apply: apply,
@@ -38,9 +41,24 @@ module Datadog
           )
         end
 
+        # The format check also keeps out CR/LF, on which Net::HTTP raises and fails every poll.
+        def self.usage_service(service, logger)
+          service = service.to_s
+          return if service.strip.empty?
+          return service if USAGE_SERVICE_PATTERN.match?(service)
+
+          logger.debug do
+            "Feature Flags: service #{service.inspect} does not match the format the CDN attributes usage to; " \
+              "DD-Service header not sent"
+          end
+          nil
+        end
+        private_class_method :usage_service
+
         def initialize(
           endpoint:,
           api_key:,
+          service:,
           poll_interval_seconds:,
           request_timeout_seconds:,
           apply:,
@@ -52,6 +70,7 @@ module Datadog
           @transport = transport || Transport.new(
             endpoint: endpoint,
             api_key: api_key,
+            service: service,
             timeout_seconds: request_timeout_seconds,
           )
           @apply = apply

@@ -9,7 +9,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
   subject(:response) { transport.get(etag) }
 
   let(:transport) do
-    described_class.new(endpoint: endpoint, api_key: "secret", timeout_seconds: 5)
+    described_class.new(endpoint: endpoint, api_key: "secret", service: service, timeout_seconds: 5)
   end
   let(:endpoint) do
     Datadog::OpenFeature::Configuration::AgentlessEndpoint.new(
@@ -18,6 +18,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
     )
   end
   let(:managed) { true }
+  let(:service) { "checkout" }
   let(:etag) { "previous" }
 
   around do |example|
@@ -44,10 +45,25 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
           "DD-Client-Library-Language" => "ruby",
           "DD-Client-Library-Version" => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
           "DD-Internal-Untraced-Request" => "1",
+          "DD-Service" => "checkout",
           "If-None-Match" => "previous",
         },
       ),
     ).to have_been_made.once
+  end
+
+  context "without a service" do
+    let(:service) { nil }
+
+    it "does not send DD-Service" do
+      response
+
+      expect(
+        a_request(:get, "https://example.test/config?dd_env=test").with do |request|
+          !request.headers.key?("Dd-Service")
+        end,
+      ).to have_been_made.once
+    end
   end
 
   context "with a custom endpoint" do
@@ -60,6 +76,14 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
         a_request(:get, "https://example.test/config?dd_env=test").with do |request|
           !request.headers.key?("Dd-Api-Key")
         end,
+      ).to have_been_made.once
+    end
+
+    it "sends DD-Service" do
+      response
+
+      expect(
+        a_request(:get, "https://example.test/config?dd_env=test").with(headers: {"DD-Service" => "checkout"}),
       ).to have_been_made.once
     end
 

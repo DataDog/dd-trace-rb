@@ -14,6 +14,8 @@ module Datadog
 
         RETRY_JITTER: Float
 
+        USAGE_SERVICE_PATTERN: Regexp
+
         include Core::Workers::Polling
         # NOTE: Steep does not infer modules included dynamically by Polling.
         include Core::Workers::Async::Thread
@@ -55,6 +57,7 @@ module Datadog
         def initialize: (
           endpoint: Configuration::AgentlessEndpoint,
           api_key: String?,
+          service: String?,
           poll_interval_seconds: Integer,
           request_timeout_seconds: Integer,
           apply: ^(String) -> void,
@@ -75,6 +78,8 @@ module Datadog
         def after_fork: () -> nil
 
         private
+
+        def self.usage_service: (String? service, Core::Logger logger) -> String?
 
         def stopped?: () -> bool
 
