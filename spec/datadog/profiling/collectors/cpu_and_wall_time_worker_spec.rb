@@ -1,4 +1,5 @@
 require "datadog/profiling/spec_helper"
+require "objspace"
 
 require "datadog/profiling/collectors/cpu_and_wall_time_worker"
 
@@ -22,7 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:cpu_sampling_interval_ms) { 10 }
   let(:one_second_in_ns) { 1_000_000_000 }
   let(:waiting_for_gvl_threshold_ns) { 10_000_000 }
-  let(:thread_context_collector) { build_thread_context_collector }
+  let(:thread_context_collector) { build_thread_context_collector unless options[:miteruby_enabled] }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -62,6 +63,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    context "without a thread context collector" do
+      let(:thread_context_collector) { nil }
+
+      it "rejects a missing collector when miteruby is disabled" do
+        expect { cpu_and_wall_time_worker }.to raise_error(TypeError)
+      end
+    end
+
     context "when cpu_sampling_interval_ms is less than 1" do
       let(:cpu_sampling_interval_ms) { 0 }
 
@@ -86,16 +95,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "when miteruby is enabled" do
       let(:options) { {miteruby_enabled: true} }
+      let(:thread_context_collector) { nil }
 
-      it "serializes the native recorder and returns a persistent serializer by default" do
-        expect(Datadog.logger).to receive(:info).with("Serializing with miteruby!").twice
-        expect(stack_recorder).to receive(:serialize).twice.and_call_original
-        expect(described_class).to receive(:_native_prepare_serialize).with(cpu_and_wall_time_worker).twice.and_call_original
+      it "returns a persistent serializer without creating a StackRecorder or ThreadContext" do
+        expect(Datadog::Profiling::StackRecorder).to_not receive(:new)
+        expect(Datadog::Profiling::Collectors::ThreadContext).to_not receive(:new)
+        expect(described_class).to_not receive(:_native_prepare_serialize)
 
         miteruby_serializer = cpu_and_wall_time_worker.prepare_serialize
 
         expect(miteruby_serializer).to be_a(Datadog::Profiling::Miteruby::Serializer)
-        expect(miteruby_serializer).to_not equal(stack_recorder)
         start, finish, encoded, stats = miteruby_serializer.serialize
         expect(start).to be <= finish
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
@@ -2084,6 +2093,56 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe "miteruby without a legacy collector" do
+    let(:options) { {miteruby_enabled: true} }
+    let(:gc_profiling_enabled) { true }
+    let(:allocation_profiling_enabled) { true }
+    let(:allocation_counting_enabled) { true }
+    let(:gvl_profiling_enabled) { true }
+
+    after { cpu_and_wall_time_worker.stop }
+
+    [false, true].each do |no_signals|
+      context "with no_signals_workaround_enabled: #{no_signals}" do
+        let(:no_signals_workaround_enabled) { no_signals }
+
+        before do
+          skip "Ruby 2.5 requires the no-signals workaround" if !no_signals && RUBY_VERSION.start_with?("2.5.")
+        end
+
+        it "samples and exports across restarts with legacy hooks disabled" do
+          expect(Datadog::Profiling::StackRecorder).to_not receive(:new)
+          expect(Datadog::Profiling::Collectors::ThreadContext).to_not receive(:new)
+
+          2.times do
+            cpu_and_wall_time_worker.start
+            wait_until_running
+            expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+            expect(described_class._native_allocation_count).to be_nil
+            expect(described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker)).to be false
+
+            described_class::Testing._native_simulate_sample_from_postponed_job
+            GC.start
+            loop_until do
+              described_class::Testing._native_miteruby_wake_reader
+              Thread.pass
+              cpu_and_wall_time_worker.stats.fetch(:miteruby_interned_events_queue_used_size_bytes) > 0
+            end
+            samples = samples_from_pprof(cpu_and_wall_time_worker.prepare_serialize.serialize!)
+            expect(samples).to_not be_empty
+            expect(samples.map(&:labels)).to all(include(miteruby: 1))
+            expect(cpu_and_wall_time_worker.stats_and_reset_not_thread_safe).to include(
+              allocation_sampled: nil,
+              gvl_waiting_time_ns_total: nil,
+            )
+            expect(cpu_and_wall_time_worker.send(:failure_exception)).to be_nil
+            cpu_and_wall_time_worker.stop
+          end
+        end
+      end
+    end
+  end
+
   describe "miteruby consumer thread" do
     let(:no_signals_workaround_enabled) { true }
 
@@ -2832,7 +2891,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(batches.map(&:size)).to eq([1, 1])
       expect(batches.last.first.locations).to eq(batches.first.first.locations)
-      expect(batches.map { |samples| samples.first.values.fetch(:"cpu-time") }).to eq([0, 0])
+      expect(batches.map { |samples| samples.first.values.fetch(:"cpu-time") }).to eq([0, 150])
+      expect(batches.last.first.values.fetch(:"wall-time")).to be > 0
     end
 
     it "records buffered Ruby and C frames, labels, and capture timestamps" do
@@ -3042,8 +3102,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       threads&.each(&:join)
     end
 
-    it "resets both baselines when the worker starts a new profiling session" do
+    it "resets both baselines after a fork reset" do
       2.times do
+        serializer.reset_after_fork
         capture_miteruby { 2.times { publish_miteruby_sample } }
         consume_miteruby
         samples = samples_for_thread(recorded_miteruby_samples, Thread.current)
@@ -3053,6 +3114,65 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
         expect(samples.last.values.fetch(:"wall-time")).to be > 0
       end
+    end
+
+    it "retains live unsampled threads without including their strings in the next profile" do
+      finish = Queue.new
+      sampled_thread = Thread.new { finish.pop }
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 100)).to be true
+      consume_miteruby
+      first = samples_for_thread(recorded_miteruby_samples, sampled_thread).first
+      expect(first.values).to include("cpu-time": 0, "wall-time": 0)
+
+      expect(recorded_miteruby_samples).to be_empty
+      expect(ObjectSpace.reachable_objects_from(serializer)).to include(sampled_thread)
+      GC.start
+      GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 200)).to be true
+      consume_miteruby
+      profile = recorded_miteruby_profile
+      expect(decode_profile(profile).string_table).to_not include(sampled_thread.object_id.to_s)
+      samples = samples_from_pprof(profile)
+      expect(samples.map(&:labels)).to all(include("thread id": Thread.current.object_id.to_s))
+      expect(samples.first.locations.map(&:label))
+        .to include("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_testing")
+
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 250)).to be true
+      consume_miteruby
+      last = samples_for_thread(recorded_miteruby_samples, sampled_thread).first
+      expect(last.values.fetch(:"cpu-time")).to eq(150)
+      expect(last.values.fetch(:"wall-time")).to be > 0
+    ensure
+      finish << true if finish
+      sampled_thread&.join
+    end
+
+    it "marks dead sampled threads until a later profile has no samples for them" do
+      sampled_thread = Thread.new {}.join
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 100)).to be true
+      consume_miteruby
+      expect(samples_for_thread(recorded_miteruby_samples, sampled_thread).size).to eq(1)
+      expect(ObjectSpace.reachable_objects_from(serializer)).to include(sampled_thread)
+
+      GC.start
+      GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
+
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 250)).to be true
+      consume_miteruby
+      samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
+      expect(samples.first.values.fetch(:"cpu-time")).to eq(150)
+      expect(ObjectSpace.reachable_objects_from(serializer)).to include(sampled_thread)
+
+      expect(recorded_miteruby_samples).to be_empty
+      expect(ObjectSpace.reachable_objects_from(serializer)).to_not include(sampled_thread)
+
+      expect(described_class::Testing._native_miteruby_sample_event_publish_testing(sampled_thread, 300)).to be true
+      consume_miteruby
+      samples = samples_for_thread(recorded_miteruby_samples, sampled_thread)
+      expect(samples.first.values).to include("cpu-time": 0, "wall-time": 0)
+      serializer.reset_after_fork
+      expect(ObjectSpace.reachable_objects_from(serializer)).to_not include(sampled_thread)
     end
 
     it "returns without recording when empty and does not record a sample twice" do
@@ -3089,7 +3209,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(pairs).to include(*samples.map { |sample| sample.labels.values_at(:"thread name", :"thread id") }.uniq)
       expect(pairs.map(&:first)).to include("main", "miteruby named thread")
-      expect(pairs.map(&:last)).to include(*threads.map { |thread| "0 (#{thread.object_id})" })
+      expect(pairs.map(&:last)).to include(*threads.map { |thread| thread.object_id.to_s })
       expect(profile.function.find { |function| function.id == 3 }.name).to eq(20 + thread_count * 2)
     ensure
       threads&.each { |thread| thread.kill.join }
