@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Data Streams",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6672",
+  "message": "Enable or disable Data Streams Monitoring at runtime with Remote Config, per service and environment, without restarting the application. `DD_DATA_STREAMS_ENABLED` remains the default until a Remote Config value is set."
+}
