@@ -511,7 +511,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   miteruby_pprof_fragment_sample_sample_label_t labels[] = {
     {.key = PPROF_STRING_THREAD_ID, .str = context->thread_id_string_id},
     {.key = PPROF_STRING_THREAD_NAME, .str = context->thread_name_string_id},
-    {.key = PPROF_STRING_STATE, .str = PPROF_STRING_HAD_CPU},
+    {.key = PPROF_STRING_STATE, .str = PPROF_STRING_HAD_CPU}, // TODO: Port thread state categorization to miteruby once we support pure wall-time samples; see https://github.com/DataDog/dd-trace-rb/pull/new/ivoanjo/research-thread-state for how to do this with miteruby
     {.key = PPROF_STRING_MITERUBY, .num = 1},
     {.key = PPROF_STRING_END_TIMESTAMP_NS, .num = end_timestamp_ns},
   };
