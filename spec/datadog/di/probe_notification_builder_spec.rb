@@ -548,7 +548,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:context) do
@@ -564,7 +564,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     it "serializes a BasicObject return value" do
       payload = builder.build_executed(context)
       expect(payload[:debugger][:snapshot][:captures][:return][:arguments][:@return]).to eq(
-        type: "BasicObject", fields: {}
+        type: "BasicObject", fields: {},
       )
     end
   end
