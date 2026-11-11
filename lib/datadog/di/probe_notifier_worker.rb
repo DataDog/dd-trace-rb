@@ -111,7 +111,7 @@ module Datadog
               if sleep_remaining > 0
                 # Do not need to update @wake_scheduled here because
                 # wake-up is already scheduled for the earliest possible time.
-                wake.wait(sleep_remaining)
+                wake.wait(sleep_remaining) unless @stop_requested
                 next
               end
             end
