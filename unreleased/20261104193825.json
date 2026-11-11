@@ -2,5 +2,5 @@
   "type": "Fixed",
   "product": "Dynamic Instrumentation",
   "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6632",
-  "message": "Fix missing snapshots and probe statuses when an application shuts down with events waiting to be sent."
+  "message": "Fix missing snapshots and probe statuses when an application shuts down with pending events."
 }
