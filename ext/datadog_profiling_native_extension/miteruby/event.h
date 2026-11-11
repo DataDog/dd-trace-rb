@@ -24,7 +24,6 @@ typedef struct {
 typedef enum __attribute__((packed)) {
   MITERUBY_EVENT_INVALID = 0,
   MITERUBY_EVENT_STACK_SAMPLE = 1,
-  MITERUBY_EVENT_OVERFLOW = 2,
   MITERUBY_EVENT_DEDUPED_SAMPLE = 3,
 } miteruby_event_type_t;
 
@@ -98,10 +97,6 @@ typedef struct {
   uint16_t frame_count;
 } miteruby_event_stack_sample_view_t;
 
-typedef struct {
-  miteruby_event_header_t header;
-} miteruby_event_overflow_t;
-
 _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
 _Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");
 _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
@@ -118,7 +113,6 @@ _Static_assert(sizeof(miteruby_frame_id_t) == 2, "miteruby_frame_id_t must be 2 
 _Static_assert(sizeof(miteruby_location_id_t) == 4, "miteruby_location_id_t must be 4 bytes");
 _Static_assert(sizeof(miteruby_bytecode_pos_t) == 2, "miteruby_bytecode_pos_t must be 2 bytes");
 _Static_assert(sizeof(miteruby_event_stack_sample_t) == 32 && offsetof(miteruby_event_stack_sample_t, frames) == 32, "miteruby_event_stack_sample_t frames must start after a 32-byte prefix");
-_Static_assert(sizeof(miteruby_event_overflow_t) == 24, "miteruby_event_overflow_t must be 24 bytes");
 _Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
 _Static_assert(offsetof(miteruby_event_deduped_sample_t, stack.ids) == 44, "miteruby_event_deduped_sample_t IDs must start after a 44-byte prefix");
 _Static_assert(sizeof(miteruby_event_deduped_sample_t) == 48, "miteruby_event_deduped_sample_t must be 48 bytes");
