@@ -21,8 +21,7 @@ module Datadog
         "(targeting keys, evaluation context attributes, flag values, and default values) that may contain " \
         "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it."
 
-      def initialize(reporter, telemetry:, logger:)
-        @reporter = reporter
+      def initialize(telemetry:, logger:)
         @telemetry = telemetry
         @logger = logger
         @raw_data_warning = Core::Utils::OnlyOnce.new
@@ -55,8 +54,6 @@ module Datadog
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
-
-        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result
       rescue => e

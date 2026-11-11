@@ -171,7 +171,6 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       before do
         # Reduce limits even more to force a reasonably-sized snapshot to be dropped
         stub_const("Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE", 2_000)
-        stub_const("Datadog::DI::Transport::Input::Transport::BACKEND_ENRICHMENT_HEADROOM", 500)
       end
 
       let(:small_snapshot) do
@@ -342,7 +341,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
             "kept" => {"type" => "String", "value" => "k" * 100},
             "large" => {"pruned" => true},
           )
-          expect(JSON.dump(sent.first).bytesize).to be <= 1_500
+          expect(JSON.dump(sent.first).bytesize).to be <= 2_000
         end
 
         it "emits the payloadTooLarge capture.incomplete metric and no drop metric" do
@@ -457,6 +456,45 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
         end
       end
+    end
+  end
+
+  context "when a snapshot exceeds MAX_SERIALIZED_SNAPSHOT_SIZE and is within BACKEND_SNAPSHOT_SIZE_LIMIT" do
+    let(:near_limit_snapshot) do
+      {
+        debugger: {
+          snapshot: {
+            probe: {id: "near-limit-probe"},
+            captures: {return: {arguments: {kept: {type: "String", value: "k" * 100},
+                                            large: {type: "String", value: "x" * 1_046_000}}}},
+          },
+        },
+      }
+    end
+
+    let(:sent_payloads) { [] }
+
+    before do
+      encoded_size = JSON.dump(near_limit_snapshot).bytesize
+      expect(encoded_size).to be > described_class::MAX_SERIALIZED_SNAPSHOT_SIZE
+      expect(encoded_size).to be <= described_class::BACKEND_SNAPSHOT_SIZE_LIMIT
+
+      allow(transport).to receive(:send_input_chunk) do |chunked_payload, _serialized_tags|
+        sent_payloads << chunked_payload
+      end
+    end
+
+    it "sends the snapshot with its largest captured value pruned" do
+      transport.send_input([snapshot_event(near_limit_snapshot)], tags,
+        on_serialization_error: noop_serialization_error_handler)
+
+      expect(sent_payloads.size).to eq 1
+      sent = JSON.parse(sent_payloads.first)
+      expect(sent.size).to eq 1
+      expect(sent.first.dig("debugger", "snapshot", "captures", "return", "arguments")).to eq(
+        "kept" => {"type" => "String", "value" => "k" * 100},
+        "large" => {"pruned" => true},
+      )
     end
   end
 

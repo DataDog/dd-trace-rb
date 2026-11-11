@@ -1,0 +1,6 @@
+{
+  "type": "Added",
+  "product": "Open Feature",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6610",
+  "message": "Add `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` (default `true`); set it to `false` to stop sending exposures to Datadog while `Datadog::OpenFeature::ExposureHook` keeps receiving them."
+}
