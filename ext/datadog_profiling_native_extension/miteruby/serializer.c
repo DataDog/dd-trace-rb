@@ -241,6 +241,7 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
     case MITERUBY_SERIALIZER_COMPRESSION_CONTEXT_INIT_ERROR: rb_raise(rb_eRuntimeError, "Failed to initialize static zstd context");
     case MITERUBY_SERIALIZER_COMPRESSION_INIT_ERROR: rb_raise(rb_eRuntimeError, "Failed to initialize zstd stream");
     case MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL: rb_raise(rb_eRuntimeError, "Miteruby streaming thread contexts map is full");
+    case MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING: rb_raise(rb_eRuntimeError, "Miteruby streaming sample has no prepared thread context");
     case MITERUBY_SERIALIZER_INVALID_COMPRESSED_STACK: rb_raise(rb_eRuntimeError, "Miteruby invalid compressed stack");
     case MITERUBY_SERIALIZER_STRING_TABLE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming string table");
     case MITERUBY_SERIALIZER_LOCATION_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming location");
@@ -319,13 +320,22 @@ static VALUE serializer_new(VALUE klass) {
   return serializer;
 }
 
+// Called without the GVL with allow_insert=false: all entries must already exist, and the map's structure and
+// storage must remain unchanged during that phase. Per-thread sample values can still be updated.
 static miteruby_serializer_exit_reason_t thread_context_for(
-  verstable_serializer_thread_contexts_map *thread_contexts, VALUE thread, serializer_thread_context **context
+  verstable_serializer_thread_contexts_map *thread_contexts, VALUE thread, bool allow_insert,
+  serializer_thread_context **context
 ) {
-  verstable_serializer_thread_contexts_map_itr entry = verstable_serializer_thread_contexts_map_get_or_insert(
-    thread_contexts, thread, (serializer_thread_context) {0}
-  );
-  if (verstable_serializer_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL;
+  verstable_serializer_thread_contexts_map_itr entry;
+  if (allow_insert) {
+    entry = verstable_serializer_thread_contexts_map_get_or_insert(
+      thread_contexts, thread, (serializer_thread_context) {0}
+    );
+    if (verstable_serializer_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXTS_FULL;
+  } else {
+    entry = verstable_serializer_thread_contexts_map_get(thread_contexts, thread);
+    if (verstable_serializer_thread_contexts_map_is_end(entry)) return MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING;
+  }
   *context = &entry.data->val;
   return MITERUBY_SERIALIZER_OK;
 }
@@ -577,7 +587,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   ) {
     VALUE thread = entry.data->key;
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, thread, true, &context));
     context->thread_name_string_id = thread_string_id++;
     context->thread_id_string_id = thread_string_id++;
     // Upcall into Ruby: Thread metadata (name, id, etc)
@@ -709,7 +719,7 @@ static miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize_n
       if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[frame_offset] = PPROF_LOCATION_TRUNCATED;
     }
     serializer_thread_context *context;
-    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, &context));
+    RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, false, &context));
     miteruby_sample_values values = sample_values_for(context, event);
     int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&time_converter, event->header.timestamp.ns);
     RETURN_IF_ERROR(emit_sample_fragment(stream, location_ids, location_count, values, context, end_timestamp_ns));
