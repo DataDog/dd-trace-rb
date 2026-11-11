@@ -166,10 +166,10 @@ static void test_retained_preparation_state(void) {
   assert(workspace != NULL);
 
   for (int scenario = SUCCESS; scenario <= REUSE_AFTER_EXCEPTION; scenario++) {
-    miteruby_allocator_free(state->compressed_serialization_buffer);
+    miteruby_allocator_free(&state->compressed_serialization_buffer);
     state->compressed_serialization_buffer = miteruby_allocator_alloc(1024, "test_output");
     assert(state->compressed_serialization_buffer != NULL);
-    miteruby_allocator_free(state->interned_events_queue);
+    miteruby_allocator_free(&state->interned_events_queue);
     state->interned_events_queue = miteruby_allocator_alloc(1024, "test_queue");
     assert(state->interned_events_queue != NULL);
     assert(serializer_size(state) == sizeof(*state) + miteruby_allocator_requested_bytes());
@@ -527,6 +527,6 @@ int main(int argc, char **argv) {
   puts("Miteruby serializer tests passed");
   int result = ruby_cleanup(0);
   miteruby_raw_events_queue_destroy(raw_events_queue);
-  miteruby_allocator_free(raw_events_queue);
+  miteruby_allocator_free(&raw_events_queue);
   return result;
 }
