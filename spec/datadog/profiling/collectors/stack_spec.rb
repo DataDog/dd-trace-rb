@@ -777,7 +777,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when sampling the idle sampling helper thread" do
         let(:expected_method_name) { "_native_idle_sampling_loop" }
         let(:cpu_and_wall_time_worker) {
-          instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, _native_profiler_internal_thread_done: nil)
+          instance_double(
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+            _native_profiler_internal_thread_started: nil,
+            _native_profiler_internal_thread_done: nil,
+          )
         }
         let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new }
         let(:do_in_background_thread) do
