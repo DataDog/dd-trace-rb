@@ -441,7 +441,11 @@ static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
 
 static void reset_serialization_metadata(void) {
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
+
+  // Important: We can only "wipe" the mark_frame_array once we no longer need to access from Ruby the VALUEs contained. From this moment on
+  // Ruby will be able to GC and move things that were referenced here.
   consumer_state.mark_frame_array.count = 0;
+
   consumer_state.location_array.count = 0;
 }
 
