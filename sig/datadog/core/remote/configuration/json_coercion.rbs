@@ -3,7 +3,7 @@ module Datadog
     module Remote
       class Configuration
         module JSONCoercion
-          def self?.coerce_integer: (Datadog::Helpers::json value) -> ::Integer?
+          def self.coerce_integer: (Datadog::Helpers::json value) -> ::Integer?
         end
       end
     end
