@@ -121,11 +121,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         encoded = serializer.serialize!
         expect(encoded).to be_a(Datadog::Profiling::EncodedProfile)
         profile = decode_profile(encoded)
-        expect(profile.string_table.first(22)).to eq(
+        expect(profile.string_table.first(20)).to eq(
           [
             "", "cpu-time", "nanoseconds", "cpu-samples", "count", "wall-time", "alloc-samples", "alloc-samples-unscaled", "timeline",
             "thread id", "thread name", "state", "had cpu", "miteruby", "end_timestamp_ns",
-            "(sampled by miteruby)", "(sampled in sighandler)", "In native code", "Truncated Frames",
+            "In native code", "Truncated Frames",
             "main", "(Unnamed thread from native code)", "(Unnamed thread)",
           ],
         )
@@ -133,10 +133,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           [[1, 2], [3, 4], [5, 2], [6, 4], [7, 4], [8, 2]],
         )
         expect(profile.sample).to be_empty
-        expect(profile.function.size).to eq(4)
-        expect(profile.location.first(4).map { |location| decode_frame_from_pprof(profile, location.id) }).to eq([
-          ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0),
-          ProfileHelpers::Frame.new("(sampled in sighandler)", "", 0),
+        expect(profile.function.size).to eq(2)
+        expect(profile.location.first(2).map { |location| decode_frame_from_pprof(profile, location.id) }).to eq([
           ProfileHelpers::Frame.new("", "In native code", 0),
           ProfileHelpers::Frame.new("Truncated Frames", "", 0),
         ])
@@ -175,7 +173,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(samples).to_not be_empty
         expect(samples.map(&:values)).to all(include("cpu-time": be >= 0, "wall-time": be >= 0, "cpu-samples": 1))
         expect(samples.map(&:labels)).to all(include(miteruby: 1, end_timestamp_ns: be > 0))
-        expect(samples.map { |sample| sample.locations.last.label }).to all(eq("(sampled by miteruby)"))
+        expect(samples.flat_map(&:locations).map(&:label)).to_not include("(sampled by miteruby)", "(sampled in sighandler)")
       ensure
         cpu_and_wall_time_worker.stop
       end
@@ -2525,7 +2523,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         "(TODO: resolve filename for cfuncs)",
       ])
       expect(profile.function.map(&:id)).to eq((1..profile.function.size).to_a)
-      expect(profile.location.size).to eq(4 + location_count)
+      expect(profile.location.size).to eq(2 + location_count)
       expect(profile.location.map(&:id)).to eq((1..profile.location.size).to_a)
       frames = profile.location.map { |location| decode_frame_from_pprof(profile, location.id) }
       source_file, source_line = MiterubyStringEmission.instance_method(:capture).source_location
@@ -2662,7 +2660,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(profile.string_table.to_a).to include(*filenames)
       expect(profile.sample.size).to eq(400)
-      expect(profile.location.size).to eq(4 + location_count)
+      expect(profile.location.size).to eq(2 + location_count)
     end
 
     it "serializes every buffered event before clearing the queue" do
@@ -2683,9 +2681,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       profile = decode_profile(encoded_profile)
       expect(profile.sample.size).to eq(3)
       expect(profile.sample_type.size).to eq(6)
-      expect(profile.function.size).to eq(4 + function_count)
+      expect(profile.function.size).to eq(2 + function_count)
       next_profile = decode_profile(recorded_miteruby_profile)
-      expect(next_profile.function.size).to eq(4)
+      expect(next_profile.function.size).to eq(2)
       expect(next_profile.sample).to be_empty
       expect(serializer.stats).to eq({})
       expect(cpu_and_wall_time_worker.stats).to include(miteruby_interned_events_queue_used_size_bytes: 0)
@@ -2854,16 +2852,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(sample.values).to include("cpu-time": be >= 0, "wall-time": be >= 0, "cpu-samples": 1)
         expect(sample.labels).to include(state: "had cpu", miteruby: 1, end_timestamp_ns: be_between(time_before, time_after))
         expect(sample.labels.keys).to contain_exactly(:state, :miteruby, :end_timestamp_ns, :"thread id", :"thread name")
-        expect(sample.locations.last).to eq(ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0))
       end
 
-      explicit_sample = samples.find { |sample| sample.locations[1]&.label == "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal" }
+      explicit_sample = samples.find { |sample| sample.locations.first&.label == "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal" }
       expect(explicit_sample).to_not be_nil
       expect(object_id_from(explicit_sample.labels.fetch(:"thread id"))).to eq(Thread.current.object_id)
       expect(explicit_sample.labels.fetch(:"thread name")).to eq(Thread.current.name || "main")
       source_file, source_line = method(:publish_miteruby_sample).source_location
-      expect(explicit_sample.locations.take(3)).to eq([
-        ProfileHelpers::Frame.new("(sampled in sighandler)", "", 0),
+      expect(explicit_sample.locations.take(2)).to eq([
         ProfileHelpers::Frame.new(
           "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal",
           "(TODO: resolve filename for cfuncs)",
@@ -2965,8 +2961,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(samples.first.labels).to include("thread name": "miteruby masked publisher")
       expect(samples.first.locations.map(&:label)).to include("Thread::Queue#pop")
       expect(samples.first.locations.map(&:label)).to_not include("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_thread")
-      expect(samples.first.locations.map(&:label)).to_not include("(sampled in sighandler)")
-      expect(samples.first.locations.last.label).to eq("(sampled by miteruby)")
+      expect(samples.first.locations.map(&:label)).to_not include("(sampled by miteruby)", "(sampled in sighandler)")
     ensure
       finish << true if finish
       sampled_thread&.join
@@ -3001,7 +2996,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(samples.size).to eq(1)
       expect(samples.first.locations).to eq([
         ProfileHelpers::Frame.new("", "In native code", 0),
-        ProfileHelpers::Frame.new("(sampled by miteruby)", "", 0),
       ])
     end
 
@@ -3091,12 +3085,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       encoded_profile = recorded_miteruby_profile
       samples = samples_from_pprof(encoded_profile)
       profile = decode_profile(encoded_profile)
-      pairs = profile.string_table.to_a.slice(22, thread_count * 2).each_slice(2).to_a
+      pairs = profile.string_table.to_a.slice(20, thread_count * 2).each_slice(2).to_a
 
       expect(pairs).to include(*samples.map { |sample| sample.labels.values_at(:"thread name", :"thread id") }.uniq)
       expect(pairs.map(&:first)).to include("main", "miteruby named thread")
       expect(pairs.map(&:last)).to include(*threads.map { |thread| "0 (#{thread.object_id})" })
-      expect(profile.function.find { |function| function.id == 5 }.name).to eq(22 + thread_count * 2)
+      expect(profile.function.find { |function| function.id == 3 }.name).to eq(20 + thread_count * 2)
     ensure
       threads&.each { |thread| thread.kill.join }
       Thread.current.name = original_name
@@ -3154,11 +3148,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       capture_miteruby { recurse_for_miteruby(500) }
       consume_miteruby
 
-      truncated = recorded_miteruby_samples.find { |sample| sample.locations[1]&.label == "Truncated Frames" }
+      truncated = recorded_miteruby_samples.find { |sample| sample.locations.first&.label == "Truncated Frames" }
       expect(truncated).to_not be_nil
-      expect(truncated.locations.first.label).to eq("(sampled in sighandler)")
-      expect(truncated.locations.last.label).to eq("(sampled by miteruby)")
-      expect(truncated.locations.size).to eq(402)
+      expect(truncated.locations.size).to eq(400)
       expect(truncated.locations.map(&:label)).to include("#{self.class.name}#recurse_for_miteruby")
     end
   end
