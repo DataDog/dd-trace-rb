@@ -1,5 +1,8 @@
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
+#include <ruby.h>
 #include <string.h>
+
+void setup_signal_handler_init(VALUE profiling_module);
 
 static const char *failed_allocation_name;
 static void assert_consumer_storage_full(void);
@@ -945,9 +948,7 @@ static void test_raw_events_queue_internal_error(void) {
   invalid_raw_events_queue.data[0] = 2;
   atomic_store(&invalid_raw_events_queue.write_state, 1);
   sigset_t original_mask, current_mask;
-  sigemptyset(&sigprof_signal_mask);
-  sigaddset(&sigprof_signal_mask, SIGPROF);
-  assert(pthread_sigmask(SIG_UNBLOCK, &sigprof_signal_mask, &original_mask) == 0);
+  assert(pthread_sigmask(SIG_UNBLOCK, sigprof_signal_mask, &original_mask) == 0);
   assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby raw events queue internal error");
   assert(pthread_sigmask(SIG_BLOCK, NULL, &current_mask) == 0);
   assert(sigismember(&current_mask, SIGPROF) == 0);
@@ -1159,6 +1160,7 @@ int main(int argc, char **argv) {
   ruby_sysinit(&argc, &argv);
   RUBY_INIT_STACK;
   ruby_init();
+  setup_signal_handler_init(rb_module_new());
   test_raw_events_queue_internal_error();
   initialize_consumer(Qnil);
   miteruby_consumer_reset();
