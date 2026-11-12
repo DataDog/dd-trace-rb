@@ -169,6 +169,16 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
       end
     end
 
+    context "when a DynamoDB-compatible service behind a load balancer answers 2xx" do
+      let(:host) { "dynamodb-local-1234567890.us-east-1.elb.amazonaws.com" }
+
+      it "does not set the aws_account tag" do
+        add_owner_tags
+        expect(span).not_to have_received(:set_tag)
+          .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+      end
+    end
+
     context "when the endpoint is an AWS lookalike domain" do
       let(:host) { "dynamodb.us-east-1.amazonaws.com.example.net" }
 
