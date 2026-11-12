@@ -1207,9 +1207,10 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
 
 // MRI: location_label()
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
-  // We use `if (iseq == NULL)` because C methods don't have an ISEQ, and C frames always have a CME.
-  // Unlike upstream, this doesn't check cme->def->type: it can be swapped in place between capturing the stack and
-  // naming its frames (e.g. to VM_METHOD_TYPE_REFINED by a #refine block).
+  // The upstream `location_label` uses `location_cfunc_p` instead of testing `iseq == NULL`, which checks cme->def->type.
+  // Between capturing the stack and naming its frames, a refinement can replace cme->def
+  // with a VM_METHOD_TYPE_REFINED definition. The captured frame is still a C frame with
+  // no ISEQ, so we use its captured frame kind rather than the method entry's current type.
   //
   // Upstream also names internal Ruby methods like C ones:
   //   case VM_METHOD_TYPE_ISEQ:
@@ -1229,6 +1230,7 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
 
 // Returns a String or Qfalse (like rb_id2str())
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  // We test `iseq == NULL` and not `location_cfunc_p` for the same reason as `ddtrace_location_label` above
   if (iseq == NULL) {
     return rb_id2str(cme->def->original_id);
   } else {
