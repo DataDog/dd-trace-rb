@@ -1,54 +1,7 @@
 # frozen_string_literal: true
 
-# Timing harness for the Kafka DSM workload (kafka_dsm.rb).
-#
-# Ruby stand-in for `dotnet timeit --count 25 --warmup 5` / Python's
-# `run_timeit.py`. Runs the workload for a fixed number of warmup + timed
-# iterations in-process (so the tracer, when enabled, stays active across all
-# iterations), then emits a JSON artifact in the shape
-# benchmarking-platform's `steps/compare-results.py` expects:
-#
-#   [
-#     {
-#       "median": <median duration ms>,
-#       "metrics": {
-#         "process.internal_duration_ms.median": <ms>,
-#         "process.internal_duration_ms.std_err": <ms>,
-#         "process.iteration_wall_ms.median": <ms>,
-#         "process.rss_bytes.median": <bytes>,
-#         "phase.produce_ms.median": <ms>,
-#         "phase.consume_ms.median": <ms>,
-#         "config.commit_every": <COMMIT_EVERY>
-#       },
-#       "name": <EXPERIMENT_NAME>,
-#       "warmUpCount": <WARMUP>,
-#       "count": <COUNT>,
-#       "data": [
-#         {
-#           "status": "Passed",
-#           "metrics": {
-#             "process.internal_duration_ms": <ms>,
-#             "process.corrected_duration_ms": <ms, iteration wall time>,
-#             "runtime.dotnet.mem.committed": <bytes, process RSS>
-#           }
-#         },
-#         ... one per timed iteration
-#       ]
-#     }
-#   ]
-#
-# `data` is for the platform's steps/convert-to-common-format.sh: bp-analyzer's
-# TimeItSharp converter reads only per-iteration values from it, under
-# TimeItSharp's metric names (it maps runtime.dotnet.mem.committed to RSS,
-# whatever the runtime), and fails on a file without it.
-#
-# Duration is produce_ms + consume_ms per iteration (setup/teardown --
-# client construction, group join, close -- excluded); the whole-iteration
-# wall time is kept separately as process.iteration_wall_ms, for context
-# only. The memory metric is process RSS,
-# sampled via the get_process_mem gem (Ruby analog of Python's
-# psutil.Process().memory_info().rss). Medians are used for robustness
-# against outliers, matching the .NET and Python reports.
+# Timing harness for kafka_dsm.rb; output schema in README.md.
+# Iterations run in-process so the tracer stays active across them.
 
 require "json"
 require "get_process_mem"
@@ -162,6 +115,7 @@ def main
       "name" => ENV.fetch("EXPERIMENT_NAME", "kafka_dsm"),
       "warmUpCount" => warmup,
       "count" => count,
+      # bp-analyzer's TimeItSharp converter reads only `data`, under TimeItSharp metric names, and fails without it.
       "data" => durations_ms.each_index.map do |i|
         {
           "status" => "Passed",
