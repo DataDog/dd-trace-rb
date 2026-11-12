@@ -5,7 +5,8 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require_relative "benchmarks_helper"
 require "datadog"
-require "datadog/tracing/contrib/utils/rds_endpoint"
+require "datadog/tracing/contrib/aws/rds_endpoint"
+require "datadog/tracing/contrib/utils/database"
 
 # Measures what reading an Amazon RDS endpoint hostname costs a database span.
 #
@@ -33,7 +34,8 @@ class RDSEndpointBenchmark
   end
 
   def initialize
-    @parser = Datadog::Tracing::Contrib::Utils::RDSEndpoint
+    @parser = Datadog::Tracing::Contrib::Aws::RDSEndpoint
+    @database = Datadog::Tracing::Contrib::Utils::Database
     @span = Datadog::Tracing::SpanOperation.new("benchmark")
     @uncached_index = 0
   end
@@ -69,19 +71,19 @@ class RDSEndpointBenchmark
   end
 
   # What the mysql2, pg, trilogy, Sequel, and Active Record integrations actually call.
-  def benchmark_annotate
+  def benchmark_set_tags
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      x.report("annotate! - host is not an RDS endpoint") do
-        @parser.annotate!(@span, NON_RDS_HOST)
+      x.report("set tags - host is not an RDS endpoint") do
+        @database.set_rds_endpoint_tags(@span, @parser.parse(NON_RDS_HOST))
       end
 
-      x.report("annotate! - RDS instance endpoint") do
-        @parser.annotate!(@span, RDS_ENDPOINT)
+      x.report("set tags - RDS instance endpoint") do
+        @database.set_rds_endpoint_tags(@span, @parser.parse(RDS_ENDPOINT))
       end
 
-      x.save! "#{File.basename(__FILE__, ".rb")}-annotate-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, ".rb")}-set-tags-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -91,5 +93,5 @@ puts "Current pid is #{Process.pid}"
 
 RDSEndpointBenchmark.new.instance_exec do
   benchmark_parse
-  benchmark_annotate
+  benchmark_set_tags
 end
