@@ -314,8 +314,8 @@ module ProbeNotifierWorkerLeakDetector
     attr_accessor :installed
     attr_accessor :workers
 
-    # Warns about each worker that was started and not stopped, then stops
-    # tracking the reported workers so that each leak is reported once.
+    # Warns about each leaked worker, then stops tracking the reported
+    # workers so that each leak is reported once.
     def verify!
       leaked_workers = workers
       self.workers = []
