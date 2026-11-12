@@ -8,8 +8,8 @@
 #ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
   #include <ruby/thread_native.h>
   #include <ruby/vm.h>
-  typedef struct RubyCME rb_callable_method_entry_t;
-  typedef struct RubyISEQ rb_iseq_t;
+  typedef struct rb_callable_method_entry_struct rb_callable_method_entry_t;
+  typedef struct rb_iseq_struct rb_iseq_t;
 #endif
 
 #include "extconf.h"
