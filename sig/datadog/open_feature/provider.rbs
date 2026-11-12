@@ -15,6 +15,8 @@ module Datadog
 
       type flag_selection_option = Hash[Symbol | String, Array[String]?]
 
+      type experimentation_opt_out_mode = :disabled | :immediate | :future_experiments_only
+
       @initialization_mutex: Thread::Mutex
 
       @initializing: bool
@@ -43,13 +45,19 @@ module Datadog
 
       @shutdown: bool
 
+      @requested_experimentation_opt_out_mode: String
+
+      @experimentation_opt_out_mode: experimentation_opt_out_mode?
+
       @enable_evaluation_telemetry_opt_out_parameter: bool
 
       @flag_selection: Configuration::FlagSelection?
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
-      def initialize: (?enable_evaluation_telemetry_opt_out_parameter: bool?, ?flag_selection: flag_selection_option?) -> void
+      def initialize: (?experimentation_opt_out_mode: (String | Symbol)?,
+                       ?enable_evaluation_telemetry_opt_out_parameter: bool?,
+                       ?flag_selection: flag_selection_option?) -> void
 
       def init: () -> void
 
@@ -96,6 +104,8 @@ module Datadog
       private
 
       attr_reader flag_selection: Configuration::FlagSelection?
+
+      def resolve_experimentation_opt_out_mode: (String mode) -> experimentation_opt_out_mode
 
       def evaluation_telemetry_opted_out?: (::OpenFeature::SDK::EvaluationContext? evaluation_context) -> bool
 

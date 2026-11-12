@@ -1606,10 +1606,13 @@ end
 | `enabled` | `DD_TRACE_RAILS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `distributed_tracing` | `DD_TRACE_RAILS_DISTRIBUTED_TRACING` | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true`                                                          |
 | `request_queuing`     | | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details.                     | `false`                                                         |
+| `web_service_name`    | | `String` | Service name for frontend server request queuing spans. (such as `'nginx'`)                                                                                 | `'web-server'`                                                  |
 | `middleware`          | | `Bool`   | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load.                                                 | `true`                                                          |
 | `middleware_names`    | | `Bool`   | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace.                                                 | `false`                                                         |
 | `service_name`        | | `String` | Service name used when tracing application requests (on the `rack` level)                                                                                   | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path`  | | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value                          | `'views/'`                                                      |
+
+When the application initializes, the Rails integration applies `service_name`, `middleware_names`, `distributed_tracing`, `request_queuing`, and `web_service_name` to the Rack integration. If you configure one of these options on the Rails integration, its value replaces the Rack integration's value, unless the Rack value has higher precedence. For example, a Rack value set in code is kept when the Rails value comes from an environment variable. Options you don't configure on the Rails integration keep the Rack integration's value.
 
 **Supported versions**
 
@@ -2183,7 +2186,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.log_injection`                                | `DD_LOGS_INJECTION`                                     | `Bool`                                | `true`                       | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.native_span_events`                           | `DD_TRACE_NATIVE_SPAN_EVENTS`                           | `Bool`                                | `false`                      | Forces the tracer to always send span events with the native span events format, regardless of whether the Agent supports it. This is useful when you want to change the serialization format in Agent-less setups.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.otel_thread_context_enabled`                  | `DD_TRACE_OTEL_CTX_ENABLED`                             | `Bool`                                | `true`                       | Publishes the active trace and span identifiers through the OpenTelemetry Thread Context interface, allowing compatible out-of-process tools to correlate profiles with traces. This feature is supported only on Linux when the `libdatadog` native extension is available.                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.partial_flush.enabled`                        |                                                         | `Bool`                                | `false`                      | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `tracing.partial_flush.enabled`                        |                                                         | `Bool`                                | `true`                       | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans. Set to `false` to flush only completed traces.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `tracing.partial_flush.min_spans_threshold`            |                                                         | `Integer`                             | `500`                        | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.sampler`                                      |                                                         | `Datadog::Tracing::Sampling::Sampler` | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Custom sampling](#custom-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.sampling.default_rate`                        | `DD_TRACE_SAMPLE_RATE`                                  | `Float`                               | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -2894,6 +2897,7 @@ Configure Feature Flags with environment variables or inside a `Datadog.configur
 | `c.feature_flags.exposures_datadog_logging_enabled` | `DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED` | `Boolean` | Sends exposures to Datadog. Deduplication and `Datadog::OpenFeature::ExposureHook` use the same decisions with either value. | `true` |
 | `c.feature_flags.evaluation_telemetry_per_subject_opt_out_enabled` | `DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED` | `Boolean` | Enables per-subject evaluation telemetry opt-out for providers without an explicit override. | `false` |
 | `c.feature_flags.configuration_source` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE` | `String` | Selects `agentless`, `remote_config`, or `offline`. Values are case-insensitive and surrounding whitespace is ignored; unsupported values disable Feature Flags. | `agentless` |
+| `c.feature_flags.experimentation_opt_out_mode` | `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE` | `String` | Selects `disabled`, `immediate`, or `future_experiments_only` per-subject experimentation opt-out. The provider reads this setting at construction. | `disabled` |
 | `c.feature_flags.agentless.base_url` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL` | `String` | Overrides the agentless endpoint. Origin URLs receive the standard configuration path; URLs with a non-root path are used verbatim. | `nil` |
 | `c.feature_flags.agentless.poll_interval_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS` | `Integer` | Sets the agentless polling interval in seconds. Must be greater than `0`. | `30` |
 | `c.feature_flags.agentless.request_timeout_seconds` | `DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS` | `Integer` | Sets the agentless request timeout in seconds, from `1` through `300`. | `5` |
@@ -2960,6 +2964,74 @@ end
 - The hook skips its callback, with one warning, for evaluations that do not come from a directly registered Datadog provider, such as evaluations through a composed provider.
 - Flag metadata contains one `__dd_feature.<key>` entry for each feature of the selected split. These entries are public.
 - Other flag metadata keys that start with `__dd_` are internal and can change or be missing. To get the exposure decision, use `ExposureHook` (`exposure?`, `cache_hit?`, and `should_send?`) instead of reading flag metadata.
+
+#### Per-subject experimentation opt-out
+
+Set `DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE` before creating the provider:
+
+| Mode | Behavior when the subject supplies an opt-out timestamp |
+| --- | --- |
+| `disabled` (default) | Ignore the attribute. |
+| `immediate` | Skip all allocations that record experiment exposures. |
+| `future_experiments_only` | Skip those allocations activated at or after opt-out, or whose activation time is unknown. |
+
+Supply `dd_experimentation_opt_out_at` in the subject's evaluation context:
+
+```ruby
+require 'datadog'
+require 'time'
+require 'datadog/open_feature/provider'
+require 'open_feature/sdk'
+
+OpenFeature::SDK.configure do |config|
+  config.set_provider(Datadog::OpenFeature::Provider.new)
+end
+
+client = OpenFeature::SDK.build_client
+attributes = {'targeting_key' => user.id.to_s}
+if (opt_out_at = user.experimentation_opt_out_at)
+  attributes['dd_experimentation_opt_out_at'] = opt_out_at.utc.iso8601(9)
+end
+context = OpenFeature::SDK::EvaluationContext.new(**attributes)
+enabled = client.fetch_boolean_value(
+  flag_key: 'new-route-planner', default_value: false, evaluation_context: context
+)
+```
+
+Omit the attribute when the subject can participate in experimentation.
+The timestamp must be an RFC3339 string; Ruby `Time` objects are rejected.
+Accepted strings include fractional seconds, numeric timezone offsets, and lowercase `t` and `z`; leap seconds are rejected.
+In `immediate` mode, a valid RFC3339 timestamp excludes the subject from allocations that record experiment exposures.
+Evaluation continues through ordinary feature allocations in order. If none match, the SDK returns the application's default.
+A future timestamp also takes effect immediately.
+In either enabled mode, an invalid, empty, null, or non-string timestamp returns the application's default with `INVALID_CONTEXT` for every flag evaluated with that context, including ordinary flags and missing flag keys.
+This setting does not change evaluation telemetry.
+
+Future mode compares the stored subject timestamp with the allocation's `randomizationActivatedAt` time.
+Older allocations continue normal evaluation and exposure logging. This is an activation cutoff, not a record of prior subject enrollment.
+Missing or null activation causes exclusion.
+Malformed activation returns `PARSE_ERROR` for the affected flag only in future mode with a valid subject cutoff.
+This check covers every allocation in the flag, including ordinary allocations with `doLog: false` and allocations that targeting rules would not reach.
+Comparisons preserve nanosecond precision and timezone offsets. A future subject timestamp is a cutoff, not scheduled opt-out.
+
+The default mode, `disabled`, ignores the attribute.
+Values are case-insensitive and surrounding whitespace is ignored. An empty value also means `disabled`.
+Unsupported modes raise `ArgumentError` when an active provider is constructed.
+If Feature Flags are disabled or offline, or the native extension cannot load, construction retains the requested mode without validating it.
+If that provider later gains an evaluation engine, validation occurs before evaluation; an invalid mode or missing native support returns the application's default with `GENERAL`.
+An explicit provider setting overrides the environment, including `:disabled`:
+
+```ruby
+provider = Datadog::OpenFeature::Provider.new(experimentation_opt_out_mode: :immediate)
+# Or permit allocations activated before the stored opt-out time:
+provider = Datadog::OpenFeature::Provider.new(experimentation_opt_out_mode: :future_experiments_only)
+```
+
+Immediate exclusion can change the experience of a subject already enrolled in an experiment.
+Account for that change in experiment analysis.
+Each enabled mode requires matching native library support. An active provider raises `ArgumentError` at construction when the installed native library lacks it.
+Experiment allocation classification comes from `doLog`, so published winners must use ordinary allocations with `doLog: false` to remain eligible in both opt-out modes.
+Future mode also requires the backend to supply accurate `randomizationActivatedAt` values; absent activation times exclude experiment allocations.
 
 #### Evaluation telemetry opt-out
 
@@ -3123,7 +3195,7 @@ If traces are missing, enable [debug mode](#debugging-and-diagnostics) to check 
 
 Since debug mode is verbose, **Datadog does not recommend leaving this enabled or enabling this in production.** Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
 
-If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#additional-configuration) setting to break down large traces into smaller chunks.
+Partial flushing is enabled by default and splits large traces into smaller chunks after 500 spans finish. If traces are still dropped due to large payloads, lower [`tracing.partial_flush.min_spans_threshold`](#additional-configuration). If you have disabled partial flushing, re-enable it by setting `c.tracing.partial_flush.enabled = true` in `Datadog.configure`.
 
 ### Stack level too deep
 
