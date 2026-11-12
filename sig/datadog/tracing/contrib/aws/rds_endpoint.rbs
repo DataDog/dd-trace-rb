@@ -31,6 +31,8 @@ module Datadog
 
           DNS_SUFFIX_ALTERNATION: String
 
+          CHINA_DNS_SUFFIX: String
+
           ENDPOINT_PATTERN: Regexp
 
           TYPES_BY_PREFIX: Hash[String?, String]

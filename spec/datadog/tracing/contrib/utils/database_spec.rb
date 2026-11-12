@@ -100,6 +100,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
         dbinstanceidentifier: "isoe-db",
         dbclusteridentifier: nil,
       },
+      "orders.cluster-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" => {
+        identifier: "orders",
+        endpoint_type: "cluster",
+        region: "cn-north-1",
+        dbinstanceidentifier: nil,
+        dbclusteridentifier: "orders",
+      },
     }.each do |host, expected|
       context "with #{host}" do
         let(:hostname) { host }
