@@ -17,7 +17,8 @@ module Datadog
           agent_base_url: String,
           ld_library_path: String,
           path_to_crashtracking_receiver_binary: String,
-          logger: untyped
+          logger: untyped,
+          ?collect_otel_thread_contexts: bool
         ) -> void
 
         def start: -> void
@@ -32,6 +33,7 @@ module Datadog
         attr_reader agent_base_url: String
         attr_reader ld_library_path: String
         attr_reader path_to_crashtracking_receiver_binary: String
+        attr_reader collect_otel_thread_contexts: bool
         attr_reader logger: untyped
 
         def start_or_update_on_fork: (action: :start | :update_on_fork, tags: Hash[String, String]) -> void
@@ -45,6 +47,7 @@ module Datadog
           ld_library_path: String,
           tags_as_array: Array[[String, String]],
           upload_timeout_seconds: Integer,
+          collect_otel_thread_contexts: bool,
         ) -> void
 
         def self._native_stop: -> void
