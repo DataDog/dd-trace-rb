@@ -81,7 +81,7 @@ module Datadog
 
           def sca_enabled: () -> bool?
 
-          def rasp_enabled: () -> bool?
+          def rasp_enabled: () -> bool
         end
 
         interface _AppSecStackTrace
