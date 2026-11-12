@@ -2958,7 +2958,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       consumer_thread&.kill&.join
     end
 
-    it "distinguishes the signal-handler sampling path from masked publishing in event flags" do
+    it "records whether captured stacks are truncated" do
       capture_miteruby do
         publish_miteruby_sample
         recurse_for_miteruby(700)
@@ -2966,7 +2966,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       headers = described_class::Testing._native_miteruby_read_sample_headers
-      expect(headers.map { |header| header.fetch(:flags) }).to include(0x04, 0x05, 0x00)
+      expect(headers.map { |header| header.fetch(:stack_truncated) }).to include(true, false)
       expect(headers.map { |header| header.fetch(:cpu_time_ns) }).to all(be >= 0)
     end
 
@@ -3332,7 +3332,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(described_class::Testing._native_miteruby_sample_event_publish_thread(sampled_thread)).to be true
 
       expect(described_class::Testing._native_miteruby_read_sample_headers).to contain_exactly(
-        flags: 0x02,
+        stack_truncated: false,
+        frame_count: 0,
         cpu_time_ns: -1,
       )
     end

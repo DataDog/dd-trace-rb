@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "../collectors_stack.h"
+#include "../collectors_stack.h" // for MAX_FRAMES_LIMIT
 #include "compressed_deltas.h"
 
 // See design/EventDesign.md for field semantics and storage requirements.
@@ -22,18 +22,10 @@ typedef struct {
   long ns;
 } monotonic_time_t;
 
-enum {
-  MITERUBY_EVENT_STACK_COMPLETE = 0,
-  MITERUBY_EVENT_STACK_TRUNCATED = 1,
-  MITERUBY_EVENT_STACK_UNAVAILABLE = 2,
-  MITERUBY_EVENT_STACK_STATUS_MASK = 0x03,
-  MITERUBY_EVENT_FROM_SIGNAL_HANDLER = 1 << 2,
-};
-
 typedef struct {
   uint16_t size_bytes;
   uint16_t frame_count;
-  uint8_t flags;
+  uint8_t stack_truncated : 1;
   monotonic_time_t timestamp;
   cpu_time_t cpu_time;
 } miteruby_event_header_t;

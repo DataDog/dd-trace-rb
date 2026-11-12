@@ -7,7 +7,7 @@
 #include <errno.h>
 
 static bool miteruby_sample_event_publish_internal(
-  miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
+  miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 );
 static cpu_time_t current_thread_cpu_time(void);
 static inline monotonic_time_t monotonic_time_now(void);
@@ -15,7 +15,7 @@ static inline monotonic_time_t monotonic_time_now(void);
 bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_events_queue) {
   int saved_errno = errno;
   bool published = miteruby_sample_event_publish_internal(
-    raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, NULL, current_thread_cpu_time(), true
+    raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, NULL, current_thread_cpu_time()
   );
   errno = saved_errno;
   return published;
@@ -23,16 +23,16 @@ bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_e
 
 bool miteruby_sample_event_publish_mask(miteruby_raw_events_queue_t *raw_events_queue, const sigset_t *signal_mask) {
   return miteruby_sample_event_publish_internal(
-    raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, signal_mask, current_thread_cpu_time(), false
+    raw_events_queue, (value_thread_t) {.value = rb_thread_current()}, signal_mask, current_thread_cpu_time()
   );
 }
 
 bool miteruby_sample_event_publish_thread(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask) {
-  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, INVALID_CPU_TIME, false);
+  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, INVALID_CPU_TIME);
 }
 
 bool miteruby_sample_event_publish_testing(miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time) {
-  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, cpu_time, false);
+  return miteruby_sample_event_publish_internal(raw_events_queue, thread, signal_mask, cpu_time);
 }
 
 static cpu_time_t current_thread_cpu_time(void) {
@@ -50,7 +50,7 @@ static inline monotonic_time_t monotonic_time_now(void) {
 // TODO: Emit correlation data from tracing (trace id, span id, endpoint)
 // TODO: We're allocating quite a lot on the stack, maybe we shouldn't
 static bool miteruby_sample_event_publish_internal(
-  miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
+  miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 ) {
   monotonic_time_t timestamp = monotonic_time_now();
   frame_info frames[MAX_FRAMES_LIMIT + 1];
@@ -66,15 +66,11 @@ static bool miteruby_sample_event_publish_internal(
   event->header.cpu_time = cpu_time;
   event->thread = thread;
   if (count <= 0) {
-    event->header.flags = MITERUBY_EVENT_STACK_UNAVAILABLE;
     count = 0;
   } else if (count > MAX_FRAMES_LIMIT) {
-    event->header.flags = MITERUBY_EVENT_STACK_TRUNCATED;
+    event->header.stack_truncated = true;
     count = MAX_FRAMES_LIMIT;
-  } else {
-    event->header.flags = MITERUBY_EVENT_STACK_COMPLETE;
   }
-  if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   event->header.frame_count = count;
 
   miteruby_bytecode_pos_t *bytecode_positions = (miteruby_bytecode_pos_t *)&event->frames[count];

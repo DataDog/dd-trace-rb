@@ -301,7 +301,7 @@ static void test_missing_thread_context(void) {
   miteruby_event_deduped_sample_t *event = miteruby_allocator_alloc(sizeof(*event), "test_queue");
   assert(event != NULL);
   *event = (miteruby_event_deduped_sample_t) {
-    .header = {.size_bytes = sizeof(*event), .flags = MITERUBY_EVENT_STACK_UNAVAILABLE},
+    .header = {.size_bytes = sizeof(*event)},
     .thread = {.value = rb_thread_current()},
   };
   assert(miteruby_serializer_prepare_serialize(

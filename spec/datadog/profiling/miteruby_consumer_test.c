@@ -299,7 +299,7 @@ static void test_stack_identity(void) {
   sample_storage duplicate = storage;
   duplicate.event.header.timestamp.ns = 123;
   duplicate.event.header.cpu_time.ns = 456;
-  duplicate.event.header.flags = MITERUBY_EVENT_STACK_TRUNCATED | MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
+  duplicate.event.header.stack_truncated = true;
   duplicate.event.thread.value = Qtrue;
   memset((char *)duplicate.event.frames + data_size, 0xff, 4);
   assert(assert_dedup(&duplicate.event, false).offset == first.offset);
@@ -566,7 +566,7 @@ static void test_compact_events_and_reset(void) {
   event->header = (miteruby_event_header_t) {
     .size_bytes = 72,
     .frame_count = 2,
-    .flags = MITERUBY_EVENT_STACK_TRUNCATED | MITERUBY_EVENT_FROM_SIGNAL_HANDLER,
+    .stack_truncated = true,
     .timestamp.ns = 123,
     .cpu_time.ns = 456,
   };
@@ -617,7 +617,7 @@ static void test_compact_events_and_reset(void) {
     assert(deduped->stack.ids_size == (i == 0 ? 2 : 0));
     assert(deduped->header.size_bytes == sizeof(*deduped));
     assert(deduped->header.frame_count == 2);
-    assert(deduped->header.flags == event->header.flags);
+    assert(deduped->header.stack_truncated == event->header.stack_truncated);
     assert(deduped->header.timestamp.ns == (long)(123 + i));
     assert(deduped->header.cpu_time.ns == 456);
     assert(deduped->thread.value == Qnil && deduped->stack_id.offset == 0);

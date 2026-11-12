@@ -747,15 +747,14 @@ static miteruby_serializer_exit_reason_t serialize_no_gvl(miteruby_serializer_pe
   for (size_t pos = 0; pos < interned_events_pos;) {
     const miteruby_event_deduped_sample_t *event = (const miteruby_event_deduped_sample_t *)(interned_events_queue + pos);
     miteruby_stack_t stack = miteruby_stack_dedup_get(interned_events_queue, event->stack_id);
-    uint8_t stack_status = event->header.flags & MITERUBY_EVENT_STACK_STATUS_MASK;
-    bool unavailable = stack_status == MITERUBY_EVENT_STACK_UNAVAILABLE || stack.frame_count == 0;
+    bool unavailable = stack.frame_count == 0;
     size_t location_count = unavailable ? 1 : stack.frame_count;
     uint64_t location_ids[location_count];
     if (unavailable) {
       location_ids[0] = PPROF_LOCATION_NATIVE;
     } else {
       RETURN_IF_ERROR(read_location_ids(stack, location_ids));
-      if (stack_status == MITERUBY_EVENT_STACK_TRUNCATED) location_ids[0] = PPROF_LOCATION_TRUNCATED;
+      if (event->header.stack_truncated) location_ids[0] = PPROF_LOCATION_TRUNCATED;
     }
     serializer_thread_context *context;
     RETURN_IF_ERROR(thread_context_for(&state->thread_contexts, event->thread.value, false, &context));
