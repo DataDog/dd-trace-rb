@@ -17,7 +17,7 @@ module Datadog
 
       METASTRUCT_TAG = "ai_guard"
 
-      RESERVED_EXTRA_TAGS = [
+      RESERVED_EXTRA_SPAN_TAGS = [
         TARGET_TAG,
         TOOL_NAME_TAG,
         ACTION_TAG,

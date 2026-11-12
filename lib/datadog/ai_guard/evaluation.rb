@@ -56,7 +56,12 @@ module Datadog
             span.set_tag(Ext::REASON_TAG, result.reason)
             span.set_tag(Ext::REDACTED_TAG, redaction.redacted?) if redaction.performed?
 
-            outcome.extra_tags.each { |key, value| span.set_tag(key, value) }
+            outcome.extra_tags.each do |key, value|
+              next if Ext::RESERVED_EXTRA_SPAN_TAGS.include?(key)
+              next if key.start_with?("_dd")
+
+              span.set_tag(key, value)
+            end
 
             # @type var metastruct: span_metadata
             metastruct = {
@@ -66,7 +71,11 @@ module Datadog
               tag_probs: result.tag_probabilities,
             }
 
-            metastruct.merge!(outcome.extra_metastruct)
+            outcome.extra_metastruct.each do |key, value|
+              next if Ext::RESERVED_EXTRA_METASTRUCT_KEYS.include?(key)
+
+              metastruct[key] = value
+            end
 
             span.set_metastruct_tag(Ext::METASTRUCT_TAG, metastruct)
 

@@ -14,7 +14,7 @@ module Datadog
 
       METASTRUCT_TAG: ::String
 
-      RESERVED_EXTRA_TAGS: Array[String]
+      RESERVED_EXTRA_SPAN_TAGS: Array[String]
 
       RESERVED_EXTRA_METASTRUCT_KEYS: Array[String]
 

@@ -233,26 +233,15 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         expect(metastruct).not_to include("ai_guard.evaluate_id", "custom_context.note")
       end
 
-      context "when entries are malformed" do
+      context "when some extra_tags entries are malformed" do
         let(:extra_tags) do
           super() + [
             nil,
             {"value" => "missing key"},
             {"key" => "", "value" => "empty key"},
             {"key" => 1, "value" => "numeric key"},
-            {"key" => "bad.number", "value" => 42},
-            {"key" => "bad.object", "value" => {}},
-            {"key" => "bad.boolean", "value" => true},
             {"key" => "bad.nil", "value" => nil},
             {"key" => "custom_context.after_invalid", "value" => "kept"},
-          ]
-        end
-
-        let(:extra_metastruct) do
-          super() + [
-            "not an object",
-            {"key" => "bad.nil", "value" => nil},
-            {"key" => "after_invalid", "value" => true},
           ]
         end
 
@@ -260,43 +249,33 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           expect(evaluate.action).to eq("ALLOW")
 
           expect(ai_guard_span).not_to have_error
+
           expect(ai_guard_span.tags).to include(
             "ai_guard.evaluate_id" => "evaluation-123",
             "custom_context.after_invalid" => "kept",
           )
-          expect(ai_guard_span.tags).not_to include(
-            "", "1", "bad.number", "bad.object", "bad.boolean", "bad.nil",
-          )
-          expect(metastruct).to include("flag" => false, "after_invalid" => true)
-          expect(metastruct).not_to include("bad.number", "bad.object", "bad.boolean", "bad.nil")
+          expect(ai_guard_span.tags).not_to include("", "bad.nil")
         end
       end
 
-      context "when extra_tags is not an array" do
-        let(:extra_tags) { {"ai_guard.policy" => "example"} }
+      context "when some extra_metastruct entries are malformed" do
+        let(:extra_metastruct) do
+          super() + [
+            "not an object",
+            {"key" => "bad.nil", "value" => nil},
+            {"key" => "something", "value" => true},
+          ]
+        end
 
-        it "ignores extra_tags while retaining extra_metastruct" do
-          expect(evaluate.action).to eq("ALLOW")
+        it "skips malformed entries while retaining valid entries" do
+          evaluate
 
-          expect(ai_guard_span).not_to have_error
-          expect(ai_guard_span.tags).not_to have_key("ai_guard.policy")
-          expect(metastruct).to include("flag" => false)
+          expect(metastruct).to include("flag" => false, "something" => true)
+          expect(metastruct).not_to include("bad.nil")
         end
       end
 
-      context "when extra_metastruct is not an array" do
-        let(:extra_metastruct) { {"policy_match" => {"rule" => "example"}} }
-
-        it "ignores extra_metastruct while retaining extra_tags" do
-          expect(evaluate.action).to eq("ALLOW")
-
-          expect(ai_guard_span).not_to have_error
-          expect(ai_guard_span.tags).to include("ai_guard.evaluate_id" => "evaluation-123")
-          expect(metastruct).not_to have_key("policy_match")
-        end
-      end
-
-      context "when entries use reserved keys" do
+      context "when extra_tags entries use reserved keys" do
         let(:extra_tags) do
           super() + [
             {"key" => "ai_guard.action", "value" => "forged"},
@@ -306,6 +285,18 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           ]
         end
 
+        it "drops entries with reserved keys" do
+          expect(evaluate.action).to eq("ALLOW")
+
+          expect(ai_guard_span.tags).to include(
+            "ai_guard.action" => "ALLOW",
+            "ai_guard.evaluate_id" => "evaluation-123",
+          )
+          expect(ai_guard_span.tags).not_to include("ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr")
+        end
+      end
+
+      context "when extra_metastruct entries use reserved keys" do
         let(:extra_metastruct) do
           super() + [
             {"key" => "messages", "value" => "forged"},
@@ -315,16 +306,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           ]
         end
 
-        it "protects tracer-owned fields, including fields that are absent" do
-          expect(evaluate.action).to eq("ALLOW")
+        it "drops entries with reserved keys" do
+          evaluate
 
-          expect(ai_guard_span.tags).to include(
-            "ai_guard.action" => "ALLOW",
-            "ai_guard.evaluate_id" => "evaluation-123",
-          )
-          expect(ai_guard_span.tags).not_to include(
-            "ai_guard.blocked", "_dd.custom", "_dd1.sr.eausr",
-          )
           expect(metastruct).not_to include("messages", "attack_categories", "sds", "tag_probs")
           expect(metastruct.fetch(:messages)).to eq([{role: :user, content: "Hello"}])
           expect(metastruct).to include("flag" => false)

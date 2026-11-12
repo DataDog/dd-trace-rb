@@ -48,15 +48,19 @@ module Datadog
 
         attr_reader redaction_replacements: redaction_replacements
 
-        attr_reader extra_tags: Helpers::json
+        attr_reader extra_tags: Hash[String, Helpers::json]
 
-        attr_reader extra_metastruct: Helpers::json
+        attr_reader extra_metastruct: Hash[String, Helpers::json]
 
         @is_blocking_enabled: bool
 
         def initialize: (raw_response raw_response) -> void
 
         def blocking_enabled?: () -> bool
+
+        private
+
+        def key_value_list_to_hash: (Helpers::json list) -> Hash[String, Helpers::json]
       end
     end
   end

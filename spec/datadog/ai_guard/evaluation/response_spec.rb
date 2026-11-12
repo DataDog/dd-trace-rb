@@ -33,6 +33,12 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
               "replacement" => "Card: <REDACTED>",
             },
           ],
+          "extra_tags" => [
+            {"key" => "foo", "value" => "bar"}
+          ],
+          "extra_metastruct" => [
+            {"key" => "something", "value" => "some other thing"}
+          ]
         },
       },
     }
@@ -119,6 +125,74 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
       before { raw_response.fetch("data").fetch("attributes").delete("redaction_replacements") }
 
       it { expect(response.redaction_replacements).to eq([]) }
+    end
+  end
+
+  describe "#extra_tags" do
+    it { expect(response.extra_tags).to eq("foo" => "bar")}
+
+    it "returns empty hash when not provided" do
+      raw_response["data"]["attributes"].delete("extra_tags")
+
+      expect(response.extra_tags).to eq({})
+    end
+
+    it "returns empty hash when provided non-array" do
+      raw_response["data"]["attributes"]["extra_tags"] = {"something" => "else"}
+
+      expect(response.extra_tags).to eq({})
+    end
+
+    it "drops items that are not a Hash with `key` and `value` keys" do
+      raw_response["data"]["attributes"]["extra_tags"] = [{"something" => "else"}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_tags).to eq({"a" => "b"})
+    end
+
+    it "drops items with empty key attribute" do
+      raw_response["data"]["attributes"]["extra_tags"] = [{"key" => "", "value" => "c"}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_tags).to eq({"a" => "b"})
+    end
+
+    it "drops items with nil value attribute" do
+      raw_response["data"]["attributes"]["extra_tags"] = [{"key" => "c", "value" => nil}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_tags).to eq({"a" => "b"})
+    end
+  end
+
+  describe "#extra_metastruct" do
+    it { expect(response.extra_metastruct).to eq("something" => "some other thing")}
+
+    it "returns empty hash when not provided" do
+      raw_response["data"]["attributes"].delete("extra_metastruct")
+
+      expect(response.extra_metastruct).to eq({})
+    end
+
+    it "returns empty hash when provided non-array" do
+      raw_response["data"]["attributes"]["extra_metastruct"] = {"something" => "else"}
+
+      expect(response.extra_metastruct).to eq({})
+    end
+
+    it "drops items that are not a Hash with `key` and `value` keys" do
+      raw_response["data"]["attributes"]["extra_metastruct"] = [{"something" => "else"}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_metastruct).to eq({"a" => "b"})
+    end
+
+    it "drops items with empty key attribute" do
+      raw_response["data"]["attributes"]["extra_metastruct"] = [{"key" => "", "value" => "c"}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_metastruct).to eq({"a" => "b"})
+    end
+
+    it "drops items with nil value attribute" do
+      raw_response["data"]["attributes"]["extra_metastruct"] = [{"key" => "c", "value" => nil}, {"key" => "a", "value" => "b"}]
+
+      expect(response.extra_metastruct).to eq({"a" => "b"})
     end
   end
 end
