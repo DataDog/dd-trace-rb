@@ -218,7 +218,7 @@ static void serializer_free(void *data) {
 
 static size_t serializer_size(const void *data) {
   const miteruby_serializer_persistent_state_t *state = data;
-  return state ? sizeof(*state) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
+  return state ? sizeof(miteruby_serializer_persistent_state_t) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->compression_workspace) +
