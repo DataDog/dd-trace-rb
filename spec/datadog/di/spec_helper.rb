@@ -353,13 +353,16 @@ RSpec.configure do |config|
     # Leaks are verified when the next example starts and when the suite
     # finishes, because around hooks and the global tracer_shutdown! hook
     # stop workers after every after hook has run.
-    config.before do
+    config.before do |example|
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)
         ProbeNotifierWorkerLeakDetector.installed = true
       end
 
-      ProbeNotifierWorkerLeakDetector.verify!
+      # Forked examples run this hook in a child process whose updates to
+      # the workers list never reach the parent, so verifying there only
+      # duplicates the parent's eventual report.
+      ProbeNotifierWorkerLeakDetector.verify! unless example.metadata[:execute_in_fork]
     end
 
     config.after(:suite) do
