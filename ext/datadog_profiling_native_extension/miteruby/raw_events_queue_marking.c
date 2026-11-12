@@ -11,7 +11,6 @@ _Static_assert(
 );
 static void miteruby_raw_events_queue_mark_event(const uint64_t *data) {
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)data;
-  if (event->header.type != MITERUBY_EVENT_STACK_SAMPLE) return;
 
   // Layout assertions here and in event.h enforce contiguous VALUE-sized slots without padding.
   rb_gc_mark_locations(&event->thread.value, (const VALUE *)&event->frames[event->header.frame_count]);

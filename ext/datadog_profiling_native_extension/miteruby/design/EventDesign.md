@@ -1,6 +1,8 @@
 # MITERUBY event design
 
-In-memory format for individual events captured by miteruby.
+In-memory format for individual events captured by miteruby. The raw events queue contains only
+`miteruby_event_stack_sample_t` records; the interned events queue contains only
+`miteruby_event_deduped_sample_t` records, so events need no type discriminator.
 
 ## Structures
 
@@ -40,25 +42,12 @@ typedef struct {
 - 8-byte wrapper for a monotonic observation timestamp in nanoseconds from `CLOCK_MONOTONIC` on Linux
   or `CLOCK_MONOTONIC_RAW` on macOS, not a Unix-epoch timestamp.
 
-### miteruby_event_type_t
-
-```c
-typedef enum __attribute__((packed)) {
-  MITERUBY_EVENT_INVALID = 0,
-  MITERUBY_EVENT_STACK_SAMPLE = 1,
-  MITERUBY_EVENT_DEDUPED_SAMPLE = 3,
-} miteruby_event_type_t; // 1 byte
-```
-
-- The one-byte size is enforced by a compile-time assertion.
-
 ### miteruby_event_header_t
 
 ```c
 typedef struct {
   uint16_t size_bytes;
   uint16_t frame_count;
-  miteruby_event_type_t type;
   uint8_t flags;
   monotonic_time_t timestamp;
   cpu_time_t cpu_time;
@@ -68,7 +57,6 @@ typedef struct {
 - `size_bytes`: entire record including padding, a multiple of 8, at most 65,528 bytes.
   Advance to the next event by this many bytes.
 - `frame_count`: number of captured frames; preserved when the sample is interned.
-- `type`: event discriminator; `MITERUBY_EVENT_INVALID` is never emitted.
 - `flags`: for stack samples, the low two bits (`MITERUBY_EVENT_STACK_STATUS_MASK`, `0x03`) encode
   stack status: `0` = complete, `1` = truncated, `2` = unavailable; `3` is reserved.
   Bit 2 (`MITERUBY_EVENT_FROM_SIGNAL_HANDLER`, `0x04`) is set for the signal-handler sampling path,
@@ -178,8 +166,7 @@ typedef struct {
 ```
 
 - Consumer-only format, stored in `interned_events_queue`; producers still publish inline stack samples.
-- `header.type` is `MITERUBY_EVENT_DEDUPED_SAMPLE`. Frame count, flags, timestamps, CPU time, and thread
-  are preserved for each sample.
+- Frame count, flags, timestamps, CPU time, and thread are preserved for each sample.
 - A new stack stores its frame count, encoded length, and delta-encoded location IDs inline at the end of the sample.
   (The compressed deltas encoding starts from a previous ID of 0 for each stack).
 - A known stack stores its `stack_id` with a zeroed inline stack header and no encoded IDs.
