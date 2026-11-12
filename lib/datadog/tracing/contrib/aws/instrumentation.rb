@@ -85,11 +85,7 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
-            # Owner tagging is optional, so it runs after every mandatory tag
-            # and behind its own rescue. It reads credential and endpoint state
-            # that nothing above depends on, and the rescue below would
-            # otherwise abandon the rest of this method, costing the span tags
-            # that have nothing to do with resource ownership.
+            # Runs last behind its own rescue, so a failure here keeps every tag above.
             annotate_owner!(span, handler, params, context) if handler
           rescue => e
             Datadog.logger.error("#{e.class}: #{e.message}")

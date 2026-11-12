@@ -15,15 +15,8 @@ module Datadog
               span.set_tag(Aws::Ext::TAG_BUCKET_NAME, bucket_name)
             end
 
-            # `expected_bucket_owner` is the account the caller asserts owns the
-            # bucket. It only becomes evidence of ownership once S3 has actually
-            # enforced the assertion, which is what {#aws_confirmed_response?}
-            # establishes: S3 fails a mismatch with `Access Denied`, so a 2xx
-            # from an AWS endpoint means the assertion was checked and held.
-            #
-            # The SDK accepts the parameter solely on the operations that
-            # support bucket owner condition, so there is no operation where S3
-            # ignores it and still answers 2xx.
+            # S3 rejects a request whose `expected_bucket_owner` does not match,
+            # so a confirmed response proves that account owns the bucket.
             #
             # @see https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-owner-condition.html
             def add_owner_tags(span, params, context)

@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
       # `Aws::CredentialProvider#credentials` is the plain attribute reader;
       # `Aws::RefreshingCredentials` overrides it with one that resolves first.
       # If the SDK ever exposes a public reader that cannot refresh, this is
-      # the example that says `#resolved_credentials` can go away.
+      # the example that says `@credentials` no longer needs to be read directly.
       expect(Aws::CredentialProvider.instance_method(:credentials).owner)
         .to be(Aws::CredentialProvider)
       expect(Aws::RefreshingCredentials.instance_method(:credentials).owner)
