@@ -147,7 +147,7 @@ bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events
   }
   raw_events_queue->data[offset] = record_length;
   if (length_words != 0)
-    memcpy(&raw_events_queue->data[offset + 1], data, (size_t)length_words * sizeof(*data));
+    memcpy(&raw_events_queue->data[offset + 1], data, (size_t)length_words * sizeof(uint64_t));
   for (;;) {
     // Advancing the position clears both flags.
     uint64_t next_write_state = miteruby_raw_events_queue_advance_position(
