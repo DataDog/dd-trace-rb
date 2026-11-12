@@ -1181,7 +1181,7 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
     case ISEQ_TYPE_METHOD:
       return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label, buf, buf_size);
 
-#ifdef ISEQ_TYPE_PLAIN /* 2.5 does not have it */
+#ifndef NO_ISEQ_TYPE_PLAIN
     case ISEQ_TYPE_PLAIN:
 #endif
     case ISEQ_TYPE_BLOCK: {
