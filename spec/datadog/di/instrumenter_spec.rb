@@ -3033,7 +3033,8 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         # Forked: hooking WeakRef#weakref_alive? prepends a module onto the
-        # stdlib WeakRef class, and Ruby cannot remove a prepended module.
+        # stdlib WeakRef class, and a prepended module stays in the class
+        # for the life of the process.
         it "short-circuits a method probe nested in the callback's dispatches", execute_in_fork: true do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
           stub_active_trace(123)
