@@ -2,6 +2,8 @@ require "spec_helper"
 
 RSpec.describe(Datadog::DI) do
   describe "instrumentation counters" do
+    # Clears the instrumentation counter, so each example starts with
+    # the counter unset.
     def reset_instrumented_count
       if described_class.instance_variable_defined?(:@instrumented_count)
         described_class.remove_instance_variable(:@instrumented_count)
