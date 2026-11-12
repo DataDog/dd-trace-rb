@@ -209,6 +209,8 @@ Content-Transfer-Encoding: binary
         with_env "DD_GIT_REPOSITORY_URL" => "http://foo",
           "DD_GIT_COMMIT_SHA" => "1234hash"
 
+        # Resets the memoized git metadata caches, so each example
+        # recomputes them from its own environment.
         def reset_git_metadata_caches
           Datadog::Core::Environment::Git.reset_for_tests
           Datadog::Core::TagBuilder.reset_for_tests
