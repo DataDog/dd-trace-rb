@@ -88,7 +88,7 @@ static bool miteruby_sample_event_publish_internal(
     bytecode_positions[i].value =
       bytecode_position >= 0 && bytecode_position < UINT16_MAX ? (uint16_t) bytecode_position : UINT16_MAX;
   }
-  size_t size_bytes = round_up_to_8_bytes(sizeof(*event) + count * MITERUBY_BYTES_PER_FRAME);
+  size_t size_bytes = round_up_to_8_bytes(sizeof(miteruby_event_stack_sample_t) + count * MITERUBY_BYTES_PER_FRAME);
   event->header.size_bytes = size_bytes;
 
   return miteruby_raw_events_queue_try_write(raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask);

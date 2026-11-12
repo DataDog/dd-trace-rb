@@ -117,7 +117,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
   miteruby_event_deduped_sample_t *event = (miteruby_event_deduped_sample_t *)(events + events_pos);
   event->stack.frame_count = 0;
   event->stack.ids_size = 0;
-  event->header.size_bytes = sizeof(*event);
+  event->header.size_bytes = sizeof(miteruby_event_deduped_sample_t);
 
   verstable_unique_stacks_map_itr entry = verstable_unique_stacks_map_get(&stack_dedup_state.unique_stacks, stack_hash);
   if (!verstable_unique_stacks_map_is_end(entry)) {
