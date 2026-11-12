@@ -59,6 +59,22 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
+    context "type name is not a String" do
+      [42, false].each do |type_name|
+        context "when the type name is #{type_name.inspect}" do
+          let(:probe) do
+            described_class.new(id: "42", type: :log, type_name: type_name, method_name: "bar")
+          end
+
+          it "raises ArgumentError" do
+            expect do
+              probe
+            end.to raise_error(ArgumentError, /Probe type name must be a String, got: #{type_name.class}/)
+          end
+        end
+      end
+    end
+
     context "unsupported type" do
       let(:probe) do
         # LOG_PROBE is a valid type in RC probe specification but not

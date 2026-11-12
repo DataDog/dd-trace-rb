@@ -68,6 +68,10 @@ module Datadog
           raise ArgumentError, "Probe contains line number but not file: #{id}"
         end
 
+        if !type_name.nil? && !type_name.is_a?(String)
+          raise ArgumentError, "Probe type name must be a String, got: #{type_name.class}: #{id}"
+        end
+
         if type_name && !method_name || method_name && !type_name
           raise ArgumentError, "Partial method probe definition: #{id}"
         end
