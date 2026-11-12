@@ -61,7 +61,7 @@ Names and filenames are resolved once per unique frame, and line numbers once pe
 - Keep both the executing instruction sequence (ISEQ) and callable method entry (CME): together they preserve block/eval locations and method identity.
 - Store compact instruction positions; resolve line numbers later. Unknown positions remain unknown.
 
-**Trade-off:** better frame fidelity costs two Ruby references per frame, plus their GC bookkeeping. Capture currently stops at 400 frames.
+**Trade-off:** better frame fidelity costs two Ruby references per frame, plus their GC bookkeeping. Capture currently stops at 600 frames.
 
 CPU time is read at capture, so consumer scheduling delays do not become CPU measurements.
 
