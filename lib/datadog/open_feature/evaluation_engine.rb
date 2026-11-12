@@ -21,8 +21,7 @@ module Datadog
         "(targeting keys, evaluation context attributes, flag values, and default values) that may contain " \
         "personal or sensitive information. Unset DD_TRACE_DEBUG when you no longer need it."
 
-      def initialize(reporter, telemetry:, logger:)
-        @reporter = reporter
+      def initialize(telemetry:, logger:)
         @telemetry = telemetry
         @logger = logger
         @raw_data_warning = Core::Utils::OnlyOnce.new
@@ -30,7 +29,9 @@ module Datadog
         @evaluator = NoopEvaluator.new(nil)
       end
 
-      def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
+      def fetch_value(
+        flag_key, default_value:, expected_type:, evaluation_context: nil, experimentation_opt_out_mode: :disabled
+      )
         # Pre-bound to the safe default so the rescue below can still read it if the
         # evaluator read itself raises.
         observe_full_evaluation_data = false
@@ -51,12 +52,11 @@ module Datadog
         context = evaluation_context&.fields.to_h
         result = evaluator.get_assignment(
           flag_key, default_value: default_value, context: context, expected_type: expected_type,
+          experimentation_opt_out_mode: experimentation_opt_out_mode,
         )
 
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
-
-        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result
       rescue => e

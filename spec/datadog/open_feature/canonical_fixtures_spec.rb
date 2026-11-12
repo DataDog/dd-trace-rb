@@ -18,24 +18,73 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator, "canonical FFE fixtures" d
 
   let(:configuration) { File.read(File.join(fixture_root, "ufc-config.json")) }
 
-  fixture_files.each do |fixture_file|
-    JSON.parse(File.read(fixture_file)).each_with_index do |test_case, index|
-      it "evaluates #{File.basename(fixture_file)}[#{index}]" do
-        result = evaluator.get_assignment(
-          test_case.fetch("flag"),
-          default_value: test_case.fetch("defaultValue"),
-          expected_type: expected_type(test_case.fetch("variationType")),
-          context: {"targeting_key" => test_case["targetingKey"]}.merge(test_case.fetch("attributes") || {}),
-        )
-        expected = test_case.fetch("result")
+  [:get_assignment_with_options, :get_assignment_with_opt_out_mode].each do |native_method|
+    it "links a libdatadog with #{native_method}" do
+      if Datadog::Core::LIBDATADOG_API_FAILURE
+        skip "libdatadog_api not loaded: #{Datadog::Core::LIBDATADOG_API_FAILURE}"
+      end
 
-        expect(result.value).to eq(expected.fetch("value"))
-        expect(result.reason).to eq(expected.fetch("reason"))
-        expect(result.variant).to eq(expected["variant"]) if expected.key?("variant")
-        if expected.key?("errorCode") || expected.fetch("reason") != "ERROR"
-          expect(result.error_code).to eq(expected["errorCode"])
+      expect(Datadog::Core::FeatureFlags::Configuration).to be_method_defined(native_method)
+    end
+  end
+
+  fixture_cases = fixture_files.flat_map do |fixture_file|
+    JSON.parse(File.read(fixture_file)).each_with_index.map do |test_case, index|
+      [test_case, "#{File.basename(fixture_file)}[#{index}]"]
+    end
+  end
+  applicable, excluded = fixture_cases.partition { |test_case, _| FfeFixtures.applicable?(test_case, platform: "ruby") }
+
+  {
+    nil => :disabled,
+    "experimentationOptOutImmediate" => :immediate,
+    "experimentationOptOutFutureExperimentsOnly" => :future_experiments_only,
+  }.each do |capability, mode|
+    selected = applicable.select { |test_case, _| capability.nil? || test_case.fetch("capabilities", {}).key?(capability) }
+    excluded_count = excluded.count { |test_case, _| capability.nil? || test_case.fetch("capabilities", {}).key?(capability) }
+    if capability && selected.empty?
+      raise "Canonical FFE capability #{capability} has no applicable Ruby cases"
+    end
+
+    native_method = case mode
+    when :immediate then :get_assignment_with_options
+    when :future_experiments_only then :get_assignment_with_opt_out_mode
+    else :get_assignment
+    end
+    native_supported = Datadog::Core::FeatureFlags::Configuration.method_defined?(native_method)
+    runnable = native_supported ? selected.length : 0
+    RSpec.configuration.reporter.message(
+      "FFE fixtures #{FfeFixtures::COMMIT_SHA}, core #{capability || "baseline"}: " \
+        "#{runnable} runnable, #{selected.length - runnable} skipped without native support, " \
+        "#{excluded_count} excluded",
+    )
+
+    context "in #{mode} mode" do
+      before do
+        skip "Requires a libdatadog build with #{mode} opt-out support" unless native_supported
+      end
+
+      selected.each do |test_case, name|
+        it "evaluates #{name}" do
+          result = evaluator.get_assignment(
+            test_case.fetch("flag"),
+            default_value: test_case.fetch("defaultValue"),
+            expected_type: expected_type(test_case.fetch("variationType")),
+            context: {"targeting_key" => test_case["targetingKey"]}.merge(test_case.fetch("attributes") || {}),
+            experimentation_opt_out_mode: mode,
+          )
+          expected = capability ? test_case.fetch("capabilities").fetch(capability) : test_case.fetch("result")
+
+          expect(result.value).to eq(expected.fetch("value"))
+          expect(result.reason).to eq(expected.fetch("reason"))
+          expect(result.variant).to eq(expected["variant"]) if expected.key?("variant")
+          expect(result.serial_id).to eq(expected["serialId"]) if expected.key?("serialId")
+          expect(result.log?).to eq(expected["doLog"]) if expected.key?("doLog")
+          if expected.key?("errorCode") || expected.fetch("reason") != "ERROR"
+            expect(result.error_code).to eq(expected["errorCode"])
+          end
+          expect(result.error?).to eq(expected.fetch("reason") == "ERROR")
         end
-        expect(result.error?).to eq(expected.fetch("reason") == "ERROR")
       end
     end
   end

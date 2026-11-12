@@ -17,8 +17,9 @@ module Datadog
 
           @snapshot_pruner: DI::SnapshotPruner
 
-          MAX_SERIALIZED_SNAPSHOT_SIZE: Integer
+          BACKEND_SNAPSHOT_SIZE_LIMIT: Integer
           BACKEND_ENRICHMENT_HEADROOM: Integer
+          MAX_SERIALIZED_SNAPSHOT_SIZE: Integer
           MAX_CHUNK_SIZE: Integer
           DEFAULT_CHUNK_SIZE: Integer
 
