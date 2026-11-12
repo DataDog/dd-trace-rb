@@ -72,6 +72,12 @@ module Datadog
             end
 
             settings :feature_flags do
+              option :experimentation_opt_out_mode do |o|
+                o.type :string
+                o.env "DD_FEATURE_FLAGS_EXPERIMENTATION_OPT_OUT_MODE"
+                o.default "disabled"
+              end
+
               option :enabled do |o|
                 o.type :bool
                 o.env "DD_FEATURE_FLAGS_ENABLED"
@@ -82,6 +88,13 @@ module Datadog
                 o.type :bool
                 o.env "DD_FEATURE_FLAGS_EVALUATION_TELEMETRY_PER_SUBJECT_OPT_OUT_ENABLED"
                 o.default false
+              end
+
+              # Sends exposure events to Datadog.
+              option :exposures_datadog_logging_enabled do |o|
+                o.type :bool
+                o.env "DD_FEATURE_FLAGS_EXPOSURES_DATADOG_LOGGING_ENABLED"
+                o.default true
               end
 
               option :configuration_source do |o|

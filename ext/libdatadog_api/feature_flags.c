@@ -16,6 +16,14 @@ static void configuration_free(void *ptr);
 static VALUE configuration_get_observe_full_evaluation_data(VALUE self);
 static VALUE configuration_get_assignment(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+static VALUE configuration_get_assignment_with_options(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context, VALUE experimentation_opt_out_immediate);
+#endif
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+static VALUE configuration_get_assignment_with_opt_out_mode(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context, VALUE experimentation_opt_out_mode);
+#endif
 
 static void resolution_details_free(void *ptr);
 static VALUE resolution_details_get_raw_value(VALUE self);
@@ -28,6 +36,7 @@ static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
 static VALUE resolution_details_get_flag_metadata(VALUE self);
+static VALUE resolution_details_get_features(VALUE self);
 
 static const rb_data_type_t configuration_data_type = {
   .wrap_struct_name = "Datadog::Core::FeatureFlags::Configuration",
@@ -52,6 +61,7 @@ static const rb_data_type_t resolution_details_typed_data = {
 // Cached values to use in function later in the code.
 static VALUE feature_flags_error_class = Qnil;
 static VALUE resolution_details_class = Qnil;
+static VALUE empty_features = Qnil;
 static ID id_boolean;
 static ID id_string;
 static ID id_number;
@@ -95,6 +105,12 @@ void feature_flags_init(VALUE core_module) {
   rb_undef_alloc_func(configuration_class);
   rb_define_singleton_method(configuration_class, "new", configuration_new, 1);
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+  rb_define_method(configuration_class, "get_assignment_with_options", configuration_get_assignment_with_options, 4);
+#endif
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+  rb_define_method(configuration_class, "get_assignment_with_opt_out_mode", configuration_get_assignment_with_opt_out_mode, 4);
+#endif
   rb_define_method(configuration_class, "observe_full_evaluation_data", configuration_get_observe_full_evaluation_data, 0);
 
   rb_gc_register_address(&resolution_details_class);
@@ -110,6 +126,10 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
   rb_define_method(resolution_details_class, "log?", resolution_details_get_do_log, 0);
   rb_define_method(resolution_details_class, "flag_metadata", resolution_details_get_flag_metadata, 0);
+  rb_define_method(resolution_details_class, "features", resolution_details_get_features, 0);
+
+  rb_gc_register_address(&empty_features);
+  empty_features = rb_obj_freeze(rb_ary_new());
 
   // Cache symbol IDs for expected types
   id_boolean = rb_intern_const("boolean");
@@ -188,6 +208,10 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
 
   ENFORCE_TYPE(key, T_STRING);
   const char *name = RSTRING_PTR(key);
+  // C strings must not turn a different attribute into a reserved key.
+  if (memchr(name, '\0', RSTRING_LEN(key)) != NULL) {
+    return ST_CONTINUE;
+  }
 
   // Extract targeting_key separately if present.
   //
@@ -328,6 +352,69 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expe
 
   return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
 }
+
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPTIONS
+static VALUE configuration_get_assignment_with_options(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash, VALUE experimentation_opt_out_immediate
+) {
+  ENFORCE_TYPED_DATA(self, &configuration_data_type);
+  ENFORCE_TYPE(flag_key, T_STRING);
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+  ENFORCE_TYPE(context_hash, T_HASH);
+  if (experimentation_opt_out_immediate != Qtrue && experimentation_opt_out_immediate != Qfalse) {
+    rb_raise(rb_eTypeError, "experimentation_opt_out_immediate must be a boolean");
+  }
+
+  const ddog_ffe_Handle_Configuration config =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
+  ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+  const struct ddog_ffe_EvaluationOptions options = {
+    .experimentation_opt_out_immediate = experimentation_opt_out_immediate == Qtrue
+  };
+  ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment_with_options(
+    config, RSTRING_PTR(flag_key), expected_ty, context, options
+  );
+  ddog_ffe_evaluation_context_drop(&context);
+
+  return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
+}
+#endif
+
+#ifdef HAVE_DDOG_FFE_GET_ASSIGNMENT_WITH_OPT_OUT_MODE
+static VALUE configuration_get_assignment_with_opt_out_mode(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash, VALUE experimentation_opt_out_mode
+) {
+  ENFORCE_TYPED_DATA(self, &configuration_data_type);
+  ENFORCE_TYPE(flag_key, T_STRING);
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+  ENFORCE_TYPE(context_hash, T_HASH);
+  ENFORCE_TYPE(experimentation_opt_out_mode, T_SYMBOL);
+
+  const ID mode_id = SYM2ID(experimentation_opt_out_mode);
+  enum ddog_ffe_ExperimentationOptOutMode mode;
+  if (mode_id == rb_intern("disabled")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_DISABLED;
+  } else if (mode_id == rb_intern("immediate")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_IMMEDIATE;
+  } else if (mode_id == rb_intern("future_experiments_only")) {
+    mode = DDOG_FFE_EXPERIMENTATION_OPT_OUT_MODE_FUTURE_EXPERIMENTS_ONLY;
+  } else {
+    rb_raise(rb_eArgError, "Unsupported experimentation opt-out mode");
+  }
+
+  const ddog_ffe_Handle_Configuration config =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
+  ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+  ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment_with_opt_out_mode(
+    config, RSTRING_PTR(flag_key), expected_ty, context, mode
+  );
+  ddog_ffe_evaluation_context_drop(&context);
+
+  return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
+}
+#endif
 
 static void resolution_details_free(void *ptr) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)ptr;
@@ -585,4 +672,54 @@ static VALUE resolution_details_get_flag_metadata(VALUE self) {
   // }
 
   return hash;
+}
+
+static VALUE feature_value_to_ruby(const struct ddog_ffe_FeatureValue *value) {
+  switch (value->tag) {
+    case DDOG_FFE_FEATURE_VALUE_STRING:
+      // Frozen because flag metadata reaches customer code while queued telemetry still holds the value.
+      return rb_obj_freeze(rb_utf8_str_new((const char *)value->string.ptr, value->string.len));
+    case DDOG_FFE_FEATURE_VALUE_FLOAT:
+      return rb_float_new(value->float_);
+    case DDOG_FFE_FEATURE_VALUE_BOOLEAN:
+      return value->boolean ? Qtrue : Qfalse;
+    default:
+      // This should never happen as we checked for all possible tag values.
+      raise_error(feature_flags_error_class, "Internal: Unexpected feature value tag");
+  }
+}
+
+/*
+ * call-seq:
+ *   resolution_details.features() -> Array
+ *
+ * Get the features of the selected split, in configuration order.
+ *
+ * @return [Array<Array(String, String | Float | Boolean, Array<String>)>]
+ *   `[key, value, destinations]` triples; a shared frozen empty array when the split has none
+ */
+static VALUE resolution_details_get_features(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  // Borrowed from the handle, which `self` keeps alive while Ruby allocates below.
+  struct ddog_ffe_FeatureArray features = ddog_ffe_assignment_get_features(resolution_details);
+  if (features.count == 0) {
+    return empty_features;
+  }
+
+  VALUE result = rb_ary_new_capa((long)features.count);
+  for (size_t i = 0; i < features.count; i++) {
+    const struct ddog_ffe_Feature *feature = &features.elements[i];
+
+    VALUE destinations = rb_ary_new_capa((long)feature->destinations.count);
+    for (size_t j = 0; j < feature->destinations.count; j++) {
+      const struct ddog_ffe_BorrowedStr destination = feature->destinations.elements[j];
+      rb_ary_push(destinations, rb_utf8_str_new((const char *)destination.ptr, destination.len));
+    }
+
+    VALUE key = rb_utf8_str_new((const char *)feature->key.ptr, feature->key.len);
+    rb_ary_push(result, rb_ary_new_from_args(3, key, feature_value_to_ruby(&feature->value), destinations));
+  }
+
+  return result;
 }

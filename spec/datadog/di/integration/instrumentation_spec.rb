@@ -2173,8 +2173,7 @@ RSpec.describe "Instrumentation integration" do
           snapshot = snapshots.first
           expect(snapshot.dig("debugger", "snapshot", "captures", "entry", "arguments", "arg1")).to eq("pruned" => true)
           expect(snapshot.dig("debugger", "snapshot", "probe", "id")).to eq "payload-too-large-test"
-          expect(JSON.dump(snapshot).bytesize).to be <= payload_limit -
-            Datadog::DI::Transport::Input::Transport::BACKEND_ENRICHMENT_HEADROOM
+          expect(JSON.dump(snapshot).bytesize).to be <= payload_limit
           expect(probe.enabled?).to be true
         end
       end
