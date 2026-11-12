@@ -29,11 +29,11 @@ module Datadog
 
           attr_reader resource_segments: ::Array[::String]
 
-          def self.scannable?: (untyped value) -> bool
+          def self.scannable?: (any value) -> bool
 
-          def self.arn_like?: (untyped value) -> bool
+          def self.arn_like?: (any value) -> bool
 
-          def self.parse: (untyped value) -> Arn?
+          def self.parse: (any value) -> Arn?
 
           def initialize: (
             partition: ::String,

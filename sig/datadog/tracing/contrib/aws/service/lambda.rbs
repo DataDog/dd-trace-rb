@@ -30,7 +30,7 @@ module Datadog
 
             private
 
-            def parse_function_name: (untyped function_name) -> [::String, ::String?, ::String?]?
+            def parse_function_name: (any function_name) -> [::String, ::String?, ::String?]?
           end
         end
       end

@@ -57,23 +57,21 @@ module Datadog
               return if state_machine_arn && state_machine_name.nil?
 
               # The state machine ARN names the target directly, so it is
-              # preferred when both resolved.
+              # preferred when both resolved. A field one ARN omits and the
+              # other supplies counts as a disagreement.
               if state_machine && state_machine_name
-                if execution && execution_name &&
-                    target_identity(execution, execution_name) != target_identity(state_machine, state_machine_name)
-                  return
+                if execution && execution_name
+                  execution_target = [execution_name, execution.account_id, execution.partition, execution.region]
+                  state_machine_target = [
+                    state_machine_name, state_machine.account_id, state_machine.partition, state_machine.region,
+                  ]
+                  return unless execution_target == state_machine_target
                 end
 
                 [state_machine_name, state_machine.account_id]
               elsif execution && execution_name
                 [execution_name, execution.account_id]
               end
-            end
-
-            # The fields two ARNs must share to name one target. A field one
-            # omits and the other supplies counts as a disagreement.
-            def target_identity(arn, name)
-              [name, arn.account_id, arn.partition, arn.region]
             end
           end
         end

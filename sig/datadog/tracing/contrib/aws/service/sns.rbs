@@ -10,7 +10,7 @@ module Datadog
 
             private
 
-            def parse_topic_arn: (untyped value) -> [::String, ::String, ::String?]?
+            def parse_topic_arn: (any value) -> [::String, ::String, ::String?]?
           end
         end
       end

@@ -14,7 +14,7 @@ module Datadog
 
             private
 
-            def parse_table_arn: (untyped value) -> [::String, ::String, ::String?]?
+            def parse_table_arn: (any value) -> [::String, ::String, ::String?]?
           end
         end
       end

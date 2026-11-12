@@ -14,9 +14,7 @@ module Datadog
 
             private
 
-            def parse_state_machine: (untyped execution_arn, untyped state_machine_arn) -> [::String, ::String?]?
-
-            def target_identity: (Arn arn, ::String name) -> ::Array[::String?]
+            def parse_state_machine: (any execution_arn, any state_machine_arn) -> [::String, ::String?]?
           end
         end
       end

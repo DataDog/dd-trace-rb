@@ -12,7 +12,7 @@ module Datadog
 
             private
 
-            def parse_stream_arn: (untyped value) -> [::String, ::String, ::String?]?
+            def parse_stream_arn: (any value) -> [::String, ::String, ::String?]?
           end
         end
       end
