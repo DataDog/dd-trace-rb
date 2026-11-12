@@ -1223,6 +1223,9 @@ module Datadog
       #
       # Names written with a root namespace prefix, such as "::Datadog" or
       # "Object::Datadog::DI::Instrumenter", match as well.
+      #
+      # @param cls_name [String] the probe's declared type name
+      # @return [Boolean] whether +cls_name+ names the Datadog module or a class or module under it
       def datadog_namespace_type_name?(cls_name)
         DATADOG_NAMESPACE_TYPE_NAME.match?(Utils.normalize_type_name(cls_name))
       end
