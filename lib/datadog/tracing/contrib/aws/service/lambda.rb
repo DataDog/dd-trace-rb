@@ -56,6 +56,12 @@ module Datadog
             # target Region and optionally qualified.
             PARTIAL_ARN_FORMAT = /\A(?:#{REGION_FORMAT}:)?(?<account_id>\d{12}):#{FUNCTION_RESOURCE}\z/
 
+            # A Region, account or `function` segment, each of which Lambda
+            # lets stand alone ahead of a name. `123456789012:PROD` is then
+            # either function `PROD` in that account or a qualified
+            # twelve-digit name, so a bare name opening with one is not read.
+            OPTIONAL_PREFIX_FORMAT = /\A(?:#{REGION_FORMAT}|\d{12}|function):/
+
             # The resource of a full Lambda function ARN. A layer, an event
             # source mapping, and anything beyond the qualifier fail here.
             FUNCTION_RESOURCE_FORMAT = /\A#{FUNCTION_RESOURCE}\z/
@@ -81,18 +87,15 @@ module Datadog
               return unless Aws::Arn.scannable?(function_name)
               return if function_name.empty? || function_name.length > MAX_FUNCTION_NAME_LENGTH
 
-              # A value opening with `arn:` is judged only as a full ARN.
-              if function_name.start_with?(Aws::Arn::PREFIX)
-                arn = Aws::Arn.parse(function_name)
-                return unless arn && arn.service == SERVICE
+              if (arn = Aws::Arn.parse(function_name))
+                return unless arn.service == SERVICE
 
                 match = FUNCTION_RESOURCE_FORMAT.match(arn.resource)
                 [match[:name], function_name, arn.account_id] if match
               elsif (match = PARTIAL_ARN_FORMAT.match(function_name))
                 [match[:name], nil, match[:account_id]]
               elsif (match = BARE_NAME_FORMAT.match(function_name))
-                # Twelve digits cannot be told apart from an account id.
-                [match[:name], nil, nil] unless Aws::Arn::ACCOUNT_ID_FORMAT.match?(match[:name])
+                [match[:name], nil, nil] unless OPTIONAL_PREFIX_FORMAT.match?(function_name)
               end
             end
           end

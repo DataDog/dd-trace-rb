@@ -1720,7 +1720,7 @@ RSpec.describe "AWS instrumentation" do
     # segment of anything it could not parse.
     describe "#invoke with a value that cannot name a function" do
       [
-        ["only an account number", "123456789012"],
+        ["an account number with a qualifier", "123456789012:PROD"],
         ["a layer in place of the function", "123456789012:layer:my-layer:1"],
         ["a wrong-sized account", "12345:function:my-function"],
         ["a segment beyond the qualifier", "arn:aws:lambda:us-west-2:123456789012:function:my-fn:PROD:extra"],
@@ -1757,7 +1757,7 @@ RSpec.describe "AWS instrumentation" do
         ["a full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function"],
         ["a qualified full ARN", "arn:aws:lambda:us-west-2:123456789012:function:my-function:PROD"],
         ["a malformed partial ARN", "123456789012:function:"],
-        ["a value that is only an account number", "123456789012"],
+        ["a twelve-digit name", "123456789012"],
       ].each do |description, value|
         context "with #{description}" do
           subject!(:invoke) { client.invoke(function_name: value) }

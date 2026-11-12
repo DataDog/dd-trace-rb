@@ -194,14 +194,50 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # Indistinguishable from the account id a partial ARN opens with, so it is
-  # never reported as a function name.
+  # A function may be named with twelve digits. With no colon after it, the
+  # value cannot be an account id, so it is the function name.
   context "with a function_name of exactly twelve digits" do
     let(:params) { {function_name: "123456789012"} }
 
-    it "sets no tags at all" do
+    it "sets the function name" do
       lambda_service.add_tags(span, params)
-      expect(span).not_to have_received(:set_tag)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "123456789012")
+      expect(span).to have_received(:set_tag).once
+    end
+  end
+
+  # Lambda lets a Region, an account and `function:` each stand alone ahead
+  # of a name, so `123456789012:PROD` reads equally as a qualified
+  # twelve-digit name or as a function `PROD` in that account. No reading
+  # is reported for these.
+  describe "with a qualified name that opens like a partial ARN" do
+    [
+      ["an account", "123456789012:PROD"],
+      ["a Region", "us-west-2:my-function"],
+      ["the function type", "function:my-function"],
+    ].each do |description, value|
+      context "that opens with #{description}" do
+        let(:params) { {function_name: value} }
+
+        it "sets no tags at all" do
+          lambda_service.add_tags(span, params)
+          expect(span).not_to have_received(:set_tag)
+        end
+      end
+    end
+  end
+
+  describe "with an unqualified name shaped like a partial ARN segment" do
+    ["function", "us-west-2"].each do |value|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
+
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, value)
+          expect(span).to have_received(:set_tag).once
+        end
+      end
     end
   end
 
@@ -505,14 +541,30 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
-  # A value opening with `arn:` is judged only as a full ARN. Reading it as a
-  # name would report a malformed ARN as a function called `arn`.
-  context "with a value that merely opens like an ARN" do
-    let(:params) { {function_name: "arn:aws"} }
+  # A function may be named `arn`. A full ARN needs `:lambda:` after the
+  # partition, so `arn:PROD` and `arn:aws` can only be that function with a
+  # qualifier.
+  describe "with a qualified function named arn" do
+    ["arn:PROD", "arn:aws", "arn:$LATEST"].each do |value|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
 
-    it "sets no tags at all" do
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "arn")
+          expect(span).to have_received(:set_tag).once
+        end
+      end
+    end
+  end
+
+  context "with a function named arn" do
+    let(:params) { {function_name: "arn"} }
+
+    it "sets the function name" do
       lambda_service.add_tags(span, params)
-      expect(span).not_to have_received(:set_tag)
+      expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, "arn")
+      expect(span).to have_received(:set_tag).once
     end
   end
 

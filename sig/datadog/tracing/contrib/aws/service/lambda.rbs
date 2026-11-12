@@ -22,6 +22,8 @@ module Datadog
 
             PARTIAL_ARN_FORMAT: ::Regexp
 
+            OPTIONAL_PREFIX_FORMAT: ::Regexp
+
             FUNCTION_RESOURCE_FORMAT: ::Regexp
 
             def add_tags: (untyped span, untyped params) -> untyped
