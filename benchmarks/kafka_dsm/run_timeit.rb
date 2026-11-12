@@ -82,7 +82,7 @@ require_relative "kafka_dsm"
 def assert_data_streams_state!
   return unless ENV["ENABLE_TRACER"] == "true"
 
-  raw = ENV["DD_DATA_STREAMS_ENABLED"]
+  raw = Datadog::DATADOG_ENV["DD_DATA_STREAMS_ENABLED"]
   expected = %w[true 1].include?(raw.to_s.strip.downcase)
   actual = Datadog::DataStreams.enabled?
   return if actual == expected
