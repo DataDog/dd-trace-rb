@@ -33,10 +33,6 @@ module Datadog
 
           attr_reader context: untyped
 
-          def signing_credential_provider: () -> untyped
-
-          def resolved_credentials: (untyped provider) -> untyped
-
           def service: () -> untyped
         end
       end

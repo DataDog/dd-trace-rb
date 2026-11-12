@@ -20,25 +20,17 @@ module Datadog
 
             def add_tags: (untyped span, untyped params) -> nil
 
-            def add_owner_tags: (untyped span, untyped params, untyped context) -> nil
+            def add_owner_tags: (Datadog::Tracing::SpanOperation span, any params, Contrib::Aws::ParsedContext context) -> void
 
             private
 
-            def self.load_and_memoize_aws_dotted_dns_suffixes: () -> ::Array[::String]
-
             def self.load_aws_dotted_dns_suffixes: () -> ::Array[::String]
 
-            def self.report_dns_suffix_failure: (::String reason) -> void
+            def valid_account_id: (any value) -> ::String?
 
-            def self.report_dns_suffix_error: (::StandardError error) -> void
+            def aws_confirmed_response?: (Contrib::Aws::ParsedContext context) -> bool
 
-            def valid_account_id: (untyped value) -> ::String?
-
-            def aws_confirmed_response?: (untyped context) -> bool
-
-            def success?: (untyped status_code) -> bool
-
-            def aws_owned_endpoint?: (untyped host) -> bool
+            def aws_owned_endpoint?: (any host) -> bool
           end
         end
       end

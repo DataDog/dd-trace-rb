@@ -8,11 +8,7 @@ module Datadog
 
             def add_tags: (untyped span, untyped params) -> untyped
 
-            def add_owner_tags: (untyped span, untyped params, untyped context) -> untyped
-
-            private
-
-            def bare_table_name?: (untyped table_name) -> bool
+            def add_owner_tags: (Datadog::Tracing::SpanOperation span, any params, Contrib::Aws::ParsedContext context) -> void
           end
         end
       end
