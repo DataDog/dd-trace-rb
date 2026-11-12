@@ -18,6 +18,14 @@ module Datadog
           logger: Core::Logger
         ) -> void
 
+        private
+
+        def report_result: (
+          ResolutionDetails result,
+          flag_key: String,
+          context: ::OpenFeature::SDK::EvaluationContext?
+        ) -> bool?
+
         def finally: (
           hook_context: ::OpenFeature::SDK::Hooks::HookContext,
           evaluation_details: ::OpenFeature::SDK::EvaluationDetails,

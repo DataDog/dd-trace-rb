@@ -149,6 +149,14 @@ module Datadog
         Integer eval_time_ms
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
+      def pending_exposures: (
+        ResolutionDetails result,
+        String flag_key,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> Array[ExposureResolutionDetails::exposure]
+
+      def snapshot_exposure_result: (ResolutionDetails result) -> ResolutionDetails
+
       def record_dependency_evaluations: (
         ResolutionDetails result,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context,
@@ -168,7 +176,7 @@ module Datadog
       def sdk_success_details: (
         ResolutionDetails result,
         Hash[String, untyped] flag_meta
-      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+      ) -> ExposureResolutionDetails
 
       def sdk_error_details: (
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,

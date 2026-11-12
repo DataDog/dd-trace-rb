@@ -2,6 +2,7 @@
 
 require_relative "../ext"
 require_relative "../split_features"
+require_relative "../exposure_resolution_details"
 
 module Datadog
   module OpenFeature
@@ -32,6 +33,18 @@ module Datadog
           # The SDK may hand hooks frozen copies; the verdict goes into the details' own metadata.
           metadata = evaluation_details.resolution_details[:flag_metadata]
           return unless metadata.is_a?(Hash) && !metadata.frozen?
+
+          details = evaluation_details.resolution_details
+          if details.is_a?(ExposureResolutionDetails)
+            details.take_exposures.each do |key, result, context|
+              cache_hit = report_result(result, flag_key: key, context: context)
+              if key == hook_context.flag_key && !cache_hit.nil?
+                metadata[Ext::METADATA_EXPOSURE_CACHE_HIT] = cache_hit
+              end
+            end
+            return
+          end
+
           return unless metadata[Ext::METADATA_DO_LOG] == true
 
           allocation_key = metadata[Ext::METADATA_ALLOCATION_KEY]
@@ -51,6 +64,26 @@ module Datadog
           # Exposure reporting must never change the evaluation result.
           @logger.debug { "OpenFeature: Failed to report exposure: #{e.class}: #{e.message}" }
           @telemetry.report(e, description: "OpenFeature: Failed to report exposure")
+        end
+
+        private
+
+        def report_result(result, flag_key:, context:)
+          return unless result.log? && !result.error? && result.variant && result.allocation_key && context
+
+          metadata = SplitFeatures.write({}, result.features || [])
+          @reporter.record(
+            flag_key: flag_key,
+            allocation_key: result.allocation_key,
+            variant: result.variant,
+            serial_id: result.serial_id,
+            context: context,
+            features: SplitFeatures.read(metadata, Ext::METADATA_EXPOSURE_FEATURE_PREFIX),
+          )
+        rescue => e
+          @logger.debug { "OpenFeature: Failed to report exposure: #{e.class}: #{e.message}" }
+          @telemetry.report(e, description: "OpenFeature: Failed to report exposure")
+          nil
         end
       end
     end

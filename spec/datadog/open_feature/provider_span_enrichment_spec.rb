@@ -23,7 +23,7 @@ require "datadog/open_feature/hooks/span_enrichment_hook"
 RSpec.describe "OpenFeature provider span enrichment (end-to-end)" do
   subject(:provider) { Datadog::OpenFeature::Provider.new }
 
-  let(:engine) { instance_double(Datadog::OpenFeature::EvaluationEngine) }
+  let(:engine) { instance_double(Datadog::OpenFeature::EvaluationEngine, report_exposures: nil) }
   let(:span_enrichment_hook) do
     Datadog::OpenFeature::Hooks::SpanEnrichmentHook.new(
       Datadog::OpenFeature::Hooks::SpanEnrichmentHook::SpanEnrichmentStateStore.new,

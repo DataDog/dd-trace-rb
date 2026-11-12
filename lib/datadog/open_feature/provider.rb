@@ -8,6 +8,7 @@ require_relative "../core/utils/only_once"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
 require_relative "split_features"
 require_relative "exposure_hook"
+require_relative "exposure_resolution_details"
 require "open_feature/sdk"
 
 module Datadog
@@ -477,7 +478,9 @@ module Datadog
           enrich_span(flag_key, result, evaluation_context)
         end
 
-        sdk_success_details(result, flag_meta)
+        details = sdk_success_details(result, flag_meta)
+        details.pending_exposures = pending_exposures(result, flag_key, evaluation_context)
+        details
       rescue => e
         error_message = "#{e.class}: #{e.message}"
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
@@ -491,6 +494,30 @@ module Datadog
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
+      end
+
+      def pending_exposures(result, flag_key, evaluation_context)
+        # Application hooks can mutate SDK values and context before exposures are committed.
+        snapshot = snapshot_exposure_result(result)
+        key = flag_key.dup
+        context = if evaluation_context
+          fields = evaluation_context.fields.transform_values { |value| value.is_a?(String) ? value.dup : value }
+          ::OpenFeature::SDK::EvaluationContext.new(**fields)
+        end
+        exposures = (snapshot.dependency_evaluations || []).each_with_object([]) do |(dependency_key, dependency, eligible), pending|
+          pending << [dependency_key, dependency, context] if eligible && !dependency.error?
+        end
+        exposures << [key, snapshot, context]
+      end
+
+      def snapshot_exposure_result(result)
+        snapshot = result.dup
+        snapshot.variant = result.variant&.dup
+        snapshot.allocation_key = result.allocation_key&.dup
+        snapshot.dependency_evaluations = (result.dependency_evaluations || []).map do |key, dependency, eligible|
+          [key.dup, snapshot_exposure_result(dependency), eligible]
+        end
+        snapshot
       end
 
       def record_dependency_evaluations(result, evaluation_context, eval_time_ms)
@@ -558,7 +585,7 @@ module Datadog
       end
 
       def sdk_success_details(result, flag_meta)
-        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+        ExposureResolutionDetails.new(
           value: result.value,
           variant: result.variant,
           reason: result.reason,

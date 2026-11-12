@@ -58,11 +58,9 @@ module Datadog
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
 
-        (result.dependency_evaluations || []).each do |key, dependency, eligible|
+        (result.dependency_evaluations || []).each do |_key, dependency, _eligible|
           with_observe_full_evaluation_data(dependency, observe_full_evaluation_data)
-          @reporter.report(dependency, flag_key: key, context: evaluation_context) if eligible && !dependency.error?
         end
-        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result
       rescue => e
