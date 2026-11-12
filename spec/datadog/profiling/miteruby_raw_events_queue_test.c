@@ -9,6 +9,16 @@
 #include <threads.h>
 #include <unistd.h>
 #include <errno.h>
+#include "../../../ext/datadog_profiling_native_extension/time_helpers.h"
+
+static miteruby_raw_events_queue_t raw_events_queue;
+static long timestamp_clock;
+
+static long test_monotonic_time(void)
+{
+    assert(atomic_load(&raw_events_queue.producer_lock) == 1);
+    return ++timestamp_clock;
+}
 
 static unsigned wait_failures;
 #ifdef __APPLE__
@@ -26,14 +36,15 @@ static int test_sem_wait(sem_t *semaphore) {
 }
 #define sem_wait test_sem_wait
 #endif
+#define monotonic_wall_time_now_ns test_monotonic_time
 #include "../../../ext/datadog_profiling_native_extension/miteruby/raw_events_queue.c"
+#undef monotonic_wall_time_now_ns
 #ifdef __APPLE__
 #undef nanosleep
 #else
 #undef sem_wait
 #endif
 
-static miteruby_raw_events_queue_t raw_events_queue;
 static volatile sig_atomic_t signal_delivered;
 
 static struct {
@@ -53,8 +64,11 @@ static unsigned empty_count;
 static void produce_from_signal(int signal_number)
 {
     (void)signal_number;
-    const uint64_t words[] = {31, 32};
-    if (!miteruby_raw_events_queue_try_write(&raw_events_queue, words, 2, NULL))
+    union {
+        struct { uint64_t values[2]; long timestamp; } payload;
+        uint64_t words[3];
+    } event = {.payload = {.values = {31, 32}, .timestamp = -1}};
+    if (!miteruby_raw_events_queue_try_write(&raw_events_queue, event.words, 3, NULL, &event.payload.timestamp))
         _exit(3);
     signal_delivered = 1;
 }
@@ -139,7 +153,7 @@ static void test_interruptible_read(void)
     assert(test.result.interrupted && !test.result.end_of_stream && test.result.data == NULL);
 
     uint64_t value = 77;
-    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, &value, 1, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, &value, 1, NULL, NULL));
     test.result = miteruby_raw_events_queue_read(&raw_events_queue, &test.interrupted);
     assert(test.result.interrupted);
     atomic_store(&test.interrupted, false);
@@ -185,6 +199,83 @@ static void test_internal_errors(void)
     miteruby_raw_events_queue_destroy(&raw_events_queue);
 }
 
+static void test_timestamp_destination(void)
+{
+    assert(miteruby_raw_events_queue_init(&raw_events_queue) == 0);
+    uint32_t start = MITERUBY_RAW_EVENTS_QUEUE_CAPACITY_WORDS - 1;
+    atomic_store(&raw_events_queue.read_position, start);
+    atomic_store(&raw_events_queue.write_state, start);
+    raw_events_queue.next_read_position = start;
+    union {
+        struct { uint64_t marker; long timestamp; } payload;
+        uint64_t words[2];
+    } event = {.payload = {.marker = 42, .timestamp = -1}};
+    timestamp_clock = 100;
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGPROF);
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, event.words, 2, &mask, &event.payload.timestamp));
+    assert(event.payload.timestamp == 101);
+    miteruby_raw_events_queue_record_t record = miteruby_raw_events_queue_read(&raw_events_queue, NULL);
+    assert(record.length == 2 && record.data[0] == 42 && record.data[1] == 101);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data == NULL);
+
+    long separate_timestamp = -1;
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, event.words, 2, NULL, &separate_timestamp));
+    assert(separate_timestamp == 102 && event.payload.timestamp == 101);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data[1] == 101);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data == NULL);
+    assert(!miteruby_raw_events_queue_try_write(&raw_events_queue, NULL, 1, NULL, &separate_timestamp));
+    assert(separate_timestamp == 102 && timestamp_clock == 102);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).rejected_count == 1);
+    miteruby_raw_events_queue_destroy(&raw_events_queue);
+
+    assert(miteruby_raw_events_queue_init(&raw_events_queue) == 0);
+    static const uint64_t filler[UINT16_MAX] = {0};
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, filler, UINT16_MAX, NULL, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, filler, UINT16_MAX, NULL, NULL));
+    event.payload.timestamp = -1;
+    assert(!miteruby_raw_events_queue_try_write(&raw_events_queue, event.words, 2, NULL, &event.payload.timestamp));
+    assert(event.payload.timestamp == -1 && timestamp_clock == 102);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).length == UINT16_MAX);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).length == UINT16_MAX);
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).rejected_count == 1);
+    miteruby_raw_events_queue_destroy(&raw_events_queue);
+}
+
+static int timestamp_producer(void *arg)
+{
+    unsigned id = *(unsigned *)arg;
+    for (unsigned i = 0; i < 128; i++) {
+        union {
+            struct { uint64_t value; long timestamp; } payload;
+            uint64_t words[2];
+        } event = {.payload = {.value = ((uint64_t)id << 32) | i, .timestamp = -1}};
+        assert(miteruby_raw_events_queue_try_write(&raw_events_queue, event.words, 2, NULL, &event.payload.timestamp));
+    }
+    return 0;
+}
+
+static void test_timestamp_order(void)
+{
+    assert(miteruby_raw_events_queue_init(&raw_events_queue) == 0);
+    timestamp_clock = 0;
+    thrd_t producers[4];
+    unsigned ids[] = {0, 1, 2, 3}, next[4] = {0};
+    for (unsigned i = 0; i < 4; i++)
+        assert(thrd_create(&producers[i], timestamp_producer, &ids[i]) == thrd_success);
+    for (unsigned i = 0; i < 4; i++)
+        assert(thrd_join(producers[i], NULL) == thrd_success);
+    for (unsigned i = 0; i < 4 * 128; i++) {
+        miteruby_raw_events_queue_record_t record = miteruby_raw_events_queue_read(&raw_events_queue, NULL);
+        assert(record.length == 2 && record.data[1] == i + 1);
+        unsigned id = record.data[0] >> 32;
+        assert(id < 4 && (uint32_t)record.data[0] == next[id]++);
+    }
+    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data == NULL);
+    miteruby_raw_events_queue_destroy(&raw_events_queue);
+}
+
 int main(int argc, char **argv)
 {
     ruby_sysinit(&argc, &argv);
@@ -203,8 +294,8 @@ int main(int argc, char **argv)
     atomic_store(&raw_events_queue.write_state, start);
     raw_events_queue.next_read_position = start;
     const uint64_t first[] = {11, 12}, second[] = {21, 22};
-    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, first, 2, NULL));
-    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, second, 2, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, first, 2, NULL, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, second, 2, NULL, NULL));
     miteruby_raw_events_queue_visit(&raw_events_queue, visit_record, &mask);
     assert(state.count == 2);
     miteruby_raw_events_queue_record_t borrowed = miteruby_raw_events_queue_read(&raw_events_queue, NULL);
@@ -222,21 +313,22 @@ int main(int argc, char **argv)
     struct sigaction action = {.sa_handler = produce_from_signal}, previous_action;
     sigemptyset(&action.sa_mask);
     assert(sigaction(SIGPROF, &action, &previous_action) == 0);
-    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, first, 2, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, first, 2, NULL, NULL));
     state.count = 0;
     state.release_records = false;
     state.send_signal = true;
     miteruby_raw_events_queue_visit(&raw_events_queue, visit_record, &mask);
     assert(state.count == 1 && signal_delivered == 1);
     assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data[0] == 11);
-    assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data[0] == 31);
+    miteruby_raw_events_queue_record_t signaled = miteruby_raw_events_queue_read(&raw_events_queue, NULL);
+    assert(signaled.length == 3 && signaled.data[0] == 31 && signaled.data[1] == 32 && signaled.data[2] == 1);
     assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data == NULL);
     assert(sigaction(SIGPROF, &previous_action, NULL) == 0);
 
     assert(pthread_sigmask(SIG_BLOCK, &mask, NULL) == 0);
-    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, NULL, 0, NULL));
+    assert(miteruby_raw_events_queue_try_write(&raw_events_queue, NULL, 0, NULL, NULL));
     assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).data != NULL);
-    assert(!miteruby_raw_events_queue_try_write(&raw_events_queue, NULL, 1, NULL));
+    assert(!miteruby_raw_events_queue_try_write(&raw_events_queue, NULL, 1, NULL, NULL));
     miteruby_raw_events_queue_visit(&raw_events_queue, visit_empty_record, &mask);
     assert(empty_count == 1);
     assert(pthread_sigmask(SIG_BLOCK, NULL, &current_mask) == 0);
@@ -253,6 +345,8 @@ int main(int argc, char **argv)
     assert(miteruby_raw_events_queue_read(&raw_events_queue, NULL).end_of_stream);
     miteruby_raw_events_queue_destroy(&raw_events_queue);
     test_internal_errors();
+    test_timestamp_destination();
+    test_timestamp_order();
     alarm(0);
     return ruby_cleanup(0);
 }

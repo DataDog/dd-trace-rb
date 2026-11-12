@@ -1,4 +1,5 @@
 #include "raw_events_queue.h"
+#include "../time_helpers.h"
 
 #include <ruby.h>
 #include <errno.h>
@@ -117,7 +118,7 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 }
 
 bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
-  const sigset_t *signal_mask) {
+  const sigset_t *signal_mask, long *timestamp_ns) {
   // Hold through publication AND wakeup, including the full-queue path.
   if (signal_mask != NULL)
     miteruby_raw_events_queue_producer_lock_mask(raw_events_queue, signal_mask);
@@ -139,6 +140,8 @@ bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events
     miteruby_raw_events_queue_producer_unlock(raw_events_queue);
     return false;
   }
+
+  if (timestamp_ns != NULL) *timestamp_ns = monotonic_wall_time_now_ns();
 
   // Check space before writing anything, including the rewind marker.
   if (skipped_words != 0) {

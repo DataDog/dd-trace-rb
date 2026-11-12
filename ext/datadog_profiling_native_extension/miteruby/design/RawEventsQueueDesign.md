@@ -46,6 +46,14 @@ Go's CPU profiler and its `profBuf` buffer were the starting point.
   notification. The consumer does not acquire it. Contention calls libc
   `sched_yield()`.
 
+- **Timestamp under the producer lock.** An optional `long *timestamp_ns`
+  receives the monotonic clock reading after checking capacity and before
+  copying the payload. The pointer can refer to a field inside the source
+  payload; the queue does not need to know the event layout. Successful
+  timestamped writes have nondecreasing timestamps in publication order.
+  Rejection leaves the destination unchanged. Stack walking and CPU clock
+  reads remain outside the lock, so the timestamp represents enqueue time.
+
 - **Signal masking.** Go can disable profiling through its thread runtime
   state. This buffer uses OS signal masking so a handler cannot interrupt a
   producer that owns the lock. It blocks the supplied signals

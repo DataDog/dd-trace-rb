@@ -262,6 +262,9 @@ void miteruby_serializer_raise_if_failed(miteruby_serializer_exit_reason_t reaso
     case MITERUBY_SERIALIZER_PROFILE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming profile metadata");
     case MITERUBY_SERIALIZER_SAMPLE_SIZING_ERROR: rb_raise(rb_eRuntimeError, "Failed to size streaming sample");
     case MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR: rb_raise(rb_eRuntimeError, "Failed to encode streaming sample");
+    case MITERUBY_SERIALIZER_VIREL_BUFFER_FULL: rb_raise(rb_eRuntimeError, "Virel recording buffer is full");
+    case MITERUBY_SERIALIZER_INVALID_EVENT: rb_raise(rb_eRuntimeError, "Invalid miteruby event for Virel serialization");
+    case MITERUBY_SERIALIZER_ALLOCATION_FAILED: rb_raise(rb_eRuntimeError, "Failed to allocate Virel serialization storage");
   }
   rb_raise(rb_eRuntimeError, "Unknown miteruby serializer exit reason: %d", reason);
 }

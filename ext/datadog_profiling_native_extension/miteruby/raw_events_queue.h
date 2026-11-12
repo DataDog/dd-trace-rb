@@ -72,6 +72,9 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 // nothing is published and one rejected attempt is recorded. Only
 // valid items can succeed on retry. Handlers must return on rejection.
 // Concurrent producers are ordered by lock acquisition, not invocation time.
+// Optional timestamp_ns must point to writable caller storage, possibly within data.
+// On success it receives monotonic nanoseconds under the producer lock before copying
+// the payload, so timestamp order matches publication order. Rejection leaves it unchanged.
 // signal_mask points to a prepared set of blockable producer signals, or NULL
 // to skip masking (inside a handler, with external masking, or without signals).
 // The set must remain valid and unchanged until this call returns.
@@ -79,7 +82,7 @@ void miteruby_raw_events_queue_destroy(miteruby_raw_events_queue_t *raw_events_q
 // including signals already blocked on entry. Signals outside it are untouched.
 // Mask-operation and semaphore-post failures are fatal.
 bool miteruby_raw_events_queue_try_write(miteruby_raw_events_queue_t *raw_events_queue, const uint64_t *data, uint16_t length_words,
-                              const sigset_t *signal_mask);
+                              const sigset_t *signal_mask, long *timestamp_ns);
 // Call once, after ALL producers (including handlers) have finished writing.
 // Signals that no more items will arrive and wakes a sleeping consumer.
 // On macOS, the consumer observes close on its next poll.

@@ -39,7 +39,7 @@ typedef struct {
 } monotonic_time_t;
 ```
 
-- 8-byte wrapper for a monotonic observation timestamp in nanoseconds from `CLOCK_MONOTONIC` on Linux
+- 8-byte wrapper for a monotonic enqueue timestamp in nanoseconds from `CLOCK_MONOTONIC` on Linux
   or `CLOCK_MONOTONIC_RAW` on macOS, not a Unix-epoch timestamp.
 
 ### miteruby_event_header_t
@@ -59,8 +59,10 @@ typedef struct {
 - `frame_count`: number of captured frames; preserved when the sample is interned.
 - `stack_truncated`: set when the captured stack exceeded `MAX_FRAMES_LIMIT`.
   An unavailable stack is represented by `frame_count == 0`.
-- `timestamp`: monotonic observation time, before stack capture.
-- `cpu_time`: cumulative CPU time of the sampled thread at publication, or `INVALID_CPU_TIME` when unavailable.
+- `timestamp`: monotonic enqueue time, read under the raw queue's producer lock after stack capture.
+  The queue stores it through a caller-provided pointer before copying the event, so timestamps are
+  nondecreasing in publication order. Lock waiting time is included.
+- `cpu_time`: cumulative CPU time of the sampled thread before stack capture, or `INVALID_CPU_TIME` when unavailable.
 
 ### miteruby_frame_t
 

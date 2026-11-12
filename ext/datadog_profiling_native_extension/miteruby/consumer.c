@@ -415,20 +415,39 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
+  static const miteruby_serializer_backend_t backend = {
+    .check_available = miteruby_serializer_check_available,
+    .prepare = miteruby_serializer_prepare_serialize,
+    .serialize_no_gvl = miteruby_serializer_serialize_no_gvl,
+  };
+  miteruby_consumer_prepare_serialize_with_backend(serializer_instance, &backend);
+}
+
+typedef struct {
+  VALUE serializer;
+  const miteruby_serializer_backend_t *backend;
+} consumer_serialization_args;
+
+void miteruby_consumer_prepare_serialize_with_backend(VALUE serializer_instance, const miteruby_serializer_backend_t *backend) {
+  if (consumer_state.raw_events_queue == NULL) rb_raise(rb_eRuntimeError, "Miteruby consumer is not initialized");
+  consumer_serialization_args args = {.serializer = serializer_instance, .backend = backend};
   mutex_lock(&consumer_state.mutex);
 
   // This part of the work is done while holding the consumer lock so the consumer background thread is stopped...
-  rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
+  rb_ensure(prepare_serialize_locked, (VALUE) &args, prepare_serialize_ensure, Qnil);
 
   // ...`prepare_serialize_ensure` releases the lock as its last step so if we got here, the consumer background thread is free to continue.
   // The current thread (handling the serialization) will now release the GVL and do the rest of the serialization work without GVL.
-  miteruby_serializer_exit_reason_t result = miteruby_serializer_serialize_no_gvl(serializer_instance);
+  miteruby_serializer_exit_reason_t result = backend->serialize_no_gvl(serializer_instance);
 
   // Once we get here, we've re-acquired the GVL and can check if everything is OK or there was a failure and we need to raise.
   miteruby_serializer_raise_if_failed(result);
+  RB_GC_GUARD(serializer_instance);
 }
 
-static VALUE prepare_serialize_locked(VALUE serializer_instance) {
+static VALUE prepare_serialize_locked(VALUE args_pointer) {
+  consumer_serialization_args *args = (consumer_serialization_args *) args_pointer;
+  VALUE serializer_instance = args->serializer;
   size_t interned_events_pos = consumer_state.interned_events_pos;
 
   // Reset all of these, they're only used to quick lookup during consumption data that lives in the arrays we use below
@@ -445,7 +464,7 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   // + the `prepare_serialize_ensure` will discard the rest.
   //
   // Afterwards, the consumer will be able to keep going, as if it had successfully serialized.
-  miteruby_serializer_check_available(serializer_instance);
+  args->backend->check_available(serializer_instance);
 
   // The existing interned_events_queue will become owned by the serializer, and the consumer gets a fresh new one
   uint8_t *new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
@@ -454,7 +473,7 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   consumer_state.interned_events_queue = new_queue;
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
 
-  miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
+  miteruby_serializer_exit_reason_t reason = args->backend->prepare(
     serializer_instance, interned_events_queue, interned_events_pos,
     &consumer_state.mark_frame_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );

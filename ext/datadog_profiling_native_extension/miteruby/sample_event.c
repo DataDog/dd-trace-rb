@@ -14,7 +14,6 @@ static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 );
 static cpu_time_t current_thread_cpu_time(void);
-static inline monotonic_time_t monotonic_time_now(void);
 
 bool miteruby_sample_event_publish_sighandler(miteruby_raw_events_queue_t *raw_events_queue) {
   int saved_errno = errno;
@@ -45,10 +44,6 @@ static cpu_time_t current_thread_cpu_time(void) {
   return (cpu_time_t) {.ns = SECONDS_AS_NS(cpu_time.tv_sec) + cpu_time.tv_nsec};
 }
 
-static inline monotonic_time_t monotonic_time_now(void) {
-  return (monotonic_time_t) {.ns = monotonic_wall_time_now_ns()};
-}
-
 // TODO: Revisit upstream rb_profile_frames if we accept its block/eval fidelity trade-off (see design/EventDesign.md),
 // or an upstream API supplies the frame metadata and bytecode positions needed for deferred symbolication.
 // TODO: Emit correlation data from tracing (trace id, span id, endpoint)
@@ -56,7 +51,6 @@ static inline monotonic_time_t monotonic_time_now(void) {
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time
 ) {
-  monotonic_time_t timestamp = monotonic_time_now();
   frame_info frames[MAX_FRAMES_LIMIT + 1];
   int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT + 1, frames, true);
 
@@ -66,7 +60,6 @@ static bool miteruby_sample_event_publish_internal(
   } storage = {.words = {0}};
   miteruby_event_stack_sample_t *event = &storage.event;
 
-  event->header.timestamp = timestamp;
   event->header.cpu_time = cpu_time;
   event->thread = thread;
   if (count <= 0) {
@@ -90,5 +83,7 @@ static bool miteruby_sample_event_publish_internal(
   size_t size_bytes = MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + count * MITERUBY_BYTES_PER_FRAME);
   event->header.size_bytes = size_bytes;
 
-  return miteruby_raw_events_queue_try_write(raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask);
+  return miteruby_raw_events_queue_try_write(
+    raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask, &event->header.timestamp.ns
+  );
 }

@@ -24,7 +24,21 @@ typedef enum {
   MITERUBY_SERIALIZER_PROFILE_ENCODING_ERROR,
   MITERUBY_SERIALIZER_SAMPLE_SIZING_ERROR,
   MITERUBY_SERIALIZER_SAMPLE_ENCODING_ERROR,
+  MITERUBY_SERIALIZER_VIREL_BUFFER_FULL,
+  MITERUBY_SERIALIZER_INVALID_EVENT,
+  MITERUBY_SERIALIZER_ALLOCATION_FAILED,
 } miteruby_serializer_exit_reason_t;
+
+typedef struct {
+  void (*check_available)(VALUE);
+  miteruby_serializer_exit_reason_t (*prepare)(
+    VALUE, uint8_t *, size_t, const miteruby_mark_frame_array_t *, const miteruby_location_array_t *,
+    const verstable_mark_threads_set *
+  );
+  miteruby_serializer_exit_reason_t (*serialize_no_gvl)(VALUE);
+} miteruby_serializer_backend_t;
+
+void miteruby_consumer_prepare_serialize_with_backend(VALUE serializer, const miteruby_serializer_backend_t *backend);
 
 void miteruby_serializer_init(VALUE profiling_module);
 void miteruby_serializer_check_available(VALUE serializer);

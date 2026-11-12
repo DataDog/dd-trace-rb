@@ -922,7 +922,7 @@ static void assert_frame_storage_full(void) {
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)1;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
-  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL));
+  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL, NULL));
   assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby mark_frame storage is full");
   sigset_t mask;
   assert(pthread_sigmask(SIG_BLOCK, NULL, &mask) == 0);
@@ -935,7 +935,7 @@ static void assert_consumer_storage_full(void) {
   storage.event.header.size_bytes = sizeof(miteruby_event_stack_sample_t);
   storage.event.thread.value = Qnil;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
-  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL));
+  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL, NULL));
   assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby interned events queue is full");
   sigset_t mask;
   assert(pthread_sigmask(SIG_BLOCK, NULL, &mask) == 0);
@@ -981,7 +981,7 @@ static void test_invalid_frame(void) {
   miteruby_consumer_reset();
 
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
-  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, 9, NULL));
+  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, 9, NULL, NULL));
   assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby invalid frame: both CME and ISEQ are NULL");
   assert(buffered_event_count() == 0);
   assert(consumer_state.interned_events_pos == 0);
@@ -1103,7 +1103,7 @@ static void test_location_array_capacity(void) {
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)1;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
-  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL));
+  assert(miteruby_raw_events_queue_try_write(&invalid_raw_events_queue, storage.words, storage.event.header.size_bytes / 8, NULL, NULL));
   assert_runtime_error(consume_invalid_raw_events_queue, "Miteruby location storage is full");
   sigset_t mask;
   assert(pthread_sigmask(SIG_BLOCK, NULL, &mask) == 0);

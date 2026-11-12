@@ -1,0 +1,35 @@
+module Datadog
+  module Profiling
+    module Miteruby
+      class VirelSerializer
+        class Recording
+          attr_reader bytes: String
+
+          def initialize: (String bytes) -> void
+
+          def format: () -> :virel
+        end
+
+        def initialize: () -> void
+
+        def prepare_serialize: () -> VirelSerializer
+
+        def serialize: () -> [Time, Time, Recording, Hash[Symbol, Integer]]
+
+        def serialize!: () -> Recording
+
+        def reset_after_fork: () -> true
+
+        def stats: () -> Hash[Symbol, Integer]
+
+        def self._native_prepare_serialize: (VirelSerializer serializer) -> VirelSerializer
+
+        def self._native_serialize: (VirelSerializer serializer) -> [Time, Time, String, Hash[Symbol, Integer]]
+
+        def self._native_reset_after_fork: (VirelSerializer serializer) -> true
+
+        def self._native_stats: (VirelSerializer serializer) -> Hash[Symbol, Integer]
+      end
+    end
+  end
+end
