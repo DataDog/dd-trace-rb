@@ -50,7 +50,7 @@ RSpec.describe "Targeted TracePoint iseq binding" do
     fired = false
     tp = TracePoint.new(:line) { fired = true }
     tp.enable(target: compiled_iseq) do
-      # 4. Call the method (uses the require-produced iseq, not compile_file's)
+      # 4. Call the method, which executes the require-produced iseq
       CompileFileTestTarget.new.test_method
     end
 
