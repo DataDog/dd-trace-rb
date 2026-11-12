@@ -47,7 +47,9 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         # aws-us-gov, which shares the commercial DNS suffix
         "gov-db.cdbfa1b2c3d4.us-gov-west-1.rds.amazonaws.com" => "us-gov-west-1",
         "gov-db.cdbfa1b2c3d4.us-gov-east-1.rds.amazonaws.com" => "us-gov-east-1",
-        # aws-cn
+        # aws-cn, which puts the Region after `rds`, and also serves the commercial order
+        "cn-db.cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" => "cn-north-1",
+        "cn-db.cdbfa1b2c3d4.rds.cn-northwest-1.amazonaws.com.cn" => "cn-northwest-1",
         "cn-db.cdbfa1b2c3d4.cn-north-1.rds.amazonaws.com.cn" => "cn-north-1",
         "cn-db.cdbfa1b2c3d4.cn-northwest-1.rds.amazonaws.com.cn" => "cn-northwest-1",
         # aws-iso
@@ -94,6 +96,25 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
 
         it { is_expected.to eq(identifier: "orders", endpoint_type: "cluster", region: "us-iso-east-1") }
       end
+
+      context "with each endpoint type in the China label order" do
+        {
+          "orders.cluster-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "orders", endpoint_type: "cluster", region: "cn-north-1"},
+          "orders.cluster-ro-cdbfa1b2c3d4.rds.cn-northwest-1.amazonaws.com.cn" =>
+            {identifier: "orders", endpoint_type: "cluster-ro", region: "cn-northwest-1"},
+          "analytics.cluster-custom-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "analytics", endpoint_type: "cluster-custom", region: "cn-north-1"},
+          "orders-proxy.proxy-cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn" =>
+            {identifier: "orders-proxy", endpoint_type: "proxy", region: "cn-north-1"},
+        }.each do |host, expected|
+          context "with #{host}" do
+            let(:hostname) { host }
+
+            it { is_expected.to eq(expected) }
+          end
+        end
+      end
     end
 
     # A partition's DNS suffix serves only that partition's Regions. A hostname where the
@@ -120,6 +141,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         # the commercial partition has no such Region prefix
         "orders-db.cdbfa1b2c3d4.xx-east-1.rds.amazonaws.com",
         "orders-db.cdbfa1b2c3d4.cn-north-1.rds.amazonaws.eu",
+        # only the China partition puts the Region after `rds`
+        "orders-db.cdbfa1b2c3d4.rds.us-east-1.amazonaws.com",
+        "cn-db.cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com",
+        "orders-db.cdbfa1b2c3d4.rds.us-east-1.amazonaws.com.cn",
+        "iso-db.cdbfa1b2c3d4.rds.us-iso-east-1.c2s.ic.gov",
       ].each do |host|
         context "with #{host}" do
           let(:hostname) { host }
@@ -172,6 +198,12 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
 
       context "with a China endpoint carrying a trailing dot and a port" do
         let(:hostname) { "cn-db.cdbfa1b2c3d4.cn-north-1.rds.amazonaws.com.cn.:3306" }
+
+        it { is_expected.to eq(identifier: "cn-db", endpoint_type: "instance", region: "cn-north-1") }
+      end
+
+      context "with an upper-case China endpoint in the China label order, a trailing dot, and a port" do
+        let(:hostname) { "CN-DB.CDBFA1B2C3D4.RDS.CN-NORTH-1.AMAZONAWS.COM.CN.:3306" }
 
         it { is_expected.to eq(identifier: "cn-db", endpoint_type: "instance", region: "cn-north-1") }
       end
@@ -336,6 +368,12 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
         expect(parse).to be_frozen
       end
 
+      # Span tags keep these exact objects, so a span processor that edits a tag in place
+      # would otherwise change what every later span for the same host receives.
+      it "holds frozen strings, so a caller cannot change them in place" do
+        expect(parse.values).to all(be_frozen)
+      end
+
       it "is the same object every time, so a repeated endpoint is parsed once" do
         expect(described_class.parse(hostname)).to be(described_class.parse(hostname))
       end
@@ -466,6 +504,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::RDSEndpoint do
       "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com",
       "orders.cluster-ro-cdbfa1b2c3d4.eu-west-1.rds.amazonaws.com",
       "isoe-db.cdbfa1b2c3d4.eu-isoe-west-1.rds.cloud.adc-e.uk",
+      "cn-db.cdbfa1b2c3d4.rds.cn-north-1.amazonaws.com.cn",
       "orders-db.cdbfa1b2c3d4.us-east-1.rds.amazonaws.com:5432",
     ].each do |host|
       it "allocates nothing re-parsing the known endpoint #{host.inspect}" do

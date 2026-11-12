@@ -54,8 +54,11 @@ module Datadog
             .map { |suffix| Regexp.escape(suffix) }
             .join("|")
 
+          CHINA_DNS_SUFFIX = "amazonaws.com.cn"
+
           # `identifier.[prefix-]accountlabel.region.rds.<partition dns suffix>`, where the
-          # identifier follows the RDS naming rules.
+          # identifier follows the RDS naming rules. The China partition also uses
+          # `identifier.[prefix-]accountlabel.rds.region.amazonaws.com.cn`.
           ENDPOINT_PATTERN = /
             \A
             (?<identifier>[a-z](?:[a-z\d]|-(?!-)){0,61}[a-z\d]|[a-z])
@@ -63,9 +66,15 @@ module Datadog
             (?<prefix>cluster-ro-|cluster-custom-|cluster-|proxy-)?
             [a-z\d]{1,63}
             \.
-            (?<region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
-            \.rds\.
-            (?<dns_suffix>#{DNS_SUFFIX_ALTERNATION})
+            (?:
+              (?<region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
+              \.rds\.
+              (?<dns_suffix>#{DNS_SUFFIX_ALTERNATION})
+              |
+              rds\.
+              (?<china_region>[a-z]{2,4}(?:-[a-z]+){1,3}-\d{1,2})
+              \.#{Regexp.escape(CHINA_DNS_SUFFIX)}
+            )
             \z
           /xi
 
@@ -81,7 +90,7 @@ module Datadog
 
           private_constant :MAX_INPUT_BYTES, :MAX_CACHE_ENTRIES, :PORT_PATTERN,
             :RDS_LABEL_PATTERN, :REGION_PATTERNS_BY_DNS_SUFFIX, :DNS_SUFFIX_ALTERNATION,
-            :ENDPOINT_PATTERN, :TYPES_BY_PREFIX, :NOT_AN_ENDPOINT
+            :CHINA_DNS_SUFFIX, :ENDPOINT_PATTERN, :TYPES_BY_PREFIX, :NOT_AN_ENDPOINT
 
           # Keyed by the hostname as given, so a cache hit allocates nothing.
           # `Core::Utils::LRUCache` is not used because it re-inserts the key on every hit.
@@ -126,13 +135,16 @@ module Datadog
               match = ENDPOINT_PATTERN.match(host.chomp("."))
               return unless match
 
-              region = match[:region].downcase
-              return unless REGION_PATTERNS_BY_DNS_SUFFIX.fetch(match[:dns_suffix].downcase).match?(region)
+              # Without a match on the first form's suffix, only the China form matched.
+              dns_suffix = match[:dns_suffix]&.downcase || CHINA_DNS_SUFFIX
+              region = (match[:region] || match[:china_region]).to_s.downcase
+              return unless REGION_PATTERNS_BY_DNS_SUFFIX.fetch(dns_suffix).match?(region)
 
+              # Span tags keep these strings as they are, so they are frozen before being shared.
               {
-                identifier: match[:identifier].downcase,
+                identifier: match[:identifier].to_s.downcase.freeze,
                 endpoint_type: TYPES_BY_PREFIX.fetch(match[:prefix]&.downcase),
-                region: region,
+                region: region.freeze,
               }
             end
 
