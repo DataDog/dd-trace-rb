@@ -99,7 +99,7 @@ typedef struct {
 - `value`: adjusted index into the ISEQ's encoded `VALUE` slots, including operands.
   [`profile_frame_bytecode_pos`](../../private_vm_api_access.c) applies bounds checks and the `n > 0 ? n - 1 : 0` adjustment.
   The shared walker stores this position in `frame_info.as.ruby_frame.line`, with `-1` for unknown or unrepresentable
-  positions; the adapter in `sample_event.c` checks the 16-bit range before narrowing.
+  positions; the publisher in `sample_event.c` checks the 16-bit range before narrowing.
   `UINT16_MAX` means no usable position stored: unknown, unreliable, or above 65,534. Check before narrowing;
   never truncate or wrap. Skip line lookup for this sentinel, retaining method/file identity with an unknown line.
   C frames use zero. Resolve usable Ruby positions later with `rb_iseq_line_no(iseq, value)`.
@@ -128,23 +128,11 @@ header | thread | frames[N] | bytecode_positions[N] | padding
   Truncation retains the oldest frames and omits the newest ones.
 - Producers set `size_bytes = round_up_to_8(32 + 18 * frame_count)`.
 
-### miteruby_event_stack_sample_view_t
-
-```c
-typedef struct {
-  miteruby_frame_t *frames;
-  miteruby_bytecode_pos_t *bytecode_positions;
-  uint16_t frame_count;
-} miteruby_event_stack_sample_view_t; // 24 bytes; local only
-```
-
-- Typed access: `view.frames[i].iseq`, `view.frames[i].cme`, and `view.bytecode_positions[i].value`; require `i < frame_count`.
-- During capture, `frames` points to `event->frames`, while `bytecode_positions` points to a separate local array
-  of `MITERUBY_MAX_FRAMES` entries. `miteruby_rb_profile_frames` writes both arrays and sets `view.frame_count`.
-- After capture, the producer copies the positions immediately after the captured frames, then publishes the event.
-  The consumer reads them at byte offset
-  `offsetof(miteruby_event_stack_sample_t, frames) + header.frame_count * sizeof(miteruby_frame_t)` from the event.
-- The view borrows the producer's local storage and is used only during capture.
+The producer captures into a local `frame_info` array with `MAX_FRAMES_LIMIT + 1` entries;
+the extra entry distinguishes a complete stack from a truncated one. Once the stored frame count is known,
+it converts frames and bytecode positions directly into their final locations in the event buffer.
+The consumer reads positions at byte offset
+`offsetof(miteruby_event_stack_sample_t, frames) + header.frame_count * sizeof(miteruby_frame_t)` from the event.
 
 ### miteruby_event_deduped_sample_t
 
@@ -201,8 +189,8 @@ sample loss remains unfinished. There is no timestamped overflow event in the ev
 
 ## Caveats / open decisions
 
-- **Event size:** miteruby captures at most `MITERUBY_MAX_FRAMES` (400) frames, giving a maximum raw event size of
-  7,232 bytes. This fixed limit is independent of the regular profiler's configurable frame limit.
+- **Event size:** miteruby captures at most `MAX_FRAMES_LIMIT` (600) frames, giving a maximum raw event size of
+  10,832 bytes. It uses the regular profiler's upper bound rather than its configured frame limit.
   The 16-bit `size_bytes` field could represent at most 3,638 raw frames with the current layout.
 - **16-bit positions:** we support 65,535 positions (0–65,534). Beyond that, we skip recording the line.
 - **Alignment:** event storage must be 8-byte aligned. Record sizes are multiples of 8,

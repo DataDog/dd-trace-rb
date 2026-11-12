@@ -5,12 +5,10 @@
 #include "../time_helpers.h"
 
 #include <errno.h>
-#include <string.h>
 
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 );
-static uint8_t miteruby_rb_profile_frames(VALUE thread, miteruby_event_stack_sample_view_t *stack_buffer);
 static cpu_time_t current_thread_cpu_time(void);
 static inline monotonic_time_t monotonic_time_now(void);
 static inline size_t round_up_to_8_bytes(size_t size_bytes);
@@ -48,56 +46,54 @@ static inline monotonic_time_t monotonic_time_now(void) {
   return (monotonic_time_t) {.ns = monotonic_wall_time_now_ns()};
 }
 
-// TODO: Move away from hardcoded limit of 400 frames
 // TODO: Revisit upstream rb_profile_frames if we accept its block/eval fidelity trade-off (see design/EventDesign.md),
 // or an upstream API supplies the frame metadata and bytecode positions needed for deferred symbolication.
 // TODO: Emit correlation data from tracing (trace id, span id, endpoint)
+// TODO: We're allocating quite a lot on the stack, maybe we shouldn't
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 ) {
+  monotonic_time_t timestamp = monotonic_time_now();
+  frame_info frames[MAX_FRAMES_LIMIT + 1];
+  int count = ddtrace_rb_profile_frames(thread.value, 0, MAX_FRAMES_LIMIT + 1, frames, true);
+
   union {
     miteruby_event_stack_sample_t event;
     uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
   } storage = {.words = {0}};
-  miteruby_bytecode_pos_t bytecode_positions[MITERUBY_MAX_FRAMES];
   miteruby_event_stack_sample_t *event = &storage.event;
-  miteruby_event_stack_sample_view_t view = {.frames = event->frames, .bytecode_positions = bytecode_positions};
 
-  event->header.timestamp = monotonic_time_now();
+  event->header.timestamp = timestamp;
   event->header.cpu_time = cpu_time;
   event->thread = thread;
-  event->header.flags = miteruby_rb_profile_frames(event->thread.value, &view);
+  if (count <= 0) {
+    event->header.flags = MITERUBY_EVENT_STACK_UNAVAILABLE;
+    count = 0;
+  } else if (count > MAX_FRAMES_LIMIT) {
+    event->header.flags = MITERUBY_EVENT_STACK_TRUNCATED;
+    count = MAX_FRAMES_LIMIT;
+  } else {
+    event->header.flags = MITERUBY_EVENT_STACK_COMPLETE;
+  }
   if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
-  event->header.frame_count = view.frame_count;
+  event->header.frame_count = count;
 
-  // Bytecode positions follow the captured frames, not the reserved capacity.
-  memcpy(&event->frames[view.frame_count], bytecode_positions, view.frame_count * sizeof(bytecode_positions[0]));
-  size_t size_bytes = sizeof(*event) + view.frame_count * (sizeof(event->frames[0]) + sizeof(bytecode_positions[0]));
-  event->header.size_bytes = round_up_to_8_bytes(size_bytes);
+  miteruby_bytecode_pos_t *bytecode_positions = (miteruby_bytecode_pos_t *)&event->frames[count];
+  for (uint16_t i = 0; i < count; i++) {
+    event->frames[i] = (miteruby_frame_t) {
+      .cme = frames[i].cme,
+      .iseq = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.iseq : NULL,
+    };
+    int bytecode_position = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.line : 0;
+    bytecode_positions[i].value =
+      bytecode_position >= 0 && bytecode_position < UINT16_MAX ? (uint16_t) bytecode_position : UINT16_MAX;
+  }
+  size_t size_bytes = round_up_to_8_bytes(sizeof(*event) + count * MITERUBY_BYTES_PER_FRAME);
+  event->header.size_bytes = size_bytes;
 
   return miteruby_raw_events_queue_try_write(raw_events_queue, storage.words, event->header.size_bytes / sizeof(uint64_t), signal_mask);
 }
 
 static inline size_t round_up_to_8_bytes(size_t size_bytes) {
   return (size_bytes + 7) & ~(size_t) 7;
-}
-
-static uint8_t miteruby_rb_profile_frames(VALUE thread, miteruby_event_stack_sample_view_t *stack_buffer) {
-  frame_info frames[MITERUBY_MAX_FRAMES + 1];
-  int count = ddtrace_rb_profile_frames(thread, 0, MITERUBY_MAX_FRAMES + 1, frames, true);
-  stack_buffer->frame_count = 0;
-  if (count <= 0) return MITERUBY_EVENT_STACK_UNAVAILABLE;
-
-  bool truncated = count > MITERUBY_MAX_FRAMES;
-  stack_buffer->frame_count = truncated ? MITERUBY_MAX_FRAMES : count;
-  for (uint16_t i = 0; i < stack_buffer->frame_count; i++) {
-    stack_buffer->frames[i] = (miteruby_frame_t) {
-      .cme = frames[i].cme,
-      .iseq = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.iseq : NULL,
-    };
-    int bytecode_position = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.line : 0;
-    stack_buffer->bytecode_positions[i].value =
-      bytecode_position >= 0 && bytecode_position < UINT16_MAX ? (uint16_t) bytecode_position : UINT16_MAX;
-  }
-  return truncated ? MITERUBY_EVENT_STACK_TRUNCATED : MITERUBY_EVENT_STACK_COMPLETE;
 }
