@@ -405,17 +405,11 @@ overrides and custom cops under the `CustomCops/` namespace. The programs and ru
 | `standard` | `standardrb` | Standard minus project overrides | Baseline subset |
 | `rubocop` | `rubocop` | Standard with project overrides and custom cops | Full repository ruleset (strict superset) |
 
-Both CI checks must pass, but local tools should favour RuboCop because it checks the full ruleset. Run it directly or through Rake:
+CI runs only RuboCop because it checks the full ruleset. Run it directly or through Rake:
 
 ```
 bundle exec rubocop
 bundle exec rake rubocop
-```
-
-To mirror both CI checks, run:
-
-```
-bundle exec rake standard rubocop
 ```
 
 To apply automatic fixes using the full ruleset, run:
