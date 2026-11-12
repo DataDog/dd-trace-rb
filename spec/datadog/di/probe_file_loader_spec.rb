@@ -39,6 +39,7 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
       Datadog.send(:reset!)
       # Component tree startup activates the process-global code tracker;
       # component shutdown leaves it running.
+    ensure
       Datadog::DI.deactivate_tracking!
     end
 
