@@ -227,6 +227,27 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Lambda do
     end
   end
 
+  # `$LATEST` and a qualifier longer than a name can never be a function
+  # name, so these can only be a qualified name.
+  describe "with a qualifier that cannot be a name" do
+    [
+      ["123456789012:$LATEST", "123456789012"],
+      ["function:$LATEST.PUBLISHED", "function"],
+      ["us-west-2:$LATEST", "us-west-2"],
+      ["123456789012:#{"a" * 65}", "123456789012"],
+    ].each do |value, name|
+      context "given #{value}" do
+        let(:params) { {function_name: value} }
+
+        it "sets the function name" do
+          lambda_service.add_tags(span, params)
+          expect(span).to have_received(:set_tag).with(ext::TAG_AWS_FUNCTION_NAME, name)
+          expect(span).to have_received(:set_tag).once
+        end
+      end
+    end
+  end
+
   describe "with an unqualified name shaped like a partial ARN segment" do
     ["function", "us-west-2"].each do |value|
       context "given #{value}" do

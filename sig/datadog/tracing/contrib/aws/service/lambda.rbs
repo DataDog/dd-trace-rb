@@ -22,7 +22,7 @@ module Datadog
 
             PARTIAL_ARN_FORMAT: ::Regexp
 
-            OPTIONAL_PREFIX_FORMAT: ::Regexp
+            PREFIXED_NAME_FORMAT: ::Regexp
 
             FUNCTION_RESOURCE_FORMAT: ::Regexp
 

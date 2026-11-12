@@ -56,11 +56,11 @@ module Datadog
             # target Region and optionally qualified.
             PARTIAL_ARN_FORMAT = /\A(?:#{REGION_FORMAT}:)?(?<account_id>\d{12}):#{FUNCTION_RESOURCE}\z/
 
-            # A Region, account or `function` segment, each of which Lambda
-            # lets stand alone ahead of a name. `123456789012:PROD` is then
+            # A name behind a Region, account or `function` segment, each of
+            # which Lambda lets stand alone. `123456789012:PROD` is then
             # either function `PROD` in that account or a qualified
-            # twelve-digit name, so a bare name opening with one is not read.
-            OPTIONAL_PREFIX_FORMAT = /\A(?:#{REGION_FORMAT}|\d{12}|function):/
+            # twelve-digit name, so a bare name shaped like this is not read.
+            PREFIXED_NAME_FORMAT = /\A(?:#{REGION_FORMAT}|\d{12}|function):#{NAME_FORMAT}\z/
 
             # The resource of a full Lambda function ARN. A layer, an event
             # source mapping, and anything beyond the qualifier fail here.
@@ -95,7 +95,7 @@ module Datadog
               elsif (match = PARTIAL_ARN_FORMAT.match(function_name))
                 [match[:name], nil, match[:account_id]]
               elsif (match = BARE_NAME_FORMAT.match(function_name))
-                [match[:name], nil, nil] unless OPTIONAL_PREFIX_FORMAT.match?(function_name)
+                [match[:name], nil, nil] unless PREFIXED_NAME_FORMAT.match?(function_name)
               end
             end
           end
