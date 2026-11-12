@@ -3273,6 +3273,69 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(truncated.locations.size).to eq(400)
       expect(truncated.locations.map(&:label)).to include("#{self.class.name}#recurse_for_miteruby")
     end
+
+    it "keeps an exactly full stack complete and truncates one additional frame" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      stub_const("MiterubyRecursiveCapture", Class.new do
+        def capture(depth)
+          if depth.zero?
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_mask
+          else
+            capture(depth - 1)
+          end
+        end
+      end)
+      capture = lambda do |depth|
+        sampled_thread = Thread.new { MiterubyRecursiveCapture.new.capture(depth) }
+        sampled_thread.join
+        consume_miteruby
+        samples_for_thread(recorded_miteruby_samples, sampled_thread).fetch(0)
+      ensure
+        sampled_thread&.kill&.join
+      end
+
+      base_frames = capture.call(0).locations.size
+      complete = capture.call(400 - base_frames)
+      expect(complete.locations.size).to eq(400)
+      expect(complete.locations.map(&:label)).to_not include("Truncated Frames")
+      expect(complete.locations.first.label)
+        .to eq("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_mask")
+
+      truncated = capture.call(401 - base_frames)
+      expect(truncated.locations.size).to eq(400)
+      expect(truncated.locations.first.label).to eq("Truncated Frames")
+    end
+
+    it "preserves frame identity with an unknown line beyond the bytecode position limit" do
+      capture_miteruby {}
+      described_class::Testing._native_miteruby_read_sample_headers
+      stub_const("MiterubyLargeMethod", Class.new)
+      MiterubyLargeMethod.class_eval(
+        "def capture; value = 0; #{"value += 1; " * 20_000}" \
+          "Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_mask; end",
+        __FILE__,
+        __LINE__ - 3,
+      )
+
+      MiterubyLargeMethod.new.capture
+      consume_miteruby
+
+      expect(recorded_miteruby_samples.flat_map(&:locations)).to include(
+        ProfileHelpers::Frame.new("MiterubyLargeMethod#capture", __FILE__, 0),
+      )
+    end
+
+    it "reports a finished thread's stack as unavailable" do
+      sampled_thread = Thread.new {}
+      sampled_thread.join
+      expect(described_class::Testing._native_miteruby_sample_event_publish_thread(sampled_thread)).to be true
+
+      expect(described_class::Testing._native_miteruby_read_sample_headers).to contain_exactly(
+        flags: 0x02,
+        cpu_time_ns: -1,
+      )
+    end
   end
 
   describe "._native_hold_signals and _native_resume_signals" do

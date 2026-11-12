@@ -10,6 +10,7 @@
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time, bool from_signal_handler
 );
+static uint8_t miteruby_rb_profile_frames(VALUE thread, miteruby_event_stack_sample_view_t *stack_buffer);
 static cpu_time_t current_thread_cpu_time(void);
 static inline monotonic_time_t monotonic_time_now(void);
 static inline size_t round_up_to_8_bytes(size_t size_bytes);
@@ -65,7 +66,7 @@ static bool miteruby_sample_event_publish_internal(
   event->header.timestamp = monotonic_time_now();
   event->header.cpu_time = cpu_time;
   event->thread = thread;
-  event->header.flags = miteruby_rb_profile_frames(event->thread.value, MITERUBY_MAX_FRAMES, &view);
+  event->header.flags = miteruby_rb_profile_frames(event->thread.value, &view);
   if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
   event->header.frame_count = view.frame_count;
 
@@ -79,4 +80,24 @@ static bool miteruby_sample_event_publish_internal(
 
 static inline size_t round_up_to_8_bytes(size_t size_bytes) {
   return (size_bytes + 7) & ~(size_t) 7;
+}
+
+static uint8_t miteruby_rb_profile_frames(VALUE thread, miteruby_event_stack_sample_view_t *stack_buffer) {
+  frame_info frames[MITERUBY_MAX_FRAMES + 1];
+  int count = ddtrace_rb_profile_frames(thread, 0, MITERUBY_MAX_FRAMES + 1, frames, true);
+  stack_buffer->frame_count = 0;
+  if (count <= 0) return MITERUBY_EVENT_STACK_UNAVAILABLE;
+
+  bool truncated = count > MITERUBY_MAX_FRAMES;
+  stack_buffer->frame_count = truncated ? MITERUBY_MAX_FRAMES : count;
+  for (uint16_t i = 0; i < stack_buffer->frame_count; i++) {
+    stack_buffer->frames[i] = (miteruby_frame_t) {
+      .cme = frames[i].cme,
+      .iseq = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.iseq : NULL,
+    };
+    int bytecode_position = frames[i].is_ruby_frame ? frames[i].as.ruby_frame.line : 0;
+    stack_buffer->bytecode_positions[i].value =
+      bytecode_position >= 0 && bytecode_position < UINT16_MAX ? (uint16_t) bytecode_position : UINT16_MAX;
+  }
+  return truncated ? MITERUBY_EVENT_STACK_TRUNCATED : MITERUBY_EVENT_STACK_COMPLETE;
 }
