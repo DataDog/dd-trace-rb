@@ -687,6 +687,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED": [
       {
         "version": "B",

@@ -11,7 +11,7 @@ printf '\nBaseline (no profiler)\n'
 ruby "${ruby_args[@]}"
 
 printf '\nRegular Datadog profiler, telemetry disabled\n'
-env MITERUBY=false \
+env DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED=false \
   DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true \
   DD_PROFILING_ENABLED=true \
   DD_INSTRUMENTATION_TELEMETRY_ENABLED=false \
@@ -21,7 +21,7 @@ env MITERUBY=false \
 ## @ivoanjo: Telemetry also disturbs this benchmark, since the loop runs for very long. Since right now we're mostly
 ## worried with profiler impact, we can investigate this later.
 # printf '\nDatadog profiler with miteruby, telemetry enabled\n'
-# env MITERUBY=true \
+# env DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED=true \
 #   DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true \
 #   DD_PROFILING_ENABLED=true \
 #   DD_INSTRUMENTATION_TELEMETRY_ENABLED=true \
@@ -29,7 +29,7 @@ env MITERUBY=false \
 #   bundle exec ddprofrb exec ruby "${ruby_args[@]}"
 
 printf '\nDatadog profiler with miteruby, telemetry disabled\n'
-env MITERUBY=true \
+env DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED=true \
   DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED=true \
   DD_PROFILING_ENABLED=true \
   DD_INSTRUMENTATION_TELEMETRY_ENABLED=false \
