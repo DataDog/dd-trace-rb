@@ -13,27 +13,31 @@ module Datadog
           class SNS < Base
             SERVICE = "sns"
 
-            # A topic ARN is the one SNS ARN with a bare-name resource
-            # (`arn:aws:sns:us-west-2:123456789012:my-topic`); endpoint,
-            # platform application and subscription ARNs carry a further
-            # segment. Reading only `topic_arn` (never `Publish`'s `TargetArn`)
-            # and requiring a bare resource keeps those from being tagged as a
-            # topic.
             def add_tags(span, params)
-              topic_arn = params[:topic_arn]
-              topic_name = params[:name]
+              topic_name, topic_arn, account_id = parse_topic_arn(params[:topic_arn])
+              topic_name ||= params[:name]
 
-              arn = Aws::Arn.parse(topic_arn)
-              resolved_name = arn&.bare_resource_id(SERVICE)
-
-              if arn && resolved_name
-                topic_name = resolved_name
-                span.set_tag(Aws::Ext::TAG_AWS_TOPIC_ARN, topic_arn)
-                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, arn.account_id) if arn.account_id
-              end
-
+              span.set_tag(Aws::Ext::TAG_AWS_TOPIC_ARN, topic_arn) if topic_arn
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
               span.set_tag(Aws::Ext::TAG_TOPIC_NAME, topic_name)
-              set_resolved_name(span, Aws::Ext::TAG_AWS_TOPIC_NAME, topic_name)
+              return if topic_name.nil? || topic_name == ""
+
+              span.set_tag(Aws::Ext::TAG_AWS_TOPIC_NAME, topic_name)
+            end
+
+            private
+
+            # Returns the topic name, ARN and account of a topic ARN
+            # (`arn:aws:sns:us-west-2:123456789012:my-topic`), or `nil` when
+            # `value` is not one. Endpoint, platform application and
+            # subscription ARNs carry a further resource segment, so they are
+            # not topic ARNs.
+            def parse_topic_arn(value)
+              arn = Aws::Arn.parse(value)
+              name = arn&.bare_resource_id(SERVICE)
+              return unless arn && name
+
+              [name, value, arn.account_id]
             end
           end
         end

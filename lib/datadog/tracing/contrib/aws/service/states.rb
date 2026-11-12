@@ -33,39 +33,42 @@ module Datadog
                 return
               end
 
-              execution = Aws::Arn.parse(execution_arn)
-              execution_name = execution&.typed_resource_id(SERVICE, EXECUTION_RESOURCE_TYPES)
-              execution = nil unless execution_name
+              state_machine_name, account_id = parse_state_machine(execution_arn, state_machine_arn)
+              return unless state_machine_name
 
-              state_machine = Aws::Arn.parse(state_machine_arn)
-              state_machine_name = state_machine&.typed_resource_id(SERVICE, STATE_MACHINE_RESOURCE_TYPES)
-              state_machine = nil unless state_machine_name
-
-              # A supplied ARN that did not resolve names a target this handler
-              # cannot read, so nothing is reported.
-              return if execution_arn && execution.nil?
-              return if state_machine_arn && state_machine.nil?
-
-              # Two resolved ARNs naming different targets are a contradiction;
-              # emitting either would be arbitrary, so neither is.
-              if execution && state_machine &&
-                  target_identity(execution, execution_name) != target_identity(state_machine, state_machine_name)
-                return
-              end
-
-              span.set_tag(Aws::Ext::TAG_AWS_EXECUTION_ARN, execution_arn) if execution
-              span.set_tag(Aws::Ext::TAG_AWS_STATE_MACHINE_ARN, state_machine_arn) if state_machine
-
-              # The state machine ARN names the target directly, so it is
-              # preferred when both resolved.
-              resolved = state_machine || execution
-              resolved_name = state_machine ? state_machine_name : execution_name
-
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, resolved.account_id) if resolved.account_id
-              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, resolved_name)
+              span.set_tag(Aws::Ext::TAG_AWS_EXECUTION_ARN, execution_arn) if execution_arn
+              span.set_tag(Aws::Ext::TAG_AWS_STATE_MACHINE_ARN, state_machine_arn) if state_machine_arn
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
+              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
             end
 
             private
+
+            # Returns the state machine name and account named by the given
+            # ARNs, or `nil` when a supplied ARN does not resolve or the two
+            # name different targets.
+            def parse_state_machine(execution_arn, state_machine_arn)
+              execution = Aws::Arn.parse(execution_arn)
+              execution_name = execution&.typed_resource_id(SERVICE, EXECUTION_RESOURCE_TYPES)
+              return if execution_arn && execution_name.nil?
+
+              state_machine = Aws::Arn.parse(state_machine_arn)
+              state_machine_name = state_machine&.typed_resource_id(SERVICE, STATE_MACHINE_RESOURCE_TYPES)
+              return if state_machine_arn && state_machine_name.nil?
+
+              # The state machine ARN names the target directly, so it is
+              # preferred when both resolved.
+              if state_machine && state_machine_name
+                if execution && execution_name &&
+                    target_identity(execution, execution_name) != target_identity(state_machine, state_machine_name)
+                  return
+                end
+
+                [state_machine_name, state_machine.account_id]
+              elsif execution && execution_name
+                [execution_name, execution.account_id]
+              end
+            end
 
             # The fields two ARNs must share to name one target. A field one
             # omits and the other supplies counts as a disagreement.

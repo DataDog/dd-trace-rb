@@ -7,6 +7,10 @@ module Datadog
             SERVICE: ::String
 
             def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def parse_topic_arn: (untyped value) -> [::String, ::String, ::String?]?
           end
         end
       end

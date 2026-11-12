@@ -60,58 +60,40 @@ module Datadog
             # source mapping, and anything beyond the qualifier fail here.
             FUNCTION_RESOURCE_FORMAT = /\A#{FUNCTION_RESOURCE}\z/
 
-            # Resolves `aws.function.name` from every form, and
-            # `aws.function.arn` only for a full ARN. None of this reaches
-            # `peer.service`: `aws.function.name` is absent from
-            # {Ext::PEER_SERVICE_SOURCES} so Lambda keeps sourcing it from
-            # `peer.hostname`, as the other tracers do.
+            # `aws.function.name` is absent from {Ext::PEER_SERVICE_SOURCES},
+            # so Lambda keeps sourcing `peer.service` from `peer.hostname`, as
+            # the other tracers do.
             def add_tags(span, params)
-              function_name = params[:function_name]
-              return unless Aws::Arn.scannable?(function_name)
-              return if function_name.empty? || function_name.length > MAX_FUNCTION_NAME_LENGTH
+              name, arn, account_id = parse_function_name(params[:function_name])
+              return unless name
 
-              # A value opening with `arn:` is judged only as a full ARN; a
-              # malformed one would otherwise be reported as a function `arn`.
-              if function_name.start_with?(Aws::Arn::PREFIX)
-                tag_full_arn(span, function_name)
-              elsif (partial = PARTIAL_ARN_FORMAT.match(function_name))
-                tag_partial_arn(span, partial)
-              elsif (bare = BARE_NAME_FORMAT.match(function_name))
-                tag_bare_name(span, bare[:name])
-              end
+              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, name)
+              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_ARN, arn) if arn
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, account_id) if account_id
             end
 
             private
 
-            # Tags a full Lambda function ARN. One this integration cannot read
-            # as a function yields no tags.
-            def tag_full_arn(span, function_name)
-              arn = Aws::Arn.parse(function_name)
-              return unless arn
-              return unless arn.service == SERVICE
+            # Returns the function name, ARN and account of a `FunctionName`
+            # value, or `nil` when it is not one. Only a full ARN has an ARN,
+            # and a bare name has no account.
+            def parse_function_name(function_name)
+              return unless Aws::Arn.scannable?(function_name)
+              return if function_name.empty? || function_name.length > MAX_FUNCTION_NAME_LENGTH
 
-              match = FUNCTION_RESOURCE_FORMAT.match(arn.resource)
-              return unless match
+              # A value opening with `arn:` is judged only as a full ARN.
+              if function_name.start_with?(Aws::Arn::PREFIX)
+                arn = Aws::Arn.parse(function_name)
+                return unless arn && arn.service == SERVICE
 
-              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, match[:name])
-              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_ARN, function_name)
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, arn.account_id) if arn.account_id
-            end
-
-            # Tags a partial ARN: the account is reported, no ARN is, since the
-            # Region and partition are absent.
-            def tag_partial_arn(span, match)
-              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, match[:name])
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, match[:account_id])
-            end
-
-            # Tags a bare name: neither account nor ARN, since the request
-            # named neither. A name of exactly twelve digits is refused as
-            # indistinguishable from a partial ARN's leading account id.
-            def tag_bare_name(span, name)
-              return if Aws::Arn::ACCOUNT_ID_FORMAT.match?(name)
-
-              span.set_tag(Aws::Ext::TAG_AWS_FUNCTION_NAME, name)
+                match = FUNCTION_RESOURCE_FORMAT.match(arn.resource)
+                [match[:name], function_name, arn.account_id] if match
+              elsif (match = PARTIAL_ARN_FORMAT.match(function_name))
+                [match[:name], nil, match[:account_id]]
+              elsif (match = BARE_NAME_FORMAT.match(function_name))
+                # Twelve digits cannot be told apart from an account id.
+                [match[:name], nil, nil] unless Aws::Arn::ACCOUNT_ID_FORMAT.match?(match[:name])
+              end
             end
           end
         end

@@ -28,11 +28,7 @@ module Datadog
 
             private
 
-            def tag_full_arn: (untyped span, ::String function_name) -> untyped
-
-            def tag_partial_arn: (untyped span, ::MatchData match) -> untyped
-
-            def tag_bare_name: (untyped span, ::String name) -> untyped
+            def parse_function_name: (untyped function_name) -> [::String, ::String?, ::String?]?
           end
         end
       end

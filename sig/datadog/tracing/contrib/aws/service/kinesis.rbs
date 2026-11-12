@@ -9,6 +9,10 @@ module Datadog
             STREAM_RESOURCE_TYPES: ::Array[::String]
 
             def add_tags: (untyped span, untyped params) -> untyped
+
+            private
+
+            def parse_stream_arn: (untyped value) -> [::String, ::String, ::String?]?
           end
         end
       end
