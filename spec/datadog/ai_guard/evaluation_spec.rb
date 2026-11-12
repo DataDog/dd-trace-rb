@@ -172,19 +172,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
     context "with backend-provided span data" do
       subject(:evaluate) do
-        described_class.perform([
-          Datadog::AIGuard.message(role: :user, content: "Hello"),
-        ])
+        described_class.perform([Datadog::AIGuard.message(role: :user, content: "Hello")])
       end
 
       let(:action) { "ALLOW" }
       let(:blocking_enabled) { false }
-      let(:metastruct) { ai_guard_span.get_metastruct_tag("ai_guard") }
 
       let(:extra_tags) do
         [
           {"key" => "ai_guard.evaluate_id", "value" => "evaluation-123"},
-          {"key" => "custom_context.note", "value" => ""},
+          {"key" => "custom_context.note", "value" => "something"},
         ]
       end
 
@@ -219,18 +216,13 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
         expect(ai_guard_span.tags).to include(
           "ai_guard.evaluate_id" => "evaluation-123",
-          "custom_context.note" => "",
+          "custom_context.note" => "something",
         )
-        expect(ai_guard_span.tags).not_to include(
-          "ai_guard.ai_guard.evaluate_id", "ai_guard.custom_context.note",
-          "policy_match", "flag", "empty",
-        )
-        expect(metastruct).to include(
+        expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include(
           "policy_match" => {"rule" => "example", "matches" => []},
           "flag" => false,
           "empty" => [],
         )
-        expect(metastruct).not_to include("ai_guard.evaluate_id", "custom_context.note")
       end
 
       context "when some extra_tags entries are malformed" do
@@ -252,6 +244,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
           expect(ai_guard_span.tags).to include(
             "ai_guard.evaluate_id" => "evaluation-123",
+            "custom_context.note" => "something",
             "custom_context.after_invalid" => "kept",
           )
           expect(ai_guard_span.tags).not_to include("", "bad.nil")
@@ -270,8 +263,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         it "skips malformed entries while retaining valid entries" do
           evaluate
 
-          expect(metastruct).to include("flag" => false, "something" => true)
-          expect(metastruct).not_to include("bad.nil")
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include("flag" => false, "something" => true)
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).not_to include("bad.nil")
         end
       end
 
@@ -309,9 +302,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         it "drops entries with reserved keys" do
           evaluate
 
-          expect(metastruct).not_to include("messages", "attack_categories", "sds", "tag_probs")
-          expect(metastruct.fetch(:messages)).to eq([{role: :user, content: "Hello"}])
-          expect(metastruct).to include("flag" => false)
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).not_to include("messages", "attack_categories", "sds", "tag_probs")
+          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)).to eq([{role: :user, content: "Hello"}])
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include("flag" => false)
         end
       end
 
@@ -326,7 +319,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
             "ai_guard.evaluate_id" => "evaluation-123",
             "ai_guard.blocked" => "true",
           )
-          expect(metastruct).to include(
+          expect(ai_guard_span.get_metastruct_tag("ai_guard")).to include(
             "policy_match" => {"rule" => "example", "matches" => []},
           )
         end

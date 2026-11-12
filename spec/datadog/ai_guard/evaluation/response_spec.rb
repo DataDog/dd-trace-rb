@@ -34,11 +34,11 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
             },
           ],
           "extra_tags" => [
-            {"key" => "foo", "value" => "bar"}
+            {"key" => "foo", "value" => "bar"},
           ],
           "extra_metastruct" => [
-            {"key" => "something", "value" => "some other thing"}
-          ]
+            {"key" => "something", "value" => "some other thing"},
+          ],
         },
       },
     }
@@ -129,7 +129,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
   end
 
   describe "#extra_tags" do
-    it { expect(response.extra_tags).to eq("foo" => "bar")}
+    it { expect(response.extra_tags).to eq("foo" => "bar") }
 
     it "returns empty hash when not provided" do
       raw_response["data"]["attributes"].delete("extra_tags")
@@ -163,7 +163,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Response do
   end
 
   describe "#extra_metastruct" do
-    it { expect(response.extra_metastruct).to eq("something" => "some other thing")}
+    it { expect(response.extra_metastruct).to eq("something" => "some other thing") }
 
     it "returns empty hash when not provided" do
       raw_response["data"]["attributes"].delete("extra_metastruct")
