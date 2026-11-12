@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "../collectors_stack.h"
 #include "compressed_deltas.h"
 
 // See design/EventDesign.md for field semantics and storage requirements.
@@ -61,10 +62,9 @@ typedef struct {
   miteruby_frame_t frames[];
 } miteruby_event_stack_sample_t;
 
-#define MITERUBY_MAX_FRAMES 400
+#define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t))
 #define MITERUBY_MAX_SIZE_BYTES \
-  ((sizeof(miteruby_event_stack_sample_t) + MITERUBY_MAX_FRAMES * \
-    (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t)) + 7) & ~(size_t) 7)
+  ((sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME + 7) & ~(size_t) 7)
 
 typedef struct {
   // Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
@@ -83,12 +83,6 @@ typedef struct {
   miteruby_stack_dedup_id_t stack_id;
   miteruby_stored_stack_t stack;
 } miteruby_event_deduped_sample_t;
-
-typedef struct {
-  miteruby_frame_t *frames;
-  miteruby_bytecode_pos_t *bytecode_positions;
-  uint16_t frame_count;
-} miteruby_event_stack_sample_view_t;
 
 _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
 _Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");

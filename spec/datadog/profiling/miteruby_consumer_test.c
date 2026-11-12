@@ -509,9 +509,9 @@ static void test_fixed_array_capacity(void) {
     uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
   } full_storage = {0};
   miteruby_event_stack_sample_t *event = &full_storage.event;
-  event->header.frame_count = MITERUBY_MAX_FRAMES;
+  event->header.frame_count = MAX_FRAMES_LIMIT;
   miteruby_bytecode_pos_t *bytecode_positions = bytecode_positions_for(event);
-  size_t compact_stack_size = 1248;
+  size_t compact_stack_size = 1848;
   uint16_t bytecode_pos = 0;
   while (INTERNED_EVENTS_QUEUE_MAX_SIZE - consumer_state.interned_events_pos >= compact_stack_size) {
     bytecode_positions[0].value = bytecode_pos++;

@@ -2961,7 +2961,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     it "distinguishes the signal-handler sampling path from masked publishing in event flags" do
       capture_miteruby do
         publish_miteruby_sample
-        recurse_for_miteruby(500)
+        recurse_for_miteruby(700)
         expect(described_class::Testing._native_miteruby_sample_event_publish_mask).to be true
       end
 
@@ -3265,12 +3265,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it "shows a truncation placeholder for stacks exceeding the capture limit" do
-      capture_miteruby { recurse_for_miteruby(500) }
+      capture_miteruby { recurse_for_miteruby(700) }
       consume_miteruby
 
       truncated = recorded_miteruby_samples.find { |sample| sample.locations.first&.label == "Truncated Frames" }
       expect(truncated).to_not be_nil
-      expect(truncated.locations.size).to eq(400)
+      expect(truncated.locations.size).to eq(600)
       expect(truncated.locations.map(&:label)).to include("#{self.class.name}#recurse_for_miteruby")
     end
 
@@ -3296,14 +3296,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       base_frames = capture.call(0).locations.size
-      complete = capture.call(400 - base_frames)
-      expect(complete.locations.size).to eq(400)
+      complete = capture.call(600 - base_frames)
+      expect(complete.locations.size).to eq(600)
       expect(complete.locations.map(&:label)).to_not include("Truncated Frames")
       expect(complete.locations.first.label)
         .to eq("Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_miteruby_sample_event_publish_mask")
 
-      truncated = capture.call(401 - base_frames)
-      expect(truncated.locations.size).to eq(400)
+      truncated = capture.call(601 - base_frames)
+      expect(truncated.locations.size).to eq(600)
       expect(truncated.locations.first.label).to eq("Truncated Frames")
     end
 
