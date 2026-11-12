@@ -242,6 +242,9 @@ module Datadog
       #
       # This method is meant to be called from the "end" trace point,
       # which is invoked for each class definition.
+      #
+      # @param cls [Class, Module] the class or module whose body has just ended
+      # @return [void]
       private def install_pending_method_probes(cls)
         probe_repository.synchronize do
           # TODO search more efficiently than linearly
