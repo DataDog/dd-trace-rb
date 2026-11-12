@@ -3,6 +3,7 @@
 #include "raw_events_queue_marking.h"
 #include "../private_vm_api_access.h"
 #include "../setup_signal_handler.h"
+#include "event.h"
 
 _Static_assert(
   offsetof(miteruby_event_stack_sample_t, thread.value) + sizeof(VALUE) ==

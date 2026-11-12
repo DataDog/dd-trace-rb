@@ -1,4 +1,5 @@
 #include "extconf.h"
+#include <limits.h>
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
@@ -485,6 +486,23 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc) {
   return 0;
 }
 
+// Derived from calc_pos: preserves its bounds validation and PC adjustment, but returns the bytecode position
+// so miteruby can defer line lookup. Invalid positions or positions that don't fit in int return -1.
+static int profile_frame_bytecode_pos(const rb_iseq_t *iseq, const VALUE *pc) {
+  if (iseq == NULL || pc == NULL) {
+    rb_bug("profile_frame_bytecode_pos: iseq and pc should never be NULL when called by ddtrace_rb_profile_frames");
+  }
+
+  ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
+  if (n < 0 || (size_t) n > ISEQ_BODY(iseq)->iseq_size) return -1;
+
+  size_t pos = n;
+  if (LIKELY(pos)) {
+    pos--;
+  }
+  return pos <= INT_MAX ? (int) pos : -1;
+}
+
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // Modifications:
@@ -540,7 +558,11 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc) {
 //    and friends). We've found quite a few situations where the data from rb_profile_frames and the reference APIs
 //    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
 //    decisions.
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer) {
+//
+// In miteruby mode:
+// * We disable caching (the buffer has no previous state to be used)
+// * We do not resolve line numbers (we keep the bytecode index); -1 when it's not valid/shouldn't be used
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer, bool miteruby_mode) {
   int i;
   // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
   // support sampling any thread (including the current) passed as an argument
@@ -675,6 +697,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       // We get both the iseq and CME because we need both to format like Ruby backtraces
 
       stack_buffer[i].same_frame =
+        !miteruby_mode &&
         stack_buffer[i].is_ruby_frame &&
         stack_buffer[i].as.ruby_frame.iseq == iseq &&
         stack_buffer[i].as.ruby_frame.caching_pc == pc &&
@@ -694,15 +717,15 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
       // may not have set one.  The JIT compiler will update the PC
       // before entering a new function (so that `caller` will work),
       // so only the topmost frame could possibly have an out of date PC
+      bool unreliable_pc = false;
       #ifndef NO_JIT_RETURN
-        if (cfp == top && cfp->jit_return) {
-          stack_buffer[i].as.ruby_frame.line = 0;
-        } else {
-          stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
-        }
-      #else // Ruby < 3.1
-        stack_buffer[i].as.ruby_frame.line = calc_lineno(iseq, pc);
+        unreliable_pc = cfp == top && cfp->jit_return;
       #endif
+      if (miteruby_mode) {
+        stack_buffer[i].as.ruby_frame.line = unreliable_pc ? -1 : profile_frame_bytecode_pos(iseq, pc);
+      } else {
+        stack_buffer[i].as.ruby_frame.line = unreliable_pc ? 0 : calc_lineno(iseq, pc);
+      }
 
       stack_buffer[i].is_ruby_frame = true;
       i++;
@@ -715,6 +738,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         }
 
         stack_buffer[i].same_frame =
+          !miteruby_mode &&
           !stack_buffer[i].is_ruby_frame &&
           stack_buffer[i].cme == cme;
 
@@ -732,99 +756,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
   }
 
   return i;
-}
-
-static uint16_t miteruby_bytecode_pos(const rb_iseq_t *iseq, const VALUE *pc) {
-  if (iseq == NULL || pc == NULL) return UINT16_MAX;
-
-  ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
-  if (n < 0 || (size_t) n > ISEQ_BODY(iseq)->iseq_size) return UINT16_MAX;
-
-  size_t bytecode_pos = n > 0 ? n - 1 : 0;
-  return bytecode_pos < UINT16_MAX ? (uint16_t) bytecode_pos : UINT16_MAX;
-}
-
-// Same frame selection and oldest-first traversal as ddtrace_rb_profile_frames, with these differences:
-// - No start offset; always captures from the root, with a uint16_t frame limit.
-// - Writes CME/ISEQ pairs and bytecode positions into separate event arrays, without same_frame caching or a saved PC.
-// - Stores adjusted bytecode positions instead of resolving source lines; UINT16_MAX denotes unknown,
-//   unreliable JIT, or unrepresentable positions.
-// - Identifies C frames by explicitly setting iseq to NULL, with bytecode position zero, instead of an is_ruby_frame flag.
-// - Writes the captured count to stack_buffer->frame_count and returns complete/truncated/unavailable flags.
-//   Truncation requires finding another eligible frame beyond the limit; the oldest frames are retained.
-// - Reports unavailable for both empty stacks and cases that previously returned PLACEHOLDER_STACK_IN_NATIVE_CODE.
-uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_stack_sample_view_t *stack_buffer) {
-  stack_buffer->frame_count = 0;
-  rb_thread_t *th = thread_struct_from_object(thread);
-  const rb_execution_context_t *ec = th->ec;
-  if (ec == NULL || th->status == THREAD_KILLED) return MITERUBY_EVENT_STACK_UNAVAILABLE;
-
-  const rb_control_frame_t *cfp = ec->cfp;
-  if (cfp == NULL || ec->vm_stack == NULL || ec->vm_stack_size == 0) return MITERUBY_EVENT_STACK_UNAVAILABLE;
-
-  const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-  #ifndef NO_JIT_RETURN
-    const rb_control_frame_t *top = cfp;
-  #endif
-  if (end_cfp == NULL) return MITERUBY_EVENT_STACK_UNAVAILABLE;
-
-  // Skip the dummy frames at the root, as in ddtrace_rb_profile_frames.
-  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-  if (end_cfp <= cfp) return MITERUBY_EVENT_STACK_UNAVAILABLE;
-  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
-  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-
-  for (; cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
-    const VALUE *pc = cfp->pc;
-    #ifdef HAVE_ZJIT_FRAME
-      const rb_iseq_t *iseq = cfp->_iseq;
-    #else
-      const rb_iseq_t *iseq = cfp->iseq;
-    #endif
-
-    #if defined(HAVE_ZJIT_FRAME) && USE_ZJIT
-      if (CFP_ZJIT_FRAME_P(cfp)) {
-        if ((VALUE)cfp->jit_return == ZJIT_JIT_RETURN_C_FRAME) {
-          // ZJIT leaves these slots stale for C method frames.
-          iseq = NULL;
-          pc = NULL;
-        } else {
-          const zjit_jit_frame_t *jit_frame = (const zjit_jit_frame_t *)((VALUE *)cfp->jit_return)[-1];
-          iseq = jit_frame->iseq;
-          pc = jit_frame->pc;
-        }
-      }
-    #endif
-
-    #ifndef NO_T_MOVED
-      if (iseq && RB_TYPE_P((VALUE) iseq, T_MOVED)) continue;
-    #endif
-    if ((iseq && !pc) || cfp->ep == NULL) continue;
-
-    const rb_callable_method_entry_t *cme;
-    uint16_t bytecode_pos;
-    if (VM_FRAME_RUBYFRAME_P(cfp)) {
-      cme = safe_vm_frame_method_entry(cfp);
-      #ifndef NO_JIT_RETURN
-        // The JIT may not have updated the top frame's PC.
-        bytecode_pos = cfp == top && cfp->jit_return ? UINT16_MAX : miteruby_bytecode_pos(iseq, pc);
-      #else
-        bytecode_pos = miteruby_bytecode_pos(iseq, pc);
-      #endif
-    } else {
-      cme = get_cfunc_method_entry(cfp);
-      if (cme == NULL || cme->def->type != VM_METHOD_TYPE_CFUNC) continue;
-      iseq = NULL;
-      bytecode_pos = 0;
-    }
-
-    if (stack_buffer->frame_count == limit) return MITERUBY_EVENT_STACK_TRUNCATED;
-    uint16_t i = stack_buffer->frame_count++;
-    stack_buffer->frames[i] = (miteruby_frame_t) {.cme = cme, .iseq = iseq};
-    stack_buffer->bytecode_positions[i].value = bytecode_pos;
-  }
-
-  return stack_buffer->frame_count > 0 ? MITERUBY_EVENT_STACK_COMPLETE : MITERUBY_EVENT_STACK_UNAVAILABLE;
 }
 
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)

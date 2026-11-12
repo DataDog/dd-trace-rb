@@ -97,7 +97,9 @@ typedef struct {
 ```
 
 - `value`: adjusted index into the ISEQ's encoded `VALUE` slots, including operands.
-  [`miteruby_bytecode_pos`](../../private_vm_api_access.c) applies bounds checks and the `n > 0 ? n - 1 : 0` adjustment.
+  [`profile_frame_bytecode_pos`](../../private_vm_api_access.c) applies bounds checks and the `n > 0 ? n - 1 : 0` adjustment.
+  The shared walker stores this position in `frame_info.as.ruby_frame.line`, with `-1` for unknown or unrepresentable
+  positions; the adapter in `sample_event.c` checks the 16-bit range before narrowing.
   `UINT16_MAX` means no usable position stored: unknown, unreliable, or above 65,534. Check before narrowing;
   never truncate or wrap. Skip line lookup for this sentinel, retaining method/file identity with an unknown line.
   C frames use zero. Resolve usable Ruby positions later with `rb_iseq_line_no(iseq, value)`.
