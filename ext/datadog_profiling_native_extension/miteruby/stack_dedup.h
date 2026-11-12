@@ -2,7 +2,6 @@
 
 #include <ruby.h>
 
-#include "../private_vm_api_access.h"
 #include "event.h"
 
 // Deduped stack storage for the miteruby consumer
