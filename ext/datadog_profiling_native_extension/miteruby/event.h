@@ -21,12 +21,6 @@ typedef struct {
   long ns;
 } monotonic_time_t;
 
-typedef enum __attribute__((packed)) {
-  MITERUBY_EVENT_INVALID = 0,
-  MITERUBY_EVENT_STACK_SAMPLE = 1,
-  MITERUBY_EVENT_DEDUPED_SAMPLE = 3,
-} miteruby_event_type_t;
-
 enum {
   MITERUBY_EVENT_STACK_COMPLETE = 0,
   MITERUBY_EVENT_STACK_TRUNCATED = 1,
@@ -38,7 +32,6 @@ enum {
 typedef struct {
   uint16_t size_bytes;
   uint16_t frame_count;
-  miteruby_event_type_t type;
   uint8_t flags;
   monotonic_time_t timestamp;
   cpu_time_t cpu_time;
@@ -101,7 +94,6 @@ _Static_assert(sizeof(value_thread_t) == 8, "value_thread_t must be 8 bytes");
 _Static_assert(sizeof(cpu_time_t) == 8, "cpu_time_t must be 8 bytes");
 _Static_assert(sizeof(monotonic_time_t) == 8, "monotonic_time_t must be 8 bytes");
 _Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_t must be 8 bytes");
-_Static_assert(sizeof(miteruby_event_type_t) == 1, "miteruby_event_type_t must be 1 byte");
 _Static_assert(sizeof(miteruby_event_header_t) == 24, "miteruby_event_header_t must be 24 bytes");
 _Static_assert(
   offsetof(miteruby_frame_t, cme) == 0 &&
