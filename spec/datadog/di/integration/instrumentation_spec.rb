@@ -209,6 +209,8 @@ RSpec.describe "Instrumentation integration" do
           end
         end
 
+        # Removes the top-level constants that the example defined, so its
+        # test classes do not leak into later examples.
         def remove_top_level_constants(*names)
           names.each do |name|
             Object.send(:remove_const, name) if Object.const_defined?(name, false)
