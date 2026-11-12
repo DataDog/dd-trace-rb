@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
   uint16_t size_bytes;
   uint16_t frame_count;
-  uint8_t flags;
+  uint8_t stack_truncated : 1;
   monotonic_time_t timestamp;
   cpu_time_t cpu_time;
 } miteruby_event_header_t; // 24 bytes
@@ -57,11 +57,8 @@ typedef struct {
 - `size_bytes`: entire record including padding, a multiple of 8, at most 65,528 bytes.
   Advance to the next event by this many bytes.
 - `frame_count`: number of captured frames; preserved when the sample is interned.
-- `flags`: for stack samples, the low two bits (`MITERUBY_EVENT_STACK_STATUS_MASK`, `0x03`) encode
-  stack status: `0` = complete, `1` = truncated, `2` = unavailable; `3` is reserved.
-  Bit 2 (`MITERUBY_EVENT_FROM_SIGNAL_HANDLER`, `0x04`) is set for the signal-handler sampling path,
-  including simulated signal delivery (TODO: stop doing this for simulate), and clear for the masked publishing entry point.
-  Stack status must be read independently of this source bit. Other bits are reserved.
+- `stack_truncated`: set when the captured stack exceeded `MAX_FRAMES_LIMIT`.
+  An unavailable stack is represented by `frame_count == 0`.
 - `timestamp`: monotonic observation time, before stack capture.
 - `cpu_time`: cumulative CPU time of the sampled thread at publication, or `INVALID_CPU_TIME` when unavailable.
 
@@ -156,7 +153,7 @@ typedef struct {
 ```
 
 - Consumer-only format, stored in `interned_events_queue`; producers still publish inline stack samples.
-- Frame count, flags, timestamps, CPU time, and thread are preserved for each sample.
+- Frame count, truncation status, timestamps, CPU time, and thread are preserved for each sample.
 - A new stack stores its frame count, encoded length, and delta-encoded location IDs inline at the end of the sample.
   (The compressed deltas encoding starts from a previous ID of 0 for each stack).
 - A known stack stores its `stack_id` with a zeroed inline stack header and no encoded IDs.
