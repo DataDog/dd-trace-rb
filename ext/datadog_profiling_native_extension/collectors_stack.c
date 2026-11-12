@@ -702,7 +702,7 @@ bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   if (buffer->is_marking) return false;
 
   buffer->pending_sample = true;
-  buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
+  buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer, false);
   return true;
 }
 

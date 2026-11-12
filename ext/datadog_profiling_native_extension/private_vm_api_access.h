@@ -7,7 +7,6 @@ typedef struct rb_callable_method_entry_struct rb_callable_method_entry_t;
 typedef struct rb_iseq_struct rb_iseq_t;
 
 #include "extconf.h"
-#include "miteruby/event.h"
 
 // Contains the current gvl owner, and a flag to indicate if it is valid
 typedef struct {
@@ -26,7 +25,7 @@ typedef struct {
     struct {
       const rb_iseq_t* iseq; // Needs marking, kept alive by sampling_buffer
       void *caching_pc; // For caching validation/invalidation only (does not need marking)
-      int line;
+      int line; // In miteruby mode: bytecode position, or -1 if unknown or unrepresentable.
     } ruby_frame;
   } as;
   // Length of the frame name cached for this slot in `sampling_buffer`, or 0 when there's none.
@@ -49,9 +48,7 @@ bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 void self_test_thread_struct(void);
 
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
-
-uint8_t miteruby_rb_profile_frames(VALUE thread, uint16_t limit, miteruby_event_stack_sample_view_t *stack_buffer);
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer, bool miteruby_mode);
 
 size_t sizeof_rb_iseq_t(void);
 size_t sizeof_rb_callable_method_entry_t(void);

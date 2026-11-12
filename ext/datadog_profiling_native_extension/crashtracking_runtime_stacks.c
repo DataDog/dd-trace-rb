@@ -147,7 +147,8 @@ static void ruby_runtime_stack_callback(
     current_thread,
     0,
     RUNTIME_STACK_MAX_FRAMES,
-    runtime_stack_buffer
+    runtime_stack_buffer,
+    false
   );
 
   if (frame_count <= 0) {
@@ -237,4 +238,3 @@ void crashtracking_runtime_stacks_init(void) {
 // Keep init symbol to satisfy linkage on non linux platforms, but do nothing
 void crashtracking_runtime_stacks_init(void) {}
 #endif
-
