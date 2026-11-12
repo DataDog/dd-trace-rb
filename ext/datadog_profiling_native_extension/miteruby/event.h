@@ -62,9 +62,10 @@ typedef struct {
   miteruby_frame_t frames[];
 } miteruby_event_stack_sample_t;
 
+#define MITERUBY_ROUND_UP_TO_8_BYTES(size_bytes) (((size_t) (size_bytes) + 7) & ~(size_t) 7)
 #define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t))
 #define MITERUBY_MAX_SIZE_BYTES \
-  ((sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME + 7) & ~(size_t) 7)
+  MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
 typedef struct {
   // Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
