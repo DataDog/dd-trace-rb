@@ -518,8 +518,6 @@ static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t locat
 }
 
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header) {
-  if (header->type != MITERUBY_EVENT_STACK_SAMPLE) return MITERUBY_CONSUMER_OK;
-
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)header;
   miteruby_stack_hash_t stack_hash = miteruby_stack_hash(event);
   miteruby_stack_dedup_result_t result = miteruby_stack_dedup_get_or_reserve(
@@ -560,7 +558,6 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
   deduped->header = *header;
   deduped->thread = event->thread;
   deduped->stack_id = result.ok.id;
-  deduped->header.type = MITERUBY_EVENT_DEDUPED_SAMPLE;
   deduped->header.size_bytes = size_bytes;
   consumer_state.interned_events_pos += size_bytes;
 
