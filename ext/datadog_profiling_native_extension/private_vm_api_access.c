@@ -53,7 +53,6 @@
   #define DDTRACE_UNUSED
 #endif
 
-#define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
 #ifdef HAVE_RUBY_RACTOR_H
