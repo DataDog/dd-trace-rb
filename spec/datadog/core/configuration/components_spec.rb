@@ -58,7 +58,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
   end
 
-  # DI::Component.build registers the component it builds in the
+  # Datadog::DI::Component.build registers the component it builds in the
   # process-wide Datadog::DI current components, which outlive the example.
   let(:built_di_components) { [] }
 
