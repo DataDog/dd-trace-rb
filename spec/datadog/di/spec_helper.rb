@@ -93,6 +93,7 @@ module DIHelpers
   end
 
   module ClassMethods
+    # Deactivates code tracking once, before the example group runs.
     def deactivate_code_tracking
       before(:all) do
         deactivate_code_tracking_if_supported
