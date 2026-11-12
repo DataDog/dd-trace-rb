@@ -1222,10 +1222,16 @@ static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *bu
   }
 }
 
+// A C frame (NULL iseq) may no longer pass location_cfunc_p(): its cme->def can be swapped in place between
+// capturing the stack and naming its frames (e.g. to VM_METHOD_TYPE_REFINED by a `refine` block).
+static bool is_cfunc_frame(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  return iseq == NULL || location_cfunc_p(cme);
+}
+
 // MRI: location_label()
 // C methods don't have an iseq, only Ruby methods have
 ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
-  if (location_cfunc_p(cme)) {
+  if (is_cfunc_frame(cme, iseq)) {
     VALUE method_name = rb_id2str(cme->def->original_id);
     if (method_name == Qfalse) {
       return NO_METHOD_NAME;
@@ -1239,7 +1245,7 @@ ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_i
 
 // Returns a String or Qfalse (like rb_id2str())
 VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
-  if (location_cfunc_p(cme)) {
+  if (is_cfunc_frame(cme, iseq)) {
     return rb_id2str(cme->def->original_id);
   } else {
     return rb_iseq_base_label(iseq);

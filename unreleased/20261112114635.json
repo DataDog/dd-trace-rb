@@ -1,0 +1,6 @@
+{
+  "type": "Fixed",
+  "product": "Profiling",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/6680",
+  "message": "Fix a rare crash (`SIGSEGV`) when a running method implemented in C is redefined by a `refine` block."
+}
