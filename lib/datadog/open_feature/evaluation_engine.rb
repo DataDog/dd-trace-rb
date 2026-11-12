@@ -30,7 +30,7 @@ module Datadog
         @evaluator = NoopEvaluator.new(nil)
       end
 
-      def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
+      def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil, defer_exposures: false)
         # Pre-bound to the safe default so the rescue below can still read it if the
         # evaluator read itself raises.
         observe_full_evaluation_data = false
@@ -56,11 +56,10 @@ module Datadog
         result = with_observe_full_evaluation_data(result, observe_full_evaluation_data)
         log_resolution(flag_key, expected_type, result)
 
-        (result.dependency_evaluations || []).each do |key, dependency, eligible|
+        (result.dependency_evaluations || []).each do |_key, dependency, _eligible|
           with_observe_full_evaluation_data(dependency, observe_full_evaluation_data)
-          @reporter.report(dependency, flag_key: key, context: evaluation_context) if eligible && !dependency.error?
         end
-        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
+        report_exposures(result, flag_key: flag_key, evaluation_context: evaluation_context) unless defer_exposures
 
         result
       rescue => e
@@ -73,6 +72,13 @@ module Datadog
         # `== true` is load-bearing: Steep types this local as `(nil | bool)` in a rescue
         # body, and coercing at the use site is what narrows it to `bool`.
         with_observe_full_evaluation_data(result, observe_full_evaluation_data == true)
+      end
+
+      def report_exposures(result, flag_key:, evaluation_context:)
+        (result.dependency_evaluations || []).each do |key, dependency, eligible|
+          @reporter.report(dependency, flag_key: key, context: evaluation_context) if eligible && !dependency.error?
+        end
+        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
       end
 
       # NOTE: In a currect implementation configuration is expected to be a raw

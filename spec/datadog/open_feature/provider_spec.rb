@@ -663,7 +663,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it "returns OTel and EVP hooks so both observe SDK-final details" do
-        expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
+        expect(provider.hooks).to match([flag_eval_metrics_hook, flag_eval_evp_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
       end
 
       context "when debug logging is enabled" do
@@ -672,7 +672,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         before { allow(open_feature_component).to receive(:debug_logging_hook).and_return(debug_logging_hook) }
 
         it "also returns the debug logging hook" do
-          expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook])
+          expect(provider.hooks).to match([flag_eval_metrics_hook, flag_eval_evp_hook, debug_logging_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
         end
       end
 
@@ -680,7 +680,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         before { allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil) }
 
         it "returns array with only the OTel flag eval hook" do
-          expect(provider.hooks).to eq([flag_eval_metrics_hook])
+          expect(provider.hooks).to match([flag_eval_metrics_hook, kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
         end
       end
     end
@@ -690,8 +690,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(components).to receive(:open_feature).and_return(nil)
       end
 
-      it "returns empty array" do
-        expect(provider.hooks).to eq([])
+      it "returns the exposure hook" do
+        expect(provider.hooks).to match([kind_of(Datadog::OpenFeature::Hooks::ExposureLoggingHook)])
       end
     end
   end
@@ -1104,7 +1104,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
   let(:evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook, capture: nil) }
   let(:metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook, capture: nil) }
   let(:component) do
-    instance_double(Datadog::OpenFeature::Component, flag_eval_evp_hook: evp_hook, flag_eval_metrics_hook: metrics_hook)
+    instance_double(Datadog::OpenFeature::Component, flag_eval_evp_hook: evp_hook, flag_eval_metrics_hook: metrics_hook, debug_logging_hook: nil)
   end
   let(:components) { instance_double(Datadog::Core::Configuration::Components, open_feature: component) }
   let(:dependency) do
@@ -1193,7 +1193,9 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
     end
 
     it "preserves the native root assignment, prerequisite observations, and eligible exposures" do
-      details = provider.fetch_boolean_value(flag_key: "root", default_value: false, evaluation_context: evaluation_context)
+      details = ::OpenFeature::SDK::Client.new(provider: provider).fetch_boolean_details(
+        flag_key: "root", default_value: false, evaluation_context: evaluation_context,
+      )
 
       expect(details.value).to be(true)
       expect(details.variant).to eq("on")
@@ -1201,7 +1203,7 @@ RSpec.describe Datadog::OpenFeature::Provider, "prerequisite observations" do
       expect(details.error_code).to be_nil
       expect(evp_hook).to have_received(:capture) do |key, context, observation|
         expect(key).to eq("parent")
-        expect(context).to be(evaluation_context)
+        expect(context).to eq(evaluation_context)
         expect(observation.variant).to eq("on")
         expect(observation.error_code).to be_nil
         expect(observation.flag_metadata).to include(

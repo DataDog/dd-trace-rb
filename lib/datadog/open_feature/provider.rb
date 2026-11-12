@@ -4,6 +4,8 @@ require_relative "ext"
 require_relative "../open_feature"
 require_relative "../core/utils/time"
 require_relative "hooks/evaluation_telemetry_opt_out_hook"
+require_relative "hooks/exposure_logging_hook"
+require_relative "exposure_resolution_details"
 require "open_feature/sdk"
 
 module Datadog
@@ -77,6 +79,7 @@ module Datadog
         else
           raise ArgumentError, "enable_evaluation_telemetry_opt_out_parameter expects true, false, or nil"
         end
+        @exposure_logging_hook = Hooks::ExposureLoggingHook.new
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
         @initialization_mutex = Mutex.new
         @initializing = false
@@ -188,7 +191,7 @@ module Datadog
           telemetry_hooks = telemetry_hooks.map { |hook| Hooks::EvaluationTelemetryOptOutHook.new(hook) }
         end
 
-        [*telemetry_hooks, component&.debug_logging_hook].compact
+        [*telemetry_hooks, component&.debug_logging_hook, @exposure_logging_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -452,7 +455,9 @@ module Datadog
           enrich_span(flag_key, result, evaluation_context)
         end
 
-        sdk_success_details(result, flag_meta)
+        details = sdk_success_details(result, flag_meta)
+        details.exposure_callback = exposure_callback(engine, result, flag_key, evaluation_context)
+        details
       rescue => e
         error_message = "#{e.class}: #{e.message}"
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
@@ -466,6 +471,27 @@ module Datadog
         )
 
         sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
+      end
+
+      def exposure_callback(engine, result, flag_key, evaluation_context)
+        # Application hooks can mutate SDK values and context before exposures are committed.
+        snapshot = snapshot_exposure_result(result)
+        key = flag_key.dup
+        context = if evaluation_context
+          fields = evaluation_context.fields.transform_values { |value| value.is_a?(String) ? value.dup : value }
+          ::OpenFeature::SDK::EvaluationContext.new(**fields)
+        end
+        -> { engine.report_exposures(snapshot, flag_key: key, evaluation_context: context) }
+      end
+
+      def snapshot_exposure_result(result)
+        snapshot = result.dup
+        snapshot.variant = result.variant&.dup
+        snapshot.allocation_key = result.allocation_key&.dup
+        snapshot.dependency_evaluations = (result.dependency_evaluations || []).map do |key, dependency, eligible|
+          [key.dup, snapshot_exposure_result(dependency), eligible]
+        end
+        snapshot
       end
 
       def record_dependency_evaluations(result, evaluation_context, eval_time_ms)
@@ -507,11 +533,12 @@ module Datadog
           default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context,
+          defer_exposures: true,
         )
       end
 
       def sdk_success_details(result, flag_meta)
-        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+        ExposureResolutionDetails.new(
           value: result.value,
           variant: result.variant,
           reason: result.reason,

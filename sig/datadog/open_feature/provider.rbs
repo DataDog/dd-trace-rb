@@ -35,6 +35,8 @@ module Datadog
 
       @waiting_component: Component?
 
+      @exposure_logging_hook: Hooks::ExposureLoggingHook
+
       @shutdown: bool
 
       @enable_evaluation_telemetry_opt_out_parameter: bool
@@ -47,7 +49,7 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook]
+      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook | Hooks::EvaluationTelemetryOptOutHook | Hooks::DebugLoggingHook | Hooks::ExposureLoggingHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,
@@ -127,6 +129,15 @@ module Datadog
         ::Integer eval_time_ms
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
+      def exposure_callback: (
+        EvaluationEngine engine,
+        ResolutionDetails result,
+        String flag_key,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> ^() -> void
+
+      def snapshot_exposure_result: (ResolutionDetails result) -> ResolutionDetails
+
       def record_dependency_evaluations: (
         ResolutionDetails result,
         ::OpenFeature::SDK::EvaluationContext? evaluation_context,
@@ -146,7 +157,7 @@ module Datadog
       def sdk_success_details: (
         ResolutionDetails result,
         ::Hash[::String, untyped] flag_meta
-      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+      ) -> ExposureResolutionDetails
 
       def sdk_error_details: (
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,

@@ -1,0 +1,11 @@
+module Datadog
+  module OpenFeature
+    class ExposureResolutionDetails < ::OpenFeature::SDK::Provider::ResolutionDetails
+      @exposure_callback: (^() -> void)?
+
+      attr_writer exposure_callback: (^() -> void)?
+
+      def report_exposures: () -> void
+    end
+  end
+end

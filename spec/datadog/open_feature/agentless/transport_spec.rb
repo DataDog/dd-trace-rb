@@ -28,6 +28,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::Transport do
   end
 
   before do
+    allow(Datadog::OpenFeature::EvaluatorCapabilities).to receive(:dependent_flags?).and_return(false)
     stub_request(:get, "https://example.test/config?dd_env=test")
       .to_return(status: 200, body: "configuration", headers: {"ETag" => "next"})
   end

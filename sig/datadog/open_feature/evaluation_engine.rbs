@@ -24,8 +24,15 @@ module Datadog
         ::String flag_key,
         default_value: untyped,
         expected_type: ::Symbol,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?,
+        ?defer_exposures: bool
       ) -> ResolutionDetails
+
+      def report_exposures: (
+        ResolutionDetails result,
+        flag_key: String,
+        evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+      ) -> void
 
       def reconfigure!: (::String? configuration) -> void
 

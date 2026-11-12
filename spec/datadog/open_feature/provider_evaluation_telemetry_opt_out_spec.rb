@@ -418,7 +418,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
     expect(details.value).to eq("fallback")
     expect(details.error_code).to eq("GENERAL")
     expect(application_hook).to have_received(:error).once
-    expect_signals(evaluations: 0, exposures: 1)
+    expect_signals(evaluations: 0, exposures: 0)
   end
 
   it "preserves native error defaults" do
@@ -456,7 +456,7 @@ RSpec.describe "OpenFeature evaluation telemetry opt-out" do
       expect(details.value).to eq("enabled")
     end
 
-    expect_signals(evaluations: 0, exposures: 1)
+    expect_signals(evaluations: 0, exposures: 0)
   end
 
   if OpenFeature::SDK::Configuration.method_defined?(:provider_tracked?)
