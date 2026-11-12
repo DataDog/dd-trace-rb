@@ -16,6 +16,8 @@ module Datadog
           # Note: Alias (previous name DISABLE_DATADOG_RAILS) defined in supported-configurations.json
           ENV_DISABLE = "DD_DISABLE_DATADOG_RAILS"
 
+          DEFAULT_PEER_WEBSERVER_SERVICE_NAME = "web-server"
+
           SPAN_RUNNER_FILE = "rails.runner.file"
           SPAN_RUNNER_INLINE = "rails.runner.inline"
           SPAN_RUNNER_STDIN = "rails.runner.stdin"

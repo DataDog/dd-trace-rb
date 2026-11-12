@@ -55,6 +55,20 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   describe "#fetch_value" do
     let(:result) { engine.fetch_value("test", default_value: "fallback", expected_type: :string) }
 
+    it "passes the provider mode to the native evaluator for this evaluation" do
+      engine.reconfigure!(configuration)
+      details = Datadog::OpenFeature::ResolutionDetails.build_error(
+        value: "fallback", error_code: "INVALID_CONTEXT", error_message: "Invalid timestamp",
+      )
+      expect(evaluator).to receive(:get_assignment).with(
+        "test", default_value: "fallback", context: {}, expected_type: :string,
+        experimentation_opt_out_mode: :future_experiments_only,
+      ).and_return(details)
+      engine.fetch_value(
+        "test", default_value: "fallback", expected_type: :string, experimentation_opt_out_mode: :future_experiments_only,
+      )
+    end
+
     context "when binding evaluator is not ready" do
       it "returns evaluation error" do
         expect(result.value).to eq("fallback")
