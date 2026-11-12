@@ -3,7 +3,7 @@ require "datadog/di/spec_helper"
 require "datadog/di"
 require "datadog/di/probe_file_loader"
 
-# Rails application initialization cannot be undone in the rspec process.
+# Rails application initialization permanently modifies the rspec process.
 RSpec.describe Datadog::DI::ProbeFileLoader, execute_in_fork: true do
   di_test
 
