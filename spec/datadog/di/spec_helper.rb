@@ -100,6 +100,8 @@ module DIHelpers
       end
     end
 
+    # Sets up the shared DI spec scaffolding: skips unsupported runtimes
+    # and detects instrumentations that leak between examples.
     def di_test
       if PlatformHelpers.jruby?
         before(:all) do
