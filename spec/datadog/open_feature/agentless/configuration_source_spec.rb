@@ -266,9 +266,11 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
           ClimateControl.modify("DD_SERVICE" => "caf\u00E9-api") { example.run }
         end
 
-        before do
+        # Settings.new reads DD_SERVICE, and an outer `before` builds the settings, so stub ENV first.
+        let(:settings) do
           allow(ENV).to receive(:[]).and_call_original
           allow(ENV).to receive(:[]).with("DD_SERVICE").and_return(service)
+          Datadog::Core::Configuration::Settings.new
         end
 
         it "does not send DD-Service, logs why once and keeps polling" do
