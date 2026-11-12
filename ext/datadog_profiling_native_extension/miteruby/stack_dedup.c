@@ -125,7 +125,7 @@ miteruby_stack_dedup_result_t miteruby_stack_dedup_get_or_reserve(
   }
 
   size_t max_ids_size = miteruby_compressed_deltas_max_size_of(frame_count);
-  size_t max_event_size = (offsetof(miteruby_event_deduped_sample_t, stack.ids) + max_ids_size + 7) & ~(size_t) 7;
+  size_t max_event_size = MITERUBY_ROUND_UP_TO_8_BYTES(offsetof(miteruby_event_deduped_sample_t, stack.ids) + max_ids_size);
   if (max_event_size > UINT16_MAX || events_capacity - events_pos < max_event_size) {
     return (miteruby_stack_dedup_result_t) {.error_storage_full = true};
   }
@@ -146,6 +146,6 @@ bool miteruby_stack_dedup_commit(
 
   miteruby_event_deduped_sample_t *event = (miteruby_event_deduped_sample_t *)(events + stack_id.offset);
   event->stack.ids_size = (uint16_t) (ids_end - event->stack.ids);
-  event->header.size_bytes = (uint16_t) ((offsetof(miteruby_event_deduped_sample_t, stack.ids) + event->stack.ids_size + 7) & ~(size_t) 7);
+  event->header.size_bytes = (uint16_t) MITERUBY_ROUND_UP_TO_8_BYTES(offsetof(miteruby_event_deduped_sample_t, stack.ids) + event->stack.ids_size);
   return true;
 }
