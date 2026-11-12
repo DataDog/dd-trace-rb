@@ -51,7 +51,7 @@ if [ "${ENABLE_TRACER:-}" = true ]; then
   # Bundler doesn't build path gems' native extensions. Build libdatadog_api (DSM needs it for
   # DDSketch) out of tree, as `gem install` would, and fail if it isn't built or doesn't load.
   BUILD_DIR=$TRACER_ROOT/tmp/kafka_dsm/libdatadog_api
-  SO_FILE=$(ruby -e 'print "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}.so"')
+  SO_FILE=$(ruby -rrbconfig -e 'print "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}.#{RbConfig::CONFIG.fetch("DLEXT")}"')
   rm -rf "$BUILD_DIR"
   mkdir -p "$BUILD_DIR"
   # A skipped build may exit non-zero, exit 0 without a Makefile, or leave a no-op Makefile: check the result.
