@@ -30,6 +30,7 @@ RSpec.describe "script_compiled integration" do
 
   after do
     component.shutdown!
+  ensure
     Datadog::DI.deactivate_tracking!
     Object.send(:remove_const, :ScriptCompiledIntegrationTestClass) if defined?(ScriptCompiledIntegrationTestClass)
   end
