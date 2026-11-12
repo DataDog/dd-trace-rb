@@ -10,7 +10,7 @@ module Datadog
         module Service
           # S3 tag handlers.
           class S3 < Base
-            ENDPOINT_LABEL = /\As3(?:\z|-|express-)/
+            ENDPOINT_LABEL = /\As3(?:-fips|-accesspoint(?:-fips)?|-[a-z]{2}(?:-[a-z]+)+-\d+)?\z/
 
             def add_tags(span, params)
               bucket_name = params[:bucket]

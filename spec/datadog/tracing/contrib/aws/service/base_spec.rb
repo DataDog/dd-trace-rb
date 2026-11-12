@@ -33,10 +33,9 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         "a legacy dash-region endpoint" => "s3-us-west-2.amazonaws.com",
         "a dual-stack endpoint" => "s3.dualstack.us-east-1.amazonaws.com",
         "a FIPS endpoint" => "s3-fips.us-east-1.amazonaws.com",
+        "a FIPS dual-stack endpoint" => "my-bucket.s3-fips.dualstack.us-west-2.amazonaws.com",
         "an access point endpoint" => "ap-123456789012.s3-accesspoint.us-east-1.amazonaws.com",
-        "a multi-Region access point endpoint" => "mfzwi23gnjvgw.mrap.accesspoint.s3-global.amazonaws.com",
-        "an S3 Express endpoint" => "bucket--use1-az5--x-s3.s3express-use1-az5.us-east-1.amazonaws.com",
-        "an Outposts endpoint" => "s3-outposts.us-east-1.amazonaws.com",
+        "a FIPS access point endpoint" => "ap-123456789012.s3-accesspoint-fips.us-east-1.amazonaws.com",
         "a VPC endpoint" => "bucket.vpce-0a1b-c2d3.s3.us-east-1.vpce.amazonaws.com",
         "a China endpoint" => "s3.cn-north-1.amazonaws.com.cn",
         "a GovCloud endpoint" => "s3.us-gov-west-1.amazonaws.com",
@@ -63,6 +62,14 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         "a suffix lookalike domain" => "s3.us-east-1.amazonaws.com.example.net",
         "a domain missing the dot boundary" => "notamazonaws.com",
         "a bare partition suffix" => "amazonaws.com",
+        # These S3 endpoints do not apply `expected_bucket_owner` to every
+        # request, so a 2xx from them does not prove the owner.
+        "a website endpoint" => "my-bucket.s3-website-us-east-1.amazonaws.com",
+        "a regional website endpoint" => "my-bucket.s3-website.us-east-1.amazonaws.com",
+        "an Object Lambda endpoint" => "ol-123456789012.s3-object-lambda.us-east-1.amazonaws.com",
+        "an S3 Express endpoint" => "bucket--use1-az5--x-s3.s3express-use1-az5.us-east-1.amazonaws.com",
+        "an Outposts endpoint" => "s3-outposts.us-east-1.amazonaws.com",
+        "a multi-Region access point endpoint" => "mfzwi23gnjvgw.mrap.accesspoint.s3-global.amazonaws.com",
         "an Application Load Balancer" => "s3-minio-1234567890.us-east-1.elb.amazonaws.com",
         "a Network Load Balancer" => "s3-minio-0123456789abcdef.elb.us-east-1.amazonaws.com",
         "a classic Load Balancer" => "s3-minio-1234567890.elb.amazonaws.com",
@@ -90,6 +97,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
           "a FIPS endpoint" => "dynamodb-fips.us-gov-west-1.amazonaws.com",
           "an account-based endpoint" => "123456789012.ddb.us-east-1.amazonaws.com",
           "a dual-stack endpoint" => "dynamodb.us-east-1.api.aws",
+          "an account-based dual-stack endpoint" => "123456789012.ddb.us-east-1.api.aws",
           "a VPC endpoint" => "vpce-0a1b-c2d3.dynamodb.us-east-1.vpce.amazonaws.com",
         }.each do |description, aws_host|
           context "with #{description}" do
@@ -103,6 +111,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
           "a Load Balancer" => "dynamodb-local-1234567890.us-east-1.elb.amazonaws.com",
           "an EC2 public host" => "ec2-203-0-113-25.compute-1.amazonaws.com",
           "a DynamoDB Local endpoint" => "dynamodb.internal.example.com",
+          "a DAX cluster" => "my-cluster.abc123.dax-clusters.us-east-1.amazonaws.com",
           "another service endpoint" => "s3.us-east-1.amazonaws.com",
         }.each do |description, other_host|
           context "with #{description}" do

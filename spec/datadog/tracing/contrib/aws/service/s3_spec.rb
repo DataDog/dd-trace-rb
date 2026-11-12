@@ -93,6 +93,16 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
       end
     end
 
+    context "when a website endpoint answers 2xx" do
+      let(:host) { "my-bucket-name.s3-website-us-east-1.amazonaws.com" }
+
+      it "does not set the aws_account tag" do
+        add_owner_tags
+        expect(span).not_to have_received(:set_tag)
+          .with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, anything)
+      end
+    end
+
     context "with no expected_bucket_owner" do
       let(:params) { {bucket: "my-bucket-name"} }
 
