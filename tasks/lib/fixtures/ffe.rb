@@ -16,7 +16,9 @@ class FfeFixtures
   COMMIT_SHA = File.read(File.expand_path("ffe/version", __dir__)).strip
   raise "ffe/version must contain one full commit SHA" unless COMMIT_SHA.match?(/\A[0-9a-f]{40}\z/)
 
-  CACHE = File.join("tmp", "ffe-system-test-data")
+  # Bump the version segment whenever the extractor keeps a different set of files, so caches
+  # extracted by an older version at the same pin are not reused.
+  CACHE = File.join("tmp", "ffe-system-test-data", "v2")
   CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
   FLAG_SELECTION_PATTERN = %r{\Aflag-selection/[^/]+\.json\z}.freeze
   HTTP_ATTEMPTS = 3
