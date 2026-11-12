@@ -3,6 +3,8 @@
 require "aws-sdk"
 require "datadog/tracing/contrib/aws/parsed_context"
 require "datadog/tracing/contrib/aws/service/base"
+require "datadog/tracing/contrib/aws/service/dynamodb"
+require "datadog/tracing/contrib/aws/service/s3"
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
   subject(:base) { described_class.new }
@@ -10,8 +12,9 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
   let(:context) { instance_double(Datadog::Tracing::Contrib::Aws::ParsedContext) }
 
   describe "#aws_confirmed_response?" do
-    subject(:aws_confirmed_response?) { base.send(:aws_confirmed_response?, context) }
+    subject(:aws_confirmed_response?) { base.send(:aws_confirmed_response?, context, endpoint_label) }
 
+    let(:endpoint_label) { Datadog::Tracing::Contrib::Aws::Service::S3::ENDPOINT_LABEL }
     let(:status_code) { 200 }
     let(:host) { "my-bucket-name.s3.us-east-1.amazonaws.com" }
 
@@ -27,13 +30,14 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         "a virtual-hosted commercial endpoint" => "my-bucket-name.s3.us-east-1.amazonaws.com",
         "a path-style commercial endpoint" => "s3.us-east-1.amazonaws.com",
         "the global endpoint" => "s3.amazonaws.com",
+        "a legacy dash-region endpoint" => "s3-us-west-2.amazonaws.com",
         "a dual-stack endpoint" => "s3.dualstack.us-east-1.amazonaws.com",
         "a FIPS endpoint" => "s3-fips.us-east-1.amazonaws.com",
         "an access point endpoint" => "ap-123456789012.s3-accesspoint.us-east-1.amazonaws.com",
+        "a multi-Region access point endpoint" => "mfzwi23gnjvgw.mrap.accesspoint.s3-global.amazonaws.com",
         "an S3 Express endpoint" => "bucket--use1-az5--x-s3.s3express-use1-az5.us-east-1.amazonaws.com",
         "an Outposts endpoint" => "s3-outposts.us-east-1.amazonaws.com",
         "a VPC endpoint" => "bucket.vpce-0a1b-c2d3.s3.us-east-1.vpce.amazonaws.com",
-        "a DynamoDB endpoint" => "dynamodb.us-east-1.amazonaws.com",
         "a China endpoint" => "s3.cn-north-1.amazonaws.com.cn",
         "a GovCloud endpoint" => "s3.us-gov-west-1.amazonaws.com",
         "an ISO endpoint" => "s3.us-iso-east-1.c2s.ic.gov",
@@ -54,12 +58,19 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
         "a LocalStack endpoint" => "localhost",
         "a loopback address" => "127.0.0.1",
         "a MinIO endpoint" => "minio.internal",
-        "a DynamoDB Local endpoint" => "dynamodb.internal.example.com",
         "a self-hosted gateway" => "s3.storage.example.com",
         "a Ceph endpoint" => "rgw.ceph.svc.cluster.local",
         "a suffix lookalike domain" => "s3.us-east-1.amazonaws.com.example.net",
         "a domain missing the dot boundary" => "notamazonaws.com",
         "a bare partition suffix" => "amazonaws.com",
+        "an Application Load Balancer" => "s3-minio-1234567890.us-east-1.elb.amazonaws.com",
+        "a Network Load Balancer" => "s3-minio-0123456789abcdef.elb.us-east-1.amazonaws.com",
+        "a classic Load Balancer" => "s3-minio-1234567890.elb.amazonaws.com",
+        "an EC2 public host" => "ec2-203-0-113-25.compute-1.amazonaws.com",
+        "a regional EC2 public host" => "ec2-203-0-113-25.us-west-2.compute.amazonaws.com",
+        "an API Gateway endpoint" => "s3.execute-api.us-east-1.amazonaws.com",
+        "a PrivateLink endpoint service" => "vpce-0a1b-c2d3.vpce-svc-0123456789abcdef0.us-east-1.vpce.amazonaws.com",
+        "another service endpoint" => "dynamodb.us-east-1.amazonaws.com",
         "an empty host" => "",
         "a non-string host" => :host,
         "an unavailable host" => nil,
@@ -68,6 +79,37 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Base do
           let(:host) { other_host }
 
           it { is_expected.to be false }
+        end
+      end
+
+      context "with the DynamoDB endpoint label" do
+        let(:endpoint_label) { Datadog::Tracing::Contrib::Aws::Service::DynamoDB::ENDPOINT_LABEL }
+
+        {
+          "a regional endpoint" => "dynamodb.us-east-1.amazonaws.com",
+          "a FIPS endpoint" => "dynamodb-fips.us-gov-west-1.amazonaws.com",
+          "an account-based endpoint" => "123456789012.ddb.us-east-1.amazonaws.com",
+          "a dual-stack endpoint" => "dynamodb.us-east-1.api.aws",
+          "a VPC endpoint" => "vpce-0a1b-c2d3.dynamodb.us-east-1.vpce.amazonaws.com",
+        }.each do |description, aws_host|
+          context "with #{description}" do
+            let(:host) { aws_host }
+
+            it { is_expected.to be true }
+          end
+        end
+
+        {
+          "a Load Balancer" => "dynamodb-local-1234567890.us-east-1.elb.amazonaws.com",
+          "an EC2 public host" => "ec2-203-0-113-25.compute-1.amazonaws.com",
+          "a DynamoDB Local endpoint" => "dynamodb.internal.example.com",
+          "another service endpoint" => "s3.us-east-1.amazonaws.com",
+        }.each do |description, other_host|
+          context "with #{description}" do
+            let(:host) { other_host }
+
+            it { is_expected.to be false }
+          end
         end
       end
 

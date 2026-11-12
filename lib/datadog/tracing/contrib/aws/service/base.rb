@@ -12,6 +12,7 @@ module Datadog
           class Base
             ACCOUNT_ID_FORMAT = /\A\d{12}\z/
             SUCCESS_STATUS_CODES = (200..299)
+            REGION_FORMAT = /\A[a-z]+(?:-[a-z]+)+-\d+\z/
             NO_DOTTED_DNS_SUFFIXES = [].freeze
             DNS_SUFFIX_FAILURE_ONLY_ONCE = Core::Utils::OnlyOnce.new
             DNS_SUFFIX_FAILURE_DESCRIPTION =
@@ -75,22 +76,31 @@ module Datadog
               value if value.is_a?(String) && ACCOUNT_ID_FORMAT.match?(value)
             end
 
-            # A successful response from an AWS endpoint. A failed request, or a
-            # 2xx from an S3 or DynamoDB compatible service such as MinIO,
-            # LocalStack or DynamoDB Local, says nothing about an AWS account.
-            def aws_confirmed_response?(context)
+            # A successful response from the AWS endpoint of the service. A
+            # failed request, or a 2xx from an S3 or DynamoDB compatible service
+            # such as MinIO, LocalStack or DynamoDB Local, says nothing about an
+            # AWS account.
+            def aws_confirmed_response?(context, endpoint_label)
               status_code = context.safely(:status_code)
-              status_code.is_a?(Integer) && SUCCESS_STATUS_CODES.cover?(status_code) &&
-                aws_owned_endpoint?(context.safely(:host))
-            end
+              return false unless status_code.is_a?(Integer) && SUCCESS_STATUS_CODES.cover?(status_code)
 
-            # Matched on the dot boundary so `s3.amazonaws.com.example.net` and
-            # `notamazonaws.com` are not AWS.
-            def aws_owned_endpoint?(host)
+              host = context.safely(:host)
               return false unless host.is_a?(String)
 
+              # Matched on the dot boundary so `s3.amazonaws.com.example.net` and
+              # `notamazonaws.com` are not AWS.
               normalized = host.downcase.delete_suffix(".")
-              Base.aws_dotted_dns_suffixes.any? { |dotted_suffix| normalized.end_with?(dotted_suffix) }
+              dotted_suffix = Base.aws_dotted_dns_suffixes.find { |suffix| normalized.end_with?(suffix) }
+              return false unless dotted_suffix
+
+              # The service label sits right of any bucket, account or VPC endpoint
+              # label. Load balancer, EC2 and API Gateway hosts under the same
+              # suffix end in their own label and can front any server.
+              labels = normalized.delete_suffix(dotted_suffix).split(".")
+              labels.pop if labels.last == "vpce"
+              labels.pop if REGION_FORMAT.match?(labels.last)
+              labels.pop if labels.last == "dualstack"
+              endpoint_label.match?(labels.last)
             end
           end
         end

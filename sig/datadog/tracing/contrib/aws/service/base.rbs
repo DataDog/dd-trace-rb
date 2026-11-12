@@ -8,6 +8,8 @@ module Datadog
 
             SUCCESS_STATUS_CODES: ::Range[::Integer]
 
+            REGION_FORMAT: ::Regexp
+
             NO_DOTTED_DNS_SUFFIXES: ::Array[::String]
 
             DNS_SUFFIX_FAILURE_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
@@ -28,9 +30,7 @@ module Datadog
 
             def valid_account_id: (any value) -> ::String?
 
-            def aws_confirmed_response?: (Contrib::Aws::ParsedContext context) -> bool
-
-            def aws_owned_endpoint?: (any host) -> bool
+            def aws_confirmed_response?: (Contrib::Aws::ParsedContext context, ::Regexp endpoint_label) -> bool
           end
         end
       end

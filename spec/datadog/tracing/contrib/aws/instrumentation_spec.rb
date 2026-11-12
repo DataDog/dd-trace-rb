@@ -389,6 +389,7 @@ RSpec.describe "AWS instrumentation" do
           "a MinIO endpoint" => "http://minio.internal:9000",
           "a self-hosted gateway" => "https://s3.storage.example.com",
           "an AWS lookalike domain" => "https://s3.us-east-1.amazonaws.com.example.net",
+          "a store behind an AWS load balancer" => "https://minio-1234567890.us-east-1.elb.amazonaws.com",
         }.each do |description, configured_endpoint|
           context "such as #{description}" do
             let(:endpoint) { configured_endpoint }

@@ -4,6 +4,8 @@ module Datadog
       module Aws
         module Service
           class S3 < Base
+            ENDPOINT_LABEL: ::Regexp
+
             def add_tags: (untyped span, untyped params) -> untyped
 
             def add_owner_tags: (Datadog::Tracing::SpanOperation span, any params, Contrib::Aws::ParsedContext context) -> void
