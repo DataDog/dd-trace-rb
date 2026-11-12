@@ -1218,8 +1218,8 @@ module Datadog
 
       # Returns true when +cls_name+ names the +Datadog+ module itself or
       # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
-      # The check is purely textual on the probe's declared type name; it
-      # does not require the class to be loaded.
+      # The check is purely textual on the probe's declared type name; the
+      # named class can be undefined at check time.
       #
       # Names written with a root namespace prefix, such as "::Datadog" or
       # "Object::Datadog::DI::Instrumenter", match as well.
