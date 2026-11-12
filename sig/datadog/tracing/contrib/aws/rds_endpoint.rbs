@@ -1,14 +1,23 @@
 module Datadog
   module Tracing
     module Contrib
-      module Utils
+      module Aws
         module RDSEndpoint
           type endpoint = { identifier: String, endpoint_type: String, region: String }
 
-          # Either an `endpoint` or `NOT_AN_ENDPOINT`, keyed by the hostname as given.
           self.@cache: ::Hash[String, untyped]
 
           self.@cache_mutex: ::Thread::Mutex
+
+          TYPE_INSTANCE: "instance"
+
+          TYPE_CLUSTER: "cluster"
+
+          TYPE_CLUSTER_RO: "cluster-ro"
+
+          TYPE_CLUSTER_CUSTOM: "cluster-custom"
+
+          TYPE_PROXY: "proxy"
 
           MAX_INPUT_BYTES: Integer
 
@@ -24,13 +33,11 @@ module Datadog
 
           ENDPOINT_PATTERN: Regexp
 
-          ENDPOINT_TYPES_BY_PREFIX: Hash[String?, String]
+          TYPES_BY_PREFIX: Hash[String?, String]
 
           NOT_AN_ENDPOINT: Object
 
           def self.parse: (untyped hostname) -> endpoint?
-
-          def self.annotate!: (SpanOperation span, untyped hostname) -> void
 
           private
 
@@ -38,7 +45,7 @@ module Datadog
 
           def self.parse_endpoint: (String hostname) -> endpoint?
 
-          def self.strip_port: (String candidate) -> String?
+          def self.strip_port: (String hostname) -> String?
         end
       end
     end

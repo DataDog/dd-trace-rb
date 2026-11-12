@@ -10,6 +10,8 @@ module Datadog
           VENDOR_SQLITE: untyped
 
           def self.normalize_vendor: (untyped vendor) -> untyped
+
+          def self.set_rds_endpoint_tags: (SpanOperation span, Contrib::Aws::RDSEndpoint::endpoint? rds_endpoint) -> void
         end
       end
     end

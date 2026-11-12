@@ -26,16 +26,6 @@ module Datadog
           TAG_DB_INSTANCE_IDENTIFIER: "dbinstanceidentifier"
 
           TAG_DB_CLUSTER_IDENTIFIER: "dbclusteridentifier"
-
-          ENDPOINT_TYPE_INSTANCE: "instance"
-
-          ENDPOINT_TYPE_CLUSTER: "cluster"
-
-          ENDPOINT_TYPE_CLUSTER_RO: "cluster-ro"
-
-          ENDPOINT_TYPE_CLUSTER_CUSTOM: "cluster-custom"
-
-          ENDPOINT_TYPE_PROXY: "proxy"
         end
 
         module RPC
