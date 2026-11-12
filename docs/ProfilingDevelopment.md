@@ -69,10 +69,6 @@ flow:
     ```
 6. The profiler gets started when `startup!` is called by `Datadog::Configuration` after component creation.
 
-With the experimental `MITERUBY=true` mode, component construction skips `ThreadContext` and `StackRecorder`.
-The worker publishes samples to the miteruby queue and returns a `Miteruby::Serializer` from `prepare_serialize`.
-GC, allocation, allocation counting, and GVL profiling hooks are disabled in this mode.
-
 ## Run-time execution
 
 During run-time, the `Scheduler` and the `Collectors::CpuAndWallTimeWorker` each execute on their own background thread.
