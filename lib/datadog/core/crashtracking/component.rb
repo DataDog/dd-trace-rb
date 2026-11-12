@@ -37,6 +37,7 @@ module Datadog
             agent_base_url: agent_base_url,
             ld_library_path: ld_library_path,
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+            collect_otel_thread_contexts: settings.tracing.otel_thread_context_enabled,
             logger: logger,
           ).tap(&:start)
         end
@@ -71,11 +72,13 @@ module Datadog
           TagBuilder.call(settings)
         end
 
-        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:, logger:)
+        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:,
+          logger:, collect_otel_thread_contexts: false)
           @tags = tags
           @agent_base_url = agent_base_url
           @ld_library_path = ld_library_path
           @path_to_crashtracking_receiver_binary = path_to_crashtracking_receiver_binary
+          @collect_otel_thread_contexts = collect_otel_thread_contexts
           @logger = logger
         end
 
@@ -139,7 +142,8 @@ module Datadog
 
         private
 
-        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
+        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary,
+          :collect_otel_thread_contexts, :logger
 
         def start_or_update_on_fork(action:, tags:)
           self.class._native_start_or_update_on_fork(
@@ -150,6 +154,7 @@ module Datadog
             tags_as_array: tags.to_a,
             # @ivoanjo: On my machine this needs to be > 5 seconds, and seems to work with 10; the extra 15 is extra margin
             upload_timeout_seconds: 15,
+            collect_otel_thread_contexts: collect_otel_thread_contexts,
           )
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e

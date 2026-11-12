@@ -36,6 +36,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE tags_as_array = rb_hash_fetch(options, ID2SYM(rb_intern("tags_as_array")));
   VALUE action = rb_hash_fetch(options, ID2SYM(rb_intern("action")));
   VALUE upload_timeout_seconds = rb_hash_fetch(options, ID2SYM(rb_intern("upload_timeout_seconds")));
+  VALUE collect_otel_thread_contexts = rb_hash_fetch(options, ID2SYM(rb_intern("collect_otel_thread_contexts")));
 
   VALUE start_action = ID2SYM(rb_intern("start"));
   VALUE update_on_fork_action = ID2SYM(rb_intern("update_on_fork"));
@@ -73,6 +74,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
     .collect_all_threads = true,
+    .collect_otel_thread_contexts = RTEST(collect_otel_thread_contexts),
     .max_threads = 128,
   };
 
