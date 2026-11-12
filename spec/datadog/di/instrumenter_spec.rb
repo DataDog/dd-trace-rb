@@ -926,9 +926,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       it_behaves_like "rejects the probe", "::Datadog"
       it_behaves_like "rejects the probe", "::Datadog::Tracing::SpanOperation"
 
-      # Top-level constants are constants of Object, so Object.const_get
-      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
-      # rejection strips any leading "Object::" segments so these
+      # The rejection strips any leading "Object::" segments so these
       # aliases cannot bypass it. Object:: is the only alias path to the
       # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
       it_behaves_like "rejects the probe", "Object::Datadog"
@@ -1001,9 +999,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     context "when targeting Kernel#lambda" do
       # The first group is the Kernel module named directly: a leading "::" is
       # Ruby's root-namespace prefix and any number of leading "Object::"
-      # segments resolve through Object.const_get to the same top-level Kernel
-      # module, so users cannot bypass the rejection by naming Kernel through
-      # one of these aliases.
+      # segments name the same top-level Kernel module, so users cannot
+      # bypass the rejection by naming Kernel through one of these aliases.
       #
       # The second group names other types that inherit Kernel#lambda without
       # overriding it: every class inherits it, so the target method resolves
