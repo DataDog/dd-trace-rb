@@ -991,6 +991,34 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe "#experimental_miteruby_enabled" do
+        subject(:experimental_miteruby_enabled) { settings.profiling.advanced.experimental_miteruby_enabled }
+
+        it_behaves_like "a binary setting with",
+          env_variable: "DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED",
+          default: false
+      end
+
+      describe "#experimental_miteruby_enabled=" do
+        it "updates the #experimental_miteruby_enabled setting" do
+          expect { settings.profiling.advanced.experimental_miteruby_enabled = true }
+            .to change { settings.profiling.advanced.experimental_miteruby_enabled }
+            .from(false)
+            .to(true)
+        end
+
+        context "when enabled via the environment" do
+          with_env "DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED" => "true"
+
+          it "can be disabled via Ruby configuration" do
+            expect { settings.profiling.advanced.experimental_miteruby_enabled = false }
+              .to change { settings.profiling.advanced.experimental_miteruby_enabled }
+              .from(true)
+              .to(false)
+          end
+        end
+      end
+
       describe "#experimental_show_classes_enabled" do
         subject(:experimental_show_classes_enabled) { settings.profiling.advanced.experimental_show_classes_enabled }
 
