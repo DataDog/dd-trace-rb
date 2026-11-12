@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       ["DD_LOGS_INJECTION", true],
       ["DD_TRACE_HTTP_SERVER_ERROR_STATUSES", "500..599"],
       ["DD_TRACE_HTTP_CLIENT_ERROR_STATUSES", "400..499"],
-      ["tracing.partial_flush.enabled", false],
+      ["tracing.partial_flush.enabled", true],
       ["tracing.partial_flush.min_spans_threshold", 500],
       ["DD_TRACE_REPORT_HOSTNAME", false],
       ["DD_TRACE_RATE_LIMIT", 100],
