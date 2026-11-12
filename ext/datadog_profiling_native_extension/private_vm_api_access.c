@@ -415,8 +415,8 @@ void self_test_thread_struct(void) {
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications:
-// * Support int first_lineno for Ruby 3.2.0+ (https://github.com/ruby/ruby/pull/6430)
 // * Validate iseq and pos before calling `rb_iseq_line_no` as a safety measure (see comment below for details)
+// * Empty out pc == NULL branch
 //
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
@@ -430,26 +430,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id) {
   VM_ASSERT(ISEQ_BODY(iseq)->iseq_encoded);
   VM_ASSERT(ISEQ_BODY(iseq)->iseq_size);
   if (pc == NULL) {
-    if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_TOP) {
-      VM_ASSERT(! ISEQ_BODY(iseq)->local_table);
-      VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
-      return 0;
-    }
-    #ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
-      if (lineno) {
-        *lineno = ISEQ_BODY(iseq)->location.first_lineno;
-      }
-    #else
-      if (lineno) {
-        *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
-      }
-    #endif
-#ifdef USE_ISEQ_NODE_ID
-    if (node_id) {
-      *node_id = -1;
-    }
-#endif
-    return 1;
+    rb_bug("calc_pos: pc should never be NULL because for ddtrace_rb_profile_frames iseq && !pc is skipped");
   } else {
     ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
     VM_ASSERT(n <= ISEQ_BODY(iseq)->iseq_size);
