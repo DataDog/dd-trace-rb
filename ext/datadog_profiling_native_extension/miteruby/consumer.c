@@ -208,7 +208,7 @@ static size_t consumer_size(const void *data) {
 
   mutex_lock(&consumer_state.mutex);
 
-  size_t size = sizeof(*state) + sizeof(*state->raw_events_queue) +
+  size_t size = sizeof(miteruby_consumer_state_t) + sizeof(miteruby_raw_events_queue_t) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
     miteruby_allocator_alloc_size(state->mark_frame_set.buckets) +
@@ -260,11 +260,11 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
     ID2SYM(rb_intern("miteruby_unique_stacks_map_max_size_bytes")), SIZET2NUM(stack_dedup.map_max_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_map_entries")), SIZET2NUM(stack_dedup.map_entries),
   };
-  for (size_t i = 0; i < sizeof(arguments) / sizeof(*arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
+  for (size_t i = 0; i < sizeof(arguments) / sizeof(VALUE); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
 }
 
 miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
-  miteruby_raw_events_queue_t *raw_events_queue = miteruby_allocator_alloc(sizeof(*raw_events_queue), "raw_events_queue");
+  miteruby_raw_events_queue_t *raw_events_queue = miteruby_allocator_alloc(sizeof(miteruby_raw_events_queue_t), "raw_events_queue");
   if (raw_events_queue == NULL) raise_syserr(errno, "Failed to allocate miteruby raw events queue");
   if (miteruby_raw_events_queue_init(raw_events_queue) != 0) {
     int error = errno;
@@ -307,7 +307,7 @@ void miteruby_consumer_reset(void) {
   }
 
   miteruby_frame_t *new_entries = miteruby_allocator_alloc(
-    MARK_FRAME_ARRAY_CAPACITY * sizeof(*new_entries), "mark_frame_array"
+    MARK_FRAME_ARRAY_CAPACITY * sizeof(miteruby_frame_t), "mark_frame_array"
   );
   if (new_entries == NULL) {
     miteruby_allocator_free(&new_queue);
