@@ -3,7 +3,6 @@
 #include <ruby.h>
 
 #include "raw_events_queue.h"
-#include "../private_vm_api_access.h"
 #include "event.h"
 
 #define NAME verstable_mark_threads_set

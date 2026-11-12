@@ -1,10 +1,14 @@
 #include <ruby.h>
 
 #include "sample_event.h"
+#include "../collectors_stack.h" // for MAX_FRAMES_LIMIT
 #include "../private_vm_api_access.h"
 #include "../time_helpers.h"
 
 #include <errno.h>
+
+#define MITERUBY_MAX_SIZE_BYTES \
+  MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
 static bool miteruby_sample_event_publish_internal(
   miteruby_raw_events_queue_t *raw_events_queue, value_thread_t thread, const sigset_t *signal_mask, cpu_time_t cpu_time

@@ -7,6 +7,7 @@
 #include "pprof/zstd.h"
 #include "../datadog_ruby_common.h"
 #include "../helpers.h"
+#include "../private_vm_api_access.h"
 #include "../time_helpers.h"
 
 #include <ruby/thread.h>
