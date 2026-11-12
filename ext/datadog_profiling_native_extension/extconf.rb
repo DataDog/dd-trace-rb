@@ -214,6 +214,9 @@ $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
 # On older Rubies, there was no thread->invoke_arg
 $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 
+# On older Rubies, there was no ISEQ_TYPE_PLAIN iseq type
+$defs << "-DNO_ISEQ_TYPE_PLAIN" if RUBY_VERSION < "2.6"
+
 # If we got here, libdatadog is available and loaded
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
