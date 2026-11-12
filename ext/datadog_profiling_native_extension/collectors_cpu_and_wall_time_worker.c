@@ -1330,7 +1330,8 @@ static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
     }
     const miteruby_event_header_t *header = (const miteruby_event_header_t *)record.data;
     VALUE sample_header = rb_hash_new();
-    rb_hash_aset(sample_header, ID2SYM(rb_intern("flags")), UINT2NUM(header->flags));
+    rb_hash_aset(sample_header, ID2SYM(rb_intern("stack_truncated")), header->stack_truncated ? Qtrue : Qfalse);
+    rb_hash_aset(sample_header, ID2SYM(rb_intern("frame_count")), UINT2NUM(header->frame_count));
     rb_hash_aset(sample_header, ID2SYM(rb_intern("cpu_time_ns")), LONG2NUM(header->cpu_time.ns));
     rb_ary_push(headers, sample_header);
   }
