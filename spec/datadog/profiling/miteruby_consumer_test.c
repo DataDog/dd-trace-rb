@@ -504,12 +504,13 @@ static void test_unique_stacks_map_capacity(void) {
 static void test_fixed_array_capacity(void) {
   miteruby_consumer_reset();
   uint8_t *array = consumer_state.interned_events_queue;
+  enum { frame_count = 600 };
   union {
     miteruby_event_stack_sample_t event;
-    uint64_t words[MITERUBY_MAX_SIZE_BYTES / sizeof(uint64_t)];
+    uint64_t words[MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + frame_count * MITERUBY_BYTES_PER_FRAME) / sizeof(uint64_t)];
   } full_storage = {0};
   miteruby_event_stack_sample_t *event = &full_storage.event;
-  event->header.frame_count = MAX_FRAMES_LIMIT;
+  event->header.frame_count = frame_count;
   miteruby_bytecode_pos_t *bytecode_positions = bytecode_positions_for(event);
   size_t compact_stack_size = 1848;
   uint16_t bytecode_pos = 0;

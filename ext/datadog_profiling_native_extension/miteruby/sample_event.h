@@ -3,7 +3,6 @@
 #include <ruby.h>
 
 #include "raw_events_queue.h"
-#include "../private_vm_api_access.h"
 #include "event.h"
 
 // ALL miteruby_sample_event_publish_* events MUST have the main ractor's GVL and no GC in progress. That's because
