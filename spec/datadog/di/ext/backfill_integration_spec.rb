@@ -53,6 +53,7 @@ RSpec.describe "CodeTracker backfill integration" do
 
   after do
     component.shutdown!
+  ensure
     Datadog::DI.deactivate_tracking!
   end
 
