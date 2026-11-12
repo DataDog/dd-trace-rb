@@ -510,7 +510,9 @@ static void test_fixed_array_capacity(void) {
   enum { frame_count = 600 };
   union {
     miteruby_event_stack_sample_t event;
-    uint64_t words[MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + frame_count * MITERUBY_BYTES_PER_FRAME) / sizeof(uint64_t)];
+    uint64_t words[MITERUBY_ROUND_UP_TO_8_BYTES(
+      sizeof(miteruby_event_stack_sample_t) + frame_count * (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t))
+    ) / sizeof(uint64_t)];
   } full_storage = {0};
   miteruby_event_stack_sample_t *event = &full_storage.event;
   event->header.frame_count = frame_count;

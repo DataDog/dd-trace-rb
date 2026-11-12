@@ -7,6 +7,7 @@
 
 #include <errno.h>
 
+#define MITERUBY_BYTES_PER_FRAME (sizeof(miteruby_frame_t) + sizeof(miteruby_bytecode_pos_t))
 #define MITERUBY_MAX_SIZE_BYTES \
   MITERUBY_ROUND_UP_TO_8_BYTES(sizeof(miteruby_event_stack_sample_t) + MAX_FRAMES_LIMIT * MITERUBY_BYTES_PER_FRAME)
 
