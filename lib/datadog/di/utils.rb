@@ -164,8 +164,6 @@ module Datadog
         false
       end
 
-      # Root namespace prefix of a constant path: an optional leading "::"
-      # followed by any number of "Object::" segments.
       ROOT_NAMESPACE_PREFIX = /\A(?:::)?(?:Object::)*/
       private_constant :ROOT_NAMESPACE_PREFIX
 
