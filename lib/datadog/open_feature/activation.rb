@@ -295,7 +295,13 @@ module Datadog
         if @delivery_source == Configuration::Source::REMOTE_CONFIG
           @flag_selection_reporter.warn_remote_config if flag_selection
         elsif flag_selection != @claimed_flag_selection
-          @flag_selection_reporter.warn_selection_differs
+          # A different selection is not used: it reports its own drop, and warns only if it would load
+          # other flags, since a dropped selection and no selection both load every flag.
+          drop_reason = flag_selection&.drop_reason
+          @flag_selection_reporter.report_dropped(drop_reason) if drop_reason
+          joining_flags = flag_selection unless flag_selection&.dropped?
+          loaded_flags = @claimed_flag_selection unless @flag_selection_dropped
+          @flag_selection_reporter.warn_selection_differs unless joining_flags == loaded_flags
         elsif flag_selection && @flag_selection_dropped
           report_flag_selection_not_sent(flag_selection)
         end

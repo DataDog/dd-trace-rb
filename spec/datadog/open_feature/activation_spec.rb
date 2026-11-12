@@ -750,6 +750,64 @@ RSpec.describe Datadog::OpenFeature::Activation do
       end
     end
 
+    context "when a later provider's different selection is malformed" do
+      let(:provider_selection) { nil }
+      let(:second_selection) { selection(tags: [1]) }
+
+      it "logs and counts its own drop without the differs warning" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).to have_received(:error).with(
+          "flag_selection was not sent (malformed_selection: flag_selection must be a Hash with optional " \
+            "tags and key_patterns string arrays). Loading the full flag configuration.",
+        ).once
+        expect(telemetry).to have_received(:inc)
+          .with("tracers", "flag_selection.dropped", 1, tags: {reason: "malformed_selection"}).once
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+      end
+    end
+
+    context "when a later provider has no selection after a dropped one" do
+      let(:provider_selection) { selection(tags: ["a" * 201]) }
+      let(:second_selection) { nil }
+
+      it "does not warn, since both load every flag" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).to have_received(:error).once
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+      end
+    end
+
+    context "when a later provider's selection is dropped after a sent one" do
+      let(:second_selection) { selection(tags: ["b" * 201]) }
+
+      it "logs its own drop and warns" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).to have_received(:error).with(
+          "flag_selection was not sent (invalid_tag: each tag is at most 200 UTF-8 bytes). " \
+            "Loading the full flag configuration.",
+        ).once
+        expect(logger).to have_received(:warn).with(differs_warning).once
+      end
+    end
+
+    context "when a later provider has no selection after one the request URL cannot carry" do
+      let(:provider_selection) { selection(tags: Array.new(31) { |index| format("%02d", index) + "\u00E9" * 99 }) }
+      let(:second_selection) { nil }
+
+      it "does not warn" do
+        activation.activate(provider)
+        activation.activate(second_provider)
+
+        expect(logger).not_to have_received(:warn).with(differs_warning)
+      end
+    end
+
     context "when agentless delivery does not start" do
       let(:provider_selection) { selection(tags: ["a" * 201]) }
 
