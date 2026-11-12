@@ -421,10 +421,11 @@ RSpec.describe Datadog::DI::ProbeManager do
     # The after hook calls manager.close, which calls instrumenter.unhook
     # for each installed probe. RSpec stubs a method by running
     # `class << instrumenter`, and the definition trace point reports the
-    # end of that class body to #install_pending_method_probes. This before
-    # hook creates the stub ahead of manager.reopen, which enables the trace
-    # point, so the trace point reports only the classes that the examples
-    # define.
+    # end of that class body to #install_pending_method_probes, on Ruby
+    # 3.3 and older (Ruby 3.4 no longer fires :end for singleton class
+    # bodies). This before hook creates the stub ahead of manager.reopen,
+    # which enables the trace point, so the trace point reports only the
+    # classes that the examples define.
     before do
       allow(instrumenter).to receive(:unhook)
     end
