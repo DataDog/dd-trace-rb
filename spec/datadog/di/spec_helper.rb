@@ -328,6 +328,7 @@ module ProbeNotifierWorkerLeakDetector
 
   ProbeNotifierWorkerLeakDetector.workers = []
 
+  # Records the starting worker in the leak registry, then starts it.
   def start
     unless ProbeNotifierWorkerLeakDetector.workers.any? { |(worker, _example)| worker.equal?(self) }
       ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
