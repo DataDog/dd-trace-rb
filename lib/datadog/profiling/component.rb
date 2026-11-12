@@ -48,7 +48,7 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-        miteruby_enabled = DATADOG_ENV["MITERUBY"] == "true"
+        miteruby_enabled = settings.profiling.advanced.experimental_miteruby_enabled
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings, logger)
         allocation_profiling_enabled = enable_allocation_profiling?(settings, logger)
         heap_sample_every = get_heap_sample_every(settings)

@@ -646,6 +646,16 @@ module Datadog
               o.default true
             end
 
+            # New experimental backend for the profiler that aims to reduce overhead.
+            # NOT RECOMMENDED IN PRODUCTION AT ALL (yet!).
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_miteruby_enabled do |o|
+              o.type :bool
+              o.env "DD_PROFILING_EXPERIMENTAL_MITERUBY_ENABLED"
+              o.default false
+            end
+
             # Whether the profiler samples include the class/module name in stack frames, like `Foo::Bar#baz`, or not (`baz`)
             #
             # @default `DD_PROFILING_EXPERIMENTAL_SHOW_CLASSES_ENABLED` environment variable as a boolean, otherwise `true`
