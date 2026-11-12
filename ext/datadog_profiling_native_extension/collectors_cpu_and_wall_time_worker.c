@@ -1329,12 +1329,10 @@ static VALUE _native_miteruby_read_sample_headers(DDTRACE_UNUSED VALUE self) {
       return headers;
     }
     const miteruby_event_header_t *header = (const miteruby_event_header_t *)record.data;
-    if (header->type == MITERUBY_EVENT_STACK_SAMPLE) {
-      VALUE sample_header = rb_hash_new();
-      rb_hash_aset(sample_header, ID2SYM(rb_intern("flags")), UINT2NUM(header->flags));
-      rb_hash_aset(sample_header, ID2SYM(rb_intern("cpu_time_ns")), LONG2NUM(header->cpu_time.ns));
-      rb_ary_push(headers, sample_header);
-    }
+    VALUE sample_header = rb_hash_new();
+    rb_hash_aset(sample_header, ID2SYM(rb_intern("flags")), UINT2NUM(header->flags));
+    rb_hash_aset(sample_header, ID2SYM(rb_intern("cpu_time_ns")), LONG2NUM(header->cpu_time.ns));
+    rb_ary_push(headers, sample_header);
   }
 }
 

@@ -157,7 +157,6 @@ static int check_consumer_mutex_unlocked(DDTRACE_UNUSED void *unused) {
 static void test_reset_failure(const char *allocation, const char *message) {
   miteruby_consumer_reset();
   sample_storage storage = {0};
-  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
   storage.event.header.frame_count = 1;
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
@@ -456,7 +455,6 @@ static void test_dedup_errors(void) {
   bytecode_positions_for(event)[0].value = 7;
   failed_allocation_name = "unique_stacks_map";
   assert_failed_dedup(event);
-  event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->frames[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
   size_t events_count = buffered_event_count();
   size_t stacks_pos = consumer_state.interned_events_pos;
@@ -544,7 +542,6 @@ static void test_fixed_array_capacity(void) {
   assert(reserve_stack(event->header.frame_count, miteruby_stack_hash(event)).error_storage_full);
 
   sample_storage storage = {0};
-  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
   storage.event.thread.value = Qtrue;
   size_t previous_events_count = buffered_event_count();
   size_t previous_frame_count = verstable_mark_frame_set_size(&consumer_state.mark_frame_set);
@@ -567,7 +564,6 @@ static void test_compact_events_and_reset(void) {
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
   event->header = (miteruby_event_header_t) {
-    .type = MITERUBY_EVENT_STACK_SAMPLE,
     .size_bytes = 72,
     .frame_count = 2,
     .flags = MITERUBY_EVENT_STACK_TRUNCATED | MITERUBY_EVENT_FROM_SIGNAL_HANDLER,
@@ -619,7 +615,6 @@ static void test_compact_events_and_reset(void) {
     const miteruby_event_deduped_sample_t *deduped = (const miteruby_event_deduped_sample_t *)(queue + i * sizeof(*deduped));
     assert(deduped->stack.frame_count == (i == 0 ? 2 : 0));
     assert(deduped->stack.ids_size == (i == 0 ? 2 : 0));
-    assert(deduped->header.type == MITERUBY_EVENT_DEDUPED_SAMPLE);
     assert(deduped->header.size_bytes == sizeof(*deduped));
     assert(deduped->header.frame_count == 2);
     assert(deduped->header.flags == event->header.flags);
@@ -627,11 +622,6 @@ static void test_compact_events_and_reset(void) {
     assert(deduped->header.cpu_time.ns == 456);
     assert(deduped->thread.value == Qnil && deduped->stack_id.offset == 0);
   }
-
-  miteruby_event_header_t invalid = {.type = MITERUBY_EVENT_INVALID, .size_bytes = sizeof(invalid)};
-  size_t previous_count = buffered_event_count();
-  assert(buffer_event(&invalid) == MITERUBY_CONSUMER_OK);
-  assert(buffered_event_count() == previous_count);
 
   reset_stacks();
   event->thread.value = Qtrue;
@@ -693,7 +683,6 @@ static void test_frame_identity(void) {
   miteruby_consumer_reset();
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
-  event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->header.frame_count = 1;
   event->thread.value = Qnil;
   const rb_callable_method_entry_t *cme = (const rb_callable_method_entry_t *)&storage.words[12];
@@ -815,7 +804,6 @@ static void test_retention_failure(bool fail_threads, size_t retained_objects, u
   verstable_mark_frame_set_cleanup(&consumer_state.mark_frame_set);
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
-  event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->thread.value = Qnil;
   assert(buffer_event(&event->header) == MITERUBY_CONSUMER_OK);
   if (fail_threads) {
@@ -901,7 +889,6 @@ static void test_mark_frame_capacity(void) {
   assert(miteruby_allocator_requested_bytes() == allocated_bytes);
 
   sample_storage storage = {0};
-  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
   storage.event.header.frame_count = 1;
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)(count + 1);
@@ -927,7 +914,7 @@ static VALUE consume_invalid_raw_events_queue(DDTRACE_UNUSED VALUE unused) {
 
 static void assert_frame_storage_full(void) {
   sample_storage storage = {0};
-  storage.event.header = (miteruby_event_header_t) {.type = MITERUBY_EVENT_STACK_SAMPLE, .frame_count = 1, .size_bytes = 56};
+  storage.event.header = (miteruby_event_header_t) {.frame_count = 1, .size_bytes = 56};
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)1;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
@@ -941,7 +928,6 @@ static void assert_frame_storage_full(void) {
 
 static void assert_consumer_storage_full(void) {
   sample_storage storage = {0};
-  storage.event.header.type = MITERUBY_EVENT_STACK_SAMPLE;
   storage.event.header.size_bytes = sizeof(miteruby_event_stack_sample_t);
   storage.event.thread.value = Qnil;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);
@@ -972,7 +958,7 @@ static void test_invalid_frame(void) {
   miteruby_consumer_reset();
   sample_storage storage = {0};
   storage.event.header = (miteruby_event_header_t) {
-    .type = MITERUBY_EVENT_STACK_SAMPLE, .size_bytes = 72, .frame_count = 2,
+    .size_bytes = 72, .frame_count = 2,
   };
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)&storage.words[14];
@@ -1042,7 +1028,6 @@ static void test_location_interning_failure(void) {
   verstable_location_set_cleanup(&consumer_state.location_set);
   sample_storage storage = {0};
   miteruby_event_stack_sample_t *event = &storage.event;
-  event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->header.frame_count = 1;
   event->thread.value = Qnil;
   event->frames[0].iseq = (const rb_iseq_t *)&storage.words[15];
@@ -1112,7 +1097,7 @@ static void test_location_array_capacity(void) {
   assert(id.value.value == UINT20_MAX && array->count == LOCATION_ARRAY_CAPACITY);
 
   sample_storage storage = {0};
-  storage.event.header = (miteruby_event_header_t) {.type = MITERUBY_EVENT_STACK_SAMPLE, .frame_count = 1, .size_bytes = 56};
+  storage.event.header = (miteruby_event_header_t) {.frame_count = 1, .size_bytes = 56};
   storage.event.thread.value = Qnil;
   storage.event.frames[0].cme = (const rb_callable_method_entry_t *)1;
   assert(miteruby_raw_events_queue_init(&invalid_raw_events_queue) == 0);

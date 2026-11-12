@@ -64,7 +64,6 @@ static bool miteruby_sample_event_publish_internal(
 
   event->header.timestamp = monotonic_time_now();
   event->header.cpu_time = cpu_time;
-  event->header.type = MITERUBY_EVENT_STACK_SAMPLE;
   event->thread = thread;
   event->header.flags = miteruby_rb_profile_frames(event->thread.value, MITERUBY_MAX_FRAMES, &view);
   if (from_signal_handler) event->header.flags |= MITERUBY_EVENT_FROM_SIGNAL_HANDLER;
