@@ -366,6 +366,10 @@ module Datadog
 
         interface _ProfilingAdvanced
           include Options::_Settings
+
+          def experimental_miteruby_enabled: () -> bool
+
+          def experimental_miteruby_enabled=: (bool enabled) -> void
         end
 
         interface _OpenFeature

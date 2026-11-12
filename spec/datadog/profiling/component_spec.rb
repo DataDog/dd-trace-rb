@@ -106,8 +106,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       context "when miteruby is enabled" do
         before do
-          allow(Datadog::DATADOG_ENV).to receive(:[]).and_call_original
-          allow(Datadog::DATADOG_ENV).to receive(:[]).with("MITERUBY").and_return("true")
+          settings.profiling.advanced.experimental_miteruby_enabled = true
         end
 
         it "builds a worker without constructing a StackRecorder or ThreadContext" do
