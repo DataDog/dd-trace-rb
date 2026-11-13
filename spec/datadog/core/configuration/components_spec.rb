@@ -1555,19 +1555,23 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe "#before_fork" do
     subject(:before_fork) { components.before_fork }
 
-    let(:runtime_metrics_statsd) { instance_double(::Datadog::Statsd, flush: nil) }
+    # dogstatsd-ruby 4.x, which the dogstatsd-ruby4 CI appraisal
+    # installs, defines no flush, so the flush-capable clients are
+    # plain doubles rather than verifying doubles of Datadog::Statsd.
+    let(:components_statsd) { double("components statsd with flush", flush: nil) }
+    let(:runtime_metrics_statsd) { double("runtime metrics statsd with flush", flush: nil) }
     let(:health_metrics_statsd) { double("statsd without flush") }
 
     before do
+      allow(Datadog::Statsd).to receive(:new).and_return(components_statsd)
       settings.runtime_metrics.statsd = runtime_metrics_statsd
       settings.health_metrics.statsd = health_metrics_statsd
-      allow(components.statsd).to receive(:flush)
     end
 
     it "flushes each client that defines flush" do
       before_fork
 
-      expect(components.statsd).to have_received(:flush).with(no_args)
+      expect(components_statsd).to have_received(:flush).with(no_args)
       expect(runtime_metrics_statsd).to have_received(:flush).with(no_args)
     end
 
@@ -1575,7 +1579,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:error) { IOError.new("closed stream") }
 
       before do
-        allow(components.statsd).to receive(:flush).and_raise(error)
+        allow(components_statsd).to receive(:flush).and_raise(error)
         allow(telemetry).to receive(:report)
       end
 
@@ -1599,56 +1603,53 @@ RSpec.describe Datadog::Core::Configuration::Components do
     subject(:build_statsd) { described_class.build_statsd }
 
     let(:statsd) { instance_double(::Datadog::Statsd) }
-
-    before do
-      allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(version)
+    # This suite runs against dogstatsd-ruby 5.7.1 and, through the
+    # dogstatsd-ruby4 CI appraisal, 4.8.3, whose constructor accepts
+    # no single_thread option, so the expected options follow the
+    # installed version.
+    let(:single_thread_options) do
+      version = Datadog::Core::Metrics::Dogstatsd.installed_version
+      Datadog::Core::Metrics::Dogstatsd.single_thread_supported?(version) ? {single_thread: true} : {}
     end
 
-    context "with a dogstatsd-ruby version that supports the single-thread client" do
-      let(:version) { Gem::Version.new("5.7.1") }
+    it "builds a client for the agent endpoint" do
+      expect(Datadog::Statsd).to receive(:new)
+        .with(
+          Datadog::Core::Metrics::Dogstatsd.default_hostname,
+          Datadog::Core::Metrics::Dogstatsd.default_port,
+          **single_thread_options,
+        )
+        .and_return(statsd)
 
-      it "builds a single-thread client for the agent endpoint" do
+      is_expected.to be statsd
+    end
+
+    context "with DD_AGENT_HOST and DD_METRIC_AGENT_PORT" do
+      with_env "DD_AGENT_HOST" => "dogstatsd.example", "DD_METRIC_AGENT_PORT" => "18125"
+
+      it "builds the client for that endpoint" do
         expect(Datadog::Statsd).to receive(:new)
-          .with(
-            Datadog::Core::Metrics::Dogstatsd.default_hostname,
-            Datadog::Core::Metrics::Dogstatsd.default_port,
-            single_thread: true,
-          )
+          .with("dogstatsd.example", 18125, **single_thread_options)
           .and_return(statsd)
 
         is_expected.to be statsd
       end
-
-      context "with DD_AGENT_HOST and DD_METRIC_AGENT_PORT" do
-        with_env "DD_AGENT_HOST" => "dogstatsd.example", "DD_METRIC_AGENT_PORT" => "18125"
-
-        it "builds the client for that endpoint" do
-          expect(Datadog::Statsd).to receive(:new)
-            .with("dogstatsd.example", 18125, single_thread: true)
-            .and_return(statsd)
-
-          is_expected.to be statsd
-        end
-      end
     end
 
-    context "with a dogstatsd-ruby version before the single-thread client" do
-      let(:version) { Gem::Version.new("4.8.3") }
+    context "when the client constructor raises" do
+      let(:error) { ArgumentError.new("Unknown cardinality: lowest") }
 
-      it "builds a client without the single_thread option" do
-        expect(Datadog::Statsd).to receive(:new)
-          .with(
-            Datadog::Core::Metrics::Dogstatsd.default_hostname,
-            Datadog::Core::Metrics::Dogstatsd.default_port,
-          )
-          .and_return(statsd)
+      it "raises the exception to the caller" do
+        allow(Datadog::Statsd).to receive(:new).and_raise(error)
 
-        is_expected.to be statsd
+        expect { build_statsd }.to raise_error(error)
       end
     end
 
     context "with an incompatible dogstatsd-ruby version" do
-      let(:version) { Gem::Version.new("5.1.0") }
+      before do
+        allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(Gem::Version.new("5.1.0"))
+      end
 
       it "builds no client" do
         expect(Datadog::Statsd).to_not receive(:new)
@@ -1658,23 +1659,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context "without dogstatsd-ruby" do
-      let(:version) { nil }
+      before do
+        allow(Datadog::Core::Metrics::Dogstatsd).to receive(:installed_version).and_return(nil)
+      end
 
       it "builds no client" do
         expect(Datadog::Statsd).to_not receive(:new)
 
         is_expected.to be nil
-      end
-    end
-
-    context "when the client constructor raises" do
-      let(:version) { Gem::Version.new("5.7.1") }
-      let(:error) { ArgumentError.new("Unknown cardinality: lowest") }
-
-      it "raises the exception to the caller" do
-        allow(Datadog::Statsd).to receive(:new).and_raise(error)
-
-        expect { build_statsd }.to raise_error(error)
       end
     end
   end
