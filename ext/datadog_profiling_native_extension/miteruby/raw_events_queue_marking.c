@@ -4,18 +4,14 @@
 #include "../setup_signal_handler.h"
 #include "event.h"
 
-_Static_assert(
-  offsetof(miteruby_event_stack_sample_t, thread.value) + sizeof(VALUE) ==
-    offsetof(miteruby_event_stack_sample_t, frames),
-  "Bulk marking requires frame references immediately after thread.value"
-);
 static void miteruby_raw_events_queue_mark_event(const uint64_t *data) {
   const miteruby_event_stack_sample_t *event = (const miteruby_event_stack_sample_t *)data;
 
-  // Layout assertions here and in event.h enforce contiguous VALUE-sized slots without padding.
-  //
-  // TODO: Separate out the thread, use marking there
-  rb_gc_mark_locations(&event->thread.value, (const VALUE *)&event->frames[event->header.frame_count]);
+  rb_gc_mark(event->thread.value);
+
+  // Each frame is a contiguous pair of VALUE-sized CME/ISEQ references without padding (asserted in event.h),
+  // so rb_gc_mark_locations can scan the whole frames array.
+  rb_gc_mark_locations((const VALUE *)event->frames, (const VALUE *)&event->frames[event->header.frame_count]);
 }
 
 void miteruby_raw_events_queue_mark(miteruby_raw_events_queue_t *raw_events_queue) {
