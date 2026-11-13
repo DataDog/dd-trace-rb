@@ -74,7 +74,7 @@ typedef struct {
   verstable_location_set location_set;
   miteruby_location_array_t location_array;
 
-  // MUST be Recursive because Ruby calls during serialization can re-enter marking and memory accounting. (Initialized with `mtx_recursive`)
+  // Ruby exceptions during reset or handoff can re-enter marking and memory accounting, so this must be recursive.
   mtx_t mutex;
 
   uint8_t *interned_events_queue;
@@ -102,13 +102,20 @@ typedef enum {
   MITERUBY_CONSUMER_INVALID_FRAME,
 } miteruby_consumer_exit_reason_t;
 
+typedef struct {
+  VALUE serializer;
+  uint8_t *new_queue;
+  miteruby_frame_t *new_frames;
+  miteruby_location_t *new_locations;
+} batch_handoff_args;
+
 static VALUE consume_loop_body(VALUE args);
 static VALUE consume_loop_ensure(VALUE args);
 static void *consume_without_gvl(void *args);
 static miteruby_consumer_exit_reason_t consume_without_gvl_internal(consumer_consume_loop_args *args);
 static void consume_unblock(void *args);
-static VALUE prepare_serialize_locked(VALUE args);
-static VALUE prepare_serialize_ensure(VALUE unused);
+static VALUE handoff_batch_locked(VALUE args);
+static VALUE handoff_batch_ensure(VALUE args);
 static void reset_serialization_metadata(void);
 static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_t *header);
 
@@ -415,64 +422,69 @@ static VALUE consume_loop_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 void miteruby_consumer_prepare_serialize(VALUE serializer_instance) {
+  batch_handoff_args args = {.serializer = serializer_instance};
   mutex_lock(&consumer_state.mutex);
+  rb_ensure(handoff_batch_locked, (VALUE) &args, handoff_batch_ensure, (VALUE) &args);
 
-  // This part of the work is done while holding the consumer lock so the consumer background thread is stopped...
-  rb_ensure(prepare_serialize_locked, serializer_instance, prepare_serialize_ensure, Qnil);
-
-  // ...`prepare_serialize_ensure` releases the lock as its last step so if we got here, the consumer background thread is free to continue.
-  // The current thread (handling the serialization) will now release the GVL and do the rest of the serialization work without GVL.
-  miteruby_serializer_exit_reason_t result = miteruby_serializer_serialize_no_gvl(serializer_instance);
-
-  // Once we get here, we've re-acquired the GVL and can check if everything is OK or there was a failure and we need to raise.
-  miteruby_serializer_raise_if_failed(result);
+  miteruby_serializer_raise_if_failed(miteruby_serializer_prepare_serialize(serializer_instance));
+  miteruby_serializer_raise_if_failed(miteruby_serializer_serialize_no_gvl(serializer_instance));
+  RB_GC_GUARD(serializer_instance);
 }
 
-static VALUE prepare_serialize_locked(VALUE serializer_instance) {
+static VALUE handoff_batch_locked(VALUE args_pointer) {
+  batch_handoff_args *args = (batch_handoff_args *) args_pointer;
   size_t interned_events_pos = consumer_state.interned_events_pos;
 
-  // Reset all of these, they're only used to quick lookup during consumption data that lives in the arrays we use below
+  // Reset all of these: they're only used for quick lookups during consumption. The data itself lives in the queue
+  // and arrays we're handing off to the serializer below.
   //
-  // This does mean that any failure during serialization means this data is discarded. That's OK because we don't
-  // expect failures during serialization - they're errors we can't recover from.
+  // This does mean that any failure during handoff or serialization discards this batch. That's OK because we don't
+  // expect failures during serialization, and we can't recover the failed batch. The consumer can still collect a new
+  // batch after the handoff; a serialization failure won't discard those new samples.
   consumer_state.interned_events_pos = 0;
   miteruby_stack_dedup_reset();
   verstable_mark_frame_set_clear(&consumer_state.mark_frame_set);
   verstable_location_set_clear(&consumer_state.location_set);
+  miteruby_serializer_check_available(args->serializer);
 
-  // If the serializer is "not available", something went wrong. To avoid accumulating/leaking state, we'll still
-  // discard all of the state of the consumer (it's why we're checking here, after clearing the things above)
-  // + the `prepare_serialize_ensure` will discard the rest.
-  //
-  // Afterwards, the consumer will be able to keep going, as if it had successfully serialized.
-  miteruby_serializer_check_available(serializer_instance);
+  args->new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
+  if (args->new_queue == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
+  args->new_frames = miteruby_allocator_alloc(MARK_FRAME_ARRAY_CAPACITY * sizeof(miteruby_frame_t), "mark_frame_array");
+  if (args->new_frames == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.mark_frame_array");
+  args->new_locations = miteruby_allocator_alloc(LOCATION_ARRAY_CAPACITY * sizeof(miteruby_location_t), "location_array");
+  if (args->new_locations == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.location_array");
 
-  // The existing interned_events_queue will become owned by the serializer, and the consumer gets a fresh new one
-  uint8_t *new_queue = miteruby_allocator_alloc(INTERNED_EVENTS_QUEUE_MAX_SIZE, "interned_events_queue");
-  if (new_queue == NULL) rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
-  uint8_t *interned_events_queue = consumer_state.interned_events_queue;
-  consumer_state.interned_events_queue = new_queue;
-  consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
-
-  // TODO: look into release consumer lock here
-
-  miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
-    serializer_instance, interned_events_queue, interned_events_pos,
+  // Transfer GC ownership before any Ruby call can observe the detached references.
+  miteruby_serializer_raise_if_failed(miteruby_serializer_take_batch(
+    args->serializer, consumer_state.interned_events_queue, interned_events_pos,
     &consumer_state.mark_frame_array, &consumer_state.location_array, &consumer_state.mark_threads_set
-  );
-  miteruby_serializer_raise_if_failed(reason);
+  ));
+  consumer_state.interned_events_queue = args->new_queue;
+  args->new_queue = NULL;
+  consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
+  consumer_state.mark_frame_array = (miteruby_mark_frame_array_t) {
+    .entries = args->new_frames, .capacity = MARK_FRAME_ARRAY_CAPACITY,
+  };
+  args->new_frames = NULL;
+  consumer_state.location_array = (miteruby_location_array_t) {
+    .entries = args->new_locations, .capacity = LOCATION_ARRAY_CAPACITY,
+  };
+  args->new_locations = NULL;
 
   return Qnil;
 }
 
-static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
+static VALUE handoff_batch_ensure(VALUE args_pointer) {
+  batch_handoff_args *args = (batch_handoff_args *) args_pointer;
   reset_serialization_metadata();
   mutex_unlock(&consumer_state.mutex);
+  miteruby_allocator_free(&args->new_queue);
+  miteruby_allocator_free(&args->new_frames);
+  miteruby_allocator_free(&args->new_locations);
   return Qnil;
 }
 
 static void reset_serialization_metadata(void) {
-  // Frames are no longer dereferenced after preparation; retained threads are marked by the serializer.
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
   consumer_state.mark_frame_array.count = 0;
 

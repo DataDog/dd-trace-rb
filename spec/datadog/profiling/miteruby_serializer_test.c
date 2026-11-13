@@ -1,7 +1,9 @@
 #include "../../../ext/datadog_profiling_native_extension/miteruby/allocator.h"
 #include "../../../ext/datadog_profiling_native_extension/miteruby/pprof/pb_encode.h"
 #include "../../../ext/datadog_profiling_native_extension/ruby_helpers.h"
+#include "../../../ext/datadog_profiling_native_extension/miteruby/sample_event.h"
 #include <stdbool.h>
+#include <string.h>
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <threads.h>
@@ -11,9 +13,14 @@
 #undef NDEBUG
 #include <assert.h>
 
+void setup_signal_handler_init(VALUE profiling_module);
+
 static bool fail_allocations;
+static const char *failed_allocation_name;
+static void (*during_preparation)(void);
 static bool fail_string_allocation;
 static bool fail_preparation_encoding;
+static bool fail_preparation_return;
 static enum { NO_GATE, GATE_BEFORE, GATE_DURING } no_gvl_mode;
 static mtx_t gate_mutex;
 static cnd_t gate_condition;
@@ -43,7 +50,8 @@ static void *test_call_without_gvl(void *(*callback)(void *), void *args, rb_unb
 }
 
 static void *test_allocator_alloc(size_t size, const char *name) {
-  return fail_allocations ? NULL : miteruby_allocator_alloc(size, name);
+  if (fail_allocations || (failed_allocation_name != NULL && strcmp(name, failed_allocation_name) == 0)) return NULL;
+  return miteruby_allocator_alloc(size, name);
 }
 
 static VALUE test_str_new(const char *bytes, long size) {
@@ -52,7 +60,13 @@ static VALUE test_str_new(const char *bytes, long size) {
 }
 
 static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct) {
+  if (during_preparation != NULL) {
+    void (*callback)(void) = during_preparation;
+    during_preparation = NULL;
+    callback();
+  }
   if (fail_preparation_encoding) rb_raise(rb_eRuntimeError, "Interrupted preparation");
+  if (fail_preparation_return) return false;
   if (no_gvl_mode == GATE_DURING && !ruby_thread_has_gvl_p()) pause_no_gvl(NULL);
   return pb_encode(stream, fields, src_struct);
 }
@@ -67,6 +81,18 @@ static bool test_pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
 #undef pb_encode
 #undef miteruby_allocator_alloc
 #undef rb_str_new
+
+#define miteruby_allocator_alloc test_allocator_alloc
+#include "../../../ext/datadog_profiling_native_extension/miteruby/consumer.c"
+#undef miteruby_allocator_alloc
+
+static miteruby_serializer_exit_reason_t prepare_batch(
+  VALUE serializer, uint8_t *queue, size_t size,
+  miteruby_mark_frame_array_t *frames, miteruby_location_array_t *locations, verstable_mark_threads_set *threads
+) {
+  miteruby_serializer_exit_reason_t reason = miteruby_serializer_take_batch(serializer, queue, size, frames, locations, threads);
+  return reason == MITERUBY_SERIALIZER_OK ? miteruby_serializer_prepare_serialize(serializer) : reason;
+}
 
 static void test_sample_values(void) {
   verstable_serializer_thread_contexts_map contexts;
@@ -161,6 +187,7 @@ static void test_retained_preparation_state(void) {
   miteruby_serializer_persistent_state_t *state = ruby_xcalloc(1, sizeof(*state));
   state->uncompressed_serialization_buffer = input;
   verstable_serializer_thread_contexts_map_init(&state->thread_contexts);
+  verstable_mark_threads_set_init(&state->threads_set);
   state->compression_workspace = miteruby_allocator_alloc(ZSTD_estimateCStreamSize(COMPRESSION_LEVEL), "serializer_zstd");
   void *workspace = state->compression_workspace;
   assert(workspace != NULL);
@@ -236,16 +263,12 @@ static void test_working_status(void) {
     uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
     assert(queue != NULL);
     int error = 0;
-    if (state->status == SERIALIZER_NO_GVL) {
-      assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, NULL, NULL, NULL) == MITERUBY_SERIALIZER_ALREADY_WORKING);
-      assert(state->interned_events_queue == NULL);
-      rb_protect(check_available, serializer, &error);
-      assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
-      assert(state->status == SERIALIZER_NO_GVL);
-      rb_set_errinfo(Qnil);
-    } else {
-      miteruby_serializer_check_available(serializer);
-    }
+    assert(prepare_batch(serializer, queue, 0, NULL, NULL, NULL) == MITERUBY_SERIALIZER_ALREADY_WORKING);
+    assert(state->interned_events_queue == NULL);
+    rb_protect(check_available, serializer, &error);
+    assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
+    assert(state->status == unfinished_statuses[i]);
+    rb_set_errinfo(Qnil);
     rb_protect(serialize_working_profile, serializer, &error);
     assert(error != 0 && RTEST(rb_obj_is_kind_of(rb_errinfo(), rb_eRuntimeError)));
     assert(state->status == unfinished_statuses[i]);
@@ -274,7 +297,7 @@ static void test_working_status(void) {
   verstable_mark_threads_set_init(&threads);
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
-  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  assert(prepare_batch(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == queue);
   assert(state->status == SERIALIZER_NO_GVL);
   assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
@@ -304,7 +327,7 @@ static void test_missing_thread_context(void) {
     .header = {.size_bytes = sizeof(*event)},
     .thread = {.value = rb_thread_current()},
   };
-  assert(miteruby_serializer_prepare_serialize(
+  assert(prepare_batch(
     serializer, (uint8_t *)event, sizeof(*event), &frames, &locations, &threads
   ) == MITERUBY_SERIALIZER_OK);
   assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
@@ -324,7 +347,7 @@ static VALUE prepare_empty_profile_with_gvl(VALUE serializer) {
   verstable_mark_threads_set_init(&threads);
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
-  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  assert(prepare_batch(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   verstable_mark_threads_set_cleanup(&threads);
   return Qnil;
 }
@@ -352,7 +375,7 @@ static miteruby_raw_events_queue_t *test_no_gvl_completion(void) {
   enum { SUCCESS, RAISE_DURING, KILL_DURING, RAISE_BEFORE, KILL_BEFORE };
   assert(mtx_init(&gate_mutex, mtx_plain) == thrd_success);
   assert(cnd_init(&gate_condition) == thrd_success);
-  miteruby_raw_events_queue_t *raw_events_queue = miteruby_consumer_init();
+  miteruby_raw_events_queue_t *raw_events_queue = consumer_state.raw_events_queue;
   miteruby_consumer_reset();
   VALUE serializer = serializer_new(rb_cObject);
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -490,20 +513,151 @@ static void test_compressed_buffer_lifecycle(void) {
   fail_preparation_encoding = false;
   assert(error != 0);
   rb_set_errinfo(Qnil);
-  assert(state->status == SERIALIZER_PREPARE);
-  assert(state->interned_events_queue != NULL);
-  assert(miteruby_allocator_requested_bytes() == idle_bytes + 1024);
+  assert(state->status == SERIALIZER_EMPTY);
+  assert(state->interned_events_queue == NULL);
+  assert(miteruby_allocator_requested_bytes() == idle_bytes);
   miteruby_serializer_check_available(serializer);
   rb_protect(serialize_working_profile, serializer, &error);
   assert(error != 0);
   rb_set_errinfo(Qnil);
-  assert(state->status == SERIALIZER_PREPARE);
+  assert(state->status == SERIALIZER_EMPTY);
   prepare_empty_profile(serializer);
   assert(state->status == SERIALIZER_FINISHED);
   assert(state->interned_events_queue == NULL);
   assert(miteruby_allocator_requested_bytes() == idle_bytes);
   native_serialize(Qnil, serializer);
   RB_GC_GUARD(serializer);
+}
+
+static VALUE snapshot_serializer;
+static enum { HANDOFF_OK, HANDOFF_EXCEPTION, HANDOFF_ENCODING_ERROR } handoff_outcome;
+
+static VALUE publish_snapshot_sample(DDTRACE_UNUSED VALUE self) {
+  assert(miteruby_sample_event_publish_mask(consumer_state.raw_events_queue, sigprof_signal_mask));
+  return Qnil;
+}
+
+static int consume_snapshot_sample(DDTRACE_UNUSED void *unused) {
+  assert(mtx_trylock(&consumer_state.mutex) == thrd_success);
+  miteruby_raw_events_queue_record_t record = miteruby_raw_events_queue_read(consumer_state.raw_events_queue, NULL);
+  assert(record.data != NULL);
+  assert(buffer_event((const miteruby_event_header_t *)record.data) == MITERUBY_CONSUMER_OK);
+  assert(miteruby_raw_events_queue_read(consumer_state.raw_events_queue, NULL).data == NULL);
+  assert(mtx_unlock(&consumer_state.mutex) == thrd_success);
+  return 0;
+}
+
+static void check_detached_batch(void) {
+  miteruby_serializer_persistent_state_t *state = get_state(snapshot_serializer);
+  assert(state->status == SERIALIZER_PREPARE);
+  assert(state->interned_events_pos > 0 && state->frame_array.count > 0 && state->location_array.count > 0);
+  assert(verstable_mark_threads_set_size(&state->threads_set) == 1);
+  assert(state->frame_array.entries != consumer_state.mark_frame_array.entries);
+  assert(state->location_array.entries != consumer_state.location_array.entries);
+  assert(state->interned_events_queue != consumer_state.interned_events_queue);
+  assert(consumer_state.interned_events_pos == 0 && consumer_state.mark_frame_array.count == 0);
+  assert(consumer_state.mark_frame_set.ctx == &consumer_state.mark_frame_array);
+  assert(consumer_state.location_set.ctx == &consumer_state.location_array);
+
+  rb_eval_string("Class.new { def next_batch; Datadog::Profiling.capture_snapshot_sample; end }.new.next_batch");
+  thrd_t consumer;
+  assert(thrd_create(&consumer, consume_snapshot_sample, NULL) == thrd_success);
+  int result;
+  assert(thrd_join(consumer, &result) == thrd_success && result == 0);
+  assert(consumer_state.interned_events_pos > 0 && consumer_state.mark_frame_array.count > 0);
+
+  int error = 0;
+  rb_protect(check_available, snapshot_serializer, &error);
+  assert(error != 0);
+  rb_set_errinfo(Qnil);
+  rb_gc_start();
+  if (rb_respond_to(rb_mGC, rb_intern("verify_compaction_references")))
+    rb_funcall(rb_mGC, rb_intern("verify_compaction_references"), 0);
+  if (handoff_outcome == HANDOFF_EXCEPTION) rb_raise(rb_eRuntimeError, "Preparation failed after consumption");
+  if (handoff_outcome == HANDOFF_ENCODING_ERROR) {
+    fail_preparation_return = true;
+    return;
+  }
+
+  size_t detached_bytes = miteruby_allocator_alloc_size(state->interned_events_queue) +
+    miteruby_allocator_alloc_size(state->frame_array.entries) + miteruby_allocator_alloc_size(state->location_array.entries) +
+    miteruby_allocator_alloc_size(state->threads_set.buckets);
+  size_t bytes = miteruby_allocator_requested_bytes();
+  VALUE child = rb_funcall(rb_mProcess, rb_intern("fork"), 0);
+  if (NIL_P(child)) {
+    native_reset_after_fork(Qnil, snapshot_serializer);
+    assert(state->status == SERIALIZER_EMPTY && state->frame_array.entries == NULL);
+    assert(state->location_array.entries == NULL && state->threads_set.buckets == NULL);
+    assert(miteruby_allocator_requested_bytes() == bytes - detached_bytes);
+    _exit(0);
+  }
+  int child_status;
+  assert(waitpid(NUM2INT(child), &child_status, 0) == NUM2INT(child));
+  assert(WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0);
+  assert(state->status == SERIALIZER_PREPARE && state->frame_array.count > 0);
+}
+
+static VALUE prepare_consumer_batch(VALUE serializer) {
+  miteruby_consumer_prepare_serialize(serializer);
+  return Qnil;
+}
+
+static void test_batch_handoff(VALUE profiling) {
+  miteruby_consumer_init();
+  miteruby_consumer_reset();
+  rb_define_singleton_method(profiling, "capture_snapshot_sample", publish_snapshot_sample, 0);
+  snapshot_serializer = serializer_new(rb_cObject);
+  rb_gc_register_address(&snapshot_serializer);
+  miteruby_serializer_persistent_state_t *state = get_state(snapshot_serializer);
+
+  const char *allocations[] = {"interned_events_queue", "mark_frame_array", "location_array"};
+  for (size_t i = 0; i < sizeof(allocations) / sizeof(allocations[0]); i++) {
+    rb_eval_string("Datadog::Profiling.capture_snapshot_sample");
+    consume_snapshot_sample(NULL);
+    size_t bytes = miteruby_allocator_requested_bytes();
+    failed_allocation_name = allocations[i];
+    int error = 0;
+    rb_protect(prepare_consumer_batch, snapshot_serializer, &error);
+    failed_allocation_name = NULL;
+    assert(error != 0);
+    rb_set_errinfo(Qnil);
+    assert(miteruby_allocator_requested_bytes() == bytes);
+    assert(consumer_state.interned_events_pos == 0 && consumer_state.mark_frame_array.count == 0);
+    assert(consumer_state.location_array.count == 0 && verstable_mark_threads_set_size(&consumer_state.mark_threads_set) == 0);
+    assert(state->status == SERIALIZER_EMPTY && state->interned_events_queue == NULL);
+    rb_eval_string("Datadog::Profiling.capture_snapshot_sample");
+    thrd_t consumer;
+    assert(thrd_create(&consumer, consume_snapshot_sample, NULL) == thrd_success);
+    int result;
+    assert(thrd_join(consumer, &result) == thrd_success && result == 0);
+    miteruby_consumer_reset();
+  }
+
+  for (int failure = HANDOFF_OK; failure <= HANDOFF_ENCODING_ERROR; failure++) {
+    rb_eval_string("Thread.new { Class.new { def previous_batch; Datadog::Profiling.capture_snapshot_sample; end }.new.previous_batch }.join; nil");
+    consume_snapshot_sample(NULL);
+    handoff_outcome = failure;
+    during_preparation = check_detached_batch;
+    int error = 0;
+    rb_protect(prepare_consumer_batch, snapshot_serializer, &error);
+    fail_preparation_return = false;
+    assert((error != 0) == (failure != HANDOFF_OK));
+    if (error != 0) rb_set_errinfo(Qnil);
+    assert(during_preparation == NULL);
+    assert(state->status == (failure ? SERIALIZER_EMPTY : SERIALIZER_FINISHED));
+    assert(state->frame_array.entries == NULL && state->frame_array.count == 0);
+    assert(state->location_array.entries == NULL && state->location_array.count == 0);
+    assert(state->threads_set.buckets == NULL && state->interned_events_queue == NULL);
+    assert(consumer_state.interned_events_pos > 0 && consumer_state.mark_frame_array.count > 0);
+    if (!failure) native_serialize(Qnil, snapshot_serializer);
+    assert(check_available(snapshot_serializer) == Qnil);
+    miteruby_consumer_prepare_serialize(snapshot_serializer);
+    assert(state->status == SERIALIZER_FINISHED);
+    native_serialize(Qnil, snapshot_serializer);
+    assert(consumer_state.interned_events_pos == 0);
+  }
+  rb_gc_unregister_address(&snapshot_serializer);
+  snapshot_serializer = Qnil;
 }
 
 int main(int argc, char **argv) {
@@ -517,12 +671,15 @@ int main(int argc, char **argv) {
   VALUE profiling = rb_define_module_under(datadog, "Profiling");
   VALUE encoded_profile = rb_define_class_under(profiling, "EncodedProfile", rb_cObject);
   rb_define_singleton_method(encoded_profile, "from_custom", profile_from_custom, 3);
+  private_vm_api_access_init();
+  setup_signal_handler_init(profiling);
   test_sample_values();
   test_reuse_after_error();
   test_retained_preparation_state();
   test_working_status();
   test_missing_thread_context();
   test_compressed_buffer_lifecycle();
+  test_batch_handoff(profiling);
   miteruby_raw_events_queue_t *raw_events_queue = test_no_gvl_completion();
   puts("Miteruby serializer tests passed");
   int result = ruby_cleanup(0);

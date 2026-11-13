@@ -141,7 +141,7 @@ static const miteruby_pprof_fragment_sample_type_value_type_t sample_types[] = {
 
 typedef enum {
   SERIALIZER_EMPTY = 0,
-  SERIALIZER_PREPARE, // Retained after an exception; the next preparation discards the abandoned state.
+  SERIALIZER_PREPARE,
   SERIALIZER_NO_GVL,
   SERIALIZER_FINISHED,
 } serializer_status;
@@ -160,9 +160,12 @@ typedef struct {
   serializer_status status; // Always updated/accessed using GVL, serves to ensure no clobbering across threads
   long start_time_ns;
 
-  // Per-profile working state carried from prepare_serialize_with_gvl into serialize_no_gvl.
+  // Per-profile state; frame/location arrays and threads_set are released after preparation.
   uint8_t *interned_events_queue;
   size_t interned_events_pos;
+  miteruby_mark_frame_array_t frame_array;
+  miteruby_location_array_t location_array;
+  verstable_mark_threads_set threads_set;
   size_t function_count;
   size_t thread_count;
   ZSTD_CCtx *compression_context; // Backed by compression_workspace
@@ -176,8 +179,10 @@ typedef struct {
 typedef struct {
   miteruby_serializer_persistent_state_t *state;
   miteruby_serializer_exit_reason_t exit_reason;
-} serialize_no_gvl_args;
+} serialization_args;
 
+static VALUE prepare_serialize_body(VALUE args);
+static VALUE prepare_serialize_ensure(VALUE args);
 static VALUE release_gvl_and_serialize(VALUE args);
 static VALUE serialize_no_gvl_ensure(VALUE args);
 static void *call_serialize_no_gvl(void *args);
@@ -196,6 +201,16 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
 
 static void serializer_mark(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
+  const miteruby_mark_frame_array_t *frames = &state->frame_array;
+  if (frames->count > 0) rb_gc_mark_locations((const VALUE *)frames->entries, (const VALUE *)&frames->entries[frames->count]);
+  for (
+    verstable_mark_threads_set_itr entry = verstable_mark_threads_set_first(&state->threads_set);
+    !verstable_mark_threads_set_is_end(entry);
+    entry = verstable_mark_threads_set_next(entry)
+  ) {
+    rb_gc_mark(entry.data->key);
+  }
+
   // Keep threads valid for is_thread_alive and prevent VALUE reuse from assigning old contexts to new threads.
   // Non-movable marking also keeps the map's VALUE keys stable during compaction.
   for (
@@ -207,8 +222,17 @@ static void serializer_mark(void *data) {
   }
 }
 
+static void release_preparation_metadata(miteruby_serializer_persistent_state_t *state) {
+  miteruby_allocator_free(&state->frame_array.entries);
+  state->frame_array = (miteruby_mark_frame_array_t) {0};
+  miteruby_allocator_free(&state->location_array.entries);
+  state->location_array = (miteruby_location_array_t) {0};
+  verstable_mark_threads_set_cleanup(&state->threads_set);
+}
+
 static void serializer_free(void *data) {
   miteruby_serializer_persistent_state_t *state = data;
+  release_preparation_metadata(state);
   miteruby_allocator_free(&state->uncompressed_serialization_buffer);
   miteruby_allocator_free(&state->compressed_serialization_buffer);
   miteruby_allocator_free(&state->interned_events_queue);
@@ -222,6 +246,9 @@ static size_t serializer_size(const void *data) {
   return state ? sizeof(miteruby_serializer_persistent_state_t) + miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->compressed_serialization_buffer) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
+    miteruby_allocator_alloc_size(state->frame_array.entries) +
+    miteruby_allocator_alloc_size(state->location_array.entries) +
+    miteruby_allocator_alloc_size(state->threads_set.buckets) +
     miteruby_allocator_alloc_size(state->compression_workspace) +
     miteruby_allocator_alloc_size(state->thread_contexts.buckets) : 0;
 }
@@ -239,7 +266,8 @@ static inline miteruby_serializer_persistent_state_t *get_state(VALUE serializer
 }
 
 void miteruby_serializer_check_available(VALUE serializer) {
-  if (get_state(serializer)->status == SERIALIZER_NO_GVL)
+  serializer_status status = get_state(serializer)->status;
+  if (status == SERIALIZER_PREPARE || status == SERIALIZER_NO_GVL)
     miteruby_serializer_raise_if_failed(MITERUBY_SERIALIZER_ALREADY_WORKING);
 }
 
@@ -314,6 +342,7 @@ static VALUE serializer_new(VALUE klass) {
   miteruby_serializer_persistent_state_t *state;
   VALUE serializer = TypedData_Make_Struct(klass, miteruby_serializer_persistent_state_t, &serializer_type, state);
   verstable_serializer_thread_contexts_map_init(&state->thread_contexts);
+  verstable_mark_threads_set_init(&state->threads_set);
 
   state->uncompressed_serialization_buffer = miteruby_allocator_alloc(MAX_UNCOMPRESSED_BUFFER_BYTES, "uncompressed_serialization_buffer");
   if (state->uncompressed_serialization_buffer == NULL) {
@@ -524,31 +553,53 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
   return MITERUBY_SERIALIZER_OK;
 }
 
-miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
+miteruby_serializer_exit_reason_t miteruby_serializer_take_batch(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_frame_array_t *frame_array, const miteruby_location_array_t *location_array,
-  const verstable_mark_threads_set *threads_set
+  miteruby_mark_frame_array_t *frame_array, miteruby_location_array_t *location_array,
+  verstable_mark_threads_set *threads_set
 ) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
+  if (state->status == SERIALIZER_PREPARE || state->status == SERIALIZER_NO_GVL) return MITERUBY_SERIALIZER_ALREADY_WORKING;
 
-  if (state->status == SERIALIZER_NO_GVL) return MITERUBY_SERIALIZER_ALREADY_WORKING;
-
+  miteruby_allocator_free(&state->interned_events_queue);
+  state->interned_events_queue = interned_events_queue;
+  state->interned_events_pos = interned_events_pos;
+  state->frame_array = *frame_array;
+  *frame_array = (miteruby_mark_frame_array_t) {0};
+  state->location_array = *location_array;
+  *location_array = (miteruby_location_array_t) {0};
+  state->threads_set = *threads_set;
+  verstable_mark_threads_set_init(threads_set);
   state->status = SERIALIZER_PREPARE;
+  return MITERUBY_SERIALIZER_OK;
+}
+
+miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(VALUE serializer) {
+  serialization_args args = {.state = get_state(serializer), .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
+  rb_ensure(prepare_serialize_body, (VALUE) &args, prepare_serialize_ensure, (VALUE) &args);
+  return args.exit_reason;
+}
+
+static VALUE prepare_serialize_body(VALUE args_pointer) {
+  serialization_args *args = (serialization_args *) args_pointer;
+  miteruby_serializer_persistent_state_t *state = args->state;
   state->compressed_serialization_size = 0;
   state->stream = pb_ostream_from_buffer(
     state->uncompressed_serialization_buffer, miteruby_allocator_alloc_size(state->uncompressed_serialization_buffer)
   );
-
-  miteruby_allocator_free(&state->interned_events_queue); // Clear any leftover state, if any
-  state->interned_events_queue = interned_events_queue;
-  state->interned_events_pos = interned_events_pos;
-  miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, frame_array, location_array, threads_set);
-
-  state->status = exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_NO_GVL : SERIALIZER_EMPTY;
-  return exit_reason;
+  args->exit_reason = prepare_serialize_with_gvl(state, &state->frame_array, &state->location_array, &state->threads_set);
+  return Qnil;
 }
 
-// Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
+static VALUE prepare_serialize_ensure(VALUE args_pointer) {
+  serialization_args *args = (serialization_args *) args_pointer;
+  miteruby_serializer_persistent_state_t *state = args->state;
+  release_preparation_metadata(state);
+  state->status = args->exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_NO_GVL : SERIALIZER_EMPTY;
+  if (state->status == SERIALIZER_EMPTY) miteruby_allocator_free(&state->interned_events_queue);
+  return Qnil;
+}
+
 static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   miteruby_serializer_persistent_state_t *state, const miteruby_mark_frame_array_t *frame_array,
   const miteruby_location_array_t *location_array, const verstable_mark_threads_set *threads_set
@@ -666,7 +717,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
 
 miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
-  serialize_no_gvl_args args = {.state = state, .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
+  serialization_args args = {.state = state, .exit_reason = MITERUBY_SERIALIZER_NOT_COMPLETED};
 
   rb_ensure(release_gvl_and_serialize, (VALUE) &args, serialize_no_gvl_ensure, (VALUE) &args);
 
@@ -677,7 +728,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_serialize_no_gvl(VALUE ser
 }
 
 static VALUE serialize_no_gvl_ensure(VALUE args_pointer) {
-  serialize_no_gvl_args *args = (serialize_no_gvl_args *) args_pointer;
+  serialization_args *args = (serialization_args *) args_pointer;
   miteruby_serializer_persistent_state_t *state = args->state;
 
   // A completed profile remains usable even if Ruby raises an interruption while reacquiring the GVL.
@@ -692,7 +743,7 @@ static VALUE release_gvl_and_serialize(VALUE args) {
 }
 
 static void *call_serialize_no_gvl(void *args_pointer) {
-  serialize_no_gvl_args *args = args_pointer;
+  serialization_args *args = args_pointer;
   args->exit_reason = serialize_no_gvl(args->state);
   return NULL;
 }
@@ -790,6 +841,7 @@ static VALUE native_serialize(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
 static VALUE native_reset_after_fork(DDTRACE_UNUSED VALUE klass, VALUE serializer) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   state->status = SERIALIZER_EMPTY;
+  release_preparation_metadata(state);
   verstable_serializer_thread_contexts_map_clear(&state->thread_contexts);
   miteruby_allocator_free(&state->interned_events_queue);
   reset_compressed_buffer(state);
