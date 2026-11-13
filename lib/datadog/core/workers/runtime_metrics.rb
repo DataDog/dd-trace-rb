@@ -52,17 +52,9 @@ module Datadog
           metrics.register_service(service).tap { perform }
         end
 
-        # TODO: `close_metrics` is only needed because
-        # Datadog::Core::Configuration::Components directly manipulates
-        # the lifecycle of Runtime::Metrics.statsd instances.
-        # This should be avoided, as it prevents this class from
-        # ensuring correct resource decommission of its internal
-        # dependencies.
-        def stop(*args, close_metrics: true)
+        def stop(*args)
           self.enabled = false
-          result = super(*args) # steep:ignore UnexpectedPositionalArgument
-          @metrics.close if close_metrics
-          result
+          super
         end
       end
     end

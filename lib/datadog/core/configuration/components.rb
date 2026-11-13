@@ -7,6 +7,7 @@ require_relative "deprecations"
 require_relative "../diagnostics/environment_logger"
 require_relative "../diagnostics/health"
 require_relative "../logger"
+require_relative "../metrics/dogstatsd"
 require_relative "../runtime/metrics"
 require_relative "../telemetry/component"
 require_relative "../workers/runtime_metrics"
@@ -38,12 +39,53 @@ module Datadog
         PATCH_ONLY_ONCE = Utils::OnlyOnce.new
 
         class << self
-          def build_health_metrics(settings, logger, telemetry)
+          # Builds the health metrics client, which submits through the
+          # +health_metrics.statsd+ setting when it is set and through
+          # +statsd+ otherwise.
+          #
+          # @param settings [Configuration::Settings]
+          # @param logger [Core::Logger]
+          # @param telemetry [Core::Telemetry::Component]
+          # @param statsd [Datadog::Statsd, nil] the client that {.build_statsd} built
+          # @return [Core::Diagnostics::Health::Metrics]
+          def build_health_metrics(settings, logger, telemetry, statsd:)
             settings = settings.health_metrics
-            options = {enabled: settings.enabled}
-            options[:statsd] = settings.statsd unless settings.statsd.nil?
+            options = {enabled: settings.enabled, statsd: settings.statsd || statsd}
 
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
+          end
+
+          # Builds the DogStatsD client that the components share, or
+          # returns nil when the installed dogstatsd-ruby is missing or
+          # fails the {Core::Metrics::Dogstatsd.supported?} gate.
+          #
+          # An exception that the Datadog::Statsd constructor raises, such
+          # as the ArgumentError of dogstatsd-ruby 5.7.0 and later for an
+          # invalid DD_CARDINALITY, propagates to the caller. Java, .NET and
+          # PHP log the failure and continue without a client; propagating
+          # matches Python, whose tracer fails to load on an invalid
+          # DD_DOGSTATSD_URL scheme.
+          #
+          # @return [Datadog::Statsd, nil]
+          def build_statsd
+            version = Core::Metrics::Dogstatsd.installed_version
+            return unless Core::Metrics::Dogstatsd.supported?(version)
+
+            # dogstatsd-ruby is an optional dependency, loaded only when it
+            # is installed.
+            require "datadog/statsd"
+
+            options = Core::Metrics::Dogstatsd.single_thread_supported?(version) ? {single_thread: true} : {}
+            # No tags:, origin_detection:, container_id: or cardinality:
+            # option: the points carry the environment tags and the origin
+            # detection fields that the installed dogstatsd-ruby writes by
+            # default (c:, e: and card: from 5.7.0, none before), where Java
+            # writes all three fields, Python c:, and .NET and PHP none.
+            Datadog::Statsd.new(
+              Core::Metrics::Dogstatsd.default_hostname,
+              Core::Metrics::Dogstatsd.default_port,
+              **options,
+            )
           end
 
           # Decides whether to build the SymbolDatabase component, for the
@@ -85,9 +127,17 @@ module Datadog
             logger
           end
 
-          def build_runtime_metrics(settings, logger, telemetry)
-            options = {enabled: settings.runtime_metrics.enabled}
-            options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
+          # Builds the runtime metrics client, which submits through the
+          # +runtime_metrics.statsd+ setting when it is set and through
+          # +statsd+ otherwise.
+          #
+          # @param settings [Configuration::Settings]
+          # @param logger [Core::Logger]
+          # @param telemetry [Core::Telemetry::Component]
+          # @param statsd [Datadog::Statsd, nil] the client that {.build_statsd} built
+          # @return [Core::Runtime::Metrics]
+          def build_runtime_metrics(settings, logger, telemetry, statsd:)
+            options = {enabled: settings.runtime_metrics.enabled, statsd: settings.runtime_metrics.statsd || statsd}
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
             options[:experimental_propagate_process_tags_enabled] = settings.experimental_propagate_process_tags_enabled
@@ -95,11 +145,19 @@ module Datadog
             Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
           end
 
-          def build_runtime_metrics_worker(settings, logger, telemetry)
+          # Builds the runtime metrics worker around the client of
+          # {.build_runtime_metrics}.
+          #
+          # @param settings [Configuration::Settings]
+          # @param logger [Core::Logger]
+          # @param telemetry [Core::Telemetry::Component]
+          # @param statsd [Datadog::Statsd, nil] the client that {.build_statsd} built
+          # @return [Core::Workers::RuntimeMetrics]
+          def build_runtime_metrics_worker(settings, logger, telemetry, statsd:)
             # NOTE: Should we just ignore building the worker if its not enabled?
             options = settings.runtime_metrics.opts.merge(
               enabled: settings.runtime_metrics.enabled,
-              metrics: build_runtime_metrics(settings, logger, telemetry),
+              metrics: build_runtime_metrics(settings, logger, telemetry, statsd: statsd),
               logger: logger,
             )
 
@@ -169,6 +227,13 @@ module Datadog
           :symbol_database,
           :profiler_unavailable_reason
 
+        # The DogStatsD client that {.build_statsd} built for these
+        # components, or nil when dogstatsd-ruby is missing or incompatible.
+        # The components close it in {#shutdown!}.
+        #
+        # @return [Datadog::Statsd, nil]
+        attr_reader :statsd
+
         def initialize(settings)
           @settings = settings
           @logger = self.class.build_logger(settings)
@@ -187,6 +252,10 @@ module Datadog
             Utils::AtForkMonkeyPatch.at_fork(:child) do
               # Access via global to avoid capturing 'self'
               Datadog.send(:components, allow_initialization: false)&.after_fork
+            end
+
+            Utils::AtForkMonkeyPatch.at_fork(:before) do
+              Datadog.send(:components, allow_initialization: false)&.before_fork
             end
           end
 
@@ -212,8 +281,9 @@ module Datadog
 
           build_profiler
 
-          @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
-          @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
+          @statsd = self.class.build_statsd
+          @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry, statsd: @statsd)
+          @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry, statsd: @statsd)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature_activation = OpenFeature::Activation.new(
@@ -257,6 +327,42 @@ module Datadog
           if defined?(::Rails::Railtie)
             require_relative "../contrib/rails/railtie"
           end
+        end
+
+        # Flushes the DogStatsD clients on the thread that forks, so that a
+        # forked child inherits client buffers without the messages that
+        # the parent submitted. dogstatsd-ruby clears a buffer inherited
+        # across a fork only at the child's first submission, so a child
+        # that exits before submitting would otherwise write the parent's
+        # buffered messages a second time when it closes the client.
+        #
+        # A flush that raises is logged and reported to telemetry, and the
+        # fork proceeds, because an exception of a +:before+ fork callback
+        # makes the fork raise.
+        #
+        # @return [void]
+        def before_fork
+          statsd_clients.each do |client|
+            next unless client.respond_to?(:flush)
+
+            begin
+              client.flush
+            rescue => e
+              logger.debug do
+                "Failed to flush the dogstatsd client before fork: #{e.class}: #{e.message} (#{Array(e.backtrace).first})"
+              end
+              telemetry.report(e, description: "Failed to flush the dogstatsd client before fork")
+            end
+          end
+        end
+
+        # The DogStatsD clients that the components submit through: the
+        # client that {.build_statsd} built and the customer-supplied
+        # clients of runtime metrics and health metrics.
+        #
+        # @return [Array<Datadog::Statsd>]
+        def statsd_clients
+          [statsd, runtime_metrics.metrics.statsd, health_metrics.statsd].compact.uniq
         end
 
         # Called when a fork is detected
@@ -367,35 +473,15 @@ module Datadog
           profiler&.shutdown!
 
           # Shutdown workers
-          runtime_metrics.stop(true, close_metrics: false)
+          runtime_metrics.stop(true)
 
           # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
 
-          # Shutdown the old metrics, unless they are still being used.
-          # (e.g. custom Statsd instances.)
-          #
-          # TODO: This violates the encapsulation created by Runtime::Metrics and
-          # Health::Metrics, by directly manipulating `statsd` and changing
-          # it's lifecycle management.
-          # If we need to directly have ownership of `statsd` lifecycle, we should
-          # have direct ownership of it.
-          old_statsd = [
-            runtime_metrics.metrics.statsd,
-            health_metrics.statsd,
-          ].compact.uniq
-
-          new_statsd = if replacement
-            [
-              replacement.runtime_metrics.metrics.statsd,
-              replacement.health_metrics.statsd,
-            ].compact.uniq
-          else
-            []
-          end
-
-          unused_statsd = (old_statsd - (old_statsd & new_statsd))
-          unused_statsd.each(&:close)
+          # Close the DogStatsD clients, except the customer-supplied ones
+          # that the replacement components keep using.
+          kept_statsd = replacement ? replacement.statsd_clients : []
+          (statsd_clients - kept_statsd).each(&:close)
 
           Core::ProcessDiscovery.shutdown!
 
