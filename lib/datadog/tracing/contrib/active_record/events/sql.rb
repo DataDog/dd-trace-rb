@@ -6,6 +6,7 @@ require_relative "../event"
 require_relative "../ext"
 require_relative "../../analytics"
 require_relative "../../utils/database"
+require_relative "../../aws/rds_endpoint"
 require_relative "../../../../core/telemetry/logger"
 
 module Datadog
@@ -62,7 +63,10 @@ module Datadog
               span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, config[:database])
               span.set_tag(Ext::TAG_DB_NAME, config[:database])
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
-              span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
+              if config[:host]
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host])
+                Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(config[:host]))
+              end
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
             rescue => e
               Datadog.logger.error("#{e.class}: #{e.message}")

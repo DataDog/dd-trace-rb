@@ -2,6 +2,7 @@
 
 require_relative "../../metadata/ext"
 require_relative "../utils/database"
+require_relative "../aws/rds_endpoint"
 require_relative "ext"
 require_relative "jdbc_connection_string"
 require_relative "../ext"
@@ -70,6 +71,7 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, metadata[:host])
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, metadata[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, metadata[:port]) if metadata[:port]
+                Contrib::Utils::Database.set_rds_endpoint_tags(span, Contrib::Aws::RDSEndpoint.parse(metadata[:host]))
                 peer_metadata = true
               end
 

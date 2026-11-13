@@ -1,0 +1,55 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        module RDSEndpoint
+          type endpoint = { identifier: String, endpoint_type: String, region: String }
+
+          self.@cache: ::Hash[String, untyped]
+
+          self.@cache_mutex: ::Thread::Mutex
+
+          TYPE_INSTANCE: "instance"
+
+          TYPE_CLUSTER: "cluster"
+
+          TYPE_CLUSTER_RO: "cluster-ro"
+
+          TYPE_CLUSTER_CUSTOM: "cluster-custom"
+
+          TYPE_PROXY: "proxy"
+
+          MAX_INPUT_BYTES: Integer
+
+          MAX_CACHE_ENTRIES: Integer
+
+          PORT_PATTERN: Regexp
+
+          RDS_LABEL_PATTERN: Regexp
+
+          REGION_PATTERNS_BY_DNS_SUFFIX: Hash[String, Regexp]
+
+          DNS_SUFFIX_ALTERNATION: String
+
+          CHINA_DNS_SUFFIX: String
+
+          ENDPOINT_PATTERN: Regexp
+
+          TYPES_BY_PREFIX: Hash[String?, String]
+
+          NOT_AN_ENDPOINT: Object
+
+          def self.parse: (untyped hostname) -> endpoint?
+
+          private
+
+          def self.fetch_or_parse: (String hostname) -> endpoint?
+
+          def self.parse_endpoint: (String hostname) -> endpoint?
+
+          def self.strip_port: (String hostname) -> String?
+        end
+      end
+    end
+  end
+end
