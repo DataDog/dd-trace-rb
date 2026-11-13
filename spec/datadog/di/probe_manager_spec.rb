@@ -465,7 +465,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
   end
 
-  describe "#probe_condition_evaluation_failed_callback" do
+  describe "#probe_expression_evaluation_failed_callback" do
     let(:rate_limiter) do
       instance_double(Datadog::Core::TokenBucket, allow?: true)
     end
@@ -498,7 +498,7 @@ RSpec.describe Datadog::DI::ProbeManager do
           .with(context, expr, exc).and_return(snapshot)
         expect(probe_notifier_worker).to receive(:add_snapshot).with(snapshot, probe: probe)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
       end
     end
 
@@ -512,7 +512,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
 
         expect(rate_limiter).to have_received(:allow?)
         expect(logger).to have_received(:trace) do |&block|
@@ -530,7 +530,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         expect(probe_notification_builder).not_to receive(:build_condition_evaluation_failed)
         expect(probe_notifier_worker).not_to receive(:add_snapshot)
 
-        manager.probe_condition_evaluation_failed_callback(context, expr, exc)
+        manager.probe_expression_evaluation_failed_callback(context, expr, exc)
       end
     end
   end
