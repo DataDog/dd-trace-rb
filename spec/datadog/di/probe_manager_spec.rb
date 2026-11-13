@@ -418,6 +418,22 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe "#install_pending_method_probes" do
+    # The after hook calls manager.close, which calls instrumenter.unhook
+    # for each installed probe. RSpec stubs a method by running
+    # `class << instrumenter`, and the definition trace point reports the
+    # end of that class body to #install_pending_method_probes, on Ruby
+    # 3.3 and older (Ruby 3.4 no longer fires :end for singleton class
+    # bodies). This before hook creates the stub ahead of manager.reopen,
+    # which enables the trace point, so the trace point reports only the
+    # classes that the examples define.
+    before do
+      allow(instrumenter).to receive(:unhook)
+    end
+
+    after do
+      manager.close
+    end
+
     context "when a class with the same name as target type is defined" do
       let(:probe) do
         Datadog::DI::Probe.new(id: 1, type: :log, type_name: "ProbeManagerSpecTestClass", method_name: "bar")
@@ -431,6 +447,34 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.reopen
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+      end
+    end
+
+    context "when the pending probe type name has a root namespace prefix" do
+      [
+        "::ProbeManagerSpecTestClass",
+        "Object::ProbeManagerSpecTestClass",
+        "::Object::ProbeManagerSpecTestClass",
+      ].each do |type_name|
+        context "when the type name is #{type_name}" do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "prefixed", type: :log, type_name: type_name, method_name: "bar")
+          end
+
+          before do
+            probe_repository.add_pending(probe)
+          end
+
+          it "installs the probe when the class body ends" do
+            expect(instrumenter).to receive(:hook).with(probe, manager)
+
+            manager.reopen
+            class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
+
+            expect(probe_repository.installed_probes).to eq("prefixed" => probe)
+            expect(probe_repository.pending_probes).to be_empty
+          end
+        end
       end
     end
   end

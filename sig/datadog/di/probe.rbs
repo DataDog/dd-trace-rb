@@ -14,6 +14,8 @@ module Datadog
 
       @type_name: String?
 
+      @normalized_type_name: String?
+
       @method_name: String?
 
       @template: String?
@@ -52,6 +54,8 @@ module Datadog
       attr_reader line_no: Integer?
 
       attr_reader type_name: String?
+
+      attr_reader normalized_type_name: String?
 
       attr_reader method_name: String?
 

@@ -920,15 +920,13 @@ RSpec.describe Datadog::DI::Instrumenter do
       it_behaves_like "rejects the probe", "Datadog::Tracing::SpanOperation"
       it_behaves_like "rejects the probe", "Datadog::DI::Instrumenter"
 
-      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
-      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # A leading "::" is Ruby's root-namespace prefix; the rejection
+      # treats "Datadog" and "::Datadog" alike, so users cannot bypass
       # the rejection by typing the root form.
       it_behaves_like "rejects the probe", "::Datadog"
       it_behaves_like "rejects the probe", "::Datadog::Tracing::SpanOperation"
 
-      # Top-level constants are constants of Object, so Object.const_get
-      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
-      # rejection regex strips any leading "Object::" segments so these
+      # The rejection strips any leading "Object::" segments so these
       # aliases cannot bypass it. Object:: is the only alias path to the
       # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
       it_behaves_like "rejects the probe", "Object::Datadog"
@@ -970,9 +968,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           {type_name: "::DatadogLike", method_name: "some_method"}
         end
 
-        # "::DatadogLike" does not match the rejection regex (no "::" or
-        # end-of-string follows "Datadog"), so it falls through to normal
-        # class resolution.
+        # "::DatadogLike" normalizes to "DatadogLike", which the rejection
+        # does not match (no "::" or end-of-string follows "Datadog"), so it
+        # falls through to normal class resolution.
         it "does not reject as Datadog namespace" do
           expect do
             hook_method(probe) do |payload|
@@ -986,9 +984,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           {type_name: "Object::DatadogLike", method_name: "some_method"}
         end
 
-        # The "Object::" stripping only applies before "Datadog" followed by
-        # "::" or end-of-string; "Object::DatadogLike" does not match, so it
-        # falls through to normal class resolution.
+        # "Object::DatadogLike" normalizes to "DatadogLike", which the
+        # rejection does not match (no "::" or end-of-string follows
+        # "Datadog"), so it falls through to normal class resolution.
         it "does not reject as Datadog namespace" do
           expect do
             hook_method(probe) do |payload|
@@ -1001,9 +999,8 @@ RSpec.describe Datadog::DI::Instrumenter do
     context "when targeting Kernel#lambda" do
       # The first group is the Kernel module named directly: a leading "::" is
       # Ruby's root-namespace prefix and any number of leading "Object::"
-      # segments resolve through Object.const_get to the same top-level Kernel
-      # module, so users cannot bypass the rejection by naming Kernel through
-      # one of these aliases.
+      # segments name the same top-level Kernel module, so users cannot
+      # bypass the rejection by naming Kernel through one of these aliases.
       #
       # The second group names other types that inherit Kernel#lambda without
       # overriding it: every class inherits it, so the target method resolves

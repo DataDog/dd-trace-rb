@@ -68,6 +68,10 @@ module Datadog
           raise ArgumentError, "Probe contains line number but not file: #{id}"
         end
 
+        if !type_name.nil? && !type_name.is_a?(String)
+          raise ArgumentError, "Probe type name must be a String, got: #{type_name.class}: #{id}"
+        end
+
         if type_name && !method_name || method_name && !type_name
           raise ArgumentError, "Partial method probe definition: #{id}"
         end
@@ -81,6 +85,7 @@ module Datadog
         @file = file
         @line_no = line_no
         @type_name = type_name
+        @normalized_type_name = type_name && Utils.normalize_type_name(type_name)
         @method_name = method_name
         @template = template
         @template_segments = template_segments
@@ -119,6 +124,14 @@ module Datadog
       attr_reader :file
       attr_reader :line_no
       attr_reader :type_name
+
+      # The type name in the form Module#name reports for the target class
+      # or module, or nil when the probe has no type name. A leading "::"
+      # and any leading "Object::" segments of +type_name+ are removed.
+      #
+      # @return [String, nil]
+      attr_reader :normalized_type_name
+
       attr_reader :method_name
       attr_reader :template
       attr_reader :template_segments
