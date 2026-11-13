@@ -17,8 +17,6 @@ module Datadog
         SECOND_RETRY_MIN_SECONDS = 5.0
         SECOND_RETRY_MAX_SECONDS = 30.0
         RETRY_JITTER = 0.2
-        # The CDN attributes usage only to a DD-Service value in this format. It drops all other values.
-        USAGE_SERVICE_PATTERN = %r{\A[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}\z}
         # The Agent replaces each run of these characters in a service name with one `_`. It keeps letters, decimal
         # digits and `:./-`.
         USAGE_SERVICE_REPLACED_CHARACTERS = %r{[^\p{L}\p{Nd}:./-]+}
@@ -47,10 +45,12 @@ module Datadog
         end
 
         # Returns the DD-Service value: the service name that APM shows, or nil. It converts the service as the tracer
-        # does for spans, then normalizes it as the Agent does. Thus `My Service` becomes `my_service`. If the CDN drops
-        # the result (for example `_svc` or `café-api`), the header is not sent. Thus usage never goes to a name that
-        # APM does not show. Only the header value changes. The tracer's service stays as configured. Normalization also
-        # replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
+        # does for spans, then normalizes it as the Agent does. Thus `My Service` becomes `my_service`. If the result is
+        # empty or not printable ASCII (for example `café-api`), the header is not sent. Net::HTTP sends non-ASCII bytes,
+        # but the HTTP clients of some other Datadog tracers reject them. All tracers skip such names, so a service sends
+        # the same header in every language. The CDN alone decides which values it attributes usage to, so this method
+        # does not check the CDN format. Only the header value changes. The tracer's service stays as configured.
+        # Normalization also replaces CR and LF, because Net::HTTP raises on them and every poll would fail.
         def self.usage_service(service, logger)
           name = span_service(service.to_s)
           unless name
@@ -63,11 +63,10 @@ module Datadog
           return if name.strip.empty?
 
           normalized = normalize_service(name)
-          return normalized if USAGE_SERVICE_PATTERN.match?(normalized)
+          return normalized if normalized.match?(/\A[\x21-\x7E]+\z/)
 
           logger.debug do
-            "Feature Flags: service #{service.inspect} normalizes to #{normalized.inspect}, which the CDN does not " \
-              "attribute usage to; DD-Service header not sent"
+            "Feature Flags: service #{service.inspect} has no ASCII APM name; DD-Service header not sent"
           end
           nil
         end
@@ -76,7 +75,7 @@ module Datadog
         # and does not split a character. It lowercases ASCII letters. It replaces each run of characters other than
         # letters, decimal digits and `:./-` with one `_`, and removes a run at the end. It removes nothing at the
         # start, so ` svc` becomes `_svc`. The Agent also lowercases some non-ASCII letters. This method does not,
-        # because the CDN drops any name with a non-ASCII letter.
+        # because a name with a non-ASCII letter is not sent.
         def self.normalize_service(service)
           (service.byteslice(0, USAGE_SERVICE_MAX_BYTES) || service).scrub("").downcase(:ascii)
             .gsub(USAGE_SERVICE_REPLACED_CHARACTERS, "_")

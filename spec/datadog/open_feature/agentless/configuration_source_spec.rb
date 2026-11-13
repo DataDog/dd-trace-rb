@@ -150,7 +150,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
       end
 
       # Each row is a service and the DD-Service value it sends, or nil for no header. The values are the output of
-      # NormalizeService in the Agent (datadog-agent pkg/trace/traceutil/normalize v0.82.3), then the CDN format check.
+      # NormalizeService in the Agent (datadog-agent pkg/trace/traceutil/normalize v0.82.3), then the ASCII check.
       [
         ["checkout", "checkout"],
         ["My Service", "my_service"],
@@ -160,7 +160,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         ["a\tb", "a_b"],
         ["a  b!", "a_b"],
         ["svc ", "svc"],
-        [" svc", nil],
+        [" svc", "_svc"],
         ["a_", "a"],
         ["svc-", "svc-"],
         ["a..b", "a..b"],
@@ -174,10 +174,10 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         ["a#{"b" * 100}", "a#{"b" * 99}"],
         ["#{"a" * 100} b", "a" * 100],
         ["#{"a" * 99}\u00E9", "a" * 99],
-        ["_svc", nil],
-        ["-svc", nil],
-        [".svc", nil],
-        [":svc", nil],
+        ["_svc", "_svc"],
+        ["-svc", "-svc"],
+        [".svc", ".svc"],
+        [":svc", ":svc"],
         ["caf\u00E9-api", nil],
         ["Caf\u00E9", nil],
         ["\u652F\u4ED8", nil],
@@ -185,7 +185,7 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         ["\u0130stanbul", nil],
         ["\u00E9" * 60, nil],
         ["___", nil],
-        ["-", nil],
+        ["-", "-"],
         ["", nil],
         ["   ", nil],
       ].each do |service, header|
@@ -212,24 +212,25 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
         end
       end
 
-      context "when the normalized service does not match the CDN format" do
-        before { settings.service = "_svc" }
+      ["caf\u00E9-api", "___"].each do |service|
+        context "when the service #{service.inspect} has no ASCII APM name" do
+          before { settings.service = service }
 
-        it "logs why once, without a warning" do
-          message = "Feature Flags: service \"_svc\" normalizes to \"_svc\", which the CDN does not attribute usage " \
-            "to; DD-Service header not sent"
+          it "logs why once, without a warning" do
+            message = "Feature Flags: service #{service.inspect} has no ASCII APM name; DD-Service header not sent"
 
-          2.times { source.poll }
+            2.times { source.poll }
 
-          expect(debug_messages.count(message)).to eq(1)
-          expect(logger).not_to have_received(:warn)
-          expect(logger).not_to have_received(:error)
+            expect(debug_messages.count(message)).to eq(1)
+            expect(logger).not_to have_received(:warn)
+            expect(logger).not_to have_received(:error)
+          end
         end
       end
 
       # Each row is a service in another encoding or with invalid UTF-8, and the DD-Service value it sends, or nil for no
       # header. The values come from the span path: the tracer sets the service on a span and packs it, the Agent
-      # (v0.82.3) decodes it, then NormalizeService and the CDN format check run.
+      # (v0.82.3) decodes it, then NormalizeService and the ASCII check run.
       [
         ["invalid UTF-8", "My caf\xFF", "my_caf"],
         ["invalid UTF-8 at the 100-byte cut", "#{"a" * 97}\xFFbc", "a" * 97],
@@ -316,8 +317,8 @@ RSpec.describe Datadog::OpenFeature::Agentless::ConfigurationSource do
           end
         end
 
-        ["_svc", "caf\u00E9-api"].each do |name|
-          context "to #{name.inspect}, which the CDN drops once normalized" do
+        ["caf\u00E9-api", "\u652F\u4ED8"].each do |name|
+          context "to #{name.inspect}, which has no ASCII APM name" do
             let(:service) { name }
 
             it "sends the request without DD-Service" do

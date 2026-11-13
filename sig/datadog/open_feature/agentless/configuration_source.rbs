@@ -14,8 +14,6 @@ module Datadog
 
         RETRY_JITTER: Float
 
-        USAGE_SERVICE_PATTERN: Regexp
-
         USAGE_SERVICE_REPLACED_CHARACTERS: Regexp
 
         USAGE_SERVICE_MAX_BYTES: 100
