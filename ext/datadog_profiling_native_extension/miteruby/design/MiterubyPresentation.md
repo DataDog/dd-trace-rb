@@ -44,7 +44,7 @@ For periodic stack samples, miteruby concentrates VM interaction at capture, GC 
 | --- | --- | --- |
 | Signal arrives | Checks VM state, optionally captures frames, triggers Ruby's postponed-job API | Checks VM state and captures raw frames; publishes without scheduling a postponed job |
 | Between capture and export | Postponed jobs enumerate threads, inspect their state, resolve frames, and read labels under the GVL | Consumer hashes and copies native data; Ruby pointers are opaque IDs, with no Ruby object access |
-| GC runs | Marks references retained in sampling buffers and collector state | Marks and pins references in the ring, thread set, and frame array |
+| GC runs | Marks references retained in sampling buffers and collector state | Marks and pins references in the ring, thread set, and function array |
 | Export preparation | Frame names and thread labels were resolved during sampling | Reads names, files, lines, and thread labels under the GVL |
 
 **Benefit:** fewer execution contexts need to understand Ruby objects and VM rules.
@@ -109,7 +109,7 @@ location IDs live inline in its first sample; later samples refer to that sample
 
 - No individual `malloc`/`free` per event or stack: these regions avoid malloc heap fragmentation and per-record allocator metadata.
 - Each mapping records its requested size; allocation/free counters track outstanding capacity exactly. The interned queue's write offset tracks occupied bytes separately.
-- Frame and location arrays hold interned CME/ISEQ pairs and `(frame_id, bytecode_pos)` pairs; sets map those values to array indices.
+- Function and location arrays hold interned CME/ISEQ pairs and `(function_id, bytecode_pos)` pairs; sets map those values to array indices.
 - Native hash-table backing storage uses the same allocator. Linux mapping names help identify these allocations in process memory tools.
 
 **Trade-off:** reserved headroom, alignment padding, and temporary overlap during replacement still cost memory. Accounting covers requested payload bytes, not RSS, page rounding, or allocator headers; Ruby output strings, the profile wrapper, and pinned Ruby objects are additional costs.
@@ -128,7 +128,7 @@ location IDs live inline in its first sample; later samples refer to that sample
 Do compression in the consumer, keeping signal capture simple. Periodic full stacks or independently decodable blocks limit dependency chains.
 
 **Trade-off:** prefix reuse and nibble packing would add decoding work and complicate stack lookup. Measure their net savings
-and CPU cost against the existing frame/location interning and ZigZag-varint delta encoding.
+and CPU cost against the existing function/location interning and ZigZag-varint delta encoding.
 
 ---
 

@@ -268,13 +268,13 @@ static void test_working_status(void) {
     assert(state->finish_time_ns == state->start_time_ns);
   }
 
-  miteruby_mark_frame_array_t frames = {0};
+  miteruby_mark_function_array_t functions = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
   verstable_mark_threads_set_init(&threads);
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
-  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &functions, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   assert(state->interned_events_queue == queue);
   assert(state->status == SERIALIZER_NO_GVL);
   assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_OK);
@@ -294,7 +294,7 @@ static void test_missing_thread_context(void) {
   VALUE serializer = serializer_new(rb_cObject);
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
   size_t idle_bytes = miteruby_allocator_requested_bytes();
-  miteruby_mark_frame_array_t frames = {0};
+  miteruby_mark_function_array_t functions = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
   verstable_mark_threads_set_init(&threads);
@@ -305,7 +305,7 @@ static void test_missing_thread_context(void) {
     .thread = {.value = rb_thread_current()},
   };
   assert(miteruby_serializer_prepare_serialize(
-    serializer, (uint8_t *)event, sizeof(*event), &frames, &locations, &threads
+    serializer, (uint8_t *)event, sizeof(*event), &functions, &locations, &threads
   ) == MITERUBY_SERIALIZER_OK);
   assert(miteruby_serializer_serialize_no_gvl(serializer) == MITERUBY_SERIALIZER_THREAD_CONTEXT_MISSING);
   assert(verstable_serializer_thread_contexts_map_size(&state->thread_contexts) == 0);
@@ -318,13 +318,13 @@ static void test_missing_thread_context(void) {
 }
 
 static VALUE prepare_empty_profile_with_gvl(VALUE serializer) {
-  miteruby_mark_frame_array_t frames = {0};
+  miteruby_mark_function_array_t functions = {0};
   miteruby_location_array_t locations = {0};
   verstable_mark_threads_set threads;
   verstable_mark_threads_set_init(&threads);
   uint8_t *queue = miteruby_allocator_alloc(1024, "test_queue");
   assert(queue != NULL);
-  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &frames, &locations, &threads) == MITERUBY_SERIALIZER_OK);
+  assert(miteruby_serializer_prepare_serialize(serializer, queue, 0, &functions, &locations, &threads) == MITERUBY_SERIALIZER_OK);
   verstable_mark_threads_set_cleanup(&threads);
   return Qnil;
 }

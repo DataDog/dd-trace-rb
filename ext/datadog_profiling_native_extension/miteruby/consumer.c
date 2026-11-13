@@ -21,16 +21,16 @@
 
 #define MARK_THREADS_MAX_SIZE KiB_AS_BYTES(100)
 // All 65,535 array entries fit in 131,072 set buckets; 2-byte IDs plus metadata need just over 512 KiB.
-#define MARK_FRAME_MAX_SIZE MiB_AS_BYTES(1)
-#define MARK_FRAME_ARRAY_CAPACITY UINT16_MAX // ~1 MiB total
+#define MARK_FUNCTION_MAX_SIZE MiB_AS_BYTES(1)
+#define MARK_FUNCTION_ARRAY_CAPACITY UINT16_MAX // ~1 MiB total
 // All 1,048,575 array entries fit in 2,097,152 set buckets; 4-byte IDs plus metadata need just over 12 MiB.
 #define LOCATION_SET_MAX_SIZE MiB_AS_BYTES(13)
 #define LOCATION_ARRAY_CAPACITY UINT20_MAX // ~4 MiB total
 
 static void *mark_threads_calloc(size_t size);
-static void *mark_frame_calloc(size_t size);
-static uint64_t frame_hash(miteruby_frame_id_t id, const miteruby_mark_frame_array_t *array);
-static bool frame_equal(miteruby_frame_id_t left, miteruby_frame_id_t right, const miteruby_mark_frame_array_t *array);
+static void *mark_function_calloc(size_t size);
+static uint64_t function_hash(miteruby_function_id_t id, const miteruby_mark_function_array_t *array);
+static bool function_equal(miteruby_function_id_t left, miteruby_function_id_t right, const miteruby_mark_function_array_t *array);
 static void *location_calloc(size_t size);
 static uint64_t location_hash(miteruby_location_id_t id, const miteruby_location_array_t *array);
 static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t right, const miteruby_location_array_t *array);
@@ -44,21 +44,21 @@ static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t r
 #define IMPLEMENTATION_MODE
 #include "hashtable/verstable.h"
 
-#define NAME verstable_mark_frame_set
-#define KEY_TY miteruby_frame_id_t
-#define CTX_TY miteruby_mark_frame_array_t *
+#define NAME verstable_mark_function_set
+#define KEY_TY miteruby_function_id_t
+#define CTX_TY miteruby_mark_function_array_t *
 // Tiny hack: rely on Verstable's internal parameter name `table` to pass per-table context to hash/equality
 // without changing Verstable
-#define HASH_FN(key) frame_hash((key), table->ctx)
-#define CMPR_FN(left, right) frame_equal((left), (right), table->ctx)
-#define MALLOC_FN(size, ctx) mark_frame_calloc(size)
+#define HASH_FN(key) function_hash((key), table->ctx)
+#define CMPR_FN(left, right) function_equal((left), (right), table->ctx)
+#define MALLOC_FN(size, ctx) mark_function_calloc(size)
 #define FREE_FN(ptr, size, ctx) miteruby_allocator_free_sized((ptr), (size))
 #include "hashtable/verstable.h"
 
 #define NAME verstable_location_set
 #define KEY_TY miteruby_location_id_t
 #define CTX_TY miteruby_location_array_t *
-// Use the same context workaround as mark_frame_set above to look up each ID's location.
+// Use the same context workaround as mark_function_set above to look up each ID's location.
 #define HASH_FN(key) location_hash((key), table->ctx)
 #define CMPR_FN(left, right) location_equal((left), (right), table->ctx)
 #define MALLOC_FN(size, ctx) location_calloc(size)
@@ -70,8 +70,8 @@ static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t r
 typedef struct {
   miteruby_raw_events_queue_t *raw_events_queue;
   verstable_mark_threads_set mark_threads_set;
-  verstable_mark_frame_set mark_frame_set;
-  miteruby_mark_frame_array_t mark_frame_array;
+  verstable_mark_function_set mark_function_set;
+  miteruby_mark_function_array_t mark_function_array;
   verstable_location_set location_set;
   miteruby_location_array_t location_array;
 
@@ -104,9 +104,9 @@ typedef enum {
   MITERUBY_CONSUMER_DEDUP_STORAGE_FULL,
   MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL,
   MITERUBY_CONSUMER_MARK_THREADS_FULL,
-  MITERUBY_CONSUMER_MARK_FRAME_FULL,
+  MITERUBY_CONSUMER_MARK_FUNCTION_FULL,
   MITERUBY_CONSUMER_LOCATION_STORAGE_FULL,
-  MITERUBY_CONSUMER_INVALID_FRAME,
+  MITERUBY_CONSUMER_INVALID_FUNCTION,
 } miteruby_consumer_exit_reason_t;
 
 static VALUE consume_loop_body(VALUE args);
@@ -124,19 +124,19 @@ static void *mark_threads_calloc(size_t size) {
   return miteruby_allocator_alloc(size, "mark_threads");
 }
 
-static void *mark_frame_calloc(size_t size) {
-  if (size > MARK_FRAME_MAX_SIZE) return NULL;
-  return miteruby_allocator_alloc(size, "mark_frame");
+static void *mark_function_calloc(size_t size) {
+  if (size > MARK_FUNCTION_MAX_SIZE) return NULL;
+  return miteruby_allocator_alloc(size, "mark_function");
 }
 
-static uint64_t frame_hash(miteruby_frame_id_t id, const miteruby_mark_frame_array_t *array) {
-  return vt_wyhash(&array->entries[id.value], sizeof(miteruby_frame_t));
+static uint64_t function_hash(miteruby_function_id_t id, const miteruby_mark_function_array_t *array) {
+  return vt_wyhash(&array->entries[id.value], sizeof(miteruby_function_t));
 }
 
-static bool frame_equal(miteruby_frame_id_t left, miteruby_frame_id_t right, const miteruby_mark_frame_array_t *array) {
-  miteruby_frame_t left_frame = array->entries[left.value];
-  miteruby_frame_t right_frame = array->entries[right.value];
-  return left_frame.cme == right_frame.cme && left_frame.iseq == right_frame.iseq;
+static bool function_equal(miteruby_function_id_t left, miteruby_function_id_t right, const miteruby_mark_function_array_t *array) {
+  miteruby_function_t left_function = array->entries[left.value];
+  miteruby_function_t right_function = array->entries[right.value];
+  return left_function.cme == right_function.cme && left_function.iseq == right_function.iseq;
 }
 
 static void *location_calloc(size_t size) {
@@ -146,13 +146,13 @@ static void *location_calloc(size_t size) {
 
 static uint64_t location_hash(miteruby_location_id_t id, const miteruby_location_array_t *array) {
   miteruby_location_t key = array->entries[id.value.value];
-  return vt_hash_integer(((uint32_t) key.frame_id.value << 16) | key.bytecode_pos.value);
+  return vt_hash_integer(((uint32_t) key.function_id.value << 16) | key.bytecode_pos.value);
 }
 
 static bool location_equal(miteruby_location_id_t left, miteruby_location_id_t right, const miteruby_location_array_t *array) {
   miteruby_location_t left_location = array->entries[left.value.value];
   miteruby_location_t right_location = array->entries[right.value.value];
-  return left_location.frame_id.value == right_location.frame_id.value && left_location.bytecode_pos.value == right_location.bytecode_pos.value;
+  return left_location.function_id.value == right_location.function_id.value && left_location.bytecode_pos.value == right_location.bytecode_pos.value;
 }
 
 static void mutex_lock(pthread_mutex_t *mutex) {
@@ -174,7 +174,7 @@ static void consumer_mark(void *data) {
   // (Holding the consumer mutex while blocking production is safe: publishers never acquire it, and queue marking
   // masks SIGPROF before taking the producer lock.)
   //
-  // Every VALUE held by the consumer is protected by the queue, thread set, or frame-reference array; other buffers hold copies.
+  // Every VALUE held by the consumer is protected by the queue, thread set, or function array; other buffers hold copies.
   miteruby_raw_events_queue_mark(state->raw_events_queue);
 
   // Use rb_gc_mark, not rb_gc_mark_movable: references held elsewhere are neither marked nor updated there,
@@ -189,9 +189,9 @@ static void consumer_mark(void *data) {
     rb_gc_mark(itr.data->key);
   }
 
-  // Mark the mark_frame_array
+  // Mark the mark_function_array
   //
-  // Note: Because `mark_frame_array` holds pairs of <cme, iseq>, we could be marking the same cme or iseq
+  // Note: Because `mark_function_array` holds pairs of <cme, iseq>, we could be marking the same cme or iseq
   // more than once if it shows up in more than one pair. This is a bit of a classic space/time trade-off: we could
   // introduce another set just for marking, which would be less work at GC time but more memory for us to keep.
   // Something to keep in mind if Ruby's GC marking shows up as a hotspot?
@@ -204,7 +204,7 @@ static void consumer_mark(void *data) {
   // retain a new pair. A duplicate lookup or failed insertion can leave that slot populated, so we must exclude
   // it from marking: those references aren't owned by the array and, after a failed insertion, could become stale
   // once nothing else keeps them alive.
-  const miteruby_mark_frame_array_t *array = &state->mark_frame_array;
+  const miteruby_mark_function_array_t *array = &state->mark_function_array;
   rb_gc_mark_locations((const VALUE *)array->entries, (const VALUE *)&array->entries[array->count]);
 
   mutex_unlock(&consumer_state.mutex);
@@ -218,8 +218,8 @@ static size_t consumer_size(const void *data) {
   size_t size = sizeof(miteruby_consumer_state_t) + sizeof(miteruby_raw_events_queue_t) +
     miteruby_allocator_alloc_size(state->interned_events_queue) +
     miteruby_allocator_alloc_size(state->mark_threads_set.buckets) +
-    miteruby_allocator_alloc_size(state->mark_frame_set.buckets) +
-    miteruby_allocator_alloc_size(state->mark_frame_array.entries) +
+    miteruby_allocator_alloc_size(state->mark_function_set.buckets) +
+    miteruby_allocator_alloc_size(state->mark_function_array.entries) +
     miteruby_allocator_alloc_size(state->location_set.buckets) +
     miteruby_allocator_alloc_size(state->location_array.entries) +
     miteruby_stack_dedup_size();
@@ -242,7 +242,7 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_lock(&consumer_state.mutex);
   size_t interned_events_used_size = consumer_state.interned_events_pos;
   size_t mark_threads_entries = verstable_mark_threads_set_size(&consumer_state.mark_threads_set);
-  size_t mark_frame_entries = consumer_state.mark_frame_array.count;
+  size_t mark_function_entries = consumer_state.mark_function_array.count;
   size_t location_entries = consumer_state.location_array.count;
   miteruby_stack_dedup_stats_t stack_dedup = miteruby_stack_dedup_stats();
   mutex_unlock(&consumer_state.mutex);
@@ -254,11 +254,11 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
     ID2SYM(rb_intern("miteruby_interned_events_queue_used_size_bytes")), SIZET2NUM(interned_events_used_size),
     ID2SYM(rb_intern("miteruby_mark_threads_max_size_bytes")), SIZET2NUM(MARK_THREADS_MAX_SIZE),
     ID2SYM(rb_intern("miteruby_mark_threads_entries")), SIZET2NUM(mark_threads_entries),
-    ID2SYM(rb_intern("miteruby_mark_frame_max_size_bytes")), SIZET2NUM(MARK_FRAME_MAX_SIZE),
-    ID2SYM(rb_intern("miteruby_mark_frame_array_max_size_bytes")),
-      SIZET2NUM(MARK_FRAME_ARRAY_CAPACITY * sizeof(miteruby_frame_t)),
-    ID2SYM(rb_intern("miteruby_mark_frame_array_entries")), SIZET2NUM(mark_frame_entries),
-    ID2SYM(rb_intern("miteruby_mark_frame_entries")), SIZET2NUM(mark_frame_entries),
+    ID2SYM(rb_intern("miteruby_mark_function_max_size_bytes")), SIZET2NUM(MARK_FUNCTION_MAX_SIZE),
+    ID2SYM(rb_intern("miteruby_mark_function_array_max_size_bytes")),
+      SIZET2NUM(MARK_FUNCTION_ARRAY_CAPACITY * sizeof(miteruby_function_t)),
+    ID2SYM(rb_intern("miteruby_mark_function_array_entries")), SIZET2NUM(mark_function_entries),
+    ID2SYM(rb_intern("miteruby_mark_function_entries")), SIZET2NUM(mark_function_entries),
     ID2SYM(rb_intern("miteruby_location_set_max_size_bytes")), SIZET2NUM(LOCATION_SET_MAX_SIZE),
     ID2SYM(rb_intern("miteruby_location_array_max_size_bytes")),
       SIZET2NUM(LOCATION_ARRAY_CAPACITY * sizeof(miteruby_location_t)),
@@ -281,7 +281,7 @@ miteruby_raw_events_queue_t *miteruby_consumer_init(void) {
 
   consumer_state.raw_events_queue = raw_events_queue;
   verstable_mark_threads_set_init(&consumer_state.mark_threads_set);
-  verstable_mark_frame_set_init(&consumer_state.mark_frame_set, &consumer_state.mark_frame_array);
+  verstable_mark_function_set_init(&consumer_state.mark_function_set, &consumer_state.mark_function_array);
   verstable_location_set_init(&consumer_state.location_set, &consumer_state.location_array);
 
   miteruby_stack_dedup_init();
@@ -307,13 +307,13 @@ void miteruby_consumer_reset(void) {
     rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.interned_events_queue");
   }
 
-  miteruby_frame_t *new_entries = miteruby_allocator_alloc(
-    MARK_FRAME_ARRAY_CAPACITY * sizeof(miteruby_frame_t), "mark_frame_array"
+  miteruby_function_t *new_entries = miteruby_allocator_alloc(
+    MARK_FUNCTION_ARRAY_CAPACITY * sizeof(miteruby_function_t), "mark_function_array"
   );
   if (new_entries == NULL) {
     miteruby_allocator_free(&new_queue);
     mutex_unlock(&consumer_state.mutex);
-    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.mark_frame_array");
+    rb_raise(rb_eRuntimeError, "Failed to allocate miteruby.mark_function_array");
   }
 
   miteruby_location_t *new_locations = miteruby_allocator_alloc(
@@ -331,14 +331,14 @@ void miteruby_consumer_reset(void) {
   consumer_state.interned_events_capacity = INTERNED_EVENTS_QUEUE_MAX_SIZE;
 
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
-  verstable_mark_frame_set_clear(&consumer_state.mark_frame_set);
+  verstable_mark_function_set_clear(&consumer_state.mark_function_set);
   verstable_location_set_clear(&consumer_state.location_set);
 
-  miteruby_allocator_free(&consumer_state.mark_frame_array.entries);
-  consumer_state.mark_frame_array = (miteruby_mark_frame_array_t) {
+  miteruby_allocator_free(&consumer_state.mark_function_array.entries);
+  consumer_state.mark_function_array = (miteruby_mark_function_array_t) {
     .entries = new_entries,
     .count = 0,
-    .capacity = MARK_FRAME_ARRAY_CAPACITY,
+    .capacity = MARK_FUNCTION_ARRAY_CAPACITY,
   };
 
   miteruby_allocator_free(&consumer_state.location_array.entries);
@@ -370,10 +370,10 @@ static VALUE consume_loop_body(VALUE args_ptr) {
   if (reason == MITERUBY_CONSUMER_DEDUP_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby stack dedup storage is full");
   if (reason == MITERUBY_CONSUMER_INTERNED_EVENTS_QUEUE_FULL) rb_raise(rb_eRuntimeError, "Miteruby interned events queue is full");
   if (reason == MITERUBY_CONSUMER_MARK_THREADS_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_threads set is full");
-  if (reason == MITERUBY_CONSUMER_MARK_FRAME_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_frame storage is full");
+  if (reason == MITERUBY_CONSUMER_MARK_FUNCTION_FULL) rb_raise(rb_eRuntimeError, "Miteruby mark_function storage is full");
   if (reason == MITERUBY_CONSUMER_LOCATION_STORAGE_FULL) rb_raise(rb_eRuntimeError, "Miteruby location storage is full");
 
-  if (reason == MITERUBY_CONSUMER_INVALID_FRAME) rb_raise(rb_eRuntimeError, "Miteruby invalid frame: both CME and ISEQ are NULL");
+  if (reason == MITERUBY_CONSUMER_INVALID_FUNCTION) rb_raise(rb_eRuntimeError, "Miteruby invalid function: both CME and ISEQ are NULL");
 
   return Qnil;
 }
@@ -438,7 +438,7 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
   // expect failures during serialization - they're errors we can't recover from.
   consumer_state.interned_events_pos = 0;
   miteruby_stack_dedup_reset();
-  verstable_mark_frame_set_clear(&consumer_state.mark_frame_set);
+  verstable_mark_function_set_clear(&consumer_state.mark_function_set);
   verstable_location_set_clear(&consumer_state.location_set);
 
   // If the serializer is "not available", something went wrong. To avoid accumulating/leaking state, we'll still
@@ -459,7 +459,7 @@ static VALUE prepare_serialize_locked(VALUE serializer_instance) {
 
   miteruby_serializer_exit_reason_t reason = miteruby_serializer_prepare_serialize(
     serializer_instance, interned_events_queue, interned_events_pos,
-    &consumer_state.mark_frame_array, &consumer_state.location_array, &consumer_state.mark_threads_set
+    &consumer_state.mark_function_array, &consumer_state.location_array, &consumer_state.mark_threads_set
   );
   miteruby_serializer_raise_if_failed(reason);
 
@@ -473,9 +473,9 @@ static VALUE prepare_serialize_ensure(DDTRACE_UNUSED VALUE unused) {
 }
 
 static void reset_serialization_metadata(void) {
-  // Frames are no longer dereferenced after preparation; retained threads are marked by the serializer.
+  // Functions are no longer dereferenced after preparation; retained threads are marked by the serializer.
   verstable_mark_threads_set_clear(&consumer_state.mark_threads_set);
-  consumer_state.mark_frame_array.count = 0;
+  consumer_state.mark_function_array.count = 0;
 
   consumer_state.location_array.count = 0;
 }
@@ -484,21 +484,21 @@ static bool retain_thread(VALUE thread) {
   return !verstable_mark_threads_set_is_end(verstable_mark_threads_set_get_or_insert(&consumer_state.mark_threads_set, thread));
 }
 
-static miteruby_consumer_exit_reason_t retain_frame(miteruby_frame_t frame, miteruby_frame_id_t *id) {
-  if (frame.cme == NULL && frame.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FRAME;
+static miteruby_consumer_exit_reason_t retain_function(miteruby_function_t function, miteruby_function_id_t *id) {
+  if (function.cme == NULL && function.iseq == NULL) return MITERUBY_CONSUMER_INVALID_FUNCTION;
 
-  miteruby_mark_frame_array_t *array = &consumer_state.mark_frame_array;
-  if (array->count >= array->capacity) return MITERUBY_CONSUMER_MARK_FRAME_FULL;
+  miteruby_mark_function_array_t *array = &consumer_state.mark_function_array;
+  if (array->count >= array->capacity) return MITERUBY_CONSUMER_MARK_FUNCTION_FULL;
 
   // The set stores array indices, so its hash and equality functions need an index to find the cme/iseq pair.
   // Put the pair in the next unused slot so we can look it up using that slot's index. If the pair is already
   // in the set, we get its existing index back and can reuse this slot on the next lookup. Otherwise, the set
   // keeps the new index and we advance count to keep the pair in the array.
-  array->entries[array->count] = frame;
-  verstable_mark_frame_set_itr entry = verstable_mark_frame_set_get_or_insert(
-    &consumer_state.mark_frame_set, (miteruby_frame_id_t) {.value = (uint16_t) array->count}
+  array->entries[array->count] = function;
+  verstable_mark_function_set_itr entry = verstable_mark_function_set_get_or_insert(
+    &consumer_state.mark_function_set, (miteruby_function_id_t) {.value = (uint16_t) array->count}
   );
-  if (verstable_mark_frame_set_is_end(entry)) return MITERUBY_CONSUMER_MARK_FRAME_FULL;
+  if (verstable_mark_function_set_is_end(entry)) return MITERUBY_CONSUMER_MARK_FUNCTION_FULL;
   *id = entry.data->key;
   if (id->value == array->count) array->count++;
   return MITERUBY_CONSUMER_OK;
@@ -508,7 +508,7 @@ static miteruby_consumer_exit_reason_t intern_location(miteruby_location_t locat
   miteruby_location_array_t *array = &consumer_state.location_array;
   if (array->count >= array->capacity) return MITERUBY_CONSUMER_LOCATION_STORAGE_FULL;
 
-  // Like retain_frame, put the pair in the next unused slot so the set can hash and compare it using an index.
+  // Like retain_function, put the pair in the next unused slot so the set can hash and compare it using an index.
   // A duplicate reuses its existing index; only a new entry keeps this slot and advances count.
   array->entries[array->count] = location;
   verstable_location_set_itr entry = verstable_location_set_get_or_insert(
@@ -541,15 +541,15 @@ static miteruby_consumer_exit_reason_t buffer_event(const miteruby_event_header_
     uint20_t previous_value = {0};
     const miteruby_bytecode_pos_t *bytecode_positions = (const miteruby_bytecode_pos_t *)&event->frames[header->frame_count];
     for (uint16_t i = 0; i < header->frame_count; i++) {
-      miteruby_frame_id_t frame_id;
-      miteruby_consumer_exit_reason_t reason = retain_frame(event->frames[i], &frame_id);
+      miteruby_function_id_t function_id;
+      miteruby_consumer_exit_reason_t reason = retain_function(event->frames[i], &function_id);
       if (reason != MITERUBY_CONSUMER_OK) return reason;
       miteruby_location_id_t location_id;
       reason = intern_location(
-        (miteruby_location_t) {.frame_id = frame_id, .bytecode_pos = bytecode_positions[i]}, &location_id
+        (miteruby_location_t) {.function_id = function_id, .bytecode_pos = bytecode_positions[i]}, &location_id
       );
       if (reason != MITERUBY_CONSUMER_OK) return reason;
-      // As we turn the (frame_id, bytecode_pos), into an id, we write those ids into the deduped stack storage
+      // As we turn the (function_id, bytecode_pos), into an id, we write those ids into the deduped stack storage
       if (!miteruby_compressed_deltas_write(previous_value, location_id.value, &cursor, stack.end)) return MITERUBY_CONSUMER_DEDUP_STORAGE_FULL;
       previous_value = location_id.value;
     }

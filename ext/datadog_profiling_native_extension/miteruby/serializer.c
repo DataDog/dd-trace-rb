@@ -185,7 +185,7 @@ static miteruby_serializer_exit_reason_t serialize_no_gvl(
   miteruby_serializer_persistent_state_t *state
 );
 static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
-  miteruby_serializer_persistent_state_t *state, const miteruby_mark_frame_array_t *frame_array,
+  miteruby_serializer_persistent_state_t *state, const miteruby_mark_function_array_t *mark_function_array,
   const miteruby_location_array_t *location_array, const verstable_mark_threads_set *threads_set
 );
 
@@ -381,8 +381,8 @@ static int64_t string_table_id_for(uint64_t function_id, size_t thread_count) {
   return PPROF_STRING_FIRST_DYNAMIC + thread_count * 2 + function_id * 2;
 }
 
-static uint64_t function_id_for(uint64_t frame_index) {
-  return PPROF_FUNCTION_FIRST_DYNAMIC + frame_index;
+static uint64_t function_id_for(uint64_t function_index) {
+  return PPROF_FUNCTION_FIRST_DYNAMIC + function_index;
 }
 
 static uint64_t location_id_for(uint64_t location_index) {
@@ -526,7 +526,7 @@ static miteruby_serializer_exit_reason_t emit_sample_fragment(
 
 miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   VALUE serializer, uint8_t *interned_events_queue, size_t interned_events_pos,
-  const miteruby_mark_frame_array_t *frame_array, const miteruby_location_array_t *location_array,
+  const miteruby_mark_function_array_t *mark_function_array, const miteruby_location_array_t *location_array,
   const verstable_mark_threads_set *threads_set
 ) {
   miteruby_serializer_persistent_state_t *state = get_state(serializer);
@@ -542,7 +542,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
   miteruby_allocator_free(&state->interned_events_queue); // Clear any leftover state, if any
   state->interned_events_queue = interned_events_queue;
   state->interned_events_pos = interned_events_pos;
-  miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, frame_array, location_array, threads_set);
+  miteruby_serializer_exit_reason_t exit_reason = prepare_serialize_with_gvl(state, mark_function_array, location_array, threads_set);
 
   state->status = exit_reason == MITERUBY_SERIALIZER_OK ? SERIALIZER_NO_GVL : SERIALIZER_EMPTY;
   return exit_reason;
@@ -550,7 +550,7 @@ miteruby_serializer_exit_reason_t miteruby_serializer_prepare_serialize(
 
 // Buffer storage belongs to the persistent state; consumer metadata is borrowed while its mutex is held.
 static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
-  miteruby_serializer_persistent_state_t *state, const miteruby_mark_frame_array_t *frame_array,
+  miteruby_serializer_persistent_state_t *state, const miteruby_mark_function_array_t *mark_function_array,
   const miteruby_location_array_t *location_array, const verstable_mark_threads_set *threads_set
 ) {
   state->finish_time_ns = system_epoch_time_now_ns();
@@ -561,7 +561,7 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   //
   // * Build thread contexts + emitting thread name/id
   // * Compute line numbers
-  // * Emit frame names && filenames
+  // * Emit function names && filenames
   //
   // Yet, if we wanted to fully release the GVL during serialization, we could cache all of those across multiple
   // serializations, and reuse their results. Thus, on every serialization, we'd just need to make sure our caches
@@ -613,18 +613,18 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
     }
   }
 
-  // 3. Emit FragmentStringTable: From profile data - frame names and filenames (Requires GVL, depends: 2)
+  // 3. Emit FragmentStringTable: From profile data - function names and filenames (Requires GVL, depends: 2)
   // TODO: Trim method name suffixes like stack collector
   // TODO: Port get_or_compute_native_filename from stack collector
   char qualified_name[4096];
-  for (size_t i = 0; i < frame_array->count; i++) {
-    miteruby_frame_t frame = frame_array->entries[i];
+  for (size_t i = 0; i < mark_function_array->count; i++) {
+    miteruby_function_t function = mark_function_array->entries[i];
     // Upcall into Ruby: Class names, method names, method metadata
-    ssize_t written = ddtrace_location_label(frame.cme, frame.iseq, qualified_name, sizeof(qualified_name));
+    ssize_t written = ddtrace_location_label(function.cme, function.iseq, qualified_name, sizeof(qualified_name));
     if (written > 0) {
       RETURN_IF_ERROR(emit_string_table_entry(stream, qualified_name, written));
     } else {
-      VALUE name = ddtrace_location_base_label(frame.cme, frame.iseq);
+      VALUE name = ddtrace_location_base_label(function.cme, function.iseq);
       RETURN_IF_ERROR(emit_string_table_entry(
         stream, name == Qfalse ? "" : RSTRING_PTR(name), name == Qfalse ? 0 : RSTRING_LEN(name)
       ));
@@ -632,8 +632,8 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
     RETURN_IF_ERROR(flush_if_needed(state));
 
     // Upcall into Ruby: Method metadata, filenames
-    if (frame.iseq != NULL) {
-      VALUE filename = ddtrace_iseq_path(frame.iseq);
+    if (function.iseq != NULL) {
+      VALUE filename = ddtrace_iseq_path(function.iseq);
       RETURN_IF_ERROR(emit_string_table_entry(stream, RSTRING_PTR(filename), RSTRING_LEN(filename)));
     } else {
       const char *filename = "(TODO: resolve filename for cfuncs)";
@@ -652,14 +652,14 @@ static miteruby_serializer_exit_reason_t prepare_serialize_with_gvl(
   // 5. Emit FragmentLocation: From profile data (Requires GVL)
   for (size_t i = 0; i < location_array->count; i++) {
     miteruby_location_t location = location_array->entries[i];
-    const rb_iseq_t *iseq = frame_array->entries[location.frame_id.value].iseq;
+    const rb_iseq_t *iseq = mark_function_array->entries[location.function_id.value].iseq;
     // Upcall into Ruby: rb_iseq_line_no -> Calculate line number
     int64_t line = iseq != NULL && location.bytecode_pos.value != UINT16_MAX ? rb_iseq_line_no(iseq, location.bytecode_pos.value) : 0;
-    RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.frame_id.value), line));
+    RETURN_IF_ERROR(emit_location_fragment(stream, location_id_for(i), function_id_for(location.function_id.value), line));
     RETURN_IF_ERROR(flush_if_needed(state));
   }
 
-  state->function_count = frame_array->count;
+  state->function_count = mark_function_array->count;
 
   return MITERUBY_SERIALIZER_OK;
 }

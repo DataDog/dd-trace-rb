@@ -1905,8 +1905,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           miteruby_raw_events_queue_max_size_bytes: 1024 * 1024, # 1 MiB
           miteruby_interned_events_queue_max_size_bytes: 16 * 1024 * 1024, # 16 MiB
           miteruby_mark_threads_max_size_bytes: 100 * 1024,
-          miteruby_mark_frame_max_size_bytes: 1024 * 1024,
-          miteruby_mark_frame_array_max_size_bytes: 65_535 * 16,
+          miteruby_mark_function_max_size_bytes: 1024 * 1024,
+          miteruby_mark_function_array_max_size_bytes: 65_535 * 16,
           miteruby_location_set_max_size_bytes: 13 * 1024 * 1024,
           miteruby_location_array_max_size_bytes: 1_048_575 * 4,
           miteruby_unique_stacks_map_max_size_bytes: 10 * 1024 * 1024,
@@ -2361,7 +2361,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(cpu_and_wall_time_worker.stats).to include(
           miteruby_interned_events_queue_used_size_bytes: 0,
           miteruby_mark_threads_entries: 0,
-          miteruby_mark_frame_array_entries: 0,
+          miteruby_mark_function_array_entries: 0,
         )
         GC.start
         GC.verify_compaction_references if GC.respond_to?(:verify_compaction_references)
@@ -2661,7 +2661,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(cpu_and_wall_time_worker.stats).to include(
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
-        miteruby_mark_frame_array_entries: 0,
+        miteruby_mark_function_array_entries: 0,
         miteruby_location_array_entries: 0,
         miteruby_unique_stacks_map_entries: 0,
       )
@@ -2732,7 +2732,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
       consume_miteruby
 
-      function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_frame_array_entries)
+      function_count = cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_function_array_entries)
       expect(function_count).to be > 1
       encoded_profile = recorded_miteruby_profile
       expect(samples_from_pprof(encoded_profile).size).to eq(3)
@@ -2756,7 +2756,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       described_class::Testing._native_miteruby_read_sample_headers
       expect(described_class::Testing._native_miteruby_sample_event_publish_testing(Thread.current, 100)).to be true
       consume_miteruby
-      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_frame_array_entries)).to be > 0
+      expect(cpu_and_wall_time_worker.stats.fetch(:miteruby_mark_function_array_entries)).to be > 0
 
       expect do
         described_class._native_miteruby_consumer_prepare_serialize(Datadog::Profiling::StackRecorder.for_testing)
@@ -2765,8 +2765,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(Thread.new { cpu_and_wall_time_worker.stats }.value).to include(
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
-        miteruby_mark_frame_entries: 0,
-        miteruby_mark_frame_array_entries: 0,
+        miteruby_mark_function_entries: 0,
+        miteruby_mark_function_array_entries: 0,
         miteruby_location_set_entries: 0,
         miteruby_location_array_entries: 0,
         miteruby_unique_stacks_map_entries: 0,
@@ -2783,8 +2783,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       empty_usage = {
         miteruby_interned_events_queue_used_size_bytes: 0,
         miteruby_mark_threads_entries: 0,
-        miteruby_mark_frame_entries: 0,
-        miteruby_mark_frame_array_entries: 0,
+        miteruby_mark_function_entries: 0,
+        miteruby_mark_function_array_entries: 0,
         miteruby_location_set_entries: 0,
         miteruby_location_array_entries: 0,
         miteruby_unique_stacks_map_entries: 0,
@@ -2801,8 +2801,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(consumed_stats).to include(
         miteruby_interned_events_queue_used_size_bytes: be >= 96,
         miteruby_mark_threads_entries: 1,
-        miteruby_mark_frame_entries: be > 0,
-        miteruby_mark_frame_array_entries: consumed_stats.fetch(:miteruby_mark_frame_entries),
+        miteruby_mark_function_entries: be > 0,
+        miteruby_mark_function_array_entries: consumed_stats.fetch(:miteruby_mark_function_entries),
         miteruby_location_set_entries: be > 0,
         miteruby_location_array_entries: consumed_stats.fetch(:miteruby_location_set_entries),
         miteruby_unique_stacks_map_entries: 1,

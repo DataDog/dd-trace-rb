@@ -62,13 +62,13 @@ typedef struct {
 - `timestamp`: monotonic observation time, before stack capture.
 - `cpu_time`: cumulative CPU time of the sampled thread at publication, or `INVALID_CPU_TIME` when unavailable.
 
-### miteruby_frame_t
+### miteruby_function_t
 
 ```c
 typedef struct {
   const rb_callable_method_entry_t *cme;
   const rb_iseq_t *iseq;
-} miteruby_frame_t; // 16 bytes
+} miteruby_function_t; // 16 bytes
 ```
 
 - `cme`: callable method entry, where available; identifies C-method frames.
@@ -107,7 +107,7 @@ typedef struct {
 typedef struct {
   miteruby_event_header_t header;
   value_thread_t thread;
-  miteruby_frame_t frames[];
+  miteruby_function_t frames[];
 } miteruby_event_stack_sample_t; // 32 bytes + 18 * frame_count bytes + 0–6 padding bytes
 ```
 
@@ -129,7 +129,7 @@ The producer captures into a local `frame_info` array with `MAX_FRAMES_LIMIT + 1
 the extra entry distinguishes a complete stack from a truncated one. Once the stored frame count is known,
 it converts frames and bytecode positions directly into their final locations in the event buffer.
 The consumer reads positions at byte offset
-`offsetof(miteruby_event_stack_sample_t, frames) + header.frame_count * sizeof(miteruby_frame_t)` from the event.
+`offsetof(miteruby_event_stack_sample_t, frames) + header.frame_count * sizeof(miteruby_function_t)` from the event.
 
 ### miteruby_event_deduped_sample_t
 
@@ -167,7 +167,7 @@ typedef struct {
 ## Export ownership and GC lifetime
 
 - Under the GVL and consumer mutex, preparation clears the consumer's write position and lookup sets, allocates a fresh
-  queue, and transfers ownership of the previous queue to the serializer. The frame/location arrays and thread set remain
+  queue, and transfers ownership of the previous queue to the serializer. The function/location arrays and thread set remain
   available while the serializer resolves Ruby metadata and emits the strings and locations that depend on it.
 - The preparation ensure handler clears the thread set and array counts and releases the mutex on both success and failure.
   Failed preparation discards the batch; it does not restore it for retry. If ownership was transferred, the serializer
