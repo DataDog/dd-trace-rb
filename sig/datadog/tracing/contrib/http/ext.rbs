@@ -19,9 +19,13 @@ module Datadog
           DEFAULT_PEER_SERVICE_NAME: "net/http"
 
           PEER_SERVICE_SOURCES: Array[String]
+          SPAN_CONNECT: "http.connect"
+
           SPAN_REQUEST: "http.request"
 
           TAG_COMPONENT: "net/http"
+
+          TAG_OPERATION_CONNECT: "connect"
 
           TAG_OPERATION_REQUEST: "request"
         end

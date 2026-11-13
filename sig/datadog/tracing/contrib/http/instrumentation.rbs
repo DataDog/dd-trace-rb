@@ -16,9 +16,23 @@ module Datadog
 
             private
 
+            def connect: () -> untyped
+
+            def connection_traceable?: () -> bool
+
+            def annotate_span_with_connection!: (SpanOperation span, untyped request_options, untyped client_config) -> void
+
+            def annotate_span_with_service!: (SpanOperation span, String? host, untyped request_options, untyped client_config) -> void
+
+            def annotate_client_span!: (SpanOperation span, String operation, String? host, Integer? port, untyped request_options) -> void
+
+            def report_annotation_error: (String annotated_object, Exception error) -> void
+
+            def request_uri_path: (untyped request) -> String?
+
             def host_and_port: (untyped request) -> Array[untyped]
 
-            def datadog_configuration: (?Symbol host) -> untyped
+            def datadog_configuration: (?(Symbol | String) host) -> untyped
 
             def analytics_enabled?: (untyped request_options) -> untyped
 
