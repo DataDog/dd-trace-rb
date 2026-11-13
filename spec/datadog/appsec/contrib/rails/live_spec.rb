@@ -390,6 +390,9 @@ RSpec.describe "AppSec Rails integration with ActionController::Live", execute_i
         get_live
       end
 
+      # One wait per live request: each get_live above spawns a controller
+      # thread, and every one of them must finish detaching before the
+      # example ends.
       2.times { wait_for_controller_thread }
     end
 
