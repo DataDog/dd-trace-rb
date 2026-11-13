@@ -74,11 +74,11 @@ module Datadog
       # the whole process.
       GLOBAL_LOG_RATE_LIMIT = 5000
 
-      # Metric probe conditions and value expressions evaluate without the
-      # CPU-time budget that bounds the conditions of log probes: the thread
-      # CPU clock never reaches this deadline.
+      # Evaluation deadline of metric probe value expressions. The thread CPU
+      # clock never reaches it, so value expressions evaluate without the
+      # CPU-time budget that bounds probe conditions.
       # @return [Float]
-      METRIC_EVALUATION_DEADLINE = Float::INFINITY
+      METRIC_VALUE_EVALUATION_DEADLINE = Float::INFINITY
 
       # Canonical guardrails skip reason recorded for each correlation sampler
       # drop decision.
@@ -1333,7 +1333,7 @@ module Datadog
 
           if condition = probe.condition
             begin
-              return unless condition.satisfied?(context, evaluation_deadline: METRIC_EVALUATION_DEADLINE)
+              return unless condition.satisfied?(context, evaluation_deadline: serializer.evaluation_deadline)
             rescue Exception => exc # standard:disable Lint/RescueException
               report_probe_expression_error(probe, context, condition, exc, responder)
               return
@@ -1342,7 +1342,7 @@ module Datadog
 
           if expr = probe.metric_value
             begin
-              value = coerce_metric_value(expr.evaluate(context, evaluation_deadline: METRIC_EVALUATION_DEADLINE))
+              value = coerce_metric_value(expr.evaluate(context, evaluation_deadline: METRIC_VALUE_EVALUATION_DEADLINE))
               emit_metric_value(probe, value, responder)
             rescue Exception => exc # standard:disable Lint/RescueException
               report_probe_expression_error(probe, context, expr, exc, responder)

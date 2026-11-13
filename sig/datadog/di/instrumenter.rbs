@@ -13,7 +13,7 @@ module Datadog
 
       GLOBAL_LOG_RATE_LIMIT: Integer
 
-      METRIC_EVALUATION_DEADLINE: Float
+      METRIC_VALUE_EVALUATION_DEADLINE: Float
 
       CORRELATION_DROP_SKIP_REASONS: Hash[Symbol, String]
 

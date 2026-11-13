@@ -1703,13 +1703,37 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(emitted_probes).to be_empty
         end
 
-        it "evaluates the condition without a CPU-time deadline" do
+        it "evaluates the condition under the serializer's evaluation deadline" do
+          evaluation_deadline = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :float_second) + 60.0
+          allow(serializer).to receive(:evaluation_deadline).and_return(evaluation_deadline)
           expect(condition_expression).to receive(:satisfied?)
-            .with(an_instance_of(Datadog::DI::Context), evaluation_deadline: Float::INFINITY)
+            .with(an_instance_of(Datadog::DI::Context), evaluation_deadline: evaluation_deadline)
             .and_call_original
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method).to eq 42
+        end
+      end
+
+      context "with a condition that exceeds the evaluation deadline" do
+        let(:condition_expression) do
+          compiled, regexps = Datadog::DI::EL::Compiler.new.compile({"matches" => [{"ref" => "@return"}, "4"]})
+          Datadog::DI::EL::Expression.new("@return matches '4'", compiled, regexps: regexps)
+        end
+
+        before do
+          allow(serializer).to receive(:evaluation_deadline).and_return(-Float::INFINITY)
+        end
+
+        it "reports the evaluation timeout and suppresses emission" do
+          hook_metric_probe
+
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(evaluation_errors.length).to eq 1
+          expect(evaluation_errors.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
+          expect(metric_emitter).to_not have_received(:emit)
+          expect(emitted_probes).to be_empty
         end
       end
 
