@@ -5,7 +5,7 @@ module Datadog
 
       @logger: Logger
       @telemetry: Core::Telemetry::Component?
-      @open: bool
+      @closed: bool
       @last_emitted_at: Time?
       @statsd: Datadog::Statsd?
       @available: bool
@@ -19,6 +19,8 @@ module Datadog
       attr_reader statsd: Datadog::Statsd?
 
       def available?: () -> bool
+
+      def closed?: () -> bool
 
       attr_reader last_emitted_at: Time?
 
