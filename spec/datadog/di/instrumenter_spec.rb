@@ -3041,10 +3041,9 @@ RSpec.describe Datadog::DI::Instrumenter do
             observed_calls << payload
           end
 
-          # The gate of a second hit in the same trace reads the stored
-          # budget through WeakRef#weakref_alive?, a stdlib method the
-          # nested method probe below targets. Under the guard the nested
-          # wrapper must short-circuit; unguarded, it fires.
+          # TraceBudgetLedger#fetch calls WeakRef#weakref_alive? on a second
+          # capturing hit in the same trace. Probe that method so the nested
+          # wrapper must short-circuit under the guard; unguarded, it fires.
           weakref_probe = Datadog::DI::Probe.new(type_name: "WeakRef",
             method_name: "weakref_alive?", id: "p-weakref", type: :log,
             capture_snapshot: true, rate_limit: 5000)
@@ -3058,7 +3057,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             HookLineTestClass.new.test_method
             expect(weakref_probe_calls).to be_empty
 
-            expect(WeakRef.new(Object.new).weakref_alive?).to be(true)
+            # Strong local so GC cannot collect the referent before this unguarded call.
+            target = Object.new
+            ref = WeakRef.new(target)
+            expect(ref.weakref_alive?).to be(true)
+            expect(ref.__getobj__).to be(target)
           ensure
             instrumenter.unhook(capturing_line_probe)
             instrumenter.unhook(weakref_probe)
