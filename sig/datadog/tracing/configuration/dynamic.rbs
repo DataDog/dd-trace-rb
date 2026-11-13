@@ -23,6 +23,12 @@ module Datadog
           def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
 
+        class DataStreamsEnabled < SimpleOption
+          def initialize: () -> void
+          def call: (bool? data_streams_enabled) -> Datadog::Core::Telemetry::Event::telemetry_value
+          def configuration_object: () -> Core::Configuration::Settings::_DataStreams
+        end
+
         # Correct type is `OPTIONS: Array[[String, String, Option]]`
         # but steep can't recognize that.
         OPTIONS: Array[Array[(String | Option)]]

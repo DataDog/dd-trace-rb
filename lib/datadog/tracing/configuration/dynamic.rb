@@ -91,8 +91,33 @@ module Datadog
           end
         end
 
+        # Dynamic configuration for `DD_DATA_STREAMS_ENABLED`.
+        class DataStreamsEnabled < SimpleOption
+          def initialize
+            super("data_streams_enabled", "DD_DATA_STREAMS_ENABLED", :enabled)
+          end
+
+          # Starts or stops the Data Streams Monitoring processor to match the new setting.
+          def call(data_streams_enabled)
+            # Ignore non-boolean values: a bad payload must not break the other options.
+            data_streams_enabled = nil unless [true, false].include?(data_streams_enabled)
+
+            telemetry_value = super
+            Core::Configuration::Components.reconfigure_data_streams
+            telemetry_value
+          end
+
+          protected
+
+          def configuration_object
+            Datadog.configuration.data_streams
+          end
+        end
+
         # List of all tracing dynamic configuration options supported.
-        OPTIONS = [LogInjectionEnabled, TracingHeaderTags, TracingSamplingRate, TracingSamplingRules].map do |option_class|
+        OPTIONS = [
+          LogInjectionEnabled, TracingHeaderTags, TracingSamplingRate, TracingSamplingRules, DataStreamsEnabled,
+        ].map do |option_class|
           option = option_class.new
           [option.name, option.env_var, option]
         end

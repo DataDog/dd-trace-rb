@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Remote do
   end
 
   it "declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)" do
-    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 45)
+    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 20, 1 << 29, 1 << 45)
   end
 
   it "declares matches that match APM_TRACING" do
@@ -73,6 +73,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -92,6 +93,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -120,6 +122,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", "X-Test-Header:test_header_rc,Content-Length:"],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -150,6 +153,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
               ["DD_TRACE_SAMPLING_RULES", "[{\"sample_rate\":1.0,\"tags\":{\"service\":\"web-*\"}}]"],
+              ["DD_DATA_STREAMS_ENABLED", nil],
             ))
 
           apply_configs
@@ -514,6 +518,7 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_DATA_STREAMS_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)
@@ -773,6 +778,7 @@ RSpec.describe Datadog::Tracing::Remote do
             ["DD_TRACE_HEADER_TAGS", nil],
             ["DD_TRACE_SAMPLE_RATE", nil],
             ["DD_TRACE_SAMPLING_RULES", nil],
+            ["DD_DATA_STREAMS_ENABLED", nil],
           ))
 
         remote.merge_and_apply_configs(repository)

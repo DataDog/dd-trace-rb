@@ -106,6 +106,7 @@ RSpec.describe "DI implicit enablement integration" do
     allow(Datadog).to receive(:logger).and_return(logger)
     allow(logger).to receive(:warn)
     allow(components).to receive(:reconfigure_sampler)
+    allow(components).to receive(:sync_data_streams)
     allow(telemetry).to receive(:client_configuration_change!)
     allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
     allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
