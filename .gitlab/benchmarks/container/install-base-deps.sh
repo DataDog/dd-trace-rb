@@ -7,6 +7,9 @@ if [ -z "$PYENV_ROOT" ]; then
    exit 1
 fi
 
+# bullseye is EOL: its suites moved off the main mirrors to archive.debian.org.
+sed -i 's|deb.debian.org|archive.debian.org|g; s|security.debian.org|archive.debian.org|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+
 apt-get update && apt-get -y install --no-install-recommends \
         hwinfo \
         procps \
