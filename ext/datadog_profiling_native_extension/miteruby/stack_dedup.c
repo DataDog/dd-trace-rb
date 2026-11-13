@@ -92,7 +92,6 @@ size_t miteruby_stack_dedup_size(void) {
 
 miteruby_stack_dedup_stats_t miteruby_stack_dedup_stats(void) {
   return (miteruby_stack_dedup_stats_t) {
-    .map_max_size_bytes = UNIQUE_STACKS_MAP_MAX_SIZE,
     .map_entries = verstable_unique_stacks_map_size(&stack_dedup_state.unique_stacks),
   };
 }

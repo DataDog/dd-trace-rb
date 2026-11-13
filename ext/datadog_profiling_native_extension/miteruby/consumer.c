@@ -248,23 +248,12 @@ void miteruby_consumer_stats(VALUE stats_as_hash) {
   mutex_unlock(&consumer_state.mutex);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("miteruby_raw_events_queue_max_size_bytes")), SIZET2NUM(MITERUBY_RAW_EVENTS_QUEUE_CAPACITY_BYTES),
-    ID2SYM(rb_intern("miteruby_interned_events_queue_max_size_bytes")),
-      SIZET2NUM(INTERNED_EVENTS_QUEUE_MAX_SIZE),
     ID2SYM(rb_intern("miteruby_interned_events_queue_used_size_bytes")), SIZET2NUM(interned_events_used_size),
-    ID2SYM(rb_intern("miteruby_mark_threads_max_size_bytes")), SIZET2NUM(MARK_THREADS_MAX_SIZE),
     ID2SYM(rb_intern("miteruby_mark_threads_entries")), SIZET2NUM(mark_threads_entries),
-    ID2SYM(rb_intern("miteruby_mark_function_max_size_bytes")), SIZET2NUM(MARK_FUNCTION_MAX_SIZE),
-    ID2SYM(rb_intern("miteruby_mark_function_array_max_size_bytes")),
-      SIZET2NUM(MARK_FUNCTION_ARRAY_CAPACITY * sizeof(miteruby_function_t)),
     ID2SYM(rb_intern("miteruby_mark_function_array_entries")), SIZET2NUM(mark_function_entries),
     ID2SYM(rb_intern("miteruby_mark_function_entries")), SIZET2NUM(mark_function_entries),
-    ID2SYM(rb_intern("miteruby_location_set_max_size_bytes")), SIZET2NUM(LOCATION_SET_MAX_SIZE),
-    ID2SYM(rb_intern("miteruby_location_array_max_size_bytes")),
-      SIZET2NUM(LOCATION_ARRAY_CAPACITY * sizeof(miteruby_location_t)),
     ID2SYM(rb_intern("miteruby_location_array_entries")), SIZET2NUM(location_entries),
     ID2SYM(rb_intern("miteruby_location_set_entries")), SIZET2NUM(location_entries),
-    ID2SYM(rb_intern("miteruby_unique_stacks_map_max_size_bytes")), SIZET2NUM(stack_dedup.map_max_size_bytes),
     ID2SYM(rb_intern("miteruby_unique_stacks_map_entries")), SIZET2NUM(stack_dedup.map_entries),
   };
   for (size_t i = 0; i < sizeof(arguments) / sizeof(VALUE); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i + 1]);
