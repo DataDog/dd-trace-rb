@@ -1283,7 +1283,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor, if: PlatformHelpers.mri? do
           settings: settings, serializer: nil, logger: logger,
           guardrails_telemetry: guardrails, telemetry: nil,
         ),
-        correlation_sampler: Datadog::DI::CorrelationSampler.new)
+        correlation_sampler: Datadog::DI::CorrelationSampler.new,
+        metric_emitter: instance_double(Datadog::DI::MetricEmitter, available?: true))
     end
     let(:probes) do
       %w[home home secret].each_with_index.map do |method_name, index|

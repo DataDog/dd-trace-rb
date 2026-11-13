@@ -57,7 +57,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
   let(:logger) { logger_allowing_debug }
 
   let(:component) do
-    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |c|
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: nil, statsd: nil).tap do |c|
       raise "Component failed to build — unsuitable environment? Check logs" if c.nil?
     end
   end

@@ -8,13 +8,15 @@ module Datadog
     #
     # @api private
     class ProcResponder
-      def initialize(executed_proc, failed_proc = nil)
+      def initialize(executed_proc, failed_proc = nil, recorded_proc = nil)
         @executed_proc = executed_proc
         @failed_proc = failed_proc
+        @recorded_proc = recorded_proc
       end
 
       attr_reader :executed_proc
       attr_reader :failed_proc
+      attr_reader :recorded_proc
 
       def probe_executed_callback(context)
         executed_proc.call(context)
@@ -26,6 +28,14 @@ module Datadog
         end
 
         failed_proc.call(context, exc)
+      end
+
+      def probe_metric_recorded_callback(probe)
+        if recorded_proc.nil?
+          raise NotImplementedError, "Recorded proc not provided"
+        end
+
+        recorded_proc.call(probe)
       end
 
       def probe_disabled_callback(probe, duration)

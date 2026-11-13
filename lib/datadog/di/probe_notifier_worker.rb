@@ -38,11 +38,14 @@ module Datadog
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] component worker errors are reported through
       # @param guardrails_telemetry [GuardrailsTelemetry] emitter for the canonical
       #   guardrails drop metric at the queue-full admission drop
+      # @param metric_emitter [MetricEmitter] emitter whose pending metric
+      #   probe points the worker submits
       def initialize(settings, logger, agent_settings:,
-        probe_repository:, probe_notification_builder:, guardrails_telemetry:, telemetry: nil)
+        probe_repository:, probe_notification_builder:, guardrails_telemetry:, metric_emitter:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @guardrails_telemetry = guardrails_telemetry
+        @metric_emitter = metric_emitter
         @status_queue = []
         @snapshot_queue = []
         @agent_settings = agent_settings
@@ -81,6 +84,9 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :probe_repository
       attr_reader :probe_notification_builder
+      # The emitter whose pending metric probe points the worker submits.
+      # @return [MetricEmitter]
+      attr_reader :metric_emitter
 
       # Starts the background worker thread.
       #
@@ -163,7 +169,8 @@ module Datadog
       #
       # This method is used by the test suite to wait until notifications have
       # been sent out, and could be used for graceful stopping of the
-      # worker thread.
+      # worker thread. It also waits until the metric emitter has no
+      # pending points.
       def flush
         @lock.synchronize do
           @flush += 1
@@ -177,6 +184,7 @@ module Datadog
             io_in_progress, queues_empty = @lock.synchronize do
               [io_in_progress?, status_queue.empty? && snapshot_queue.empty?]
             end
+            queues_empty &&= !metric_emitter.pending?
 
             if io_in_progress
               # If we just call Thread.pass we could be in a busy loop -
@@ -198,10 +206,62 @@ module Datadog
         end
       end
 
+      # Schedules the submission of the metric emitter's pending points,
+      # with the minimum send interval that {#add_status} and
+      # {#add_snapshot} apply to their sends.
+      #
+      # @return [void]
+      def schedule_metric_flush
+        with_reentrancy_guard { wake_for_send }
+        nil
+      end
+
       private
 
       attr_reader :wake
       attr_reader :thread
+
+      # Runs the block with the DI re-entrancy guard held.
+      #
+      # Scheduling a send reads DI configuration and writes debug and trace
+      # logs, which can call stdlib methods (e.g. Set#include? via the
+      # configuration layer's supported-configuration lookup). If a customer
+      # has a method probe on such a method, firing it here would re-enter
+      # the worker through a probe callback and deadlock on @lock (recursive
+      # locking). Holding the guard lets those DI-internal calls reach the
+      # original method without firing the probe. The prior state is
+      # restored afterwards, so a caller that already holds the guard (e.g.
+      # run_method_probe post-processing calling add_snapshot) is not
+      # cleared early.
+      #
+      # @return [Object] the block's value
+      def with_reentrancy_guard
+        was_in_probe = Datadog::DI.in_probe?
+        Datadog::DI.enter_probe unless was_in_probe
+        begin
+          yield
+        ensure
+          Datadog::DI.leave_probe unless was_in_probe
+        end
+      end
+
+      # Wakes the worker thread at once when the minimum send interval has
+      # elapsed since the last send, and starts the thread again when the
+      # process forked since the thread started.
+      #
+      # @return [void]
+      def wake_for_send
+        @lock.synchronize do
+          unless @wake_scheduled
+            @wake_scheduled = true
+            set_sleep_remaining
+            wake.signal
+          end
+        end
+
+        start
+        nil
+      end
 
       # Convenience method to keep line length reasonable in the rest of the file.
       def min_send_interval
@@ -300,19 +360,7 @@ module Datadog
         #   snapshot event's guardrails event type
         # @return [void]
         define_method("add_#{event_type}") do |event, probe: nil|
-          # Enqueueing reads DI configuration and writes debug/trace logs, both
-          # of which can call stdlib methods (e.g. Set#include? via the
-          # configuration layer's supported-configuration lookup). If a customer
-          # has a method probe on such a method, firing it here would re-enter
-          # the worker through probe_executed_callback and deadlock on @lock
-          # (recursive locking). Hold the re-entrancy guard for the duration so
-          # those DI-internal calls reach the original method without firing the
-          # probe. Restore the prior state afterwards so a caller that already
-          # holds the guard (e.g. run_method_probe post-processing calling
-          # add_snapshot) is not cleared early.
-          was_in_probe = Datadog::DI.in_probe?
-          Datadog::DI.enter_probe unless was_in_probe
-          begin
+          with_reentrancy_guard do
             @lock.synchronize do
               queue = send("#{event_type}_queue")
               guardrails_event_type = if event_type == :snapshot
@@ -353,23 +401,7 @@ module Datadog
               end
             end
 
-            # Figure out whether to wake up the worker thread.
-            # If minimum send interval has elapsed since the last send,
-            # wake up immediately.
-            @lock.synchronize do
-              unless @wake_scheduled
-                @wake_scheduled = true
-                set_sleep_remaining
-                wake.signal
-              end
-            end
-
-            # Worker could be not running if the process forked - check and
-            # start it again in this case.
-            start
-            nil
-          ensure
-            Datadog::DI.leave_probe unless was_in_probe
+            wake_for_send
           end
         end
 
@@ -435,7 +467,22 @@ module Datadog
 
       def maybe_send
         rv = maybe_send_status
-        maybe_send_snapshot || rv
+        rv = maybe_send_snapshot || rv
+        maybe_send_metrics || rv
+      end
+
+      # Submits the metric emitter's pending points. A flush that submitted
+      # points counts as a send for the minimum send interval.
+      #
+      # @return [Boolean] true when the flush submitted points
+      def maybe_send_metrics
+        return false unless metric_emitter.flush
+
+        time = Core::Utils::Time.get_time
+        @lock.synchronize do
+          @last_sent = time
+        end
+        true
       end
     end
   end

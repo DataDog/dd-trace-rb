@@ -24,6 +24,18 @@ module Datadog
       ?cardinality: String?
     ) -> void
 
+    def host: () -> String?
+
+    def port: () -> Integer?
+
+    def count: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def gauge: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def histogram: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
+    def distribution: (String stat, Numeric value, ?Hash[Symbol, untyped] opts) -> void
+
     def close: (?flush: bool) -> void
 
     def flush: (?flush_telemetry: bool, ?sync: bool) -> void

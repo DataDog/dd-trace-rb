@@ -304,17 +304,45 @@ module Datadog
       # This method is responsible for queueing probe status to be sent to the
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
-      def probe_executed_callback(context)
-        probe = context.probe
-        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+      # Sends the EMITTING status for the probe once per probe lifetime,
+      # using the probe's emitting_notified flag. Java re-sends EMITTING on
+      # every diagnostics interval; the Ruby diagnostics path emits statuses
+      # on transition only, and the probe tracker's "last captured" for
+      # metric probes is driven by the metric query rather than repeated
+      # statuses.
+      #
+      # @param probe [Probe] the probe that is emitting
+      # @return [void]
+      private def notify_emitting(probe)
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload, probe: probe)
           probe.emitting_notified = true
         end
+      end
+
+      def probe_executed_callback(context)
+        probe = context.probe
+        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+        notify_emitting(probe)
 
         payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload, probe: probe)
+      end
+
+      # Callback invoked when the metric emitter accepts a point of a
+      # metric probe.
+      #
+      # Sends the EMITTING status once per the probe's lifetime, after the
+      # first accepted point, and schedules the submission of the point
+      # within the minimum send interval. Points that the emitter drops do
+      # not reach this callback.
+      #
+      # @param probe [Probe] the probe whose point was recorded
+      # @return [void]
+      def probe_metric_recorded_callback(probe)
+        notify_emitting(probe)
+        probe_notifier_worker.schedule_metric_flush
       end
 
       # Callback invoked when a probe expression fails to evaluate.
@@ -333,7 +361,7 @@ module Datadog
       # @return [void]
       def probe_expression_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
-        rate_limiter = probe.condition_evaluation_failed_rate_limiter
+        rate_limiter = probe.expression_evaluation_failed_rate_limiter
         if rate_limiter&.allow?
           if instrumenter.admit_condition_error_snapshot?(probe)
             payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)

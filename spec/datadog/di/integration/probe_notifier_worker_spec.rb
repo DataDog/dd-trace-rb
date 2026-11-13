@@ -30,6 +30,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       guardrails_telemetry: guardrails_telemetry,
       probe_repository: probe_repository,
       probe_notification_builder: probe_notification_builder,
+      metric_emitter: Datadog::DI::MetricEmitter.new(instance_double(Datadog::DI::Logger).as_null_object, telemetry: nil, statsd: nil),
     )
   end
 

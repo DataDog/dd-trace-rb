@@ -92,8 +92,8 @@ For detailed instructions on creating and configuring probes, see the
 
 ### Currently Supported
 
-Ruby Dynamic Instrumentation supports **log probes**, which can be
-created as either line probes or method probes.
+Ruby Dynamic Instrumentation supports **log probes** and **metric
+probes**, which can be created as either line probes or method probes.
 
 #### Line Probes
 
@@ -148,7 +148,6 @@ the entire method execution.
 The following probe types available in other languages are not
 supported for Ruby:
 
-- Metric probes
 - Span probes
 - Dynamic span tags
 
