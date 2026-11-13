@@ -310,6 +310,20 @@ jobs:
       - name: Run yamllint
         run: yamllint --strict .
 
+  system-tests-ref-merged:
+    name: system-tests-ref/merged
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check system-tests pins are merged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/check_system_tests_ref_merged.sh
+
   complete:
     name: Static Analysis (complete)
     needs:
@@ -326,6 +340,7 @@ jobs:
       - 'document-lint'
       - 'green-ci-exclude-metrics'
       - 'changelog'
+      - 'system-tests-ref-merged'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

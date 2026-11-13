@@ -16,9 +16,25 @@ set -euo pipefail
 # (the reusable-workflow `uses:@<sha>` and the `with: ref:` value) and confirm,
 # via the GitHub API, that each commit is reachable from the configured
 # DataDog/system-tests default branch (i.e., already merged).
+#
+# GitHub Actions shared IPs exhaust the unauthenticated REST quota, so
+# callers must set GH_TOKEN (GITHUB_TOKEN is accepted as a fallback).
 
 TARGET=".github/workflows/system-tests.yml"
 SYSTEM_TESTS_REPO="DataDog/system-tests"
+token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+
+if [[ -z "${token}" ]]; then
+  echo "Error: GH_TOKEN or GITHUB_TOKEN is required to call the GitHub API"
+  exit 1
+fi
+
+github_api() {
+  curl -sS --fail --retry 3 --retry-delay 5 \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${token}" \
+    "$1"
+}
 
 if [[ ! -f "${TARGET}" ]]; then
   echo "Error: ${TARGET} not found"
@@ -41,19 +57,14 @@ fi
 sha="${uses_sha}"
 echo "Checking that ${SYSTEM_TESTS_REPO}@${sha} is merged..."
 
-default_branch=$(curl -sS --fail --retry 3 --retry-delay 5 \
-  -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/${SYSTEM_TESTS_REPO}" | jq -r '.default_branch')
+default_branch=$(github_api "https://api.github.com/repos/${SYSTEM_TESTS_REPO}" | jq -r '.default_branch')
 
 if [[ -z "${default_branch}" || "${default_branch}" == "null" ]]; then
   echo "Error: could not resolve the default branch for ${SYSTEM_TESTS_REPO}"
   exit 1
 fi
 
-compare_url="https://api.github.com/repos/${SYSTEM_TESTS_REPO}/compare/${default_branch}...${sha}"
-compare=$(curl -sS --fail --retry 3 --retry-delay 5 \
-  -H "Accept: application/vnd.github+json" \
-  "${compare_url}")
+compare=$(github_api "https://api.github.com/repos/${SYSTEM_TESTS_REPO}/compare/${default_branch}...${sha}")
 
 status=$(echo "${compare}" | jq -r '.status')
 
