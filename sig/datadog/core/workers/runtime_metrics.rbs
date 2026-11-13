@@ -22,7 +22,7 @@ module Datadog
 
         def register_service: (String? service) -> Array[String]?
 
-        def stop: (*untyped args, ?close_metrics: bool) -> bool
+        def stop: (*untyped args) -> bool
       end
     end
   end

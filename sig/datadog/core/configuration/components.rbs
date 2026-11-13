@@ -4,15 +4,17 @@ module Datadog
       class Components
         PATCH_ONLY_ONCE: Core::Utils::OnlyOnce
 
-        def self.build_health_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Diagnostics::Health::Metrics
+        def self.build_health_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry, statsd: Datadog::Statsd?) -> Diagnostics::Health::Metrics
+
+        def self.build_statsd: () -> Datadog::Statsd?
 
         def self.enable_symbol_database?: (Settings settings, Datadog::DI::Component? dynamic_instrumentation) -> bool
 
         def self.build_logger: (Settings settings) -> Core::Logger
 
-        def self.build_runtime_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Core::Runtime::Metrics
+        def self.build_runtime_metrics: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry, statsd: Datadog::Statsd?) -> Core::Runtime::Metrics
 
-        def self.build_runtime_metrics_worker: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry) -> Core::Workers::RuntimeMetrics
+        def self.build_runtime_metrics_worker: (Settings settings, Core::Logger logger, Core::Telemetry::Component telemetry, statsd: Datadog::Statsd?) -> Core::Workers::RuntimeMetrics
 
         def self.build_telemetry: (Settings settings, untyped agent_settings, Core::Logger logger) -> Core::Telemetry::Component
 
@@ -46,6 +48,8 @@ module Datadog
 
         attr_reader runtime_metrics: Core::Workers::RuntimeMetrics
 
+        attr_reader statsd: Datadog::Statsd?
+
         attr_reader telemetry: Core::Telemetry::Component
 
         attr_reader tracer: untyped
@@ -61,6 +65,8 @@ module Datadog
         @environment_logger_extra: Hash[Symbol, untyped]
 
         def initialize: (Settings settings) -> void
+
+        def statsd_clients: () -> Array[Datadog::Statsd]
 
         def after_fork: () -> void
 
