@@ -26,7 +26,7 @@ module Datadog
       def initialize(logger, telemetry: nil)
         @logger = logger
         @telemetry = telemetry
-        @open = true
+        @closed = false
         @last_emitted_at = nil
         @statsd = nil
         @available = false
@@ -61,6 +61,14 @@ module Datadog
         @available
       end
 
+      # Whether {#close} has run. A closed emitter submits no points; a
+      # stopped DI component keeps its emitter open.
+      #
+      # @return [Boolean]
+      def closed?
+        @closed
+      end
+
       # Wall-clock time of the last successfully submitted metric, or nil
       # when nothing has been submitted yet.
       #
@@ -80,7 +88,7 @@ module Datadog
       # @param value [Integer, Float] the metric value
       # @return [Boolean] true when the metric was submitted
       def emit(probe, value)
-        return false unless @open
+        return false if closed?
 
         client = statsd
         return false unless client
@@ -115,7 +123,7 @@ module Datadog
       #
       # @return [void]
       def close
-        @open = false
+        @closed = true
 
         client = statsd
         client&.close if client&.respond_to?(:close)

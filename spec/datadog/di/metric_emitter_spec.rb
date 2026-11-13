@@ -252,6 +252,22 @@ RSpec.describe Datadog::DI::MetricEmitter do
     end
   end
 
+  describe "#closed?" do
+    before do
+      allow(statsd).to receive(:close)
+    end
+
+    it "is false for a new emitter" do
+      expect(emitter.closed?).to be false
+    end
+
+    it "is true once the emitter is closed" do
+      emitter.close
+
+      expect(emitter.closed?).to be true
+    end
+  end
+
   describe "#close" do
     before do
       allow(statsd).to receive(:close)
