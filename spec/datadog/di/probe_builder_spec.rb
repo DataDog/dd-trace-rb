@@ -111,6 +111,22 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
     end
 
+    context "log probe whose line entry is a range" do
+      let(:rc_probe_spec) do
+        {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
+         "version" => 0,
+         "type" => "LOG_PROBE",
+         "where" => {"sourceFile" => "aaa.rb", "lines" => ["17-19"]},
+         "template" => "In aaa",
+         "segments" => [{"str" => "In aaa"}],
+         "evaluateAt" => "EXIT"}
+      end
+
+      it "targets the leading digits of the entry" do
+        expect(probe.line_no).to eq 17
+      end
+    end
+
     context "RC payload with capture snapshot" do
       let(:rc_probe_spec) do
         {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
@@ -468,6 +484,38 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         it "creates a line metric probe" do
           expect(probe.line?).to be true
           expect(probe.file).to eq "foo.rb"
+          expect(probe.line_no).to eq 17
+        end
+      end
+
+      context "line where with a string entry that holds a decimal integer" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("where" => {"sourceFile" => "foo.rb", "lines" => ["17"]})
+        end
+
+        it "targets the line of the entry" do
+          expect(probe.line_no).to eq 17
+        end
+      end
+
+      context "line where with a range entry" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("where" => {"sourceFile" => "foo.rb", "lines" => ["17-19"]})
+        end
+
+        it "fails with an exception that names the entry and the probe" do
+          expect do
+            probe
+          end.to raise_error(ArgumentError, 'Line entry "17-19" of metric probe 3ecfd456-2d7c-4359-a51f-d4cc44141ffe holds no decimal integer')
+        end
+      end
+
+      context "line where with several entries" do
+        let(:rc_probe_spec) do
+          base_metric_spec.merge("where" => {"sourceFile" => "foo.rb", "lines" => [17, "19-21"]})
+        end
+
+        it "targets the first entry" do
           expect(probe.line_no).to eq 17
         end
       end
