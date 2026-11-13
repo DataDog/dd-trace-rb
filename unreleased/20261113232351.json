@@ -1,0 +1,7 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/2847",
+  "message": "Add an `http.connect` span to `Net::HTTP` traces that covers connection setup, including the TLS handshake for HTTPS, so connection time appears in traces; the span is created while a trace is active.",
+  "author": "@dpep"
+}
