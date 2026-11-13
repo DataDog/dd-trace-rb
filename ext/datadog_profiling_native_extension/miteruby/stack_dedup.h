@@ -8,6 +8,31 @@
 //
 // None of this code is thread-safe, caller is expected to take care of that
 
+// Byte offset of the first sample with this stack in interned_events_queue; zero is valid. Invalidated on drain or reset.
+typedef struct {
+  size_t offset;
+} miteruby_stack_dedup_id_t;
+
+// Inline stack encoded as deltas between location IDs, starting from zero.
+typedef struct __attribute__((packed)) {
+  uint16_t frame_count;
+  uint16_t ids_size;
+  uint8_t ids[];
+} miteruby_stored_stack_t;
+
+// Interned sample: new stacks inline their IDs; repeats refer back via stack_id.
+typedef struct {
+  miteruby_event_header_t header;
+  value_thread_t thread;
+  miteruby_stack_dedup_id_t stack_id;
+  miteruby_stored_stack_t stack;
+} miteruby_event_deduped_sample_t;
+
+_Static_assert(sizeof(miteruby_stack_dedup_id_t) == 8, "miteruby_stack_dedup_id_t must be 8 bytes");
+_Static_assert(offsetof(miteruby_stored_stack_t, ids) == 4, "miteruby_stored_stack_t IDs must start after a 4-byte prefix");
+_Static_assert(offsetof(miteruby_event_deduped_sample_t, stack.ids) == 44, "miteruby_event_deduped_sample_t IDs must start after a 44-byte prefix");
+_Static_assert(sizeof(miteruby_event_deduped_sample_t) == 48, "miteruby_event_deduped_sample_t must be 48 bytes");
+
 // When deduplicating stacks, we treat stacks with the same hash as identical.
 //
 // This allows us to save CPU and memory:
