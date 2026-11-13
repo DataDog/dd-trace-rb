@@ -76,6 +76,11 @@ module Datadog
             require "datadog/statsd"
 
             options = Core::Metrics::Dogstatsd.single_thread_supported?(version) ? {single_thread: true} : {}
+            # No tags:, origin_detection:, container_id: or cardinality:
+            # option: the points carry the environment tags and the origin
+            # detection fields that the installed dogstatsd-ruby writes by
+            # default (c:, e: and card: from 5.7.0, none before), where Java
+            # writes all three fields, Python c:, and .NET and PHP none.
             Datadog::Statsd.new(
               Core::Metrics::Dogstatsd.default_hostname,
               Core::Metrics::Dogstatsd.default_port,
