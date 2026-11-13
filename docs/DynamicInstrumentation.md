@@ -118,8 +118,7 @@ and a metric name you choose.
   entry, where method arguments and `@` variables are available. Line
   probes always evaluate at the line. A method probe that evaluates at
   exit also reports a point when the method raises, with `@exception`
-  holding the exception. When a log probe and a metric probe are on the
-  same line, the probe created last runs first.
+  holding the exception.
 - **Tags:** your probe tags are attached to every metric point together
   with the `debugger.probeid:<probe id>` tag, so metrics can be queried
   per probe.

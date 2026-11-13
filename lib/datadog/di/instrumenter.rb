@@ -476,11 +476,6 @@ module Datadog
         else
           [:line]
         end
-        # Each line probe has its own trace point, and Ruby runs the trace
-        # points of a line in the reverse order of their enabling, so at a
-        # line that holds a log probe and a metric probe the probe created
-        # last runs first. Java runs the log probe first, .NET and Python
-        # 3.15 and later run the probes in installation order.
         tp = TracePoint.new(*types) do |tp|
           line_trace_point_callback(probe, iseq, responder, tp)
         end
