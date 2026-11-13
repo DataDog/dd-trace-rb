@@ -597,6 +597,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       )
     end
 
+    after do
+      resolved_worker.stop
+    end
+
     it "resolves the internal options the worker thread reads before the thread starts" do
       internal = worker_settings.dynamic_instrumentation.internal
 

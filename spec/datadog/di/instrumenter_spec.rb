@@ -3000,6 +3000,10 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context "re-entrancy guard" do
+        after do
+          Datadog::DI.leave_probe
+        end
+
         it "holds the guard while processing a hit" do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
@@ -3020,26 +3024,23 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           Datadog::DI.enter_probe
-          begin
-            HookLineTestClass.new.test_method
-          ensure
-            expect(Datadog::DI.in_probe?).to be(true)
-            Datadog::DI.leave_probe
-          end
+          HookLineTestClass.new.test_method
+          expect(Datadog::DI.in_probe?).to be(true)
+          Datadog::DI.leave_probe
 
           expect(observed_calls.length).to eq 1
           expect(Datadog::DI.in_probe?).to be(false)
         end
 
-        it "short-circuits a method probe nested in the callback's dispatches" do
+        # Forked: hooking WeakRef#weakref_alive? prepends a module onto the
+        # stdlib WeakRef class, and a prepended module stays in the class
+        # for the life of the process.
+        it "short-circuits a method probe nested in the callback's dispatches", execute_in_fork: true do
           expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
           stub_active_trace(123)
 
           capturing_line_probe = Datadog::DI::Probe.new(file: "hook_line.rb", line_no: 3,
             id: "p-line", type: :log, capture_snapshot: true, rate_limit: 5000)
-          hook_line(capturing_line_probe) do |payload|
-            observed_calls << payload
-          end
 
           # The gate of a second hit in the same trace reads the stored
           # budget through WeakRef#weakref_alive?, a stdlib method the
@@ -3049,11 +3050,15 @@ RSpec.describe Datadog::DI::Instrumenter do
             method_name: "weakref_alive?", id: "p-weakref", type: :log,
             capture_snapshot: true, rate_limit: 5000)
           weakref_probe_calls = []
-          hook_method(weakref_probe) do |payload|
-            weakref_probe_calls << payload
-          end
 
           begin
+            hook_line(capturing_line_probe) do |payload|
+              observed_calls << payload
+            end
+            hook_method(weakref_probe) do |payload|
+              weakref_probe_calls << payload
+            end
+
             HookLineTestClass.new.test_method
             HookLineTestClass.new.test_method
             expect(weakref_probe_calls).to be_empty

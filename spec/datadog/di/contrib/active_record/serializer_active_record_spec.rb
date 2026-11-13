@@ -54,7 +54,11 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   after(:all) do
-    ::ActiveRecord::Base.establish_connection(@original_config) if @original_config
+    if @original_config
+      ::ActiveRecord::Base.establish_connection(@original_config)
+    else
+      ::ActiveRecord::Base.remove_connection
+    end
   end
 
   let(:redactor) do

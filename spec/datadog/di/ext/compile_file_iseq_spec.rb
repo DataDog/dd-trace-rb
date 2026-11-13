@@ -49,12 +49,10 @@ RSpec.describe "Targeted TracePoint iseq binding" do
     # 3. Install a targeted trace point on the compile_file iseq
     fired = false
     tp = TracePoint.new(:line) { fired = true }
-    tp.enable(target: compiled_iseq)
-
-    # 4. Call the method (uses the require-produced iseq, not compile_file's)
-    CompileFileTestTarget.new.test_method
-
-    tp.disable
+    tp.enable(target: compiled_iseq) do
+      # 4. Call the method, which executes the require-produced iseq
+      CompileFileTestTarget.new.test_method
+    end
 
     # The trace point should NOT fire — it's targeted at a different iseq object.
     # This confirms that registering a compile_file iseq in backfill_registry
@@ -71,11 +69,9 @@ RSpec.describe "Targeted TracePoint iseq binding" do
 
     fired = false
     tp = TracePoint.new(:line) { fired = true }
-    tp.enable(target: method_iseq)
-
-    CompileFileTestTarget.new.test_method
-
-    tp.disable
+    tp.enable(target: method_iseq) do
+      CompileFileTestTarget.new.test_method
+    end
 
     # The trace point SHOULD fire — same iseq object
     expect(fired).to be true

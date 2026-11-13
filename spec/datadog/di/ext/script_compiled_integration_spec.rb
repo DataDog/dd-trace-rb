@@ -30,6 +30,7 @@ RSpec.describe "script_compiled integration" do
 
   after do
     component.shutdown!
+  ensure
     Datadog::DI.deactivate_tracking!
     Object.send(:remove_const, :ScriptCompiledIntegrationTestClass) if defined?(ScriptCompiledIntegrationTestClass)
   end
@@ -95,11 +96,9 @@ RSpec.describe "script_compiled integration" do
 
       fired = false
       tp = TracePoint.new(:line) { fired = true }
-      tp.enable(target: iseq)
-
-      ScriptCompiledIntegrationTestClass.new.test_method
-
-      tp.disable
+      tp.enable(target: iseq) do
+        ScriptCompiledIntegrationTestClass.new.test_method
+      end
 
       expect(fired).to be(true),
         "TracePoint on the :script_compiled iseq did not fire"

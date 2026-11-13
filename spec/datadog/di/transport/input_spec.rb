@@ -550,6 +550,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     before do
       allow(logger).to receive(:debug)
       allow(telemetry).to receive(:report)
+      allow(transport).to receive(:send_input_chunk)
     end
 
     it "calls on_serialization_error callback with probe ID and exception" do

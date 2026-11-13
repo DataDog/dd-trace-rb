@@ -109,12 +109,13 @@ RSpec.describe "DI implicit enablement integration" do
     allow(telemetry).to receive(:client_configuration_change!)
     allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
     allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    # Real activation starts the process-wide code tracker, which outlives the example.
+    allow(Datadog::DI).to receive(:activate_tracking)
   end
 
   after { component&.shutdown! }
 
   def stub_di_rc_environment
-    allow(Datadog::DI).to receive(:activate_tracking)
     allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
   end
 
@@ -208,7 +209,6 @@ RSpec.describe "DI implicit enablement integration" do
 
       before do
         allow(Datadog::DI).to receive(:component).and_return(component)
-        allow(Datadog::DI).to receive(:activate_tracking)
       end
 
       it "is silently dropped if delivered while the component is stopped" do
@@ -236,7 +236,6 @@ RSpec.describe "DI implicit enablement integration" do
 
     before do
       allow(telemetry).to receive(:client_configuration_change!)
-      allow(Datadog::DI).to receive(:activate_tracking)
     end
 
     it "stops the component when dynamic_instrumentation_enabled=false arrives" do
@@ -406,7 +405,6 @@ RSpec.describe "DI implicit enablement integration" do
 
     before do
       allow(Datadog::DI).to receive(:component).and_return(component)
-      allow(Datadog::DI).to receive(:activate_tracking)
     end
 
     it "installs the probe in a single dispatch (Tracing receiver enables DI first)" do
@@ -465,7 +463,6 @@ RSpec.describe "DI implicit enablement integration" do
 
     before do
       allow(Datadog::DI).to receive(:component).and_return(component)
-      allow(Datadog::DI).to receive(:activate_tracking)
     end
 
     it "installs the probe once DI is enabled, without waiting for redelivery" do
@@ -746,7 +743,6 @@ RSpec.describe "DI implicit enablement integration" do
       allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
       allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
       allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
-      allow(Datadog::DI).to receive(:activate_tracking)
       allow(rebuild_telemetry).to receive(:report)
       allow(rebuild_telemetry).to receive(:client_configuration_change!)
     end
