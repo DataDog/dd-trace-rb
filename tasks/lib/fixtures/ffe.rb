@@ -16,8 +16,11 @@ class FfeFixtures
   COMMIT_SHA = File.read(File.expand_path("ffe/version", __dir__)).strip
   raise "ffe/version must contain one full commit SHA" unless COMMIT_SHA.match?(/\A[0-9a-f]{40}\z/)
 
-  CACHE = File.join("tmp", "ffe-system-test-data")
+  # Bump the version segment whenever the extractor keeps a different set of files, so caches
+  # extracted by an older version at the same pin are not reused.
+  CACHE = File.join("tmp", "ffe-system-test-data", "v2")
   CASES_PATTERN = %r{\Aevaluation-cases/[^/]+\.json\z}.freeze
+  FLAG_SELECTION_PATTERN = %r{\Aflag-selection/[^/]+\.json\z}.freeze
   HTTP_ATTEMPTS = 3
   HTTP_TIMEOUT_SECONDS = 15
   RETRYABLE_STATUS = /\A(429|5\d\d)\z/.freeze
@@ -65,7 +68,7 @@ class FfeFixtures
     Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(gzip))) do |tar|
       tar.each do |entry|
         relative = entry.full_name.sub(/\A[^\/]+\//, "")
-        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN)
+        next unless relative == "ufc-config.json" || relative.match?(CASES_PATTERN) || relative.match?(FLAG_SELECTION_PATTERN)
 
         destination = File.join(staging, relative)
         FileUtils.mkdir_p(File.dirname(destination))
