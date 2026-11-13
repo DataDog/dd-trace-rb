@@ -21,7 +21,7 @@ module Datadog
           # ExecutePatch - instance method instrumentation for endpoint render (Grape >= 3.0.0)
           module ExecutePatch
             def execute(*args)
-              return unless @source
+              return unless source
 
               ::ActiveSupport::Notifications.instrument("endpoint_render.grape.start_render")
               super
