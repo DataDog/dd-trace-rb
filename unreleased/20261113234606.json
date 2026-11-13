@@ -1,0 +1,7 @@
+{
+  "type": "Added",
+  "product": "Tracing",
+  "pull_request": "https://github.com/DataDog/dd-trace-rb/pull/2847",
+  "message": "Add an `http.connect` span to the `Net::HTTP` integration, showing the time spent opening connections and connection errors.",
+  "author": "@dpep"
+}
