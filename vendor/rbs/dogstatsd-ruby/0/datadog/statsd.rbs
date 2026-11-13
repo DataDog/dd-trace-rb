@@ -25,5 +25,7 @@ module Datadog
     ) -> void
 
     def close: (?flush: bool) -> void
+
+    def flush: (?flush_telemetry: bool, ?sync: bool) -> void
   end
 end
