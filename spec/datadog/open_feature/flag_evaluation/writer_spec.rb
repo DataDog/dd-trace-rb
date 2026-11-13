@@ -87,7 +87,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(elapsed).to be < 9
     end
 
-    it "flushes an event enqueued after stop starts but before the final drain" do
+    it "rejects an event enqueued after stop starts" do
       drain_started = Queue.new
       release_drain = Queue.new
       received = Queue.new
@@ -116,8 +116,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       release_drain << true
       stop_thread.join
 
-      payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
-      expect(payload["flagEvaluations"].first["flag"]["key"]).to eq("late-shutdown-flag")
+      expect(received).to be_empty
     ensure
       release_drain << true if release_drain&.empty?
       stop_thread&.join
@@ -132,6 +131,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(writer).to receive(:terminate).and_return(true)
 
       expect(writer.stop).to be(true)
+    end
+
+    it "requests a nonblocking final flush, rejects late events, and stops without sending twice" do
+      received = Queue.new
+      release_send = Queue.new
+      allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0.0)
+      allow(transport).to receive(:send_flag_evaluations) do |payload|
+        received << payload
+        release_send.pop
+      end
+      writer = described_class.new(transport: transport, logger: logger)
+      writer.enqueue(flag_key: "queued-before-stop", variant: "on", eval_time_ms: 1_000)
+
+      Timeout.timeout(1) { writer.request_stop }
+      payload = Timeout.timeout(1) { received.pop }
+      expect(writer).to be_running
+      expect(payload["flagEvaluations"].map { |event| event["flag"]["key"] }).to eq(["queued-before-stop"])
+      writer.enqueue(flag_key: "late-after-stop", variant: "off", eval_time_ms: 2_000)
+      Timeout.timeout(1) { writer.request_stop }
+      release_send << true
+
+      expect(writer.stop).to be(true)
+      expect(writer.stop).to be(true)
+      expect(writer).not_to be_running
+      expect(transport).to have_received(:send_flag_evaluations).once
+      expect(received).to be_empty
+    ensure
+      release_send << true if release_send
+      writer&.stop
     end
   end
 
@@ -1190,6 +1218,72 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     it "equals the OpenFeature SDK targeting-key field name" do
       expect(described_class::TARGETING_KEY_FIELD)
         .to eq(::OpenFeature::SDK::EvaluationContext::TARGETING_KEY.to_s)
+    end
+  end
+  describe "shutdown after fork" do
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    before { allow(transport).to receive(:send_flag_evaluations) }
+
+    it "rejects a late event after shutdown in a forked child" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        writer.stop
+        writer.enqueue(flag_key: "late-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        restarted = writer.send(:running?)
+        writer.stop
+        expect(restarted).to eq(false)
+        expect(transport).not_to have_received(:send_flag_evaluations)
+      end
+    ensure
+      writer&.stop
+    end
+
+    it "preserves shutdown when a forked enqueue resumes after stop" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        entered = Queue.new
+        release = Queue.new
+        allow(writer).to receive(:forked?).and_wrap_original do |original|
+          if Thread.current[:pause_fork_reset]
+            Thread.current[:pause_fork_reset] = false
+            entered << true
+            release.pop
+          end
+          original.call
+        end
+        sender = Thread.new do
+          Thread.current[:pause_fork_reset] = true
+          writer.enqueue(flag_key: "late-racing-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        end
+        Timeout.timeout(1) { entered.pop }
+        writer.stop
+        release << true
+        expect(sender.join(1)).to eq(sender)
+        expect(writer.send(:stopped?)).to eq(true)
+        writer.stop
+        expect(writer.send(:running?)).to eq(false)
+        expect(transport).not_to have_received(:send_flag_evaluations)
+      ensure
+        release&.push(true)
+        sender&.kill
+        sender&.join(1)
+        writer&.stop
+      end
+    ensure
+      writer&.stop
+    end
+
+    it "restarts a live inherited writer in a forked child" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        writer.enqueue(flag_key: "live-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        writer.stop
+        expect(transport).to have_received(:send_flag_evaluations)
+      end
+    ensure
+      writer&.stop
     end
   end
 end

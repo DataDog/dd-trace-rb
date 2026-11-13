@@ -1,0 +1,6 @@
+module URI
+  class Generic
+    def find_proxy: (Hash[String, String?] env) -> URI::Generic?
+                 | ...
+  end
+end

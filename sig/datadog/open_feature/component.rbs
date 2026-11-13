@@ -26,6 +26,8 @@ module Datadog
 
       @worker: Exposures::Worker
 
+      @event_transport: Transport::Agentless?
+
       @exposure_logging_hook: Hooks::ExposureLoggingHook?
 
       @exposure_logging_hook_mutex: Thread::Mutex
@@ -73,6 +75,7 @@ module Datadog
         Core::Configuration::Settings settings,
         Core::Configuration::AgentSettings agent_settings,
         ?on_configuration_change: (^(configuration_event) -> void)?,
+        ?resolution: Configuration::Source::Resolution,
         logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> void

@@ -48,10 +48,8 @@ module Datadog
           username = uri.user
           return unless username
 
-          request.basic_auth(
-            URI::RFC2396_PARSER.unescape(username),
-            URI::RFC2396_PARSER.unescape(uri.password.to_s),
-          )
+          parser = defined?(URI::RFC2396_PARSER) ? URI::RFC2396_PARSER : URI::DEFAULT_PARSER
+          request.basic_auth(parser.unescape(username), parser.unescape(uri.password.to_s))
         end
 
         def headers(etag)
