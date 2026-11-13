@@ -1,8 +1,11 @@
 require "datadog/di/spec_helper"
 require "datadog/di/component"
+require "datadog/statsd"
 
 RSpec.describe Datadog::DI::Component do
   di_test
+
+  let(:statsd) { nil }
 
   describe ".build" do
     let(:settings) do
@@ -25,14 +28,14 @@ RSpec.describe Datadog::DI::Component do
       end
 
       it "returns a Component in stopped state" do
-        component = described_class.build(settings, agent_settings, logger)
+        component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
         expect(component).to be_a(described_class)
         expect(component.started?).to be false
         component.shutdown!
       end
 
       it "wires the guardrails telemetry emitter into every consumer" do
-        component = described_class.build(settings, agent_settings, logger)
+        component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
         expect(component.instrumenter.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.guardrails_telemetry).to equal(component.guardrails_telemetry)
         expect(component.probe_notifier_worker.send(:snapshot_transport).guardrails_telemetry)
@@ -42,7 +45,7 @@ RSpec.describe Datadog::DI::Component do
       end
 
       it "builds one capture expression evaluator shared by its consumers" do
-        component = described_class.build(settings, agent_settings, logger)
+        component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
         expect(component.capture_expression_evaluator)
           .to be_a(Datadog::DI::CaptureExpressionEvaluator)
         expect(component.instrumenter.capture_expression_evaluator)
@@ -68,7 +71,7 @@ RSpec.describe Datadog::DI::Component do
           expect(logger).to receive(:warn).with(
             a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
 
@@ -78,7 +81,7 @@ RSpec.describe Datadog::DI::Component do
             a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config}),
           )
           expect(logger).not_to receive(:warn)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
     end
@@ -94,7 +97,7 @@ RSpec.describe Datadog::DI::Component do
 
         it "returns nil and warns naming the engine" do
           expect(logger).to receive(:warn).with(a_string_matching(/MRI is required.*jruby/))
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
 
@@ -102,7 +105,7 @@ RSpec.describe Datadog::DI::Component do
         it "returns nil and logs the MRI-required reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/MRI is required.*jruby/))
           expect(logger).not_to receive(:warn)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
     end
@@ -122,7 +125,7 @@ RSpec.describe Datadog::DI::Component do
 
         it "returns nil and warns naming the version" do
           expect(logger).to receive(:warn).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
 
@@ -130,7 +133,7 @@ RSpec.describe Datadog::DI::Component do
         it "returns nil and logs the Ruby-version reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
           expect(logger).not_to receive(:warn)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
     end
@@ -147,7 +150,7 @@ RSpec.describe Datadog::DI::Component do
 
         it "returns nil and warns" do
           expect(logger).to receive(:warn).with(/C extension is not available/)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
 
@@ -155,7 +158,7 @@ RSpec.describe Datadog::DI::Component do
         it "returns nil and logs the C-extension-absent reason at debug" do
           expect(logger).to receive(:debug).with(a_string_matching(/C extension is not available/))
           expect(logger).not_to receive(:warn)
-          expect(described_class.build(settings, agent_settings, logger)).to be nil
+          expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
         end
       end
     end
@@ -171,7 +174,7 @@ RSpec.describe Datadog::DI::Component do
           a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/),
         )
         expect(logger).not_to receive(:warn)
-        expect(described_class.build(settings, agent_settings, logger)).to be nil
+        expect(described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)).to be nil
       end
     end
   end
@@ -224,14 +227,14 @@ RSpec.describe Datadog::DI::Component do
     let(:logger) { instance_double(Logger).as_null_object }
 
     it "registers the built component in DI.current_component" do
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
       expect(component).not_to be_nil
       expect(Datadog::DI.current_component).to be component
       component.shutdown!
     end
 
     it "removes the component from DI.current_component on shutdown!" do
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
       component.shutdown!
       expect(Datadog::DI.current_component).not_to be component
     end
@@ -263,7 +266,7 @@ RSpec.describe Datadog::DI::Component do
     it "completes synchronously without I/O" do
       baseline = Thread.list.size
       started = Datadog::Core::Utils::Time.get_time
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
       elapsed = Datadog::Core::Utils::Time.get_time - started
       expect(component).not_to be_nil
       expect(elapsed).to be < 1.0
@@ -291,7 +294,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:component) do
-      described_class.build(settings, agent_settings, logger)
+      described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
     end
 
     after do
@@ -328,6 +331,8 @@ RSpec.describe Datadog::DI::Component do
     end
 
     context "metric emitter lifecycle" do
+      let(:statsd) { instance_double(Datadog::Statsd, count: nil, flush: nil) }
+
       let(:metric_probe) do
         Datadog::DI::Probe.new(
           id: "component-spec-metric-probe", type: :metric,
@@ -340,24 +345,42 @@ RSpec.describe Datadog::DI::Component do
         component.start!
       end
 
-      it "builds the emitter and injects it into the instrumenter" do
+      it "builds the emitter with the client and injects it into the instrumenter and the worker" do
         expect(component.metric_emitter).to be_a(Datadog::DI::MetricEmitter)
+        expect(component.metric_emitter.statsd).to be statsd
         expect(component.instrumenter.metric_emitter).to be component.metric_emitter
+        expect(component.probe_notifier_worker.metric_emitter).to be component.metric_emitter
       end
 
-      it "keeps the emitter emitting across stop and start" do
+      it "keeps the emitter recording across stop and start" do
         component.stop!
 
-        expect(component.metric_emitter.emit(metric_probe, 1)).to be true
+        expect(component.metric_emitter.record(metric_probe, 1)).to be true
 
         component.start!
-        expect(component.metric_emitter.emit(metric_probe, 1)).to be true
+        expect(component.metric_emitter.record(metric_probe, 1)).to be true
       end
 
-      it "closes the emitter at shutdown so emission stops" do
+      it "submits the recorded points when the component stops" do
+        component.metric_emitter.record(metric_probe, 1)
+
+        component.stop!
+
+        expect(statsd).to have_received(:count).with(
+          "dynamic.instrumentation.metric.probe.component.spec.metric", 1,
+          tags: ["debugger.probeid:component-spec-metric-probe"],
+        )
+        expect(component.metric_emitter.pending?).to be false
+      end
+
+      it "submits the recorded points and closes the emitter at shutdown" do
+        component.metric_emitter.record(metric_probe, 1)
+
         component.shutdown!
 
-        expect(component.metric_emitter.emit(metric_probe, 1)).to be false
+        expect(statsd).to have_received(:count)
+        expect(component.metric_emitter.closed?).to be true
+        expect(component.metric_emitter.record(metric_probe, 1)).to be false
       end
     end
 
@@ -447,7 +470,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:component) do
-      described_class.build(settings, agent_settings, logger)
+      described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd)
     end
 
     before { allow(logger).to receive(:debug) }
@@ -472,7 +495,7 @@ RSpec.describe Datadog::DI::Component do
         s.remote.enabled = true
       end
     end
-    let(:component) { described_class.build(settings, agent_settings, logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd) }
 
     before { allow(logger).to receive(:debug) }
 
@@ -679,7 +702,7 @@ RSpec.describe Datadog::DI::Component do
 
     let(:agent_settings) { instance_double_agent_settings_with_stubs }
     let(:logger) { instance_double(Logger).as_null_object }
-    let(:component) { described_class.build(settings, agent_settings, logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger, telemetry: nil, statsd: statsd) }
     let(:mutex) { component.instance_variable_get(:@lifecycle_mutex) }
 
     before do
@@ -741,7 +764,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:component) do
-      described_class.build(settings, agent_settings, logger, telemetry: telemetry).tap(&:start!)
+      described_class.build(settings, agent_settings, logger, telemetry: telemetry, statsd: statsd).tap(&:start!)
     end
 
     let(:probe_spec) do

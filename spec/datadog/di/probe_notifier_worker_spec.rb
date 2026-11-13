@@ -1,5 +1,8 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe_notifier_worker"
+require "datadog/di/metric_emitter"
+require "datadog/di/probe"
+require "datadog/statsd"
 require "logger"
 
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
@@ -43,6 +46,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     Datadog::DI::GuardrailsTelemetry.new(settings: settings, logger: logger, telemetry: telemetry)
   end
 
+  let(:metric_emitter) do
+    instance_double(Datadog::DI::MetricEmitter, flush: false, pending?: false)
+  end
+
   let(:default_probe_repository) do
     instance_double(Datadog::DI::ProbeRepository)
   end
@@ -59,6 +66,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       guardrails_telemetry: guardrails_telemetry,
       probe_repository: default_probe_repository,
       probe_notification_builder: default_probe_notification_builder,
+      metric_emitter: metric_emitter,
     )
   end
 
@@ -364,6 +372,45 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
     end
 
+    describe "#schedule_metric_flush" do
+      let(:statsd) { instance_double(Datadog::Statsd, count: nil, flush: nil) }
+      let(:metric_emitter) do
+        Datadog::DI::MetricEmitter.new(instance_double(Datadog::DI::Logger).as_null_object, telemetry: nil, statsd: statsd)
+      end
+      let(:metric_probe) do
+        Datadog::DI::Probe.new(
+          id: "worker-spec-metric-probe", type: :metric,
+          type_name: "Foo", method_name: "bar",
+          metric_kind: :count, metric_name: "worker.spec.metric",
+        )
+      end
+
+      it "submits the recorded points on the worker thread" do
+        submitting_threads = []
+        allow(statsd).to receive(:count) { submitting_threads << Thread.current }
+
+        metric_emitter.record(metric_probe, 1)
+        worker.schedule_metric_flush
+        worker.flush
+
+        expect(statsd).to have_received(:count).with(
+          "dynamic.instrumentation.metric.probe.worker.spec.metric", 1,
+          tags: ["debugger.probeid:worker-spec-metric-probe"],
+        )
+        expect(statsd).to have_received(:flush)
+        expect(submitting_threads).to eq([worker.send(:thread)])
+        expect(metric_emitter.pending?).to be false
+      end
+
+      it "counts a flush that submitted points as a send for the minimum send interval" do
+        metric_emitter.record(metric_probe, 1)
+        worker.schedule_metric_flush
+        worker.flush
+
+        expect(worker.send(:last_sent)).to be_a(Numeric)
+      end
+    end
+
     describe "#add_status" do
       let(:status) do
         {status: "received"}.freeze
@@ -440,6 +487,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           guardrails_telemetry: guardrails_telemetry,
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
+          metric_emitter: metric_emitter,
         )
       end
 
@@ -543,6 +591,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           guardrails_telemetry: guardrails_telemetry,
           probe_repository: real_probe_repository,
           probe_notification_builder: error_probe_notification_builder,
+          metric_emitter: metric_emitter,
         )
       end
 
@@ -594,6 +643,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         ),
         probe_repository: default_probe_repository,
         probe_notification_builder: default_probe_notification_builder,
+        metric_emitter: metric_emitter,
       )
     end
 

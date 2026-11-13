@@ -293,7 +293,7 @@ module Datadog
             logger: @logger,
             telemetry: telemetry,
           )
-          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry, statsd: @statsd)
           # Only build symbol database when enabled, so a disabled component is
           # never constructed.
           @symbol_database =

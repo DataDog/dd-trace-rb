@@ -1496,15 +1496,38 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     context "when the metric emitter is unavailable" do
       let(:metric_emitter) do
-        instance_double(Datadog::DI::MetricEmitter, available?: false)
+        instance_double(
+          Datadog::DI::MetricEmitter,
+          available?: false,
+          unavailable_reason: Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON,
+        )
       end
 
-      it "raises MetricEmissionUnavailable and installs nothing" do
+      before do
+        allow(logger).to receive(:warn)
+      end
+
+      it "raises MetricEmissionUnavailable with the emitter's reason and installs nothing" do
         expect do
           instrumenter.hook(metric_probe, responder)
-        end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable, /dogstatsd-ruby >= 3\.3\.0/)
+        end.to raise_error(
+          Datadog::DI::Error::MetricEmissionUnavailable,
+          "metric probes are unavailable: #{Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON}",
+        )
 
         expect(metric_probe.instrumentation_module).to be nil
+      end
+
+      it "logs the reason at warn for the first rejected metric probe of the instrumenter" do
+        2.times do
+          expect do
+            instrumenter.hook(metric_probe, responder)
+          end.to raise_error(Datadog::DI::Error::MetricEmissionUnavailable)
+        end
+
+        expect(logger).to have_received(:warn)
+          .with("di: metric probes are unavailable: #{Datadog::DI::MetricEmitter::DEPENDENCY_REQUIRED_REASON}")
+          .once
       end
 
       it "logs the rejection at debug with the probe location" do
@@ -1552,7 +1575,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    let(:emitted_probes) { [] }
+    let(:recorded_probes) { [] }
 
     let(:evaluation_errors) { [] }
 
@@ -1560,7 +1583,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       Datadog::DI::ProcResponder.new(
         proc { |_context| fail "metric probes do not invoke the executed callback" },
         proc { |_context, exc| evaluation_errors << exc },
-        proc { |probe| emitted_probes << probe },
+        proc { |probe| recorded_probes << probe },
       )
     end
 
@@ -1586,7 +1609,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:condition_expression) { nil }
 
     before do
-      allow(metric_emitter).to receive(:emit).and_return(true)
+      allow(metric_emitter).to receive(:record).and_return(true)
     end
 
     after do
@@ -1618,25 +1641,25 @@ RSpec.describe Datadog::DI::Instrumenter do
       include_examples "method outcome unchanged"
 
       context "with no value expression" do
-        it "emits 1 per admitted hit for COUNT" do
+        it "records 1 per admitted hit for COUNT" do
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method).to eq 42
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 1).twice
-          expect(emitted_probes).to eq [probe, probe]
+          expect(metric_emitter).to have_received(:record).with(probe, 1).twice
+          expect(recorded_probes).to eq [probe, probe]
         end
 
         context "with GAUGE kind" do
           let(:metric_kind) { :gauge }
 
-          it "emits nothing" do
+          it "records nothing" do
             hook_metric_probe
 
             expect(HookTestClass.new.hook_test_method).to eq 42
 
-            expect(metric_emitter).to_not have_received(:emit)
+            expect(metric_emitter).to_not have_received(:record)
           end
         end
       end
@@ -1644,12 +1667,12 @@ RSpec.describe Datadog::DI::Instrumenter do
       context "with a return value expression" do
         let(:metric_value_expression) { compiled_ref_expression("@return") }
 
-        it "emits the evaluated return value" do
+        it "records the evaluated return value" do
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 42)
+          expect(metric_emitter).to have_received(:record).with(probe, 42)
         end
 
         it "evaluates the value expression without a CPU-time deadline" do
@@ -1660,7 +1683,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 42)
+          expect(metric_emitter).to have_received(:record).with(probe, 42)
         end
       end
 
@@ -1668,26 +1691,26 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:metric_value_expression) { compiled_ref_expression("@duration") }
         let(:metric_kind) { :gauge }
 
-        it "emits the method duration in milliseconds" do
+        it "records the method duration in milliseconds" do
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to have_received(:emit).with(probe, a_kind_of(Float))
+          expect(metric_emitter).to have_received(:record).with(probe, a_kind_of(Float))
         end
       end
 
       context "when the method raises" do
         let(:method_name) { "exception_method" }
 
-        it "emits for the firing and re-raises the method's exception" do
+        it "records for the firing and re-raises the method's exception" do
           hook_metric_probe
 
           expect do
             HookTestClass.new.exception_method
           end.to raise_error(HookTestClass::TestException)
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 1)
+          expect(metric_emitter).to have_received(:record).with(probe, 1)
         end
       end
 
@@ -1699,8 +1722,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to_not have_received(:emit)
-          expect(emitted_probes).to be_empty
+          expect(metric_emitter).to_not have_received(:record)
+          expect(recorded_probes).to be_empty
         end
 
         it "evaluates the condition under the serializer's evaluation deadline" do
@@ -1732,8 +1755,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(evaluation_errors.length).to eq 1
           expect(evaluation_errors.first).to be_a(Datadog::DI::Error::EvaluationTimeout)
-          expect(metric_emitter).to_not have_received(:emit)
-          expect(emitted_probes).to be_empty
+          expect(metric_emitter).to_not have_received(:record)
+          expect(recorded_probes).to be_empty
         end
       end
 
@@ -1749,7 +1772,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(evaluation_errors.length).to eq 1
-          expect(metric_emitter).to_not have_received(:emit)
+          expect(metric_emitter).to_not have_received(:record)
         end
       end
     end
@@ -1768,7 +1791,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
 
           expect(evaluation_errors.length).to eq 1
-          expect(metric_emitter).to_not have_received(:emit)
+          expect(metric_emitter).to_not have_received(:record)
         end
       end
 
@@ -1776,12 +1799,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:method_name) { "hook_test_method_with_arg" }
         let(:metric_value_expression) { compiled_ref_expression("arg1") }
 
-        it "emits the entry-time argument value" do
+        it "records the entry-time argument value" do
           hook_metric_probe
 
           expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 21)
+          expect(metric_emitter).to have_received(:record).with(probe, 21)
         end
       end
     end
@@ -1797,7 +1820,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(HookTestClass.new.hook_test_method_with_arg(1.5)).to eq 1.5
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 1.5)
+          expect(metric_emitter).to have_received(:record).with(probe, 1.5)
         end
       end
 
@@ -1807,7 +1830,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(HookTestClass.new.hook_test_method_with_arg(true)).to be true
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 1)
+          expect(metric_emitter).to have_received(:record).with(probe, 1)
         end
       end
 
@@ -1817,7 +1840,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(HookTestClass.new.hook_test_method_with_arg(false)).to be false
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 0)
+          expect(metric_emitter).to have_received(:record).with(probe, 0)
         end
       end
 
@@ -1828,7 +1851,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_arg("hello")).to eq "hello"
 
           expect(evaluation_errors.length).to eq 1
-          expect(metric_emitter).to_not have_received(:emit)
+          expect(metric_emitter).to_not have_received(:record)
         end
       end
 
@@ -1841,13 +1864,13 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_arg(21)).to eq 21
 
           expect(evaluation_errors.length).to eq 1
-          expect(metric_emitter).to_not have_received(:emit)
+          expect(metric_emitter).to_not have_received(:record)
         end
       end
     end
 
     context "rate limiting" do
-      it "emits for every hit regardless of the per-probe rate limit" do
+      it "records for every hit regardless of the per-probe rate limit" do
         probe = Datadog::DI::Probe.new(
           id: "metric-rate-limit", type: :metric,
           type_name: "HookTestClass", method_name: "hook_test_method",
@@ -1864,7 +1887,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method).to eq 42
           expect(HookTestClass.new.hook_test_method).to eq 42
 
-          expect(metric_emitter).to have_received(:emit).with(probe, 1).twice
+          expect(metric_emitter).to have_received(:record).with(probe, 1).twice
         ensure
           instrumenter.unhook(probe)
         end
@@ -1878,14 +1901,14 @@ RSpec.describe Datadog::DI::Instrumenter do
         allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
       end
 
-      it "disables the probe after the first firing and stops emitting" do
+      it "disables the probe after the first firing and stops recording" do
         hook_metric_probe
 
         expect(HookTestClass.new.hook_test_method).to eq 42
         expect(HookTestClass.new.hook_test_method).to eq 42
 
         expect(probe.enabled?).to be false
-        expect(metric_emitter).to have_received(:emit).with(probe, 1).once
+        expect(metric_emitter).to have_received(:record).with(probe, 1).once
       end
     end
   end
@@ -2427,13 +2450,13 @@ RSpec.describe Datadog::DI::Instrumenter do
       load File.join(File.dirname(__FILE__), "hook_line_load.rb")
     end
 
-    let(:emitted_probes) { [] }
+    let(:recorded_probes) { [] }
 
     let(:metric_responder) do
       Datadog::DI::ProcResponder.new(
         proc { |_context| fail "metric probes do not build a snapshot payload" },
         nil,
-        proc { |probe| emitted_probes << probe },
+        proc { |probe| recorded_probes << probe },
       )
     end
 
@@ -2457,29 +2480,29 @@ RSpec.describe Datadog::DI::Instrumenter do
     let(:evaluate_at) { :exit }
 
     before do
-      allow(metric_emitter).to receive(:emit).and_return(true)
+      allow(metric_emitter).to receive(:record).and_return(true)
     end
 
     after do
       instrumenter.unhook(probe)
     end
 
-    it "emits the evaluated line-local value and builds no snapshot" do
+    it "records the evaluated line-local value and builds no snapshot" do
       instrumenter.hook_line(probe, metric_responder)
 
       expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
 
-      expect(metric_emitter).to have_received(:emit).with(probe, 42)
-      expect(emitted_probes).to eq [probe]
+      expect(metric_emitter).to have_received(:record).with(probe, 42)
+      expect(recorded_probes).to eq [probe]
     end
 
-    it "emits for every execution without per-probe rate limiting" do
+    it "records for every execution without per-probe rate limiting" do
       instrumenter.hook_line(probe, metric_responder)
 
       expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
       expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
 
-      expect(metric_emitter).to have_received(:emit).with(probe, 42).twice
+      expect(metric_emitter).to have_received(:record).with(probe, 42).twice
     end
 
     context "with evaluateAt ENTRY" do
@@ -2490,7 +2513,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
 
-        expect(metric_emitter).to have_received(:emit).with(probe, 42)
+        expect(metric_emitter).to have_received(:record).with(probe, 42)
       end
     end
 
@@ -2499,12 +2522,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       let(:metric_value_expression) { nil }
 
-      it "emits 1 per execution of the line" do
+      it "records 1 per execution of the line" do
         instrumenter.hook_line(probe, metric_responder)
 
         expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
 
-        expect(metric_emitter).to have_received(:emit).with(probe, 1)
+        expect(metric_emitter).to have_received(:record).with(probe, 1)
       end
     end
   end
