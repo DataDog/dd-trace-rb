@@ -248,6 +248,10 @@ module Datadog
               # Access via global to avoid capturing 'self'
               Datadog.send(:components, allow_initialization: false)&.after_fork
             end
+
+            Utils::AtForkMonkeyPatch.at_fork(:before) do
+              Datadog.send(:components, allow_initialization: false)&.before_fork
+            end
           end
 
           # This agent_settings is intended for use within Core. If you require
@@ -317,6 +321,33 @@ module Datadog
           # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
           if defined?(::Rails::Railtie)
             require_relative "../contrib/rails/railtie"
+          end
+        end
+
+        # Flushes the DogStatsD clients on the thread that forks, so that a
+        # forked child inherits client buffers without the messages that
+        # the parent submitted. dogstatsd-ruby clears a buffer inherited
+        # across a fork only at the child's first submission, so a child
+        # that exits before submitting would otherwise write the parent's
+        # buffered messages a second time when it closes the client.
+        #
+        # A flush that raises is logged and reported to telemetry, and the
+        # fork proceeds, because an exception of a +:before+ fork callback
+        # makes the fork raise.
+        #
+        # @return [void]
+        def before_fork
+          statsd_clients.each do |client|
+            next unless client.respond_to?(:flush)
+
+            begin
+              client.flush
+            rescue => e
+              logger.debug do
+                "Failed to flush the dogstatsd client before fork: #{e.class}: #{e.message} (#{Array(e.backtrace).first})"
+              end
+              telemetry.report(e, description: "Failed to flush the dogstatsd client before fork")
+            end
           end
         end
 

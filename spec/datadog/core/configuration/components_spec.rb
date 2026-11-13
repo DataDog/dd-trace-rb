@@ -1523,6 +1523,49 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe "#before_fork" do
+    subject(:before_fork) { components.before_fork }
+
+    let(:runtime_metrics_statsd) { instance_double(::Datadog::Statsd, flush: nil) }
+    let(:health_metrics_statsd) { double("statsd without flush") }
+
+    before do
+      settings.runtime_metrics.statsd = runtime_metrics_statsd
+      settings.health_metrics.statsd = health_metrics_statsd
+      allow(components.statsd).to receive(:flush)
+    end
+
+    it "flushes each client that defines flush" do
+      before_fork
+
+      expect(components.statsd).to have_received(:flush).with(no_args)
+      expect(runtime_metrics_statsd).to have_received(:flush).with(no_args)
+    end
+
+    context "when a flush raises" do
+      let(:error) { IOError.new("closed stream") }
+
+      before do
+        allow(components.statsd).to receive(:flush).and_raise(error)
+        allow(telemetry).to receive(:report)
+      end
+
+      it "logs and reports the exception and flushes the next client" do
+        expect(components.logger).to receive(:debug) do |&block|
+          expect(block.call).to match(
+            /\AFailed to flush the dogstatsd client before fork: IOError: closed stream \(.*\)\z/,
+          )
+        end
+
+        expect { before_fork }.to_not raise_error
+
+        expect(telemetry).to have_received(:report)
+          .with(error, description: "Failed to flush the dogstatsd client before fork")
+        expect(runtime_metrics_statsd).to have_received(:flush)
+      end
+    end
+  end
+
   describe "::build_statsd" do
     subject(:build_statsd) { described_class.build_statsd }
 
@@ -1626,6 +1669,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
           Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
         )
       end
+    end
+
+    it "flushes the DogStatsD clients of the current components before a fork" do
+      components = described_class.new(Datadog::Core::Configuration::Settings.new)
+      allow(Datadog).to receive(:components).with(allow_initialization: false).and_return(components)
+      expect(components).to receive(:before_fork).once
+      # The child exits at once; the components of this test have no
+      # child state to restart.
+      allow(components).to receive(:after_fork)
+
+      pid = fork { exit!(0) }
+      Process.wait(pid)
     end
   end
 end

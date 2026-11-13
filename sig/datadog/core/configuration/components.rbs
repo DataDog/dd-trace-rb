@@ -66,6 +66,8 @@ module Datadog
 
         def initialize: (Settings settings) -> void
 
+        def before_fork: () -> void
+
         def statsd_clients: () -> Array[Datadog::Statsd]
 
         def after_fork: () -> void
