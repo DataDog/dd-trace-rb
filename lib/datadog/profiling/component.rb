@@ -281,6 +281,13 @@ module Datadog
 
         if setting_value == false
           if RubyVersion.is?("< 2.6")
+            # Ruby 2.5 has a race when identifying the GVL owner from a signal handler
+            # (see main_ractor_gvl_owner in private_vm_api_access.c).
+            # Direct stack sampling also has a confirmed crash hazard: vm_push_frame
+            # exposes the new frame before initializing it, so a signal handler can
+            # encounter a partially initialized frame.
+            # https://github.com/ruby/ruby/pull/3296 fixes this + https://github.com/ruby/ruby/pull/11036 strengthens it.
+            # The no-signals workaround avoids interrupting these intermediate VM states.
             logger.warn(
               'The profiling "no signals" workaround has been disabled via configuration on Ruby 2.5. ' \
               "This is not recommended " \

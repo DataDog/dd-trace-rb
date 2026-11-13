@@ -2,15 +2,9 @@
 
 #include <stdbool.h>
 
-// The private_vm_api_access.c includes private VM headers (via datadog-ruby_core_source) which replace and conflict
-// with any other Ruby headers; so we use PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES to be able to include
-// private_vm_api_access.h on that file without also dragging the incompatible includes
-#ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
-  #include <ruby/thread_native.h>
-  #include <ruby/vm.h>
-  typedef struct RubyCME rb_callable_method_entry_t;
-  typedef struct RubyISEQ rb_iseq_t;
-#endif
+#include <ruby/thread_native.h> // for rb_nativethread_id_t
+typedef struct rb_callable_method_entry_struct rb_callable_method_entry_t;
+typedef struct rb_iseq_struct rb_iseq_t;
 
 #include "extconf.h"
 
