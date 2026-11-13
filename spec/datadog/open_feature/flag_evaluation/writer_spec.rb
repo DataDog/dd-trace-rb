@@ -1240,6 +1240,41 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer&.stop
     end
 
+    it "preserves shutdown when a forked enqueue resumes after stop" do
+      writer = described_class.new(transport: transport, logger: logger)
+      expect_in_fork do
+        entered = Queue.new
+        release = Queue.new
+        allow(writer).to receive(:forked?).and_wrap_original do |original|
+          if Thread.current[:pause_fork_reset]
+            Thread.current[:pause_fork_reset] = false
+            entered << true
+            release.pop
+          end
+          original.call
+        end
+        sender = Thread.new do
+          Thread.current[:pause_fork_reset] = true
+          writer.enqueue(flag_key: "late-racing-child", eval_time_ms: 1_760_000_000_000, targeting_key: "synthetic-user")
+        end
+        Timeout.timeout(1) { entered.pop }
+        writer.stop
+        release << true
+        expect(sender.join(1)).to eq(sender)
+        expect(writer.send(:stopped?)).to eq(true)
+        writer.stop
+        expect(writer.send(:running?)).to eq(false)
+        expect(transport).not_to have_received(:send_flag_evaluations)
+      ensure
+        release&.push(true)
+        sender&.kill
+        sender&.join(1)
+        writer&.stop
+      end
+    ensure
+      writer&.stop
+    end
+
     it "restarts a live inherited writer in a forked child" do
       writer = described_class.new(transport: transport, logger: logger)
       expect_in_fork do

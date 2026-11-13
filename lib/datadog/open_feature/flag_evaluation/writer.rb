@@ -147,7 +147,6 @@ module Datadog
           @queue = SizedQueue.new(QUEUE_SIZE)
           @stop_mutex = Mutex.new
           @stop_cond = ConditionVariable.new
-          @stopped = false
           @dropped_queue_overflow = 0
           @dropped_pre_queue_overflow = 0
           @context_truncated_counts = Hash.new(0)
